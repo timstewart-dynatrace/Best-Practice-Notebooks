@@ -1,6 +1,6 @@
 # CLOUD-03: AWS EKS Monitoring
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 3 of 8 | **Created:** March 2026 | **Last Updated:** 10/19/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 3 of 8 | **Created:** March 2026 | **Last Updated:** 10/22/2026
 
 ## Overview
 
@@ -102,7 +102,7 @@ spec:
 
 EKS data comes from two producers, and each needs its own rules:
 
-- **Workloads in the cluster** — Operator and ActiveGate evaluate *Kubernetes* rules at the cluster scope. Enable `metadataEnrichment` in the DynaKube, map namespace labels (for values shared by the whole namespace, such as `app` and `stage`) and workload labels (for values that differ per workload, such as `team`). Workload and pod rule types need Dynatrace Operator 1.11+ and ActiveGate 1.349+ (a staged rollout — check both have reached you). *"Values resolved from Kubernetes metadata are applied when a pod starts, so restart the pods after changing a label."* K8S-10 covers the rule types in detail.
+- **Workloads in the cluster** — Operator and ActiveGate evaluate *Kubernetes* rules at the cluster scope. Enable `metadataEnrichment` in the DynaKube, map namespace labels (for values shared by the whole namespace, such as `app` and `stage`) and workload labels (for values that differ per workload, such as `team`). Workload and pod rule types need Dynatrace Operator 1.11+ and ActiveGate 1.347+ (a staged rollout — check both have reached you). *"Values resolved from Kubernetes metadata are applied when a pod starts, so restart the pods after changing a label."* K8S-10 covers the rule types in detail.
 - **The EC2 and EBS resources behind the nodes, and their CloudWatch metrics** — these arrive through the AWS connection, so they take the AWS-account rules in CLOUD-02, not the cluster rules.
 
 Configure each tag at the broadest scope where everything underneath shares one value. FAQ-26 § 5.2 has the Kubernetes options beyond central configuration.

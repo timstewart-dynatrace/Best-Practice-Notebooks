@@ -30,12 +30,12 @@
 | **CLOUD** | [Cloud Provider Integrations](../CLOUD%20-%20Cloud%20Provider%20Integrations/) | 9 | AWS, Azure, GCP integrations; Lambda, EKS, multi-cloud patterns |
 | **DASH** | [Dashboard Design & Building](../DASH%20-%20Dashboard%20Design%20&%20Building/) | 8 | Dashboard hierarchy, executive/operations/engineering audiences, sharing and reporting |
 | **DBMON** | [Database Monitoring](../DBMON%20-%20Database%20Monitoring/) | 7 | SQL, NoSQL, cache, messaging, query analysis |
+| **DTM** | [Dynatrace Managed](../DTM%20-%20Dynatrace%20Managed/) | 14 | What is specific to a self-hosted Managed cluster (Dynatrace Classic only): series map, cluster design, configuration, environment, ActiveGate and OneAgent best practices, node architecture, five-layer health model, storage, capacity, Mission Control connectivity, backup and upgrades (formerly MCH) |
 | **FAQ** | [Frequently Asked Questions](../FAQ%20-%20Frequently%20Asked%20Questions/) | 25+ | Standalone single-page reference docs (host groups, tagging, OneAgent and OTel, updates, sizing, metrics, DPL, entity selectors → Smartscape, cutover planning, third-party SaaS telemetry, alert routing, PurePath timings in Grail, metadata strategy) — growing |
 | **FINOPS** | [Cost Management & FinOps](../FINOPS%20-%20Cost%20Management%20&%20FinOps/) | 3+ | DPS consumption, forecasting, anomaly detection, optimization framework — growing |
 | **IAM** | [IAM Administration](../IAM%20-%20IAM%20Administration/) | 16 | Policies, boundaries, groups, SSO, audit, parameterized assignments, permission reference |
 | **K8S** | [Kubernetes Monitoring](../K8S%20-%20Kubernetes%20Monitoring/) | 15 | DynaKube, GitOps deployment, cluster + workload monitoring, troubleshooting |
 | **M2S** | [Managed to SaaS Migration](../M2S%20-%20Managed%20to%20SaaS%20Migration/) | 11 | 9-step procedural runbook for Managed → SaaS deployment migration |
-| **MCH** | [Managed Cluster Health](../MCH%20-%20Managed%20Cluster%20Health/) | 8 | Keeping a self-hosted Managed cluster healthy: node architecture, five-layer health model, storage, capacity, Mission Control connectivity, backup and upgrades (markdown/PDF only — no DQL) |
 | **MOBL** | [Mobile Monitoring](../MOBL%20-%20Mobile%20Monitoring/) | 13 | iOS, Android, cross-platform SDKs; crash reporting, session replay, privacy |
 | **MZ2POL** | [Management Zone Migration: Segments, Policies, Workflows](../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/) | 19 | MZ analysis, zone-consumer inventory, zone-scoped alerting artifacts, tagging at source, MZ rule translation, IAM reference architecture, Spaces status, disposition workshop, end-to-end LAB, Gen2 → Gen3 access control migration |
 | **NR2DT** | [New Relic to Dynatrace Migration Steps](../NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/) | 11 | Procedural runbook (00 prereqs + 9 steps + summary); refers to NRLC for component depth |
@@ -87,7 +87,7 @@ These are entry points for customers leaving another tool or migrating their Dyn
 
 ### Self-Hosted Operations (Dynatrace Managed)
 
-- [MCH](../MCH%20-%20Managed%20Cluster%20Health/) — Keeping a Managed cluster healthy while you run it, and before you migrate off it
+- [DTM](../DTM%20-%20Dynatrace%20Managed/) — What is specific to Dynatrace Managed: keeping a cluster healthy while you run it, and before you migrate off it
 
 ### Domain (Pick Based on What You Monitor)
 
@@ -139,7 +139,7 @@ This table shows which doorway in the playbook uses each series and how it appea
 | S2D | If from Splunk | If consolidating logs from Splunk | — | — |
 | SL2DT | If from Sumo Logic | If consolidating logs from Sumo | — | — |
 | M2S | — | — | Primary (Managed → SaaS) | — |
-| MCH | If running Managed | If running Managed | Before M2S step 1 — confirm the source cluster is healthy | — |
+| DTM | If running Managed | If running Managed | Before M2S step 1 — confirm the source cluster is healthy | — |
 | S2S | — | — | Primary (SaaS → SaaS) | — |
 | OPMIG | — | If on Classic Logs | — | Primary (Phase 2) |
 | MZ2POL | — | If migrating Gen2 access control, **or** replacing MZ-based filtering with segments (notebook 05) | If migrating Gen2 MZs | Primary (Phase 1) |
@@ -170,11 +170,11 @@ For each series, the related series most often read alongside it:
 | [CLOUD](../CLOUD%20-%20Cloud%20Provider%20Integrations/) | [OTEL](../OTEL%20-%20OpenTelemetry%20Integration/) (collectors), [K8S](../K8S%20-%20Kubernetes%20Monitoring/) (managed K8s), [OPLOGS](../OPLOGS%20-%20OpenPipeline%20Logs/) (CloudWatch ingestion) |
 | [DASH](../DASH%20-%20Dashboard%20Design%20&%20Building/) | [WFLOW](../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/), [BIZEV](../BIZEV%20-%20Business%20Events%20&%20Funnel%20Analysis/) (executive dashboards), [ORGNZ](../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/) (segments and filters) |
 | [DBMON](../DBMON%20-%20Database%20Monitoring/) | [SPANS](../SPANS%20-%20Distributed%20Tracing%20and%20Spans/) (database call tracing), [DASH](../DASH%20-%20Dashboard%20Design%20&%20Building/) (database dashboards) |
+| [DTM](../DTM%20-%20Dynatrace%20Managed/) | [M2S](../M2S%20-%20Managed%20to%20SaaS%20Migration/) (moving off Managed), [FAQ](../FAQ%20-%20Frequently%20Asked%20Questions/) (ActiveGate sizing concepts) |
 | [FAQ](../FAQ%20-%20Frequently%20Asked%20Questions/) | [ORGNZ](../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/) (tagging), [ONBRD](../ONBRD%20-%20Dynatrace%20Onboarding/) (host groups) |
 | [IAM](../IAM%20-%20IAM%20Administration/) | [ORGNZ](../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/) (security_context for boundaries), [MZ2POL](../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/) (Gen2 → Gen3), [ONBRD](../ONBRD%20-%20Dynatrace%20Onboarding/) (initial setup) |
 | [K8S](../K8S%20-%20Kubernetes%20Monitoring/) | [OTEL](../OTEL%20-%20OpenTelemetry%20Integration/) (collector deployment), [CLOUD](../CLOUD%20-%20Cloud%20Provider%20Integrations/) (managed K8s), [AUTOM](../AUTOM%20-%20Dynatrace%20Automation/) (GitOps), [OPLOGS](../OPLOGS%20-%20OpenPipeline%20Logs/) (K8s logs) |
-| [M2S](../M2S%20-%20Managed%20to%20SaaS%20Migration/) | [ORGNZ](../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/), [IAM](../IAM%20-%20IAM%20Administration/), [MZ2POL](../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/) (Gen2 → Gen3), [MCH](../MCH%20-%20Managed%20Cluster%20Health/) (source-cluster health) |
-| [MCH](../MCH%20-%20Managed%20Cluster%20Health/) | [M2S](../M2S%20-%20Managed%20to%20SaaS%20Migration/) (moving off Managed), [FAQ](../FAQ%20-%20Frequently%20Asked%20Questions/) (ActiveGate sizing concepts) |
+| [M2S](../M2S%20-%20Managed%20to%20SaaS%20Migration/) | [ORGNZ](../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/), [IAM](../IAM%20-%20IAM%20Administration/), [MZ2POL](../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/) (Gen2 → Gen3), [DTM](../DTM%20-%20Dynatrace%20Managed/) (source-cluster health) |
 | [MOBL](../MOBL%20-%20Mobile%20Monitoring/) | [SPANS](../SPANS%20-%20Distributed%20Tracing%20and%20Spans/) (mobile-to-backend tracing), [DASH](../DASH%20-%20Dashboard%20Design%20&%20Building/) (mobile dashboards) |
 | [MZ2POL](../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/) | [IAM](../IAM%20-%20IAM%20Administration/) (the access-control path), [ORGNZ](../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/) (segment mechanics behind MZ2POL-05) |
 | [NR2DT](../NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/) | [NRLC](../NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/) (component depth), [ONBRD](../ONBRD%20-%20Dynatrace%20Onboarding/), [OPLOGS](../OPLOGS%20-%20OpenPipeline%20Logs/) (logs migration) |

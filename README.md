@@ -26,7 +26,7 @@ Each topic follows the same structure:
 - README.md — Topic overview and usage guide
 - AGENTS.md — Routing table for AI agents (present in every series)
 
-MCH (Managed Cluster Health) is the one exception: it has no notebooks/ directory, because Dynatrace Managed has no Grail and the series contains no executable queries to import.
+DTM (Dynatrace Managed) is the one exception: it has no notebooks/ directory, because Dynatrace Managed has no Grail and the series contains no executable queries to import.
 
 Every series uses these exact lowercase directory names. Series directory names contain spaces, so quote them in shell commands.
 
@@ -42,8 +42,8 @@ Series are grouped into seven categories for navigation. An alphabetical index f
   [OPLOGS](#oplogs---openpipeline-logs) · [OPIPE](#opipe---openpipeline-beyond-logs) · [SPANS](#spans---distributed-tracing-and-spans) · [BIZEV](#bizev---business-events--funnel-analysis) · [DASH](#dash---dashboard-design--building)
 - **Automation & Workflows** — configuration-as-code, alerting, reliability, and operational workflows
   [AUTOM](#autom---dynatrace-automation) · [WFLOW](#wflow---workflows-and-alert-notifications) · [AIOPS](#aiops---dynatrace-intelligence) · [ALERT](#alert---alerting-strategy-and-design) · [SLO](#slo---service-level-objectives)
-- **Dynatrace Managed Operations** — keeping a self-hosted Managed cluster healthy
-  [MCH](#mch---managed-cluster-health)
+- **Dynatrace Managed** — what is specific to a self-hosted Managed cluster
+  [DTM](#dtm---dynatrace-managed)
 - **Security** — runtime vulnerability analytics, application protection, and security posture management
   [APPSEC](#appsec---application-security)
 - **Migrations** — moving to Dynatrace or between Dynatrace environments
@@ -154,6 +154,23 @@ End-to-end monitoring of SQL, NoSQL, cache, and messaging database platforms.
 - [DBMON-06: Dashboards and Alerting](DBMON%20-%20Database%20Monitoring/markdown/-%5BDBMON%5D-06-dashboards-and-alerting.md) — Database performance dashboards
 - [DBMON-99: Best Practice Summary](DBMON%20-%20Database%20Monitoring/markdown/-%5BDBMON%5D-99-best-practice-summary.md) — Consolidated best practices from the DBMON series
 
+### [DTM - Dynatrace Managed](DTM%20-%20Dynatrace%20Managed/README.md)
+What is specific to a self-hosted Dynatrace Managed cluster (Dynatrace Classic only): designing and configuring it, its ActiveGates and OneAgents, then keeping it healthy — node architecture, a five-layer health model, one notebook per layer, and a checklist. Formerly MCH — Managed Cluster Health. Markdown and PDF only.
+
+- [DTM-00: The Dynatrace Managed Journey](DTM%20-%20Dynatrace%20Managed/markdown/-%5BDTM%5D-00-dynatrace-managed-journey.md) — Series map: what the series applies to, where to start by situation, the numbering bands, and where each former MCH notebook went
+- [DTM-01: Cluster Design Best Practices](DTM%20-%20Dynatrace%20Managed/markdown/-%5BDTM%5D-01-cluster-design-best-practices.md) — Sizing for growth, node rules and placement, choosing single-cluster HA, rack awareness or Premium HA, storage layout, and host, operating system and cloud choices
+- [DTM-02: Cluster Configuration Best Practices](DTM%20-%20Dynatrace%20Managed/markdown/-%5BDTM%5D-02-cluster-configuration-best-practices.md) — Custom properties that survive updates, reliable encrypted email, the Mission Control and remote-access trade-offs, internet proxy, sign-in and session security, privilege elevation, node traffic roles, and backups from day one
+- [DTM-03: Environment Best Practices](DTM%20-%20Dynatrace%20Managed/markdown/-%5BDTM%5D-03-environment-best-practices.md) — Environment or management zone as the boundary, per-environment limits, choosing LDAP, SAML or OpenID Connect, the break-glass administrator account, keeping cluster, environment and zone permissions narrow, and additive IAM policies
+- [DTM-04: ActiveGate Deployment on Managed](DTM%20-%20Dynatrace%20Managed/markdown/-%5BDTM%5D-04-activegate-deployment-on-managed.md) — ActiveGate roles and purposes, placement so OneAgents never fall back uncompressed, two per data center and sizing, network zones and load balancers, multi-environment limits and dedicated extension ActiveGates, and update modes
+- [DTM-05: OneAgent Deployment on Managed](DTM%20-%20Dynatrace%20Managed/markdown/-%5BDTM%5D-05-oneagent-deployment-on-managed.md) — How OneAgent reaches the cluster, host groups and network zones decided before rollout, network-zone fallback modes, update policy with rings and restarts, and the x86-64-v2 CPU baseline
+- [DTM-10: Managed Cluster Architecture and Health Model](DTM%20-%20Dynatrace%20Managed/markdown/-%5BDTM%5D-10-managed-cluster-architecture-health-model.md) — What runs on a cluster node, what a node failure costs, the five-layer health model, and where each health signal is surfaced
+- [DTM-11: Server Nodes and Processes](DTM%20-%20Dynatrace%20Managed/markdown/-%5BDTM%5D-11-server-nodes-and-processes.md) — Node inventory and operation state, on-node process checks, the gated service start order, safe restarts, which node events email you, memory, time, inter-node network, and triage
+- [DTM-12: Cassandra Metrics Store Health](DTM%20-%20Dynatrace%20Managed/markdown/-%5BDTM%5D-12-cassandra-metrics-store.md) — The metrics repository: replication, size ceilings and their events, 5-year retention by resolution, nodetool health checks, adding and removing nodes, repair, what the daily backup restores, rack awareness, and Cassandra versions
+- [DTM-13: Elasticsearch Store Health](DTM%20-%20Dynatrace%20Managed/markdown/-%5BDTM%5D-13-elasticsearch-store.md) — User sessions (3 copies) and log events (2 copies), sizing, retention as the size lever, _cluster/health and events, log ingest pressure, storage location, the incremental backup, failover and versions
+- [DTM-14: Cluster ActiveGates and Mission Control Connectivity](DTM%20-%20Dynatrace%20Managed/markdown/-%5BDTM%5D-14-activegates-mission-control-connectivity.md) — The agent traffic path and ActiveGate hierarchy, load balancers, endpoints and DNS, certificates, the Mission Control link and what breaks without it, offline clusters, remote access, and Cluster ActiveGate health
+- [DTM-15: Capacity and Scaling](DTM%20-%20Dynatrace%20Managed/markdown/-%5BDTM%5D-15-capacity-and-scaling.md) — The sizing model (host units, peak user actions, Premium HA), scaling out, up and storage, one-third headroom, capacity signals and which email you, environment quotas and overload prevention, and adding or removing nodes
+- [DTM-16: Backup, Upgrade, and Disaster Recovery](DTM%20-%20Dynatrace%20Managed/markdown/-%5BDTM%5D-16-backup-upgrade-disaster-recovery.md) — What a backup protects and what it doesn't, setting up backups (and the boot-time mount risk), restore preconditions and order, upgrade paths and their 24-hour rules, version support, Premium HA failover, and choosing a recovery path
+- [DTM-99: Best Practice Summary and Health-Check Checklist](DTM%20-%20Dynatrace%20Managed/markdown/-%5BDTM%5D-99-best-practice-summary.md) — The cluster-health notebooks on one page: a five-layer checklist, every signal that never emails you, a review cadence, the numbers worth knowing, anti-patterns, and the documentation's gaps and conflicts
 ### [FAQ - Frequently Asked Questions](FAQ%20-%20Frequently%20Asked%20Questions/README.md)
 Frequently asked questions and answers across the Dynatrace Best-Practice Notebooks series.
 - [FAQ-01: Why you need a good Host Group naming strategy](FAQ%20-%20Frequently%20Asked%20Questions/markdown/-%5BFAQ%5D-01-host-group-naming-strategy.md) — How host group naming influences access control, alerting, automation, and tenant maintainability
@@ -240,17 +257,6 @@ Guide for migrating from Dynatrace Managed to Dynatrace SaaS.
 - [M2S-95: [LAB] Terraform for Managed-to-SaaS Migration](M2S%20-%20Managed%20to%20SaaS%20Migration/markdown/-%5BM2S%5D-95-%5BLAB%5D-terraform-migration.md) — Appendix lab: migrating with the Terraform provider — bulk vs iterative export, Managed-source auth and scopes, entity-ID preservation via `oneagentctl`, wave-ordered apply
 - [M2S-99: Best Practice Summary](M2S%20-%20Managed%20to%20SaaS%20Migration/markdown/-%5BM2S%5D-99-best-practice-summary.md) — Definitive reference of all best practices from the M2S series
 
-### [MCH - Managed Cluster Health](MCH%20-%20Managed%20Cluster%20Health/README.md)
-Operating a self-hosted Dynatrace Managed cluster: node architecture, a five-layer health model, and where each health signal is surfaced. Markdown and PDF only.
-
-- [MCH-01: Managed Cluster Architecture and Health Model](MCH%20-%20Managed%20Cluster%20Health/markdown/-%5BMCH%5D-01-managed-cluster-architecture-health-model.md) — What runs on a cluster node, what a node failure costs, the five-layer health model, and where each health signal is surfaced
-- [MCH-02: Server Nodes and Processes](MCH%20-%20Managed%20Cluster%20Health/markdown/-%5BMCH%5D-02-server-nodes-and-processes.md) — Node inventory and operation state, on-node process checks, the gated service start order, safe restarts, which node events email you, memory, time, inter-node network, and triage
-- [MCH-03: Cassandra Metrics Store Health](MCH%20-%20Managed%20Cluster%20Health/markdown/-%5BMCH%5D-03-cassandra-metrics-store.md) — The metrics repository: replication, size ceilings and their events, 5-year retention by resolution, nodetool health checks, adding and removing nodes, repair, what the daily backup restores, rack awareness, and Cassandra versions
-- [MCH-04: Elasticsearch Store Health](MCH%20-%20Managed%20Cluster%20Health/markdown/-%5BMCH%5D-04-elasticsearch-store.md) — User sessions (3 copies) and log events (2 copies), sizing, retention as the size lever, _cluster/health and events, log ingest pressure, storage location, the incremental backup, failover and versions
-- [MCH-05: Cluster ActiveGates and Mission Control Connectivity](MCH%20-%20Managed%20Cluster%20Health/markdown/-%5BMCH%5D-05-activegates-mission-control-connectivity.md) — The agent traffic path and ActiveGate hierarchy, load balancers, endpoints and DNS, certificates, the Mission Control link and what breaks without it, offline clusters, remote access, and Cluster ActiveGate health
-- [MCH-06: Capacity and Scaling](MCH%20-%20Managed%20Cluster%20Health/markdown/-%5BMCH%5D-06-capacity-and-scaling.md) — The sizing model (host units, peak user actions, Premium HA), scaling out, up and storage, one-third headroom, capacity signals and which email you, environment quotas and overload prevention, and adding or removing nodes
-- [MCH-07: Backup, Upgrade, and Disaster Recovery](MCH%20-%20Managed%20Cluster%20Health/markdown/-%5BMCH%5D-07-backup-upgrade-disaster-recovery.md) — What a backup protects and what it doesn't, setting up backups (and the boot-time mount risk), restore preconditions and order, upgrade paths and their 24-hour rules, version support, Premium HA failover, and choosing a recovery path
-- [MCH-99: Best Practice Summary and Health-Check Checklist](MCH%20-%20Managed%20Cluster%20Health/markdown/-%5BMCH%5D-99-best-practice-summary.md) — The series on one page: a five-layer checklist, every signal that never emails you, a review cadence, the numbers worth knowing, anti-patterns, and the documentation's gaps and conflicts
 ### [MOBL - Mobile Monitoring](MOBL%20-%20Mobile%20Monitoring/README.md)
 Dynatrace mobile Real User Monitoring (RUM) for iOS, Android, and cross-platform frameworks.
 - [MOBL-01: Mobile Monitoring Fundamentals](MOBL%20-%20Mobile%20Monitoring/markdown/-%5BMOBL%5D-01-fundamentals.md) — Mobile RUM architecture, supported platforms, and beacon data flow

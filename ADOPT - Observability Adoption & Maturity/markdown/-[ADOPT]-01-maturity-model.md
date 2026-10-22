@@ -1,6 +1,6 @@
 # ADOPT-01: Observability Maturity Model
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 10/21/2026
 
 ## Overview
 
@@ -38,7 +38,7 @@ Add these to the platform-health checklist in ADOPT-02 and the success metrics i
 
 | Requirement | Details |
 |-------------|----------|
-| **Dynatrace Environment** | Dynatrace SaaS (Grail). The DQL in this notebook does not apply to Dynatrace Managed, which has no Grail — the MCH series covers Managed. |
+| **Dynatrace Environment** | Dynatrace SaaS (Grail). The DQL in this notebook does not apply to Dynatrace Managed, which has no Grail — the DTM series (Dynatrace Managed) covers Managed. |
 | **Permissions** | `storage:entities:read`, `storage:smartscape:read`, `storage:logs:read`, `storage:spans:read`, `storage:events:read` |
 | **Data** | At least 24 hours of ingested monitoring data |
 | **Audience** | Platform engineers, SREs, engineering managers, and leadership stakeholders |

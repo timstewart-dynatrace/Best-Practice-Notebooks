@@ -1,9 +1,11 @@
 # ONBRD-05: Deploying OneAgent
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 10/14/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 10/22/2026
 
 ## Getting Data Into Dynatrace
 OneAgent is the foundation of Dynatrace monitoring. This notebook covers deployment strategies, installation methods, and verification steps to ensure your infrastructure is reporting data.
+
+> **On Dynatrace Managed?** This notebook is written for SaaS. How OneAgent reaches a Managed cluster, host groups and network zones to decide before rollout, and update policy on Managed are covered in DTM-05: OneAgent Deployment on Managed.
 
 ---
 

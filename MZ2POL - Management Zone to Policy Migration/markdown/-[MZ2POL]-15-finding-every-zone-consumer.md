@@ -368,7 +368,10 @@ Classic dashboards, reports, calculated service metrics and request naming rules
 | Request naming rule | `GET /api/config/v1/service/requestNaming`, then `/{id}` | `managementZones` — DEPRECATED | Not stated — the script matches all three |
 | Synthetic monitor | `GET /api/v1/synthetic/monitors?managementZone={id}` | Membership: *"A set of management zones to which the monitor belongs to."* | Numeric ID |
 
-Three of these deserve a note:
+Three of these deserve a note, and synthetic monitors a fourth:
+
+- **The platform Synthetic API has no zone filter.** `GET /platform/synthetic/v1/monitors` (Dynatrace recommends migrating to it; all of its endpoints are Early Adopter) filters `monitor-selector` by type, location, entity, tag, enablement and `securityContext(…)` — not by zone. Its form of *monitors in this zone* is *monitors with this security context*, the scoping SYNTH-01 describes. Keep the classic call above for the zone inventory.
+  <sub>[GET monitors — platform API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-synthetic-v1/monitors-get) — *"Security context: securityContext(value1,value2)"*; [Access control — Synthetic (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-access-control) — *"Dynatrace recommends migrating to the Synthetic platform permissions and the Synthetic Platform API"*; *"All Synthetic Platform API endpoints are currently in Early Adopter maturity."*; *"can change in non-compatible ways"*</sub>
 
 - **Dashboards carry a usage signal.** The dashboard list returns `lastViewed` — *"The timestamp of the last dashboard view, in UTC milliseconds."* A zone-filtered dashboard nobody has opened in months is a weaker reason to keep the zone than one opened daily. Pull it into the matrix (§9).
 - **Calculated metrics and request naming already lose the zone in Phase 3.** The request naming rule's `managementZones` is documented as *"Not available in Phase 3."* and *"Management zones are not supported and this field will be ignored."*; the calculated metric's request-attribute `managementZone` carries the same notice. MZ2POL-01 records the API 1.337 deprecation of these properties. List them anyway — a metric that silently loses its zone restriction counts different requests.

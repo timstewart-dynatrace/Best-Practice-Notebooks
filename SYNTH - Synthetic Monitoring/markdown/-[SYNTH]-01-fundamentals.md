@@ -256,6 +256,30 @@ fetch dt.synthetic.events, from: now() - 24h
 // | summarize {n = count()}, by:{dt.security_context}
 ```
 
+### Restricting public locations
+
+Security context scopes **monitors**, not locations: `synthetic:locations:read` takes no IAM condition, so every user who can see locations sees all of them. To keep teams off public locations you don't use, change each location's status for the whole environment:
+
+| Status | Effect |
+|---|---|
+| `ENABLED` | Shown, and monitors can be assigned |
+| `DISABLED` | Shown as inactive; no new assignments — monitors already assigned keep running from it, so move them first |
+| `HIDDEN` | Not shown in the UI; allowed only when no monitor is assigned |
+
+A separate switch turns **all** public locations on or off at once (`PUT …/locations/status` with `{"enabled": false}`). Changing either needs `synthetic:locations:write`, which also takes no condition — grant it to Synthetic admins only.
+
+Two APIs do this:
+
+- **Environment API v2** — `PUT /api/v2/synthetic/locations/{locationId}` with `{"type": "PUBLIC", "status": "DISABLED"}`, classic access token. It keeps working, with classic permissions that always apply tenant-wide.
+- **Platform Synthetic API** — `PUT /platform/synthetic/v1/locations/{location-id}`, platform or OAuth token. Its permissions are the ones security-context boundaries apply to; classic permissions always apply tenant-wide. Dynatrace recommends migrating to it, and documents all of its endpoints as Early Adopter — they *"can change in non-compatible ways"*.
+
+> <sub>**Sources:**</sub>
+> - <sub>[PUT synthetic location — platform API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-synthetic-v1/locations-location-id-put) — *"for public locations you can only change the location status"*; *"You can only set location as HIDDEN when no monitor is assigned to it."*</sub>
+> - <sub>[Access control — Synthetic (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-access-control) — *"Dynatrace recommends migrating to the Synthetic platform permissions and the Synthetic Platform API"*; *"All Synthetic Platform API endpoints are currently in Early Adopter maturity."*; *"can change in non-compatible ways"*</sub>
+> - <sub>[PUT locations status — platform API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-synthetic-v1/locations-status-put)</sub>
+> - <sub>[PUT a synthetic location (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/synthetic-v2/synthetic-locations-v2/put-a-location)</sub>
+> - <sub>[IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `synthetic:locations:read` / `:write` list no conditions</sub>
+
 ### Primary Grail tags on monitors
 
 Ingest enrichment rules don't apply to Synthetic. *"The enrichment rules from the earlier steps don't reach Synthetic, so a monitor uses only the tags you set on it."* Set them per monitor — **Edit > Primary Grail tags** in the Synthetic app, or `primaryGrailTags` in the monitor's API request body. Every execution then carries them on its events and metrics, and the monitor's Smartscape node carries them too. All three monitor types support them.

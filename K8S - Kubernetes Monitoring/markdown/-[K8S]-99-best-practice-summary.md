@@ -1,6 +1,6 @@
 # K8S-99: Best Practice Summary
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/22/2026
 
 ## Overview
 
@@ -197,7 +197,7 @@ Starting points from community practice, not Dynatrace-published figures — mea
 | 39 | Choose the enrichment method by where the value is maintained | Central rules for existing namespace labels; `metadata.dynatrace.com/<key>` annotations for per-workload or per-pod values; DynaKube `resourceAttributes` for cluster-wide facts (K8S-10 § 2) | **Critical** | Enrichment |
 | 40 | Know the precedence when two methods set the same key | Annotations > DynaKube attributes > central rules; within annotations, pod > workload > namespace | **Critical** | Enrichment |
 | 41 | Create enrichment rules for `team`, `env`, `cost-center` labels | Metadata type `Label`, Source `cost-center`, Target `dt.cost.costcenter` (or "enrich directly" for a `k8s.namespace.label.<key>` field) | Recommended | Enrichment |
-| 42 | Check version floors before relying on a level | Kubernetes enrichment: Operator 1.10+, OneAgent 1.333+, ActiveGate 1.343+; workload-level annotations: Operator 1.11.0+, ActiveGate 1.349+ | Recommended | Enrichment |
+| 42 | Check version floors before relying on a level | Kubernetes enrichment: Operator 1.10+, OneAgent 1.333+, ActiveGate 1.343+; workload-level annotations: Operator 1.11.0+, ActiveGate 1.347+ | Recommended | Enrichment |
 | 43 | Wait, then restart, after rule changes | *"New rules may take up to 45 minutes to take effect. Pod restarts are required after the 45 mins"* | Recommended | Enrichment |
 | 44 | Label namespaces with cost allocation metadata | `cost-center`, `budget-owner` labels on Namespace objects | Recommended | Enrichment |
 

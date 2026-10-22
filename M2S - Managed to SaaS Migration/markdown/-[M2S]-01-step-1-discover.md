@@ -1,6 +1,6 @@
 # M2S-01: Step 1 — Discover: Understand SaaS Differences
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 10/21/2026
 
 The first step in any Managed-to-SaaS migration is understanding what you are moving to and why. This notebook helps you document the benefits of Dynatrace SaaS for your organization, take inventory of your current Managed environment, and confirm your use cases and goals for the upgrade.
 
@@ -59,7 +59,7 @@ A complete discovery must cover ALL of these categories — missing any one will
 | **Dynatrace Managed** | Active Managed environment with administrator access |
 | **Dynatrace SaaS Tenant** | Provisioned SaaS environment (or planning to provision) |
 | **API Tokens** | Tokens with `entities.read`, `settings.read` scopes on Managed |
-| **Healthy source cluster** | Check the Managed cluster's health first with the MCH series (MCH-99 checklist) — a cluster with failing nodes, a full store or a broken backup carries its problems into the migration |
+| **Healthy source cluster** | Check the Managed cluster's health first with the DTM series (DTM-99 checklist) — a cluster with failing nodes, a full store or a broken backup carries its problems into the migration |
 | **Stakeholder Access** | Ability to document and share findings with decision-makers |
 
 ![SaaS Benefits Overview](images/01-saas-benefits.png)

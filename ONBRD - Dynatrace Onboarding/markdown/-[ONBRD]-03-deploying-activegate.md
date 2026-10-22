@@ -1,6 +1,6 @@
 # ONBRD-03: Deploying ActiveGate
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 3 of 10 | **Created:** December 2025 | **Last Updated:** 10/19/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 3 of 10 | **Created:** December 2025 | **Last Updated:** 10/22/2026
 
 ## Your Network Gateway to Dynatrace
 ActiveGate is a lightweight component that routes traffic between your infrastructure and Dynatrace. This notebook covers when you need ActiveGate, how many to deploy, where to place them, and installation steps - including comprehensive Kubernetes deployment options.
@@ -36,9 +36,9 @@ ActiveGate is a proxy and routing component that connects your environment to Dy
 | Component | Purpose |
 |-----------|--------|
 | **Environment ActiveGate** | Routes OneAgent traffic and runs extensions; private synthetic monitors run on a *separate* Synthetic-enabled ActiveGate |
-| **Cluster ActiveGate** | Dynatrace Managed only - cluster communication |
+| **Cluster ActiveGate** | Dynatrace Managed only — the cluster's mediating proxy for OneAgent and digital experience traffic from outside its network |
 
-> **Note:** This notebook covers Environment ActiveGate for Dynatrace SaaS.
+> **Note:** This notebook covers Environment ActiveGate for Dynatrace SaaS. On Managed, *"use one or more Cluster ActiveGates as mediating proxies for pre-processing of OneAgent and DEM traffic"*; both ActiveGate types on Managed are covered in DTM-04: ActiveGate Deployment on Managed. ([Managed deployments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/managed-deployments))
 
 ![ActiveGate Architecture](images/03-activegate-architecture.png)
 <!-- MARKDOWN_TABLE_ALTERNATIVE
@@ -124,14 +124,25 @@ When every host can already reach your SaaS environment, routing OneAgent traffi
 | **Egress and allowlisting** | Only the ActiveGates need outbound 443. For hosts without internet access, Dynatrace says to *"install an ActiveGate to serve as a single access point, rather than opening the firewall for multiple hosts running OneAgents"*, so the firewall and proxy rules name a few ActiveGates. | Every monitored host needs outbound HTTPS 443 to your environment, through your firewall or proxy. |
 | **Proxy configuration** | Configured on the ActiveGates: *"You can use a single proxy for all outgoing traffic"*, set in the ActiveGate configuration. Dynatrace says the single-access-point approach *"greatly reduces the effort of managing and maintaining firewall and/or proxy configuration settings."* | Each OneAgent host that reaches the environment through a proxy needs that proxy set on the host, with `oneagentctl --set-proxy` or at install time. |
 | **Network overhead** | The routing module *"collects messages from OneAgent instances and builds bulks, which are then sent in compressed form"*. Dynatrace says this *"can reduce network overhead considerably, depending on the number of OneAgent instances"* behind the ActiveGate. | No ActiveGate-side bulking: each OneAgent connects to the environment on its own. |
+| **Connections at the egress** | OneAgent connections end at the ActiveGates, and only the ActiveGates hold connections out through your NAT or firewall. Dynatrace says the ActiveGate lets you *"reduce your interaction with Dynatrace to one single point—available locally"*, and that it *"reduces the complexity of network connections."* | Every OneAgent on every host holds its own connections through the shared egress device. The docs publish no per-host connection count. In field experience it grows with the number of instrumented processes on the host (see the note below). |
 | **Infrastructure to run** | ActiveGate hosts to size (§ 3 and FAQ-10), keep updated (FAQ-05) and run at two or more per network zone for high availability. Auto-update covers host-based ActiveGates only: *"Auto-update and One-click update functionalities are limited to host-based—using installer—deployment only."* | Nothing to deploy, size, patch or update. |
 | **Capacity** | The ActiveGates in a zone carry every host behind them, so their capacity, and the survivor's capacity when one is down (§ 3), caps the zone. | No intermediate tier to saturate. |
 | **Operating-system lifecycle** | Every ActiveGate host must stay on a supported OS. The § 3 table lists nine OS versions that lose ActiveGate support between 11/01/2026 and 01/01/2027. | No additional OS to track. |
 | **Locality and failover** | Network zones keep OneAgents on nearby ActiveGates, and *"You can still use ActiveGates in other zones as a backup option in case primary ActiveGates becomes unavailable"*. See the fallback table below. | No zone design. Resilience is the host's own path to your environment. |
 | **Installer cache** | The requirements page budgets 4 GB for *"ActiveGate and OneAgent cached installers and container images—if such will need to be stored."* | Hosts download installers from the environment. |
 | **Reuse** | A routing/monitoring ActiveGate you already run for remote extensions, Kubernetes monitoring or classic cloud polling can also route OneAgent traffic. A Synthetic-enabled ActiveGate cannot: a clean Synthetic installation *"disables all other ActiveGate features, including communication with OneAgents"* (§ 1). | No reuse needed. |
+| **Memory dumps** | OneAgent uploads Java, .NET and Node.js memory dumps to the ActiveGate, which stores them for download. Dynatrace *"doesn't allow you to upload dumps to the Dynatrace cluster in the cloud."* | No central store. Dumps stay on the monitored host only for a limited time: *"when OneAgent periodically empties the directory, the file size could be 0 bytes."* Copy a dump off the host before it ages out. |
+| **z/OS** | The zRemote module *"routes that data, compressed and encrypted, via its local ActiveGate to Dynatrace."* | Not possible: z/OS monitoring always goes through an ActiveGate. |
 
-**Recommended approach:** route through ActiveGates when hosts cannot or should not have direct egress, or when your security team wants monitoring traffic to leave through a few known hosts. Go direct when hosts already have outbound access and nothing else requires an ActiveGate. Choose per network zone: a sealed data center can route through ActiveGates while cloud workloads with egress go direct.
+**Recommended approach:** route through ActiveGates when hosts cannot or should not have direct egress, when your security team wants monitoring traffic to leave through a few known hosts, or when a large fleet shares one NAT or firewall egress (see the note below). Go direct when hosts already have outbound access, the fleet behind each egress is small, and nothing else requires an ActiveGate (central memory dump storage and z/OS monitoring both do). Choose per network zone: a sealed data center can route through ActiveGates while cloud workloads with egress go direct.
+
+> **Large fleets going direct can exhaust the egress device.** In field experience, each instrumented process on a full-stack host talks to your environment on its own. A host with log monitoring and 20 injected processes then holds on the order of 25 TCP connections. Dynatrace does not publish that figure, so measure it on one of your own hosts before planning around it: on Linux, `ss -tn state established '( dport = :443 )'`, then count the lines whose peer is your environment's address.
+>
+> Across a fleet, all of those connections pass through the NAT or firewall the hosts share for internet egress. A device that translates everything to **one public IP**, from a single port pool shared across destinations, has at most 65,535 source ports, and fewer once reserved ranges are excluded. 2,000 hosts × 25 connections uses about 50,000 of them and leaves roughly 15,000 for everything else on the network. At 30 instrumented processes per host the pool is gone: some OneAgent connections fail, and so does other outbound traffic. Devices with a pool of public IPs, or that allocate ports per destination, have more port headroom, but their session table still has to hold every connection.
+>
+> One large enterprise deployment that sent its whole fleet direct saw sites lose internet connectivity this way until it deployed ActiveGates. Before going direct at scale, ask your network team for two numbers: the egress device's NAT port capacity and its session-table limit.
+
+> **Kubernetes clusters usually run an ActiveGate anyway.** Kubernetes/OpenShift monitoring is an ActiveGate module, and the Operator's full-stack example deploys an ActiveGate with the `routing` and `kubernetes-monitoring` capabilities. In-cluster OneAgents can still go direct, so for a cluster the question is usually whether to route through the ActiveGate you already run there (§ 7), not whether to deploy one.
 
 > **Going direct does not stay direct by itself.** The connectivity scheme says *"OneAgent will connect to an Environment ActiveGate, if one is present"*, and OneAgents with no network zone *"try to connect to any ActiveGate in a random order"*. If you later deploy an Environment ActiveGate for extensions or Kubernetes, hosts that can reach it may start routing through it. Use network zones to decide which hosts use which ActiveGates.
 
@@ -149,11 +160,13 @@ On SaaS, the connectivity scheme says OneAgent connects to the SaaS cluster *"di
 
 > <sub>**Sources:**</sub>
 > - <sub>[Data security controls (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-security/data-security-controls), [Install OneAgent on Linux (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/installation-and-operation/linux/installation/install-oneagent-on-linux)</sub>
-> - <sub>[Route OneAgent traffic to Dynatrace (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/capabilities/routing-monitoring-purpose) — *"This can reduce network overhead considerably, depending on the number of OneAgent instances communicating with the ActiveGate and on the amount of data transferred by them."*</sub>
+> - <sub>[Route OneAgent traffic to Dynatrace (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/capabilities/routing-monitoring-purpose) — *"This can reduce network overhead considerably, depending on the number of OneAgent instances communicating with the ActiveGate and on the amount of data transferred by them."* and *"In this way Dynatrace ActiveGate allows you to reduce your interaction with Dynatrace to one single point—available locally."*</sub>
 > - <sub>[Supported connectivity schemes for ActiveGates (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/supported-connectivity-schemes-for-activegates) — *"Dynatrace SaaS Cluster receives connections on port 443."*</sub>
 > - <sub>[Get started with network zones (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones/network-zones-basic-info), [OneAgent connectivity in network zones (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones/oneagent-connectivity) — *"None (drop traffic) corresponds to priority groups 1 and 2."*</sub>
 > - <sub>[Proxy for ActiveGate (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/configuration/set-up-proxy-authentication-for-activegate), [OneAgent configuration via command-line interface (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface)</sub>
 > - <sub>[Install a Synthetic-enabled ActiveGate (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/active-gate-for-private-locations-install)</sub>
+> - <sub>[Analyze memory dumps (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/profiling-and-optimization/memory-dump-analysis) — *"Memory dumps are stored by OneAgent locally for a limited time on the disk of the monitored application-server machine."*</sub>
+> - <sub>[Install the zRemote module for z/OS monitoring (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/capabilities/zremote-purpose), [ActiveGate purposes and functionality (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/capabilities), [Full-stack observability on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/full-stack-observability)</sub>
 > - <sub>[Update ActiveGate (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/operation/update-activegate), [Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements), [End-of-support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news)</sub>
 > - <sub>**Derived:** the recommended approach and the "does not stay direct" note combine the connectivity-scheme preference for an Environment ActiveGate with the unconfigured-OneAgent behavior on the network-zones page.</sub>
 
@@ -169,6 +182,7 @@ On SaaS, the connectivity scheme says OneAgent connects to the SaaS cluster *"di
 | Monitoring AWS (Clouds app GA)? | AG optional | AG required |
 | Monitoring Azure (Clouds app, SaaS 1.337+)? | AG optional | AG required |
 | Monitoring GCP? | No AG on SaaS — the classic collector runs on GKE or Cloud Functions; the Clouds connection (Preview) needs none | Continue |
+| Many hosts behind one shared NAT / firewall egress? | Route via AG (see the egress note above) | Continue |
 | Want OneAgent egress through a few ActiveGates instead of every host? | Route via AG (see the trade-offs above) | Direct is fine |
 -->
 
@@ -178,7 +192,7 @@ On SaaS, the connectivity scheme says OneAgent connects to the SaaS cluster *"di
 
 > **FAQ-10 owns the ActiveGate sizing decision.** *FAQ-10: How do I size and scale ActiveGates?* carries the current published per-shape capacity tables, the 50% CPU / 80% memory headroom rule, the survivor-capacity HA math for a multi-node zone, and the `dt.sfm.active_gate.*` saturation signals to watch once the fleet is running. Treat the table below as an order-of-magnitude sanity check while you plan the deployment — size the actual machines against FAQ-10 and the official requirements page.
 
-Dynatrace publishes estimated host counts per reference instance shape, with the guidance that a steady-state ActiveGate *"should not exceed 50% CPU and 80% memory"*:
+Dynatrace publishes estimated host counts per reference instance shape for an ActiveGate that only routes OneAgent traffic. The counts assume a specific workload: *"On each host, OneAgent is performing eight monitoring tasks"* — infrastructure monitoring, log monitoring, full-stack monitoring of 3 Apache Tomcat and 2 Apache HTTP Server instances, and extension monitoring. The page adds that *"The real number of hosts may be different depending on the monitored technologies in your environment."* In steady state the ActiveGate machine *"should not exceed 50% CPU and 80% memory"*.
 
 | Reference shape | Architecture | vCPU | RAM | Estimated hosts routed |
 |-----------------|--------------|------|-----|------------------------|
@@ -188,8 +202,29 @@ Dynatrace publishes estimated host counts per reference instance shape, with the
 | c7g.large | ARM64 | 2 | 3.75 GiB | ~1,300 |
 | c7g.xlarge | ARM64 | 4 | 7.5 GiB | ~2,700 |
 | c7g.2xlarge | ARM64 | 8 | 15 GiB | ~5,500 |
+| S | s390 | 2 | 4 GiB | ~800 |
+| M | s390 | 4 | 8 GiB | ~1,500 |
 
-The reference points are AWS instance shapes — for on-premises VMs, map by vCPU/RAM rather than looking for the instance name. "Estimated hosts routed" assumes typical per-host data volume; hosts pushing heavy log volume through the ActiveGate consume capacity faster. Note also that ARM64 routes materially more hosts per vCPU than x86-64 at the same shape, which is worth knowing *before* you standardize on an instance family.
+The reference points are AWS instance shapes (plus two s390 machine sizes). For on-premises VMs, map by vCPU and RAM rather than looking for the instance name. Compare your own hosts with the eight-task profile before reusing a count: a host with more instrumented processes than that profile fills an ActiveGate sooner.
+
+**Check the architecture before you pick an instance family.** ARM64 routes more hosts per vCPU than x86-64 at the same shape, but *"ActiveGate installed on the x86-64 architecture supports all functionalities. Other architectures provide only partial support."* Confirm that every ActiveGate purpose you need (extensions, cloud polling, Kubernetes monitoring) works on ARM64 or s390 before you standardize on it. Windows ActiveGates are x86-64 only: *"ActiveGate supports only operating systems running on the x86-64 architecture (64-bit Intel/AMD)."*
+
+#### Routing plus log ingest on the same ActiveGate
+
+The table above is for routing only. An ActiveGate that also receives logs through the Log ingestion API has its own table, in which *"OneAgent routing traffic is set at 50% of the routing-only capacity for the machine size"*:
+
+| Reference shape | Architecture | vCPU | RAM | Estimated hosts routed | API log ingestion (MB/min) |
+|-----------------|--------------|------|-----|------------------------|----------------------------|
+| c7i.large | x86-64 | 2 | 3.75 GiB | ~400 | ~750 |
+| c7i.xlarge | x86-64 | 4 | 7.5 GiB | ~900 | ~1,500 |
+| c7i.2xlarge | x86-64 | 8 | 15 GiB | ~1,250 | ~3,300 |
+| c7g.large | ARM64 | 2 | 3.75 GiB | ~400 | ~280 |
+| c7g.xlarge | ARM64 | 4 | 7.5 GiB | ~1,350 | ~560 |
+| c7g.2xlarge | ARM64 | 8 | 15 GiB | ~2,750 | ~1,650 |
+
+So a 2-vCPU x86-64 ActiveGate that routes about 800 hosts on its own routes about 400 once it also takes API log ingest. If your ActiveGates will front log ingestion, size them from this table, not the routing-only one. An ActiveGate that receives logs **only** through the API has a third table; FAQ-10 reproduces it.
+
+> <sub>**Sources:** [Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements) — *"It is recommended that the machine on which ActiveGate is running should not exceed 50% CPU and 80% memory."*, [Windows ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/windows/windows-activegate-hardware-and-system-requirements) — *"ActiveGate supports only operating systems running on the x86-64 architecture (64-bit Intel/AMD)."* **Derived:** the 800 → 400 comparison maps the c6i and c7i shapes by vCPU and RAM.</sub>
 
 ### Detailed Hardware Requirements
 
@@ -200,14 +235,18 @@ The reference points are AWS instance shapes — for on-premises VMs, map by vCP
 | **CPU** | 1 dual core processor (more for large environments) |
 | **RAM** | 2 GB (4 GB recommended) |
 | **Disk** | 4 GB for installation, configuration and logs, plus 4 GB for cached OneAgent / ActiveGate installers and container images |
+| **Disk, ActiveGates that run extensions** | Add 600 MB plus a 1.5 GB buffer for the Extension Execution Controller's log-retransmission persistence file, and space for the extensions you upload |
+| **Disk, dump files (optional)** | Off by default; when turned on, configurable with a 100 GB default maximum |
 
-> <sub>**Sources:** [Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements) — *"2 GB RAM (4 GB recommended). 1 dual core processor."*</sub>
+Don't skip the extension buffer. For the persistence directory the page warns that *"The reliability mechanism does not work if the requirement is not met."* Extensions keep running, but without the buffer that covers an outage. Windows ActiveGates have the same minimums.
+
+> <sub>**Sources:** [Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements) — *"2 GB RAM (4 GB recommended). 1 dual core processor."*, *"600 MB + 1.5 GB (buffer) of free disk space for Extension Execution Controller logs retransmission persistence file."*, [Windows ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/windows/windows-activegate-hardware-and-system-requirements).</sub>
 
 #### Operating System Support
 
 The routing/monitoring ActiveGate matrix changes every few sprints, so **the official requirements pages are the authority** — re-check them before you provision, not just when something breaks: [Linux ActiveGate hardware and system requirements](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements) and [Windows ActiveGate hardware and system requirements](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/windows/windows-activegate-hardware-and-system-requirements).
 
-Currently listed for routing/monitoring ActiveGates (verified 07/30/2026, ActiveGate 1.343):
+Currently listed for routing/monitoring ActiveGates (verified 10/21/2026 against the Linux page, updated 07/07/2026, and the Windows page, updated 07/15/2026). Architectures vary by distribution: ARM64 and x86-64 throughout, s390 on RHEL, SUSE and Ubuntu 20.04+. Only x86-64 supports every function (see above).
 
 | OS | Supported Versions |
 |----|-------------------|
@@ -217,7 +256,7 @@ Currently listed for routing/monitoring ActiveGates (verified 07/30/2026, Active
 | **Ubuntu** | 16.04, 18.04, 20.04, 22.04, 24.04, 26.04 (x86-64); 20.04, 22.04, 24.04, 26.04 (ARM64 / s390) |
 | **Amazon Linux** | 2, 2023 |
 | **SUSE Linux Enterprise Server** | 15.7 |
-| **Windows Server** | 2016, 2019, 2022, 2025 |
+| **Windows Server** | 2016, 2019, 2022, 2025 (x86-64 only) |
 
 **Added in ActiveGate 1.343:** Oracle Linux 9.8 and 10.2, Rocky Linux 9.8 and 10.2. ActiveGate 1.343 was published 07/15/2026 with a staged fleet rollout from 07/28/2026 — the ActiveGates already running in your environment carry whatever version they last updated to, so check the version of the specific ActiveGate before assuming a newly added OS is installable on it.
 
@@ -238,7 +277,7 @@ Dynatrace de-supports an OS version *"at least 6 months after its end of life (E
 
 **Existing ActiveGates on these versions keep working right up to the date** — nothing stops the moment the announcement lands. What ends is Dynatrace's commitment to fix issues and ship new ActiveGate versions for that OS. Two practical consequences for an onboarding plan:
 
-- **Do not provision new ActiveGates on any version in this table.** Amazon Linux 2 and RHEL 9.4 were the obvious defaults a year ago and are now the wrong starting point — pick Amazon Linux 2023, RHEL 9.8/10.2, Oracle Linux 9.8/10.2, or Rocky Linux 9.8/10.2 instead. Oracle Linux and Rocky Linux 9.8 and 10.2 are themselves already announced for de-support from **06/01/2027** (ActiveGate 1.347 release notes: *"The following operating systems will no longer be supported starting 01 June 2027"*), so on those distributions plan the move to the next listed minor version.
+- **Do not provision new ActiveGates on any version in this table.** Amazon Linux 2 and RHEL 9.4 were the obvious defaults a year ago and are now the wrong starting point — pick Amazon Linux 2023, RHEL 9.8/10.2, Oracle Linux 9.8/10.2, or Rocky Linux 9.8/10.2 instead. Oracle Linux and Rocky Linux 9.8 and 10.2 are themselves already announced for de-support from **06/01/2027** (ActiveGate 1.347 release notes: *"The following operating systems will no longer be supported starting 01 June 2027"*), so on those distributions plan the move to the next listed minor version. On Windows, *"The following operating systems will no longer be supported starting 01 August 2027 Windows: Windows Server 2016"* — start new Windows ActiveGates on 2019 or later.
 - **Fold the OS upgrade into the next ActiveGate update window** rather than scheduling it as separate work. The update mechanics, auto-update behavior, and how to schedule those windows are covered in *FAQ-05: Managing ActiveGate updates on Dynatrace SaaS*.
 
 > **Reference:** [End-of-support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — the dates and the 6-month policy statement above are quoted from this page, verified 07/30/2026; the dates also match [ActiveGate 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347), read 10/02/2026.
@@ -255,24 +294,34 @@ Most of the space an ActiveGate needs sits under `/var`, not under `/opt/dynatra
 | `/var/lib/dynatrace/packages` | Auto-update installer downloads | 600 MB |
 | `/var/log/dynatrace` | ActiveGate and autoupdater logs | 1.2 GB |
 | `/var/tmp/dynatrace/gateway` | Temporary files | 4 GB (including 3 GB for cached OneAgent installers and container images) |
+| `/var/lib/dynatrace/remotepluginmodule` | Extensions logs, cache and run-time work area (Environment ActiveGate) | 2 GB |
+| `/var/lib/dynatrace/remotepluginmodule/agent/runtime/extensions/persistence` | Extension Execution Controller log-retransmission persistence | Up to 600 MB, plus a 1.5 GB buffer |
+| `/opt/dynatrace/remotepluginmodule/plugin_deployment` | Uploaded extensions (Environment ActiveGate) | Depends on the extensions uploaded |
+| `/var/lib/dynatrace/gateway/dump` | Dump files uploaded by OneAgent (off by default) | Configurable; 100 GB default maximum |
+
+Added up, the fixed rows come to about 6.5 GB for a routing-only ActiveGate and about 12.5 GB for an ActiveGate that runs extensions, before uploaded extensions and optional dump files.
 
 > **Partitioning:** if you give ActiveGate dedicated volumes, size `/var/tmp/dynatrace`, `/var/log/dynatrace` and `/var/lib/dynatrace` per the requirements page — those are the directories that hold logs, caches and update packages. A large `/opt/dynatrace` partition alone leaves them on the root volume.
 >
-> <sub>**Sources:** [Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements) — *"ActiveGate temporary files default: /var/tmp/dynatrace/gateway"*. Memory and CPU sizing beyond the minimums: FAQ-10.</sub>
+> <sub>**Sources:** [Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements) — *"ActiveGate temporary files default: /var/tmp/dynatrace/gateway"*. **Derived:** the 6.5 GB and 12.5 GB totals add the table's fixed rows. Memory and CPU sizing beyond the minimums: FAQ-10.</sub>
 
 ### High Availability
 
-For production environments, deploy **at least 2 ActiveGates per network zone**:
+The sizing tables assume that *"ActiveGates may be inoperable during updates, restarts or short communication problems"*, and that *"operating ActiveGates should be able to takeover traffic of the unavailable ActiveGates"*. So a production zone needs **at least 2 ActiveGates**, and each one must be able to carry the whole zone while the other is down:
 
-| Deployment | ActiveGates | Purpose |
-|------------|-------------|--------|
-| **Minimum HA** | 2 per zone | Failover capability |
-| **Recommended** | 2-3 per zone | Load distribution + failover |
-| **Large scale** | N+1 per zone | Capacity + redundancy |
+| Deployment | ActiveGates | Basis |
+|------------|-------------|-------|
+| **Minimum HA** | 2 per zone | The takeover rule above |
+| **Load distribution** | 2–3 per zone | Community practice |
+| **Large scale** | N+1 per zone | Community practice: size N to carry the zone, then add one |
 
-> **Key Point:** OneAgents automatically load-balance across available ActiveGates and failover if one becomes unavailable.
+**How OneAgents spread across them.** *"OneAgents are load-balanced to use an ActiveGate with the lowest possible index. That is, if several ActiveGates with the low index are available, OneAgents will try to switch between the available ActiveGates on a regular basis."* That is periodic switching, not per-request distribution. In community practice the load on each node is uneven over short windows, so watch per-node CPU and memory (FAQ-10) rather than assuming an even split.
+
+> <sub>**Sources:** [Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements) — *"In order to ensure high availability, operating ActiveGates should be able to takeover traffic of the unavailable ActiveGates"*, [OneAgent connectivity in network zones (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones/oneagent-connectivity) — *"OneAgents are load-balanced to use an ActiveGate with the lowest possible index."*</sub>
 
 ### Example Deployment
+
+The example assumes hosts close to the eight-task profile and no log ingest through the ActiveGates.
 
 | Network Zone | Hosts | ActiveGates | Shape class per AG | vCPU each | RAM each |
 |--------------|-------|-------------|--------------------|-----------|----------|
@@ -446,7 +495,7 @@ Dynatrace recommends *"two sets of ActiveGates for production deployments"*: one
 | **Medium** | 500m | 2000m | 4 GiB | 4 GiB | 3 |
 | **Large** | 1000m | 4000m | 6 GiB | 6 GiB | 6 |
 
-Platform monitoring needs far more memory than routing — budget for it before you put both jobs on one ActiveGate. The guide's advice on limits: *"Use CPU limits only if required by policy."* Log ingest through the ActiveGate adds replicas; the guide covers that case.
+Platform monitoring needs far more memory than routing — budget for it before you put both jobs on one ActiveGate. The guide's advice on limits: *"Use CPU limits only if required by policy."* OTLP log ingest through the ActiveGate adds replicas. The guide gives a throughput per replica (about 350, 650 and 1,200 MB/min for the small, medium and large configurations) and the formula *"additional replicas = ceil(expected log traffic (MB/min) ÷ throughput per replica)"*.
 
 > <sub>**Sources:** [Size Dynatrace ActiveGates in Kubernetes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits) — *"One set should cover Kubernetes platform monitoring, including any Prometheus integration and Kubernetes Security Posture Management (KSPM) functionalities."*</sub>
 

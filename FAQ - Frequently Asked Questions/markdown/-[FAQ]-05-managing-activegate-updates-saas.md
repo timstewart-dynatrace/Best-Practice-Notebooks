@@ -1,6 +1,6 @@
 # FAQ-05: How to manage ActiveGate updates on Dynatrace SaaS
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 05 — Managing ActiveGate Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 10/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 05 — Managing ActiveGate Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 10/22/2026
 
 ## Overview
 
@@ -10,7 +10,7 @@ That concentration is the reason ActiveGate update management deserves a separat
 
 This FAQ covers: the update mechanism, the auto-update vs manual decision, sequencing (let auto-update handle it; ActiveGates before OneAgents when you update manually), HA-pair rolling updates, role-specific considerations (routing, synthetic, Extension Framework 2.0, cloud monitoring), validation, rollback, and the most common pitfalls.
 
-> **Scope:** SaaS only. Managed Cluster ActiveGates and the Cluster ActiveGate update model are out of scope here — with one exception: §2 covers the ActiveGate `autoUpdate` API change, because the same two properties were added to both the SaaS Environment API v2 and the Managed Cluster API v2 and then removed again from six Cluster API endpoints — but not from the SaaS API.
+> **Scope:** SaaS only. Managed Cluster ActiveGates and the Cluster ActiveGate update model are out of scope here (DTM-04: ActiveGate Deployment on Managed covers both ActiveGate types' updates on Managed in §7) — with one exception: §2 covers the ActiveGate `autoUpdate` API change, because the same two properties were added to both the SaaS Environment API v2 and the Managed Cluster API v2 and then removed again from six Cluster API endpoints — but not from the SaaS API.
 
 ---
 
@@ -178,9 +178,8 @@ Once you disable auto-update, pin a target version, or confine updates to window
 
 **3. OneAgents.**
 
-- **One host.** Go to **Settings > Monitoring > Monitoring overview**, select the **Hosts** tab, select **Update** next to the host, then **Update now**. The button appears only for an outdated **full-stack** OneAgent — not for PaaS or standalone OneAgents — and a disabled **Update now** means you lack permission to download the installer.
-- **A host group, or the whole environment.** On the host-group or environment **OneAgent updates** settings, **Update now to target version** updates every host of the selected OS and architecture, whatever its auto-update setting. Set the **Target version** first — it is also the version manual updates install.
-- **Without the UI.** Download the installer, copy it to the host, and install there.
+- **Advance the target version.** On **Settings > Fleet management > OneAgent version and updates**, the **Target version** is the version existing OneAgents update to; the **Update mode** decides when. The OneAgent update page (10/13/2026) documents no separate *Update now* control for OneAgents.
+- **Canary first.** Open **Configure updates** from a host group's details in Fleet Management to advance one group before the rest (FAQ-04 §7).
 - **Then restart monitored processes.** Components of OneAgent run inside monitored processes (Java, .NET, Apache, IIS); those processes keep reporting on the old version until they restart.
 - **Kubernetes** is different: update windows do not apply there, and OneAgent versions are driven through the Dynatrace Operator (see FAQ-04).
 
@@ -217,7 +216,7 @@ If your tenant uses no private ActiveGates (OneAgents connect directly to Dynatr
 > - <sub>[OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"By default, global automatic OneAgent updates are turned on, but this is configurable at the global, host group, and host level."* (re-read 09/28/2026)</sub>
 > - <sub>[End-of-support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — *"all ActiveGates earlier than version 1.154 must be upgraded to newer releases in order to properly support OneAgent 64-bit IDs. Failure to do this will result in OneAgent being unable to communicate with the Dynatrace Cluster via these earlier versions of ActiveGate."* (re-read 09/28/2026)</sub>
 > - <sub>[Update ActiveGate (DT docs)](https://docs.dynatrace.com/docs/shortlink/update-activegate) — *"Auto-update and One-click update functionalities are limited to host-based—using installer—deployment only."*; *"One-click update—to update immediately, select Update. This option is available only when the Automatic updates at earliest convenience toggle is turned off."*; *"You don't need to uninstall your current version of ActiveGate. Just install the new version over the old one, and the ActiveGate configuration will be migrated."*; *"The yellow warning icon indicates that your ActiveGate is behind by more than five versions."* (re-read 09/28/2026)</sub>
-> - <sub>[OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"The Update button appears only if the installed version of OneAgent on a specific host is outdated and if it is a full-stack OneAgent."*; *"Manually triggering Update now to target version will update all hosts running the selected OS and architecture combination, regardless of their automatic update status."*; *"Update windows currently do not apply in Kubernetes environments."* (re-read 09/28/2026)</sub>
+> - <sub>[OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"Use the Target version dropdown to set the version that serves as the default for new deployments and as the update target for existing OneAgents."*; *"For host-group- or host-level overrides, open Configure updates from the entity's details in Fleet Management"*; *"Update windows currently do not apply in Kubernetes environments."* (re-read 10/22/2026)</sub>
 > - <sub>Neither update page states an ActiveGate-before-OneAgent order, and no general ActiveGate/OneAgent compatibility rule is documented — the What's new hub gives only support windows (*"OneAgent 9 months 12 months ActiveGate 9 months 12 months"*, [What's new (DT docs)](https://docs.dynatrace.com/docs/whats-new), re-read 10/02/2026). The standing rule is community practice generalised from the 1.154 case, and is marked as such in the body.</sub>
 
 <a id="ha"></a>

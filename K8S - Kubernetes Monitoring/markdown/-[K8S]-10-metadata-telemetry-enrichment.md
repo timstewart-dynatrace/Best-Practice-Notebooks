@@ -1,6 +1,6 @@
 # K8S-10: Metadata Telemetry Enrichment
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 10 of 14 | **Created:** January 2026 | **Last Updated:** 10/19/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 10 of 14 | **Created:** January 2026 | **Last Updated:** 10/22/2026
 
 ## Enriching All Telemetry with Kubernetes Metadata
 Kubernetes metadata enrichment automatically adds labels and annotations from your Kubernetes resources to all telemetry signals. This is the **recommended approach** for adding context to your observability data because it enriches everything: metrics, logs, traces, events, and entities.
@@ -129,7 +129,7 @@ They can sit on a namespace, a workload object or a pod. Within the annotations,
 | Capability | Minimum versions (Kubernetes tag setup page, read 10/02/2026) |
 |---|---|
 | Kubernetes primary-field and tag enrichment | Operator 1.10+, OneAgent 1.333+, ActiveGate 1.343+ |
-| Workload-level annotations | Operator 1.11.0+, ActiveGate 1.349+ |
+| Workload-level annotations | Operator 1.11.0+, ActiveGate 1.347+ |
 | At-source host and process tags (`--set-host-tag`, `DT_TAGS`) | OneAgent 1.333+ |
 | Central configuration opt-in | Dynatrace platform 1.345+ (§ 9) |
 
@@ -150,7 +150,7 @@ Dynatrace offers multiple ways to add Kubernetes metadata. Choose based on your 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Method | Scope | Precedence | Use for |
 |--------|-------|------------|---------|
-| Dedicated `metadata.dynatrace.com` annotations | Namespace, workload (Operator 1.11.0+, AG 1.349+) or pod | Highest; pod > workload > namespace | Per-object values kept in manifests |
+| Dedicated `metadata.dynatrace.com` annotations | Namespace, workload (Operator 1.11.0+, AG 1.347+) or pod | Highest; pod > workload > namespace | Per-object values kept in manifests |
 | DynaKube resource attributes | Everything the DynaKube instruments | Middle | Static, cluster-wide facts |
 | Central enrichment rules (Settings) | Existing namespace labels and annotations | Lowest | Promoting labels you already have, with no manifest change |
 
@@ -522,7 +522,7 @@ The schema for Kubernetes telemetry enrichment is: `builtin:kubernetes.generic.m
 
 The central schema `builtin:ingest.enrichment.config` takes more than namespace rules. Its rule types include `K8S_NAMESPACE_LABEL`, `K8S_NAMESPACE_ANNOTATION`, `K8S_WORKLOAD_LABEL`, `K8S_WORKLOAD_ANNOTATION`, `K8S_POD_LABEL` and `K8S_POD_ANNOTATION`. Dynatrace's AWS end-to-end example uses them the way you would expect: namespace labels for values the whole namespace shares (`app`, `stage`) and a workload label for the value that differs per workload (`team`), all at the cluster scope.
 
-- **Version floors.** Workload and pod rule types need Dynatrace Operator 1.11+ and ActiveGate 1.349+. ActiveGate 1.349 is a staged rollout, so check it has reached your clusters.
+- **Version floors.** Workload and pod rule types need Dynatrace Operator 1.11+ and ActiveGate 1.347+. ActiveGate 1.347 is a staged rollout, so check it has reached your clusters.
 - **Restart after a label change.** *"Values resolved from Kubernetes metadata are applied when a pod starts, so restart the pods after changing a label."*
 - **The two pages disagree.** The Kubernetes enrichment page (updated Oct 05, 2026) still describes `metadata.dynatrace.com` annotations as the way to get granularity *"that central configuration can't provide"*. The schema (published Aug 10, 2026) and the end-to-end example (published Oct 06, 2026) both show workload and pod rule types. Treat the newer pages as current, and keep the annotations for values you want to set in the manifest rather than read from an existing label.
 

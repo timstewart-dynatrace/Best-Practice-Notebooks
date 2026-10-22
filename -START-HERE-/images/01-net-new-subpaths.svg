@@ -1,32 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
   <rect width="930" height="500" fill="#0F172A"/>
-  <text x="465" y="38" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Net New — Five Sub-Paths</text>
-  <text x="465" y="62" text-anchor="middle" fill="#94A3B8" font-size="13">Pick by your starting state; all converge into a working tenant</text>
+  <text x="465" y="38" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Net New — Six Sub-Paths</text>
+  <text x="465" y="62" text-anchor="middle" fill="#94A3B8" font-size="13">Pick by your starting state; A–E converge into a SaaS tenant, F into a Managed cluster</text>
   <defs>
     <marker id="arrow2" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B"/>
     </marker>
   </defs>
-  <rect x="40" y="100" width="240" height="55" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="6"/>
-  <text x="160" y="125" text-anchor="middle" fill="#86EFAC" font-size="13" font-weight="700">A — Greenfield</text>
-  <text x="160" y="143" text-anchor="middle" fill="#94A3B8" font-size="11">No prior observability tool</text>
-  <rect x="40" y="170" width="240" height="55" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="6"/>
-  <text x="160" y="195" text-anchor="middle" fill="#BFDBFE" font-size="13" font-weight="700">B — From New Relic</text>
-  <text x="160" y="213" text-anchor="middle" fill="#94A3B8" font-size="11">NRLC + NR2DT</text>
-  <rect x="40" y="240" width="240" height="55" fill="#FFB800" opacity="0.08" stroke="#FFB800" stroke-width="1.5" rx="6"/>
-  <text x="160" y="265" text-anchor="middle" fill="#FCD34D" font-size="13" font-weight="700">C — From Splunk</text>
-  <text x="160" y="283" text-anchor="middle" fill="#94A3B8" font-size="11">S2D</text>
-  <rect x="40" y="310" width="240" height="55" fill="#22D3EE" opacity="0.08" stroke="#22D3EE" stroke-width="1.5" rx="6"/>
-  <text x="160" y="335" text-anchor="middle" fill="#A5F3FC" font-size="13" font-weight="700">D — From Sumo Logic</text>
-  <text x="160" y="353" text-anchor="middle" fill="#94A3B8" font-size="11">SL2DT</text>
-  <rect x="40" y="380" width="240" height="55" fill="#A78BFA" opacity="0.08" stroke="#A78BFA" stroke-width="1.5" rx="6"/>
-  <text x="160" y="405" text-anchor="middle" fill="#DDD6FE" font-size="13" font-weight="700">E — Multi-Tool / Hybrid</text>
-  <text x="160" y="423" text-anchor="middle" fill="#94A3B8" font-size="11">Wave-by-wave migration</text>
-  <line x1="280" y1="127" x2="450" y2="270" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow2)"/>
-  <line x1="280" y1="197" x2="450" y2="270" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow2)"/>
-  <line x1="280" y1="267" x2="450" y2="270" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow2)"/>
-  <line x1="280" y1="337" x2="450" y2="270" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow2)"/>
-  <line x1="280" y1="407" x2="450" y2="270" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow2)"/>
+  <rect x="40" y="92" width="240" height="48" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="6"/>
+  <text x="160" y="113" text-anchor="middle" fill="#86EFAC" font-size="13" font-weight="700">A — Greenfield</text>
+  <text x="160" y="130" text-anchor="middle" fill="#94A3B8" font-size="11">No prior observability tool</text>
+  <rect x="40" y="150" width="240" height="48" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="6"/>
+  <text x="160" y="171" text-anchor="middle" fill="#BFDBFE" font-size="13" font-weight="700">B — From New Relic</text>
+  <text x="160" y="188" text-anchor="middle" fill="#94A3B8" font-size="11">NRLC + NR2DT</text>
+  <rect x="40" y="208" width="240" height="48" fill="#FFB800" opacity="0.08" stroke="#FFB800" stroke-width="1.5" rx="6"/>
+  <text x="160" y="229" text-anchor="middle" fill="#FCD34D" font-size="13" font-weight="700">C — From Splunk</text>
+  <text x="160" y="246" text-anchor="middle" fill="#94A3B8" font-size="11">S2D</text>
+  <rect x="40" y="266" width="240" height="48" fill="#22D3EE" opacity="0.08" stroke="#22D3EE" stroke-width="1.5" rx="6"/>
+  <text x="160" y="287" text-anchor="middle" fill="#A5F3FC" font-size="13" font-weight="700">D — From Sumo Logic</text>
+  <text x="160" y="304" text-anchor="middle" fill="#94A3B8" font-size="11">SL2DT</text>
+  <rect x="40" y="324" width="240" height="48" fill="#A78BFA" opacity="0.08" stroke="#A78BFA" stroke-width="1.5" rx="6"/>
+  <text x="160" y="345" text-anchor="middle" fill="#DDD6FE" font-size="13" font-weight="700">E — Multi-Tool / Hybrid</text>
+  <text x="160" y="362" text-anchor="middle" fill="#94A3B8" font-size="11">Wave-by-wave migration</text>
+  <line x1="280" y1="116" x2="450" y2="270" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow2)"/>
+  <line x1="280" y1="174" x2="450" y2="270" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow2)"/>
+  <line x1="280" y1="232" x2="450" y2="270" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow2)"/>
+  <line x1="280" y1="290" x2="450" y2="270" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow2)"/>
+  <line x1="280" y1="348" x2="450" y2="270" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow2)"/>
   <rect x="460" y="120" width="240" height="55" fill="#FFB800" opacity="0.08" stroke="#FFB800" stroke-width="1.5" rx="6"/>
   <text x="580" y="145" text-anchor="middle" fill="#FCD34D" font-size="13" font-weight="700">Foundation</text>
   <text x="580" y="163" text-anchor="middle" fill="#94A3B8" font-size="11">in parallel with migration</text>
@@ -36,10 +36,22 @@
   <rect x="460" y="260" width="240" height="55" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="6"/>
   <text x="580" y="285" text-anchor="middle" fill="#86EFAC" font-size="13" font-weight="700">Operationalize</text>
   <text x="580" y="303" text-anchor="middle" fill="#94A3B8" font-size="11">DASH WFLOW AUTOM AIOPS</text>
+  <rect x="40" y="390" width="240" height="48" fill="#64748B" opacity="0.08" stroke="#94A3B8" stroke-width="1.5" rx="6"/>
+  <text x="160" y="411" text-anchor="middle" fill="#CBD5E1" font-size="13" font-weight="700">F — Dynatrace Managed</text>
+  <text x="160" y="428" text-anchor="middle" fill="#94A3B8" font-size="11">Self-hosted, Classic only</text>
+  <line x1="280" y1="414" x2="455" y2="414" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow2)"/>
+  <rect x="460" y="390" width="240" height="48" fill="#64748B" opacity="0.08" stroke="#94A3B8" stroke-width="1.5" rx="6"/>
+  <text x="580" y="411" text-anchor="middle" fill="#CBD5E1" font-size="13" font-weight="700">DTM series</text>
+  <text x="580" y="428" text-anchor="middle" fill="#94A3B8" font-size="11">design → configure → agents → operate</text>
+  <line x1="700" y1="414" x2="775" y2="414" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow2)"/>
+  <rect x="780" y="380" width="120" height="68" fill="#1E293B" stroke="#94A3B8" stroke-width="2" rx="8"/>
+  <text x="840" y="406" text-anchor="middle" fill="#CBD5E1" font-size="13" font-weight="700">Cluster</text>
+  <text x="840" y="424" text-anchor="middle" fill="#CBD5E1" font-size="13" font-weight="700">Operational</text>
   <line x1="700" y1="285" x2="775" y2="285" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow2)"/>
   <rect x="780" y="240" width="120" height="100" fill="#1E293B" stroke="#73BE28" stroke-width="2" rx="8"/>
   <text x="840" y="278" text-anchor="middle" fill="#86EFAC" font-size="14" font-weight="700">Tenant</text>
   <text x="840" y="298" text-anchor="middle" fill="#86EFAC" font-size="14" font-weight="700">Operational</text>
   <text x="840" y="320" text-anchor="middle" fill="#94A3B8" font-size="11">3–9 months</text>
-  <text x="465" y="478" text-anchor="middle" fill="#64748B" font-size="11">Foundation runs in parallel with migration phases — never blocking</text>
+  <text x="465" y="478" text-anchor="middle" fill="#64748B" font-size="11">A–E: Foundation runs in parallel with migration phases — never blocking</text>
+  <text x="465" y="494" text-anchor="middle" fill="#64748B" font-size="10">F: the SaaS Foundation and domain series do not apply to Dynatrace Managed</text>
 </svg>

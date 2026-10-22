@@ -1,6 +1,6 @@
 # FAQ-25: What Actually Carries Over When We Migrate to a New Tenant?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 25 — What Carries Over to a New Tenant | **Created:** September 2026 | **Last Updated:** 10/15/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 25 — What Carries Over to a New Tenant | **Created:** September 2026 | **Last Updated:** 10/22/2026
 
 ## Overview
 
@@ -413,6 +413,7 @@ The last row is the useful one. The three classes need attention at three *diffe
 | If you are… | Go to |
 |---|---|
 | Running a Managed → SaaS migration | **M2S** — nine steps, from discovery to decommission |
+| Checking the Managed source cluster before you start | **DTM** — the DTM-99 health-check checklist |
 | Running a SaaS → SaaS migration or consolidation | **S2S** — including consolidating several environments into one |
 | Sequencing the cutover itself | **FAQ-17** — the eight cross-journey invariants, Go/No-Go gates and rollback triggers |
 | Translating classic entity selectors to Smartscape | **FAQ-16** — the full construct-by-construct mapping |

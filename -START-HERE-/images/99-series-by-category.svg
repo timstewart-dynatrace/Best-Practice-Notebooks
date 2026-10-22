@@ -97,10 +97,10 @@
   <rect x="480" y="312" width="200" height="146" fill="#64748B" opacity="0.08" stroke="#64748B" stroke-width="1.5" rx="8"/>
   <text x="580" y="336" text-anchor="middle" fill="#CBD5E1" font-size="15" font-weight="700">Self-Hosted Ops</text>
   <text x="580" y="352" text-anchor="middle" fill="#94A3B8" font-size="10">Dynatrace Managed</text>
-  <text x="496" y="370" fill="#F8FAFC" font-size="12">MCH</text>
-  <text x="664" y="370" text-anchor="end" fill="#94A3B8" font-size="12">8</text>
+  <text x="496" y="370" fill="#F8FAFC" font-size="12">DTM</text>
+  <text x="664" y="370" text-anchor="end" fill="#94A3B8" font-size="12">14</text>
   <line x1="496" y1="434" x2="664" y2="434" stroke="#334155" stroke-width="1"/>
-  <text x="580" y="449" text-anchor="middle" fill="#CBD5E1" font-size="11" font-weight="700">1 series · 8 notebooks</text>
+  <text x="580" y="449" text-anchor="middle" fill="#CBD5E1" font-size="11" font-weight="700">1 series · 14 notebooks</text>
   <!-- Maturity & Reference -->
   <rect x="690" y="312" width="220" height="146" fill="#94A3B8" opacity="0.08" stroke="#94A3B8" stroke-width="1.5" rx="8"/>
   <text x="800" y="336" text-anchor="middle" fill="#F8FAFC" font-size="15" font-weight="700">Maturity &amp; Reference</text>

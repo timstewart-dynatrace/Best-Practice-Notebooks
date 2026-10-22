@@ -1,6 +1,6 @@
 # NRLC-08: Validation, Diff & Rollback
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 8 of 9 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 8 of 9 | **Created:** April 2026 | **Last Updated:** 10/19/2026
 
 ## Overview
 
@@ -97,7 +97,7 @@ The `DTEnvironmentRegistry` lazy-loads tenant inventory:
 | Existing dashboards | `GET /platform/document/v1/documents` | Avoids duplicate creation |
 | OpenPipeline enrichment rules | `GET /api/v2/settings/objects?schemaIds=builtin:openpipeline.logs.pipelines` (and `.routing`, `.ingest-sources` per scope) | Enrichment rule exists; produces expected attribute values on ingested data |
 | Buckets | `GET /platform/storage/management/v1/bucket-definitions` | Bucket exists with expected retention; routing rule targets it correctly |
-| Synthetic locations | `GET /api/v2/synthetic/locations` | NR location → DT location lookup |
+| Synthetic locations | `GET /api/v2/synthetic/locations` (platform alternative, early adopter: `GET /platform/synthetic/v1/locations`, `synthetic:locations:read`) | NR location → DT location lookup |
 | Notifications | `GET /api/v2/settings/objects?schemaIds=builtin:problem.notifications` — the **schema** is blocked at upgrade (the `objects` endpoint is not); workflow-based notifications replace it | No duplicate notification objects |
 
 > **Note — OpenPipeline API deprecation:** The direct `GET/PUT /platform/openpipeline/v1/configurations` endpoints were deprecated in SaaS 1.327 and reached end of life on **June 29, 2026**. Read and manage OpenPipeline configuration through Settings 2.0 with the `builtin:openpipeline.<scope>.routing`, `builtin:openpipeline.<scope>.pipelines`, and `builtin:openpipeline.<scope>.ingest-sources` schemas. See the official [API deprecation guide](https://docs.dynatrace.com/docs/dynatrace-api/basics/deprecation-migration-guides).

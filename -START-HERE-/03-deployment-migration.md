@@ -41,7 +41,7 @@ If you are net-new to Dynatrace, see [Doorway 1 — Net New](01-net-new.md). If 
 
 The [M2S](../M2S%20-%20Managed%20to%20SaaS%20Migration/) series provides a 9-step procedural runbook. Read each step in order.
 
-**Before step 1:** confirm the source cluster is healthy — a node down, a full disk, or a failing backup during a migration is much harder to untangle than before one. [MCH](../MCH%20-%20Managed%20Cluster%20Health/) — notebook 01 gives the five-layer health check.
+**Before step 1:** confirm the source cluster is healthy — a node down, a full disk, or a failing backup during a migration is much harder to untangle than before one. [DTM](../DTM%20-%20Dynatrace%20Managed/) — DTM-10 gives the five-layer health model, and DTM-99 turns it into a checklist.
 
 | Step | Reading | Time | Notes |
 |---|---|---|---|

@@ -2,7 +2,7 @@
 
 Guidance for AI agents consuming this repository. Humans: see [README.md](README.md).
 
-This is a **content-only** repository: <!-- bpn:counts -->33 series of Dynatrace best-practice notebooks (342 notebooks)<!-- /bpn:counts -->.
+This is a **content-only** repository: <!-- bpn:counts -->33 series of Dynatrace best-practice notebooks (348 notebooks)<!-- /bpn:counts -->.
 There is no build system, no tests, and no application code.
 
 ## How to navigate (important — do not crawl)
@@ -33,7 +33,7 @@ Every series has the same layout. Only one format is for you:
 | `pdfs/`, `markdown/images/` | Print/visual duplicates | Ignore |
 
 Every series uses these exact lowercase directory names — `markdown/`,
-`notebooks/`, `pdfs/`. One exception: `MCH - Managed Cluster Health` has no
+`notebooks/`, `pdfs/`. One exception: `DTM - Dynatrace Managed` has no
 `notebooks/` directory, because it contains no executable queries (Dynatrace
 Managed has no Grail) and so has nothing to import. Series directory *names* do vary: they contain spaces, so
 quote them in shell commands, and `APPSEC — Application Security` uses an em
@@ -86,11 +86,11 @@ Paths are the literal directory names (they contain spaces — quote them in she
 | ALERT | `ALERT - Alerting Strategy and Design` | End-to-end alerting design; orchestrates AIOPS + SLO + WFLOW |
 | SLO | `SLO - Service Level Objectives` | SLIs, error budgets, burn-rate alerting, SLOs as code, Site Reliability Guardians |
 
-**Dynatrace Managed Operations**
+**Dynatrace Managed**
 
 | Prefix | Directory | Scope |
 |---|---|---|
-| MCH | `MCH - Managed Cluster Health` | Keeping a self-hosted Managed cluster healthy: nodes, Cassandra, Elasticsearch, capacity, Mission Control connectivity, backup and upgrades |
+| DTM | `DTM - Dynatrace Managed` | Dynatrace Classic only — what is specific to a self-hosted Managed cluster: series map (DTM-00); cluster design, configuration, environment, ActiveGate and OneAgent best practices (DTM-01–05); keeping a running cluster healthy — nodes, Cassandra, Elasticsearch, capacity, Mission Control connectivity, backup and upgrades (DTM-10–16, formerly MCH-01–07); checklist (DTM-99) |
 
 **Security**
 
@@ -114,7 +114,7 @@ Paths are the literal directory names (they contain spaces — quote them in she
 Disambiguation for the overlapping clusters:
 - **OpenPipeline**: logs → OPLOGS; other signal types → OPIPE; migrating from classic pipelines → OPMIG.
 - **New Relic**: "how do we migrate" (process) → NR2DT; "how do I translate this NRQL/dashboard/alert" (reference) → NRLC.
-- **Dynatrace Managed**: running and keeping a cluster healthy → MCH; moving off Managed to SaaS → M2S.
+- **Dynatrace Managed**: running and keeping a cluster healthy → DTM (an old MCH-NN citation → DTM-00 §4); moving off Managed to SaaS → M2S.
 - **Alerting**: strategy/design → ALERT; anomaly detectors and AI → AIOPS; notification plumbing → WFLOW; reliability targets → SLO.
 
 ## Conventions and rules
