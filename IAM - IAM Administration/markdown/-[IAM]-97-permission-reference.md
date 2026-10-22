@@ -85,7 +85,7 @@ A manifest entry shows that an app **may** call an API, not that every screen do
 | [Default policies — Standard User (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies#DynatraceAccessStandardUser) | 10/19/2026 | 10/08/2026 | 65 permissions |
 | Built-in app manifests + platform API specs (validation tenant, via `dtctl`) | 10/19/2026 | — | 118 built-in apps, 34 of 37 published APIs |
 
-**This reference:** 100 permissions — 65 from the docs *Standard User* policy (✅) and 35 reader-persona or companion permissions that are not in it (➕). **Basis:** 67 Docs, 25 Tested, 5 Inference, 3 Unknown.
+**This reference:** 103 permissions — 65 from the docs *Standard User* policy (✅) and 38 reader-persona or companion permissions that are not in it (➕). **Basis:** 71 Docs, 24 Tested, 5 Inference, 3 Unknown.
 <a id="generated-stamp-end"></a>
 
 > <sub>**Sources:** [Add permission scopes (Dynatrace Developer)](https://developer.dynatrace.com/develop/guides/security/add-permission-scopes-to-use-dynatrace-apis/); [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements); [Default policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies).</sub>
@@ -371,7 +371,7 @@ Owner-based schemas give each object to the user who first stores it; `*:objects
 
 | Permission | Allow when | Avoid when | Built-in apps that request it *(generated)* | API operations that declare it *(generated)* |
 |---|---|---|---|---|
-| `settings:objects:read` | Scope by `settings:schemaId`; add a `settings:dt.security_context` line to the boundary. | Unscoped grants plus a boundary with no settings line. | `dynatrace.appshell`, `dynatrace.automations`, `dynatrace.aws.connector`, `dynatrace.biz.explore`, `dynatrace.clouds`, `dynatrace.dashboards`, +40 more | `GET /classic-pipelines/translate (/platform/openpipeline/v1)`<br>`GET /effective-values (/platform/settings/v1)`<br>`GET /history (/platform/settings/v1)`<br>+5 more |
+| `settings:objects:read` | Scope by `settings:schemaId`; add a `settings:dt.security_context` line to the boundary. | Unscoped grants plus a boundary with no settings line. | `dynatrace.appshell`, `dynatrace.automations`, `dynatrace.aws.connector`, `dynatrace.biz.explore`, `dynatrace.clouds`, `dynatrace.dashboards`, +40 more | `GET /classic-pipelines/translate (/platform/openpipeline/v1)` *(early adopter)*<br>`GET /effective-values (/platform/settings/v1)`<br>`GET /history (/platform/settings/v1)`<br>+5 more |
 | `settings:schemas:read` | Always. | — | `dynatrace.appshell`, `dynatrace.automations`, `dynatrace.biz.explore`, `dynatrace.clouds`, `dynatrace.dashboards`, `dynatrace.davis.anomalydetection`, +25 more | `GET /schemas (/platform/settings/v1)`<br>`GET /schemas/{schema-id} (/platform/settings/v1)`<br>`GET /values/{schema-id}/default (/platform/settings/v1)`<br>+4 more |
 | `settings:objects:write` | Everyone, limited to user-scope preference schemas; team leads, limited to their schemas. | Unscoped grants. | `dynatrace.appshell`, `dynatrace.automations`, `dynatrace.aws.connector`, `dynatrace.biz.explore`, `dynatrace.clouds`, `dynatrace.clouds`, +29 more | `DELETE /objects/{object-id} (/platform/settings/v1)`<br>`DELETE /objects/{object-id}/permissions/all-users (/platform/settings/v1)`<br>`DELETE /objects/{object-id}/permissions/{accessor-type}/{accessor-id} (/platform/settings/v1)`<br>+7 more |
 | `settings:objects:admin` | Admins. | Everyone else. | `dynatrace.aws.connector`, `dynatrace.fleet.management`, `dynatrace.gcp.connector`, `dynatrace.microsoft.azure.connector`, `dynatrace.openpipeline`, `dynatrace.security.enrichment`, +2 more | no published operation declares it |
@@ -385,27 +385,31 @@ Owner-based schemas give each object to the user who first stores it; `*:objects
 <a id="notifications"></a>
 ## 9. Email and notifications
 
-`email:emails:send` takes no conditions, so it can mail any address. Workflows send as their **actor**, so the actor needs it — not every author.
+`email:emails:send` takes no conditions, so it can mail any address.
+
+**Notification API v1 is being retired.** The self-notification permissions call it, and Dynatrace states it was *"deprecated on 9 Jul 2025 and will be sunset on 31 Dec 2026"*, pointing to the v2 event notifications that `notification:notifications:*` govern. Both rows stay in the *Standard User* policy for now; plan new work on v2.
+
+The generated *API operations* column flags any API whose own spec on the tenant states a deprecation (⚠️), and any operation the spec marks pre-GA, such as *(early adopter)*. Workflows send as their **actor**, so the actor needs it — not every author.
 
 <a id="generated-group-notifications-begin"></a>
 | Permission | Std User | Reference says *(generated)* | Conditions *(generated)* | What it really grants | Scope | Risk | Basis |
 |---|---|---|---|---|---|---|---|
 | `email:emails:send` | ✅ | Grants permission to send emails from @apps.dynatrace.com with send email API | none | Send email from `@apps.dynatrace.com` through the email API; no IAM condition limits the recipients. | Environment-wide, no conditions | Medium — can mail anyone | **Docs** — *"send emails from @apps.dynatrace.com with send email API"* ([IAM policy reference](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements)) |
-| `notification:self-notifications:read` | ✅ | Grants permission to read self notifications. | none | Read the caller's own notification subscriptions. | Per user | Low | **Tested** — Notification API v1: `GET /self-notifications`; no built-in app declares it — validation tenant, 10/19/2026 |
-| `notification:self-notifications:write` | ✅ | Grants permission to write self notifications. | none | Create and change the caller's own subscriptions. | Per user | Low | **Tested** — Notification API v1: `POST /self-notifications` — validation tenant, 10/19/2026 |
+| `notification:self-notifications:read` | ✅ | Grants permission to read self notifications. | none | Read the caller's own notification subscriptions through Notification API v1 — deprecated, and sunset on 31 Dec 2026. | Per user | Low | **Docs** — *"deprecated on 9 Jul 2025 and will be sunset on 31 Dec 2026"* ([APIs for latest Dynatrace](https://developer.dynatrace.com/develop/reference/apis/latest-apis/)) |
+| `notification:self-notifications:write` | ✅ | Grants permission to write self notifications. | none | Create and change the caller's own subscriptions (Notification API v1, sunset 31 Dec 2026). | Per user | Low | **Tested** — Notification API v1: `POST /self-notifications`; whether the permission keeps a use after the v1 sunset is not documented — validation tenant, 10/19/2026 |
 | `notification:notifications:read` | ✅ | Grants permission to read notification configurations. | none | Read event- and resource-notification configurations, e.g. alerting on saved Problems filters. | Environment-wide | Low | **Tested** — `dynatrace.davis.problems` manifest: *"Read notifications for alerting on saved filters"* — validation tenant, 10/19/2026 |
 | `notification:notifications:write` | ✅ | Grants permission to write notification configurations. | none | Create and change those configurations. | Environment-wide | Medium | **Unknown** — Whether a user can change notifications created by others is not documented; the API has no owner filter in its declared scopes. |
 
 | Permission | Allow when | Avoid when | Built-in apps that request it *(generated)* | API operations that declare it *(generated)* |
 |---|---|---|---|---|
 | `email:emails:send` | Workflow actors (ideally service users). | Readers — the docs Standard User policy includes it. | `dynatrace.automations`, `dynatrace.email`, `dynatrace.hub` | no published operation declares it |
-| `notification:self-notifications:read` | When users subscribe to alerts for themselves. | — | none declare it | `GET /self-notifications (/platform/notification/v1)`<br>`GET /self-notifications/{id} (/platform/notification/v1)` |
-| `notification:self-notifications:write` | With read. | — | none declare it | `DELETE /self-notifications/{id} (/platform/notification/v1)`<br>`PATCH /self-notifications/{id} (/platform/notification/v1)`<br>`POST /self-notifications (/platform/notification/v1)`<br>+1 more |
+| `notification:self-notifications:read` | When users subscribe to alerts for themselves. | Building anything new on it: Dynatrace points to the v2 event notifications, which `notification:notifications:*` govern. | none declare it | `GET /self-notifications (/platform/notification/v1)`<br>`GET /self-notifications/{id} (/platform/notification/v1)`<br>⚠️ `/platform/notification/v1` deprecated 9 Jul 2025, sunset 31 Dec 2026 |
+| `notification:self-notifications:write` | With read. | New automation — use v2 event notifications instead. | none declare it | `DELETE /self-notifications/{id} (/platform/notification/v1)`<br>`PATCH /self-notifications/{id} (/platform/notification/v1)`<br>`POST /self-notifications (/platform/notification/v1)`<br>+1 more<br>⚠️ `/platform/notification/v1` deprecated 9 Jul 2025, sunset 31 Dec 2026 |
 | `notification:notifications:read` | Users who set up alerts. | — | `dynatrace.automations`, `dynatrace.davis.problems`, `dynatrace.hub` | `GET /event-notifications (/platform/notification/v2)`<br>`GET /event-notifications/{id} (/platform/notification/v2)`<br>`GET /resource-notifications (/platform/notification/v2)`<br>+1 more |
 | `notification:notifications:write` | Team leads and alert owners. | Readers. | `dynatrace.automations`, `dynatrace.davis.problems`, `dynatrace.hub` | `DELETE /event-notifications/{id} (/platform/notification/v2)`<br>`DELETE /resource-notifications/{id} (/platform/notification/v2)`<br>`DELETE /resource-notifications/{notificationType}/{resourceId} (/platform/notification/v2)`<br>+4 more |
 <a id="generated-group-notifications-end"></a>
 
-> <sub>**Sources:** [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements).</sub>
+> <sub>**Sources:** [APIs for latest Dynatrace (Dynatrace Developer)](https://developer.dynatrace.com/develop/reference/apis/latest-apis/) — Notification: *"This API was deprecated on 9 Jul 2025"*; [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements).</sub>
 
 <a id="workflows"></a>
 ## 10. Workflows (AutomationEngine)
@@ -472,7 +476,7 @@ The two rows share a prefix and nothing else: one reads pipeline configuration, 
 
 | Permission | Allow when | Avoid when | Built-in apps that request it *(generated)* | API operations that declare it *(generated)* |
 |---|---|---|---|---|
-| `openpipeline:configurations:read` | Pipeline owners; optional for others. | Readers, as a least-privilege choice — it reveals how data separation is built. | `dynatrace.automations`, `dynatrace.observability.settings`, `dynatrace.openpipeline` | `GET /configurations (/platform/openpipeline/v1)`<br>`GET /technologies (/platform/openpipeline/v1)`<br>`GET /technologies/{id}/processors (/platform/openpipeline/v1)`<br>+6 more |
+| `openpipeline:configurations:read` | Pipeline owners; optional for others. | Readers, as a least-privilege choice — it reveals how data separation is built. | `dynatrace.automations`, `dynatrace.observability.settings`, `dynatrace.openpipeline` | `GET /configurations (/platform/openpipeline/v1)`<br>`GET /technologies (/platform/openpipeline/v1)` *(early adopter)*<br>`GET /technologies/{id}/processors (/platform/openpipeline/v1)` *(early adopter)*<br>+6 more |
 | `openpipeline:events.davis:ingest` | Users who may comment on or close problems. | Readers, if commenting is a write you don't allow. Not needed to view problems. | `dynatrace.davis.problems` | no published operation declares it |
 <a id="generated-group-openpipeline-end"></a>
 
@@ -481,7 +485,17 @@ The two rows share a prefix and nothing else: one reads pipeline configuration, 
 <a id="synthetic"></a>
 ## 13. Synthetic monitoring
 
-Monitors take `synthetic:dt.security_context`; locations take no condition at all. To keep users off public locations you don't use, disable those locations for the environment.
+Monitors take `synthetic:dt.security_context`; locations take no condition at all. To keep users off public locations you don't use, change those locations' status for the environment: `DISABLED` stops new assignments and leaves assigned monitors running; `HIDDEN` removes the location from the UI and is allowed only when no monitor uses it. Holding `synthetic:locations:write` decides who can do that.
+
+Dynatrace *"recommends migrating to the Synthetic platform permissions and the Synthetic Platform API"* (`/platform/synthetic/v1`, platform or OAuth token). Two things to know before you do:
+
+- **The platform API is Early Adopter.** *"All Synthetic Platform API endpoints are currently in Early Adopter maturity"* — they *"can change in non-compatible ways"*. The validation tenant's own spec marks all 20 operations the same way (10/19/2026). The classic Synthetic API v2 keeps working.
+- **Security-context scoping needs the platform permissions.** Users who hold only classic permissions see every monitor; boundaries don't restrict them.
+
+Two facts from the same page that the tables can't show:
+
+- **The Private locations tab needs unscoped data reads.** It requires `storage:smartscape:read` and `storage:metrics:read` with no security-context condition, plus `synthetic:locations:read` (or `:write` to manage) — *"These permissions must be applied tenant-wide for the tab to be accessible."*
+- **The two docs pages disagree on *Standard User*.** The Synthetic access-control page (updated 10/13/2026) lists `synthetic:monitors:read` and `synthetic:locations:read` in *Standard User*; the default-policies page this appendix generates from (modified 10/08/2026) does not, so both rows show ➕. Check the policy in your account — the newer page is likely current.
 
 <a id="generated-group-synthetic-begin"></a>
 | Permission | Std User | Reference says *(generated)* | Conditions *(generated)* | What it really grants | Scope | Risk | Basis |
@@ -489,17 +503,23 @@ Monitors take `synthetic:dt.security_context`; locations take no condition at al
 | `synthetic:monitors:read` | ➕ | Grants permission to read definitions of synthetic monitors | `synthetic:dt.security_context` (IN, =, startsWith, MATCH) | View synthetic monitor definitions. | Per security context | Low | **Docs** — *"Grants permission to read definitions of synthetic monitors"* ([IAM policy reference](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements)) |
 | `synthetic:monitors:write` | ➕ | Grants permission to create synthetic monitors | `synthetic:dt.security_context` (IN, =, startsWith, MATCH) | Create, change and delete monitors. | Per security context | Medium | **Tested** — Synthetic API: `POST`, `PUT` and `DELETE /monitors` all declare it — the reference mentions only create — validation tenant, 10/19/2026 |
 | `synthetic:monitors:execute` | ➕ | Grants permission to schedule on-demand executions | `synthetic:dt.security_context` (IN, =, startsWith, MATCH) | Trigger on-demand monitor executions. | Per security context | Low | **Docs** — *"Grants permission to schedule on-demand executions"* ([IAM policy reference](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements)) |
-| `synthetic:locations:read` | ➕ | Grants permission to read definitions of locations | none | List synthetic locations. Has no conditions; restrict public locations by disabling them per environment. | Environment-wide, no conditions | Low | **Docs** — *""status": "DISABLED""* ([PUT a synthetic location](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/synthetic-v2/synthetic-locations-v2/put-a-location)) |
+| `synthetic:locations:read` | ➕ | Grants permission to read definitions of locations | none | List public and private synthetic locations and nodes, and download private-location deployment YAML. Has no conditions; to keep users off public locations, change those locations' status (needs `synthetic:locations:write`). | Environment-wide, no conditions | Low | **Docs** — *"The response includes all matching public and private locations available for your environment."* ([GET locations (platform API)](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-synthetic-v1/locations-get)) |
+| `synthetic:locations:write` | ➕ | Grants permission to create locations | none | Create, update and delete private locations; set a public location to `ENABLED`, `DISABLED` (can't be assigned; assigned monitors keep running) or `HIDDEN` (only when no monitor uses it); switch all public locations off at once. | Environment-wide, no conditions | High | **Docs** — *"for public locations you can only change the location status"* ([PUT synthetic location (platform API)](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-synthetic-v1/locations-location-id-put)) |
+| `synthetic:environment-configuration:read` | ➕ | Grants permission to read environment configuration | none | Read the environment-wide Synthetic settings, such as browser-monitor and step timeouts. | Environment-wide | Low | **Docs** — *"the synthetic-related parameters defined for the whole tenant"* ([GET configuration (platform API)](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-synthetic-v1/configuration-get)) |
+| `synthetic:environment-configuration:write` | ➕ | Grants permission to edit environment configuration | none | Change those settings for every monitor in the environment (`bmMonitorTimeout`, `bmStepTimeout`). | Environment-wide | Medium | **Docs** — *"change the synthetic-related parameters defined for the whole tenant"* ([PUT configuration (platform API)](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-synthetic-v1/configuration-put)) |
 
 | Permission | Allow when | Avoid when | Built-in apps that request it *(generated)* | API operations that declare it *(generated)* |
 |---|---|---|---|---|
-| `synthetic:monitors:read` | Readers — and add a `synthetic:dt.security_context` line to the boundary. | A boundary with no `synthetic:` line, which leaves every monitor visible. | `dynatrace.dashboards`, `dynatrace.experience.vitals`, `dynatrace.notebooks`, `dynatrace.synthetic` | `GET /monitors (/platform/synthetic/v1)`<br>`GET /monitors/{monitor-id} (/platform/synthetic/v1)` |
-| `synthetic:monitors:write` | Team leads, scoped. | Readers. | `dynatrace.experience.vitals`, `dynatrace.synthetic` | `DELETE /monitors/{monitor-id} (/platform/synthetic/v1)`<br>`POST /monitors (/platform/synthetic/v1)`<br>`PUT /monitors/{monitor-id} (/platform/synthetic/v1)` |
-| `synthetic:monitors:execute` | Team leads, scoped. | Readers. | `dynatrace.synthetic` | `POST /executions/batch (/platform/synthetic/v1)`<br>`POST /executions/{execution-id} (/platform/synthetic/v1)` |
-| `synthetic:locations:read` | Anyone who views or creates monitors. | — | `dynatrace.dashboards`, `dynatrace.notebooks`, `dynatrace.synthetic` | `GET /locations (/platform/synthetic/v1)`<br>`GET /locations/metric-adapter/yaml (/platform/synthetic/v1)`<br>`GET /locations/status (/platform/synthetic/v1)`<br>+4 more |
+| `synthetic:monitors:read` | Readers — and add a `synthetic:dt.security_context` line to the boundary. | A boundary with no `synthetic:` line, which leaves every monitor visible. | `dynatrace.dashboards`, `dynatrace.experience.vitals`, `dynatrace.notebooks`, `dynatrace.synthetic` | `GET /monitors (/platform/synthetic/v1)` *(early adopter)*<br>`GET /monitors/{monitor-id} (/platform/synthetic/v1)` *(early adopter)* |
+| `synthetic:monitors:write` | Team leads, scoped. | Readers. | `dynatrace.experience.vitals`, `dynatrace.synthetic` | `DELETE /monitors/{monitor-id} (/platform/synthetic/v1)` *(early adopter)*<br>`POST /monitors (/platform/synthetic/v1)` *(early adopter)*<br>`PUT /monitors/{monitor-id} (/platform/synthetic/v1)` *(early adopter)* |
+| `synthetic:monitors:execute` | Team leads, scoped. | Readers. | `dynatrace.synthetic` | `POST /executions/batch (/platform/synthetic/v1)` *(early adopter)*<br>`POST /executions/{execution-id} (/platform/synthetic/v1)` *(early adopter)* |
+| `synthetic:locations:read` | Anyone who views or creates monitors. | — | `dynatrace.dashboards`, `dynatrace.notebooks`, `dynatrace.synthetic` | `GET /locations (/platform/synthetic/v1)` *(early adopter)*<br>`GET /locations/metric-adapter/yaml (/platform/synthetic/v1)` *(early adopter)*<br>`GET /locations/status (/platform/synthetic/v1)` *(early adopter)*<br>+4 more |
+| `synthetic:locations:write` | Synthetic admins who decide where monitors may run. | Monitor authors — it changes where everyone's monitors can run. | `dynatrace.synthetic` | `DELETE /locations/{location-id} (/platform/synthetic/v1)` *(early adopter)*<br>`POST /locations (/platform/synthetic/v1)` *(early adopter)*<br>`PUT /locations/status (/platform/synthetic/v1)` *(early adopter)*<br>+1 more |
+| `synthetic:environment-configuration:read` | Synthetic admins and monitor authors. | — | `dynatrace.dashboards`, `dynatrace.notebooks`, `dynatrace.synthetic` | `GET /configuration (/platform/synthetic/v1)` *(early adopter)* |
+| `synthetic:environment-configuration:write` | Synthetic admins. | Everyone else. | none declare it | `PUT /configuration (/platform/synthetic/v1)` *(early adopter)* |
 <a id="generated-group-synthetic-end"></a>
 
-> <sub>**Sources:** [PUT a synthetic location (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/synthetic-v2/synthetic-locations-v2/put-a-location); [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements).</sub>
+> <sub>**Sources:** [Access control — Synthetic (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-access-control) — as quoted; [PUT synthetic location — platform API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-synthetic-v1/locations-location-id-put) — *"for public locations you can only change the location status"*; [PUT a synthetic location (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/synthetic-v2/synthetic-locations-v2/put-a-location); [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements).</sub>
 
 <a id="credential-vault"></a>
 ## 14. Credential vault
@@ -515,8 +535,8 @@ IAM decides whether a user reaches the vault; each credential then has its own o
 
 | Permission | Allow when | Avoid when | Built-in apps that request it *(generated)* | API operations that declare it *(generated)* |
 |---|---|---|---|---|
-| `credential-vault:entries:read` | Monitor and connector authors. | Readers. | `dynatrace.dashboards`, `dynatrace.notebooks`, `dynatrace.synthetic` | `GET /entries (/platform/credential-vault/v1)`<br>`GET /entries/{entry-id} (/platform/credential-vault/v1)` |
-| `credential-vault:entries:write` | Monitor and connector authors. | Readers. | `dynatrace.synthetic` | `DELETE /entries/{entry-id} (/platform/credential-vault/v1)`<br>`POST /entries (/platform/credential-vault/v1)`<br>`PUT /entries/{entry-id} (/platform/credential-vault/v1)` |
+| `credential-vault:entries:read` | Monitor and connector authors. | Readers. | `dynatrace.dashboards`, `dynatrace.notebooks`, `dynatrace.synthetic` | `GET /entries (/platform/credential-vault/v1)` *(early adopter)*<br>`GET /entries/{entry-id} (/platform/credential-vault/v1)` *(early adopter)* |
+| `credential-vault:entries:write` | Monitor and connector authors. | Readers. | `dynatrace.synthetic` | `DELETE /entries/{entry-id} (/platform/credential-vault/v1)` *(early adopter)*<br>`POST /entries (/platform/credential-vault/v1)` *(early adopter)*<br>`PUT /entries/{entry-id} (/platform/credential-vault/v1)` *(early adopter)* |
 | `credential-vault:entries:admin` | Admins. | Everyone else. | none declare it | no published operation declares it |
 <a id="generated-group-credentials-end"></a>
 
@@ -723,6 +743,9 @@ Five personas, as a starting point for **IAM-11**'s workshop — adjust them to 
 | `synthetic:monitors:write` | — | 🔶 | ⚪ | ⚪ | ✅ |
 | `synthetic:monitors:execute` | — | 🔶 | 🔶 | ⚪ | ✅ |
 | `synthetic:locations:read` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `synthetic:locations:write` | — | — | — | — | ✅ |
+| `synthetic:environment-configuration:read` | — | ⚪ | ⚪ | — | ✅ |
+| `synthetic:environment-configuration:write` | — | — | — | — | ✅ |
 | **Credential vault** | | | | | |
 | `credential-vault:entries:read` | — | ⚪ | ✅ | ⚪ | ✅ |
 | `credential-vault:entries:write` | — | ⚪ | ✅ | ⚪ | ✅ |

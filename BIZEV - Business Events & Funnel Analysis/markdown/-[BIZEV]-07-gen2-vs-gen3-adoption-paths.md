@@ -1,6 +1,6 @@
 # BIZEV-07: Gen2 vs Gen3 — Business Events Without (or Before) the Full Move
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 7 of 7 | **Created:** July 2026 | **Last Updated:** 10/14/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 7 of 7 | **Created:** July 2026 | **Last Updated:** 10/22/2026
 
 ## Overview
 
@@ -358,6 +358,7 @@ Key takeaways:
 - **BIZEV-05: KPIs and Metrics** — the OpenPipeline variant of metric extraction
 - **BIZEV-06: Executive Reporting** — what the full Gen3 reporting layer looks like once you're there
 - **M2S — Managed to SaaS Migration series** — for Managed customers, the migration this notebook keeps pointing at
+- **DTM — Dynatrace Managed series** — running the Managed cluster itself until then: design, configuration, ActiveGates, OneAgents and health checks
 - **IAM series** — the policy model behind `storage:bizevents:read`
 
 ---

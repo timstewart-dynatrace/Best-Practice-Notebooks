@@ -1,6 +1,6 @@
 # AUTOM-08: Migration Automation
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 8 of 9 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 8 of 9 | **Created:** January 2026 | **Last Updated:** 10/22/2026
 
 Configuration migration is the process of transferring Dynatrace settings from one environment to another. This is common in tenant consolidation, Managed-to-SaaS migration, and disaster recovery scenarios.
 
@@ -613,6 +613,7 @@ AUTOM-09 (Terraform GitOps setup recipe) and the appendix LABs (95–98) follow.
 - [Terraform migration guide (DT docs)](https://docs.dynatrace.com/managed/deliver/configuration-as-code/terraform/guides/migration)
 - [Migrate configuration — Managed to SaaS (DT docs)](https://docs.dynatrace.com/managed/shortlink/up-migrate-cfg)
 - **M2S series** — for Managed-to-SaaS specific guidance, including the **M2S-95 LAB** Terraform migration walkthrough
+- **DTM series** — the Managed source cluster: run the DTM-99 health-check checklist before exporting configuration from it
 - [Monaco commands reference (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas)
 
 ---

@@ -1,6 +1,6 @@
 # FAQ-17: How Do I Plan a Migration Cutover?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 17 — Planning a Migration Cutover | **Created:** July 2026 | **Last Updated:** 10/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 17 — Planning a Migration Cutover | **Created:** July 2026 | **Last Updated:** 10/22/2026
 
 ## Overview
 
@@ -158,7 +158,7 @@ SL2DT-09 documents triggers, runbook, post-rollback steps, and anti-patterns; S2
 Data-level parity is migration-specific — your series has the queries. Entity-level parity is not: any migration that moves or re-instruments monitored things can be checked the same way — with one caveat about where the "before" run happens.
 
 - **SaaS → SaaS.** Run the same query on both tenants with the same `from:`.
-- **Managed → SaaS.** `smartscapeNodes` is a Smartscape-on-Grail command, and in community practice the Managed source offers no equivalent DQL surface. Take the "before" inventory from the Managed environment's Monitored entities API v2 (`GET /api/v2/entities` with `entitySelector=type("HOST")`, and so on per type) and compare it per type with the target's `smartscapeNodes`. Expect differences between the classic and Smartscape counts that are not regressions: on the validation tenant (10/02/2026), the classic host list over a 2-hour window returned 15 hosts against 7 Smartscape `HOST` nodes on the same tenant. Treat a type-level gap as a prompt to reconcile entity by entity, not as a verdict.
+- **Managed → SaaS.** Before the first "before" run, check the source cluster with the DTM-99 health-check checklist, so the baseline is taken from a healthy cluster. `smartscapeNodes` is a Smartscape-on-Grail command, and in community practice the Managed source offers no equivalent DQL surface. Take the "before" inventory from the Managed environment's Monitored entities API v2 (`GET /api/v2/entities` with `entitySelector=type("HOST")`, and so on per type) and compare it per type with the target's `smartscapeNodes`. Expect differences between the classic and Smartscape counts that are not regressions: on the validation tenant (10/02/2026), the classic host list over a 2-hour window returned 15 hosts against 7 Smartscape `HOST` nodes on the same tenant. Treat a type-level gap as a prompt to reconcile entity by entity, not as a verdict.
 
 Take this inventory before cutover and again after. A type whose count drops is a coverage regression, whatever the migration was:
 

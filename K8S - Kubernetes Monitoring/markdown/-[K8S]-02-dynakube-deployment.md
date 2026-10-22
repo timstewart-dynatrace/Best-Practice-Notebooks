@@ -1,6 +1,6 @@
 # K8S-02: DynaKube Operator Deployment
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 2 of 14 | **Created:** January 2026 | **Last Updated:** 10/15/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 2 of 14 | **Created:** January 2026 | **Last Updated:** 10/22/2026
 
 ## Installing and Configuring the Dynatrace Operator
 The DynaKube operator is the recommended way to deploy Dynatrace monitoring in Kubernetes. This notebook covers installation via Helm, configuration options, and deployment modes for different use cases.
@@ -73,7 +73,7 @@ For environments where SVG doesn't render
 >
 > - It requires **Dynatrace SaaS 1.343 or later**.
 > - *"All managed component pods restart when the feature is first enabled."* — so moving an existing DynaKube to a platform token restarts its managed component pods (ActiveGate, OneAgent). Schedule it as a change window, not as a routine credential rotation.
-> - **Not every component resolves on Operator 1.10.** *"Container images for Extension Execution Controller, Dynatrace Log Module and the SQL Extension Executor are supported from Dynatrace SaaS 1.350 and Dynatrace Operator 1.11. In older versions, these components always require a image specified in the respective spec.templates field."* Operator 1.11.0 was released 10/01/2026, but its notes say this *"requires a newer Dynatrace SaaS version, currently planned for 1.350"* — SaaS releases roll out to tenants in stages, so until both versions reach your estate, keep setting those three images in `spec.templates`; ActiveGate, OneAgent and code-module images resolve from Operator 1.10.0. The Operator 1.10.0 release notes (updated 09/16/2026) still list EEC, the Log Module and SQL Extension Executor among the auto-resolved images — the how-to is the more specific page, so follow it and verify on your versions.
+> - **Not every component resolves on Operator 1.10.** *"Container images for Extension Execution Controller, Dynatrace Log Module and the SQL Extension Executor are supported from Dynatrace SaaS 1.350 and Dynatrace Operator 1.11. In older versions, these components always require a image specified in the respective spec.templates field."* Operator 1.11.0 was released 10/01/2026, and SaaS releases roll out to tenants in stages, so until both versions reach your estate, keep setting those three images in `spec.templates`. The 1.11.0 notes extend resolution to the Node Configuration Collector, OTel Collector and EdgeConnect, which *"requires a newer Dynatrace SaaS version, currently planned for 1.352"*; ActiveGate, OneAgent and code-module images resolve from Operator 1.10.0. The Operator 1.10.0 release notes (updated 09/16/2026) still list EEC, the Log Module and SQL Extension Executor among the auto-resolved images — the how-to is the more specific page, so follow it and verify on your versions.
 >
 > Any `image` or `codeModulesImage` field already set on the DynaKube takes precedence over the resolved image — remove them when you want resolution to apply.
 >

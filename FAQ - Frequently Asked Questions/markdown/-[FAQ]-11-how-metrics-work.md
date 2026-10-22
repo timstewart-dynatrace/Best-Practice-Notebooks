@@ -1,6 +1,6 @@
 # FAQ-11: How Do Metrics Work in Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 10/15/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 10/22/2026
 
 ## Overview
 
@@ -247,7 +247,7 @@ For technology you cannot instrument directly, an extension is a **declarative Y
 > - <sub>[Scripting integration `dynatrace_ingest` (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/oneagent-pipe)</sub>
 > - <sub>[Telegraf (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/telegraf)</sub>
 > - <sub>[StatsD (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/statsd) — ports 18125/18126; *"OneAgent deployed on Kubernetes, for example using Dynatrace Operator, isn't supported."*</sub>
-> - <sub>[OTLP API (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api) — endpoints, HTTP/protobuf-only; *"Platform token : Use Bearer in the Authorization header."*</sub>
+> - <sub>[OTLP API (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api) — endpoints, HTTP/protobuf-only; *"To authenticate, use a platform token with Bearer in the Authorization HTTP header."*</sub>
 > - <sub>[OTLP metrics ingest concepts (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/about-metrics-ingest) — delta temporality, histogram type mapping (explicit-bucket histogram → Histogram with Advanced OTLP metric dimensions, Counter without; read 10/02/2026); instrument mapping table rows Counter Cumulative → N/A and UpDownCounter Cumulative → Gauge, and *"Cumulative histograms aren't ingested (similarly to cumulative counters)."* (re-read 10/15/2026)</sub>
 > - <sub>[OTLP metrics configuration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/configure-otlp-metrics)</sub>
 > - <sub>[OTLP metrics limitations (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/about-metrics-ingest) — size/length limits, 63-character unit cap</sub>
@@ -311,7 +311,7 @@ Retention is *"5 years, not configurable."* The practical consequence: a Classic
 
 ### 6.3 Metrics powered by Grail: full resolution, configurable retention
 
-Grail metrics keep **"1 minute over entire history."** Included retention is *"15 months (462 days) of 1-minute granularity"*, and *"for the default metrics bucket, the available retention period ranges from 15 months (462 days) to 10 years (3,657 days)"* — raising it bills the Retain capability (§9). Retained data stays queryable until the end of the retention period. Note the current scoping: retention is set on the **default metrics bucket**; custom metric buckets are documented as *"planned for a future release"*, so per-metric retention splits are not yet available the way they are for logs.
+Grail metrics keep **"1 minute over entire history."** Included retention is *"15 months (462 days) of 1-minute granularity"*, and *"For the default metrics bucket, the available retention period ranges from 1 day to 10 years (3,657 days)."* Retention beyond the included 15 months bills the Retain capability (§9). Retained data stays queryable until the end of the retention period. Note the current scoping: retention is set on the **default metrics bucket**; custom metric buckets are documented as *"planned for a future release"*, so per-metric retention splits are not yet available the way they are for logs.
 
 The Grail design also removed a classic artifact: Classic kept separate pre-aggregated and full-cardinality "detail" variants of some built-ins for performance; Grail *"is already optimized for such high cardinality queries"*, so only the detailed form exists.
 

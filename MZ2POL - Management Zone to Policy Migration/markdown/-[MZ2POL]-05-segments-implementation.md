@@ -1,6 +1,6 @@
 # MZ2POL-05: Migrating Management Zone Filtering to Segments
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 6 of 17 | **Created:** December 2025 | **Last Updated:** 10/14/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 6 of 17 | **Created:** December 2025 | **Last Updated:** 10/22/2026
 
 ## Overview
 
@@ -251,7 +251,7 @@ If your host groups are *not* systematically named, this scenario is unavailable
 
 That is enough for simple setups. For production the guide recommends a richer baseline: *"For most production environments, use Namespace annotations and labels as the baseline."* Map the namespace labels or annotations your teams already maintain through Kubernetes telemetry enrichment, and filter segments on those ([upgrade guide (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments)).
 
-> **Version gate.** The Kubernetes enrichment page is labelled *"Dynatrace Operator version 1.10+"*, *"OneAgent version 1.333+"* and *"ActiveGate version 1.343+"*; annotations on the workload object itself (`Deployment`, `StatefulSet`, `DaemonSet`) additionally carry *"Dynatrace Operator version 1.11.0+"* and *"ActiveGate version 1.349+"*. Operators, OneAgents and ActiveGates are upgraded cluster by cluster, so verify the versions in each cluster before relying on primary tags there. Until they are in place, the built-in `k8s.cluster.name` and `k8s.namespace.name` fields remain the working path, and namespace-level annotations are the level to use where workload-level ones are not yet supported.
+> **Version gate.** The Kubernetes enrichment page is labelled *"Dynatrace Operator version 1.10+"*, *"OneAgent version 1.333+"* and *"ActiveGate version 1.343+"*; annotations on the workload object itself (`Deployment`, `StatefulSet`, `DaemonSet`) additionally carry *"Dynatrace Operator version 1.11.0+"* and *"ActiveGate version 1.347+"*. Operators, OneAgents and ActiveGates are upgraded cluster by cluster, so verify the versions in each cluster before relying on primary tags there. Until they are in place, the built-in `k8s.cluster.name` and `k8s.namespace.name` fields remain the working path, and namespace-level annotations are the level to use where workload-level ones are not yet supported.
 >
 > <sub>**Sources:** [Enrich Kubernetes telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) — version labels as quoted; *"Annotations on the workload object itself"* apply *"to every pod created by that workload."*</sub>
 

@@ -1,6 +1,6 @@
 # CLOUD-01: Cloud Integration Fundamentals
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 1 of 8 | **Created:** March 2026 | **Last Updated:** 10/13/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 1 of 8 | **Created:** March 2026 | **Last Updated:** 10/22/2026
 
 ## Overview
 
@@ -82,7 +82,7 @@ The **Clouds app** provides a streamlined, fully managed experience for connecti
 
 ### Classic ActiveGate-Based Polling (Legacy)
 
-For Managed deployments or environments with specific network constraints, the classic ActiveGate approach is still available.
+For Managed deployments or environments with specific network constraints, the classic ActiveGate approach is still available. On Managed, classic polling runs on Environment ActiveGates; their placement, redundancy and updates are covered in DTM-04: ActiveGate Deployment on Managed.
 
 **Advantages:**
 - Works with Dynatrace Managed (on-premises)

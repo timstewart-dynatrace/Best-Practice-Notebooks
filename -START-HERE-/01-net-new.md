@@ -1,7 +1,7 @@
 # Doorway 1 — Net New
 
 > **Purpose:** Reading order for customers starting with a net-new Dynatrace tenant — whether greenfield (no prior observability platform) or migrating from another tool. Routes through Foundation, then migration-specific phases (if applicable), then Domain Enablement and Operationalize.
-> **Last Updated:** 07/23/2026
+> **Last Updated:** 10/21/2026
 
 ![Net New Sub-Paths](images/01-net-new-subpaths.svg)
 
@@ -17,7 +17,8 @@
 6. [Sub-Path C — From Splunk](#sub-path-c--from-splunk)
 7. [Sub-Path D — From Sumo Logic](#sub-path-d--from-sumo-logic)
 8. [Sub-Path E — Multi-Tool / Hybrid](#sub-path-e--multi-tool--hybrid)
-9. [Shared Epilogue: Where to Next](#shared-epilogue-where-to-next)
+9. [Sub-Path F — Dynatrace Managed](#sub-path-f--dynatrace-managed)
+10. [Shared Epilogue: Where to Next](#shared-epilogue-where-to-next)
 
 ---
 
@@ -54,6 +55,7 @@ Time: 1–3 days, depending on procurement and SSO complexity.
 | Splunk (logs and dashboards primarily) | [Sub-Path C — From Splunk](#sub-path-c--from-splunk) | 4–9 months |
 | Sumo Logic (logs and dashboards primarily) | [Sub-Path D — From Sumo Logic](#sub-path-d--from-sumo-logic) | 4–9 months |
 | Multiple tools (e.g., NR for APM + Splunk for logs) OR security observability mandate | [Sub-Path E – Multi-Tool / Hybrid](#sub-path-e--multi-tool--hybrid) | 6–12 months |
+| Deploying **Dynatrace Managed** (self-hosted, on-premises) instead of a SaaS tenant | [Sub-Path F — Dynatrace Managed](#sub-path-f--dynatrace-managed) | Depends on hardware lead time |
 
 ---
 
@@ -154,6 +156,25 @@ Recommended sequencing:
 | 9 | Cost & maturity | [FINOPS](../FINOPS%20-%20Cost%20Management%20&%20FinOps/), [SLO](../SLO%20-%20Service%20Level%20Objectives/), [Maturity Module](08-maturity.md) |
 
 Anti-pattern: trying to migrate all source tools simultaneously. Each wave should reach a working state before the next begins. Two simultaneous tool migrations halve your team's focus and double the risk of either failing.
+
+---
+
+## Sub-Path F — Dynatrace Managed
+
+You are deploying **Dynatrace Managed**, the self-hosted, on-premises deployment, rather than a SaaS tenant. This path is **Dynatrace Classic only**. Most of this playbook assumes SaaS: Grail and the features built on it don't exist on Managed, so the Foundation Module and most domain series don't apply as written. The [DTM](../DTM%20-%20Dynatrace%20Managed/) series is the backbone.
+
+| Phase | Reading | Notes |
+|---|---|---|
+| 1. Orientation | [DTM](../DTM%20-%20Dynatrace%20Managed/) — notebook 00 (series map) | What applies to Managed, where to start, how the series is numbered |
+| 2. Design the cluster | [DTM](../DTM%20-%20Dynatrace%20Managed/) — notebook 01 (cluster design) | Node count, availability model, storage layout — decide before installing |
+| 3. Configure the cluster | [DTM](../DTM%20-%20Dynatrace%20Managed/) — notebook 02 (cluster configuration) | Email, Mission Control, sign-in, privileges, backups |
+| 4. Environments and access | [DTM](../DTM%20-%20Dynatrace%20Managed/) — notebook 03 (environments) | Environment boundaries, identity source, permissions |
+| 5. ActiveGates, then OneAgents | [DTM](../DTM%20-%20Dynatrace%20Managed/) — notebooks 04 and 05 | ActiveGates first: OneAgent installers carry their endpoints |
+| 6. Operate | [DTM](../DTM%20-%20Dynatrace%20Managed/) — notebooks 10–16 and 99 | Five-layer health model and the weekly checklist |
+
+Exit criteria: the cluster design written down; the design and configuration review in DTM notebook 99 passed; first OneAgents reporting through Environment ActiveGates; the weekly health check running.
+
+Sidebar — planning to move to SaaS later? See [Doorway 3 — Deployment Migration](03-deployment-migration.md), which routes through [M2S](../M2S%20-%20Managed%20to%20SaaS%20Migration/).
 
 ---
 

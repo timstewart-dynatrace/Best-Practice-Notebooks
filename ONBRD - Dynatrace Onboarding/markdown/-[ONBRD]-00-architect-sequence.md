@@ -1,6 +1,6 @@
 # ONBRD-00: Architect's Sequence & Dependency Runbook
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 00 — Architect's Sequence & Dependency Runbook | **Created:** May 2026 | **Last Updated:** 10/19/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 00 — Architect's Sequence & Dependency Runbook | **Created:** May 2026 | **Last Updated:** 10/21/2026
 
 ## Overview
 
@@ -75,7 +75,7 @@ For environments where SVG doesn't render
 
 - **Decision:** Need ActiveGate? Needed when hosts have no direct egress, for private synthetic locations, remote extensions, Kubernetes monitoring and classic AWS / Azure polling; otherwise routing OneAgent traffic through an ActiveGate is a trade-off against going direct (see the decision table and the routing trade-offs in **ONBRD-03: Deploying ActiveGate** § 2). Defer if every host can reach your environment and nothing else needs one.
 - **Depends on:** Step 02 (Platform Token to register AG).
-- **2026 specifics:** Disk 10–20 GB (sizing depth in **ONBRD-03** and **FAQ-10: How Do I Size and Scale ActiveGates?**); 2–3 AGs per zone for load distribution + failover.
+- **2026 specifics:** Disk at least 8 GB, about 12.5 GB on an ActiveGate that runs extensions (sizing depth in **ONBRD-03** and **FAQ-10: How Do I Size and Scale ActiveGates?**); 2–3 AGs per zone for load distribution + failover.
 - **Output:** at least one AG registered; cluster connectivity verified; AG visible in **Fleet Management** (or via `smartscapeNodes "ACTIVEGATE"`).
 - **Deep dive:** CLOUD series for AG-routed cloud integrations; AUTOM series for AG config-as-code.
 

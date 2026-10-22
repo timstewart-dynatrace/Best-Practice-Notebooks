@@ -1,6 +1,6 @@
 # NRLC-05: Synthetic Monitor Migration
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 5 of 9 | **Created:** April 2026 | **Last Updated:** 10/14/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 5 of 9 | **Created:** April 2026 | **Last Updated:** 10/19/2026
 
 ## Overview
 
@@ -49,6 +49,10 @@ curl -H "Authorization: Api-Token $DT_API_TOKEN" \
 ```
 
 Public location IDs are tenant-specific; the transformer queries on first run and caches.
+
+> **Platform alternative (early adopter):** `GET https://<tenant>.apps.dynatrace.com/platform/synthetic/v1/locations?type=PUBLIC` with a platform token holding `synthetic:locations:read` — Dynatrace recommends migrating to it, and documents all of its endpoints as Early Adopter — they *"can change in non-compatible ways"*. The classic call keeps working.
+>
+> <sub>**Sources:** [GET locations — platform API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-synthetic-v1/locations-get) — *"The response includes all matching public and private locations available for your environment."*; [Access control — Synthetic (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-access-control) — *"Dynatrace recommends migrating to the Synthetic platform permissions and the Synthetic Platform API"*; *"All Synthetic Platform API endpoints are currently in Early Adopter maturity."*; *"can change in non-compatible ways"*</sub>
 
 > <sub>**Sources:** [GET all locations (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/synthetic-v2/synthetic-locations-v2/get-all-locations) — *"To execute this request, you need an access token with `syntheticLocations.read` scope."*</sub>
 

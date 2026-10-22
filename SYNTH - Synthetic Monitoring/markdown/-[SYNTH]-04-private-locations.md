@@ -1,6 +1,6 @@
 # SYNTH-04: Private Synthetic Locations
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 4 of 6 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 4 of 6 | **Created:** December 2025 | **Last Updated:** 10/19/2026
 
 ## Monitoring Internal Applications from Your Infrastructure
 This notebook covers deploying and managing private synthetic locations (ActiveGates) for monitoring internal applications, APIs, and services not accessible from the public internet.
@@ -238,6 +238,10 @@ The UI flow above is the interactive path. For repeatable, reviewable, source-co
 ```
 POST /api/v2/synthetic/locations
 ```
+
+> **Platform alternative (early adopter).** `POST /platform/synthetic/v1/locations` creates a private location with a platform or OAuth token holding `synthetic:locations:write` — Dynatrace recommends migrating to it, and documents all of its endpoints as Early Adopter — they *"can change in non-compatible ways"*. The Environment API v2 endpoint above keeps working.
+>
+> <sub>**Sources:** [POST locations — platform API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-synthetic-v1/locations-post) — *"You use the locations endpoint to create a new private synthetic location."*; [Access control — Synthetic (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-access-control) — *"Dynatrace recommends migrating to the Synthetic platform permissions and the Synthetic Platform API"*; *"All Synthetic Platform API endpoints are currently in Early Adopter maturity."*; *"can change in non-compatible ways"*</sub>
 
 **API 1.344** (published 07/15/2026, **staged rollout from 07/29/2026**) adds three properties to the `PrivateSyntheticLocation` request schema of `POST /synthetic/locations` — `minActiveGateCount`, `maxActiveGateCount`, and `nodeSize`. All three are **containerized-location** properties: the POST reference describes each as a *"Containerized location property"* that is *"required for a Kubernetes location"*. They are the API counterparts of the fields the UI asks for when you create a Kubernetes or OpenShift location — the minimum and maximum number of ActiveGates the horizontal pod autoscaler works between, and the ActiveGate node size. They do not size a standard Linux/Windows location, whose ActiveGate size is set by the host it is installed on (see § 3).
 

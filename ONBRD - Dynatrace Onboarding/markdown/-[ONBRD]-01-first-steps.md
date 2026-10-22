@@ -1,6 +1,6 @@
 # ONBRD-01: Getting Started: Your First Steps in Dynatrace
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 10/14/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 10/22/2026
 
 ## Finding Your Way Around
 Welcome to Dynatrace. This notebook helps you get oriented in your new environment—where to find things, how to navigate, and what to do first.
@@ -260,6 +260,8 @@ If you're migrating from another APM tool, the deep-dive translation series cove
 - **SL2DT** for Sumo Logic logs/dashboards/monitors
 - **S2D** for Splunk
 - **M2S** for Managed-to-SaaS Dynatrace migrations
+
+Running **Dynatrace Managed** rather than SaaS? This series is written for SaaS; the **DTM** series covers what is specific to a Managed cluster.
 
 Pair the migration series with this **ONBRD** series for the platform-fundamentals foundation.
 

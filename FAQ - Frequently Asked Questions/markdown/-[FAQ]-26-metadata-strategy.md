@@ -1,6 +1,6 @@
 # FAQ-26: What Metadata Should We Set, Where, and Why?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 26 — Metadata Strategy | **Created:** October 2026 | **Last Updated:** 10/19/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 26 — Metadata Strategy | **Created:** October 2026 | **Last Updated:** 10/22/2026
 
 ## Overview
 
@@ -152,7 +152,7 @@ Every producer has its own enrichment surface, its own precedence rules and its 
 | Producer | Version floor | Inherited automatically | primary_tags at source | Special fields at source | Where you configure it |
 |---|---|---|---|---|---|
 | OneAgent | OneAgent 1.333+ | Host group, Kubernetes, cloud IDs | Host tags, DT_TAGS | Host tags, DT_TAGS | oneagentctl, installer, central rules |
-| Kubernetes | Operator 1.10+ (workload-level annotations: Operator 1.11.0+, ActiveGate 1.349+) | Cluster, namespace | Labels, annotations | Labels, annotations | Central rules, metadata.dynatrace.com annotations, DynaKube |
+| Kubernetes | Operator 1.10+ (workload-level annotations: Operator 1.11.0+, ActiveGate 1.347+) | Cluster, namespace | Labels, annotations | Labels, annotations | Central rules, metadata.dynatrace.com annotations, DynaKube |
 | OpenTelemetry | SDK or Collector | Only via OneAgent or Operator | Resource attributes | Resource attributes | OTEL_RESOURCE_ATTRIBUTES, Collector processor |
 | Cloud connections | Dynatrace 1.348+ | Account, region | Via OpenPipeline (for now) | Central configuration | Ingest enrichment configuration |
 | Extensions — local | OneAgent / ActiveGate / EEC 1.343+ | Host fields and tags | Per configuration or endpoint | Host only | Monitoring configuration |
@@ -188,13 +188,13 @@ The OneAgent enrichment page (updated 09/14/2026) still says *"Cloud tags are no
 
 ### 5.2 Kubernetes
 
-Three methods, set out in full in **K8S-10**: **central rules** that promote namespace labels and annotations you already maintain; **dedicated `metadata.dynatrace.com/` annotations** on a namespace, workload or pod (workload-level annotations need Dynatrace Operator 1.11.0+ and ActiveGate 1.349+; ActiveGate 1.349 had no release notes when checked on 10/15/2026, so treat workload-level annotations as forthcoming and check your versions before relying on them — until then, namespace- and pod-level annotations are the working path); and **DynaKube resource attributes** for cluster-wide facts. Annotations accept `primary_tags.<key>` and the three special fields. Within annotations, pod beats workload beats namespace.
+Three methods, set out in full in **K8S-10**: **central rules** that promote namespace labels and annotations you already maintain; **dedicated `metadata.dynatrace.com/` annotations** on a namespace, workload or pod (workload-level annotations need Dynatrace Operator 1.11.0+ and ActiveGate 1.347+; ActiveGate 1.347 has a staged rollout (*"Rollout start on Sep 30, 2026"*), so check both versions have reached your clusters before relying on them — until then, namespace- and pod-level annotations are the working path); and **DynaKube resource attributes** for cluster-wide facts. Annotations accept `primary_tags.<key>` and the three special fields. Within annotations, pod beats workload beats namespace.
 
 **The grain trap.** Pod-level annotations don't reach Kubernetes platform data. Dynatrace says they *"don't enrich Kubernetes metrics, events, Smartscape entities, or Prometheus metrics"* — only logs and spans from the annotated pods. A cost center set per pod will therefore never appear on namespace-level CPU or memory metrics. Put anything that platform metrics must carry at **namespace** level.
 
 **The double-injection trap.** When OneAgent injection and OTLP exporter injection are both active on a pod and set the same key, Dynatrace calls the result undefined. Use distinct keys.
 
-> <sub>**Sources:** [Enrich Kubernetes telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) — *"Workload-level: Dynatrace Operator version 1.11.0+ ActiveGate version 1.349+"* and *"When the same key is set at multiple levels, the pod-level value wins over the workload-level value, and the workload-level value wins over the namespace-level value."*, [Configure cost allocation (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-cost-allocation) — *"Pod annotations don't enrich Kubernetes metrics, events, Smartscape entities, or Prometheus metrics."*</sub>
+> <sub>**Sources:** [Enrich Kubernetes telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) — *"Workload-level: Dynatrace Operator version 1.11.0+ ActiveGate version 1.347+"* and *"When the same key is set at multiple levels, the pod-level value wins over the workload-level value, and the workload-level value wins over the namespace-level value."*, [ActiveGate 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347) — *"Rollout start on Sep 30, 2026"*, [Configure cost allocation (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-cost-allocation) — *"Pod annotations don't enrich Kubernetes metrics, events, Smartscape entities, or Prometheus metrics."*</sub>
 
 ### 5.3 OpenTelemetry
 
