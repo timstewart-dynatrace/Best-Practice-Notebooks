@@ -1,6 +1,6 @@
 # NRLC-04: Alert & Workflow Migration
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 4 of 9 | **Created:** April 2026 | **Last Updated:** 10/14/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 4 of 9 | **Created:** April 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -301,7 +301,7 @@ Count distinct problems, not records. `fetch events | filter event.kind == "DAVI
 > - **`builtin:maintenance-windows`** — the Latest Dynatrace maintenance windows. Scope is a DQL filter: *"Window scope uses DQL matcher filter criteria on Grail primary fields and tags."* Problems are still detected — *"Dynatrace always detects problems."* — so the mute happens in the workflow: add `maintenance.is_under_maintenance == false` to the **Problem trigger** filter. The engine's `suppression: DETECT_PROBLEMS_DONT_ALERT` field belongs to the classic schema and has no counterpart here. Windows cannot be back-dated: *"Retroactive maintenance windows are not supported."*
 > - **`builtin:alerting.maintenance-window`** — classic maintenance windows, scoped by entity type, entity, entity tags or management zones, with once / daily / weekly / monthly recurrence. Use it only on a tenant still running classic alerting.
 >
-> **Forthcoming / rolling out (SaaS 1.348, staged tenant rollout from 09/22/2026):** *"During an active Maintenance Window, scheduled executions of selected synthetic monitors are automatically skipped."* That covers NR mute rules written against synthetic conditions — verify the feature has reached your tenant before relying on it; until then, synthetic monitors keep running during a window.
+> **Rolling out (SaaS 1.348, rollout start 10/12/2026, staged tenant rollout):** *"During an active maintenance window, scheduled executions of selected Synthetic monitors are automatically skipped."* That covers NR mute rules written against synthetic conditions — verify the feature has reached your tenant before relying on it; until then, synthetic monitors keep running during a window.
 
 > <sub>**Sources:** [Settings API schemas (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas), [builtin:maintenance-windows schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-maintenance-windows), [builtin:alerting.maintenance-window schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-alerting-maintenance-window), [Upgrade from Classic maintenance windows (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/upgrade-from-classic-maintenance-windows), [SaaS 1.348 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348).</sub>
 

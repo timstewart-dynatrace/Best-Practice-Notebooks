@@ -1,6 +1,6 @@
 # ADOPT-06: Maximizing Platform Value — Coverage Audit and Staged Enablement
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 6 of 6 | **Created:** July 2026 | **Last Updated:** 10/12/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 6 of 6 | **Created:** July 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -90,17 +90,17 @@ fetch logs, from:-24h
 // Wave 0 — consumption split across the three host-monitoring tiers, last 7 days.
 // rate:1h turns each daily bucket into GiB-hours (Full-Stack) or host-hours (Infrastructure,
 // Discovery) per hour — that is, the average monitored footprint that day. Multiply by 24 for the
-// day's total.
+// day's total. Whole days only — a relative from:-7d gives a partial first and last day.
 timeseries {
   full_stack = sum(dt.billing.full_stack_monitoring.usage, rate:1h),
   infrastructure = sum(dt.billing.infrastructure_monitoring.usage, rate:1h),
   discovery = sum(dt.billing.foundation_and_discovery.usage, rate:1h)
-}, from:-7d, interval:24h
+}, from:now()@d - 7d, to:now()@d, interval:24h
 ```
 
 **Deep-monitoring exceptions** are configuration, not telemetry: review **Settings → Processes and containers → Process group monitoring** for rules that switch off service/code-level monitoring — a Full-Stack host whose main workload is excluded delivers Infrastructure value at Full-Stack cost (FAQ-12 gotcha #1). Record all four measurements as the Wave-0 baseline; every value gate re-runs them.
 
-> **Query provenance:** all three queries were executed live on a SaaS tenant 10/01/2026 (36 hosts billed as Full-Stack and 22 as Code Monitoring over 24 h; 22 hosts shipping 24.7M log records in 24 h; the daily Full-Stack series averaged about 170 GiB-hours per hour, matching the billing events). RUM coverage (`fetch user.sessions, from:-24h | summarize sessions = count()`) passed the DQL verifier but the validation token lacked `storage:user.sessions:read` — verify in your tenant.
+> **Query provenance:** all three queries were executed live on a SaaS tenant 10/01/2026 (36 hosts billed as Full-Stack and 22 as Code Monitoring over 24 h; 22 hosts shipping 24.7M log records in 24 h; the daily Full-Stack series averaged about 170 GiB-hours per hour, matching the billing events). RUM coverage (`fetch user.sessions, from:-24h | summarize sessions = count()`) executed on the same tenant 10/23/2026 (3,264 sessions in 24 h).
 
 <a id="segment"></a>
 ## 3. Segment the Estate

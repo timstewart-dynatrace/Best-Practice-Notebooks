@@ -1,6 +1,6 @@
 # ALERT-04: ITSM Integration: ServiceNow
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 04 of 05 | **Created:** June 2026 | **Last Updated:** 10/15/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 04 of 05 | **Created:** June 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -132,7 +132,7 @@ Every rung shares one requirement: the Davis problem must already carry the meta
 
 If the problem fires without these, the incident lands in a default queue with no priority — the ITSM equivalent of "everything goes to one channel." Enrich upstream.
 
-> **Breaking — SaaS 1.348 (pre-release; staged tenant rollout planned from 09/22/2026): `event.severity` is no longer defaulted.** *"Davis events and problems no longer default `event.severity` to `3`."* The priority row above assumes every problem carries a severity. Once 1.348 reaches your tenant, a problem whose events never set one arrives without it, so decide what the mapping does for a missing severity rather than letting it fall through; and if the trigger also filters on severity: *"Workflows with a Davis event/problem trigger that filter on `event.severity=3` expecting it to be defaulted, might need to be changed to filter for `Any` severity to keep being triggered."* Until 1.348 reaches your tenant, the defaulting behavior still applies.
+> **Breaking — SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout): `event.severity` is no longer defaulted.** *"Davis events and problems no longer default `event.severity` to `3`."* The priority row above assumes every problem carries a severity. Once 1.348 reaches your tenant, a problem whose events never set one arrives without it, so decide what the mapping does for a missing severity rather than letting it fall through; and if the trigger also filters on severity: *"Workflows with a Davis event/problem trigger that filter on `event.severity=3` expecting it to be defaulted, might need to be changed to filter for `Any` severity to keep being triggered."* Until 1.348 reaches your tenant, the defaulting behavior still applies.
 
 > **Harden whichever rung you pick.** One-way creation that silently fails is worse than no integration — problems open in Dynatrace but never reach the queue. Retry transient failures, dead-letter permanent ones (don't retry a 4xx), link the incident number back onto the problem, and monitor the workflow itself. WFLOW-05 §8 has the patterns.
 
@@ -145,7 +145,7 @@ If the problem fires without these, the incident lands in a default queue with n
 > - <sub>[Dynatrace + ServiceNow integrations (Dynatrace News)](https://www.dynatrace.com/news/blog/accelerate-your-autonomous-it-operations-journey-with-dynatrace-and-servicenow-integrations/)</sub>
 > - <sub>[Upgrade from Classic problem notification to simple workflows (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — *"In a workflow, you reference Grail problem record fields through Jinja instead"* (its example is `{{ event()["event.name"] }}`); `{{ problem_link() }}` *"Evaluates only in workflows with a Davis problem trigger"*; on multi-entity problems, *"The problem carries the deduplicated union."*</sub>
 > - <sub>[Event triggers for workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — *"To browse past occurrences, explore available fields, and test filter conditions before configuring the trigger, run this query in a notebook"* (the query is `fetch dt.davis.problems`). Problem-trigger preview query validated on a live tenant 09/24/2026</sub>
-> - <sub>[What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — pre-release, read 09/24/2026</sub>
+> - <sub>[What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — GA, rollout start 10/12/2026; re-read 10/23/2026</sub>
 
 ---
 

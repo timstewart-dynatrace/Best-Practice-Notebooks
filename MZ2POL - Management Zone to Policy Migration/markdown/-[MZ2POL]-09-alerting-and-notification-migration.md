@@ -1,6 +1,6 @@
 # MZ2POL-09: Migrating Management Zone-Scoped Alerting and Notifications
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 10 of 17 | **Created:** July 2026 | **Last Updated:** 10/14/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 10 of 17 | **Created:** July 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -229,7 +229,7 @@ No management-zone filter. No segment filter. No entity-selector filter.
 
 All of these compile into one matching expression, *"limited to 1,000 characters across all trigger fields"*; a trigger that exceeds it fails validation on save. A long list of tag values or entity conditions is the usual way to hit it — route on one primary tag instead (§4).
 
-> **SaaS 1.348 (pre-release; staged tenant rollout planned from 09/22/2026):** *"Davis events and problems no longer default `event.severity` to `3`."* A severity filter carried over from a profile that never set severity explicitly may stop matching once 1.348 reaches your tenant. The release note's action plan: *"If it was relying on the default, change the filter to Any severity so the workflow continues to fire after the upgrade."* For each converted trigger, decide whether its severity filter is intentional. Until 1.348 arrives, the current defaulting still applies — verify your tenant's version.
+> **SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout):** *"Davis events and problems no longer default `event.severity` to `3`."* A severity filter carried over from a profile that never set severity explicitly may stop matching once 1.348 reaches your tenant. The release note's action plan: *"If it was relying on the default, change the filter to Any severity so the workflow continues to fire after the upgrade."* For each converted trigger, decide whether its severity filter is intentional. Until 1.348 arrives, the current defaulting still applies — verify your tenant's version.
 
 > <sub>**Sources:** [Event trigger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — the problem-state options; *"When enabled, the trigger starts only after Dynatrace Intelligence has completed root cause analysis for the problem."*; *"limited to 1,000 characters across all trigger fields."* [SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"Davis events and problems no longer default `event.severity` to `3`."*</sub>
 

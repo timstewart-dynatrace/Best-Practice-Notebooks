@@ -1,6 +1,6 @@
 # MZ2POL-13: Spaces — What Is Coming and How to Prepare
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 14 of 17 | **Created:** October 2026 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 14 of 17 | **Created:** October 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -53,7 +53,7 @@ Nothing else about Spaces — how a record gets one, who defines them, what they
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Published | Not documented | History |
 |---|---|---|
-| Semantic dictionary permission-field page: dt.space — string, resource, experimental; tags permission, primary-field; "The space associated with the record. Spaces enable granular scoping and delegation of monitoring responsibilities." | A Spaces docs page or how-to; an IAM policy condition on dt.space; how a record gets its space; relation to dt.security_context and segments; ownership of documents or configuration objects; a release version or GA date | 09/24/2026: SaaS 1.348 pre-release notes announced space-based access control with dt.space. 10/13/2026: the same notes no longer list it; the validation tenant's dictionary has no dt.space row |
+| Semantic dictionary permission-field page: dt.space — string, resource, experimental; tags permission, primary-field; "The space associated with the record. Spaces enable granular scoping and delegation of monitoring responsibilities." | A Spaces docs page or how-to; an IAM policy condition on dt.space; how a record gets its space; relation to dt.security_context and segments; ownership of documents or configuration objects; a release version or GA date | 09/24/2026: SaaS 1.348 pre-release notes announced space-based access control with dt.space. 10/13/2026: the same notes no longer list it, nor do the GA notes (rollout start 10/12/2026, read 10/23/2026); the validation tenant's dictionary has no dt.space row |
 Conclusion: design production access on dt.security_context and boundaries today (MZ2POL-12); prepare for Spaces only with steps that pay off without them (§4).
 For environments where SVG doesn't render
 -->
@@ -69,7 +69,7 @@ As of 10/13/2026, checked this session:
 |---|---|---|
 | Is there a Spaces documentation page or how-to? | **No page found** | Dynatrace docs search |
 | Can an IAM policy condition on `dt.space`? | **Not listed** — the reference has no `storage:dt.space` condition on any Grail permission | IAM policy reference |
-| Is it in a release? | **Not in the current SaaS 1.348 notes.** The pre-release notes listed space-based access control on 09/24/2026 and no longer do | What's new in SaaS 1.348 (pre-release) |
+| Is it in a release? | **Not in the SaaS 1.348 GA notes (rollout start 10/12/2026).** A pre-release version listed space-based access control on 09/24/2026; the GA notes do not | What's new in SaaS 1.348 |
 | Is the field on a tenant? | **Not on the validation tenant** — no `dt.space` row in `dt.semantic_dictionary.fields`, while the control field `dt.security_context` is present | §5 query |
 | How does a record get a space? | Not documented | — |
 | How do spaces relate to `dt.security_context`, segments, buckets? | Not documented | — |
@@ -77,7 +77,7 @@ As of 10/13/2026, checked this session:
 
 **What this means for a migration plan:** none of the MZ2POL replacements may depend on Spaces. Access goes through `dt.security_context` and boundaries (MZ2POL-12), filtering through segments (MZ2POL-05), alerting through workflows (MZ2POL-09). Those are documented and available, and they do not need to be undone if Spaces arrive.
 
-> <sub>**Sources:** [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — no `dt.space` condition, checked 10/13/2026. [What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — pre-release; read 09/24/2026 with a Spaces entry and 10/13/2026 without one. **Dictionary:** no `dt.space` row under `filter contains(name, "space")`, read 10/13/2026 (control: `dt.security_context` returned, `stable`, tagged `permission`).</sub>
+> <sub>**Sources:** [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — no `dt.space` condition, checked 10/13/2026. [What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — read 09/24/2026 (pre-release) with a Spaces entry; 10/13/2026 and 10/23/2026 (GA, rollout start 10/12/2026) without one. **Dictionary:** no `dt.space` row under `filter contains(name, "space")`, read 10/13/2026 (control: `dt.security_context` returned, `stable`, tagged `permission`).</sub>
 
 <a id="where-it-would-sit"></a>
 ## 3. Where a Space Field Would Sit

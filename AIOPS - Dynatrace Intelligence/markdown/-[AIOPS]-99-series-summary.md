@@ -1,6 +1,6 @@
 # AIOPS-99: Series Summary
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 8 of 8 | **Created:** May 2026 | **Last Updated:** 10/12/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 8 of 8 | **Created:** May 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -72,7 +72,7 @@ Confirm before you rely on it: the dictionary ships with the platform version, a
 checked on 09/09/2026 still returned `experimental`, so 1.348 had not reached it. Until it does,
 the original caution stands.
 
-SaaS 1.348 (pre-release; staged rollout planned from 09/22/2026) also changes the value itself:
+SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout) also changes the value itself:
 *"Davis events and problems no longer default event.severity to 3."* Once that reaches your tenant,
 an unset severity is null — the query below tests for it first and labels it `not set`, rather than
 letting it fall through to `5 - informational`.

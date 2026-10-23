@@ -1,6 +1,6 @@
 # IAM-99: Best Practice Summary
 
-> **Series:** IAM — IAM Administration | **Notebook:** Bonus Summary | **Created:** March 2026 | **Last Updated:** 10/19/2026
+> **Series:** IAM — IAM Administration | **Notebook:** Bonus Summary | **Created:** March 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -151,7 +151,7 @@ This notebook distills every actionable best practice from the IAM series (IAM-0
 | 47 | Set expiration dates on all API tokens | Every token must have a defined expiry. Default rotation schedule: 90 days | **Critical** | Tokens |
 | 48 | Store tokens in a secrets manager | Use CyberArk, HashiCorp Vault, AWS Secrets Manager. Never in code, shared environment variables, or wiki pages | **Critical** | Tokens |
 | 49 | Maintain a service account inventory | Document: owner, purpose, scopes, expiry date, rotation schedule for every OAuth client and API token. Review quarterly | **Recommended** | Tokens |
-| 50 | Use OAuth2 client credentials for new integrations | Prefer OAuth over API tokens for all new automation. API tokens only for legacy compatibility. Required in Phase 3 environments, where classic API token creation is disabled; the `/apiTokens` endpoints are deprecated in API 1.348 (pre-release) | **Recommended** | Tokens |
+| 50 | Use OAuth2 client credentials for new integrations | Prefer OAuth over API tokens for all new automation. API tokens only for legacy compatibility. Required in Phase 3 environments, where classic API token creation is disabled; the `/apiTokens` endpoints are deprecated in API 1.348 (rollout start 10/12/2026, staged tenant rollout) | **Recommended** | Tokens |
 
 > <sub>**Sources:** [OAuth clients (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients), [Token concepts (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/token-concepts).</sub>
 

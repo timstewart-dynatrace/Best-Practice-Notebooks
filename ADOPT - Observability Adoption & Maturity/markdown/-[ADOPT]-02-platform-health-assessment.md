@@ -1,6 +1,6 @@
 # ADOPT-02: Platform Health Assessment
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 2 of 6 | **Created:** March 2026 | **Last Updated:** 10/12/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 2 of 6 | **Created:** March 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -143,14 +143,17 @@ fetch dt.entity.service, from:-24h
 // Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
 // the classic entity store; for a pre-migration discovery inventory keep the classic query above.
 // Field maps: serviceType -> dt.service.sdv1_type.
+// dt.service.sdv1_type is set only when dt.service_detection.version is 1; on SDv2 services it is null — add dt.service_detection.version to the by: list to see which applies.
 ```
 
 ### 3.2 Process Group Inventory
 
 ```dql
-// Count process groups by technology type
+// Count process groups by technology type (a process group can run several)
 fetch dt.entity.process_group, from:-24h
-| summarize {pg_count = count()}, by:{softwareTechnologies}
+| expand tech = softwareTechnologies
+| parse tech, "'type:' LD:technology ','"
+| summarize {pg_count = countDistinctExact(id)}, by:{technology}
 | sort pg_count desc
 | limit 15
 
@@ -170,7 +173,8 @@ Understanding how much data flows into Dynatrace helps with capacity planning, c
 
 ```dql
 // Log ingestion trend over the last 24 hours by hour
-fetch logs, from:-24h
+// Whole hours only — a relative from:-24h gives a partial first and last hour.
+fetch logs, from:now()@h - 24h, to:now()@h
 | makeTimeseries log_count = count(), interval:1h
 ```
 
@@ -188,7 +192,8 @@ fetch logs, from:-24h
 
 ```dql
 // Span ingestion trend over the last 24 hours
-fetch spans, from:-24h
+// Whole hours only — a relative from:-24h gives a partial first and last hour.
+fetch spans, from:now()@h - 24h, to:now()@h
 | makeTimeseries span_count = count(), interval:1h
 ```
 
@@ -262,7 +267,8 @@ Log ingest is billed by volume, not by record count, so read it from the billing
 
 ```dql
 // Billed log ingest per day over the last 7 days, in GiB
-fetch dt.system.events, from:-7d
+// Whole days only — a relative from:-7d gives a partial first and last day.
+fetch dt.system.events, from:now()@d - 7d, to:now()@d
 | filter event.kind == "BILLING_USAGE_EVENT"
 | filter event.type == "Log Management & Analytics - Ingest & Process"
 | summarize {billed_gib = sum(billed_bytes) / 1073741824.0}, by:{day = bin(timestamp, 24h)}

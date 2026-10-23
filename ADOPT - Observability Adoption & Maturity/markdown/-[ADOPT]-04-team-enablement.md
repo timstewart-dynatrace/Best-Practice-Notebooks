@@ -1,6 +1,6 @@
 # ADOPT-04: Team Enablement
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 4 of 6 | **Created:** March 2026 | **Last Updated:** 10/13/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 4 of 6 | **Created:** March 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -231,6 +231,7 @@ fetch dt.entity.service, from:-24h
 // Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
 // the classic entity store; for a pre-migration discovery inventory keep the classic query above.
 // Field maps: serviceType -> dt.service.sdv1_type; entity.name -> name.
+// dt.service.sdv1_type is set only when dt.service_detection.version is 1; on SDv2 services it is null — add dt.service_detection.version to the by: list to see which applies.
 ```
 
 ### Exercise 2: "What happened in the last hour?"

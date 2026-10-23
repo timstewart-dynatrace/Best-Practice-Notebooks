@@ -18,8 +18,8 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | OneAgent deployment coverage, hosts by monitoring mode (read from billing events, not `monitoringMode`), agent release currency vs the support window, ingestion rates, ActiveGate health, per-host GiB-hour consumption, building a health scorecard | `-[ADOPT]-02-platform-health-assessment.md` |
 | MTTD and problem-duration (MTTR) baselines, problem-count trends, alert quality (short-lived, maintenance-window and recurring problems — not the frequent-issue flag), deployment frequency and a deployment-correlated change failure rate, why problem duration is not DORA's recovery metric, computing detection lag from a problem's `event.start` against its `CREATED` transition | `-[ADOPT]-03-success-metrics.md` |
 | Role-based learning paths, the "hero problem", skill assessment, internal champions, training roadmaps | `-[ADOPT]-04-team-enablement.md` |
-| Quick wins vs strategic investments, monthly milestones, cost-optimization candidates, version support policy / EOL tiers | `-[ADOPT]-05-optimization-roadmap.md` |
-| Coverage-audit DQL (`monitoringMode`), estate segmentation, enablement Waves 1–4, value gates before each wave | `-[ADOPT]-06-maximizing-value-staged-enablement.md` |
+| Quick wins vs strategic investments, monthly milestones, cost-optimization candidates, version support policy, capability support statuses (GA / Preview / Future / Not planned) | `-[ADOPT]-05-optimization-roadmap.md` |
+| Coverage-audit DQL (hosts by billed capability — not `monitoringMode`), estate segmentation, enablement Waves 1–4, value gates before each wave | `-[ADOPT]-06-maximizing-value-staged-enablement.md` |
 | Consolidated checklist of every ADOPT best practice with priorities and source references | `-[ADOPT]-99-best-practice-summary.md` |
 
 If more than three rows match, start with `-[ADOPT]-99-best-practice-summary.md`

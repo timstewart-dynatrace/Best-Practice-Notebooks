@@ -1,6 +1,6 @@
 # ORGNZ-03: Bucket Strategy and Design
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 10/14/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -155,6 +155,8 @@ Cost allocation: dt.cost.costcenter set at the source (the bucket sets retention
 ### Cost Attribution Strategy
 
 Dynatrace cost allocation is field-based, not bucket-based: *"Tags applied at the OneAgent, Kubernetes, or telemetry-ingest layer flow through Grail as dt.cost.costcenter and dt.cost.product attributes"*, and enrichment *"is possible for all supported ingest methods, whether logs, traces, metrics, or events."* Metrics cannot go into custom buckets at all, so a bucket-per-cost-center scheme cannot cover them. Use buckets for retention and access; use the cost fields for attribution.
+
+> **SaaS 1.349 (pre-release; rollout planned from 10/06/2026):** *"Metrics now supports custom buckets."* — *"You can optionally route subsets of metrics into custom buckets using configuration rules"* ([What's new in Dynatrace SaaS 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-349)). Verify it has reached your tenant; until then the current guidance remains the working path.
 
 | Organization Level | Cost allocation | Bucket strategy |
 |-------------------|-----------------|-----------------|

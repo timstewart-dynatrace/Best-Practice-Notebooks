@@ -1,6 +1,6 @@
 # MZ2POL-15: Finding Every Zone Consumer
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 16 of 17 | **Created:** October 2026 | **Last Updated:** 10/19/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 16 of 17 | **Created:** October 2026 | **Last Updated:** 10/23/2026
 
 > **Purpose:** Before a zone can be deleted, everything that still uses it has to be found. A zone has no "used by" view, consumers store it in three different identifier formats, and some consumers reach it only through another object. This notebook finds them — in tenant settings, in classic configuration, in the account, and in code outside Dynatrace — and turns the result into the dependency matrix that gates deletion.
 
@@ -758,7 +758,7 @@ On the validation tenant: 10 zone objects changed in 365 days, and one was renam
 
 > **Proving the surface.** Before reading an empty result as "nothing references zones", run `fetch dt.system.events, from:-90d | filter event.kind == "AUDIT_EVENT" and event.provider == "SETTINGS" | summarize count()`. On the validation tenant it returned 19,787 settings audit events across 132 schemas in 90 days. A zero there is a permission problem, not an empty tenant.
 
-> <sub>**Sources:** [Audit logs on Grail (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/configuration/audit-logs-grail) — *"Audit events are stored as dt.system.events in the dt_system_events bucket, retained for one year"*; required permissions `storage:system:read` and `storage:buckets:read` on `dt_system_events`. **Dictionary:** `dt.settings.schema_id` (`experimental`), `dt.settings.object_id` (`experimental`), no row for `json_after` under `filter contains(name, "json_after")`, read 10/13/2026 (control: the same query matched `event.provider` → 1 row).</sub>
+> <sub>**Sources:** [Audit logs on Grail (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/configuration/audit-logs-grail) — *"Audit events are stored as dt.system.events in the dt_system_events bucket, retained for one year"*; required permissions `storage:system:read` and `storage:buckets:read` on `dt_system_events`. **Dictionary:** `dt.settings.schema_id` (`experimental`), `dt.settings.object_id` (`experimental`) ([Semantic Dictionary 1.351 (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-351), published 10/05/2026, promotes the `dt.settings.*` fields to `stable`; the validation tenant still returned `experimental` on 10/23/2026), no row for `json_after` under `filter contains(name, "json_after")`, read 10/13/2026 (control: the same query matched `event.provider` → 1 row).</sub>
 
 ---
 

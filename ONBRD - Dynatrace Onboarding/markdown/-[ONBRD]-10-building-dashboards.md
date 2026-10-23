@@ -1,6 +1,6 @@
 # ONBRD-10: Building Dashboards
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 10 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 10 of 10 | **Created:** December 2025 | **Last Updated:** 10/23/2026
 
 ## Visualizing Your Data
 Dashboards provide at-a-glance visibility into your environment's health and performance. This notebook covers dashboard creation, common visualization patterns, and sharing with your team.
@@ -108,6 +108,8 @@ This notebook uses **Dashboards**, the Latest Dynatrace app. Dashboards Classic 
 | **Maps** (choropleth, dot, connection, bubble) | Geographic data |
 
 There is no "top list" visualization: a ranked list is a bar or categorical chart (or a table) over a query that ends in `sort … | limit N`.
+
+> **SaaS 1.349 (pre-release; rollout planned from 10/06/2026):** *"Top list visualizations are now integrated into Dashboards and Notebooks"* ([What's new in Dynatrace SaaS 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-349)). Verify it has reached your tenant; until then the current guidance remains the working path.
 
 ### Visualization Types
 

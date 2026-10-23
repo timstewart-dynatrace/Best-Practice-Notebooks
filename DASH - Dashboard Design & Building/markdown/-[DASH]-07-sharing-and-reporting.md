@@ -1,6 +1,6 @@
 # DASH-07: Sharing and Reporting
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -67,7 +67,7 @@ Dynatrace provides granular control over who can view, edit, and manage dashboar
 
 ### Sharing Methods
 
-The Dashboards app shares a dashboard three ways, all of them with Dynatrace users in your environment:
+The Dashboards app shares a dashboard three ways with Dynatrace users in your environment:
 
 | Method | How | Audience |
 |--------|-----|----------|
@@ -76,12 +76,14 @@ The Dashboards app shares a dashboard three ways, all of them with Dynatrace use
 | **Share link** | Share → create a link for viewing or for editing | Anyone in the environment who has the link, at the level the link grants |
 | **Default for a team** | There is no preset setting in the new Dashboards app — use *Access for all*, or a Launchpad as the team's landing page (FAQ-07) | New team members |
 
-Two classic-dashboard distribution features have no counterpart: **anonymous links** and **report subscriptions** do not exist in the new Dashboards app. Scheduled delivery is a Workflow (§3). There is no embedding option for non-Dynatrace users.
+Two classic-dashboard distribution features have no counterpart: **anonymous links** and **report subscriptions** do not exist in the new Dashboards app. Scheduled delivery is a Workflow (§3). From **SaaS 1.348** (rollout start 10/12/2026, staged tenant rollout) a dashboard owner can also create an **external link**: *"External links let you share a dashboard with people who don't have a Dynatrace account."* Embedding is optional per link: *"Enable Embedding to allow the dashboard to be embedded in an external page or tool such as Backstage or an internal portal."* Creating one needs *"the public-access:shares:read and public-access:shares:write permissions"*. Verify it has reached your tenant; until then, the three options above remain the working path.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Dashboards (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/dashboards-new) — *"Share links: Create links (URLs) pointing to your document and distribute the links through the channels of your choice (email, for example)."*</sub>
 > - <sub>[Share Dynatrace documents (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/get-started/dynatrace-ui/share) — *"No one outside your Dynatrace environment could use the link to access your document, of course, but anyone in your Dynatrace environment could use it."*</sub>
 > - <sub>[Upgrade from Dashboards Classic to Dashboards (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/get-apps-and-surfaces-working/upgrade-guide-dashboards) — *"don't exist in new Dashboards"* (said of both anonymous links and report subscriptions)</sub>
+> - <sub>[Share a dashboard externally (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/share-dashboard-externally) — the external-link, embedding and permission quotes above</sub>
+> - <sub>[What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"Each link supports a passcode, expiration date, IP allowlist enforcement, and optional iframe embedding"*</sub>
 
 ### Dashboard Organization
 

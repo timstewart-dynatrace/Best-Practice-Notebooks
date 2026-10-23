@@ -1,6 +1,6 @@
 # WEBRUM-05: Error Analysis
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 5 of 10 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 5 of 10 | **Created:** March 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -76,7 +76,7 @@ The classic names `error.message`, `action.name` and `sessionId` read null on Ne
 // (characteristics.has_page_summary), so a page-summary filter silently empties them.
 // ttfb.* is the opposite — it lives on page summaries. Select with the stable has_* flags, not
 // characteristics.classifier (corrected 09/28/2026): the docs call classifier "not intended for
-// query usage" and Semantic Dictionary 1.349 removes it from the user-event models.
+// query usage" and Semantic Dictionary 1.349 removes it from the user-event models (re-listed in SD 1.350, still not for query use).
 // Session/performance field vocabulary corrected 08/12/2026 (New RUM). Classic camelCase RUM
 // names are null on New RUM data and fail silently. Verified against 3,261 user.sessions:
 //   userType -> dt.rum.user_type      userActionCount -> user_action_count
