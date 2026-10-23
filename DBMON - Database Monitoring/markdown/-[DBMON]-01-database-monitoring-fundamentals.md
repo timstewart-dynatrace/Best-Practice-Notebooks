@@ -1,6 +1,6 @@
 # DBMON-01: Database Monitoring Fundamentals
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 10/15/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -58,8 +58,8 @@ OneAgent captures every database call as a **span** in the distributed trace. Th
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Path | Captures | DQL pattern |
 |------|----------|-------------|
-| OneAgent client-side | Span attributes (db.system, db.query.text, duration) for every DB call from app | fetch spans \| filter db.system == "..." |
-| ActiveGate Extensions server-side | Server-internal metrics (connections, buffer hit ratio, table sizes, deadlocks) | timeseries on extension-emitted metric keys |
+| OneAgent client-side | Span attributes (db.system, db.query.text with WHERE literals masked, duration as a duration type — divide by 1ms) for every DB call from app | fetch spans \| filter db.system == "..." |
+| ActiveGate Extensions server-side (Environment ActiveGate + EEC, or SQL Extension Executor on Kubernetes, Dynatrace 1.346+) | Server-internal metrics (connections, buffer hit ratio, table sizes, deadlocks) | timeseries on extension-emitted metric keys |
 For environments where SVG doesn't render
 -->
 
@@ -203,11 +203,11 @@ Dynatrace supports a broad range of database technologies through OneAgent auto-
 
 | Category | Technologies | `db.system` Values |
 |----------|-------------|-------------------|
-| **Relational (SQL)** | PostgreSQL, MySQL/MariaDB, Microsoft SQL Server, Oracle, IBM Db2 | `postgresql`, `mysql`, `mssql`, `oracle`, `db2` |
+| **Relational (SQL)** | PostgreSQL, MySQL, MariaDB, Microsoft SQL Server, Oracle, IBM Db2 | `postgresql`, `mysql`, `mariadb`, `mssql`, `oracle`, `db2` |
 | **NoSQL Document** | MongoDB, Couchbase, Amazon DynamoDB, Azure Cosmos DB | `mongodb`, `couchbase`, `dynamodb`, `cosmosdb` |
 | **NoSQL Key-Value** | Redis, Memcached, Amazon ElastiCache | `redis`, `memcached` |
 | **NoSQL Column** | Apache Cassandra, Apache HBase, ScyllaDB | `cassandra`, `hbase` |
-| **Search Engines** | Elasticsearch, OpenSearch, Apache Solr | `elasticsearch`, `opensearch`, `solr` |
+| **Search Engines** | Elasticsearch, OpenSearch, Apache Solr | `elasticsearch`, `opensearch` (Solr: no dictionary value) |
 | **Message Brokers** | Apache Kafka, RabbitMQ, Amazon SQS | not `db.system` — brokers use **`messaging.system`** (`kafka`, `rabbitmq`, `aws_sqs`); see DBMON-04 |
 | **Graph** | Neo4j, Amazon Neptune | `neo4j`, `neptune` |
 
@@ -217,7 +217,7 @@ Dynatrace supports a broad range of database technologies through OneAgent auto-
 
 > **OneAgent 1.339 (June 2026) — Db2 naming is now mixed case.** Db2 database naming switched to mixed case, so saved DQL or filters that match Db2 *entity or database names* case-sensitively may need updating. The `db.system == "db2"` span-attribute filters used throughout this series follow the OpenTelemetry semantic convention (lowercase value) and are unaffected.
 
-> <sub>**Sources:** [Technology support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support) — the per-technology support index, [.NET technology support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support/application-software/dotnet) — the .NET client-library matrix behind the Redis example, [What's new in OneAgent 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-337) — StackExchange.Redis auto-instrumentation, [What's new in OneAgent 1.343 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343) — ServiceStack.Redis auto-instrumentation. **Derived:** the per-client-library-not-per-database framing generalizes the Redis pair; no single page states it as a rule.</sub>
+> <sub>**Sources:** [Technology support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support) — .NET *Database framework* table: StackExchange.Redis *"2.0.0+"*, ServiceStack.Redis *"5.0.0+"*, [What's new in OneAgent 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-337) — StackExchange.Redis auto-instrumentation, [What's new in OneAgent 1.343 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343) — ServiceStack.Redis auto-instrumentation. **Derived:** the per-client-library-not-per-database framing generalizes the Redis pair; no single page states it as a rule. **Dictionary:** `db.system` (`experimental`) — `supported_values` include `mysql` and `mariadb` as separate values, and no `solr`, `kafka` or `rabbitmq`, read 10/23/2026.</sub>
 
 ```dql
 // Discover which database technologies are active in your environment
@@ -292,13 +292,13 @@ ALLOW storage:buckets:read WHERE storage:bucket-name = "default_database_monitor
 ALLOW storage:logs:read WHERE storage:bucket-name = "default_database_monitoring";
 ```
 
-> <sub>**Sources:** [What's new in Dynatrace SaaS 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337) — introduces the `default_database_monitoring` bucket, [Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions) — extension log routing, [Assign permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"All bucket permissions need to start with storage:buckets:read"* and the table-permission form *"ALLOW storage:logs:read WHERE storage:bucket-name="default_logs";"*. The extension IDs on this bucket (including `com.dynatrace.extension.postgres`) are listed in the SaaS 1.337 entry above, alongside *"The new default rule is always applied first and cannot be overwritten"*.</sub>
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337) — introduces the `default_database_monitoring` bucket, [Assign permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"All bucket permissions need to start with storage:buckets:read"* and the table-permission form *"ALLOW storage:logs:read WHERE storage:bucket-name="default_logs";"*. The extension IDs on this bucket (including `com.dynatrace.extension.postgres`) are listed in the SaaS 1.337 entry above, alongside *"The new default rule is always applied first and cannot be overwritten"*.</sub>
 
 ### Dynatrace Database App — Analysis-First Observability
 
 Beyond OneAgent spans and ActiveGate extension metrics, Dynatrace ships a dedicated **Databases app** that layers automated analysis on top of both data sources. Announced 08/04/2026 as available for PostgreSQL and MySQL; the docs page (updated 08/05/2026) now lists monitored vendors *"such as PostgreSQL, MySQL, MSSQL, Oracle, MariaDB, and HanaDB"*. (Neither source applies a **GA** or preview label, so none is used here.) Verify the app is enabled on your tenant before relying on it.
 
-The announcement describes five analysis areas — configuration, schema, query, execution plan, and a rolled-up **Health Score** (0–100) — with AI-generated remediation. The docs page describes health more simply: *"Health highlights instances with critical, warning, or no active alerts"*.
+The announcement describes five analysis areas — configuration, schema, query, execution plan, and a rolled-up **Health Score** — with AI-generated remediation. The health-score concept page documents the score: *"The health score is the weighted average of all checks"*, combined into *"a unified score from 0 to 100"*, and the checks are vendor-specific — *"Dynatrace health checks are vendor-specific, such as PostgreSQL, MySQL, and Microsoft SQL Server"*. The instance list separately shows health as alert state: *"Health highlights instances with critical, warning, or no active alerts"*.
 
 | Capability | What it adds beyond this notebook's DQL approach |
 |---|---|
@@ -310,7 +310,7 @@ The announcement describes five analysis areas — configuration, schema, query,
 
 Treat the app as a triage front end, not a replacement for the span- and extension-level analysis in this series — the DQL patterns in DBMON-01/05/06 remain the way to build the custom dashboards, alerts, and SLOs the app's UI doesn't cover.
 
-> <sub>**Sources:** [Introducing Intelligent Database Observability (DT blog)](https://www.dynatrace.com/news/blog/introducing-intelligent-database-observability-from-alerts-to-answers-at-scale/) — the announcement is the **only** source for the vendor list (PostgreSQL, MySQL), the five analysis areas, the 0–100 Health Score scale and the AI-generated remediation; treat those as announcement-backed, not documentation-backed. [Databases app (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases) — the vendor list *"such as PostgreSQL, MySQL, MSSQL, Oracle, MariaDB, and HanaDB"* and the alert-based Health column, re-read 10/02/2026. Re-read at source 08/27/2026: the previously cited `…/applications-and-microservices/databases/database-app` path now redirects here, and this page names no vendors, no GA label and none of the five areas — so the earlier placement implied documentation backing it does not carry.</sub>
+> <sub>**Sources:** [Introducing Intelligent Database Observability (DT blog)](https://www.dynatrace.com/news/blog/introducing-intelligent-database-observability-from-alerts-to-answers-at-scale/) — the announcement is the **only** source for the vendor list (PostgreSQL, MySQL), the five analysis areas and the AI-generated remediation; treat those as announcement-backed, not documentation-backed. [Database health score overview (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/concepts/health-score-overview) — *"The health score is the weighted average of all checks."* [Databases app (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases) — the vendor list *"such as PostgreSQL, MySQL, MSSQL, Oracle, MariaDB, and HanaDB"* and the alert-based Health column, re-read 10/23/2026.</sub>
 
 <a id="baseline-database-metrics"></a>
 

@@ -1,6 +1,6 @@
 # AUTOM-02: Settings API
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 2 of 9 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 2 of 9 | **Created:** January 2026 | **Last Updated:** 10/23/2026
 
 The Settings API (also called Settings 2.0) is Dynatrace's modern REST API for configuration management. It provides a unified way to manage all Dynatrace settings through JSON objects with schema validation.
 
@@ -225,6 +225,8 @@ Every settings object follows this structure:
 | Host group | `HOST_GROUP-{id}` | `HOST_GROUP-XYZ789` |
 | Service | `SERVICE-{id}` | `SERVICE-DEF456ABC` |
 | Application | `APPLICATION-{id}` | `APPLICATION-123ABC` |
+
+> **SaaS 1.349 (pre-release; rollout planned from 10/06/2026):** host groups *"must be addressed by their string-based identifier"* (for example `mygroup`) instead of their `HOST_GROUP-…` entity ID, *"on both the environment API and in IAM policies"* ([What's new in Dynatrace SaaS 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-349)). Verify it has reached your tenant; until then the current guidance remains the working path.
 
 ---
 

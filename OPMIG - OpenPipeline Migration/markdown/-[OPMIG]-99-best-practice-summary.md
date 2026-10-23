@@ -1,6 +1,6 @@
 # OPMIG-99: Best Practice Summary
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 10 of 10 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 10 of 10 | **Created:** March 2026 | **Last Updated:** 10/23/2026
 
 Definitive best practice settings for migrating from classic logs to OpenPipeline. Each entry specifies the exact configuration.
 
@@ -166,7 +166,7 @@ Definitive best practice settings for migrating from classic logs to OpenPipelin
 | Practice | Recommended Setting/Value | Priority |
 |----------|---------|----------|
 | Max record size | Request payload max 10 MB per configuration scope; record max 16 MB after processing — exceeding = rejected/dropped | Critical |
-| Timestamp window | Logs: 24h past (72h from SaaS 1.348 — pre-release, staged tenant rollout planned from 09/22/2026; verify before relying on it). Metrics: 1h past. Future timestamps >10 min are **adjusted** to ingest time + 10 min, not dropped (spans excepted) | Critical |
+| Timestamp window | Logs: 24h past (72h from SaaS 1.348 — rollout start 10/12/2026, staged tenant rollout; verify before relying on it). Metrics: 1h past. Future timestamps >10 min are **adjusted** to ingest time + 10 min, not dropped (spans excepted) | Critical |
 | Max fields per record | Field-count, nesting and array limits are not on the limits page — verify in your tenant; 32 KB per log attribute | Recommended |
 | Rate limits | Log Ingest API: 500 req/min/token. OTLP: 1,000 req/min. Config API: 100 req/min (not on the limits page — verify) | Recommended |
 

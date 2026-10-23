@@ -1,6 +1,6 @@
 # IAM-06: User Lifecycle and Provisioning
 
-> **Series:** IAM — IAM Administration | **Notebook:** 6 of 12 | **Created:** January 2026 | **Last Updated:** 10/14/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 6 of 12 | **Created:** January 2026 | **Last Updated:** 10/23/2026
 
 ## Automating User Management at Scale
 Manual user management doesn't scale. This notebook covers user lifecycle automation including SCIM provisioning, JIT access, service accounts, token management, and inviting external users from other domains.
@@ -390,7 +390,7 @@ API tokens provide access for scripts, tools, and legacy integrations.
 4. Revoke old token
 5. Document rotation
 
-> **Deprecation — Dynatrace API 1.348 (pre-release; staged rollout planned from 09/22/2026).** The [API 1.348 changelog (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-348) marks the whole `/apiTokens` endpoint family deprecated — *"The following endpoints are deprecated"*: `GET`/`POST /apiTokens`, `POST /apiTokens/lookup`, and `GET`/`PUT`/`DELETE /apiTokens/{id}`. That changelog names no successor. Deprecated endpoints keep working during the deprecation period, so the rotation steps above remain the working path; re-check the changelog when 1.348 reaches GA before building new rotation automation on these endpoints.
+> **Deprecation — Dynatrace API 1.348 (rollout start 10/12/2026, staged tenant rollout).** The [API 1.348 changelog (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-348) marks the whole `/apiTokens` endpoint family deprecated — *"The following endpoints are deprecated"*: `GET`/`POST /apiTokens`, `POST /apiTokens/lookup`, and `GET`/`PUT`/`DELETE /apiTokens/{id}`. That changelog names no successor. Deprecated endpoints keep working during the deprecation period, so the rotation steps above remain the working path; re-check the changelog for a successor before building new rotation automation on these endpoints.
 >
 > **Phase 3 environments cannot run step 1.** Once an environment opts into **Phase 3** of the upgrade to Latest Dynatrace, *"classic API token creation is disabled; all new integrations must use platform tokens"* ([Best practices for upgrading App Observability API endpoints (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-11-api-tokens/upgrade-api-endpoints)). "Create new token with same scopes" then fails. Check your environment's upgrade phase before you rotate. In a Phase 3 environment, move the consumer onto a platform token or an OAuth client instead of minting a replacement classic token.
 
@@ -619,7 +619,7 @@ In this notebook, you learned:
 - [SAML Federation](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml)
 - [OAuth Clients](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients)
 - [API Tokens](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/access-tokens-and-oauth-clients/access-tokens)
-- [Dynatrace API 1.348 changelog (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-348) — *"The following endpoints are deprecated"* (the `/apiTokens` family; pre-release)
+- [Dynatrace API 1.348 changelog (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-348) — *"The following endpoints are deprecated"* (the `/apiTokens` family; rollout start 10/12/2026)
 - [Best practices for upgrading App Observability API endpoints (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-11-api-tokens/upgrade-api-endpoints) — *"For Phase 3 environments, classic API token creation is disabled; all new integrations must use platform tokens."*
 - [Account Management API](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api)
 - [Add a user to groups (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/user-management-api/post-user-groups) — *"Add user to user groups. Existing memberships are unaffected."*

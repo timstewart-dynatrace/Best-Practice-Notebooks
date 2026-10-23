@@ -1,6 +1,6 @@
 # AIOPS-03: Davis AI — Problems and Root Cause Analysis
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 10/12/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -204,7 +204,7 @@ Two different axes, both useful in weekly operational reviews and for trending d
 
 Start with the severity rollup, then break down by category.
 
-> **Breaking change — SaaS 1.348 (pre-release; staged rollout planned from 09/22/2026):** *"Davis events and problems no longer default event.severity to 3."* Once it reaches your tenant, a problem with no severity set carries a null rather than 3 — the rollup below labels those *Not set* instead of letting them fall through to *Informational*, and a workflow filtering on `event.severity == 3` stops matching them. Until then, every unset severity still defaults to 3.
+> **Breaking change — SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout):** *"Davis events and problems no longer default event.severity to 3."* Once it reaches your tenant, a problem with no severity set carries a null rather than 3 — the rollup below labels those *Not set* instead of letting them fall through to *Informational*, and a workflow filtering on `event.severity == 3` stops matching them. Until then, every unset severity still defaults to 3.
 
 > <sub>**Sources:** [What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348), [Semantic Dictionary changelog 1.348 (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-348), [Standardized event severity (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications/standardized-event-severity) — *"Dynatrace aligns with the ITIL framework standard for IT management systems when classifying event and alert severity."*</sub>
 

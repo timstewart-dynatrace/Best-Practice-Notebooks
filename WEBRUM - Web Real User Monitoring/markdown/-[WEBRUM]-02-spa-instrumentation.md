@@ -1,6 +1,6 @@
 # WEBRUM-02: SPA Instrumentation
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 2 of 10 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 2 of 10 | **Created:** March 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -129,7 +129,7 @@ Let's query route change actions to validate detection:
 // (characteristics.has_page_summary), so a page-summary filter silently empties them.
 // ttfb.* is the opposite — it lives on page summaries. Select with the stable has_* flags, not
 // characteristics.classifier (corrected 09/28/2026): the docs call classifier "not intended for
-// query usage" and Semantic Dictionary 1.349 removes it from the user-event models.
+// query usage" and Semantic Dictionary 1.349 removes it from the user-event models (re-listed in SD 1.350, still not for query use).
 // Field vocabulary corrected 08/12/2026 — this series targets **New RUM**, but was written
 // against names that are null on New RUM data, so these cells returned nothing while erroring
 // nowhere. Verified against 5,556,127 user.events records (schema 0.24.0, javascript agent):

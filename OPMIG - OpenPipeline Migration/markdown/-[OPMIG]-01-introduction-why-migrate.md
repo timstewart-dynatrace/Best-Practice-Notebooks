@@ -1,6 +1,6 @@
 # OPMIG-01: OpenPipeline Migration Guide: Part 1
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 10/14/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 10/23/2026
 
 ## Introduction & Why Migrate from Classic to OpenPipeline v2.0
 
@@ -502,7 +502,7 @@ Before migrating, understand these key limits:
 
 | Data Type | Earliest accepted timestamp | Timestamp more than 10 min in the future |
 |-----------|----------------|----------------------|
-| **Logs** | Ingest time minus 24 hours — **older records are dropped** before processing. From **SaaS 1.348** (pre-release; staged tenant rollout planned from 09/22/2026) logs are accepted up to 72 hours in the past — verify the new window has reached your tenant before relying on it | **Adjusted** to ingest time + 10 min |
+| **Logs** | Ingest time minus 24 hours — **older records are dropped** before processing. From **SaaS 1.348** (rollout start 10/12/2026, staged tenant rollout) logs are accepted up to 72 hours in the past — verify the new window has reached your tenant before relying on it | **Adjusted** to ingest time + 10 min |
 | **Spans** | 60 minutes past (end time) † | Not adjusted (the adjustment doesn't apply to spans) |
 | **Events** | Ingest time minus 24 hours — older records are dropped | **Adjusted** to ingest time + 10 min |
 

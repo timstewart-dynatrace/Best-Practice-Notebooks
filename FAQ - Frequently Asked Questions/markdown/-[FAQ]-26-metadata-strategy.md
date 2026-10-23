@@ -1,6 +1,6 @@
 # FAQ-26: What Metadata Should We Set, Where, and Why?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 26 — Metadata Strategy | **Created:** October 2026 | **Last Updated:** 10/22/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 26 — Metadata Strategy | **Created:** October 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 

@@ -1,6 +1,6 @@
 # WFLOW-99: Best Practice Summary
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/15/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -113,7 +113,7 @@ This notebook consolidates every actionable best practice from the WFLOW series 
 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---------------|-----------------|----------|--------|
-| 1 | Route by severity | `event.severity` 1 Critical: PagerDuty + Slack + Email; 2 Major: Slack + Email; 3 Minor, or unset: Slack. Problems never carry 4 (Warning) or 5 (Informational). Check which sources set severity: SaaS 1.348 stops defaulting it to 3 (pre-release, staged rollout) | Critical | WFLOW-04 |
+| 1 | Route by severity | `event.severity` 1 Critical: PagerDuty + Slack + Email; 2 Major: Slack + Email; 3 Minor, or unset: Slack. Problems never carry 4 (Warning) or 5 (Informational). Check which sources set severity: SaaS 1.348 stops defaulting it to 3 (rollout start 10/12/2026, staged tenant rollout) | Critical | WFLOW-04 |
 | 2 | Route by team ownership tags | Preferred: one workflow per team, whose Problem trigger filters on the built-in ownership tag (`owner` / `dt.owner`) with the *Affected entities* tag filter, so the match is made before any task runs. Fallback in a task condition: problem records carry tags in `entity_tags` (an array of `key:value` strings, deprecated), so `"owner:checkout" in (event().get("entity_tags") or [])` is an exact element test. A `tags` field read with `.get("tags", "")` no longer appears on problem records and always evaluates false | Critical | WFLOW-04 |
 | 3 | Do **not** route by management zone | `"Production" in event()["management_zones"]` is legacy, and the field is not present on problem records (0 of 15,878 over 30 days on a live tenant, 10/05/2026, with management zones still in use), so the condition has nothing to match. Route on ownership tags or Smartscape ownership instead | Critical | WFLOW-04 |
 | 4 | Implement time-based routing | Business hours: Slack channel; off-hours Critical: PagerDuty; off-hours non-critical: queue for morning. Pass the team's time zone, `now("America/New_York")`; `now()` is UTC otherwise. Business calendars (`calendars()`) cover holidays | Critical | WFLOW-04 |
@@ -134,7 +134,7 @@ This notebook consolidates every actionable best practice from the WFLOW series 
 | 4 | Map Dynatrace severity to ServiceNow impact/urgency | `event.severity` 1–2: impact=1, urgency=1; 3: impact=2, urgency=2; 4: impact=3, urgency=3; 5: usually no incident | Critical | WFLOW-05 |
 | 5 | Auto-resolve incidents when the problem closes | Problem state *active or closed*. On `event.status == "CLOSED"`: Send event with `eventAction: resolve` and the same `dedupKey` (PagerDuty), or **Resolve incident** with the incident number from Search incidents, resolution notes and a resolution code from your instance's list (ServiceNow) | Critical | WFLOW-05 |
 | 6 | Include Dynatrace problem URL in incident details | `{{ problem_link() }}` in `customDetails` (PagerDuty) or the `description` body (ServiceNow) | Critical | WFLOW-05 |
-| 7 | Write the incident number back onto the problem | Read `result("create_snow_incident").number` downstream and post it with `problemsClient.createComment()` on `event()["event.id"]`. Comment and Resolve take the incident number, not the `sys_id` | Recommended | WFLOW-05 |
+| 7 | Write the incident number back onto the problem | Read `result("create_snow_incident").number` downstream and post it with `problemsClient.createComment()` on `event()["event.id"]`. Comment and Resolve take the incident number, not the `sys_id`. Deprecated in Dynatrace API 1.349 (pre-release): *"POST /problems/{problemId}/comments Deprecated"*, no successor named | Recommended | WFLOW-05 |
 | 8 | Use PagerDuty Events API v2 | Integration type: Events API v2 (not v1) | Critical | WFLOW-05 |
 | 9 | Fill ServiceNow's required fields | Category, Subcategory, Impact, Urgency and Assignment Group are required on Create Incident. Pick the assignment group in the editor (it is stored as the group's sys_id) and set Caller | Critical | WFLOW-05 |
 | 10 | Implement bi-directional sync | A scheduled workflow polls ServiceNow for open DT-correlated incidents, with a Credential Vault credential, and writes their status back as problem comments; or the ServiceNow-side Dynatrace app / ITOM (ALERT-04) | Optional | WFLOW-05 |
@@ -175,7 +175,7 @@ This notebook consolidates every actionable best practice from the WFLOW series 
 | 9 | Allow-list every outbound host | Add each host a Run JavaScript or HTTP Request task calls under **Settings > General > External requests**; a call to an unlisted host fails with `Blocked request to '…' (host not in allowlist)`. Hosts on a private network, and targets that admit only allow-listed source IPs, are reached through EdgeConnect (WFLOW-94) | Critical | WFLOW-08, WFLOW-94 |
 | 10 | Read secrets from the Credential Vault | `credentialVaultClient.getCredentialsDetails({ id })` in JavaScript (credential scoped to AppEngine, *Allow access without app context* on, actor granted access); the Authentication field in HTTP tasks. Never hardcode, log or return a secret | Critical | WFLOW-08, WFLOW-09 |
 | 11 | Give each step its own failure task | A task waits for all of its predecessors, so one failure task chained after several steps never fires. Give each step a failure task with a single predecessor set to `NOK` and `else: SKIP` | Recommended | WFLOW-08 |
-| 12 | Add problem comments after remediation | `problemsClient.createComment()` with the problem ID `event.id`, not `display_id` | Recommended | WFLOW-08 |
+| 12 | Add problem comments after remediation | `problemsClient.createComment()` with the problem ID `event.id`, not `display_id`. Deprecated in Dynatrace API 1.349 (pre-release): *"POST /problems/{problemId}/comments Deprecated"*, no successor named | Recommended | WFLOW-08 |
 | 13 | Validate secret existence before use | `if (!apiToken) throw new Error('Missing required secret: ...')` | Recommended | WFLOW-09 |
 | 14 | Grant the workflow the scopes its tasks use | **Workflows > Settings > Authorization settings** (for example `environment-api:credentials:read`, `environment-api:problems:write`, the `storage:*:read` of each queried table); a missing scope fails the task with a 403 | Recommended | WFLOW-07, WFLOW-08 |
 

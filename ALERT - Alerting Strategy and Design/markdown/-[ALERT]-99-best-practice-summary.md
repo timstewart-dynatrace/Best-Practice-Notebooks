@@ -1,6 +1,6 @@
 # ALERT-99: Best-Practice Summary and Setup Checklist
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 99 | **Created:** June 2026 | **Last Updated:** 10/06/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 99 | **Created:** June 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -53,7 +53,7 @@ The series on one page: the principles, a complete end-to-end setup checklist, a
 - [ ] Detector event templates carry team / area / service properties
 - [ ] Primary Grail tags (`primary_tags.*`) set for the routing dimensions — they carry onto the problem, as a deduplicated union across its entities
 - [ ] Entity tags and Smartscape ownership populated for OOTB problems (a workflow reads ownership with the `get_owners` action, which is a second task and so a standard workflow)
-- [ ] `event.severity` used to drive priority, and each event source confirmed to actually *set* it: from SaaS 1.348 (pre-release; staged rollout planned from 09/22/2026) Davis events and problems no longer default it to 3, so severity filters and priority mappings need a plan for a missing value (ALERT-04 §5)
+- [ ] `event.severity` used to drive priority, and each event source confirmed to actually *set* it: from SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout) Davis events and problems no longer default it to 3, so severity filters and priority mappings need a plan for a missing value (ALERT-04 §5)
 - [ ] Custom detector event templates set `dt.smartscape_source.id` to an existing entity ID, as the docs recommend — custom alerts raised without one have been seen attached to the environment entity alone (ALERT-02 §3)
 
 **Routing**

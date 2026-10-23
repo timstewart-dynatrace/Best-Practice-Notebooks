@@ -1,6 +1,6 @@
 # MZ2POL-03: Assessment and Migration Planning
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 4 of 17 | **Created:** December 2025 | **Last Updated:** 10/14/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 4 of 17 | **Created:** December 2025 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -135,7 +135,7 @@ A zone that restricted access does **not** become a bucket by default. Buckets a
 
 | Limitation | Impact on Planning |
 |------------|-------------------|
-| One data type per bucket | Need separate buckets for logs, spans, metrics |
+| One data type per bucket | Need separate buckets for logs and spans (metrics: custom buckets only from SaaS 1.349, pre-release) |
 | Maximum custom buckets per environment: 250 by default from SaaS 1.346 (staged tenant rollout from 08/25/2026); 80 before it | Plan for scale within your tenant's limit. *Organize data* (updated 09/22/2026) and the 1.346 release note state 250; *Partition data* (updated 06/17/2026) and the upgrade guide's *Data partitioning* page (published 08/24/2026) still state 80 — check which default your tenant has before planning to either number |
 | ~1 TB/day optimal per bucket | Best query performance |
 | 1-3 TB/day acceptable | Shorter query window per default 500 GB scan |
@@ -280,7 +280,7 @@ For environments where SVG doesn't render
 If a retention, cost or compliance case needs dedicated buckets:
 
 - [ ] Bucket naming convention finalized
-- [ ] Buckets created for each data type (logs, spans, metrics)
+- [ ] Buckets created for each data type (logs and spans; metrics: custom buckets only from SaaS 1.349, pre-release)
 - [ ] OpenPipeline routing rules configured
 - [ ] Data flowing to correct buckets verified
 - [ ] Bucket-specific policies created

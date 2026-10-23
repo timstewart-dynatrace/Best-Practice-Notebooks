@@ -1,6 +1,6 @@
 # OPMIG-02: OpenPipeline Migration Guide: Part 2
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 10/14/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 10/23/2026
 
 ## Architecture & Key Concepts
 ---
@@ -323,7 +323,7 @@ This comprehensive reference contains ALL OpenPipeline limits you need to know f
 
 | Data Type | Earliest accepted timestamp (older → **dropped** before processing) | Timestamp more than 10 min in the future |
 |-----------|---------------|----------------------|
-| **Logs** | Ingest time minus 24 hours. From **SaaS 1.348** (pre-release; staged tenant rollout planned from 09/22/2026): 72 hours — verify the new window has reached your tenant; 24 hours remains the working value until then | **Adjusted** to ingest time + 10 min |
+| **Logs** | Ingest time minus 24 hours. From **SaaS 1.348** (rollout start 10/12/2026, staged tenant rollout): 72 hours — verify the new window has reached your tenant; 24 hours remains the working value until then | **Adjusted** to ingest time + 10 min |
 | **Spans** | 60 minutes past (end time) † | Not adjusted (the adjustment doesn't apply to spans) |
 | **Events** | Ingest time minus 24 hours | **Adjusted** to ingest time + 10 min |
 | **Business Events** | Ingest time minus 24 hours | **Adjusted** to ingest time + 10 min |

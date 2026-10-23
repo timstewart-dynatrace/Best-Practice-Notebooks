@@ -1,6 +1,6 @@
 # ADOPT-03: Success Metrics
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 3 of 6 | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 3 of 6 | **Created:** March 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -64,7 +64,7 @@ Dynatrace Intelligence problems have an `event.start` timestamp — the beginnin
 
 > **The trap this query exists to avoid.** Every transition record carries the same `event.start`, so `timestamp - event.start` means something different on each one. On a `CLOSED` record it is the problem's **total duration**; only on the `CREATED` record is it detection lag. Filtering by `event.status == "CLOSED"` and subtracting therefore reports duration while looking exactly like an MTTD query — it returns plausible numbers, just for the wrong quantity. Measured on a live tenant 08/25/2026, the two differ by roughly **35×** (152 min vs 4.3 min average over the same 7 days).
 >
-> This also dictates the data object: **`dt.davis.problems` carries no `CREATED` records at all** (0 over 7 days on the verification tenant), so MTTD cannot be computed from it under any filter. Use `fetch events` with `event.kind == "DAVIS_PROBLEM"`.
+> This also dictates the data object. **`dt.davis.problems` keeps one record per problem — its latest state** — so a problem's `CREATED` record is there only when nothing has happened to the problem since (573 of 3,749 problems over 7 days on the validation tenant, 10/23/2026). MTTD computed on it would cover that subset only. Use `fetch events` with `event.kind == "DAVIS_PROBLEM"`, which keeps every transition.
 
 ```dql
 // MTTD: gap between the start of the analysed window and problem CREATION.

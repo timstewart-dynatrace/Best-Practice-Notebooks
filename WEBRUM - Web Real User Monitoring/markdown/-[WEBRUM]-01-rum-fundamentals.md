@@ -1,6 +1,6 @@
 # WEBRUM-01: Web RUM Fundamentals
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 1 of 10 | **Created:** March 2026 | **Last Updated:** 10/19/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 1 of 10 | **Created:** March 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -285,7 +285,7 @@ fetch user.events, from:-1h
 
 For load-type actions, Dynatrace captures detailed timing milestones:
 
-> **Select `user.events` with the `characteristics.has_*` flags, not `characteristics.classifier`.** The User events semantic-dictionary page describes `characteristics.classifier` as the single characteristic picked by priority when an event has several, and says it is *"Used for internal optimization when storing the data and not intended for query usage."* **Semantic Dictionary 1.349** (published 09/04/2026) removes it from the user-event models, with a **staged tenant rollout** — a tenant that has not reached 1.349 still returns the field, so a classifier filter keeps working until the change arrives and then silently matches nothing. The stable flags (`has_page_summary`, `has_navigation`, `has_error`, `has_request`, …) are the documented selectors and work on both sides of the change.
+> **Select `user.events` with the `characteristics.has_*` flags, not `characteristics.classifier`.** The User events semantic-dictionary page describes `characteristics.classifier` as the single characteristic picked by priority when an event has several, and says it is *"Used for internal optimization when storing the data and not intended for query usage."* **Semantic Dictionary 1.349** (published 09/04/2026) removes it from the user-event models, with a **staged tenant rollout** — a tenant that has not reached 1.349 still returns the field, so a classifier filter keeps working until the change arrives and then silently matches nothing. The stable flags (`has_page_summary`, `has_navigation`, `has_error`, `has_request`, …) are the documented selectors and work on both sides of the change. **Semantic Dictionary 1.350** (published 09/21/2026) re-lists `characteristics.classifier` under the Basic user-event model, still `experimental`, and the User events page still calls it *"not intended for query usage"* — so the flags above remain the selectors.
 >
 > The flags can **overlap** where the classifier picked one winner. A navigation that also carried an error was classified `error`, so `classifier == "navigation"` silently dropped it; `characteristics.has_navigation == true` keeps it. On the validation tenant (24 h, 09/28/2026) that is **7,387** navigations against **6,235** — the 1,152 recovered page loads have full navigation timing. For page summaries the two filters select the same 7,268 events.
 
@@ -304,7 +304,7 @@ For load-type actions, Dynatrace captures detailed timing milestones:
 // (characteristics.has_page_summary), so a page-summary filter silently empties them.
 // ttfb.* is the opposite — it lives on page summaries. Select with the stable has_* flags, not
 // characteristics.classifier (corrected 09/28/2026): the docs call classifier "not intended for
-// query usage" and Semantic Dictionary 1.349 removes it from the user-event models.
+// query usage" and Semantic Dictionary 1.349 removes it from the user-event models (re-listed in SD 1.350, still not for query use).
 // Page load timing breakdown — average timings for the top 10 pages
 fetch user.events, from:-1h
 | filter characteristics.has_navigation == true
@@ -374,6 +374,7 @@ In this notebook, we covered:
 - [Monitor web performance with DQL (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/analyze-and-alert/rum-dql-web-performance)
 - [User events — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events) — *"Used for internal optimization when storing the data and not intended for query usage."*
 - [Semantic Dictionary changelog 1.349 (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-349)
+- [Semantic Dictionary changelog 1.350 (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-350)
 
 ---
 

@@ -1,6 +1,6 @@
 # DBMON-04: Cache and Messaging Monitoring
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -164,9 +164,9 @@ Apache Kafka monitoring through spans captures both producer (publish) and consu
 | `messaging.operation.type` | Dynatrace's dictionary lists `publish`, `receive`, `process` and `peek`; newer OpenTelemetry instrumentations send `send` for producers | `process` |
 | `messaging.destination.name` | Topic name | `orders.created` |
 | `messaging.consumer.group.name` | Consumer group ID | `order-processor-group` |
+| `messaging.destination.partition.id` | Partition number | `3` |
 
 > <sub>**Dictionary:** `messaging.system`, `messaging.operation.type`, `messaging.destination.name`, `messaging.consumer.group.name`, `messaging.destination.partition.id` (all `stable`), `db.system` (`experimental`), read 10/02/2026. No messaging spans existed on the validation tenant over 7 days, so these cells were checked for syntax only.</sub>
-| `messaging.destination.partition.id` | Partition number | `3` |
 
 ```dql
 // Kafka message throughput by topic — producer and consumer activity
@@ -291,7 +291,7 @@ fetch spans, from:-1h
 In this notebook you learned:
 
 - Redis operation analysis: command breakdown, read/write ratios, and slow command detection
-- Kafka monitoring: producer/consumer throughput, consumer group latency, and topic-level analysis (with canonical `messaging.system` and backward-compat `db.system == "kafka"`)
+- Kafka monitoring: producer/consumer throughput, consumer group latency, and topic-level analysis (with canonical `messaging.system`, plus a defensive `db.system == "kafka"` filter)
 - RabbitMQ queue monitoring: publish/consume rates and message flow
 - Elasticsearch query performance: operation breakdown and slow query detection
 - Cross-system performance comparison for cache and messaging infrastructure

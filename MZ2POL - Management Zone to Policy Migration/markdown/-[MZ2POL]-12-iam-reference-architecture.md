@@ -1,6 +1,6 @@
 # MZ2POL-12: IAM Reference Architecture for a Former Management-Zone Estate
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 13 of 17 | **Created:** October 2026 | **Last Updated:** 10/19/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 13 of 17 | **Created:** October 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -222,7 +222,7 @@ Settings access is the third domain, and it is changing under the migration. Dyn
 
 - **Zone conditions stop matching.** *"Because management zones no longer exist, these conditions never match."* That includes `environment:management-zone` on settings statements and *"Security context conditions that are derived from management zones."*
 - **Both directions break.** *"ALLOW statements stop granting access."* and *"DENY statements stop blocking access. Restrictions that relied on these conditions no longer take effect, which can unintentionally widen access."*
-- **Host groups are addressed by name.** `settings:scope = "HOST_GROUP-…"` becomes `settings:scope = "dt.host_group.id:<name>"`; `settings:entity.hostGroup` keeps working.
+- **Host groups are addressed by name.** `settings:scope = "HOST_GROUP-…"` becomes `settings:scope = "dt.host_group.id:<name>"`; `settings:entity.hostGroup` keeps working. SaaS 1.349 (pre-release; rollout planned from 10/06/2026) names the version for this change: host groups *"must be addressed by their string-based identifier on both the environment API and in IAM policies."* Verify it has reached your tenant; until then the current guidance remains the working path.
 - **Security context must be set at the edge.** *"if you want IAM conditions to match based on security context, security context must be set at the edge."* Enrichment for all Smartscape nodes is described as planned for a later phase.
 
 Treat this as rolling out: the guide asks you to review policies *"before this change reaches your environment."* Until it reaches yours, existing zone-scoped settings statements keep working; the migration should replace them anyway, because they have no future.
@@ -231,6 +231,7 @@ Treat this as rolling out: the guide asks you to review policies *"before this c
 
 > <sub>**Sources:**</sub>
 > - <sub>[Upgrade your security policies for scoped settings access (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-scoped-settings-objects) — *"Because management zones no longer exist, these conditions never match."*, *"DENY statements stop blocking access."* and *"if you want IAM conditions to match based on security context, security context must be set at the edge."*</sub>
+> - <sub>[What's new in Dynatrace SaaS 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-349) — *"must be addressed by their string-based identifier on both the environment API and in IAM policies."* (pre-release, read 10/23/2026)</sub>
 
 <a id="reference-architecture"></a>
 ## 6. Reference Architecture

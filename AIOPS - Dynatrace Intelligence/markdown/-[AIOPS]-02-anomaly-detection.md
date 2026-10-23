@@ -1,6 +1,6 @@
 # AIOPS-02: Anomaly Detection
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 2 of 8 | **Created:** May 2026 | **Last Updated:** 10/14/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 2 of 8 | **Created:** May 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -384,7 +384,7 @@ Real output from a demonstration tenant over seven days, **measured 07/30/2026**
 
 `dt.settings.object_id` identifies the configuration that produced the event, so a populated value leads straight to the detector's configuration. A useful property, observed in the values returned on 07/30/2026 rather than a documented contract: it encodes both the settings **schema** and the **scope**. The values abbreviated above resolve to `builtin:davis.anomaly-detectors` scoped to the tenant, and `builtin:anomaly-detection.kubernetes.workload` scoped to one specific `KUBERNETES_CLUSTER`. That scoping is why a single event name legitimately appears under several distinct object IDs — one per cluster — rather than indicating duplicated configuration.
 
-> **Two caveats.** `dt.settings.object_id` is marked **experimental** in the semantic dictionary (`dt.smartscape_source.id` is `stable`) — fine for triage, not something to hard-code an integration against. And a seven-day unfiltered scan of `dt.davis.events` is not cheap: the run above scanned 12.9 GB and the 30-day version below 52.6 GB on 07/30/2026; the same 7-day scan read about 5.9 GB on 09/24/2026 — scan cost moves with event volume. Narrow the window for routine checks (FAQ-09, FINOPS-03).
+> **Two caveats.** `dt.settings.object_id` is marked **experimental** in the semantic dictionary ([Semantic Dictionary 1.351 (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-351), published 10/05/2026, promotes the `dt.settings.*` fields to `stable`; the validation tenant still returned `experimental` on 10/23/2026) (`dt.smartscape_source.id` is `stable`) — fine for triage, not something to hard-code an integration against. And a seven-day unfiltered scan of `dt.davis.events` is not cheap: the run above scanned 12.9 GB and the 30-day version below 52.6 GB on 07/30/2026; the same 7-day scan read about 5.9 GB on 09/24/2026 — scan cost moves with event volume. Narrow the window for routine checks (FAQ-09, FINOPS-03).
 
 For what counts as "too noisy" in the first place, ALERT-99 §3 carries the 0.1%-of-observed-time yardstick and the audit cadence that uses it.
 

@@ -1,6 +1,6 @@
 # FAQ-06: Can We Trust Davis AI? A Risk and Controls Walkthrough
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 06 — Can We Trust Davis AI? A Risk and Controls Walkthrough | **Created:** May 2026 | **Last Updated:** 10/13/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 06 — Can We Trust Davis AI? A Risk and Controls Walkthrough | **Created:** May 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -188,7 +188,7 @@ The fourth concern in most security reviews: *can the AI take destructive action
 | Causal AI | Detect a problem, open a problem card, attribute root cause within tenant topology |
 | Predictive AI | Emit a forecast, raise an anomaly event, populate a baseline |
 | Generative AI (Dynatrace Assist) | Answer a question; generate a DQL query — and run it: the documentation says Assist *is capable of auto-executing generated DQL queries*. DQL reads data; it runs with the asking user's permissions. Those queries are billed — *"subject to licensing consumption according to your existing licensing agreement"* — and *"you can choose to generate DQL only, without executing it."* |
-| Agentic root cause analysis (SaaS 1.348 — pre-release, staged tenant rollout planned from 09/22/2026) | When a problem is detected, investigate contributing factors across metrics, logs, and traces and surface findings on the problem. Verify it has reached your tenant; until then, Causal AI's root-cause attribution above is the unattended surface |
+| Agentic root cause analysis (SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout)) | When a problem is detected, investigate contributing factors across metrics, logs, and traces and surface findings on the problem. Verify it has reached your tenant; until then, Causal AI's root-cause attribution above is the unattended surface |
 | Agentic workflows and built-in agents (Preview) | Propose actions and run them once *approved*, under policy guardrails. Preview — verify availability on your tenant before relying on it |
 
 None of the generally available surfaces above write to your infrastructure or change tenant configuration; the Preview agentic-workflow row runs only approved actions. They read data and produce findings and suggestions inside the Dynatrace tenant — so the review question for Generative AI is *what data can the asking user read*, not *whether a human clicks Run*.
@@ -207,7 +207,7 @@ In community practice, the platform's autonomy posture is summarized as: **AI su
 
 In community practice, the agentic-workflow conversation often comes up here: *can Davis act autonomously through Workflows?* The honest answer is *yes, if the customer configures it that way, and within the scopes the customer grants*. Dynatrace Assist suggesting a workflow that, when executed, takes an automatic remediation is the same as any other workflow in the platform — governed by the workflow's own credentials, IAM scope, and configured triggers. The autonomy lives in the *customer's workflow configuration*, not in the AI.
 
-> <sub>**Sources:** [Agentic and generative AI (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai) — *"is capable of auto-executing generated DQL queries."*, [Agentic and generative AI FAQ (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-faq) — the licensing and generate-only quotes, [Dynatrace Intelligence (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence) — *"Dynatrace Intelligence can propose and run approved actions through agentic workflows and built-in agents operating under policy guardrails"* (Preview), [SaaS 1.348 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"Dynatrace Intelligence can now run agentic workflows for problem root cause analysis."* (pre-release, read 09/28/2026), [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows).</sub>
+> <sub>**Sources:** [Agentic and generative AI (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai) — *"is capable of auto-executing generated DQL queries."*, [Agentic and generative AI FAQ (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-faq) — the licensing and generate-only quotes, [Dynatrace Intelligence (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence) — *"Dynatrace Intelligence can propose and run approved actions through agentic workflows and built-in agents operating under policy guardrails"* (Preview), [SaaS 1.348 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"Dynatrace Intelligence can now run agentic workflows for problem root cause analysis."* (GA, rollout start 10/12/2026; re-read 10/23/2026), [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows).</sub>
 
 <a id="audit"></a>
 ## 7. Audit Trail and Explainability

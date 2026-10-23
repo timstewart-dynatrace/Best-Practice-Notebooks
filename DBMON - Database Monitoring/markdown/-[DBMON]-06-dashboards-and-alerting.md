@@ -1,6 +1,6 @@
 # DBMON-06: Dashboards and Alerting
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -94,9 +94,9 @@ fetch spans, from:-1h
 
 ### Health Score as a Prioritization Signal
 
-The queries above build a custom health overview from spans. If the **Databases** app is enabled (its docs list vendors *"such as PostgreSQL, MySQL, MSSQL, Oracle, MariaDB, and HanaDB"* — verify it is enabled on your tenant), its instance table shows health per instance — *"Health highlights instances with critical, warning, or no active alerts"* — a faster first pass for "which database needs attention right now" than scanning this dashboard row by row. (The 08/2026 announcement also describes a 0–100 Health Score; the docs page does not.)
+The queries above build a custom health overview from spans. If the **Databases** app is enabled (its docs list vendors *"such as PostgreSQL, MySQL, MSSQL, Oracle, MariaDB, and HanaDB"* — verify it is enabled on your tenant), its instance table shows health per instance — *"Health highlights instances with critical, warning, or no active alerts"* — a faster first pass for "which database needs attention right now" than scanning this dashboard row by row. (Per instance, the health-score concept page documents a weighted 0–100 score: *"The health score is the weighted average of all checks."*)
 
-> <sub>**Sources:** [Databases app (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases) — *"Health highlights instances with critical, warning, or no active alerts"*.</sub>
+> <sub>**Sources:** [Databases app (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases) — *"Health highlights instances with critical, warning, or no active alerts"*, [Database health score overview (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/concepts/health-score-overview) — *"The health score is the weighted average of all checks."*</sub>
 
 Use the two together rather than choosing one: the Health Score triages *which* instance to look at, and the span-based queries in this section remain the way to build custom dashboard tiles, thresholds, and SLOs the app's UI doesn't expose.
 
@@ -263,7 +263,7 @@ fetch spans, from:-6h
 // db.operation.name alone misclassifies batched writes (named SET) and counts driver phases (DBMON-02 § 4).
 // For MongoDB, DynamoDB or Redis use the command lists in DBMON-03 § 6 and DBMON-04 § 2.
 fetch spans, from:-6h
-| filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
+| filter in(db.system, {"postgresql", "mysql", "mariadb", "mssql", "oracle", "db2"})
 | filter isNotNull(db.query.text)
 | filter not(in(coalesce(db.operation.name, ""), {"PREPARE", "RESULTSET"}))
 | fieldsAdd q = upper(trim(db.query.text))

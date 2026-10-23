@@ -1,6 +1,6 @@
 # DBMON-99: Best Practice Summary
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -70,10 +70,10 @@ This notebook consolidates every actionable best practice for Dynatrace database
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
-| 13b | Use the Databases app for first-pass triage | The docs list vendors *"such as PostgreSQL, MySQL, MSSQL, Oracle, MariaDB, and HanaDB"*, and *"Health highlights instances with critical, warning, or no active alerts"* — check it before running manual DQL analysis (the 08/2026 announcement also describes a 0–100 Health Score) | **Recommended** | Triage |
+| 13b | Use the Databases app for first-pass triage | The docs list vendors *"such as PostgreSQL, MySQL, MSSQL, Oracle, MariaDB, and HanaDB"*, and *"Health highlights instances with critical, warning, or no active alerts"* — check it before running manual DQL analysis (per instance, the docs also define a weighted 0–100 health score) | **Recommended** | Triage |
 | 13c | Use the app's execution-plan visualization as a first pass, not a replacement | Normalizes execution plans across PostgreSQL, MySQL, and SQL Server; fall back to the ActiveGate extension metrics above (rows 8-11) and the DQL patterns in DBMON-02/05 for deep-dive analysis the app's UI doesn't cover | **Recommended** | Diagnostics |
 
-> <sub>**Sources:** [Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions) — the Extensions 2.0 framework and the EEC execution model, [Extension data sources (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/supported-extensions/data-sources) — the built-in SQL / Prometheus / SNMP data sources and the optional Python data source, [Run SQL extensions on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/kubernetes), [Enable Dynatrace SQL database extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/extend-observability-k8s/sql-database-extensions), [What's new in Dynatrace SaaS 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337) — the `default_database_monitoring` bucket, [End-of-support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — lists *"Dynatrace Extension Framework 1.0"* under the 2025-03-31 end-of-support date and *"Dynatrace Extension Framework 1.0 (Python 3.8)"* under 2024-10-31, with the note *"Note that JMX and PMI Extensions Framework 1.0 are supported past March 2025 but are deprecated"*, re-read 09/28/2026, [EF1 JMX and PMI extensions end of support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/end-of-support/jmx-pmi-ef1-deprecation) — *"As of July 1, 2027, all Extension Framework 1.0 JMX and PMI extensions will be out of support for SaaS Environments"*.</sub>
+> <sub>**Sources:** [Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions) — the Extensions 2.0 framework and the EEC execution model, [Extension data sources (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/supported-extensions/data-sources) — the built-in SQL / Prometheus / SNMP data sources and the optional Python data source, [Run SQL extensions on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/kubernetes), [Enable Dynatrace SQL database extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/extend-observability-k8s/sql-database-extensions), [What's new in Dynatrace SaaS 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337) — the `default_database_monitoring` bucket, [End-of-support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — lists *"Dynatrace Extension Framework 1.0"* under the 2025-03-31 end-of-support date and *"Dynatrace Extension Framework 1.0 (Python 3.8)"* under 2024-10-31, with the note *"Note that JMX and PMI Extensions Framework 1.0 are supported past March 2025 but are deprecated"*, re-read 09/28/2026, [EF1 JMX and PMI extensions end of support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/end-of-support/jmx-pmi-ef1-deprecation) — *"As of July 1, 2027, all Extension Framework 1.0 JMX and PMI extensions will be out of support for SaaS Environments"*, [Database health score overview (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/concepts/health-score-overview) — *"The health score is the weighted average of all checks."*</sub>
 
 <a id="span-attribute-coverage"></a>
 
@@ -106,7 +106,9 @@ This notebook consolidates every actionable best practice for Dynatrace database
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
-| 25b | Use DQL `timeseries` for table/index metrics — classic Metrics API v2 path is blocked | The `postgres.tables.*`, `postgres.indexes.*`, `mysql.tables.*`, `mysql.indexes.*` metric keys are blocked from the classic Metrics API v2 path as of sprint-1.338 (May 2026). Query via DQL `timeseries` against Grail instead. | **Critical** | API/Migration |
+| 25b | Use DQL `timeseries` for table/index metrics — classic ingest is blocked | Classic ingest is blocked for `postgres.tables.*`, `postgres.indexes.*`, `mysql.tables.*` and `mysql.indexes.*` (SaaS 1.338) — *"Ingested metrics with these keys are only available in Grail."* Query them with DQL `timeseries`. | **Critical** | API/Migration |
+
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.338 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-338) — *"To prevent dimension cardinality explosion for the latest versions of the database extensions"*, and *"Ingested metrics with these keys are only available in Grail."*</sub>
 
 *In community practice these thresholds are the values teams converge on as starting points — Dynatrace publishes none of them. Treat each as a first guess to tune against your own baseline, not a recommended setting.*
 
@@ -131,7 +133,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
 | 33 | Set Redis slow command threshold at 5ms | `filter duration > 5ms` — Redis operations should complete in microseconds; anything over 5ms is abnormal | **Critical** | Threshold |
-| 34 | Monitor Redis read/write balance | READ: `GET`, `MGET`, `HGET`, `HGETALL`, `LRANGE`, `SMEMBERS`, `ZRANGE`; WRITE: `SET`, `MSET`, `HSET`, `LPUSH`, `RPUSH`, `SADD`, `ZADD`, `DEL` | **Recommended** | Analysis |
+| 34 | Monitor Redis read/write balance | READ: `GET`, `MGET`, `HGET`, `HGETALL`, `LRANGE`, `SMEMBERS`, `ZRANGE`; WRITE: `SET`, `MSET`, `HSET`, `HMSET`, `LPUSH`, `RPUSH`, `SADD`, `ZADD`, `DEL`, `EXPIRE`; read the command from `coalesce(db.operation.name, span.name)` | **Recommended** | Analysis |
 | 35 | Alert on Redis latency spikes | Track `p95_us` (microseconds) over time at 5m intervals; any sustained increase above 5000us (5ms) triggers investigation | **Critical** | Alerting |
 | 36 | Watch for expensive Redis commands | `KEYS *`, `SMEMBERS` on large sets, `LRANGE` with large ranges cause latency spikes — flag any occurrence | **Critical** | Anti-Pattern |
 | 37 | Report cache metrics in microseconds, not milliseconds | Redis and Memcached latency is sub-millisecond; use `avg(duration) / 1us` for microsecond precision (dividing a duration by a plain number leaves it a duration) | **Recommended** | Reporting |
@@ -253,7 +255,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 | 82 | Always specify a time range on fetch | `fetch spans, from:-1h` — never omit `from:` on span queries; default 2h scan is excessive | **Critical** | DQL |
 | 83 | Filter on `isNotNull(db.system)` first | This is the primary filter to isolate database spans; apply immediately after `fetch` | **Critical** | DQL |
 | 84 | Use named parameters in functions | `round(value, decimals: 2)`, `if(cond, then: "x", else: "y")` — positional parameters cause errors | **Critical** | DQL |
-| 85 | Alias all aggregations | `summarize c = count()`, not `summarize count()` — unaliased aggregations cannot be used in `sort` or `fieldsAdd` | **Critical** | DQL |
+| 85 | Alias all aggregations | `summarize c = count()`, not `summarize count()` — unaliased aggregations get a generated name (`count()`) that must be backtick-quoted to reference; `sort count() desc` without backticks fails | **Critical** | DQL |
 | 86 | Use duration arithmetic (NOT nanosecond constants) | Write `duration / 1ms`, `duration / 1s`, `(t2-t1) / 1m` — divide a duration by another duration to get a unitless number. Never `duration / 1000000.0`; never `toLong(duration) / 1ms` (long/duration fails type-check). Per `dt-dql-essentials`. | **Critical** | DQL |
 | 87 | Show service names, not IDs | On spans, group by `dt.service.name` (stable). Where you hold a Smartscape ID, `getNodeName(dt.smartscape.service)` resolves it; `entityName(dt.entity.service, …)` is the classic form and `dt.entity.service` is deprecated. Never show raw entity IDs in dashboards. | **Recommended** | DQL |
 | 88 | Filter early, sort last | Apply `filter` immediately after `fetch`; apply `sort` only after `summarize`; never `sort` right after `fetch` | **Critical** | DQL |
