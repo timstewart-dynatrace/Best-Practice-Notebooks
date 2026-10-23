@@ -1,6 +1,6 @@
 # ADOPT-99: Best Practice Summary
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -106,7 +106,7 @@ This notebook consolidates every actionable best practice from the ADOPT series 
 | 5.2 | **Log retention tiers** | High-value logs: 35+ days. Standard logs: 7-14 days. Debug/verbose: drop at ingest, or 7 days | Recommended | ADOPT-05 |
 | 5.3 | **Span sampling for high-volume services** | Low-value spans: sample at 10:1. Medium-value: 2:1. High-value: full retention | Recommended | ADOPT-05 |
 | 5.4 | **Use `samplingRatio` for exploratory queries** | Set `samplingRatio:10` or `samplingRatio:100` on ad-hoc `fetch logs` queries against large datasets; multiply counts back up | Optional | OPLOGS-99 |
-| 5.5 | **Use `scanLimitGBytes` on expensive queries** | Set `scanLimitGBytes:100` (or lower) to cap data scanning cost | Optional | ORGNZ-03 |
+| 5.5 | **Bound expensive queries with `scanLimitGBytes`** | `scanLimitGBytes:100` stops one query after 100 GB (whole GB only; the default is 500). A stopped query returns **partial results** with a `SCAN_LIMIT_GBYTES` warning, so treat it as a per-query safety stop, not a cost budget. Never set `-1` (no limit) on a recurring query | Optional | ORGNZ-02 |
 | 5.6 | **Replace raw log storage with metric extraction** | For log patterns you only need to count (not inspect), extract as metrics via OpenPipeline instead of storing raw records | Optional | ADOPT-05 |
 | 5.7 | **Review monitoring mode quarterly** | Verify from the billing events that Full-Stack hosts genuinely need Full-Stack; move hosts that run nothing you trace to Infrastructure | Recommended | ADOPT-05, ADOPT-06 |
 | 5.8 | **Track daily log ingestion over 7 days** | Run the 7-day billed-log-ingest query monthly; flag any day exceeding 2x the baseline as a cost anomaly | Recommended | ADOPT-02, ADOPT-05 |

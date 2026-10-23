@@ -1,6 +1,6 @@
 # S2D-04: Alert Migration - Anomaly Detectors
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 10/14/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -152,7 +152,20 @@ fetch logs
 | makeTimeseries count = count(), by:{dt.entity.cloud_application}, interval:1m
 ```
 
-The cell below is the same query with `from:-24h`, so you can preview it in a notebook.
+> **Query cost.** A DQL custom alert runs its query every minute, and a log query is billed per GiB scanned on every run. Dynatrace's log-alerting guidance calls this method *"not typically recommended as the primary alerting strategy"* and marks metrics based on logs as recommended. On a validation tenant (10/23/2026), one hour of `filter status == "ERROR" | makeTimeseries count = count(), interval:1m` over all logs scanned 348 MB. The same per-minute counts from the built-in `dt.log.status_per_entity_count` metric scanned 0 bytes and matched the log query exactly.
+>
+> Where its dimensions fit, alert on the metric instead. On that tenant it carried `status`, `k8s.cluster.name`, `k8s.namespace.name`, `k8s.workload.name` and `dt.entity.cloud_application`, but not `k8s.deployment.name`, so filter on the workload:
+>
+> ```dql
+> // Metric form of the custom-alert query: no log scan on each evaluation
+> timeseries count = sum(dt.log.status_per_entity_count), filter:{status == "ERROR" and k8s.cluster.name == "production" and k8s.workload.name == "checkout-service"}, by:{dt.entity.cloud_application}, interval:1m
+> ```
+>
+> Confirm the metric exists on your tenant first (`metrics | filter metric.key == "dt.log.status_per_entity_count"`). For a condition it cannot express, extract your own metric at ingest (FAQ-09, OPIPE), and keep the log query only where no metric fits. The thresholds below apply to either form.
+>
+> <sub>**Sources:** [Log alerts (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/alerting-on-logs) — *"Keep in mind that these queries are executed every minute, which can increase license consumption."*; *"This method is not typically recommended as the primary alerting strategy."* [Log Management & Analytics - Query (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/log-analytics/dps-log-query) — *"It is calculated per gibibyte scanned (GiB scanned)."*</sub>
+
+The cell below is the same log query with `from:-24h`, so you can preview it in a notebook.
 
 ```dql
 // Option 1: Alert Reimagined - notebook PREVIEW of the custom-alert query above

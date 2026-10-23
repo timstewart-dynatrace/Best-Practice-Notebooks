@@ -1,6 +1,6 @@
 # OPLOGS-04: Buckets & Data Governance
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 10/14/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 10/23/2026
 
 ## Strategic Storage Management for OpenPipeline Logs
 This notebook covers Grail bucket architecture, retention policies, routing configuration, access control, and cost optimization strategies.
@@ -315,7 +315,17 @@ fetch logs, from: now() - 24h
 ## 6. Query Optimization with Buckets
 ### Target Specific Buckets
 
-Querying specific buckets **reduces scan costs** and **improves performance**.
+Querying specific buckets **reduces scan costs** and **improves performance**. An unscoped `fetch logs` reads every log bucket in the timeframe.
+
+On a validation tenant (10/23/2026, a 15-minute window with four populated log buckets), the unscoped query scanned 731.8 MB. `bucket:{"easytrade"}` scanned 317.1 MB (−57%) and `bucket:{"hipstershop"}` 156.6 MB (−79%). The four single-bucket scans added up exactly to the unscoped one.
+
+- `filter dt.system.bucket == "easytrade"` pruned exactly like `bucket:{"easytrade"}`: same bytes, same records read.
+- Filtering on an ordinary field does not prune. `filter k8s.namespace.name == "hipstershop"` returned the same rows as the `hipstershop` bucket but read all 3.5M records and scanned 292.8 MB, nearly twice the bucket-scoped query.
+- A bucket name that does not exist is skipped without a warning, even inside a list next to a real one.
+
+Measure on your own data. The `scannedBytes` value in the query metadata is the number to compare.
+
+> <sub>**Sources:** [Anomaly Detection DQL optimization guide (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/anomaly-detection-dql-optimization) — *"By applying a bucket filter, you can direct Grail to analyze only the specific storage locations where the relevant data is expected, instead of scanning the entire storage."*</sub>
 
 **✅ Efficient - targets specific bucket:**
 ```
@@ -347,19 +357,23 @@ fetch logs, bucket: {"default_logs"}, from: now() - 1h
 ```
 
 ```dql
-// Compare bucket query efficiency
-fetch logs, from: now() - 1h
-| summarize {
-    total_logs = count(),
-    buckets_scanned = countDistinct(dt.system.bucket)
-  }
+// Which log buckets received data in the last 24 hours, and how much?
+// Reads billing usage events, not logs: an unscoped fetch logs would cost
+// as much as the queries this section is meant to optimize.
+fetch dt.system.events, from: now() - 24h
+| filter event.kind == "BILLING_USAGE_EVENT" and event.type == "Log Management & Analytics - Ingest & Process"
+| dedup event.id
+| summarize {ingested_bytes = sum(billed_bytes)}, by: {usage.bucket}
+| sort ingested_bytes desc
 ```
 
 ```dql
-// Bucket-aware dashboarding: hourly volume by bucket
-fetch logs, from: now() - 24h
-| makeTimeseries {count = count()}, by: {dt.system.bucket}, interval: 1h
-| limit 100
+// Bucket-aware dashboarding: hourly ingest volume by bucket
+// Billing usage events again, so a refreshing tile does not re-scan 24 h of logs
+fetch dt.system.events, from: now() - 24h
+| filter event.kind == "BILLING_USAGE_EVENT" and event.type == "Log Management & Analytics - Ingest & Process"
+| dedup event.id
+| makeTimeseries {ingested_bytes = sum(billed_bytes)}, by: {usage.bucket}, interval: 1h
 ```
 
 <a id="cost-optimization-strategies"></a>

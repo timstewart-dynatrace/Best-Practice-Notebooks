@@ -1,6 +1,6 @@
 # OPLOGS-05: Querying & Parsing Logs
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 5 of 8 | **Created:** December 2025 | **Last Updated:** 10/14/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 5 of 8 | **Created:** December 2025 | **Last Updated:** 10/23/2026
 
 ## DQL Fundamentals and DPL Pattern Matching
 This notebook covers DQL query syntax, filtering, string matching, and DPL (Dynatrace Pattern Language) for extracting structured data from logs.
@@ -139,6 +139,31 @@ fetch logs, from: now() - 1h
 | `endsWith(str, suffix)` | Suffix match | `endsWith(content, "failed")` |
 | `matchesPhrase(str, phrase)` | Word boundary match | `matchesPhrase(content, "connection refused")` |
 | `matchesValue(str, pattern)` | Exact or wildcard match | `matchesValue(host, "web-*")` |
+
+### What each match costs
+
+None of these functions prunes buckets the way `bucket:{...}` does: every one read all 3.51M records in scope in the test below. What differs is how much of each record they have to read. Dynatrace's guidance is to use `==` for known values and token matching (`matchesPhrase`, `~`) rather than substring matching on text. Measurements on one validation tenant point the same way (10/23/2026, a 15-minute window that scanned 731.8 MB unfiltered, `summarize count()` after each filter):
+
+| Filter | Scanned | Rows |
+|--------|---------|------|
+| `k8s.namespace.name == "easytrade"` | 419.4 MB | 83,324 |
+| `matchesValue(k8s.namespace.name, "easytrade")` | 419.4 MB | 83,324 |
+| `contains(k8s.namespace.name, "easytrade")` | 488.3 MB | 83,324 |
+| `matchesValue(k8s.namespace.name, "easy*")` | 502.9 MB | 84,929 |
+| `contains(content, "error")` | 371.1 MB | 15,652 |
+| `matchesValue(content, "*error*")` | 371.1 MB | 18,811 |
+| `matchesPhrase(content, "error")` | 341.4 MB | 18,669 |
+| `status == "ERROR"` | 243.2 MB | 29,637 |
+
+Three patterns held on that tenant:
+
+- **Structured field:** an exact match (`==`, or `matchesValue` without a wildcard) scanned 14–17% less than `contains` or a wildcard.
+- **Free text:** `contains` and `matchesValue` scanned the same bytes and differed only in which rows matched. The default `matchesValue` ignores case, so it found 18,811 rows to `contains`' 15,652.
+- **Error records:** filtering the parsed `status` field beat every text search for "error". It scanned the least and returned the most error records.
+
+In community practice the size of these gaps depends on how your data is laid out, so read the table as direction, not as a rate. Compare your own queries with the `scannedBytes` value in the query metadata.
+
+> <sub>**Sources:** [Anomaly Detection DQL optimization guide (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/anomaly-detection-dql-optimization) — *"Use the == operator to filter known values. This is the most efficient way to narrow your alerting scope."*; on `contains` versus `matchesPhrase`, *"it is less efficient because token matching is not applied."*</sub>
 
 ```dql
 // Search for specific content patterns
