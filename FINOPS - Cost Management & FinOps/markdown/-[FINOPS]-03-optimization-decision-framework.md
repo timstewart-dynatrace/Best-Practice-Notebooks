@@ -1,6 +1,6 @@
 # FINOPS-03: DPS Consumption Optimization — When to Cut, Tune, or Filter
 
-> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 03 — DPS Consumption Optimization — When to Cut, Tune, or Filter | **Created:** May 2026 | **Last Updated:** 10/14/2026
+> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 03 — DPS Consumption Optimization — When to Cut, Tune, or Filter | **Created:** May 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -301,7 +301,7 @@ Cross-cutting rather than a data type — this is the consumption caused by *rea
 
 1. **Cut first?** Duplicate and abandoned dashboards. Five team-specific clones of one dashboard run five times the queries; consolidate them behind a `$team` variable. A dashboard nobody has opened in 90 days that is still auto-refreshing on a wall screen is the pure-waste case.
 2. **Tune next?** Refresh cadence, then tile default time ranges. A 1-minute refresh runs each tile query ~1,440×/day; 5 minutes cuts that ~5× with no change to what the dashboard shows. Match cadence to audience using the DASH-02 §6 table. Log tiles reading a Retain with Included Queries bucket inside its included period are not billed per query, so cadence is not a cost lever for them (§4).
-3. **Filter** — the query equivalent of a filter is scoping the tile query itself: narrow the bucket, add the filter earlier in the pipeline, drop fields you do not render. This is DQL optimization rather than a consumption lever per se, but it reduces bytes scanned on every one of those 1,440 executions.
+3. **Filter** — the query equivalent of a filter is scoping the tile query itself: narrow the bucket, and add the filter early in the pipeline. This is DQL optimization rather than a consumption lever per se, but it reduces bytes scanned on every one of those 1,440 executions. Dropping fields you do not render is not part of this lever: it shrinks the result, not the scan. On a validation tenant (10/23/2026) the same filtered `summarize` over 15 minutes of logs scanned 419.4 MB with or without a `fields` command straight after `fetch`.
 
 ### Host monitoring (Full-Stack / Infrastructure)
 
@@ -317,7 +317,7 @@ Automation Workflow bills **workflow-hours**: every deployed standard workflow i
 2. **Tune next?** Where a workflow qualifies, make it a simple workflow, and leave unfinished work as a draft — neither consumes workflow-hours. **Reducing schedule frequency does not reduce Automation Workflow consumption**; it only reduces the Standard Function Calls and query usage of the tasks each run executes.
 3. **Filter** — workflow filtering is at the trigger condition (only fire if X), which is an action-level filter. Like schedule frequency, it trims the AppEngine and query usage of the runs, not the workflow-hours.
 
-> <sub>**Sources:** Per-capability billing semantics: [DPS docs](https://docs.dynatrace.com/docs/license). [Calculate your consumption of Automation Workflow (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/automation/automation) — *"Standard workflows consume workflow hours."*; *"Simple workflows do not directly consume workflow hours"*; *"Draft-only workflows do not directly consume workflow hours"*; *"Each workflow execution triggers Standard Function Calls that execute tasks"* [Metrics powered by Grail - Query (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-query) — *"is always included in your DPS subscription and never results in costs."* [Best practices for optimizing metrics cost (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/best-practices-metrics) — *"each timeseries is billed for no more than one data point per minute."*</sub>
+> <sub>**Sources:** Per-capability billing semantics: [DPS docs](https://docs.dynatrace.com/docs/license). [Calculate your consumption of Automation Workflow (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/automation/automation) — *"Standard workflows consume workflow hours."*; *"Simple workflows do not directly consume workflow hours"*; *"Draft-only workflows do not directly consume workflow hours"*; *"Each workflow execution triggers Standard Function Calls that execute tasks"* [Metrics powered by Grail - Query (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-query) — *"is always included in your DPS subscription and never results in costs."* [Best practices for optimizing metrics cost (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/best-practices-metrics) — *"each timeseries is billed for no more than one data point per minute."* [Log Management & Analytics - Query (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/log-analytics/dps-log-query) — *"It is calculated per gibibyte scanned (GiB scanned)."* [DQL best practices (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/dql-best-practices) — *"Select the amount of processed data by selecting fields early"* (processed, not scanned).</sub>
 
 <a id="tradeoffs"></a>
 ## 7. Trade-offs and Hidden Costs
@@ -356,13 +356,16 @@ Automation Workflow bills **workflow-hours**: every deployed standard workflow i
 
 ### Step 1 — Diagnose
 
-Run the FINOPS-01 §6 query to confirm the bucket-level numbers. Then drill in:
+Run the FINOPS-01 §6 query to confirm the bucket-level numbers. Then drill in. The drill-down is itself a 7-day log query, so it scopes to the bucket and samples: `samplingRatio:100` reads about one record in a hundred, and the query scales the counts back up. On a validation tenant (10/23/2026), one hour of one bucket broken down by log level scanned 987.6 MB unsampled and 15.3 MB sampled, and the large levels came back within about 1% of the exact counts. Rare levels are much less precise (ERROR was estimated at 800 against 1,161), so re-run a level you care about unsampled over a short window.
+
+> <sub>**Sources:** [DQL data source commands (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/data-source-commands) — the `fetch` sampling example, *"to get an estimation"*, multiplies by `takeAny(dt.system.sampling_ratio)`. [DQL best practices (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/dql-best-practices) — *"a fraction ( 1/<samplingRatio> ) of all available raw records is returned."*</sub>
 
 ```dql
 // Diagnose the spike — payments-prod log volume by loglevel over the last 7 days
-fetch logs, from:-7d
-| filter dt.system.bucket == "payments-prod"
-| summarize { record_count = count() }, by:{ loglevel }
+// samplingRatio:100 reads ~1/100 of the records; counts are scaled back up.
+// Good for the shape of the distribution; rare levels are imprecise.
+fetch logs, bucket:{"payments-prod"}, from:-7d, samplingRatio:100
+| summarize { record_count = count() * takeAny(dt.system.sampling_ratio) }, by:{ loglevel }
 | sort record_count desc
 ```
 

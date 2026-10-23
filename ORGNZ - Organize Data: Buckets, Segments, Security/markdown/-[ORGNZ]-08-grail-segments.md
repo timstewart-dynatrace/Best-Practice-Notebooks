@@ -1,6 +1,6 @@
 # ORGNZ-08: Grail Segments
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 10/14/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -55,7 +55,9 @@ By the end of this notebook, you will:
 
 > **Key insight**: Buckets store data; segments filter it. Use buckets for retention and cost allocation, segments for dynamic data views.
 
-> **Performance benefit**: Applying a segment also reduces the **scanned bytes** of your queries. Since segments inject filter conditions at query time, only matching data is scanned — meaning fewer bytes read, lower cost, and faster results. This is especially impactful on high-volume buckets where unfiltered queries might hit the default 500 GB scan limit (`scanLimitGBytes`).
+> **Performance benefit**: Applying a segment also reduces the **scanned bytes** of your queries, compared with the same query run without a filter. A segment works by injecting filter conditions at query time, so it costs what the same filter written into the query costs: no more, and no less. Which filter it injects decides the saving. A segment on `dt.system.bucket` skips the other buckets entirely; a segment on a field such as `k8s.namespace.name` still reads every record in every bucket the query can reach. On a validation tenant (10/23/2026, a 15-minute window that scanned 731.8 MB unfiltered), a bucket filter for `easytrade` scanned 317.1 MB over 1.28M records, and a namespace filter returning the same rows scanned 419.4 MB over all 3.51M records. The saving matters most on high-volume buckets, where unfiltered queries might hit the default 500 GB scan limit (`scanLimitGBytes`).
+>
+> <sub>**Sources:** [Segments in DQL queries (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-queries) — *"segments will directly impact how much data is scanned and returned for a given query"*; segments act *"injecting user-defined, preconfigured filter conditions."* **Derived:** a segment scans what its injected filter scans, so the bucket-versus-field difference is the measured one above.</sub>
 
 <a id="segment-use-cases"></a>
 ## Segment Use Cases
@@ -330,7 +332,9 @@ Then reference `$bucket` in the filter condition: `dt.system.bucket = $bucket`
 
 This lets users pick a bucket from a dropdown in Dashboards or Notebooks without changing the underlying DQL query — useful for security reviews (pick the `audit_logs` bucket) or cost analysis (pick a specific team bucket).
 
-> **Performance benefit:** targeting a bucket via segment reduces the data scanned compared to a full table scan, directly reducing query licensing costs.
+> **Performance benefit:** a bucket segment skips the other buckets, so it scans what `bucket:{...}` scans. That is less than an unscoped query, and Log query consumption is billed per GiB scanned. It is no cheaper than writing the same bucket filter into the query yourself.
+>
+> <sub>**Sources:** [Segment logs by bucket (DT docs)](https://docs.dynatrace.com/docs/manage/segments/use-cases/segments-use-cases-logs-by-bucket) — *"Configure a segment to function as a convenient filter for logs by Grail buckets to optimize query performance and license consumption."* [Log Management & Analytics - Query (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/log-analytics/dps-log-query) — *"It is calculated per gibibyte scanned (GiB scanned)."*</sub>
 
 ## Next Steps
 

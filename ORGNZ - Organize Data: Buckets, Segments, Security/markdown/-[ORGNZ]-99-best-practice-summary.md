@@ -1,6 +1,6 @@
 # ORGNZ-99: Best Practice Summary & DQL Reference
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/23/2026
 
 ## Overview
 
@@ -372,7 +372,7 @@ smartscapeNodes "K8S_NAMESPACE"
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|-----------------|----------|----------|
 | 61 | Understand the default 500 GB scan limit | `fetch` stops at 500 GB scanned by default (`scanLimitGBytes`); at 1 TB/day ingest an unmodified query reaches back ~12 hours — raise `scanLimitGBytes` or narrow the query | Critical | Performance |
-| 62 | Target specific buckets in queries | Use `fetch logs, bucket:{"team_logs", "app_logs_*"}` to avoid scanning all buckets | Recommended | Performance |
+| 62 | Target specific buckets in queries | Use `fetch logs, bucket:{"team_logs", "app_logs_*"}` to avoid scanning all buckets — an unscoped query reads every log bucket. A misspelled name is skipped without a warning, even inside a list | Recommended | Performance |
 | 63 | Use exact match (`=`) over pattern match in segment filters | `=` is faster than `starts-with`; use exact values when known | Recommended | Performance |
 | 64 | Minimize segment filter expressions | Fewer conditions = better query performance; maximum 10 expressions per filter | Recommended | Performance |
 | 65 | Use OpenPipeline pre-processing for complex segment logic | If segment conditions would be complex, pre-enrich a simple field (e.g., `dt.security_context`) and filter on that | Recommended | Performance |

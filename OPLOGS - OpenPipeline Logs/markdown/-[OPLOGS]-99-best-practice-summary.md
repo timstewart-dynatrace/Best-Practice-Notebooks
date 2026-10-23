@@ -1,6 +1,6 @@
 # OPLOGS-99: Best Practice Summary
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/23/2026
 
 Definitive best practice settings for OpenPipeline log processing. Each entry specifies the exact configuration — no hedging, no options.
 
@@ -77,7 +77,7 @@ Masking patterns are DPL, not regex (FAQ-15 §3) — regex syntax such as `\b`, 
 |----------|---------|----------|
 | Always specify time range | `fetch logs, from:-1h` — never bare `fetch logs` | Critical |
 | Filter early, sort/limit last | `filter` immediately after `fetch`; `sort` and `limit` as final commands | Critical |
-| Target specific buckets | `fetch logs, bucket:"error_logs", from:-7d` | Critical |
+| Target specific buckets | `fetch logs, bucket:{"error_logs"}, from:-7d` — an unscoped query reads every log bucket. Use the `{...}` set form: a bare string runs but raises an INFO notice asking for curly braces | Critical |
 | Use `==` for exact matches | `filter field == "value"` — reserve `~` for wildcards only | Recommended |
 | Always alias aggregations | `summarize count = count()` then `sort count desc` — anonymous aggregations cannot be referenced | Critical |
 | Use `isNull()`/`isNotNull()` | Never `== null` — DQL uses three-valued logic | Critical |
@@ -86,7 +86,7 @@ Masking patterns are DPL, not regex (FAQ-15 §3) — regex syntax such as `\b`, 
 | Use `entityName()` for display names | `entityName(dt.entity.host, type:"dt.entity.host")` — a readable name instead of an ID; note `dt.entity.*` fields are `deprecated` in favour of `dt.smartscape.*` (OPLOGS-06) | Recommended |
 | Filter `isNotNull` before aggregating optional fields | Prevents null group-by values in aggregations | Recommended |
 | Use `samplingRatio` for exploration | `fetch logs, from:-1d, samplingRatio:10` then multiply back | Recommended |
-| Cap query cost with `scanLimitGBytes` | `fetch logs, scanLimitGBytes:100` | Optional |
+| Bound one query's scan with `scanLimitGBytes` | `fetch logs, scanLimitGBytes:100` — whole GB only. The query stops at the limit and may return partial results (`SCAN_LIMIT_GBYTES` warning); it is a safety stop, not a budget. Avoid `-1` (no limit) | Optional |
 
 <a id="metric-extraction"></a>
 ## 5. Metric Extraction
