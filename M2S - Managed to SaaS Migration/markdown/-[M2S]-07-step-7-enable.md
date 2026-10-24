@@ -1,6 +1,6 @@
 # M2S-07: Step 7 — Enable: User Enablement and Communication
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 10/15/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 10/24/2026
 
 A successful migration is measured not by the technical cutover but by whether every team in the organization can use the new platform effectively. Step 7 focuses on communication, training, documentation, and establishing the support structures that ensure adoption. Without deliberate enablement, teams will struggle with new URLs, unfamiliar interfaces, and unanswered questions — undermining the value of the migration.
 
@@ -431,7 +431,8 @@ fetch logs, from:-24h
 
 ```dql
 // Count monitored hosts — should match or exceed Managed baseline
-fetch dt.entity.host
+// from:-24h: without it, only entities seen in the default 2-hour window are counted — Step 1 counts over 24 h too.
+fetch dt.entity.host, from:-24h
 | summarize hostCount = count()
 
 // Alternative: Smartscape on Grail (entity.name → name)
@@ -442,7 +443,8 @@ fetch dt.entity.host
 
 ```dql
 // Count monitored services — compare to Managed inventory
-fetch dt.entity.service
+// from:-24h: without it, only entities seen in the default 2-hour window are counted — Step 1 counts over 24 h too.
+fetch dt.entity.service, from:-24h
 | summarize serviceCount = count()
 
 // Alternative: Smartscape on Grail (entity.name → name)

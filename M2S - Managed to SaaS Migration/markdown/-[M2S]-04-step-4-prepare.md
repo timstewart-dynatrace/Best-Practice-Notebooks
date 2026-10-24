@@ -787,7 +787,7 @@ Complete every checkpoint before proceeding to Step 5 (Execute). Each item corre
 - [SAML SSO Setup](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml)
 - [IAM Documentation](https://docs.dynatrace.com/docs/manage/identity-access-management)
 - [OneAgent Communication](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oa-requirements)
-- [Azure Native Dynatrace Service](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-native-integration)
+- [Azure Native Dynatrace Service](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services-classic/azure-native-integration)
 
 ---
 
