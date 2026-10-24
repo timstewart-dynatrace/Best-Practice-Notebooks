@@ -1,6 +1,6 @@
 # M2S-95 LAB: Terraform for Managed-to-SaaS Migration
 
-> **Series:** M2S — Managed to SaaS Migration | **Reference:** 95 — Terraform Migration LAB | **Created:** July 2026 | **Last Updated:** 09/28/2026
+> **Series:** M2S — Managed to SaaS Migration | **Reference:** 95 — Terraform Migration LAB | **Created:** July 2026 | **Last Updated:** 10/24/2026
 
 An appendix LAB for teams migrating Dynatrace Managed to SaaS with the Terraform provider instead of — or alongside — the SaaS Upgrade Assistant.
 
@@ -480,7 +480,6 @@ Applying an auto-tag rule is not the same as that rule matching anything. This c
 // Do Terraform-managed tagging rules actually match hosts on the target?
 // Replace app.owner with a tag key your ruleset assigns.
 smartscapeNodes "HOST"
-| fieldsAdd tags = getNodeField(id, "tags")
 | fieldsAdd hasOwner = isNotNull(tags[app.owner])
 | summarize {tagged = countIf(hasOwner == true), total = count()}
 ```

@@ -1,6 +1,6 @@
 # ONBRD-05: Deploying OneAgent
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 10/22/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 10/24/2026
 
 ## Getting Data Into Dynatrace
 OneAgent is the foundation of Dynatrace monitoring. This notebook covers deployment strategies, installation methods, and verification steps to ensure your infrastructure is reporting data.
@@ -539,6 +539,7 @@ fetch dt.entity.service
 // than the classic entity store; for a pre-migration discovery inventory keep the
 // classic query above.
 // Field maps: serviceType -> dt.service.sdv1_type; entity.name -> name.
+// dt.service.sdv1_type is set only when dt.service_detection.version is 1; on SDv2 services it is null — add dt.service_detection.version to the by: list to see which applies.
 ```
 
 ```dql

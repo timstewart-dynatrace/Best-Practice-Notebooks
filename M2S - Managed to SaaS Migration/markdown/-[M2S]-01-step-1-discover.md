@@ -1,6 +1,6 @@
 # M2S-01: Step 1 — Discover: Understand SaaS Differences
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 10/21/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 10/24/2026
 
 The first step in any Managed-to-SaaS migration is understanding what you are moving to and why. This notebook helps you document the benefits of Dynatrace SaaS for your organization, take inventory of your current Managed environment, and confirm your use cases and goals for the upgrade.
 
@@ -143,7 +143,8 @@ Before planning the migration, take a complete inventory of what exists in your 
 
 ```dql
 // Count total monitored hosts
-fetch dt.entity.host
+// from:-24h: without it, only entities seen in the default 2-hour window are counted — Step 9 compares against a 24 h count.
+fetch dt.entity.host, from:-24h
 | summarize hostCount = count()
 
 // Smartscape equivalent (dt.entity.* is deprecated but still functional):
@@ -155,7 +156,8 @@ fetch dt.entity.host
 
 ```dql
 // Hosts grouped by OS type
-fetch dt.entity.host
+// from:-24h: without it, only entities seen in the default 2-hour window are counted — Step 9 compares against a 24 h count.
+fetch dt.entity.host, from:-24h
 | summarize hostCount = count(), by:{osType}
 | sort hostCount desc
 
@@ -177,7 +179,8 @@ curl -s "https://{managed-url}/api/v2/entities?entitySelector=type(HOST)&pageSiz
 
 ```dql
 // Count total monitored services
-fetch dt.entity.service
+// from:-24h: without it, only entities seen in the default 2-hour window are counted — Step 9 compares against a 24 h count.
+fetch dt.entity.service, from:-24h
 | summarize serviceCount = count()
 
 // Smartscape equivalent (deprecated dt.entity.* still functional):
@@ -189,13 +192,15 @@ fetch dt.entity.service
 
 ```dql
 // Services grouped by technology
-fetch dt.entity.service
+// from:-24h: without it, only entities seen in the default 2-hour window are counted — Step 9 compares against a 24 h count.
+fetch dt.entity.service, from:-24h
 | summarize serviceCount = count(), by:{serviceType}
 | sort serviceCount desc
 
 // Smartscape equivalent (deprecated dt.entity.* still functional):
 //   smartscapeNodes "SERVICE" | summarize serviceCount = count(), by:{dt.service.sdv1_type} | sort serviceCount desc
 // Field map: serviceType -> dt.service.sdv1_type (same value labels, e.g. WEB_REQUEST_SERVICE).
+// dt.service.sdv1_type is set only when dt.service_detection.version is 1; on SDv2 services it is null — add dt.service_detection.version to the by: list to see which applies.
 // The live-topology count caveat applies here too.
 ```
 
@@ -259,7 +264,8 @@ Understanding your OneAgent version spread is important because SaaS supports a 
 
 ```dql
 // OneAgent versions across hosts
-fetch dt.entity.host
+// from:-24h: without it, only entities seen in the default 2-hour window are counted — Step 9 compares against a 24 h count.
+fetch dt.entity.host, from:-24h
 | summarize hostCount = count(), by:{installerVersion}
 | sort hostCount desc
 
