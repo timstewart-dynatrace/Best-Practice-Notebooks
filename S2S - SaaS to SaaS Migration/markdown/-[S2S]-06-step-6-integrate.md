@@ -143,7 +143,7 @@ Use these only where the target cannot use the Latest connections yet.
 
 > **Classic log-forwarder cut-over timing.** *"Logs older than 24 hours are rejected (considered too old by the Dynatrace log ingest endpoint)."* A forwarder repointed more than a day after its logs were produced cannot backfill them — switch it inside the change window, not after an outage.
 >
-> <sub>**Sources:** [Set up the Azure log forwarder (DT docs, Dynatrace Classic)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-integrations/set-up-log-forwarder-azure) — *"Azure log forwarding is performed directly through Cluster API. If you don't want to use direct ingest through the Cluster API, you have to use an existing ActiveGate for log ingestion."*</sub>
+> <sub>**Sources:** [Set up the Azure log forwarder (DT docs, Dynatrace Classic)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services-classic/azure-integrations/set-up-log-forwarder-azure) — *"Azure log forwarding is performed directly through Cluster API. If you don't want to use direct ingest through the Cluster API, you have to use an existing ActiveGate for log ingestion."*</sub>
 
 ### GCP Integration
 

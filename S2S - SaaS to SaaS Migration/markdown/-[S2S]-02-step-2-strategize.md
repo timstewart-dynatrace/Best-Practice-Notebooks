@@ -1,6 +1,6 @@
 # S2S-02: Step 2 — Strategize: Define Your Migration Approach
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 2 of 9 | **Phase:** Plan | **Step:** Strategize | **Created:** March 2026 | **Last Updated:** 10/06/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 2 of 9 | **Phase:** Plan | **Step:** Strategize | **Created:** March 2026 | **Last Updated:** 10/24/2026
 
 With your discovery complete, it's time to turn inventory into action. This notebook helps you select a migration approach, sequence your operations, assess risks, and build a timeline that earns stakeholder confidence.
 
@@ -434,7 +434,7 @@ In community practice, a consistent pattern emerges — a planning heuristic, no
 | SLO definitions | Monaco (settings type) |
 | Notification rules | Monaco (settings type) |
 | Workflows and automations | Monaco (automations type) |
-| OpenPipeline processing rules | Monaco (openpipeline type) |
+| OpenPipeline processing rules | Monaco (settings type, `builtin:openpipeline.*` schemas — Monaco 2.31.0 removed the `openpipeline` type) |
 | Grail bucket definitions | Monaco (bucket type) |
 | Segments | Monaco (segment type) |
 | Synthetic monitors | Monaco (requires classic API token) |

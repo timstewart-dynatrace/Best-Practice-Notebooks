@@ -1,6 +1,6 @@
 # AUTOM-97 LAB: Monaco Configuration as Code
 
-> **Series:** AUTOM — Dynatrace Automation | **Reference:** 97 — Monaco Hands-On LAB | **Created:** April 2026 | **Last Updated:** 10/02/2026
+> **Series:** AUTOM — Dynatrace Automation | **Reference:** 97 — Monaco Hands-On LAB | **Created:** April 2026 | **Last Updated:** 10/24/2026
 
 ## Overview
 
@@ -246,7 +246,7 @@ Monaco organizes downloaded configuration by type:
 | `settings` | Settings 2.0 objects | `builtin:davis.anomaly-detectors`, `builtin:ownership.teams`; classic estates also `builtin:alerting.profile`, `builtin:management-zones` |
 | `api` (internally `classic`) | Classic Configuration APIs | `type: {api: request-attributes}` — request attributes, classic dashboards |
 
-The type names are the `type:` fields from the [Monaco type-fields reference (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas-type-fields); a classic config is written `type: {api: <name>}`, not `type: classic`. The matching `--only-*` download flags are `--only-slo-v2`, `--only-segments`, `--only-automation`, `--only-documents`, `--only-buckets`, `--only-settings`, `--only-apis` and `--only-openpipeline`, and can be combined. `--only-openpipeline` is marked **Deprecated** in the [Monaco command reference (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas): OpenPipeline configuration is Settings 2.0 objects, so download it with `--only-settings` or `--settings-schema` with each `builtin:openpipeline.*` schema in use, plus `--admin-access` for pipelines other users own.
+The type names are the `type:` fields from the [Monaco type-fields reference (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas-type-fields); a classic config is written `type: {api: <name>}`, not `type: classic`. The matching `--only-*` download flags are `--only-slo-v2`, `--only-segments`, `--only-automation`, `--only-documents`, `--only-buckets`, `--only-settings`, `--only-apis` (and, up to v2.30.x, `--only-openpipeline`), and can be combined. Monaco 2.31.0 (10/23/2026) removed the deprecated `openpipeline` type — the [release notes (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/tag/v2.31.0): *"Removed support for deprecated OpenPipeline configurations (type `openpipeline`)"* — and its download command no longer has `--only-openpipeline`. OpenPipeline configuration is Settings 2.0 objects, so download it with `--only-settings` or `--settings-schema` with each `builtin:openpipeline.*` schema in use, plus `--admin-access` for pipelines other users own.
 
 > **Platform types need platform auth.** `slo-v2`, `document`, `automation`, `bucket` and `segment` configs come through the Platform APIs, so they appear only when the manifest environment has `auth.platformToken` or `auth.oAuth` (see §3).
 

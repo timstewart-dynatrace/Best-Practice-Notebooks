@@ -1,6 +1,6 @@
 # S2S-99: Best Practice Summary
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/24/2026
 
 ## Overview
 
@@ -75,7 +75,7 @@ The S2S series follows a **9-step framework** (Discover through Optimize) suppor
 |---|--------------|---------------------------|----------|
 | 1 | Complete entity discovery before anything else | Run `smartscapeNodes "HOST", from:-7d \| summarize count()` (and the `SERVICE` / `FRONTEND` equivalents; process groups stay on `fetch dt.entity.process_group`) to establish baseline numbers — and run the same queries in the target later | **Critical** |
 | 2 | Identify your migration scenario | Classify as consolidation (many-to-one), split (one-to-many), regional relocation, hosting-cloud change (the environment moves to another cloud), or workload cloud change (the monitored workloads move) — retiring a cloud is both at once | **Critical** |
-| 3 | Select Monaco for configuration, Terraform for IAM | Monaco v2 covers all 8 config types (settings, document, automation, bucket, segment, slo-v2, openpipeline, classic api), and account IAM through `monaco account` (OAuth client); Terraform is the common choice for IAM because it keeps state and shows drift | **Critical** |
+| 3 | Select Monaco for configuration, Terraform for IAM | Monaco v2 covers the settings, document, automation, bucket, segment, slo-v2 and classic api config types (OpenPipeline as `builtin:openpipeline.*` settings — Monaco 2.31.0 removed the `openpipeline` type), and account IAM through `monaco account` (OAuth client); Terraform is the common choice for IAM because it keeps state and shows drift | **Critical** |
 | 4 | Plan for entity ID changes | Entity IDs (HOST-xxx, SERVICE-xxx) are tenant-specific and will change; identify every dashboard, SLO, and alert that hardcodes an entity ID | **Critical** |
 | 5 | Document the manual remainder | Most configuration moves with tooling; budget most of your effort for the remainder — entity ID remapping, integration repointing, IAM redesign, credential recreation ("90/10" is community shorthand, not a measured ratio) | **Critical** |
 | 6 | Build a comprehensive endpoint inventory | Document every agent URL, API call, webhook, and integration endpoint that references the source tenant URL | **Critical** |

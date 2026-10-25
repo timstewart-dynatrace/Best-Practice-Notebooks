@@ -164,7 +164,7 @@ OpenPipeline rules and bucket routing that match on AWS log sources need Azure e
 > <sub>**Sources:**</sub>
 > - <sub>[AWS Cloud Platform Monitoring (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/aws-onboarding) — *"Subscribe CloudWatch log groups to auto-generated Firehose streams for immediate ingestion and analysis."*</sub>
 > - <sub>[Azure Cloud Platform Monitoring (DT docs)](https://docs.dynatrace.com/docs/shortlink/azure-onboarding) — *"Subscribe Azure resources to Event Grid system topics and forward resource lifecycle events such as blob creation and deletion, resource group changes, and service health alerts to Dynatrace."*</sub>
-> - <sub>[Set up the Azure log forwarder (DT docs, Dynatrace Classic)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-integrations/set-up-log-forwarder-azure) — *"Logs older than 24 hours are rejected (considered too old by the Dynatrace log ingest endpoint)."*</sub>
+> - <sub>[Set up the Azure log forwarder (DT docs, Dynatrace Classic)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services-classic/azure-integrations/set-up-log-forwarder-azure) — *"Logs older than 24 hours are rejected (considered too old by the Dynatrace log ingest endpoint)."*</sub>
 
 <a id="phase-5-validate"></a>
 ## 7. Phase 5 — Validate the Dual-Cloud Window

@@ -1,6 +1,6 @@
 # S2S-01: Step 1 — Discover: Migration Scenarios and Inventory
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 10/24/2026
 
 The first step in any SaaS-to-SaaS migration is understanding *why* you are migrating between tenants, inventorying what you have, and confirming what migrates automatically versus what requires manual effort. This notebook guides you through discovery, scenario identification, and tool selection.
 
@@ -117,7 +117,7 @@ Understanding portability constraints upfront prevents surprises during executio
 | Gen3 settings (Settings 2.0) | Monaco, Terraform | Bulk export/import via `monaco download` |
 | Dashboards and notebooks | Monaco (documents type), Terraform | Entity ID references must be updated in target |
 | Workflows and automations | Monaco (automations type), Terraform | Requires OAuth client credentials |
-| OpenPipeline rules | Monaco (openpipeline type), Terraform | Bucket references must match target |
+| OpenPipeline rules | Monaco (`settings` type, `builtin:openpipeline.*` schemas — Monaco 2.31.0 removed the `openpipeline` type), Terraform | Bucket references must match target |
 | Grail bucket configuration | Monaco (bucket type), Terraform | Retention policies may differ |
 | SLO definitions | Monaco (`slo-v2` type — Grail/DQL SLOs, Monaco 2.22.0+), Terraform (`dynatrace_platform_slo`; classic SLOs: `dynatrace_slo_v2`) | DQL SLIs and classic entity-selector filters may hard-code entity IDs; classic SLOs are rewritten as DQL SLIs, not copied (S2S-07 §3) |
 | Management zones | Monaco, Terraform | Zone rules and entity assignments |
@@ -376,7 +376,7 @@ fetch dt.davis.problems, from:-30d
 
 | Tool | Best For | Strengths | Limitations |
 |------|---------|-----------|-------------|
-| **Monaco** | Bulk config export/import: settings, documents, automations, buckets, segments, slo-v2, openpipeline, classic API; account IAM through `monaco account` | `monaco download` bulk export, `monaco deploy` with automatic dependency resolution, no HCL knowledge needed | No state management, no drift detection; account commands need an OAuth client |
+| **Monaco** | Bulk config export/import: settings, documents, automations, buckets, segments, slo-v2, classic API (OpenPipeline as `builtin:openpipeline.*` settings — Monaco 2.31.0 removed the `openpipeline` type); account IAM through `monaco account` | `monaco download` bulk export, `monaco deploy` with automatic dependency resolution, no HCL knowledge needed | No state management, no drift detection; account commands need an OAuth client |
 | **Terraform** | IAM (policies, groups, bindings), ongoing infrastructure-as-code management | State tracking, drift detection via `terraform plan`, cross-platform resource references, bulk export with the provider's `-export` utility | Requires HCL knowledge; some resources are excluded from a default export and must be named |
 | **Settings API** | Targeted, surgical changes to specific settings | Fine-grained programmatic control | Custom scripting required for large-scale migration |
 
