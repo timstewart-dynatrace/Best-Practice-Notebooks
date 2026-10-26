@@ -1,6 +1,6 @@
 # OPIPE-06: Cross-Scope Design Patterns
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 6 of 6 | **Created:** March 2026 | **Last Updated:** 10/15/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 10/26/2026
 
 ## Correlating Logs, Spans, Metrics, and Events Across Scopes
 
@@ -268,7 +268,7 @@ In this notebook you learned:
 
 ## What's Next?
 
-You have completed the OPIPE series. From here:
+Continue to **OPIPE-07: Pipeline Group Governance Patterns** to run central stages across many teams' pipelines with pipeline groups. From there:
 
 - **OPLOGS** — Deep-dive into log processing: **OPLOGS-01: OpenPipeline Fundamentals**
 - **SPANS** — Master trace analysis: **SPANS-01: Fundamentals**

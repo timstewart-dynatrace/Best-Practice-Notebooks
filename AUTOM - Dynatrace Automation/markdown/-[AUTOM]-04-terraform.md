@@ -1,6 +1,6 @@
 # AUTOM-04: Terraform Provider
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 10/23/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 10/26/2026
 
 The Dynatrace Terraform provider enables infrastructure-as-code management of Dynatrace configurations. It integrates with Terraform's ecosystem for state management, planning, and CI/CD integration.
 
@@ -621,7 +621,7 @@ This section is the repo's consolidated Terraform resource catalog, organized by
 | SLO | `dynatrace_platform_slo` (modern SLO app, provider v1.78.0+) | **OAuth client only** | Carries forward | Below — DQL SLI in `custom_sli.indicator`; full treatment in SLO-05 |
 | Anomaly detection | `dynatrace_davis_anomaly_detectors` (Davis Anomaly Detection app) | Platform Token or OAuth client | Carries forward | Below — the successor to `dynatrace_metric_events`; DQL-based (AIOPS-02) |
 | Maintenance | `dynatrace_maintenance_windows` (v1.98+) · `dynatrace_maintenance` (provider ≤ v1.97, deprecated) | Classic API token (`settings.read`/`settings.write`) | Carries forward / **Blocked** | Below. The provider-deprecation fix and the upgrade fix are the same move: `dynatrace_maintenance` → `builtin:alerting.maintenance-window` is blocked, `dynatrace_maintenance_windows` → `builtin:maintenance-windows` survives |
-| OpenPipeline | `dynatrace_openpipeline_v2_<type>_pipelines` / `_routing` / `_ingestsources` (per-data-type family — e.g. `dynatrace_openpipeline_v2_logs_pipelines`; no single generic `dynatrace_openpipeline` resource exists) | API token (`settings.read`/`settings.write`), Platform Token or OAuth client (`settings:objects:*`; routing needs `settings:objects:admin`) — prefer platform credentials so the object gets an owner | Carries forward | Below — see also SL2DT-03, NRLC-09, OPIPE for the schema family (`builtin:openpipeline.<scope>.*`) |
+| OpenPipeline | `dynatrace_openpipeline_v2_<type>_pipelines` / `_pipelinegroups` / `_routing` / `_ingestsources` (per-data-type family — e.g. `dynatrace_openpipeline_v2_logs_pipelines`; no single generic `dynatrace_openpipeline` resource exists) | API token (`settings.read`/`settings.write`), Platform Token or OAuth client (`settings:objects:*`; routing needs `settings:objects:admin`) — prefer platform credentials so the object gets an owner | Carries forward | Below — see also SL2DT-03, NRLC-09, OPIPE for the schema family (`builtin:openpipeline.<scope>.*`) |
 | Grail buckets | `dynatrace_platform_bucket` | OAuth client (`storage:bucket-definitions:*`) per the resource page; Platform Token per the provider's code path — see the note below | Carries forward | Below — see also ORGNZ for bucket strategy |
 | IAM (Gen3) | `dynatrace_iam_group`, `dynatrace_iam_policy`, `dynatrace_iam_policy_bindings_v2`, `dynatrace_iam_service_user` | **OAuth client only** — Platform Token cannot drive IAM resources | Carries forward | Below — full hands-on walkthrough in AUTOM-95 LAB |
 | Synthetic | `dynatrace_http_monitor`, `dynatrace_browser_monitor` | Classic API token (`ExternalSyntheticIntegration`) | Carries forward | Below. Third-party synthetic monitors are a separate, blocked surface — see SYNTH |
@@ -981,7 +981,7 @@ resource "dynatrace_openpipeline_v2_logs_pipelines" "custom_logs" {
 }
 ```
 
-**There is no single `dynatrace_openpipeline` resource.** OpenPipeline is Terraform-managed as a per-data-type family — `dynatrace_openpipeline_v2_logs_pipelines`, `_logs_routing`, `_logs_ingestsources`, and equivalents for `spans`/`metrics`/`events`/`bizevents` — each backed by its own `builtin:openpipeline.<scope>.*` Settings 2.0 schema. This corrected a NRLC-09 and SL2DT-03 error found 07/01/2026 (both had referenced a single generic resource, and SL2DT-03 additionally reflected the now-deprecated OpenPipeline Configurations API JSON shape, EOL June 29, 2026). See OPIPE and OPMIG for the full pipeline-configuration walkthrough.
+**There is no single `dynatrace_openpipeline` resource.** OpenPipeline is Terraform-managed as a per-data-type family — `dynatrace_openpipeline_v2_logs_pipelines`, `_logs_pipelinegroups`, `_logs_routing`, `_logs_ingestsources`, and equivalents for `spans`/`metrics`/`events`/`bizevents` — each backed by its own `builtin:openpipeline.<scope>.*` Settings 2.0 schema. This corrected a NRLC-09 and SL2DT-03 error found 07/01/2026 (both had referenced a single generic resource, and SL2DT-03 additionally reflected the now-deprecated OpenPipeline Configurations API JSON shape, EOL June 29, 2026). See OPIPE and OPMIG for the full pipeline-configuration walkthrough, and OPIPE-07 for pipeline groups.
 
 #### Grail Bucket
 

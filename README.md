@@ -344,6 +344,7 @@ Advanced OpenPipeline patterns for spans, metrics, business events, and security
 - [OPIPE-04: Cardinality Management](OPIPE%20-%20OpenPipeline%20Beyond%20Logs/markdown/-%5BOPIPE%5D-04-cardinality-management.md) — Controlling dimension explosion across all scopes
 - [OPIPE-05: Business & Security Event Pipelines](OPIPE%20-%20OpenPipeline%20Beyond%20Logs/markdown/-%5BOPIPE%5D-05-business-and-security-event-pipelines.md) — Processing business transactions and security events at ingestion
 - [OPIPE-06: Cross-Scope Design Patterns](OPIPE%20-%20OpenPipeline%20Beyond%20Logs/markdown/-%5BOPIPE%5D-06-cross-scope-design-patterns.md) — Correlating logs, spans, metrics, and events across scopes
+- [OPIPE-07: Pipeline Group Governance](OPIPE%20-%20OpenPipeline%20Beyond%20Logs/markdown/-%5BOPIPE%5D-07-pipeline-group-governance.md) — Central control and team autonomy with pipeline groups: ownership, mandated stages, execution order, routing, limits and gating
 - [OPIPE-99: Best Practice Summary](OPIPE%20-%20OpenPipeline%20Beyond%20Logs/markdown/-%5BOPIPE%5D-99-best-practice-summary.md) — Consolidated best practices from the OPIPE series
 
 ### [OPLOGS - OpenPipeline Logs](OPLOGS%20-%20OpenPipeline%20Logs/README.md)

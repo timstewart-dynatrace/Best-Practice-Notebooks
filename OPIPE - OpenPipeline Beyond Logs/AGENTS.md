@@ -3,10 +3,11 @@
 Per-series routing for AI agents. Repo-wide rules: [../AGENTS.md](../AGENTS.md).
 Humans: see [README.md](README.md).
 
-7 notebooks on OpenPipeline's non-log scopes: the six-scope architecture,
+8 notebooks on OpenPipeline's non-log scopes: the six-scope architecture,
 span filtering/enrichment/routing at ingestion, sampling-aware metric
 extraction, cardinality control, business and security event pipelines,
-cross-scope correlation patterns, and a best-practice summary.
+cross-scope correlation patterns, pipeline group governance, and a
+best-practice summary.
 
 ## Routing table
 
@@ -20,6 +21,7 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | Dimension explosion, detecting high-cardinality fields, reduction strategies (attribute removal, value normalization, bucketing, hashing), metric dimension guardrails | `-[OPIPE]-04-cardinality-management.md` |
 | Business event enrichment/metric extraction (`event.type`, `event.provider`), security event routing, compliance buckets, event-to-metric KPIs | `-[OPIPE]-05-business-and-security-event-pipelines.md` |
 | Correlating logs/spans/metrics/events via shared dimensions, cascade processing, unified bucket families, when NOT to use OpenPipeline, production readiness checklist | `-[OPIPE]-06-cross-scope-design-patterns.md` |
+| Running OpenPipeline pipeline groups: base vs member pipelines and the one-group rule, ownership and who may assign members or edit routes, which stages to mandate or give to teams, `memberStages` include/exclude, composition order (applied within each stage), routing to members only, limits (100 processors per base pipeline, 10 slots, 5 extraction pipelines), CI gating, verification DQL, Settings API and Terraform (`dynatrace_openpipeline_v2_<scope>_pipelinegroups`) examples | `-[OPIPE]-07-pipeline-group-governance.md` |
 | Consolidated settings checklist: pipeline-per-scope rules, matching-condition and first-match stage rules, span drop filters, cardinality/security-context settings | `-[OPIPE]-99-best-practice-summary.md` |
 
 If more than three rows match, start with `-[OPIPE]-99-best-practice-summary.md`

@@ -1,6 +1,6 @@
 # OPIPE-01: OpenPipeline as a Multi-Scope Platform
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 10/15/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 10/26/2026
 
 ## Beyond Logs: Processing Spans, Metrics, and Events at Ingestion
 
@@ -458,7 +458,7 @@ In the Spans scope, a single pipeline processes server and client spans but need
 | Only the destination bucket differs | **Bucket assignment** processors with conditions in one pipeline (first match wins) |
 | Different retention, security context, or data lifecycle | **Separate pipelines**, each with its own route |
 | Different teams own the configuration | **Separate pipelines** — *"By adding custom pipelines per team, you can manage them via owner-based access control."* |
-| A central team must enforce the same stages (for example masking) on many teams' pipelines | **Pipeline groups** — a composition of base pipelines that *"can restrict or mandate stages"* for its member pipelines |
+| A central team must enforce the same stages (for example masking) on many teams' pipelines | **Pipeline groups** — a composition of base pipelines that *"can restrict or mandate stages"* for its member pipelines; **OPIPE-07** covers running one |
 | Blast-radius isolation | **Separate pipelines** — a bad processor in one pipeline cannot affect another |
 
 > <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — custom pipelines and owner-based access control, [Pipeline groups (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/pipeline-groups) — compositions, base and member pipelines.</sub>
@@ -618,7 +618,7 @@ In this notebook you learned:
 <a id="next-steps"></a>
 ## Next Steps
 
-Continue to **OPIPE-02: Span Processing & Enrichment** to configure OpenPipeline for distributed traces — filtering noisy spans, enriching attributes, and routing traces to dedicated buckets.
+Continue to **OPIPE-02: Span Processing & Enrichment** to configure OpenPipeline for distributed traces — filtering noisy spans, enriching attributes, and routing traces to dedicated buckets. To run a pipeline group — ownership, mandated stages, execution order and gating — see **OPIPE-07: Pipeline Group Governance Patterns**.
 
 ---
 

@@ -1,6 +1,6 @@
 # OPIPE-99: Best Practice Summary
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/15/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/26/2026
 
 Definitive best practice settings for OpenPipeline beyond logs — spans, metrics, events, and cross-scope patterns. Each entry specifies the exact configuration.
 
@@ -47,6 +47,13 @@ Definitive best practice settings for OpenPipeline beyond logs — spans, metric
 | Make matchers in all-matches stages mutually exclusive | Unless multi-match is intentional — overlapping processors can set conflicting field values | Recommended |
 | Use separate pipelines when lifecycle or owner differs | Different bucket, retention, security context or owning team = separate pipeline | Critical |
 | Use pipeline groups for centrally mandated stages | A composition of base pipelines can restrict or mandate stages for member pipelines | Recommended |
+| Exclude every mandated stage from members | A stage enabled in both a base and a member pipeline runs in both — exclude it in the group's `memberStages` (prefer an `include` list) — see OPIPE-07 | Critical |
+| Keep Permission, cost, product and bucket central | Run them in base pipelines; they come before every extraction stage, so member-extracted data sees the central values | Critical |
+| Route only to member pipelines | Base pipelines are not routable; first matching route wins; monitor the share of records on the default route | Critical |
+| Platform team owns the routing table | Routing has no owner-based access control — write access to a scope's routing covers every route | Critical |
+| Decide the role at creation | `groupRole` and `routing` are permanent; a member belongs to one group, a base pipeline can serve several | Recommended |
+| Budget the limits | 100 processors per base pipeline, 10 slots per group, 100 pipelines per scope, extraction in at most 5 pipelines per record | Recommended |
+| Gate member pipelines in CI | Metric-key prefix, Davis allow-list, dimension deny-list, processor counts — warn first, then fail | Recommended |
 
 <a id="span-filtering-enrichment"></a>
 ## 3. Span Filtering & Enrichment

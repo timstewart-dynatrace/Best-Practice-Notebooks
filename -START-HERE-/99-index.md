@@ -41,7 +41,7 @@
 | **NR2DT** | [New Relic to Dynatrace Migration Steps](../NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/) | 11 | Procedural runbook (00 prereqs + 9 steps + summary); refers to NRLC for component depth |
 | **NRLC** | [New Relic to Dynatrace Migration Deep Dives](../NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/) | 9 | Standalone component deep dives (NRQL→DQL, dashboards, alerts, synthetics, SLOs, logs) |
 | **ONBRD** | [Dynatrace Onboarding](../ONBRD%20-%20Dynatrace%20Onboarding/) | 12 | First steps, IAM, ActiveGate, OneAgent, basic data org and dashboards |
-| **OPIPE** | [OpenPipeline Beyond Logs](../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/) | 7 | Spans, metrics, business and security event pipelines; cross-scope design patterns |
+| **OPIPE** | [OpenPipeline Beyond Logs](../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/) | 8 | Spans, metrics, business and security event pipelines; cross-scope design patterns; pipeline group governance |
 | **OPLOGS** | [OpenPipeline Logs](../OPLOGS%20-%20OpenPipeline%20Logs/) | 9 | Log fundamentals, processing, buckets, parsing, security |
 | **OPMIG** | [OpenPipeline Migration](../OPMIG%20-%20OpenPipeline%20Migration/) | 10 | Classic Logs → OpenPipeline migration runbook |
 | **ORGNZ** | [Organize Data: Buckets, Segments, Security](../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/) | 11 | Buckets, security_context, permissions, segments, enterprise patterns |

@@ -80,6 +80,7 @@ For the doorway that sequences all of these together, see [Doorway 4 — Classic
 | Bucket-routing decisions | [ORGNZ](../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/) — notebooks 02, 03 | [OPLOGS](../OPLOGS%20-%20OpenPipeline%20Logs/) — notebook 04 (buckets governance); [OPMIG](../OPMIG%20-%20OpenPipeline%20Migration/) — notebook 05 (routing buckets) | ORGNZ-02..03 first; OPLOGS-04 / OPMIG-05 for ingestion-specific routing |
 | Cardinality management | [OPIPE](../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/) — notebook 04 | [SPANS](../SPANS%20-%20Distributed%20Tracing%20and%20Spans/) — notebook 08 (cost optimization) | OPIPE-04 for the mechanism; SPANS-08 for span-specific cost work |
 | Span pipelines | [OPIPE](../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/) — notebook 02 | [SPANS](../SPANS%20-%20Distributed%20Tracing%20and%20Spans/) — notebook 07 (buckets and pipeline) | OPIPE-02 first; SPANS-07 for span-specific patterns |
+| Pipeline groups | [OPIPE](../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/) — notebook 07 (governance patterns) | [OPIPE](../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/) — notebook 01 (when a group is the right tool); [OPMIG](../OPMIG%20-%20OpenPipeline%20Migration/) — notebook 05 (configuring a group) | OPIPE-01 for the decision; OPIPE-07 to run one |
 
 ---
 
