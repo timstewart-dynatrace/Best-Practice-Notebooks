@@ -1,6 +1,6 @@
 # BIZEV-07: Gen2 vs Gen3 — Business Events Without (or Before) the Full Move
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 7 of 7 | **Created:** July 2026 | **Last Updated:** 10/22/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 7 of 7 | **Created:** July 2026 | **Last Updated:** 10/25/2026
 
 ## Overview
 
@@ -115,7 +115,7 @@ If your SaaS tenant has Grail, you can run business events **without migrating a
 
 | Step | Where | Gen3 surface? |
 |------|-------|---------------|
-| 1. Capture | **OneAgent capture rules** — Settings > Collect and Capture > Business events (Incoming / Outgoing). Requires Full-Stack Monitoring mode on the capturing hosts; incoming HTTP capture from OneAgent 1.253+ for web servers/.NET (Node.js 1.259+, Go 1.263+, Java servlet containers 1.323+); outgoing capture is Java-only (1.297+). No application redeploy. | No — classic Settings UI |
+| 1. Capture | **OneAgent capture rules** — Settings > Collect and Capture > Business events (Incoming / Outgoing). Requires Full-Stack Monitoring mode on the capturing hosts; incoming HTTP capture from OneAgent 1.253+ for web servers, .NET and Java servlet containers (Node.js 1.259+, Go 1.263+; Tomcat 10 needs 1.263+, Netty 1.323+); outgoing capture is Java-only (1.297+). No application redeploy. | No — classic Settings UI |
 | 2. Capture (alternatives) | RUM JavaScript `dynatrace.sendBizEvent()` (monitored sessions only — see Section 11); mobile SDKs; the Business Events ingest API — classic endpoint `POST /api/v2/bizevents/ingest` with an access token holding the *Ingest bizevents* scope | No — code + API token |
 | 3. Storage | Events land in the `default_bizevents` bucket, 35-day default retention. Optional custom buckets (1 day to 10 years) are assigned in **OpenPipeline** (Business events pipeline → **Storage** → *Bucket Assignment* processor). The classic *Settings > Business Observability > Ingest pipeline > Bucket assignment* screen is not available to accounts created from September 2026 and will be deactivated in a future release. | Default bucket: nothing to do. Custom buckets: **Yes — OpenPipeline** |
 | 4. Read access | Grant report consumers `storage:bizevents:read` (plus `storage:buckets:read` for custom buckets) via IAM policy | IAM (account console) |
@@ -212,7 +212,7 @@ SELECT FUNNEL(
 ) FROM usersession
 ```
 
-It answers the same headline question (step-to-step conversion) with real constraints: only *closed* sessions, only user-action grain (no server-side or API-only business steps), max 10 conditions, and no arbitrary event payloads to segment by beyond the properties you configured.
+It approximates the same headline question with real constraints: *"FUNNEL does not support ordering. There's no guarantee that useraction1 happened before useraction2"* — each step counts sessions that contain the action, not sessions that reached it in order; only *closed* sessions; only user-action grain (no server-side or API-only business steps); and no arbitrary event payloads to segment by beyond the properties you configured.
 
 ### 6.3 What Path B cannot give you
 
@@ -233,8 +233,8 @@ It answers the same headline question (step-to-step conversion) with real constr
 > - <sub>[USQL (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data)</sub>
 > - <sub>[Custom metrics from user sessions (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/additional-configuration/custom-metrics-from-user-sessions)</sub>
 > - <sub>[Conversion goals (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/analyze-and-use/define-conversion-goals)</sub>
-> - <sub>[Log metrics (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/log-monitoring/analyze-log-data/log-metrics)</sub>
-> - <sub>[Log Monitoring landing page (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/log-monitoring) — January 2027 SaaS EOL quotes</sub>
+> - <sub>[Log metrics (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/log-monitoring/analyze-log-data/log-metrics-classic)</sub>
+> - <sub>[Log Monitoring landing page (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/log-monitoring) — *"Log Monitoring Classic (SaaS) will reach end-of-life by 2027."*</sub>
 > - <sub>[Metric ingestion (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics)</sub>
 > - <sub>[Metric cost calculation (DT docs)](https://docs.dynatrace.com/docs/license/classic-licensing/davis-data-units/metric-cost-calculation)</sub>
 > - <sub>**Derived:** the §6.3 gap table contrasts the cited classic limits with the bizevents capabilities documented across BIZEV-01…06; Dynatrace publishes no side-by-side comparison.</sub>

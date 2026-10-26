@@ -609,7 +609,7 @@ You have completed the Synthetic Monitoring Best Practices series:
 - [Synthetic on Grail (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic)
 - [Synthetic alerting overview (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-alerting-overview-on-grail)
 - [Synthetic for Workflows (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-for-workflows)
-- [Service-level objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives)
+- [Service-level objectives (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives)
 - [Dashboards and notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks)
 
 ---

@@ -1,6 +1,6 @@
 # DASH-04: Operations Dashboards
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 10/25/2026
 
 ## Overview
 
@@ -48,7 +48,7 @@ Response time is the most watched metric on an operations dashboard. Show it as 
 // so `/ 1ms` silently yields null on the array — divide by 1000000.0 instead.
 fetch spans, from:-2h
 | filter span.kind == "server"
-| makeTimeseries p50 = percentile(duration, 50), p90 = percentile(duration, 90), p95 = percentile(duration, 95), interval:5m
+| makeTimeseries {p50 = percentile(duration, 50), p90 = percentile(duration, 90), p95 = percentile(duration, 95)}, interval:5m
 | fieldsAdd p50_ms = p50[] / 1000000.0, p90_ms = p90[] / 1000000.0, p95_ms = p95[] / 1000000.0
 | fieldsRemove p50, p90, p95
 ```

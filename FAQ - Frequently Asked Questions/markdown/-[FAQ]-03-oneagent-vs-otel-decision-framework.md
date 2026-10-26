@@ -1,6 +1,6 @@
 # FAQ-03: OneAgent and OpenTelemetry — Choosing Per Workload
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 03 — OneAgent and OpenTelemetry — Choosing Per Workload | **Created:** May 2026 | **Last Updated:** 10/15/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 03 — OneAgent and OpenTelemetry — Choosing Per Workload | **Created:** May 2026 | **Last Updated:** 10/25/2026
 
 ## Overview
 
@@ -12,7 +12,7 @@ Three related questions show up repeatedly. Teams already running OpenTelemetry 
 
 All three come down to a level-of-effort versus capability-gain trade-off, and all three deserve a frank answer. The answer is the same across every runtime Dynatrace supports — Java, Kotlin, Scala, Groovy, .NET, Node.js, Python, Go, PHP, Ruby — though a handful of runtimes have edge cases (covered in §7 and §14).
 
-**Short answer (effort-vs-conversion):** If an application is already emitting OpenTelemetry data and runs somewhere OneAgent can reach (long-lived hosts and containers, AWS Lambda through the Dynatrace Lambda layer, and the supported Azure Functions plans — §4), **the most cost-effective path is almost always to keep OTel for application instrumentation and add OneAgent alongside it for host, runtime, and infrastructure coverage** — not to convert. The two are complementary, not competing. A wholesale conversion is usually a *deletion* exercise, not a re-instrumentation exercise — and even then, the gain is rarely worth the disruption unless a specific Dynatrace capability is needed that OTel cannot provide on its own.
+**Short answer (effort-vs-conversion):** If an application is already emitting OpenTelemetry data and runs somewhere OneAgent can reach (long-lived hosts and containers, AWS Lambda through the Dynatrace Lambda layer, and the supported Azure Functions plans — §4), **keep OTel for application instrumentation — do not convert.** OTel-only is a complete path; add OneAgent alongside it, per workload, where its fully managed host, runtime and infrastructure coverage or its runtime-access capabilities pay off. The two are complementary, not competing. A wholesale conversion is usually a *deletion* exercise, not a re-instrumentation exercise — and even then, the gain is rarely worth the disruption unless a specific Dynatrace capability is needed that OTel cannot provide on its own.
 
 **Short answer (is OneAgent required at all):** No, not strictly. OTel alone can fully instrument an application and ship to Dynatrace via OTLP — Davis AI works on that data, traces correlate via W3C `traceparent`, and metrics/logs land in Grail. OTel-only is a complete path: Dynatrace detects services and service topology from OTel spans, and the OpenTelemetry Host Monitoring extension turns Collector host metrics into host and process entities. What OneAgent adds is fully managed collection — runtime internals (heap / GC / threads / event loop), code-level method tracing, and infrastructure topology without operating a Collector — plus capabilities that need runtime access: Application Security, Live Debugger and automatic RUM injection. Whether those matter depends on the workload — see §2 for the side-by-side capability table.
 
@@ -61,7 +61,7 @@ Customers usually ask this as **OneAgent OR OpenTelemetry** — a binary choice.
 - **OneAgent** answers: *"What is happening on my hosts, in my application runtime (JVM / CLR / V8 / CPython / Go runtime / Zend / Ruby VM), and in the frameworks I'm running — without me writing any instrumentation code?"*
 - **OpenTelemetry** answers: *"How do I emit portable, vendor-neutral, code-level telemetry from my application — including the parts no agent can see automatically?"*
 
-Re-framed correctly, the question becomes: **"Given we already have OTel, do we still need OneAgent? And if we add OneAgent, do we need to remove OTel?"** The answer to the first is *usually yes* (for non-serverless workloads). The answer to the second is *almost never*.
+Re-framed correctly, the question becomes: **"Given we already have OTel, do we still need OneAgent? And if we add OneAgent, do we need to remove OTel?"** The answer to the first depends on the workload: OTel-only is a complete path, and OneAgent is worth adding where its fully managed collection or its runtime-access capabilities (Application Security, Live Debugger, automatic RUM injection) pay off for that workload. The answer to the second is *almost never*.
 
 Dynatrace frames the platform side the same way: OTel data and OneAgent data are analyzed together *"regardless of how you mix your instrumentation choices"* — OneAgent on some hosts, OTel on others, both on many. A mixed estate is the expected end state, not a transition to be finished.
 
@@ -290,7 +290,7 @@ Coverage is the single biggest factor in whether *adding* OneAgent gets you what
 
 **Patterns to notice:**
 
-- **Overlap zone** (most teams gain immediate value from OneAgent) — Java, .NET, Node.js, Python, PHP web stacks: standard frameworks + standard SQL drivers + standard message brokers. OneAgent + OTel duplicates effort here, which is why the §8 Span Sensor / OTLP coexistence pattern exists.
+- **Overlap zone** (both instrument these stacks; OneAgent adds managed collection plus host, runtime and topology context) — Java, .NET, Node.js, Python, PHP web stacks: standard frameworks + standard SQL drivers + standard message brokers. OneAgent + OTel duplicates effort here, which is why the §8 Span Sensor / OTLP coexistence pattern exists.
 - **OneAgent-only coverage** — on-demand PurePath capture, automatic RUM injection, frontend-backend linking for HTML-document and resource requests (the Server-Timing header; XHR/Fetch requests link from OTel-captured traces too), host/runtime metrics and infrastructure topology without running a Collector, and the runtime-access capabilities (Application Security, Live Debugger). Service topology is not on this list: Dynatrace detects services from OTel spans too.
 - **OTel-only coverage** — Ruby application code, Go libraries outside OneAgent's Go support matrix, async-fragmenting runtimes (effect systems, certain coroutine layouts — see §7), GCP Cloud Functions and unsupported Azure Functions plans.
 - **Coverage gaps in both** — exotic frameworks (http4s, Tapir, niche message brokers, custom RPC layers). These need either a community OTel instrumentation library, manual instrumentation, or both.
@@ -493,7 +493,7 @@ Dynatrace is explicit that the two are designed to coexist. From the Dynatrace O
 | What you give up | Infrastructure topology and automatic runtime/host/process metrics without running a Collector, on-demand code-level method tracing, Application Security and Live Debugger, automatic RUM injection, and frontend-backend linking for HTML-document and resource requests (XHR/Fetch requests still link through W3C trace context) |
 | Best for | Organizations that have chosen OTel as their collection strategy; greenfield CNCF-aligned organizations; serverless-heavy estates; multi-cloud/multi-vendor strategies; Go/Ruby-dominant or effect-system-dominant teams |
 
-**Path B: Add OneAgent alongside OTel (the layered pattern — recommended for most)**
+**Path B: Add OneAgent alongside OTel (the layered pattern — where OneAgent's depth pays off for a workload)**
 
 | Aspect | Reality |
 |--------|---------|

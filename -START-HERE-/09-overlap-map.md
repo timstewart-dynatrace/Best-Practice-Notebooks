@@ -1,7 +1,7 @@
 # Overlap Map
 
 > **Purpose:** Catalog of where multiple series cover the same ground, with recommendations for which is canonical and the suggested reading order. Use this when you find yourself reading similar material across two or more series and want to dedupe.
-> **Last Updated:** 09/25/2026
+> **Last Updated:** 10/25/2026
 
 ---
 
@@ -134,7 +134,7 @@ For the doorway that sequences all of these together, see [Doorway 4 — Classic
 |---|---|---|
 | Reading [ONBRD](../ONBRD%20-%20Dynatrace%20Onboarding/) notebook 09 (alerts) AND [WFLOW](../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/) full series | ONBRD-09 is an intro that doesn't add to WFLOW | Skip ONBRD-09 if you'll read WFLOW |
 | Reading [ONBRD](../ONBRD%20-%20Dynatrace%20Onboarding/) notebook 10 (dashboards) AND [DASH](../DASH%20-%20Dashboard%20Design%20&%20Building/) full series | ONBRD-10 is an intro that doesn't add to DASH | Skip ONBRD-10 if you'll read DASH |
-| Treating bucket-level access control as the default | Buckets are immutable, capped at 80, not universal — they're for specific scenarios | Default to security_context (ORGNZ-06); use buckets only for compliance, retention, or hard cost separation |
+| Treating bucket-level access control as the default | Buckets are immutable, capped at 250 by default (SaaS 1.346+; 80 before), not universal — they're for specific scenarios | Default to security_context (ORGNZ-06); use buckets only for compliance, retention, or hard cost separation |
 | Reading [NRLC](../NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/) and [NR2DT](../NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/) sequentially as if they're a single series | They're paired references — NRLC for component depth, NR2DT for procedural sequencing | Read in parallel: open NR2DT for the step you're on, dive into NRLC for the components touched in that step |
 | Migrating multiple source tools simultaneously | Halves your team's focus, doubles the risk of either failing | Migrate in waves; one source tool at a time |
 | Using [ONBRD](../ONBRD%20-%20Dynatrace%20Onboarding/) as the definitive source for IAM, tagging, or buckets | ONBRD's coverage is intentionally light to keep the onboarding scope narrow | Use ONBRD for orientation; dive into IAM, ORGNZ, or FAQ for depth |

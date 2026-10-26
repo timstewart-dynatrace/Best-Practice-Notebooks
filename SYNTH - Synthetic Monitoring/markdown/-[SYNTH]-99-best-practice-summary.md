@@ -1,6 +1,6 @@
 # SYNTH-99: Best Practice Summary
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/19/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/25/2026
 
 ## Overview
 
@@ -146,12 +146,12 @@ NAM monitors run only on private locations. The values below are starting points
 | Distribute ActiveGates across availability zones | AZ distribution: one AG per AZ minimum | Recommended |
 | Let the ActiveGate installer provide the browser, and keep it current with the per-location **Enable Chrome(-ium) auto-update** switch (Linux; on by default) — not by changing ActiveGate auto-update | Browser updates during ActiveGate and Synthetic engine updates; Windows always updates it; supported window is two versions behind the latest (SYNTH-04) | Critical |
 | Keep every ActiveGate in a private location on the same version | One ActiveGate version per location | Recommended |
-| Monitor ActiveGate CPU < 80%, memory < 80%, disk < 80% | Alert thresholds: **80%** sustained for CPU/memory/disk | Critical |
+| Keep ActiveGate CPU below 50% and memory below 80% | Alert on **50%** sustained CPU and **80%** memory, per the ActiveGate hardware requirements; disk above 80% is a community-practice alert (Dynatrace sets minimum free disk, not a percentage) (SYNTH-04) | Critical |
 | Monitor ActiveGate execution queue depth | Alert threshold: queue > **100** pending executions | Recommended |
 | Deploy containerized private locations from the UI-generated `synthetic.yaml` template, not from DynaKube | Template: Synthetic → Private locations → Download synthetic.yaml (plus the metric-adapter template) | Recommended |
 | Ensure outbound-only connectivity (no inbound firewall rules required) | Network: HTTPS outbound to Dynatrace cluster only | Critical |
 
-> <sub>**Sources:** [Requirements for private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/requirements-for-private-synthetic) — *"On Windows, the ActiveGate installer package includes the Chrome for Testing browser used to run browser monitors."*; [Containerized private Synthetic locations on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/containerized-locations-synth-app) — *"Select Download synthetic.yaml. This is the location template file."*; [Manage private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/private-synthetic-locations/manage-private-synthetic-locations) — *"the browser autoupdate is turned on by default for locations with Linux-based ActiveGates"* and *"We strongly recommend updating all ActiveGates per location to the same version."*</sub>
+> <sub>**Sources:** [ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements) — *"It is recommended that the machine on which ActiveGate is running should not exceed 50% CPU and 80% memory."*; [Requirements for private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/requirements-for-private-synthetic) — *"On Windows, the ActiveGate installer package includes the Chrome for Testing browser used to run browser monitors."*; [Containerized private Synthetic locations on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/containerized-locations-synth-app) — *"Select Download synthetic.yaml. This is the location template file."*; [Manage private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/private-synthetic-locations/manage-private-synthetic-locations) — *"the browser autoupdate is turned on by default for locations with Linux-based ActiveGates"* and *"We strongly recommend updating all ActiveGates per location to the same version."*</sub>
 
 <a id="validation-and-assertions"></a>
 ## 8. Validation and Assertions
@@ -226,7 +226,7 @@ Set definitive thresholds for synthetic response time.
 | Calculate error budget as `total_executions * (1 - SLO_target)` | Budget: 0.1% of executions for 99.9% SLO | Critical |
 | Track error budget burn rate daily | Daily query: failures / daily budget allocation | Recommended |
 | Use a **30-day rolling window** for SLO evaluation | SLO timeframe: **30 days** | Critical |
-| Alert when error budget is **50% consumed** in less than half the window | Burn rate alert: 2x normal consumption rate | Recommended |
+| Alert when error budget is **50% consumed** in less than half the window | Burn rate alert: above 1x the sustainable rate (50% of the budget in half the window is exactly 1x; 2x would be 50% in a quarter of the window) | Recommended |
 | Map SLA tiers to availability targets: 99.9% = 8.76h/yr, 99.5% = 43.8h/yr, 99.0% = 87.6h/yr | Set SLO target to match contractual SLA | Critical |
 
 <a id="dashboard-and-reporting"></a>

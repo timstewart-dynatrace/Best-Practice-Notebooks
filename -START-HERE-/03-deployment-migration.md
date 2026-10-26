@@ -1,7 +1,7 @@
 # Doorway 3 — Deployment Migration
 
 > **Purpose:** Reading order for existing Dynatrace customers changing deployment model — Managed → SaaS or SaaS → SaaS. Focused on migration mechanics; selective Foundation refresh where Gen3 differs from prior generations.
-> **Last Updated:** 09/25/2026
+> **Last Updated:** 10/25/2026
 
 ![Deployment Migration Sub-Paths](images/03-deployment-subpaths.svg)
 
@@ -51,8 +51,8 @@ The [M2S](../M2S%20-%20Managed%20to%20SaaS%20Migration/) series provides a 9-ste
 | 4 | [M2S](../M2S%20-%20Managed%20to%20SaaS%20Migration/) — notebook 04 (Prepare) | 2–3 weeks | Provision SaaS tenant, set up SSO, deploy ActiveGates |
 | 5 | [M2S](../M2S%20-%20Managed%20to%20SaaS%20Migration/) — notebook 05 (Execute) | 4–8 weeks | Move agents, migrate configurations, validate data flow |
 | 6 | [M2S](../M2S%20-%20Managed%20to%20SaaS%20Migration/) — notebook 06 (Integrate) | 2–4 weeks | Re-establish integrations (cloud connectors, ITSM, alerting destinations) |
-| 7 | [M2S](../M2S%20-%20Managed%20to%20SaaS%20Migration/) — notebook 07 (Expand) | 2–3 weeks | Take advantage of Gen3-only features (Grail, OpenPipeline, Davis CoPilot, Workflows) |
-| 8 | [M2S](../M2S%20-%20Managed%20to%20SaaS%20Migration/) — notebook 08 (Enable) | 2–3 weeks | Train users on new capabilities; document new patterns |
+| 7 | [M2S](../M2S%20-%20Managed%20to%20SaaS%20Migration/) — notebook 07 (Enable) | 2–3 weeks | Train users on new capabilities; document new patterns |
+| 8 | [M2S](../M2S%20-%20Managed%20to%20SaaS%20Migration/) — notebook 08 (Expand) | 2–3 weeks | Take advantage of Gen3-only features (Grail, OpenPipeline, Davis CoPilot, Workflows) |
 | 9 | [M2S](../M2S%20-%20Managed%20to%20SaaS%20Migration/) — notebook 09 (Optimize) | Ongoing | Cost optimization, governance, FinOps |
 | Reference | [M2S](../M2S%20-%20Managed%20to%20SaaS%20Migration/) — notebook 99 (Best Practice Summary) | Reference | One-page synthesis |
 
@@ -94,7 +94,7 @@ Both M2S and S2S land you on a Gen3 SaaS tenant. Several Foundation topics diffe
 | Business events | Do not exist on Managed — classic business analytics (request attributes + calculated service metrics, USQL, log metrics) maps onto Grail business events after migration; a Grail-enabled SaaS tenant can adopt them before the full experience move | [BIZEV](../BIZEV%20-%20Business%20Events%20&%20Funnel%20Analysis/) — notebook 07 (Gen2 vs Gen3 adoption paths), then the full series |
 | AppEngine apps | Some Gen2 features are now delivered as Dynatrace apps | Covered in series-specific reading where relevant |
 
-These should run alongside the M2S or S2S step that introduces them — typically in step 3 (Design) and step 7 (Expand).
+These should run alongside the M2S or S2S step that introduces them — typically in step 3 (Design) and the Expand step (M2S step 8, S2S step 7).
 
 If most of this table applies — that is, you are carrying a substantially classic configuration across the deployment move — treat the surface migration as its own workstream rather than a set of refresh notes. [Doorway 4 — Classic → Gen3 Platform](04-gen2-to-gen3.md) sequences it into phases and covers the constructs this table does not (metric events, alerting profiles, classic dashboards, USQL, metric and entity selectors).
 

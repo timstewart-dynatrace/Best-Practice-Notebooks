@@ -1,6 +1,6 @@
 # ORGNZ-05: Bucket-Level Access Control
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 5 of 10 | **Created:** January 2026 | **Last Updated:** 10/14/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 5 of 10 | **Created:** January 2026 | **Last Updated:** 10/25/2026
 
 ## Overview
 
@@ -230,7 +230,7 @@ Bucket-level access has limitations:
 | Dynamic team membership | Use security context mapped to tags |
 | Hiding sensitive fields | Use fieldsets (`storage:fieldsets:read`) — see ORGNZ-07 |
 
-> **Bucket limit (SaaS 1.346):** the default custom-bucket limit per environment is **250** (previously 80). SaaS 1.346 began its staged tenant rollout on 08/25/2026; a tenant still below 1.346 keeps the 80 default. The increase-on-request path is unchanged: roughly one additional bucket per 10 GB of daily ingest, with requests above 1,000 buckets reviewed by Dynatrace support. Not every page has caught up: [Use Grail buckets to partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data) (updated 06/17/2026) and the upgrade best-practice pages (published 08/24/2026) still state 80, while the newer [How to organize your data stored in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data) (updated 09/22/2026) states *"The default limit per environment is 250 custom buckets."* (read 10/14/2026).
+> **Bucket limit (SaaS 1.346):** the default custom-bucket limit per environment is **250** (previously 80). SaaS 1.346 began its staged tenant rollout on 08/25/2026; a tenant still below 1.346 keeps the 80 default. The increase-on-request path is unchanged: roughly one additional bucket per 10 GB of daily ingest, with requests above 1,000 buckets reviewed by Dynatrace support. Not every page has caught up: the upgrade best-practice pages (published 08/24/2026) still state 80, while [Use Grail buckets to partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data) now states *"you can configure up to 250 custom buckets by default"* (re-read 10/25/2026) and the newer [How to organize your data stored in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data) (updated 09/22/2026) states *"The default limit per environment is 250 custom buckets."* (read 10/14/2026).
 
 See **ORGNZ-06** and **ORGNZ-07** for advanced permission patterns.
 

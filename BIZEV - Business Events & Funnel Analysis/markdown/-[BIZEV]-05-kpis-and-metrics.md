@@ -1,6 +1,6 @@
 # BIZEV-05: KPIs and Metrics
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 10/25/2026
 
 ## Overview
 
@@ -142,8 +142,8 @@ fetch bizevents, from:-24h
 // Error rate trend over time — detect spikes
 fetch bizevents, from:-24h
 | filter in(event.type, {"com.myapp.payment.processed", "com.myapp.payment.failed"})
-| makeTimeseries total = count(),
-                failures = countIf(event.type == "com.myapp.payment.failed"),
+| makeTimeseries {total = count(),
+                 failures = countIf(event.type == "com.myapp.payment.failed")},
                 interval:1h
 ```
 

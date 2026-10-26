@@ -1,6 +1,6 @@
 # CLOUD-99: Best Practice Summary
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/19/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/25/2026
 
 ## Overview
 
@@ -177,7 +177,7 @@ This notebook distills every actionable best practice from the CLOUD series (CLO
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---|---|---|---|
 | 74 | Use Dynatrace Intelligence for automatic cross-cloud anomaly detection | Enable Anomaly Detection on all monitored entities; do not rely solely on static thresholds | Critical | CLOUD-08 |
-| 75 | Set alert evaluation windows ≥ 15 min for cloud metrics | Cloud metric delay: 5–15 min. A 1-min evaluation window on 5-min metrics produces false negatives | Critical | CLOUD-02 |
+| 75 | Set alert evaluation windows ≥ 15 min for cloud metrics | Cloud metric delay (planning estimates, CLOUD-02): CloudWatch standard 5–10 min, ActiveGate polling 5–15 min. A 1-min evaluation window on 5-min metrics produces false negatives | Critical | CLOUD-02 |
 | 76 | Use OneAgent metrics for sub-minute alerting | For alerts requiring < 5 min evaluation, use `dt.host.*` or `dt.process.*` metrics from OneAgent, not cloud metrics | Critical | CLOUD-02 |
 | 77 | Combine cloud integration with OneAgent on all compute | Cloud integration: infrastructure context. OneAgent: processes, traces, code-level diagnostics. Both required for full-stack visibility | Critical | CLOUD-01 |
 | 78 | Build unified health dashboards showing all providers | Components: host CPU (all providers), active detected problems, service error rates, log error trends, K8s container metrics | Recommended | CLOUD-08 |

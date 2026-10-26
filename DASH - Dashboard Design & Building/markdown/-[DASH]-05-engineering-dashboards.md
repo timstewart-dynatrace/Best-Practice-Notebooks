@@ -1,6 +1,6 @@
 # DASH-05: Engineering Dashboards
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 10/25/2026
 
 ## Overview
 
@@ -131,7 +131,7 @@ fetch spans, from:-1h
 // so `/ 1ms` silently yields null on the array — divide by 1000000.0 instead.
 fetch spans, from:-2h
 | filter span.kind == "client" and isNotNull(db.system)
-| makeTimeseries avg_dur = avg(duration), query_count = count(), interval:5m, by:{db.system}
+| makeTimeseries {avg_dur = avg(duration), query_count = count()}, interval:5m, by:{db.system}
 | fieldsAdd avg_ms = avg_dur[] / 1000000.0
 | fieldsRemove avg_dur
 ```
