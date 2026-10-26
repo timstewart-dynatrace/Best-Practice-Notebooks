@@ -1,6 +1,6 @@
 # DASH-06: Variables and Filters
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 10/25/2026
 
 ## Overview
 
@@ -178,7 +178,7 @@ In a dashboard tile, this query would use the `$service` variable. In a notebook
 fetch spans, from:-1h
 | filter span.kind == "server"
 | filter isNotNull(dt.entity.service)
-| makeTimeseries p50 = percentile(duration, 50), p95 = percentile(duration, 95), interval:5m, by:{dt.entity.service}
+| makeTimeseries {p50 = percentile(duration, 50), p95 = percentile(duration, 95)}, interval:5m, by:{dt.entity.service}
 | fieldsAdd p50_ms = p50[] / 1000000.0, p95_ms = p95[] / 1000000.0
 | fieldsRemove p50, p95
 ```

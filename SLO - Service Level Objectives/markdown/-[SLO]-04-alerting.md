@@ -106,7 +106,7 @@ If you want one aggregated burn-rate value across every contributing entity rath
 
 > The **slow-burn tier** in §2 (longer look-back, lower threshold, ticket-not-page routing) comes from the Google SRE Workbook, not from Dynatrace. As of 09/28/2026 the Dynatrace SLO documentation — the Service-Level Objectives page and its subpages — gives a numeric recommendation only for fast burn (the -1h look-back, 10–14); no slow-burn window or threshold appears there. Treat the Workbook values as a starting point to tune against your own traffic and SLO criticality rather than a vendor-specified default, and confirm your detector can evaluate the longer slow-burn windows before relying on them.
 
-> <sub>**Sources:** [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — checked 09/18/2026: no burn-rate alerting item remains; see the page's changelog entry for 09/08/2026. [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives) — read 09/18/2026, still documenting only the manual `burnRate` + Anomaly Detection route.</sub>
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — checked 09/18/2026: no burn-rate alerting item remains; see the page's changelog entry for 09/08/2026. [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives) — read 09/18/2026, still documenting only the manual `burnRate` + Anomaly Detection route.</sub>
 
 <a id="routing"></a>
 ## 4. Routing SLO Breaches
@@ -119,7 +119,7 @@ A burn-rate custom alert raises a Davis event, which Dynatrace Intelligence cons
 
 This is exactly the routing covered in WFLOW-04. The key dependency is upstream: the burn-rate detector's **event template must carry the team/service metadata** (AIOPS-02 §4) or the workflow has nothing to filter on.
 
-> <sub>**Sources:** [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives) — *"an event with the set event properties is raised"*; `dt.owner` is *"a team identifier that allows automatic routing and ticketing"*. Read 10/12/2026.</sub>
+> <sub>**Sources:** [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives) — *"an event with the set event properties is raised"*; `dt.owner` is *"a team identifier that allows automatic routing and ticketing"*. Read 10/12/2026.</sub>
 
 <a id="fatigue"></a>
 ## 5. Avoiding Alert Fatigue
@@ -130,7 +130,7 @@ This is exactly the routing covered in WFLOW-04. The key dependency is upstream:
 - **One SLO breach, one notification.** Let the problem group related signals; do not also alert on the underlying raw metrics or you double-notify.
 - **Review what fired.** If an SLO pages and no one acts, the target or the burn thresholds are wrong — tune them.
 
-> <sub>**Sources:** [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives) — burn-rate DQL append pattern, -1h/10–14 fast-burn recommendation, and the four recommended event properties are cited verbatim from the "Monitor error-budget burn rates" section (fetched 07/01/2026, re-read 09/28/2026); [Site Reliability Engineering — Alerting on SLOs (Google SRE Workbook)](https://sre.google/workbook/alerting-on-slos/) — the §2 window pairs are from its *"Recommended parameters for a 99.9% SLO alerting configuration"* table. Fast-burn query re-executed against a live tenant 08/28/2026 (burn_rate 9.05, fast_burn 0 — below the 14x trigger, which is the expected shape for a healthy window); switched to window totals and re-executed 10/14/2026 (burn_rate 5.09, fast_burn 0). The fast-burn-only scope of the Dynatrace recommendation is a dated reading (09/28/2026) of the Service-Level Objectives page and its seven subpages, none of which gives a slow-burn window or threshold.</sub>
+> <sub>**Sources:** [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives) — burn-rate DQL append pattern, -1h/10–14 fast-burn recommendation, and the four recommended event properties are cited verbatim from the "Monitor error-budget burn rates" section (fetched 07/01/2026, re-read 09/28/2026); [Site Reliability Engineering — Alerting on SLOs (Google SRE Workbook)](https://sre.google/workbook/alerting-on-slos/) — the §2 window pairs are from its *"Recommended parameters for a 99.9% SLO alerting configuration"* table. Fast-burn query re-executed against a live tenant 08/28/2026 (burn_rate 9.05, fast_burn 0 — below the 14x trigger, which is the expected shape for a healthy window); switched to window totals and re-executed 10/14/2026 (burn_rate 5.09, fast_burn 0). The fast-burn-only scope of the Dynatrace recommendation is a dated reading (09/28/2026) of the Service-Level Objectives page and its seven subpages, none of which gives a slow-burn window or threshold.</sub>
 
 ---
 

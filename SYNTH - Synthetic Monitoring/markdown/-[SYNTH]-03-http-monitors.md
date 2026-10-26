@@ -1,6 +1,6 @@
 # SYNTH-03: HTTP Monitors
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 3 of 6 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 3 of 6 | **Created:** December 2025 | **Last Updated:** 10/25/2026
 
 ## Lightweight API and Endpoint Monitoring
 This notebook covers HTTP monitors for API health checks, endpoint validation, and multi-step API workflows using the latest Dynatrace platform.
@@ -57,7 +57,7 @@ HTTP monitors execute lightweight HTTP requests without browser overhead:
 
 ### Configuration Path
 
-**Dynatrace menu → Synthetic → Create synthetic monitor → Create HTTP monitor**
+**Synthetic → Monitor → HTTP**
 
 <a id="single-request-monitors"></a>
 ## 2. Single Request Monitors

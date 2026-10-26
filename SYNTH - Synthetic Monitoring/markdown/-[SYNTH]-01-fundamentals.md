@@ -1,6 +1,6 @@
 # SYNTH-01: Synthetic Monitoring Fundamentals
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 1 of 6 | **Created:** December 2025 | **Last Updated:** 10/19/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 1 of 6 | **Created:** December 2025 | **Last Updated:** 10/25/2026
 
 ## Understanding Proactive Availability and Performance Testing
 This notebook introduces Dynatrace Synthetic Monitoring, which enables proactive testing of application availability, functionality, and performance from locations around the world.
@@ -119,7 +119,7 @@ Results from external synthetic tools can be ingested through the third-party sy
 
 How often the monitor runs:
 - **Browser**: every 5, 10, 15 or 30 minutes; every 1, 2 or 4 hours; or on demand only
-- **HTTP**: the same options, plus a 1-minute frequency (1-minute HTTP monitors were observed on the validation tenant, 09/18/2026)
+- **HTTP**: the same options, plus 1- and 2-minute frequencies (both observed on the validation tenant, 10/25/2026)
 
 > <sub>**Sources:** [Create and configure a browser monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-configure-browser-monitors) — *"You can choose a frequency of every 5 , 10 , 15 , or 30 minutes; or 1 , 2 , or 4 hours. You can also set up your monitor to be executed On demand only ."*</sub>
 

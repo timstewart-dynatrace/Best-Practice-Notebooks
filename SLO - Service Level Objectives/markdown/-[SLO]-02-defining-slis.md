@@ -46,7 +46,7 @@ In Dynatrace you express this as a DQL query that returns a field named `sli`. T
 
 Both are valid SLI sources. Reach for metric-based when a service metric already captures the condition; reach for event-based when "good" needs a predicate the metrics do not carry.
 
-> <sub>**Sources:** [Create service-level objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives/create-slo) — *"must include an sli field that returns an array of double type values"*; *"use the makeTimeseries command for deriving the sli field"*.</sub>
+> <sub>**Sources:** [Create service-level objectives (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives/create-slo) — *"must include an sli field that returns an array of double type values"*; *"use the makeTimeseries command for deriving the sli field"*.</sub>
 
 <a id="availability"></a>
 ## 2. Availability SLI
@@ -215,7 +215,7 @@ An SLI query that returns nothing — wrong field name, wrong `span.kind` case, 
 
 This notebook-as-scratchpad discipline is the single best defence against a dashboard full of SLOs that read "no data."
 
-> <sub>**Sources:** [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives), [DQL — timeseries and countIf (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language). All five queries re-executed against a live tenant 08/28/2026 (the bizevents example returns 0 rows there by design — it is a schema template, not a tenant claim). The availability query's `interval` was changed from `1d` to `24h` in the same pass: a calendar duration raises `DEPRECATED_DURATION_UNIT_DAYS` and is silently rewritten to `24h`, so the query was never running on the interval it appeared to specify. On 10/12/2026 the p95 query (§3a) lost its `rollup: avg`, and the three SLO-ready forms were added. All were executed against the live tenant that day. The bizevent form returns 0 rows there, like its read-out twin; the same `makeTimeseries` shape returned 25 hourly buckets over all bizevents. On 10/14/2026 the availability and error-rate read-outs switched from `arrayAvg` of per-bucket ratios to window totals, and both span-based latency SLIs from `span.kind == "server"` to request root spans; all four were re-executed that day.</sub>
+> <sub>**Sources:** [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives), [DQL — timeseries and countIf (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language). All five queries re-executed against a live tenant 08/28/2026 (the bizevents example returns 0 rows there by design — it is a schema template, not a tenant claim). The availability query's `interval` was changed from `1d` to `24h` in the same pass: a calendar duration raises `DEPRECATED_DURATION_UNIT_DAYS` and is silently rewritten to `24h`, so the query was never running on the interval it appeared to specify. On 10/12/2026 the p95 query (§3a) lost its `rollup: avg`, and the three SLO-ready forms were added. All were executed against the live tenant that day. The bizevent form returns 0 rows there, like its read-out twin; the same `makeTimeseries` shape returned 25 hourly buckets over all bizevents. On 10/14/2026 the availability and error-rate read-outs switched from `arrayAvg` of per-bucket ratios to window totals, and both span-based latency SLIs from `span.kind == "server"` to request root spans; all four were re-executed that day.</sub>
 
 ---
 

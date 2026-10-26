@@ -1,6 +1,6 @@
 # SYNTH-02: Browser Monitors
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 2 of 6 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 2 of 6 | **Created:** December 2025 | **Last Updated:** 10/25/2026
 
 ## Creating and Optimizing Browser-Based Synthetic Tests
 This notebook covers browser monitors in Dynatrace, including single-URL monitors, browser clickpaths, and performance analysis using the latest Dynatrace platform capabilities.
@@ -67,7 +67,7 @@ Multi-step user journey simulation:
 
 ### Configuration Path
 
-**Dynatrace menu → Synthetic → Create synthetic monitor → Create browser monitor**
+**Synthetic → New monitor → Browser**
 
 <a id="single-url-monitors"></a>
 ## 2. Single-URL Monitors
@@ -185,7 +185,7 @@ Authenticated journeys are the most requested clickpath and the most failure-pro
 
 ### 4.1 Before you build: the account
 
-Use a **dedicated synthetic test account**, never a real user's. A monitor running every 5 minutes from 10 locations is roughly 28,800 logins a month against that identity — enough to trip lockout policies, distort audit trails, and skew any product analytics keyed on user activity.
+Use a **dedicated synthetic test account**, never a real user's. A monitor running every 5 minutes from 10 locations is roughly 86,400 logins a month against that identity — enough to trip lockout policies, distort audit trails, and skew any product analytics keyed on user activity.
 
 Dynatrace enumerates three authentication mechanisms for single-URL browser monitors and clickpaths:
 
@@ -208,7 +208,7 @@ Create the credential before building the clickpath — the Keystroke step selec
 | Setting | What to choose for a login clickpath |
 |---------|--------------------------------------|
 | **Type** | *Username and password pairs* (also available: *Token credentials*, *Certificate credentials*) |
-| **Scope** | *Synthetic* (the other scopes are *Extension authentication* and *AppEngine*) |
+| **Scope** | *Synthetic* (the other scopes are *Extension authentication*, *Extension validation* and *AppEngine*) |
 | **Owner access only** | On by default. Turn it off for *All*, or supply a comma-separated username list to share with specific users |
 
 > **Access-control caveat worth knowing before you rely on it:** when a browser monitor is associated with a restricted credential, users who *cannot* see that credential can still edit certain fields on the monitor. Vault restriction protects the secret's value; it is not a lock on the monitor configuration. Treat monitor edit rights as a separate control.
@@ -272,12 +272,12 @@ Do not validate on the *login page* loading, on the submit button existing, or o
 | Situation | Approach |
 |-----------|----------|
 | **Random security questions**, A/B-tested login variants, conditional prompts | A **JavaScript** step — explicitly documented for dynamic scenarios including login flows with random security questions |
-| **Session cookie injection** to skip the UI login | A **Cookie** step. Requires *Name*, *Value*, and *Domain* (*Path* optional); `;`, `,`, `"` and `\` are forbidden in values |
+| **Session cookie injection** to skip the UI login | Cookies in **Advanced setup** (whole execution) or a **Cookie** step (part of the clickpath). The Cookie step requires *Name*, *Value*, and *Domain* (*Path* optional); `;`, `,`, `"` and `\` are forbidden in values |
 | **Browser-native auth dialog** rather than a page form | `Enable HTTP authentication` on the **Navigate** step |
 
 JavaScript-step limits worth knowing before you architect around it: it cannot execute on PDF pages, variables are confined to a single execution, key names cap at 100 characters, and values cap at 5,000.
 
-The Cookie step carries an important boundary. A cookie it sets is valid for **the entire monitor execution** but does **not** persist across executions — consistent with the section 1 note that clickpaths keep session state within a run and not between runs. It is a way to start each run pre-authenticated from a static value, not a way to log in once and stay logged in. If the session token is short-lived, this approach expires and the monitor fails; it suits long-lived API-style tokens far better than ordinary web session cookies.
+Cookies have an important boundary. Cookies set in the monitor's **Advanced setup** are valid for **the entire monitor execution**; a **Cookie** step sets them only for a portion of the clickpath. Neither persists across executions — consistent with the section 1 note that clickpaths keep session state within a run and not between runs. It is a way to start each run pre-authenticated from a static value, not a way to log in once and stay logged in. If the session token is short-lived, this approach expires and the monitor fails; it suits long-lived API-style tokens far better than ordinary web session cookies.
 
 One recording constraint: *Enable global login authentication* is not supported while recording, so configure it after the recording is captured.
 
@@ -293,28 +293,31 @@ In community practice, the single most common cause of a healthy login monitor g
 > <sub>**Sources:** [Supported authentication methods in Synthetic Monitoring (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/general-information/synthetic-authentication), [Credential vault (DT docs)](https://docs.dynatrace.com/docs/manage/credential-vault), [Browser clickpath events (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/browser-monitors/browser-clickpath-events), [Types of clickpath steps (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-configure-browser-monitors/browser-clickpath-steps), [Record a browser clickpath (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/browser-monitors/record-a-browser-clickpath). Credential-portion behavior, Keystroke data-type labels, step-type limits, and validation targets confirmed at source 08/03/2026; validation targets and pass/fail evaluation re-read 09/28/2026 — *"If pass criteria are not met (or fail criteria are met), the monitor/event fails and the execution is aborted."* **Derived:** § 4.4 pass/fail criterion pairing combines the documented validation targets with that pass/fail evaluation.</sub>
 
 ```dql
-// Login clickpath — which step costs the most, and is it running everywhere?
+// Login clickpath — is every step running everywhere, and which step costs the most?
 // Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
 // deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
-// Ranks every step of every browser clickpath by average duration so the
-// authentication steps can be compared against the business steps that follow.
-//
 // Deliberately unfiltered: step names are whatever the author (or the recorder)
 // named them, so a hard-coded "login" filter silently returns nothing on most
 // tenants. Narrow it once you know your own naming, e.g.:
 //   | filter contains(step, "login", caseSensitive: false)
 // Note the named parameter -- contains() rejects a positional third argument.
-timeseries {
-    step_ms = avg(dt.synthetic.browser.step.duration),
-    runs    = sum(dt.synthetic.browser.step.executions)
-  }, from: now() - 24h, interval: 1h, by: {dt.smartscape.browser_monitor, step.name}
-| fieldsAdd avg_step_ms = round(arrayAvg(step_ms), decimals: 0),
-            max_step_ms = round(arrayMax(step_ms), decimals: 0),
-            executions  = arraySum(runs)
+// Executions are queried on their own: a step that never completes reports no
+// duration, and combined with duration in one timeseries it drops out of the result.
+timeseries runs = sum(dt.synthetic.browser.step.executions),
+    from: now() - 24h, interval: 1h, by: {dt.smartscape.browser_monitor, step.name}
 | fields monitor = getNodeName(dt.smartscape.browser_monitor), step = step.name,
-         avg_step_ms, max_step_ms, executions
-| sort avg_step_ms desc
+         executions = arraySum(runs)
+| sort executions desc
 | limit 25
+
+// Cost per step (only steps with completed runs appear):
+// timeseries step_ms = avg(dt.synthetic.browser.step.duration),
+//     from: now() - 24h, interval: 1h, by: {dt.smartscape.browser_monitor, step.name}
+// | fields monitor = getNodeName(dt.smartscape.browser_monitor), step = step.name,
+//          avg_step_ms = round(arrayAvg(step_ms), decimals: 0),
+//          max_step_ms = round(arrayMax(step_ms), decimals: 0)
+// | sort avg_step_ms desc
+// | limit 25
 ```
 
 <a id="performance-metrics"></a>

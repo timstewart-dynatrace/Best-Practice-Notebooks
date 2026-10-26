@@ -1,6 +1,6 @@
 # ORGNZ-02: Understanding Grail Buckets
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 10/23/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 10/25/2026
 
 ## Overview
 
@@ -163,7 +163,7 @@ System tables are queried with `fetch dt.system.*` — they never need a `bucket
 | Maximum custom buckets per environment | 250 (SaaS 1.346+); 80 before | Increase on request: +1 per 10 GB daily ingest; above 1,000 reviewed by Dynatrace support |
 | Typical capacity | Up to ~2.5 TB/day per tenant with the 250 default | *"This typically satisfies raw ingestion volumes up to 2.5TB a day per tenant"* |
 
-> **Docs differ (read 10/14/2026).** The 250 default follows *How to organize your data stored in Grail* (updated 09/22/2026) — *"The default limit per environment is 250 custom buckets."* — and the SaaS 1.346 release note. *Use Grail buckets to partition data* (updated 06/17/2026) still says *"you can configure up to 80 custom buckets by default"*, and the upgrade *Best practices for data partitioning* page (published 08/24/2026) still says *"The default bucket limit per environment is 80 buckets, which is typically sufficient for up to 5 TB/day per table."* The two capacity figures are not reconciled; size from your own ingest volume.
+> **Docs differ (read 10/14/2026).** The 250 default follows *How to organize your data stored in Grail* (updated 09/22/2026) — *"The default limit per environment is 250 custom buckets."* — and the SaaS 1.346 release note. *Use Grail buckets to partition data* now agrees — *"you can configure up to 250 custom buckets by default"* (re-read 10/25/2026; its date still reads 06/17/2026). The upgrade *Best practices for a logs bucket strategy* page still refers to *"the 80-bucket limit per environment"*, and *Best practices for data partitioning* (both published 08/24/2026) still says *"The default bucket limit per environment is 80 buckets, which is typically sufficient for up to 5 TB/day per table."* The two capacity figures are not reconciled; size from your own ingest volume.
 
 ### Bucket Size Guidelines
 

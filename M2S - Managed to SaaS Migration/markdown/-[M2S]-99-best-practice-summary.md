@@ -1,6 +1,6 @@
 # M2S-99: Best Practice Summary
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/25/2026
 
 A definitive, actionable reference of every best practice extracted from the M2S Managed-to-SaaS Migration series (notebooks 01–09). Each practice specifies the exact setting or action, its priority, and its step. No hedging—follow these and your migration succeeds.
 
@@ -66,7 +66,7 @@ Within the upgrade phase, follow this precise execution order:
 | Plan tenant sizing against the host guideline | Dynatrace recommends roughly **25,000 hosts per environment** (about 50,000 per cluster) as a sizing guideline — verify current thresholds with Dynatrace. The enforced ceiling is your licensed **host-unit quota**, a separate metric. Split into multiple environments when consolidating Managed clusters would exceed the recommendation. | Recommended |
 | Align Managed and SaaS versions | There is **no fixed minimum Managed version** for the SaaS Upgrade Assistant — align the Managed cluster to the **same major version** as the target SaaS tenant rather than targeting a specific floor. | Critical |
 | Use SaaS Upgrade Assistant for most migrations | Install the app on the target SaaS tenant. Assign `upgrade-assistant:environments:write` IAM policy to migration users. The SaaS Upgrade Assistant is the recommended tool for the majority of migrations. | Recommended |
-| Use Monaco for tenant consolidation | When consolidating multiple Managed tenants with **identical configuration names**, use Monaco—the SaaS Upgrade Assistant cannot resolve name conflicts. | Recommended |
+| Check the tool before consolidating tenants | The [SaaS Upgrade Assistant (DT docs)](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant) pages describe importing one Managed environment's configuration and say nothing about consolidating several, or about **identical configuration names** across them. In community practice, teams consolidating environments whose configurations share names prefer a tool where they control the names (Monaco or Terraform, M2S-95); if you use the Upgrade Assistant, check the failed-row list in its deploy results before committing to it. | Recommended |
 
 <a id="step-2-strategize"></a>
 ## 2. Step 2: Strategize — Define Your Migration Approach

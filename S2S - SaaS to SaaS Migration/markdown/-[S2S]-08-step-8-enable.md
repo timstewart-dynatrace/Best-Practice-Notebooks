@@ -317,7 +317,7 @@ In Step 8, you:
 ### Additional Resources
 
 - [Dynatrace Intelligence Anomaly Detection](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection)
-- [Service-level objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives)
+- [Service-level objectives (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives)
 - [Dynatrace Notifications and Alerting](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic)
 - [Dynatrace Platform Subscription (DT docs)](https://docs.dynatrace.com/docs/license)
 

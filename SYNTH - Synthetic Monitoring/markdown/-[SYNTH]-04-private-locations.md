@@ -1,6 +1,6 @@
 # SYNTH-04: Private Synthetic Locations
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 4 of 6 | **Created:** December 2025 | **Last Updated:** 10/19/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 4 of 6 | **Created:** December 2025 | **Last Updated:** 10/25/2026
 
 ## Monitoring Internal Applications from Your Infrastructure
 This notebook covers deploying and managing private synthetic locations (ActiveGates) for monitoring internal applications, APIs, and services not accessible from the public internet.
@@ -74,7 +74,7 @@ Private synthetic locations use ActiveGates deployed within your infrastructure 
 ## 3. Synthetic-Enabled ActiveGate
 ### ActiveGate Capabilities
 
-ActiveGate can serve multiple purposes:
+ActiveGate can serve multiple purposes — but not on one host with Synthetic: *"Synthetic-enabled ActiveGate is used exclusively to run synthetic monitors. A clean ActiveGate installation for the purpose of synthetic monitoring disables all other ActiveGate features, including communication with OneAgents."* Plan separate ActiveGates for the other capabilities:
 
 | Capability | Description |
 |------------|-------------|
@@ -98,7 +98,7 @@ The 8 GB / 25 GB guidance is the requirements page's own: *"we recommend having 
 
 **Windows Server 2025** is supported for private synthetic locations. The OS option first appeared for synthetic-capable ActiveGates with **ActiveGate 1.341**; **SaaS 1.344** (release notes published 07/27/2026) states it in the private-location context directly: *"You can now install on Windows Server 2025 hosts for private synthetic locations."* The documentation statement is firm — published docs are live regardless of which sprint your tenant is on — but the capability ships in the **ActiveGate installer**, so confirm the ActiveGate build you are about to deploy carries it before committing a Windows Server 2025 rollout plan.
 
-ActiveGate **1.343** (published 07/15/2026, rollout from 07/28/2026) additionally adds OS support for **Oracle Linux 9.8 and 10.2** and **Rocky Linux 9.8 and 10.2**, and flags a support-discontinuation wave. The [ActiveGate 1.347 notes](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347) give the dates: Red Hat Enterprise Linux 9.4 and Ubuntu 16.04 from 01 November 2026, Amazon Linux 2 from 01 January 2027, and Oracle Linux 9.8 / 10.2 and Rocky Linux 9.8 / 10.2 — the releases 1.343 added — *"The following operating systems will no longer be supported starting 01 June 2027"*. Audit your private-location fleet against those notes before the first date.
+ActiveGate **1.343** (published 07/15/2026, rollout from 07/28/2026) additionally adds OS support for **Oracle Linux 9.8 and 10.2** and **Rocky Linux 9.8 and 10.2**, and flags a support-discontinuation wave. The [ActiveGate 1.347 notes](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347) give the dates: Red Hat Enterprise Linux 9.4 and Ubuntu 16.04 from 01 November 2026; Red Hat Enterprise Linux 9.7 / 10.1, Oracle Linux 9.7 / 10.1 and Rocky Linux 9.7 / 10.1 from 01 December 2026; Amazon Linux 2 from 01 January 2027; and Oracle Linux 9.8 / 10.2 and Rocky Linux 9.8 / 10.2 — the releases 1.343 added — *"The following operating systems will no longer be supported starting 01 June 2027"*. Audit your private-location fleet against those notes before the first date.
 
 ### Browser Monitor Requirements
 
@@ -141,7 +141,7 @@ Second, the **1.331 floor stated below is a minimum, not a target.** It is the v
 ## 4. Deployment Options
 ### Option 1: Linux/Windows Installer
 
-Download the installer from **Settings → Deployment status → ActiveGate**, run it with the synthetic flag, then check the service:
+Install from the **Install ActiveGate** wizard in **Discovery & Coverage** — in **Purpose**, choose **Synthetic** — run the installer with the command the wizard displays, then check the service:
 
 ```bash
 sudo /bin/sh Dynatrace-ActiveGate-Linux-x86-*.sh \
@@ -285,14 +285,14 @@ fetch dt.synthetic.events, from: now() - 24h
 ## 6. Monitoring Private Location Health
 ### ActiveGate Health Indicators
 
-Starting points from community practice — Dynatrace publishes no thresholds for these.
+The CPU and memory limits come from the ActiveGate hardware requirements: *"It is recommended that the machine on which ActiveGate is running should not exceed 50% CPU and 80% memory."* ([ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements)). Dynatrace gives no disk percentage, only minimum free disk space, so the disk row is a starting point from community practice.
 
 | Metric | Description | Alert Threshold |
 |--------|-------------|----------------|
 | **Connectivity** | Connection to cluster | Any disconnect |
-| **CPU Usage** | Processing load | > 80% sustained |
+| **CPU Usage** | Processing load | > 50% sustained |
 | **Memory** | RAM utilization | > 80% |
-| **Disk** | Storage usage | > 80% |
+| **Disk** | Storage usage | > 80% (community practice) |
 
 ```python
 // Synthetic location health status (1 = healthy)

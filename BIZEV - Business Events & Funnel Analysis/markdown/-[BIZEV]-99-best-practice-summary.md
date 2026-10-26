@@ -1,6 +1,6 @@
 # BIZEV-99: Best Practice Summary
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/25/2026
 
 ## Overview
 
@@ -141,7 +141,7 @@ This notebook consolidates every actionable best practice from the BIZEV series 
 | 60 | One KPI per dashboard tile | Each tile answers exactly one question — no multi-metric tiles | Recommended | Dashboard Design |
 | 61 | Include a data freshness indicator | `if(latest_event > now() - 5m, then: "CURRENT", else: "STALE")` on every executive dashboard | Recommended | Dashboard Design |
 | 62 | Executive dashboard must answer three questions | 1) Is the business running? 2) Are there problems? 3) What is the trend? | Critical | Dashboard Design |
-| 63 | Automate report delivery via Workflows | Schedule daily reports at 8 AM weekdays with a Time trigger: `0 8 * * 1-5` | Critical | Automation |
+| 63 | Automate report delivery via Workflows | Schedule daily reports at 8 AM weekdays with a Schedule trigger (Fixed time, weekdays — or Cron schedule `0 8 * * 1-5`) | Critical | Automation |
 | 64 | Use `bin(now(), 24h) - 24h` to `bin(now(), 24h)` for "yesterday" queries | Produces clean 24-hour boundaries for scheduled reports | Recommended | DQL Pattern |
 | 65 | Include a weekly business review query set | Daily volume trend, problems resolved with MTTR, week-over-week volume comparison, busiest hours | Recommended | Reporting |
 | 66 | Dashboard tile for current transaction rate | `count() / 15.0` over `from:-15m` = transactions per minute | Recommended | Dashboard Design |

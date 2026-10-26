@@ -1,6 +1,6 @@
 # MZ2POL-04: Policies and Boundaries
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 5 of 17 | **Created:** December 2025 | **Last Updated:** 10/14/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 5 of 17 | **Created:** December 2025 | **Last Updated:** 10/25/2026
 
 ## Overview
 
@@ -545,10 +545,12 @@ When migrating from Management Zones, leverage **Primary Grail Fields** for cons
 | **Names are immutable** | Bucket names CANNOT be changed after creation |
 | **No data migration** | Data CANNOT be moved between buckets |
 | **Naming rules** | 3-100 chars, lowercase alphanumeric, underscores, hyphens only |
-| **Maximum buckets** | 80 per environment (default limit) |
-| **Optimal ingest** | ~1 TB/day per bucket for best query performance |
-| **Acceptable ingest** | 1-3 TB/day per bucket (limited query window) |
+| **Maximum buckets** | 250 custom buckets per environment by default from SaaS 1.346 (staged tenant rollout from 08/25/2026); 80 before it |
+| **Target ingest (logs)** | 1–3 TB/day per log bucket — *"Design your bucket strategy so that each bucket receives between 1 TB and 3 TB of log data per day."* |
+| **Split point (other tables)** | Above 2 TB/day — *"We recommend splitting up buckets that receive more than 2 TB of daily ingest."* |
 | **Maximum ingest** | No hard per-bucket cap is documented — Dynatrace describes ingesting *"well over 15 TB per day into a single bucket"* when queries stay within narrow timeframes. A larger bucket costs queryable window per scan, and Dynatrace pages give different split points ([Partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data), [Logs bucket strategy (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy)) |
+
+> <sub>**Sources:** [How to organize your data stored in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data) — *"The default limit per environment is 250 custom buckets."*; [Logs bucket strategy best practices (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy) — *"Design your bucket strategy so that each bucket receives between 1 TB and 3 TB of log data per day."*; [Partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data) — *"We recommend splitting up buckets that receive more than 2 TB of daily ingest."* The upgrade guide's logs-bucket and data-partitioning pages still state an 80-bucket default (read 10/25/2026).</sub>
 
 ### Query Constraints
 

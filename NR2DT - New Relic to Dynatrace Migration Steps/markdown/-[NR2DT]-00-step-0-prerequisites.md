@@ -1,6 +1,6 @@
 # NR2DT-00: Tenant Prerequisites — Minimum Setup Before Migration
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Reference:** 00 — Tenant Prerequisites | **Created:** May 2026 | **Last Updated:** 10/13/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Reference:** 00 — Tenant Prerequisites | **Created:** May 2026 | **Last Updated:** 10/25/2026
 
 ## Overview
 
@@ -41,7 +41,7 @@ These five items shape the target Dynatrace tenant. They do not all have to be *
 
 **Recommended Approach:** decide bucket naming, retention, and pricing model before any logs flow. Use a single `<org>_` prefix so IAM policies can scope with one `storage:bucket-name startsWith "<org>_"` condition.
 
-**Consideration:** buckets are immutable once created — names cannot be changed and retention can only be adjusted within limits. There is also a tenant-wide cap of 80 buckets; design with that ceiling in mind. Buckets are a scenario-driven mechanism (compliance retention, hard cost partitioning, hostile multi-tenancy) — not the general data-access mechanism. For general access scoping, prefer `dt.security_context` (§1.3).
+**Consideration:** buckets are immutable once created — names cannot be changed and retention can only be adjusted within limits. There is also a per-environment default limit of 250 custom buckets from SaaS 1.346 (staged tenant rollout from 08/25/2026; 80 before it) — *"The default limit per environment is 250 custom buckets."* ([How to organize your data stored in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data)); design with that ceiling in mind. Buckets are a scenario-driven mechanism (compliance retention, hard cost partitioning, hostile multi-tenancy) — not the general data-access mechanism. For general access scoping, prefer `dt.security_context` (§1.3).
 
 **Trade-offs of Deferring:** logs land in the `default_logs` bucket; later re-routing breaks dashboards that filter on bucket and forces a re-validation pass.
 

@@ -285,7 +285,7 @@ You have completed the OPIPE series. From here:
 - [Data extraction stage (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/data-extraction)
 - [Grail data lakehouse (DT docs)](https://docs.dynatrace.com/docs/platform/grail)
 - [DQL cross-data queries (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
-- [Service-level objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives)
+- [Service-level objectives (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives)
 - [IAM policy statements (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `storage:bucket-name` operators include `startsWith`
 - [SaaS 1.345 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-345) — Inline lookup processor
 

@@ -1,6 +1,6 @@
 # SYNTH-05: Synthetic Network Monitoring
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 5 of 6 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 5 of 6 | **Created:** December 2025 | **Last Updated:** 10/25/2026
 
 ## Network Availability, DNS, and ICMP Monitoring
 This notebook covers Dynatrace Synthetic **Network Availability Monitors** (multi-protocol monitors), which test ICMP (ping), DNS, and TCP port reachability.
@@ -35,7 +35,7 @@ This notebook covers Dynatrace Synthetic **Network Availability Monitors** (mult
 >
 > **The rename is the trap here.** Of the four synthetic classic entities, this is the one whose Smartscape node type cannot be derived from its classic name — `multiprotocol_monitor` became `NETWORK_AVAILABILITY_MONITOR`, matching the product's UI name rather than the old internal one. `smartscapeNodes "MULTIPROTOCOL_MONITOR"` raises **no error**; it returns zero rows, which is indistinguishable from an environment that has no network monitors. If a Smartscape network-monitor query comes back empty, confirm the node type spelling before concluding you have nothing to monitor. (SaaS 1.344, released 07/27/2026 with a staged tenant rollout from 07/29/2026, is what makes `dt.smartscape.*` the primary surface for the Synthetic app — verify it has reached your tenant; the node type is queryable via DQL either way. FAQ-16 covers the general migration mechanics.)
 >
-> The **protocol-specific measurement fields** (per-protocol latency, packet loss, resolved IP, DNS resolution time) are not published as stable metric keys and their exact `result.statistics.*` names vary by protocol. Run the discovery query in the next cell against your own tenant to see the fields your multi-protocol monitors actually emit before building latency/packet-loss queries.
+> The **protocol-specific measurements** are published as metric keys: `dt.synthetic.multi_protocol.dns.resolution_time`, `dt.synthetic.multi_protocol.icmp.round_trip_time`, `dt.synthetic.multi_protocol.icmp.packets_sent` / `.icmp.packets_received` (packet loss is the difference), `dt.synthetic.multi_protocol.icmp.success_rate` and `dt.synthetic.multi_protocol.tcp.connection_time`, alongside `dt.synthetic.multi_protocol.availability` and `dt.synthetic.multi_protocol.execution_time` at monitor level. The execution-event field names (`result.statistics.*`) are not listed there — run the discovery query in the next cell before building event-based latency queries.
 
 <a id="network-monitoring-overview"></a>
 ## 1. Network Monitoring Overview
@@ -400,7 +400,7 @@ fetch dt.synthetic.events, from: now() - 24h
 
 In this notebook, you learned:
 
-✅ **Network availability monitors** - ICMP, DNS, and TCP within one multi-protocol monitor  
+✅ **Network availability monitors** - ICMP, DNS and TCP, one type per monitor  
 ✅ **The data model** - `event.type == "multiprotocol_monitor_execution"` on `dt.synthetic.events`; metric `dt.synthetic.multi_protocol.executions`; entity `dt.entity.multiprotocol_monitor` (classic) or Smartscape node **`NETWORK_AVAILABILITY_MONITOR`** (preferred)  
 ✅ **The rename trap** - the Smartscape node is `NETWORK_AVAILABILITY_MONITOR`, not `MULTIPROTOCOL_MONITOR`; a wrong node type returns zero rows, not an error  
 ✅ **Discovery first** - confirm protocol-specific `result.statistics.*` fields in your own tenant  

@@ -1,6 +1,6 @@
 # BIZEV-01: Business Events Fundamentals
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 10/25/2026
 
 ## Overview
 
@@ -120,8 +120,10 @@ Every business event in Grail follows a standard schema with required and option
 |-------|------|-------------|
 | `event.category` | string | Logical grouping (e.g., `ecommerce`, `auth`) |
 | `event.group` | string | Sub-grouping within a category |
-| `dt.entity.service` | entity ID | Associated Dynatrace service entity |
-| `dt.source_entity` | entity ID | Entity that generated the event |
+| `dt.entity.service` | entity ID | Associated service entity — `deprecated`; use `dt.smartscape.service` |
+| `dt.source_entity` | entity ID | Entity that generated the event — `deprecated`; use `dt.smartscape_source.id` |
+
+> <sub>**Dictionary:** `dt.entity.service` (`deprecated`), `dt.smartscape.service` (`stable`), `dt.source_entity` (`deprecated`), `dt.smartscape_source.id` (`stable`), read 10/25/2026.</sub>
 
 ### Custom Payload Fields
 

@@ -1,6 +1,6 @@
 # BIZEV-06: Executive Reporting
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 10/25/2026
 
 ## Overview
 
@@ -108,6 +108,7 @@ fetch bizevents, from:-7d
 // Problem count per day — overlay with business event volume
 fetch dt.davis.problems, from:-7d
 | filter dt.davis.is_duplicate == false
+| filter event.start >= now() - 7d   // records are selected by last update; keep problems that opened this week
 | fieldsAdd day = bin(event.start, 24h)   // the day the problem opened; timestamp is its last update
 | summarize daily_problems = count(), by:{day}
 | sort day asc
@@ -331,7 +332,7 @@ This is the last of the core analysis notebooks in the BIZEV series. Across the 
 - [Dynatrace Business Analytics](https://docs.dynatrace.com/docs/observe/business-observability)
 - [Dashboards (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/dashboards-new)
 - [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows)
-- [Service-level objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives)
+- [Service-level objectives (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives)
 
 ---
 
