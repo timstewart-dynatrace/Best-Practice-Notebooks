@@ -1,6 +1,6 @@
 # OPMIG-05: Dynamic Routing & Bucket Management
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 10/14/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 10/26/2026
 
 ---
 
@@ -595,9 +595,11 @@ You do **not** need two pipelines to extract a metric and store the log — one 
 2. Route the data to the **member pipeline** with a dynamic route
 3. The record is processed by the base pipelines and that member pipeline — overlapping *routes* do not do this; the second route never sees a record the first one matched
 
+Base pipelines are not routable — *"base pipelines are typically not routable"* — so every route targets a member. Only administrators assign members to a group: *"Only administrators can manage member pipeline assignment to a group."* For ownership, stage allocation, execution order and gating, see **OPIPE-07: Pipeline Group Governance Patterns**.
+
 > ⚠️ **Limit:** Data extraction happens in at most 5 pipelines for one record (`dt.openpipeline.pipelines`). Beyond that, extraction stops; the record is still processed and persisted.
 
-> <sub>**Sources:** [Pipeline groups — multi-cloud ingest governance (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/pipeline-groups-multicloud) — *"A record is processed by base pipelines and a member pipeline, according to the first matching route."*; [OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits) — *"You can extract data on a single record in a maximum of five different pipelines"*.</sub>
+> <sub>**Sources:** [OpenPipeline pipeline groups (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/pipeline-groups), [Pipeline groups — multi-cloud ingest governance (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/pipeline-groups-multicloud) — *"A record is processed by base pipelines and a member pipeline, according to the first matching route."*; [OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits) — *"You can extract data on a single record in a maximum of five different pipelines"*.</sub>
 
 ```dql
 // Identify records processed by multiple pipelines

@@ -16,6 +16,7 @@ Advanced OpenPipeline patterns for spans, metrics, business events, and security
 4. [Cardinality Management](markdown/-[OPIPE]-04-cardinality-management.md) — Controlling dimension explosion across all scopes
 5. [Business & Security Event Pipelines](markdown/-[OPIPE]-05-business-and-security-event-pipelines.md) — Processing business transactions and security events at ingestion
 6. [Cross-Scope Design Patterns](markdown/-[OPIPE]-06-cross-scope-design-patterns.md) — Correlating logs, spans, metrics, and events across scopes
+7. [Pipeline Group Governance](markdown/-[OPIPE]-07-pipeline-group-governance.md) — Central control and team autonomy with pipeline groups: ownership, mandated stages, execution order, routing, limits and gating
 99. [Best Practice Summary](markdown/-[OPIPE]-99-best-practice-summary.md) — Consolidated best practices from the OPIPE series
 
 ## Usage
