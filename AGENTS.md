@@ -2,7 +2,7 @@
 
 Guidance for AI agents consuming this repository. Humans: see [README.md](README.md).
 
-This is a **content-only** repository: <!-- bpn:counts -->33 series of Dynatrace best-practice notebooks (349 notebooks)<!-- /bpn:counts -->.
+This is a **content-only** repository: <!-- bpn:counts -->33 series of Dynatrace best-practice notebooks (350 notebooks)<!-- /bpn:counts -->.
 There is no build system, no tests, and no application code.
 
 ## How to navigate (important — do not crawl)

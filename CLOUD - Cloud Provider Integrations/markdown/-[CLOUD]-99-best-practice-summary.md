@@ -1,6 +1,6 @@
 # CLOUD-99: Best Practice Summary
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/25/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/27/2026
 
 ## Overview
 
@@ -67,7 +67,7 @@ This notebook distills every actionable best practice from the CLOUD series (CLO
 | 19 | Map Azure resource groups to Segments (views) and IAM policies (access) | Segments filter by `azure.resource.group` / `azure.subscription` but grant no access — restrict access with IAM policies or bucket permissions | Critical | CLOUD-05 |
 | 20 | Propagate Azure tags to Dynatrace | Tags must flow through automatically; verify `environment`, `team`, `cost-center` appear in Dynatrace | Recommended | CLOUD-05 |
 | 21 | Use naming convention for resource groups | Pattern: `rg-<application>-<environment>-<region>` (e.g., `rg-myapp-prod-eastus`) | Recommended | CLOUD-05 |
-| 22 | Forward Azure logs through Diagnostic Settings → Event Hubs | Diagnostic settings stream activity, Entra ID and resource logs to regional Event Hubs that Dynatrace pulls from (no function code to host); the Azure Native service can create the settings for you | Recommended | CLOUD-05 |
+| 22 | Forward Azure logs through Diagnostic Settings → Event Hubs | Diagnostic settings stream activity, Entra ID and resource logs to regional Event Hubs that Dynatrace pulls from (no function code to host); the Azure Native service can create the settings for you. Microsoft 365 workload audit comes from the Office 365 Management Activity API instead (FAQ-27) | Recommended | CLOUD-05 |
 | 22a | Promote Azure tags the same way | Azure tag rule → primary Grail tag rule with `azure.tags.<key>` and `` `tags:azure`[<key>] ``; confirm the Azure tag rule type exists in your tenant first | Recommended | CLOUD-05 |
 
 > <sub>**Sources:** [Azure Native Dynatrace Service (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-native-integration). **Derived:** the recommended settings in this table are this series' positions, distilled from CLOUD-01 through CLOUD-08 — each notebook carries the per-claim sources.</sub>

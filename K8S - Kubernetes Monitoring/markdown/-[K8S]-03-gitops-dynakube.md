@@ -1,6 +1,6 @@
 # K8S-03: GitOps for DynaKube
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 3 of 14 | **Created:** January 2026 | **Last Updated:** 10/15/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 3 of 14 | **Created:** January 2026 | **Last Updated:** 10/27/2026
 
 ## Managing DynaKube with ArgoCD and Flux
 GitOps enables declarative, version-controlled management of your Dynatrace monitoring configuration. This notebook covers integrating DynaKube with popular GitOps tools: ArgoCD and Flux.
@@ -121,7 +121,7 @@ spec:
 > |------------|-----|
 > | **Do not pin below 1.4.1** | Operator 1.3.0 through 1.4.0 are inside the CSI driver liveness-probe crash-loop window; 1.4.1 adjusted the probe parameters. See K8S-09 §2. |
 > | **Skip 1.10.0** | Its own release notes advise skipping it (auto-update defect), and it is now flagged `prerelease: true` on the GitHub releases page — a signal you can verify yourself before pinning. Fixed in 1.10.1. |
-> | **1.11.0 is the newest release** (10/01/2026) | It removes DynaKube `v1beta4` from the CRD — a manifest still declaring it fails to apply after the upgrade — and adds image-volume injection and `spec.kubernetesMonitoring`. Move every DynaKube manifest in Git to `v1beta6` *before* bumping this pin, and read the notes of each minor version you cross (K8S-02 §8). |
+> | **1.11.1 is the newest release** (10/22/2026) | A patch on 1.11.0. [Operator 1.11.1 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-1): *"Fixed a security vulnerability (CVE-2026-111943) by updating the Go version used to build Dynatrace Operator to 1.27.3."* 1.11.0 (10/01/2026) removes DynaKube `v1beta4` from the CRD — a manifest still declaring it fails to apply after the upgrade — and adds image-volume injection and `spec.kubernetesMonitoring`. Move every DynaKube manifest in Git to `v1beta6` *before* bumping this pin, and read the notes of each minor version you cross (K8S-02 §8). |
 > | **1.10.2 is the validated pin in this series** | Released July 30, 2026 with a published changelog. It fixes a workload/namespace **tagging-precedence regression** (subsequent matching rules used to overwrite earlier ones; now only the *first* matching rule per key applies — a behaviour change, see K8S-10), a `dynatrace-webhook` `CrashLoopBackOff` under the gVisor runtime class, injected pods hanging on the OneAgent-binary download (timeout raised to 15 minutes), and it now logs metadata-enrichment rules it cannot apply instead of dropping them silently. |
 > | **1.10.1 remains a working pin** | Estates move GitOps pins on their own cadence. Until you upgrade, 1.10.1 is still supported and still the fix for the 1.10.0 defects — subject to the OpenShift-manifest caveat in K8S-09 §2. Read the K8S-10 tagging note before bumping a cluster whose enrichment relies on last-rule-wins ordering. |
 > | **Below 1.6.0 cannot upgrade directly** | [Operator 1.11.0 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0): *"Minimum operator version required for direct upgrade: 1.6.0"* — older clusters step through intermediate versions. |

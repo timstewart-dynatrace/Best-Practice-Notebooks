@@ -1,6 +1,6 @@
 # FAQ-19: How Do I Bring a Third-Party SaaS Platform's Telemetry Into Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 19 — Integrating Third-Party SaaS Telemetry | **Created:** July 2026 | **Last Updated:** 10/15/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 19 — Integrating Third-Party SaaS Telemetry | **Created:** July 2026 | **Last Updated:** 10/27/2026
 
 ## Overview
 
@@ -8,7 +8,7 @@ Sooner or later a platform you do not run becomes something you have to answer f
 
 These platforms all present the same shape of problem, and it is not the shape most integration guides assume. The vendor does not publish one feed; it publishes **several, in different formats, over different transports, with different retention implications** — and the most operationally valuable signal is usually the one that is not a log at all. The temptation is to point all of it at Grail and sort it out later. That is the expensive answer, and it is expensive in two directions at once: storage cost for records nobody queries, and a compliance surface for user identities and destinations you did not intend to retain.
 
-This entry covers **the reusable pattern**: how to choose an ingestion route from the vendor's transport rather than your preference, how to run signal-first so raw records are processed and then discarded, how to model the vendor's objects as real Smartscape topology, and how to isolate what you do keep. It is deliberately vendor-neutral — **FAQ-20** applies every section of it to Zscaler as a worked example.
+This entry covers **the reusable pattern**: how to choose an ingestion route from the vendor's transport rather than your preference, how to run signal-first so raw records are processed and then discarded, how to model the vendor's objects as real Smartscape topology, and how to isolate what you do keep. It is deliberately vendor-neutral — **FAQ-20** applies every section of it to Zscaler as a worked example; **FAQ-23** (Box) and **FAQ-27** (Microsoft 365) do the same for audit feeds.
 
 **A note on scope.** This is an ingestion-and-modeling entry. Once the data is in Grail with topology attached, the downstream work is ordinary and already documented elsewhere in this corpus — § 8 routes you there rather than restating it.
 

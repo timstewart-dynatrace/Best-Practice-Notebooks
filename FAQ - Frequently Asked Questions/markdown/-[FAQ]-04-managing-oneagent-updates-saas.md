@@ -1,6 +1,6 @@
 # FAQ-04: How to manage OneAgent updates on Dynatrace SaaS
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 04 — Managing OneAgent Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 10/22/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 04 — Managing OneAgent Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 10/27/2026
 
 ## Overview
 
@@ -229,7 +229,7 @@ If your tenant uses no private ActiveGates (OneAgents connect directly to Dynatr
 
 In community practice, mixed-version environments (AGs lagging behind OneAgents) tend to surface first as *"some hosts intermittently aren't reporting"* or *"this new feature didn't light up on these hosts"* — by then the diagnostic path is long. Keeping AGs on auto-update, or updating them first where they are manual, avoids the failure mode.
 
-> <sub>**Sources:** [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"Use the Target version dropdown to set the version that serves as the default for new deployments and as the update target for existing OneAgents."*; *"For host-group- or host-level overrides, open Configure updates from the entity's details in Fleet Management"*; *"Update windows currently do not apply in Kubernetes environments."* (re-read 10/22/2026), [Update ActiveGate (DT docs)](https://docs.dynatrace.com/docs/shortlink/update-activegate) — *"When a new version is available, the installation package is downloaded and installed automatically. This is the default setting for new environments; existing environments retain their current setting."*, [End-of-support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — *"all ActiveGates earlier than version 1.154 must be upgraded to newer releases in order to properly support OneAgent 64-bit IDs."* Neither update page states an ActiveGate-before-OneAgent order; the standing rule is community practice generalised from the 1.154 case.</sub>
+> <sub>**Sources:** [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"Use the Target version dropdown to set the version that serves as the default for new deployments and as the update target for existing OneAgents."*; *"For host-group- or host-level overrides, open Configure updates from the entity's details in Fleet Management"*; *"Update windows currently do not apply in Kubernetes environments."* (re-read 10/22/2026), [Update ActiveGate (Dynatrace Classic) (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate-classic/operation/update-activegate-classic) — *"When a new version is available, the installation package is downloaded and installed automatically. This is the default setting for new environments; existing environments retain their current setting."*, [End-of-support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — *"all ActiveGates earlier than version 1.154 must be upgraded to newer releases in order to properly support OneAgent 64-bit IDs."* Neither update page states an ActiveGate-before-OneAgent order; the standing rule is community practice generalised from the 1.154 case.</sub>
 
 <a id="validation"></a>
 ## 8. Validation After Update
