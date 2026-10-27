@@ -1,6 +1,6 @@
 # OPLOGS-02: Migration to OpenPipeline
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 10/12/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 10/26/2026
 
 ## Planning and Executing Your Log Migration
 This notebook guides you through assessing your current log environment and planning migration to OpenPipeline v2.0.
@@ -104,7 +104,7 @@ fetch logs, from: now() - 24h
 
 Log records keep arriving through the same ingest sources (OneAgent, `/api/v2/logs/ingest`, OTLP) whichever path you take. What changes is **where they are processed**. Until a dynamic route sends a record to one of your pipelines, it falls through to the default route — and on a tenant where the classic pipeline exists, that means the classic processing rules:
 
-> *"Data that doesn't match falls back to the default route and continues to be processed by the classic pipeline until you turn off the rules."*
+> *"Data that doesn't match is processed by the default route and continues to be processed by the classic pipeline until you turn off the rules."*
 
 So the migration is: build pipelines, add routes for each data set, compare the output with the classic rules, then turn the classic rules off. Records the classic pipeline processed carry the pipeline id `logs:default` — the query below measures how much is still on it. `dt.openpipeline.source` and `dt.openpipeline.pipelines` are populated for classic records too, so an `isNotNull()` check on them proves nothing.
 

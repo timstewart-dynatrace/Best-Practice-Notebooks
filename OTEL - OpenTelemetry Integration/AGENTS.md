@@ -14,7 +14,7 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 
 | When the question is about… | Read |
 |---|---|
-| OTel concepts: signals, semantic conventions, OTel vs OneAgent trade-offs, when to use which, OpenTelemetry licensing/DPS | `-[OTEL]-01-fundamentals.md` |
+| OTel concepts: signals, semantic conventions, how OTel and OneAgent complement each other, choosing the combination per workload, OpenTelemetry licensing/DPS | `-[OTEL]-01-fundamentals.md` |
 | Collector internals: receivers/processors/exporters/connectors, `batch` + `memory_limiter` config, collector-side masking (`redaction`/`transform`), distributions | `-[OTEL]-02-collector-architecture.md` |
 | Running collectors: agent (DaemonSet/sidecar) vs gateway mode, Kubernetes/Helm/Operator CRD deployment, tiered Prometheus scraping with the Target Allocator, HA, sizing, security | `-[OTEL]-03-collector-deployment.md` |
 | Trace instrumentation: zero-code vs manual, context propagation, span attributes/events, head vs tail sampling (`tail_sampling`), Istio/Envoy, and reading span status back out of Grail — the SDK constant and the stored value are different strings, which is the usual reason an error-rate query returns zero on a healthy pipeline | `-[OTEL]-04-trace-instrumentation.md` |

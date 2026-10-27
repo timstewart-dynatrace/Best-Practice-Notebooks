@@ -1,6 +1,6 @@
 # DASH-06: Variables and Filters
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 10/25/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 10/26/2026
 
 ## Overview
 
@@ -215,7 +215,7 @@ timeseries avg_cpu = avg(dt.host.cpu.usage), from:-2h, by:{dt.entity.host}
 |------|--------------|
 | 1. Variable definition | Dashboard config defines $service with a query-based dropdown |
 | 2. User selects value | "checkout-service" picked from dropdown |
-| 3. DQL substitution | `| filter service.name == $service` becomes `| filter service.name == "checkout-service"` in tile queries (the substitution adds the quotes) |
+| 3. DQL substitution | `\| filter dt.service.name == $service` becomes `\| filter dt.service.name == "checkout-service"` in tile queries (the substitution adds the quotes) |
 | 4. Tiles re-execute | Tiles referencing $service re-run; tiles not referencing it stay unchanged |
 Tiles that reference $service: P95 Latency, Error Rate, Top Endpoints (all update). Tiles that don't: Total Hosts, Active Problems, Recent Deployments (unchanged).
 For environments where SVG doesn't render

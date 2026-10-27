@@ -1,6 +1,6 @@
 # S2S-07: Step 7 — Expand: OpenPipeline, SLOs, and Alerting
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Expand | **Created:** March 2026 | **Last Updated:** 10/24/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Expand | **Created:** March 2026 | **Last Updated:** 10/26/2026
 
 ## Overview
 
@@ -112,7 +112,7 @@ monaco deploy manifest.yaml --environment target-tenant
 
 > **Ownership matters on export.** Pipelines and ingest sources have owners. `--admin-access` downloads *"openpipeline configurations of all owners, not just those owned by the current user"*, so an export without it can miss pipelines other users own. It *"Requires the settings:objects:admin permission"*. Routing is a single object per configuration scope, and deploying it overwrites the target's routing for that scope. In a consolidation, merge the source tenants' routes into one routing table and deploy it once.
 >
-> <sub>**Sources:** [Monaco commands (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas), [Monaco v2.31.0 release notes (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/tag/v2.31.0), [Migrate OpenPipeline configurations to Settings API (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/migration-settings) — *"a single object for the configuration scope routing"*, [`openpipeline_v2_logs_routing` (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/openpipeline_v2_logs_routing.md) — *"Deploying an OpenPipeline routing configuration will overwrite the existing one of the same kind"*.</sub>
+> <sub>**Sources:** [Monaco commands (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas), [Monaco v2.31.0 release notes (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/tag/v2.31.0), [`openpipeline_v2_logs_routing` (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/openpipeline_v2_logs_routing.md) — *"Deploying an OpenPipeline routing configuration will overwrite the existing one of the same kind"*.</sub>
 
 > **Warning:** If routing rules reference buckets that do not exist in the target tenant, the deploy will succeed but data will be routed to the `default_logs` bucket instead. Always verify bucket existence first.
 

@@ -17,7 +17,7 @@ Guidance for working with distributed traces and spans in Dynatrace.
 5. [Analytics](markdown/-[SPANS]-05-analytics.md) — Advanced trace analytics
 6. [Security](markdown/-[SPANS]-06-security.md) — Span security and data protection
 7. [Buckets & Pipeline](markdown/-[SPANS]-07-buckets-pipeline.md) — Storage and processing
-8. [Cost Optimization](markdown/-[SPANS]-08-cost-optimization.md) — Optimizing trace ingestion costs
+8. [Cost Optimization](markdown/-[SPANS]-08-cost-optimization.md) — Writing cost-efficient span queries (query consumption)
 99. [Best Practice Summary](markdown/-[SPANS]-99-best-practice-summary.md) — Consolidated best practices from the SPANS series
 
 ## Usage

@@ -1,6 +1,6 @@
 # FAQ-11: How Do Metrics Work in Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 10/23/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 10/26/2026
 
 ## Overview
 
@@ -340,7 +340,7 @@ Exceeding a limit does not stop the metric — it stops *growth*: *"data points 
 
 The docs call out the classic trap directly — **volatile dimensions**: *"short-lived IDs and timestamps are volatile dimensions"*, and a dimension that changes per data point *"will reach the cardinality limits after 1 million seconds online — just 11 days."* Never use request IDs, session IDs, trace IDs, timestamps, or unbounded user IDs as metric dimensions; that detail belongs in logs and spans, which are built for it.
 
-**Watch it before it bites:** Dynatrace ships self-monitoring metrics for dimension-tuple usage, charted on the **"Metric & Dimension Usage + Rejections"** preset dashboard (dimensions below 10% of a limit are omitted from the detail view).
+**Watch it before it bites:** Dynatrace ships self-monitoring metrics for dimension-tuple usage, charted on the **"Metric dimension usage and rejection self-monitoring"** preset dashboard (dimensions below 10% of a limit are omitted from the detail view).
 
 ### 7.2 Grail posture
 
@@ -470,7 +470,7 @@ For querying your *own* tenant's metric consumption, FINOPS-01 documents the `dt
 6. **Attach metadata at ingest** (unit, display name, description — §2.4) so every downstream chart and Davis analysis renders meaningfully without tribal knowledge.
 7. **Derive recurring aggregates from records early** via OpenPipeline extraction (§5) — it is forward-only, so every week of delay is a week of history the metric will never have. Keep the raw records for forensics per the FAQ-09 rule.
 8. **Decide retention deliberately.** The included 15 months at full 1-minute resolution covers most operational analysis; extend the default metrics bucket (up to 10 years) only for genuine long-horizon needs, and remember Classic comparisons older than 14 days are already downsampled.
-9. **Put the "Metric & Dimension Usage + Rejections" dashboard on your platform team's rotation** — cardinality rejections are silent by design, so make them visible by habit.
+9. **Put the "Metric dimension usage and rejection self-monitoring" dashboard on your platform team's rotation** — cardinality rejections are silent by design, so make them visible by habit.
 
 > <sub>**Sources:** the individual practices are grounded in the sections cited above (§2, §4, §5, §7, §8, §9). **Derived:** the ordering and emphasis are an authoring synthesis — the docs do not publish a consolidated metrics-design checklist.</sub>
 
@@ -485,7 +485,7 @@ For querying your *own* tenant's metric consumption, FINOPS-01 documents the `dt
 | OTLP export fails outright | gRPC endpoint or JSON encoding — neither is supported | HTTP + binary protobuf (`http/protobuf`) |
 | Histogram percentiles poorer than expected | Exponential OTLP histograms store only min/max/sum/count — buckets are dropped; OTLP summaries are unsupported | Use explicit-bucket histograms (Dynatrace 1.300+) **and** enable Advanced OTLP metric dimensions — without it, explicit-bucket histograms are ingested as counters |
 | `metrics` command shows nothing older than ~10 days | Discovery command timeframe is limited to the last ten days | Use `timeseries` for historical values; `metrics` is for discovery only |
-| Ingested data points vanish without error | Timestamp outside the acceptance window (−1 h to +10 min), or a new dimension tuple rejected after a cardinality limit | Fix producer clocks/batching; check the "Metric & Dimension Usage + Rejections" dashboard |
+| Ingested data points vanish without error | Timestamp outside the acceptance window (−1 h to +10 min), or a new dimension tuple rejected after a cardinality limit | Fix producer clocks/batching; check the "Metric dimension usage and rejection self-monitoring" dashboard |
 | Custom count metric key "changed" in metric selectors | Metrics Classic suffixes count keys with `.count`; Grail does not | In metric selectors, query the suffixed key; in DQL, the key as sent |
 | New hosts/pods missing from an old custom metric, existing ones fine | Cardinality limit reached — new tuples rejected, existing series continue | Reduce dimensions; the limit evaluates a 30-day sliding window, so trimmed cardinality recovers on its own |
 | OTLP metric arrives without a unit | Instrument unit exceeded 63 characters and was dropped | Shorten the unit string |

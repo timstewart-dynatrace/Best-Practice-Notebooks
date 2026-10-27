@@ -11,7 +11,7 @@ End-to-end guidance for managing logs with Dynatrace OpenPipeline.
 
 ## Notebook Lineup
 1. [OpenPipeline Fundamentals](markdown/-[OPLOGS]-01-fundamentals.md) — Core OpenPipeline concepts and the unified data ingestion framework
-2. [Migration to OpenPipeline](markdown/-[OPLOGS]-02-migration.md) — Moving from classic log processing and other platforms
+2. [Migration to OpenPipeline](markdown/-[OPLOGS]-02-migration.md) — Moving from the classic log pipeline to OpenPipeline
 3. [OpenPipeline Processing](markdown/-[OPLOGS]-03-pipeline-processing.md) — Transformations and processing stages
 4. [Buckets & Data Governance](markdown/-[OPLOGS]-04-buckets-governance.md) — Storage management, retention, and governance
 5. [Querying & Parsing Logs](markdown/-[OPLOGS]-05-querying-parsing.md) — DQL query techniques and parsing rules

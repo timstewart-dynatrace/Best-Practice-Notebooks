@@ -1,6 +1,6 @@
 # DASH-07: Sharing and Reporting
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 10/23/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 10/26/2026
 
 ## Overview
 
@@ -39,8 +39,8 @@ Dynatrace provides granular control over who can view, edit, and manage dashboar
 
 | Level | Can View | Can Edit | Can Share | Can Delete |
 |-------|----------|----------|-----------|------------|
-| **Viewer** | Yes | No | No | No |
-| **Editor** | Yes | Yes | No | No |
+| **Can view** | Yes | No | No | No |
+| **Can edit** | Yes | Yes | Only if the owner allows editors to share | No |
 | **Owner** | Yes | Yes | Yes | Yes |
 
 ### Permission Assignment Strategies
@@ -60,6 +60,8 @@ Dynatrace provides granular control over who can view, edit, and manage dashboar
 | **Engineering** | Service team lead | Service team members | Engineering org |
 
 > **Tip:** Limit editor access to prevent well-intentioned modifications from breaking dashboards. Encourage teams to clone and customize rather than editing shared originals.
+
+> <sub>**Sources:** [Share Dynatrace documents (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/get-started/dynatrace-ui/share) — sharing is the owner's by default; turning on editor sharing *"allows anyone with Can edit permission to share your document with others."*</sub>
 
 <a id="sharing-with-teams"></a>
 

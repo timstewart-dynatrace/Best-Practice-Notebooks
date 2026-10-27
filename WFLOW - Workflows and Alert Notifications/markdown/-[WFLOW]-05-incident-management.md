@@ -1,6 +1,6 @@
 # WFLOW-05: PagerDuty & ServiceNow Integration
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 5 of 10 | **Created:** January 2026 | **Last Updated:** 10/23/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 5 of 10 | **Created:** January 2026 | **Last Updated:** 10/26/2026
 
 ## Incident Management Automation
 Integrate Dynatrace workflows with enterprise incident management platforms. This notebook covers PagerDuty and ServiceNow integration patterns, bi-directional sync, and incident lifecycle management.
@@ -190,7 +190,7 @@ When you need a PagerDuty *incident* opened directly, with a service ID, priorit
    - Note instance URL: `https://your-instance.service-now.com`
 
 2. **In Dynatrace:**
-   - Go to **Settings** → **Connections** → **Connectors** → **ServiceNow**
+   - Go to **Settings** → **Connections** → **ServiceNow**
    - Select **Connection**
    - Enter:
      - Instance URL
@@ -678,7 +678,7 @@ In this notebook, you learned:
 - [Build workflows — task conditions and options (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build)
 - [Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger)
 - [PagerDuty action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty)
-- [Send Dynatrace notifications to ServiceNow (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/problem-notifications/servicenow-integration)
+- [Send Dynatrace notifications to ServiceNow (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/problem-notifications/servicenow-classic)
 - [Notification actions umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions)
 - [HTTP request action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action)
 - [Davis Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
