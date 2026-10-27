@@ -1,6 +1,6 @@
 # IAM-04: Policy Authoring and Management
 
-> **Series:** IAM — IAM Administration | **Notebook:** 4 of 12 | **Created:** January 2026 | **Last Updated:** 10/19/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 4 of 12 | **Created:** January 2026 | **Last Updated:** 10/26/2026
 
 ## Mastering Dynatrace Policy Syntax
 Policies are the heart of Dynatrace Gen3 IAM. They define what actions users can perform. This notebook provides a comprehensive guide to policy authoring, from basic syntax to advanced patterns.
@@ -549,7 +549,7 @@ ALLOW settings:objects:read, settings:objects:write
   WHERE settings:schemaId startsWith "builtin:openpipeline.logs.";
 ```
 
-Pipelines and ingest sources also have owners, who can read and write the objects they create; routing is admin-only unless a policy grants write on the routing schema, as the statement above does.
+Pipelines and ingest sources also have owners, who can read and write the objects they create; routing has no owner-based control, so a write grant on the routing schema — as in the statement above — covers every route in that scope.
 
 **Dynatrace Classic only** — the classic log-processing schemas are removed in Latest Dynatrace (processing, log metrics and log security context are *"Replaced by OpenPipeline"*; log buckets by *"Grail bucket assignment"*). Keep this form only on an environment that has not moved:
 
@@ -591,7 +591,7 @@ ALLOW settings:objects:read, settings:objects:write
   WHERE settings:schemaId startsWith "builtin:problem";
 ```
 
-> <sub>**Sources:** [Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas) — *"None of the schemas on this page are visible in Latest Dynatrace."*; [Migrate OpenPipeline configurations to Settings API (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/migration-settings) — *"Routing management is restricted to administrators ( settings:objects:admin ). Administrators can grant write access to a configuration scope routing via policies."*; [Anomaly detectors schema table (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-davis-anomaly-detectors).</sub>
+> <sub>**Sources:** [Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas) — *"None of the schemas on this page are visible in Latest Dynatrace."*; [Owner-based access control in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/access-control) — *"Owner-based control is available for pipelines and ingest sources, and not routing."*, *"This policy gives users write permissions to all routes for a configuration scope and should therefore be used with caution."*; [Anomaly detectors schema table (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-davis-anomaly-detectors).</sub>
 
 ### Pattern 7: SRE On-Call Access
 

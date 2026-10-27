@@ -29,7 +29,7 @@ This notebook covers the span-specific capabilities of OpenPipeline. For general
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Grail and distributed tracing enabled |
-| **Permissions** | `storage:spans:read`; `settings:objects:write` on `builtin:openpipeline.spans.pipelines` (OpenPipeline configuration is stored as Settings objects). Routing changes need `settings:objects:admin` or a policy granting write on `builtin:openpipeline.spans.routing`. |
+| **Permissions** | `storage:spans:read`; `settings:objects:write` on `builtin:openpipeline.spans.pipelines` (OpenPipeline configuration is stored as Settings objects). Routing changes need write on `builtin:openpipeline.spans.routing`, which covers every route in the scope (routing has no owner-based sharing). |
 | **Data** | At least 1 hour of span data from instrumented services |
 | **Recommended** | **OPIPE-01** (multi-scope architecture) and **SPANS-01** (span fundamentals) |
 
@@ -293,7 +293,7 @@ Continue to **OPIPE-03: Sampling-Aware Metrics** to learn how to extract accurat
 - [Davis stage (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/davis-stage)
 - [OpenPipeline self-monitoring metrics (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/self-monitoring-metrics)
 - [Organize your data stored in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data)
-- [Migrate OpenPipeline configurations to Settings API (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/migration-settings) — *"Routing management is restricted to administrators (`settings:objects:admin`)."*
+- [Owner-based access control in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/access-control) — *"Owner-based control is available for pipelines and ingest sources, and not routing."*
 
 ---
 
