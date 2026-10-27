@@ -1,6 +1,6 @@
 # WFLOW-09: Security, Governance & Monitoring
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 9 of 10 | **Created:** January 2026 | **Last Updated:** 10/15/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 9 of 10 | **Created:** January 2026 | **Last Updated:** 10/26/2026
 
 ## Production Best Practices
 This last core notebook covers workflow security, governance, observability, and operational best practices for running workflows in production.
@@ -210,7 +210,7 @@ In community practice, security teams push toward OAuth by policy — many forbi
 
 Grant these through a narrow custom role and *avoid `admin`* — WFLOW-05 §4 already calls out least privilege.
 
-**Dynatrace side.** Create the connection under **Settings → Connections → Connectors → ServiceNow** (one per ServiceNow environment), and grant `app-settings:objects:read` in **Workflows → Settings → Authorization settings**.
+**Dynatrace side.** Create the connection under **Settings → Connections → ServiceNow** (one per ServiceNow environment), and grant `app-settings:objects:read` in **Workflows → Settings → Authorization settings**.
 
 > <sub>**Sources:** [ServiceNow Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now) — *"Either use basic authentication or OAuth client credentials. For Basic Authentication , provide your username and password. For OAuth Client Credentials , provide your client id and client secret."* and *"Search, create and update incidents (table incident )"*.</sub>
 

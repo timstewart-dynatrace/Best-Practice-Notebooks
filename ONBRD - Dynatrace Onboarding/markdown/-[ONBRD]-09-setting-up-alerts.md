@@ -1,6 +1,6 @@
 # ONBRD-09: Setting Up Alerts
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 10/26/2026
 
 ## Getting Notified When Things Go Wrong
 Dynatrace's DAVIS AI automatically detects problems, but you need to configure where those alerts go. This notebook covers the Workflows app for modern alerting and notification routing.
@@ -213,7 +213,7 @@ Mail is sent from `no-reply@apps.dynatrace.com`, and *"Trial environments are pr
 
 1. Install **PagerDuty Connector** from Dynatrace Hub.
 2. For the **Send event** action (Events API v2, which triggers, acknowledges and resolves incidents), create an Events connection: **Settings → Connections → PagerDuty** → *Events API* tab, with the PagerDuty service's **routing key**. *"The Send event action uses the PagerDuty Events API v2 and requires a separate Events connection configured with a routing key."*
-3. For **Create an incident** and the other actions, create a connection under **Settings → Connections → Connectors → PagerDuty** with a PagerDuty **API key**.
+3. For **Create an incident** and the other actions, create a connection under **Settings → Connections → PagerDuty** with a PagerDuty **API key**.
 4. Add the action to the workflow and map Dynatrace severity to PagerDuty severity.
 
 > <sub>**Sources:** [Upgrade guide: alert notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — the connector mapping, including *"Custom integration (generic webhook) HTTP Request"*; [Connectors and actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions); [Set up Slack Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-setup); [Email (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/email); [Set up PagerDuty Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-setup).</sub>

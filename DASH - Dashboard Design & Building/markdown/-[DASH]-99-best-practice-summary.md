@@ -1,6 +1,6 @@
 # DASH-99: Best Practice Summary
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/26/2026
 
 ## Overview
 
@@ -118,13 +118,13 @@ This notebook consolidates every actionable best practice from the DASH series (
 | 42 | Use 15m-1h time ranges for investigation | Longer ranges dilute the signal; shorter ranges focus on the incident window | Critical | DASH-05 |
 | 43 | Include service throughput table | Show request_count, avg_ms, p50_ms, p95_ms, p99_ms, error_rate_pct per service | Critical | DASH-05 |
 | 44 | Include endpoint performance table | Show requests, avg_ms, p95_ms, error_rate by http.route and http.request.method | Critical | DASH-05 |
-| 45 | Include database performance table | Show avg_ms, p95_ms, query_count, error_rate by db.system and db.namespace | Recommended | DASH-05 |
+| 45 | Include database performance table | Show avg_ms, p95_ms, query_count, error_rate by db.system and db.namespace — statements only: exclude `CONNECT`, `COMMIT`, `PREPARE`, `RESULTSET` (`db.operation.name`) | Recommended | DASH-05 |
 | 46 | Always filter `isNotNull(db.system)` on DB spans | Prevents null groups in database analysis | Critical | DASH-05 |
 | 47 | Include latency distribution histogram | Bucket spans into <100ms, 100-500ms, 500ms-1s, 1s-5s, >5s categories | Recommended | DASH-05 |
 | 48 | Provide before/after deployment comparison | Use `append` to compare 2h after vs 2h before for avg_ms, p95_ms, error_rate | Recommended | DASH-05 |
 | 49 | Include trace.id in error span tables | Engineers need clickable trace IDs for distributed trace investigation | Critical | DASH-05 |
 | 50 | Add markdown tiles documenting each section | Explain what the section shows and how to interpret it | Recommended | DASH-05 |
-| 51 | Use variables extensively | Service, namespace, time range selectors so engineers can focus on their area | Critical | DASH-05 |
+| 51 | Use variables extensively | Service and namespace variables (DQL or List) so engineers can focus on their area; time comes from the dashboard timeframe selector | Critical | DASH-05 |
 
 <a id="dql-query-standards"></a>
 
@@ -177,7 +177,7 @@ This notebook consolidates every actionable best practice from the DASH series (
 | 78 | Engineering investigation refresh | Set to manual (on-demand) | Recommended | DASH-02 |
 | 79 | Executive weekly review refresh | Set to manual | Optional | DASH-02 |
 | 80 | Never set refresh below 1 minute | Aggressive refresh on complex queries causes unnecessary load. Start at 5 min, decrease only if critical | Critical | DASH-02 |
-| 81 | Use `limit` on all top-N queries | Always append `| limit N` (10-20) to prevent unbounded result sets in tiles | Critical | DASH-04, DASH-05 |
+| 81 | Use `limit` on all top-N queries | Always append `\| limit N` (10-20) to prevent unbounded result sets in tiles | Critical | DASH-04, DASH-05 |
 | 82 | Use `filterOut` instead of `not` for negation filters | `filterOut loglevel == "NONE"` is faster than `filter not loglevel == "NONE"` | Recommended | DASH-04 |
 
 <a id="sharing-and-permissions"></a>

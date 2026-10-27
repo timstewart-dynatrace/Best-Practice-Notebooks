@@ -15,7 +15,7 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 
 | When the question is about… | Read |
 |---|---|
-| Dashboards vs notebooks — which to use, tile/section/variable architecture, design principles, creation workflow, first dashboard query; also a dashboard that will not load — SaaS 1.344 stops loading dashboards that fail validation, where they previously loaded with warnings | `-[DASH]-01-dashboard-fundamentals.md` |
+| Dashboards vs notebooks — which to use, tile and variable architecture (tiles grouped under Markdown header tiles), design principles, creation workflow, first dashboard query; also a dashboard that will not load — SaaS 1.344 stops loading dashboards that fail validation, where they previously loaded with warnings | `-[DASH]-01-dashboard-fundamentals.md` |
 | Organizing a dashboard library: the three-tier Executive/Operations/Engineering model, audience, tile counts, information density, refresh cadence per tier | `-[DASH]-02-dashboard-hierarchy.md` |
 | Leadership KPI dashboards: KPI selection (SMART filter), availability %, MTTR, problem trends, service health score, error budget tiles, storytelling | `-[DASH]-03-executive-dashboards.md` |
 | Real-time SRE/NOC views: service response time (p50/p90/p95), error rate by service, log volume anomalies, active problems, infrastructure health, deployment correlation | `-[DASH]-04-operations-dashboards.md` |

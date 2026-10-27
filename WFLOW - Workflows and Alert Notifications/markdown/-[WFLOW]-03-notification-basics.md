@@ -1,6 +1,6 @@
 # WFLOW-03: Alert Notification Basics
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 10/14/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 10/26/2026
 
 ## Sending Notifications with Workflows
 The most common workflow use case is sending alert notifications to Slack, Microsoft Teams, and email. This notebook covers setting up connections, configuring notification tasks, and best practices for effective alerting.
@@ -77,10 +77,10 @@ Connections store credentials separately from workflows for security and reusabi
 ### Accessing Connections
 
 1. Open **Settings**
-2. Select **Connections** → **Connectors**, then the tool (Slack, Microsoft Teams, ServiceNow, …)
+2. Select **Connections**, then the tool (Slack, Microsoft Teams, ServiceNow, …)
 3. Select **Connection** to add one
 
-Dynatrace's connector pages word this path slightly differently (*Connections > Slack* on the Slack page, *Connections > Connectors > Microsoft Teams* on the Teams page); both lead to the same place.
+Dynatrace's connector pages give this path as *Settings > Connections* followed by the tool — for example *Connections > Slack* or *Connections > Microsoft Teams*.
 
 ### Creating a Connection
 
@@ -177,7 +177,7 @@ The expressions resolve before the JSON reaches Slack, so a problem title that c
 
 1. **Create the webhook in Teams.** Open the channel's context menu, select **Workflows**, and choose **Send webhook alerts to a channel**. Save, then select **Copy webhook link**.
 2. **Allow the host.** Settings > General > External requests: add a host pattern for the webhook's domain. Dynatrace's example is `*.api.powerplatform.com`.
-3. **Create the connection.** Settings > Connections > Connectors > Microsoft Teams > **Connection**: name it and paste the URL in **Webhook URL**.
+3. **Create the connection.** Settings > Connections > Microsoft Teams > **Connection**: name it and paste the URL in **Webhook URL**.
 
 Messages arrive under the name of the user who created the webhook. If an existing connection's URL contains `logic.azure.com`, the Teams connector page explains how to replace it with the flow's updated URL.
 

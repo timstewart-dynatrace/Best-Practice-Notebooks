@@ -1,6 +1,6 @@
 # OPMIG-09: Troubleshooting & Validation
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 10/14/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 10/26/2026
 > **Level:** Intermediate  
 > **Prerequisites:** OPMIG-01 through OPMIG-08  
 > **Estimated Time:** 45 minutes  
@@ -115,7 +115,7 @@ fetch dt.system.events, from: now() - 24h
 
 The classic pipeline does not go away when you create your first OpenPipeline route. It stays as the **default route**, and every record that no route matches keeps going through it:
 
-> *"Data that doesn't match falls back to the default route and continues to be processed by the classic pipeline until you turn off the rules."*
+> *"Data that doesn't match is processed by the default route and continues to be processed by the classic pipeline until you turn off the rules."*
 
 That makes "how much still takes the classic pipeline" the most direct measure of whether this migration is finished. The classic pipeline is also what the ready-made **Check your upgrade readiness** dashboard reports under *OpenPipeline adoption*. Records it processed carry the pipeline id `logs:default` (or `bizevents:default`) in `dt.openpipeline.pipelines`. That field is populated for classic records too, which is why the *Final migration validation summary* at the end of this notebook counts them separately. A plain `isNotNull(dt.openpipeline.pipelines)` check reads as fully routed even when nothing has been migrated.
 

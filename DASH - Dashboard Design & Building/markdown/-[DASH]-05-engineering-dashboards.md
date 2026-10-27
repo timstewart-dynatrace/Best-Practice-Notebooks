@@ -1,6 +1,6 @@
 # DASH-05: Engineering Dashboards
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 10/25/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 10/26/2026
 
 ## Overview
 
@@ -93,6 +93,8 @@ Database spans reveal query performance, connection issues, and which databases 
 // Database response time by system and namespace
 fetch spans, from:-1h
 | filter span.kind == "client" and isNotNull(db.system)
+// Connection opens, commits and driver phases are DB spans but not queries
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))
 | summarize {avg_ms = avg(duration) / 1ms, p95_ms = percentile(duration, 95) / 1ms, query_count = count(), errors = countIf(span.status_code == "error")}, by:{db.system, db.namespace}
 | fieldsAdd error_rate = round(100.0 * errors / query_count, decimals: 2)
 | sort p95_ms desc
@@ -114,6 +116,8 @@ fetch spans, from:-1h
 // Slowest database operations — engineering deep-dive
 fetch spans, from:-1h
 | filter span.kind == "client" and isNotNull(db.system)
+// Connection opens, commits and driver phases are DB spans but not queries
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))
 | summarize {avg_ms = avg(duration) / 1ms, max_ms = max(duration) / 1ms, call_count = count()}, by:{db.system, db.query.text}
 | sort max_ms desc
 | limit 15
@@ -131,6 +135,8 @@ fetch spans, from:-1h
 // so `/ 1ms` silently yields null on the array — divide by 1000000.0 instead.
 fetch spans, from:-2h
 | filter span.kind == "client" and isNotNull(db.system)
+// Connection opens, commits and driver phases are DB spans but not queries
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))
 | makeTimeseries {avg_dur = avg(duration), query_count = count()}, interval:5m, by:{db.system}
 | fieldsAdd avg_ms = avg_dur[] / 1000000.0
 | fieldsRemove avg_dur
@@ -157,7 +163,7 @@ fetch spans, from:-1h
 ### Endpoint Latency Trend
 
 ```dql
-// Endpoint latency trend — line chart for top 5 routes
+// Endpoint latency trend — line chart for the top 5 routes by average p95
 //
 // Corrected 08/12/2026: `makeTimeseries` takes a BARE aggregation — dividing inside it
 // (`percentile(duration, 50) / 1ms`) fails with "the parameter has to be an expression-based
@@ -169,6 +175,11 @@ fetch spans, from:-2h
 | makeTimeseries p95 = percentile(duration, 95), interval:5m, by:{http.route}
 | fieldsAdd p95_ms = p95[] / 1000000.0
 | fieldsRemove p95
+// Rank on a scalar, not the array — sorting the array compares element by element
+| fieldsAdd p95_avg = arrayAvg(p95_ms)
+| sort p95_avg desc
+| limit 5
+| fieldsRemove p95_avg
 ```
 
 <a id="deployment-impact"></a>
@@ -179,7 +190,7 @@ Compare service performance before and after a deployment to quantify its impact
 
 ### Before vs After Deployment
 
-This pattern uses `append` to compare two time windows — 1 hour before the deployment vs 1 hour after.
+This pattern uses `append` to compare two windows. As written it compares the last 2 hours with the 2 hours before them, whenever it runs — it does not know when you deployed. To compare around a specific deployment, replace the window bounds with the deployment time: `from:toTimestamp("<deploy time>"), to:toTimestamp("<deploy time>") + 2h` for *after*, and `from:toTimestamp("<deploy time>") - 2h, to:toTimestamp("<deploy time>")` for *before*. Wrap the time in `toTimestamp()` — a bare string still works but is deprecated.
 
 > **Next question after "did this release hurt?" is usually "what was in it?"** Once a tile has quantified a deployment's impact, the reader wants the tickets in that release — which is a deep link, not another query. **DASH-06 §7** builds a clickable per-release link from dashboard variables (`concat()` + the Markdown column type), so the release row in a deployment-impact dashboard can jump straight to the matching Jira / GitHub / GitLab / ServiceNow view. **Prerequisite:** the release-identifying process tags (`DT_RELEASE_STAGE`, `DT_RELEASE_PRODUCT`, `DT_RELEASE_VERSION`) with slug-safe values — without them there is nothing to parameterize the URL with. See FAQ-02 for the tagging mechanics.
 

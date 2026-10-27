@@ -1,10 +1,10 @@
 # DASH-01: Dashboard Fundamentals
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 10/05/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 10/26/2026
 
 ## Overview
 
-Dashboards are the primary visualization layer in Dynatrace, turning raw observability data into actionable insights. This notebook covers the distinction between dashboards and notebooks, when to use each, the architecture of Dynatrace dashboards (tiles, sections, variables), and core design principles that make dashboards effective. Whether you are building your first dashboard or refining an existing library, these fundamentals provide the foundation for every notebook in this series.
+Dashboards are the primary visualization layer in Dynatrace, turning raw observability data into actionable insights. This notebook covers the distinction between dashboards and notebooks, when to use each, the architecture of Dynatrace dashboards (tiles, Markdown header tiles, variables), and core design principles that make dashboards effective. Whether you are building your first dashboard or refining an existing library, these fundamentals provide the foundation for every notebook in this series.
 
 ### Dashboards Failing Validation Do Not Load (SaaS 1.344, tightened in 1.346)
 
@@ -124,7 +124,7 @@ A dashboard is a free-form grid of tiles; it has no collapsible "section" contai
 
 ### Variables
 
-Variables make dashboards dynamic. A single dashboard template can serve multiple teams by letting users select entities, environments, or time ranges from dropdown controls. Variables are covered in depth in **DASH-06**.
+Variables make dashboards dynamic. A single dashboard template can serve multiple teams by letting users pick values — a service, an environment, a namespace — from variables populated by a DQL query, a list, code or free text. The timeframe comes from the dashboard's own timeframe selector, not a variable. Variables are covered in depth in **DASH-06**.
 
 ### Release Radar (April 2026): New Tile Types and Authoring Controls
 
@@ -205,11 +205,11 @@ Write and validate all DQL queries in a notebook before building the dashboard. 
 
 ### Step 4: Build the Dashboard
 
-Transfer validated queries to dashboard tiles. Arrange tiles in sections following the layout principles above.
+Transfer validated queries to dashboard tiles. Group related tiles under Markdown header tiles, following the layout principles above.
 
 ### Step 5: Add Variables and Filters
 
-Make the dashboard reusable by adding entity and time range variables.
+Make the dashboard reusable by adding variables (DQL, List, Code or Free text — DASH-06) for the dimensions viewers filter on; leave time to the dashboard timeframe selector.
 
 ### Step 6: Share and Iterate
 
@@ -271,7 +271,7 @@ timeseries avg_cpu = avg(dt.host.cpu.usage), from:-1h, by:{dt.entity.host}
 In this notebook you learned:
 
 - The difference between dashboards and notebooks, and when to use each
-- Dashboard architecture: tiles, sections, and variables
+- Dashboard architecture: tiles, grouping under Markdown header tiles, and variables
 - Core design principles: clarity, audience awareness, actionability
 - A structured workflow for creating dashboards
 - Foundational DQL queries that appear on most dashboards

@@ -1,6 +1,6 @@
 # DASH-02: Dashboard Hierarchy
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 10/26/2026
 
 ## Overview
 
@@ -190,6 +190,8 @@ fetch spans, from:-1h
 // Database response time by system — engineering detail table
 fetch spans, from:-1h
 | filter span.kind == "client" and isNotNull(db.system)
+// Connection opens, commits and driver phases are DB spans but not queries
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))
 | summarize {avg_ms = avg(duration) / 1ms, p95_ms = percentile(duration, 95) / 1ms, query_count = count()}, by:{db.system, db.namespace}
 | sort p95_ms desc
 ```

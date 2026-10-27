@@ -1,6 +1,6 @@
 # ALERT-03: Routing, Destinations, and Cost
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 03 of 05 | **Created:** June 2026 | **Last Updated:** 10/23/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 03 of 05 | **Created:** June 2026 | **Last Updated:** 10/26/2026
 
 ## Overview
 
@@ -72,7 +72,7 @@ Routing dimensions — severity, team/ownership, service, time of day — and es
 | Slack / Teams | Native workflow connector | WFLOW-03/04 |
 | PagerDuty / on-call | Native connector — use for fast-burn pages | WFLOW-04, SLO-04 |
 | Jira | Native connector — create/comment/assign issues | WFLOW-04 |
-| Jira Service Management | Native JSM connector (SaaS 1.343) — send Dynatrace events to JSM for alert management | WFLOW-04 |
+| Jira Service Management | Native JSM connector — create, enrich, acknowledge and close JSM alerts | WFLOW-04 |
 | ServiceNow | Native connector / HTTP Table API / ITOM app | ALERT-04 |
 | Email | Native action | WFLOW-03 |
 | xMatters | HTTP Request action to an xMatters endpoint (no connector); an existing classic integration keeps working (§4) | WFLOW-08 |
@@ -103,9 +103,9 @@ Rebuild the payload against the destination's live API contract; do not port the
 
 > ⚠️ **A classic integration scoped by a Management Zone is only as durable as that Management Zone.** Workflows have no Management Zone filter. The upgrade guide describes the replacement: *"A workflow's Problem trigger filters problems directly with DQL matchers on the problem."* *"There is no separate filter object to create, name, and maintain, nor is there a one-management-zone-per-profile constraint."* If you are retiring Management Zones, rebuild those notifications as problem-triggered workflows first, filtered on entity tags or primary Grail tags. **MZ2POL-09** covers that conversion end to end, including the capability regressions.
 
-> **Available (SaaS 1.343):** a dedicated **Jira Service Management connector** is part of the destination landscape — it sends Dynatrace events into JSM's alert management, distinct from the existing Jira (issue-tracking) connector. SaaS 1.343's rollout started **July 14, 2026**; treat it as the first-choice JSM path. The existing Jira connector and custom-webhook paths described in this section remain valid alternatives.
+> **Jira Service Management connector:** a dedicated **Jira Service Management connector** is part of the destination landscape — it sends Dynatrace events into JSM's alert management, distinct from the existing Jira (issue-tracking) connector; treat it as the first-choice JSM path. The existing Jira connector and custom-webhook paths described in this section remain valid alternatives.
 
-> <sub>**Sources:** [Upgrade from Classic problem notification to simple workflows (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — the classic-to-workflow mapping table and the Management Zone replacement, quoted above; *"xMatters No dedicated connector. Use HTTP Request."* [Create a simple workflow (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/simple-workflow) — *"Any action (except Run JavaScript, Run Workflow, Approval Request)"*. [What's new in Dynatrace SaaS 1.343 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343) — *"The Jira Service Management (JSM) Connector allows you to send Dynatrace information like problem events to Jira Service Management to create, update, or close alerts."*</sub>
+> <sub>**Sources:** [Upgrade from Classic problem notification to simple workflows (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — the classic-to-workflow mapping table and the Management Zone replacement, quoted above; *"xMatters No dedicated connector. Use HTTP Request."* [Create a simple workflow (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/simple-workflow) — *"Any action (except Run JavaScript, Run Workflow, Approval Request)"*. [Jira Service Management Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/jira-service-management) — *"The Jira Service Management Connector integrates Workflows with Jira Service Management (JSM) to automate the creation, enrichment, acknowledgment, and closing of alerts."*</sub>
 
 <a id="legacy"></a>
 ## 4. The Legacy Path

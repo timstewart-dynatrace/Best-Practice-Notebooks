@@ -20,10 +20,10 @@ Comprehensive guide to identity and access management in Dynatrace.
 8. [Multi-Environment](markdown/-[IAM]-08-multi-environment.md) — IAM across multiple environments
 9. [Troubleshooting](markdown/-[IAM]-09-troubleshooting.md) — Diagnosing and resolving IAM issues
 10. [Templated Policy Assignments](markdown/-[IAM]-10-templated-policy-assignments.md) — Policy templates and bulk assignments
-11. [[WORKSHOP] Policy Persona Simulation](markdown/-[IAM]-11-[WORKSHOP]-policy-persona.md) — Interactive workshop: simulate policy behavior as different personas
+11. [[WORKSHOP] Policy Persona Simulation](markdown/-[IAM]-11-[WORKSHOP]-policy-persona.md) — Interactive workshop: designing a persona-based permissions model (personas, IdP alignment, schema/app audits, data boundaries)
 12. [API Provisioning & Validation](markdown/-[IAM]-12-api-provisioning-validation.md) — Scripts and DQL for provisioning via Account Management API (curl flavor)
 95. [[LAB] Terraform IAM Provisioning](markdown/-[IAM]-95-[LAB]-terraform-iam-provisioning.md) — Hands-on lab: groups, policies, boundaries and bindings as code — a self-contained Terraform module set included in full (live-verified, with expected output)
-96. [[LAB] Python IAM Provisioning](markdown/-[IAM]-96-[LAB]-python-iam-provisioning.md) — Hands-on lab: one-command team onboarding against the Account Management API in Python (live-verified, with expected output)
+96. [[LAB] Python IAM Provisioning](markdown/-[IAM]-96-[LAB]-python-iam-provisioning.md) — Hands-on lab: the group → policy → boundary → binding chain step by step against the raw Account Management API in Python (live-verified, with expected output)
 97. [Permission Reference](markdown/-[IAM]-97-permission-reference.md) — What each permission in the Standard User policy (plus reader-persona extras) actually grants, with scope, risk, persona matrix and the basis for every claim
 99. [Best Practice Summary](markdown/-[IAM]-99-best-practice-summary.md) — Consolidated best practices from the IAM series
 

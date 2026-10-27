@@ -1,6 +1,6 @@
 # OPMIG-02: OpenPipeline Migration Guide: Part 2
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 10/23/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 10/26/2026
 
 ## Architecture & Key Concepts
 ---
@@ -166,7 +166,7 @@ Technology parsing for common formats is not a pipeline type. It is the **Techno
 
 > 💡 **Best Practice:** Create focused pipelines for specific use cases rather than one large pipeline with complex conditionals.
 
-> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — pipeline-type table; *"The default pipeline is a built-in pipeline that processes unassigned incoming data for storage."*, *"not available for log and business event configuration scopes where the Classic pipeline is available."*; [Upgrade from classic pipeline to OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/upgrade-your-data-pipeline/migration-classic-pipeline) — *"Data that doesn't match falls back to the default route and continues to be processed by the classic pipeline until you turn off the rules."*</sub>
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — pipeline-type table; *"The default pipeline is a built-in pipeline that processes unassigned incoming data for storage."*, *"not available for log and business event configuration scopes where the Classic pipeline is available."*; [Upgrade from classic pipeline to OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/upgrade-your-data-pipeline/migration-classic-pipeline) — *"Data that doesn't match is processed by the default route and continues to be processed by the classic pipeline until you turn off the rules."*</sub>
 
 ---
 
