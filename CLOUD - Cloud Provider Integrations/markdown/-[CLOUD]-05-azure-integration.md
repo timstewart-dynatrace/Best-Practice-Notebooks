@@ -1,6 +1,6 @@
 # CLOUD-05: Azure Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 10/19/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 10/27/2026
 
 ## Overview
 
@@ -316,9 +316,13 @@ Azure does not expose logs through an API that Dynatrace polls. Every Azure log 
 | Log | Where the diagnostic setting lives | Notes |
 |---|---|---|
 | **Activity log** (management operations: create, delete, role changes) | Subscription scope | Global — any regional Event Hubs namespace can receive it |
-| **Microsoft Entra ID audit logs** | Entra tenant scope | Tenant-scoped, not subscription-scoped — needs a tenant-level administrator |
+| **Microsoft Entra ID audit logs** (sign-ins and directory audit) | Entra tenant scope | Tenant-scoped, not subscription-scoped — needs a tenant-level administrator. Sign-ins have a built-in OpenPipeline bundle, *Azure Entra ID Audit Logs* (FAQ-27 § 2.2) |
 | **Resource logs** (per-service data-plane logs) | On each resource | The bulk of volume; choose categories deliberately |
 | **Events** (Event Grid CloudEvents, Azure Monitor alerts) | Event Grid / action groups | Sent to a separate `dt-events-evh` hub, not the logs hub |
+
+> **Microsoft 365 audit is not in this table.** Exchange, SharePoint and OneDrive, Teams and DLP audit records live in Microsoft 365's unified audit log and are read from the Office 365 Management Activity API, not from an Azure diagnostic setting, so this route does not deliver them. **FAQ-27** covers that collector and how it pairs with the Entra ID row above: send Entra ID sign-ins through this route, and leave `Audit.AzureActiveDirectory` out of the collector so they are not collected twice. The *Microsoft 365, Office 365* Hub extension is not a substitute — it produces service-health and usage metrics, and *"The extension uses audit logs to count O365 service users."*
+>
+> <sub>**Sources:** [Microsoft 365, Office 365 extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/microsoft-365-office-365), [Management Activity API reference (Microsoft Learn)](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference).</sub>
 
 ### Setting Up the Dynatrace Pull Path
 

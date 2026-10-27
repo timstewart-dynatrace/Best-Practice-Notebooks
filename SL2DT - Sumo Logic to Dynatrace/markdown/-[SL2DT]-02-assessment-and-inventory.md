@@ -1,6 +1,6 @@
 # SL2DT-02: Assessment & Inventory
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 2 of 11 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 2 of 11 | **Created:** April 2026 | **Last Updated:** 10/27/2026
 
 ## Overview
 
@@ -301,12 +301,17 @@ Every Sumo Collector needs a Dynatrace ingest equivalent. Classify each:
 | Hosted (syslog listener) | ActiveGate syslog ingestion, or an OTel Collector `syslog` receiver (SL2DT-03 §6) |
 | Hosted (AWS CloudWatch) | Dynatrace AWS Clouds app (native integration) |
 | Hosted (Azure EventHub) | Dynatrace Azure cloud integration |
+| Hosted (Microsoft Office 365 Audit Source) | Office 365 Management Activity API collector (**FAQ-27**); for the *Azure AD* content type, Entra ID through Azure log forwarding instead |
 | Hosted (GCP Pub/Sub) | Dynatrace GCP cloud integration |
 | Hosted (Kubernetes) | DynaKube + OneAgent + log module |
 | Hosted (HTTP source) | OpenPipeline HTTP endpoint or OTel HTTP receiver |
 | Installed — Telegraf metrics output | *Metric path* — target chosen in **SL2DT-10** |
 | Hosted (metrics source / StatsD / Graphite) | *Metric path* — target chosen in **SL2DT-10** |
 | Hosted (Prometheus scrape) | *Metric path* — target chosen in **SL2DT-10** |
+
+> **Office 365 Audit Sources map to content types.** Sumo's source *"uses Webhook based integration with the Microsoft Office 365 Management Activity API"*, and *"A single Office 365 Audit Source is limited to collecting audit logs of a single content type."* FAQ-27's collector polls the same API with one checkpoint per content type, so each Sumo source becomes one content type in the collector.
+>
+> <sub>**Sources:** [Microsoft Office 365 Audit Source (Sumo Logic Docs)](https://www.sumologic.com/help/docs/send-data/hosted-collectors/microsoft-source/ms-office-audit-source/).</sub>
 
 For each collector, document:
 

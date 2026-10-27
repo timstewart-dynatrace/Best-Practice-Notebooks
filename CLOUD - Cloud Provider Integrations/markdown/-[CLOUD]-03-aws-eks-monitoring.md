@@ -1,6 +1,6 @@
 # CLOUD-03: AWS EKS Monitoring
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 3 of 8 | **Created:** March 2026 | **Last Updated:** 10/22/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 3 of 8 | **Created:** March 2026 | **Last Updated:** 10/27/2026
 
 ## Overview
 
@@ -28,7 +28,7 @@ This notebook provides a deep dive into monitoring Amazon Elastic Kubernetes Ser
 | **Dynatrace Environment** | SaaS with Grail (the DQL cells do not run on Dynatrace Managed) |
 | **Permissions** | `storage:metrics:read`, `storage:entities:read` + `storage:smartscape:read`, `storage:logs:read`, `storage:buckets:read` (Grail IAM permissions) |
 | **AWS EKS Cluster** | At least one EKS cluster with Dynatrace Operator installed |
-| **Dynatrace Operator** | 1.8+ (installs the current `v1beta6` DynaKube API; newest release 1.11.0, released 10/01/2026, which removes `v1beta4`) via Helm or kubectl — `v1beta5` with Operator 1.6+ still works and auto-migrates on upgrade |
+| **Dynatrace Operator** | 1.8+ (installs the current `v1beta6` DynaKube API; newest release 1.11.1, released 10/22/2026; 1.11.0, released 10/01/2026, removes `v1beta4`) via Helm or kubectl — `v1beta5` with Operator 1.6+ still works and auto-migrates on upgrade |
 | **Prior Knowledge** | CLOUD-01 fundamentals, basic Kubernetes concepts |
 
 <a id="eks-architecture"></a>

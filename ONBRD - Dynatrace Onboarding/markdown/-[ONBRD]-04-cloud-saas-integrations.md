@@ -1,6 +1,6 @@
 # ONBRD-04: Cloud & SaaS Integrations
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 10/23/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 10/27/2026
 
 ## Extending Visibility Beyond OneAgent
 While OneAgent provides deep application and infrastructure monitoring, many organizations need visibility into cloud services and SaaS platforms that can't run an agent. This notebook covers how to integrate AWS, Azure, GCP, and third-party SaaS tools into Dynatrace.
@@ -342,6 +342,16 @@ The methods below are typical starting points; Hub listings change, so confirm e
 | **GitLab** | Webhooks | Pipeline events, deployments |
 | **ArgoCD** | Extensions 2.0 | Sync status, app health |
 
+### Productivity & Identity
+
+| Platform | Integration Method | Key Metrics |
+|----------|-------------------|-------------|
+| **Microsoft 365** | Hub extension (runs on an ActiveGate) for metrics. Audit logs take two routes: Entra ID sign-ins through Azure log forwarding, and the workload audit through a collector on the Office 365 Management Activity API — see **FAQ-27** | Service health, usage, licenses (extension); who did what in Exchange, SharePoint, OneDrive and Teams (audit) |
+
+> The extension does not deliver the audit trail: *"The extension uses audit logs to count O365 service users."*
+>
+> <sub>**Sources:** [Microsoft 365, Office 365 extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/microsoft-365-office-365) — *"The extension runs on Dynatrace ActiveGate."*</sub>
+
 ### Database-as-a-Service
 
 | Platform | Integration Method | Key Metrics |
@@ -444,6 +454,7 @@ With cloud and SaaS integrations configured:
 ### Where to Go Deeper
 
 - **CLOUD series** (9 notebooks) — Per-provider integration deep dives (AWS, Azure, GCP)
+- **FAQ-19 / FAQ-27** — Integrating a SaaS platform you do not run; FAQ-27 is the Microsoft 365 audit-log case (Entra ID through Azure log forwarding, plus a Management Activity API collector)
 - **AUTOM series** (14 notebooks) — GitOps / Terraform / Monaco automation for extension deployment
 - **OPLOGS / OPMIG / OPIPE** — OpenPipeline routing for ingested cloud and SaaS data
 - **OTEL series** — OpenTelemetry as the alternative ingest path

@@ -1,6 +1,6 @@
 # S2S-06: Step 6 — Integrate: Cloud, Dashboards, and Workflows
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 6 of 9 | **Phase:** Upgrade | **Step:** Integrate | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 6 of 9 | **Phase:** Upgrade | **Step:** Integrate | **Created:** March 2026 | **Last Updated:** 10/27/2026
 
 ## Overview
 
@@ -77,8 +77,10 @@ Two generations of cloud monitoring exist, and this section is written **Latest 
 |-----------|---------------|
 | **Azure connection** | Create a new connection **from the target**, with a **new, dedicated** service principal — never the source environment's principal |
 | **Metrics and topology** | Polled by Dynatrace SaaS; no ActiveGate is deployed for polling |
-| **Logs** | SaaS-based ingest via Azure Event Hubs — activity logs, resource logs, Entra ID audit logs, Defender for Cloud alerts |
+| **Logs** | SaaS-based ingest via Azure Event Hubs — activity logs, resource logs, Entra ID audit logs, Defender for Cloud alerts. Microsoft 365 workload audit is collected separately — see the note below |
 | **Events** | Event Grid system topics forwarding resource lifecycle events |
+
+> **A Microsoft 365 audit collector moves on its own.** If the source collects Exchange, SharePoint or Teams audit through the Office 365 Management Activity API (FAQ-27), that collector is not part of the Azure connection and is not recreated with it. Point its ingest URL and token at the target, and keep its checkpoint: FAQ-27's collectors restart at the last 24 hours without one. Move the bucket, pipeline and masking rules it relies on with the rest of the log configuration.
 
 > **Do not monitor a subscription twice.** The Azure connection docs: *"Do not onboard Azure subscriptions already monitored by the classic Azure integration, and avoid monitoring the same subscription across multiple Azure connections—both increase the risk of API throttling and service interruptions."* In a tenant move, that rules out a long overlap in which both the source and the target poll the same subscription. Switch **per subscription**: create the target's connection for a subscription, confirm its resources appear in the target, then remove that subscription from the source's integration (classic or Latest) in the same change window.
 
