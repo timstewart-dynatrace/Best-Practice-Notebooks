@@ -34,13 +34,13 @@ With agents reporting to the target tenant (Step 5) and cloud integrations recon
 | **Step 5 Complete** | OneAgents and DynaKube operators redirected to target tenant and reporting data |
 | **Step 6 Complete** | Cloud integrations (AWS, Azure, GCP) reconnected in target tenant |
 | **Source Tenant Access** | `settings.read` (API token) or `settings:objects:read` (platform token, OAuth) — OpenPipeline pipelines, ingest sources and routing are Settings 2.0 objects. To export pipelines and ingest sources owned by other users, `settings:objects:admin` (see §1) |
-| **Target Tenant Access** | `settings.write` (API token) or `settings:objects:write` (platform token, OAuth); routing writes also need `settings:objects:admin`, or a policy granting `settings:objects:write` on `builtin:openpipeline.<scope>.routing`; for SLOs, an OAuth client with `slo:slos:read` / `slo:slos:write` (modern SLO app) — classic `slo.write` only if the target still runs classic SLOs |
+| **Target Tenant Access** | `settings.write` (API token) or `settings:objects:write` (platform token, OAuth); routing writes need `settings:objects:write` on `builtin:openpipeline.<scope>.routing`, which covers every route in the scope (routing has no owner-based sharing); for SLOs, an OAuth client with `slo:slos:read` / `slo:slos:write` (modern SLO app) — classic `slo.write` only if the target still runs classic SLOs |
 | **Monaco CLI** | v2.x installed for bulk export/import of OpenPipeline and SLO configuration |
 | **Terraform** | v1.5+ with Dynatrace provider (for IAM-gated SLO policies only) |
 
 > Older guides list `openpipeline.read` / `openpipeline.write` or `openpipeline:configurations:read` / `:write`. The first pair does not exist. The second belonged to the OpenPipeline Configurations API, which reached end of life on June 29, 2026; the Settings permissions above replace it.
 
-> <sub>**Sources:** [Migrate OpenPipeline configurations to Settings API (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/migration-settings) — *"Routing management is restricted to administrators (`settings:objects:admin`). Administrators can grant write access to a configuration scope routing via policies."*, [OpenPipeline API (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/openpipeline-api) — *"The Configurations API is deprecated and reached its end of life on June 29, 2026."*</sub>
+> <sub>**Sources:** [Owner-based access control in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/access-control) — *"Owner-based control is available for pipelines and ingest sources, and not routing."*, *"This policy gives users write permissions to all routes for a configuration scope and should therefore be used with caution."*, [OpenPipeline API (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/openpipeline-api) — *"The Configurations API is deprecated and reached its end of life on June 29, 2026."*</sub>
 
 <a id="openpipeline-rule-migration"></a>
 

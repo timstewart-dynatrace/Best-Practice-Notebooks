@@ -1,6 +1,6 @@
 # CLOUD-07: CloudWatch Log Ingestion
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 7 of 8 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 7 of 8 | **Created:** March 2026 | **Last Updated:** 10/26/2026
 
 ## Overview
 
@@ -26,11 +26,11 @@ This notebook covers strategies for forwarding cloud provider logs into Dynatrac
 | Requirement | Details |
 |---|---|
 | **Dynatrace Environment** | SaaS with Grail enabled |
-| **Permissions** | `storage:logs:read` + `storage:buckets:read`, `logs.ingest`; to view or build the §5 pipeline, `settings:objects:read` / `settings:objects:write` (API token: `settings.read` / `settings.write`) — OpenPipeline configuration is Settings 2.0 objects. Changing **routing** also needs `settings:objects:admin`, or a policy granting `settings:objects:write` on `builtin:openpipeline.logs.routing` |
+| **Permissions** | `storage:logs:read` + `storage:buckets:read`, `logs.ingest`; to view or build the §5 pipeline, `settings:objects:read` / `settings:objects:write` (API token: `settings.read` / `settings.write`) — OpenPipeline configuration is Settings 2.0 objects. Changing **routing** needs `settings:objects:write` on `builtin:openpipeline.logs.routing` (routing has no owner-based sharing, so a write grant covers every route in the scope — grant it narrowly) |
 | **AWS Integration** | CloudWatch log groups generating data |
 | **Prior Knowledge** | CLOUD-01 and CLOUD-02 fundamentals |
 
-> <sub>**Sources:** [Migrate OpenPipeline configurations to Settings API (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/migration-settings) — *"Routing management is restricted to administrators (`settings:objects:admin`). Administrators can grant write access to a configuration scope routing via policies."*</sub>
+> <sub>**Sources:** [Owner-based access control in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/access-control) — *"Owner-based control is available for pipelines and ingest sources, and not routing."*, *"This policy gives users write permissions to all routes for a configuration scope and should therefore be used with caution."*</sub>
 
 <a id="log-architecture"></a>
 
