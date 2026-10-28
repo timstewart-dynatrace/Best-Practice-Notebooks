@@ -1,6 +1,6 @@
 # SPANS-99: Best Practice Summary
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/12/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/28/2026
 
 Definitive best practice settings for distributed tracing and span analysis. Each entry specifies the exact configuration.
 
@@ -45,13 +45,15 @@ Definitive best practice settings for distributed tracing and span analysis. Eac
 | Filter immediately after fetch | All `filter` commands before any `fieldsAdd`, `summarize`, `sort` | Critical |
 | Selective filters first | Grail has **no field indexes**; a filter that rules out most data lets it skip reading (1 h: no filter 910 MB, `dt.service.name == "checkout"` 54 MB, `trace.id == toUid(…)` 57 MB) | Critical |
 | Measure, don't guess | Read `scannedBytes` in the query result before and after a change | Recommended |
-| `==` for exact matches, `~` for wildcards only | `field == "exact"` is faster than `field ~ "exact"` | Recommended |
+| `==` for exact matches; `~` is a case-insensitive token search, not an exact match | `span.name ~ "GET"` matched 25,846 spans where `span.name == "GET"` matched 16,242 (15 min, validation tenant, 10/28/2026) — use `==` when you mean equality | Recommended |
 | Combine conditions in single filter | `filter span.kind == "server" and dt.service.name == "checkout" and duration > 100ms` | Recommended |
 | Substring tests after selective filters | `contains(url.path, …)` skips little data on its own | Recommended |
 | Select only needed fields | Smaller results — scanned bytes are unchanged | Optional |
 | Compute derived fields after filtering | `fieldsAdd duration_ms = ...` must appear after all `filter` steps | Recommended |
 | Sort after summarize, never after fetch | Sorting before aggregation wastes resources | Critical |
 | Limit after sort, at pipeline end | `sort desc \| limit 20` as final commands — never `limit` before `summarize` | Critical |
+
+> <sub>**Sources:** [DQL operators (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/operators) — *"The performed comparison is case-insensitive and supports pattern matching using wildcards."*</sub>
 
 <a id="time-range-cost"></a>
 ## 3. Time Range & Cost

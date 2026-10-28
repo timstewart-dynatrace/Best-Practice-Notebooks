@@ -1,6 +1,6 @@
 # SPANS-03: Trace Analysis & Troubleshooting
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 10/28/2026
 
 ## Root Cause Analysis with Distributed Traces
 This notebook teaches systematic approaches to troubleshoot issues using span data. You'll learn to identify error patterns, analyze latency, and trace problems to their root cause.
@@ -83,7 +83,7 @@ fetch spans, from:-1h
 | filter span.status_code == "error"
 | summarize {
     error_count = count(),
-    affected_traces = countDistinct(trace.id)
+    affected_traces = countDistinctExact(trace.id)
   }, by: {dt.service.name}
 | sort error_count desc
 | limit 20
@@ -114,7 +114,7 @@ fetch spans, from:-1h
 | filter span.status_code == "error"
 | summarize {
     occurrence = count(),
-    affected_traces = countDistinct(trace.id),
+    affected_traces = countDistinctExact(trace.id),
     services_affected = collectDistinct(dt.service.name)
   }, by: {span.name, span.status_message}
 | sort occurrence desc
@@ -196,7 +196,7 @@ fetch spans, from:-1h
 ```
 
 ```dql
-// Latency trend over time (use bin() for percentiles since makeTimeseries doesn't support percentile)
+// Latency trend over time with bin() + summarize. (makeTimeseries also accepts percentile — put the unit conversion inside it: percentile(duration / 1ms, 95); see SPANS-05 §1.)
 fetch spans, from:-24h
 | filter span.kind == "server"
 | fieldsAdd time_bucket = bin(start_time, 10m)
@@ -380,7 +380,7 @@ fetch spans, from:-1h
 | summarize {
     failure_count = count(),
     sample_error = takeFirst(span.status_message),
-    affected_traces = countDistinct(trace.id)
+    affected_traces = countDistinctExact(trace.id)
   }, by: {dt.service.name, span.name}
 | sort failure_count desc
 | limit 20
@@ -436,6 +436,7 @@ Analyze database operations for performance issues:
 // Find slow database queries
 fetch spans, from:-1h
 | filter isNotNull(db.system)
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only, not connection/driver phases
 | filter duration > 100ms
 | summarize {
     query_count = count(),
@@ -506,7 +507,7 @@ Continue to **SPANS-04: Service Dependencies & Flow Analysis** to learn:
 
 - [Trace semantic conventions (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/trace)
 - [Aggregation functions (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions/aggregation-functions) — `takeMin`, `percentile`, `collectDistinct`
-- [Distributed traces (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-traces)
+- [Distributed Tracing (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing)
 
 ---
 

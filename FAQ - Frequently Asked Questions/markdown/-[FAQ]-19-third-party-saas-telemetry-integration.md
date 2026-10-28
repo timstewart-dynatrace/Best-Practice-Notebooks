@@ -104,7 +104,7 @@ For environments where SVG doesn't render
 
 > <sub>**Sources:**</sub>
 > - <sub>[Syslog ingestion with ActiveGate (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-syslog) — *"Environment ActiveGate version 1.295+ on Linux installed to monitor remote technologies"*, which *"uses an embedded Dynatrace OpenTelemetry Collector instance"*; note also *"Multi-environment ActiveGates do not support syslog ingestion."* The receiver is scoped to syslog: *"Use this configuration only for syslog ingestion."*</sub>
-> - <sub>[Ingest syslog data with the OTel Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector/use-cases/syslog)</sub>
+> - <sub>[Ingest syslog data with the OTel Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector-use-cases/syslog)</sub>
 > - <sub>[Cribl via HTTP (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-http/)</sub>
 > - <sub>[Cribl via OpenTelemetry (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-opentelemetry/)</sub>
 > - <sub>[Syslog via OpenTelemetry Collector (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/syslog-via-opentelemetry-collector/) — the listed collector-hop routes for feeds that cannot post directly. The two Cribl listings read *"Provided by Cribl"* and *"Support By the partner"*; the syslog collector listing reads *"Provided by Dynatrace"*</sub>

@@ -255,7 +255,7 @@ fetch spans, from:-1h
 | filter http.response.status_code == 401
 | summarize {
     failure_count = count(),
-    unique_traces = countDistinct(trace.id)
+    unique_traces = countDistinctExact(trace.id)
   }, by:{dt.service.name, http.route}
 | sort failure_count desc
 | limit 30
@@ -382,7 +382,7 @@ fetch spans, from:-1h
       or contains(url.path, "bulk")
 | summarize {
     access_count = count(),
-    unique_traces = countDistinct(trace.id)
+    unique_traces = countDistinctExact(trace.id)
   }, by:{dt.service.name, http.route}
 | sort access_count desc
 | limit 20

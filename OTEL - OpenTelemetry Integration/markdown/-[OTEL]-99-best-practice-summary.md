@@ -1,6 +1,6 @@
 # OTEL-99: Best Practice Summary
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/13/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/28/2026
 
 ## Introduction
 
@@ -53,7 +53,7 @@ This notebook consolidates every actionable best practice from the OTEL series (
 | 16 | Add PodDisruptionBudget for gateway | `minAvailable: 1` | Recommended | OTEL-03 |
 | 17 | Use HorizontalPodAutoscaler at 70% CPU target | `averageUtilization: 70`, `minReplicas: 2`, `maxReplicas: 10` | Recommended | OTEL-03 |
 | 18 | Enable persistent queue for gateway exporters | `sending_queue.enabled: true`, `queue_size: 1000`, `storage: file_storage` | Recommended | OTEL-03 |
-| 19 | Install via Helm for K8s deployments | `helm install otel-collector open-telemetry/opentelemetry-collector --set mode=deployment` | Recommended | OTEL-03 |
+| 19 | Install via Helm for K8s deployments | `helm install otel-collector open-telemetry/opentelemetry-collector --set mode=deployment --set image.repository=ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s --set command.name=otelcol-k8s` (the chart has no default image) | Recommended | OTEL-03 |
 | 20 | Fix time zones where text timestamps are parsed | OTLP timestamps are epoch nanoseconds with no zone; set the location on the `file_log` time parser, not the container `TZ` | Recommended | OTEL-08 |
 
 <a id="security"></a>
@@ -113,7 +113,7 @@ This notebook consolidates every actionable best practice from the OTEL series (
 | 52 | Use span events for key milestones | `span.add_event("payment_completed", {"transaction_id": txn_id})` | Optional | OTEL-04 |
 | 53 | Use `BatchSpanProcessor` (never `SimpleSpanProcessor` in production) | `provider.add_span_processor(BatchSpanProcessor(exporter))` | Critical | OTEL-04 |
 | 54 | Use W3C Trace Context propagation (required for OneAgent interop) | `W3CTraceparentPropagator` + `W3CTracestatePropagator` | Critical | OTEL-04, OTEL-07 |
-| 55 | Propagate context across async boundaries | Attach/detach context explicitly in async code | Critical | OTEL-04, OTEL-08 |
+| 55 | Propagate context across async boundaries | In Python, asyncio tasks copy the current context when created — no explicit attach/detach is needed around `await` / `gather` / `create_task` | Critical | OTEL-04, OTEL-08 |
 | 56 | Propagate context in messaging (Kafka, RabbitMQ) | Inject context into message headers on produce; extract on consume | Recommended | OTEL-04 |
 | 57 | Use `TraceIdRatioBased` sampler to control trace volume | `TraceIdRatioBased(0.1)` for 10% sampling in high-throughput envs | Recommended | OTEL-08 |
 
@@ -141,7 +141,7 @@ This notebook consolidates every actionable best practice from the OTEL series (
 | 68 | Use the Log Bridge pattern (do not replace your logging library) | Attach `LoggingHandler` to standard Python logger; use Log4j/Logback appenders for Java | Critical | OTEL-06 |
 | 69 | Enable automatic log-trace correlation | Use OTel tracing + log bridge together; `trace_id` and `span_id` are injected automatically | Critical | OTEL-06 |
 | 70 | Use structured JSON logging | Output logs as JSON objects with `timestamp`, `level`, `message`, and structured fields | Recommended | OTEL-06 |
-| 71 | Filter DEBUG/TRACE logs at the Collector, not in the app | `processors.filter.logs.log_record: ['severity_number < 9']` | Recommended | OTEL-06 |
+| 71 | Filter DEBUG/TRACE logs at the Collector, not in the app | `processors.filter.logs.log_record: ['severity_number > 0 and severity_number < 9']` (0 = no severity; keep it) | Recommended | OTEL-06 |
 | 72 | Use `BatchLogRecordProcessor` for log export | Never use synchronous log export in production | Critical | OTEL-06 |
 | 73 | Use the file log receiver for container/file-based log collection | `receivers.file_log.include: ["/var/log/containers/*.log"]` — `file_log` from collector-contrib v0.149.0; older Collectors only know `filelog` | Recommended | OTEL-02, OTEL-06 |
 | 74 | Set log severity appropriately | ERROR: unexpected failures; WARN: recoverable issues; INFO: business events; DEBUG: dev only | Recommended | OTEL-06 |
@@ -187,22 +187,22 @@ This notebook consolidates every actionable best practice from the OTEL series (
 
 ## Summary
 
-This notebook contains **90 best practices** extracted from the OTEL series, organized into 11 categories:
+This notebook contains **95 best practices** extracted from the OTEL series, organized into 11 categories:
 
 | Category | Count | Critical | Recommended | Optional |
 |----------|-------|----------|-------------|----------|
-| Collector Configuration | 10 | 6 | 4 | 0 |
+| Collector Configuration | 10 | 7 | 3 | 0 |
 | Deployment and Sizing | 10 | 2 | 8 | 0 |
 | Security | 7 | 5 | 1 | 1 |
-| Dynatrace OTLP Integration | 8 | 5 | 3 | 0 |
+| Dynatrace OTLP Integration | 13 | 7 | 6 | 0 |
 | Resource Attributes and Entity Mapping | 6 | 1 | 5 | 0 |
 | Trace Instrumentation | 11 | 6 | 4 | 1 |
 | Metrics Instrumentation | 10 | 3 | 6 | 1 |
-| Logs Instrumentation | 8 | 4 | 3 | 1 |
+| Logs Instrumentation | 8 | 4 | 4 | 0 |
 | Semantic Conventions | 5 | 1 | 4 | 0 |
 | Performance and Reliability | 7 | 0 | 4 | 3 |
 | Troubleshooting and Observability | 8 | 2 | 5 | 1 |
-| **Total** | **90** | **35** | **47** | **8** |
+| **Total** | **95** | **38** | **50** | **7** |
 
 **Priority guide:**
 - **Critical** -- Implement before going to production. Skipping causes data loss, security exposure, or broken entity mapping.
@@ -216,7 +216,7 @@ This notebook contains **90 best practices** extracted from the OTEL series, org
 - [Dynatrace OpenTelemetry Integration](https://docs.dynatrace.com/docs/ingest-from/opentelemetry)
 - [Dynatrace Collector Distribution](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector)
 - [OTLP API Endpoints](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api)
-- [Configure OTLP Metrics](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/configure-otlp-metrics)
+- [Configure OTLP Metrics](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/configure-otlp-metrics)
 - [OpenTelemetry Official Docs](https://opentelemetry.io/docs/)
 - [OTel Collector Configuration](https://opentelemetry.io/docs/collector/configuration/)
 - [Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/)

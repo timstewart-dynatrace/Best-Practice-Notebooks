@@ -1,6 +1,6 @@
 # OTEL-08: Troubleshooting OTel Pipelines
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 8 of 8 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 8 of 8 | **Created:** January 2026 | **Last Updated:** 10/28/2026
 
 ## Debugging OpenTelemetry Data Flows
 When telemetry data doesn't arrive as expected, systematic troubleshooting is essential. This notebook covers common issues, diagnostic techniques, and resolution steps for OpenTelemetry pipelines.
@@ -132,29 +132,11 @@ java -javaagent:opentelemetry-javaagent.jar \
 | Missing spans | Not in context | Use start_as_current_span |
 | Lost context | Async not handled | Use context propagation |
 
-### Async Context Loss
+### Async Context in Python
 
-```python
-# Wrong - loses context
-async def bad_example():
-    with tracer.start_as_current_span("parent"):
-        await asyncio.gather(
-            child_task(),  # No context
-            child_task()
-        )
+OpenTelemetry Python keeps the current span in a `ContextVar`, and `asyncio` copies the current context into every task it creates. A span started with `start_as_current_span` is therefore already current inside coroutines run with `await`, `asyncio.gather` or `asyncio.create_task` — wrapping `gather` in `context.attach(context.get_current())` changes nothing. If spans are missing parents in async code, look for work that does not run as a task created under the span.
 
-# Right - preserves context
-async def good_example():
-    with tracer.start_as_current_span("parent"):
-        token = context.attach(context.get_current())
-        try:
-            await asyncio.gather(
-                child_task(),
-                child_task()
-            )
-        finally:
-            context.detach(token)
-```
+> <sub>**Sources:** [asyncio — Coroutines and Tasks (Python docs)](https://docs.python.org/3/library/asyncio-task.html) — `create_task`: *"The current context copy is created when no context is provided."*; `gather`: *"If any awaitable in aws is a coroutine, it is automatically scheduled as a Task."*; [contextvars_context.py (OpenTelemetry GitHub)](https://github.com/open-telemetry/opentelemetry-python/blob/main/opentelemetry-api/src/opentelemetry/context/contextvars_context.py) — *"An implementation of the RuntimeContext interface which wraps ContextVar under the hood."*</sub>
 
 <a id="connectivity-issues"></a>
 ## 4. Connectivity Issues
@@ -383,7 +365,7 @@ fetch spans, from:-1h
 | Collector OOM | Increase memory_limiter, reduce batch size |
 | High cardinality | Remove dynamic attributes |
 | Context lost | Use context propagation in async |
-| Wrong time | Set TZ=UTC |
+| Wrong time (file logs) | Set the location on the file_log time parser, not the container TZ (§ 5) |
 | SSL errors | Check certs, add CA |
 
 ### Collector Config Template

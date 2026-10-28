@@ -1,6 +1,6 @@
 # OTEL-04: Trace Instrumentation
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 4 of 8 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 4 of 8 | **Created:** January 2026 | **Last Updated:** 10/28/2026
 
 ## Instrumenting Applications for Distributed Tracing
 Traces provide visibility into request flows across services. This notebook covers automatic and manual instrumentation techniques for popular languages with OpenTelemetry.
@@ -279,9 +279,9 @@ with tracer.start_as_current_span("checkout") as span:
     span.set_attribute("order.total", order_total)
     span.set_attribute("order.items", len(items))
     
-    # Semantic convention attributes
-    span.set_attribute("http.method", "POST")
-    span.set_attribute("http.status_code", 200)
+    # Semantic convention attributes (stable HTTP names; http.method / http.status_code are legacy)
+    span.set_attribute("http.request.method", "POST")
+    span.set_attribute("http.response.status_code", 200)
 ```
 
 ### Adding Events
@@ -480,7 +480,7 @@ service:
 - Sampling is a **cost lever, not a default** — in community practice, teams start by keeping everything, measure ingest, and sample only if trace volume turns out to be the cost driver. OTel trace volume is billed as Traces – Ingest & Process under DPS; only traces from a Full-Stack monitored host or the OneAgent Trace API draw on an included volume (see OTEL-01 §6 and the FINOPS series).
 
 > <sub>**Sources:**</sub>
-> - <sub>[Sampling with the OTel Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector/use-cases/sampling) — `tail_sampling` policies (`status_code`/`latency`/`probabilistic`, `decision_wait`), `span_metrics`-before-sampling to avoid metric bias, and the no-mixed-mode warning</sub>
+> - <sub>[Sampling with the OTel Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector-use-cases/sampling) — `tail_sampling` policies (`status_code`/`latency`/`probabilistic`, `decision_wait`), `span_metrics`-before-sampling to avoid metric bias, and the no-mixed-mode warning</sub>
 > - <sub>[Tail Sampling Processor (OpenTelemetry Collector Contrib GitHub)](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/tailsamplingprocessor) — *"All spans for a given trace MUST be received by the same collector instance for effective sampling decisions."*</sub>
 > - <sub>[Load Balancing Exporter (OpenTelemetry Collector Contrib GitHub)](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/exporter/loadbalancingexporter) — *"If no `routing_key` is configured, the default routing mechanism is `traceID` for traces"*</sub>
 > - <sub>[OpenTelemetry licensing (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/opentelemetry-licensing) — *"OpenTelemetry trace data is billed by the ingested volume."*</sub>

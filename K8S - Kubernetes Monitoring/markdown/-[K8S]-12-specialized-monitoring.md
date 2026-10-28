@@ -652,7 +652,7 @@ In this notebook, you learned:
 - [Dynatrace Operator Helm chart (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/blob/main/config/helm/chart/default/values.yaml)
 - [Telemetry ingest with OpenTelemetry (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry)
 - [StatsD ingestion (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/statsd)
-- [StatsD via OpenTelemetry Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector/use-cases/statsd)
+- [StatsD via OpenTelemetry Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector-use-cases/statsd)
 - [Set up Dynatrace on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s)
 - [Migrate from CSI driver to ephemeral volumes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/csi-to-ephemeral-volumes)
 - [Operator 1.11.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0)
