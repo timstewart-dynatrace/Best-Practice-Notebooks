@@ -1,6 +1,6 @@
 # OTEL-07: Dynatrace OTLP Integration
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 7 of 8 | **Created:** January 2026 | **Last Updated:** 10/13/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 7 of 8 | **Created:** January 2026 | **Last Updated:** 10/28/2026
 
 ## Complete Setup for OpenTelemetry with Dynatrace
 This notebook provides end-to-end configuration for sending OpenTelemetry data to Dynatrace, including authentication, endpoints, and verification.
@@ -57,7 +57,7 @@ Dynatrace supports **OTLP/HTTP only** for native ingest, with binary Protocol Bu
 | Metrics | `https://{env-id}.live.dynatrace.com/api/v2/otlp/v1/metrics` |
 | Logs | `https://{env-id}.live.dynatrace.com/api/v2/otlp/v1/logs` |
 
-> **Important:** gRPC is **not supported** for direct Dynatrace ingest. If your SDKs use gRPC, route through a Collector with an `otlp` gRPC receiver and `otlphttp` exporter. See [Transform OTLP gRPC](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector/use-cases/grpc).
+> **Important:** gRPC is **not supported** for direct Dynatrace ingest. If your SDKs use gRPC, route through a Collector with an `otlp` gRPC receiver and `otlphttp` exporter. See [Transform OTLP gRPC](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector-use-cases/grpc).
 
 ### ActiveGate Endpoints
 
@@ -137,7 +137,7 @@ Authorization: Bearer dt0u01.XXXXXXXX...
 
 Using the wrong scheme returns **401 Unauthorized** even when the token has the correct scopes — a frequent first-deployment failure mode. Platform Tokens are preferred in Gen3 environments because they support fine-grained scopes via IAM policies. For OTLP ingest both token types work, with different scopes: a Platform Token needs `openpipeline:traces:ingest`, `openpipeline:metrics:ingest` and `openpipeline:logs:ingest`; a classic token needs the scopes in the table above.
 
-> <sub>**Sources:** [OTLP API (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api) — *"Platform token: Use Bearer in the Authorization header. The required scopes are openpipeline:logs:ingest, openpipeline:metrics:ingest, and openpipeline:traces:ingest."*</sub>
+> <sub>**Sources:** [OTLP API (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api) — *"To authenticate, use a platform token with `Bearer` in the `Authorization` HTTP header."* *"The required scopes are `openpipeline:logs:ingest`, `openpipeline:metrics:ingest`, and `openpipeline:traces:ingest`."*; [API authentication (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/basics/dynatrace-api-authentication) — `openTelemetryTrace.ingest`: *"Grants permission to ingest OpenTelemetry traces."*</sub>
 
 <a id="collector-configuration"></a>
 ## 3. Collector Configuration
@@ -292,10 +292,10 @@ java -javaagent:opentelemetry-javaagent.jar \
 ```javascript
 const { NodeSDK } = require('@opentelemetry/sdk-node');
 const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
-const { Resource } = require('@opentelemetry/resources');
+const { resourceFromAttributes } = require('@opentelemetry/resources');  // JS SDK 2.x+: the Resource class is no longer exported
 
 const sdk = new NodeSDK({
-  resource: new Resource({
+  resource: resourceFromAttributes({
     'service.name': 'my-node-app',
   }),
   traceExporter: new OTLPTraceExporter({
@@ -308,6 +308,8 @@ const sdk = new NodeSDK({
 
 sdk.start();
 ```
+
+> <sub>**Sources:** [Upgrade to OpenTelemetry JS SDK 2.x (OpenTelemetry GitHub)](https://github.com/open-telemetry/opentelemetry-js/blob/main/doc/upgrade-to-2.x.md) — *"The `Resource` class is no longer exported; instead use new utility functions."*</sub>
 
 <a id="entity-mapping"></a>
 ## 5. Entity Mapping
@@ -406,7 +408,7 @@ Before enabling it, list the dimensions your SLOs, alerts and dashboards filter 
 
 With Advanced OTLP metric dimensions on, *"Meter name and version are always added as dimensions (otel.scope.name and otel.scope.version) for Grail-ingested metrics, regardless of the Add Meter name and version as metric dimensions setting."* With it off, the **Add Meter name and version as metric dimensions** setting controls them.
 
-> <sub>**Sources:** [Configure OTLP metrics ingestion (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/configure-otlp-metrics), [About OTLP metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/about-metrics-ingest) — instrument mapping table.</sub>
+> <sub>**Sources:** [Configure OTLP metrics ingestion (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/configure-otlp-metrics), [About OTLP metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/about-metrics-ingest) — instrument mapping table.</sub>
 
 ### OTLP Auto-Configuration for Kubernetes
 
@@ -419,7 +421,7 @@ Dynatrace Operator (v1.8+) supports **automatic OTLP exporter configuration** fo
 | **Control** | Per-pod opt-in/out via `otlp-exporter-configuration.dynatrace.com/inject` annotation |
 | **Docs** | [OTLP Auto-Config](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/extend-observability-k8s/otlp-auto-config) |
 
-For more details, see [Configure OTLP Metrics Ingestion](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/configure-otlp-metrics).
+For more details, see [Configure OTLP Metrics Ingestion](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/configure-otlp-metrics).
 
 ```dql
 // Verify OTel traces are arriving over OTLP
@@ -597,9 +599,9 @@ Two practical notes:
 > <sub>**Sources:**</sub>
 > - <sub>[k8sattributes processor (OpenTelemetry Collector Contrib GitHub)](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/k8sattributesprocessor)</sub>
 > - <sub>[Cumulative to Delta processor (OpenTelemetry Collector Contrib GitHub)](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/cumulativetodeltaprocessor)</sub>
-> - <sub>[Configure OTLP Metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/configure-otlp-metrics)</sub>
+> - <sub>[Configure OTLP Metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/configure-otlp-metrics)</sub>
 > - <sub>[Dynatrace Operator (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator)</sub>
-> - <sub>[About OTLP metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/about-metrics-ingest) — *"The Dynatrace backend exclusively works with delta values and requires the respective aggregation temporality."*</sub>
+> - <sub>[About OTLP metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/about-metrics-ingest) — *"The Dynatrace backend exclusively works with delta values and requires the respective aggregation temporality."*</sub>
 > - <sub>[Bindplane (DT docs)](https://docs.dynatrace.com/docs/ingest-from/bindplane) — *"Bindplane is a unified telemetry pipeline to manage OpenTelemetry Collector fleets centrally"*; *"Collectors can send data to multiple backends simultaneously, including Dynatrace and Splunk."*</sub>
 > - <sub>[Dynatrace to acquire Bindplane (Dynatrace press release, 04/08/2026)](https://www.dynatrace.com/news/press-release/dynatrace-to-acquire-bindplane/) — *"today announced it has signed a definitive agreement to acquire Bindplane"*</sub>
 > - <sub>[What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — *"The `dt.bindplane.*` namespace is now reserved exclusively for Bindplane."*</sub>
@@ -631,7 +633,7 @@ In this notebook, you learned:
 - [Dynatrace OpenTelemetry](https://docs.dynatrace.com/docs/ingest-from/opentelemetry)
 - [OTLP API Endpoints](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api)
 - [Dynatrace Collector](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector)
-- [Configure OTLP Metrics](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/configure-otlp-metrics)
+- [Configure OTLP Metrics](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/configure-otlp-metrics)
 - [OTLP Auto-Config for K8s](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/extend-observability-k8s/otlp-auto-config)
 - [Ensure Success with OTel](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/troubleshooting)
 - [Bindplane](https://docs.dynatrace.com/docs/ingest-from/bindplane)

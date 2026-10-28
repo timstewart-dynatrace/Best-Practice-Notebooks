@@ -287,7 +287,7 @@ Continue to **SPANS-02: Querying Spans with DQL** to learn:
 ## References
 
 - [Trace semantic conventions (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/trace)
-- [Distributed traces (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-traces)
+- [Distributed Tracing (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing)
 - [Traces (opentelemetry.io)](https://opentelemetry.io/docs/concepts/signals/traces/)
 
 ---

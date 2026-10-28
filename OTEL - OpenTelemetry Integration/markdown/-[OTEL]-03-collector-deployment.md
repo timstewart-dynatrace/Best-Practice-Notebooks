@@ -1,6 +1,6 @@
 # OTEL-03: Collector Deployment Patterns
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 3 of 8 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 3 of 8 | **Created:** January 2026 | **Last Updated:** 10/28/2026
 
 ## Deploying the OpenTelemetry Collector
 The OTel Collector can be deployed in various patterns depending on your infrastructure. This notebook covers deployment modes, Kubernetes configurations, and best practices for production.
@@ -128,7 +128,7 @@ spec:
         - containerPort: 4317
 ```
 
-> **Collector version currency (checked 07/08/2026):** the pins in this notebook (`otel/opentelemetry-collector-contrib:0.151.0`, Dynatrace distro `v0.48.0`) are the **validated baseline** for these examples. Newer Dynatrace-distro releases exist — **v0.49.0–v0.51.0** (wrapping upstream contrib 0.153–0.155) — with breaking changes to review before bumping: the `filter` processor's default `error_mode` changed to `ignore` (0.49), `span_metrics` now rejects duplicate dimension names at startup (0.50), and `memory_limiter` self-metrics were renamed to `otelcol_processor_memory_limiter_*` (0.51 — affects self-monitoring dashboards that chart those series). The pinned versions remain valid and supported; upgrade deliberately per the always-pin guidance in this section, reviewing the [release notes](https://github.com/Dynatrace/dynatrace-otel-collector/releases) for each version you cross.
+> **Collector version currency (checked 10/28/2026):** the pins in this notebook (`otel/opentelemetry-collector-contrib:0.151.0`, Dynatrace distro `v0.48.0`) are the **validated baseline** for these examples. Newer Dynatrace-distro releases exist — up to **v0.59.0** (released 10/27/2026, wrapping upstream v0.163.0). Review the [release notes](https://github.com/Dynatrace/dynatrace-otel-collector/releases) for every version you cross before bumping; earlier examples of breaking changes include the `filter` processor's default `error_mode` changing to `ignore` (0.49), `span_metrics` rejecting duplicate dimension names at startup (0.50), and `memory_limiter` self-metrics being renamed to `otelcol_processor_memory_limiter_*` (0.51 — affects self-monitoring dashboards that chart those series). Upgrade deliberately per the always-pin guidance in this section, reviewing the [release notes](https://github.com/Dynatrace/dynatrace-otel-collector/releases) for each version you cross.
 
 <a id="gateway-mode"></a>
 ## 3. Gateway Mode
@@ -200,15 +200,23 @@ helm repo update
 helm install otel-collector open-telemetry/opentelemetry-collector \
   --namespace otel \
   --create-namespace \
-  --set mode=daemonset
+  --set mode=daemonset \
+  --set image.repository="ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s" \
+  --set command.name="otelcol-k8s"
 
 # Install as Deployment (gateway mode)
 helm install otel-collector open-telemetry/opentelemetry-collector \
   --namespace otel \
   --create-namespace \
   --set mode=deployment \
-  --set replicaCount=2
+  --set replicaCount=2 \
+  --set image.repository="ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s" \
+  --set command.name="otelcol-k8s"
 ```
+
+The chart ships with no default image, so `image.repository` must be set or the install stops with an error; `command.name` must match the image (`otelcol-k8s` for the `-k8s` distribution).
+
+> <sub>**Sources:** [opentelemetry-collector chart NOTES.txt (OpenTelemetry GitHub)](https://github.com/open-telemetry/opentelemetry-helm-charts/blob/main/charts/opentelemetry-collector/templates/NOTES.txt) — *"'image.repository' must be set."*; [opentelemetry-collector chart README (OpenTelemetry GitHub)](https://github.com/open-telemetry/opentelemetry-helm-charts/tree/main/charts/opentelemetry-collector) — install line with `--set image.repository=… --set command.name="otelcol-k8s"`.</sub>
 
 ### Helm Values for Dynatrace
 
@@ -216,6 +224,11 @@ helm install otel-collector open-telemetry/opentelemetry-collector \
 # values.yaml
 mode: deployment
 replicaCount: 2
+
+image:
+  repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s
+command:
+  name: otelcol-k8s
 
 config:
   receivers:
@@ -660,10 +673,10 @@ Once these land in Dynatrace you can chart them with `timeseries` like any other
 Complete, runnable configs (Helm values for all three tiers, RBAC, self-monitoring) live in the Dynatrace OTel Collector repo under `config_examples/prometheus-large-scale/`.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Prometheus standard use case (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector/use-cases/prometheus/standard) — *"The metric_start_time and cumulative_to_delta processors are stateful and must see every consecutive sample of a series in one place to compute deltas correctly."*</sub>
-> - <sub>[prometheus-large-scale config examples (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-otel-collector/tree/main/config_examples/prometheus-large-scale) — verbatim tier-1 scraper / tier-2 gateway / allocator Helm values</sub>
+> - <sub>[Prometheus standard use case (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector-use-cases/prometheus/standard) — *"The metric_start_time and cumulative_to_delta processors are stateful and must see every consecutive sample of a series in one place to compute deltas correctly."*</sub>
+> - <sub>[prometheus-large-scale config examples (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-otel-collector/tree/main/config_examples/prometheus-large-scale) — tier-1 scraper / tier-2 gateway / allocator Helm values, adapted to the v0.151.0 pin (`cumulativetodelta`; the repo now spells it `cumulative_to_delta`)</sub>
 > - <sub>[OpenTelemetry Operator (opentelemetry-operator GitHub)](https://github.com/open-telemetry/opentelemetry-operator) — Target Allocator component</sub>
-> - <sub>[About OTLP metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/about-metrics-ingest) — *"The Dynatrace backend exclusively works with delta values and requires the respective aggregation temporality."*</sub>
+> - <sub>[About OTLP metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/about-metrics-ingest) — *"The Dynatrace backend exclusively works with delta values and requires the respective aggregation temporality."*</sub>
 
 <a id="docker-compose"></a>
 ## 6. Docker Compose

@@ -347,7 +347,7 @@ fetch spans, from:-1h
 
 If you tail-sample in a Collector, compute service metrics **before** the sampler. The Dynatrace Collector sampling use case does that with the `spanmetrics` connector, so the request counts stay accurate. See **OPIPE-03** for extrapolating counts from sampled spans.
 
-> <sub>**Sources:** [Adaptive Traffic Management with DPS (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/adaptive-traffic-management/adaptive-traffic-management-saas-dps), [Sampling with the OTel Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector/use-cases/sampling).</sub>
+> <sub>**Sources:** [Adaptive Traffic Management with DPS (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/adaptive-traffic-management/adaptive-traffic-management-saas-dps), [Sampling with the OTel Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector-use-cases/sampling).</sub>
 
 ```dql
 // Identify high-volume services — candidates for ATM or Collector sampling at the source
@@ -523,7 +523,7 @@ Continue to **SPANS-08: Cost-Efficient DQL Queries** to learn:
 
 - [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)
 - [Adaptive Traffic Management with DPS (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/adaptive-traffic-management/adaptive-traffic-management-saas-dps)
-- [Sampling with the OTel Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector/use-cases/sampling)
+- [Sampling with the OTel Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector-use-cases/sampling)
 - [Data retention periods (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods)
 - [DQL best practices (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/dql-best-practices)
 

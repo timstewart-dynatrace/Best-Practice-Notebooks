@@ -1,6 +1,6 @@
 # SPANS-02: Querying Spans with DQL
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 10/12/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 10/28/2026
 
 ## Mastering Span Queries in Dynatrace
 This notebook covers essential techniques for querying and filtering span data to find exactly what you need. You'll learn to filter by service, operation, and attributes to quickly locate relevant traces.
@@ -462,6 +462,7 @@ fetch spans, from:-1h
 fetch spans, from:-1h
 | filter isNotNull(db.system) 
       and duration > 100ms
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only, not connection/driver phases
 | fieldsAdd duration_ms = duration / 1ms
 | fields start_time,
          dt.service.name,
@@ -477,6 +478,7 @@ fetch spans, from:-1h
 // Summarize database usage
 fetch spans, from:-1h
 | filter isNotNull(db.system)
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only, not connection/driver phases
 | summarize {
     db_span_count = count(),
     avg_duration_ms = avg(duration) / 1ms

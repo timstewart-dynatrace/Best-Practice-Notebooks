@@ -1,6 +1,6 @@
 # OTEL-02: OpenTelemetry Collector Architecture
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 2 of 8 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 2 of 8 | **Created:** January 2026 | **Last Updated:** 10/28/2026
 
 ## Understanding the OTel Collector Pipeline
 The OpenTelemetry Collector is the backbone of OTel deployments—a vendor-agnostic service for receiving, processing, and exporting telemetry data. This notebook covers its architecture, components, and configuration.
@@ -9,13 +9,14 @@ The OpenTelemetry Collector is the backbone of OTel deployments—a vendor-agnos
 
 ## Table of Contents
 
-1. [Pipeline Architecture](#pipeline-architecture)
-2. [Receivers](#receivers)
-3. [Processors](#processors)
-4. [Exporters](#exporters)
-5. [Extensions](#extensions)
-6. [Connectors](#connectors)
-7. [Configuration Basics](#configuration-basics)
+1. [Collector Overview](#collector-overview)
+2. [Pipeline Architecture](#pipeline-architecture)
+3. [Receivers](#receivers)
+4. [Processors](#processors)
+5. [Exporters](#exporters)
+6. [Extensions](#extensions)
+7. [Connectors](#connectors)
+8. [Configuration Basics](#configuration-basics)
 
 ---
 
@@ -26,6 +27,7 @@ The OpenTelemetry Collector is the backbone of OTel deployments—a vendor-agnos
 | **Knowledge** | OTEL-01: OpenTelemetry Fundamentals |
 | **Tools** | YAML familiarity for configuration |
 
+<a id="collector-overview"></a>
 ## 1. Collector Overview
 
 ### What is the Collector?
@@ -204,7 +206,7 @@ processors:
   redaction:
     allow_all_keys: true
     blocked_values:
-      - "dt0[a-z]0[1-9]\.[A-Za-z0-9]{24}\.[A-Za-z0-9]{64}"   # Dynatrace token shape
+      - 'dt0[a-z]0[1-9]\.[A-Za-z0-9]{24}\.[A-Za-z0-9]{64}'   # Dynatrace token shape (single quotes: a backslash is literal)
     summary: info
 ```
 
@@ -216,7 +218,7 @@ processors:
     trace_statements:
       - context: span
         statements:
-          - replace_all_patterns(attributes, "value", "[\w.]+@[\w.]+", "***@***")   # mask emails
+          - replace_all_patterns(attributes, "value", "[\\w.]+@[\\w.]+", "***@***")   # mask emails (OTTL string: double the backslash)
 ```
 
 Two rules that bite:
@@ -226,7 +228,7 @@ Two rules that bite:
 
 This is the collector-side complement to OpenPipeline ingest-time masking (OPLOGS / OPIPE): use collector redaction when data must be scrubbed **before it leaves your network**, OpenPipeline masking when it is scrubbed at ingest.
 
-> <sub>**Sources:** [Mask sensitive data with the OTel Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector/use-cases/redact) — `redaction` (`blocked_values`/`allow_all_keys`/`summary`) and `transform` (`replace_all_patterns`, per-signal statements); processor-order and span-name caveats.</sub>
+> <sub>**Sources:** [Mask sensitive data with the OTel Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector-use-cases/redact) — `redaction` (`blocked_values`/`allow_all_keys`/`summary`) and `transform` (`replace_all_patterns`, per-signal statements); processor-order and span-name caveats.</sub>
 
 <a id="exporters"></a>
 ## 5. Exporters

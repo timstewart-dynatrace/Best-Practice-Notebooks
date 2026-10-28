@@ -229,7 +229,7 @@ Two practical consequences:
 - **The cardinality table above now depends on your code, not on the allow list.** A high-cardinality data-point attribute that used to be dropped at ingest becomes a dimension. Use **Deny list: all attributes** to drop anything you do not want. Attribute names there are case-sensitive and must match the original name.
 - **Turn it on deliberately, and early, if you are heading to the latest Dynatrace.** The ready-made *Check your upgrade readiness* dashboard lists this setting as a pre-upgrade opt-in, so that nothing built on today's dimension set changes unnoticed at upgrade time. Enable it, then check the dashboards and alerts that group or filter by OTLP dimensions, and look especially for keys whose case changed.
 
-> <sub>**Sources:** [Configure OTLP metrics ingestion (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/configure-otlp-metrics) — all quotes above. The pre-upgrade opt-in comes from the ready-made *Check your upgrade readiness* dashboard (OpenTelemetry metrics section, read 09/29/2026), which has no public URL.</sub>
+> <sub>**Sources:** [Configure OTLP metrics ingestion (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/configure-otlp-metrics) — all quotes above. The pre-upgrade opt-in comes from the ready-made *Check your upgrade readiness* dashboard (OpenTelemetry metrics section, read 09/29/2026), which has no public URL.</sub>
 
 <a id="aggregation-and-views"></a>
 ## 5. Aggregation and Views
@@ -530,8 +530,8 @@ This path is rarer in greenfield Dynatrace deployments — it preserves the Prom
 > - <sub>[Prometheus Receiver (OpenTelemetry Collector Contrib GitHub)](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/prometheusreceiver)</sub>
 > - <sub>[k8sattributes processor (OpenTelemetry Collector Contrib GitHub)](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/k8sattributesprocessor)</sub>
 > - <sub>[Cumulative to Delta processor (OpenTelemetry Collector Contrib GitHub)](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/cumulativetodeltaprocessor)</sub>
-> - <sub>[Ingest OTLP metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics)</sub>
-> - <sub>[About OTLP metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/about-metrics-ingest) — *"The Dynatrace backend exclusively works with delta values and requires the respective aggregation temporality."*</sub>
+> - <sub>[Ingest OTLP metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/about-metrics-ingest)</sub>
+> - <sub>[About OTLP metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/about-metrics-ingest) — *"The Dynatrace backend exclusively works with delta values and requires the respective aggregation temporality."*</sub>
 > - <sub>[OpenTelemetryCollector CRD reference (opentelemetry-operator GitHub)](https://github.com/open-telemetry/opentelemetry-operator/blob/main/docs/api/opentelemetrycollectors.md) — *"When set, the operator will not automatically create a ServiceAccount for the collector."*</sub>
 
 ```dql
@@ -604,9 +604,9 @@ In this notebook, you learned:
 
 - [OTel Metrics Specification](https://opentelemetry.io/docs/specs/otel/metrics/)
 - [OTel Python Metrics](https://opentelemetry.io/docs/languages/python/instrumentation/)
-- [Dynatrace OTLP Metrics Ingest](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics)
-- [Configure OTLP Metrics](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/configure-otlp-metrics)
-- [About OTLP metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/about-metrics-ingest) — instrument-to-metric-type mapping
+- [Dynatrace OTLP Metrics Ingest](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/about-metrics-ingest)
+- [Configure OTLP Metrics](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/configure-otlp-metrics)
+- [About OTLP metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/about-metrics-ingest) — instrument-to-metric-type mapping
 - [HTTP metrics semantic conventions (opentelemetry.io)](https://opentelemetry.io/docs/specs/semconv/http/http-metrics/)
 
 ---

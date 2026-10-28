@@ -1,6 +1,6 @@
 # OTEL-01: OpenTelemetry Fundamentals
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 1 of 8 | **Created:** January 2026 | **Last Updated:** 10/13/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 1 of 8 | **Created:** January 2026 | **Last Updated:** 10/28/2026
 
 ## Introduction to OpenTelemetry and Dynatrace
 OpenTelemetry (OTel) is the industry-standard framework for collecting telemetry data. Dynatrace fully supports OpenTelemetry through native OTLP ingestion, allowing you to leverage OTel instrumentation while benefiting from Dynatrace's AI-powered analytics — on its own, or combined with OneAgent per workload.
@@ -227,7 +227,7 @@ Dynatrace accepts OTLP data natively via **HTTP only**, with binary Protocol Buf
 | **HTTP** | `https://{your-env}.live.dynatrace.com/api/v2/otlp` | Recommended for direct ingest |
 | **gRPC** | Not supported for direct Dynatrace ingest | Use a Collector to convert gRPC → HTTP |
 
-> **Important:** If your application uses gRPC to export OTLP data, route it through an OpenTelemetry Collector configured with an `otlp` gRPC receiver and an `otlphttp` exporter to Dynatrace. See [Transform OTLP gRPC](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector/use-cases/grpc).
+> **Important:** If your application uses gRPC to export OTLP data, route it through an OpenTelemetry Collector configured with an `otlp` gRPC receiver and an `otlphttp` exporter to Dynatrace. See [Transform OTLP gRPC](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector-use-cases/grpc).
 
 ### Authentication
 
@@ -238,7 +238,7 @@ Two token types work, with different schemes and scopes:
 | Platform token | `Authorization: Bearer <token>` | `openpipeline:traces:ingest` | `openpipeline:metrics:ingest` | `openpipeline:logs:ingest` |
 | Classic access token | `Authorization: Api-Token <token>` | `openTelemetryTrace.ingest` | `metrics.ingest` | `logs.ingest` |
 
-> <sub>**Sources:** [OTLP API (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api) — *"Platform token: Use Bearer in the Authorization header. The required scopes are openpipeline:logs:ingest, openpipeline:metrics:ingest, and openpipeline:traces:ingest."*</sub>
+> <sub>**Sources:** [OTLP API (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api) — *"To authenticate, use a platform token with `Bearer` in the `Authorization` HTTP header."* *"The required scopes are `openpipeline:logs:ingest`, `openpipeline:metrics:ingest`, and `openpipeline:traces:ingest`."*; [API authentication (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/basics/dynatrace-api-authentication) — `openTelemetryTrace.ingest`: *"Grants permission to ingest OpenTelemetry traces."*</sub>
 
 ### Configuration Example
 
@@ -372,7 +372,7 @@ In this notebook, you learned:
 - [Runtime Vulnerability Analytics (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/vulnerability-analytics) — *"Dynatrace OneAgent monitors loaded libraries, runtime components, and data flows in real time."*
 - [Runtime Application Protection (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/application-protection) — *"Code-level visibility provided by OneAgent"*
 - [Live Debugger (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/live-debugger) — *"OneAgent version 1.309+ with Java Live-Debugger and Node.js Live-Debugger"*
-- [RUM JavaScript injection (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/initial-setup/rum-injection) — *"Once OneAgent is deployed in full-stack monitoring mode on a host, it by default automatically injects the RUM JavaScript"*
+- [RUM JavaScript injection (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/initial-setup/rum-injection) — *"Once OneAgent is deployed in full-stack monitoring mode on a host, it by default automatically injects the RUM JavaScript"*
 - [AWS Lambda integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-into-aws/aws-lambda-integration) — *"using auto-instrumentation without code changes"*
 - [OneAgent 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343) — Azure Functions: Python on the Flex Consumption Plan for Linux; Java and Node.js on Consumption, Premium, and Dedicated plans for Windows
 - [OTLP Specification](https://opentelemetry.io/docs/specs/otlp/)

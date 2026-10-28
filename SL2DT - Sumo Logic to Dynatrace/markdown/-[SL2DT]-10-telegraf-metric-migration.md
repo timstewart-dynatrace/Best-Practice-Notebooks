@@ -268,7 +268,7 @@ Do not include metrics in the SL2DT-09 cutover until every box is checked:
 - [Metric ingestion protocol (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/reference/metric-ingestion-protocol) — metric key character, section, and length rules; *"Grail metrics do not apply the `.count` and `.gauge` suffixes"*
 - [POST ingest metrics (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/post-ingest-metrics) — `metrics.ingest` scope; 1 MB payload limit
 - [Metrics limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits) — reserved `dt.` prefix; data ingested with it is dropped
-- [About OTLP metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/about-metrics-ingest) — delta temporality requirement; automatic key suffixing
+- [About OTLP metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/about-metrics-ingest) — delta temporality requirement; automatic key suffixing
 
 ### Telegraf — the `outputs.dynatrace` plugin
 - [Dynatrace output plugin README (InfluxData GitHub)](https://github.com/influxdata/telegraf/blob/master/plugins/outputs/dynatrace/README.md) — endpoint modes, `prefix`, gauge-by-default behaviour

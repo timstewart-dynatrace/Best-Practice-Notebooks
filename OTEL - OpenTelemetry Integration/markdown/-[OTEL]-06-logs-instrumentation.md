@@ -1,6 +1,6 @@
 # OTEL-06: Logs and Events
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 6 of 8 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 6 of 8 | **Created:** January 2026 | **Last Updated:** 10/28/2026
 
 ## Integrating Logs with OpenTelemetry
 OpenTelemetry logs bridge traditional logging with distributed tracing, enabling correlation between log events and traces. This notebook covers log instrumentation, correlation, and best practices.
@@ -9,12 +9,13 @@ OpenTelemetry logs bridge traditional logging with distributed tracing, enabling
 
 ## Table of Contents
 
-1. [Log Bridge Pattern](#log-bridge-pattern)
-2. [Log-Trace Correlation](#log-trace-correlation)
-3. [Collector Log Processing](#collector-log-processing)
-4. [File-Based Log Collection](#file-based-log-collection)
-5. [Structured Logging](#structured-logging)
-6. [Best Practices](#best-practices)
+1. [OTel Logs Overview](#otel-logs-overview)
+2. [Log Bridge Pattern](#log-bridge-pattern)
+3. [Log-Trace Correlation](#log-trace-correlation)
+4. [Collector Log Processing](#collector-log-processing)
+5. [File-Based Log Collection](#file-based-log-collection)
+6. [Structured Logging](#structured-logging)
+7. [Best Practices](#best-practices)
 
 ---
 
@@ -25,6 +26,7 @@ OpenTelemetry logs bridge traditional logging with distributed tracing, enabling
 | **Knowledge** | OTEL-01 and OTEL-04 |
 | **Environment** | Collector with logs pipeline |
 
+<a id="otel-logs-overview"></a>
 ## 1. OTel Logs Overview
 
 ### Log Data Model
@@ -211,7 +213,7 @@ processors:
   filter:
     logs:
       log_record:
-        - 'severity_number < 9'  # Drop TRACE and DEBUG
+        - 'severity_number > 0 and severity_number < 9'  # Drop TRACE and DEBUG; keep logs with no severity (0 = UNSPECIFIED)
 
 service:
   pipelines:
@@ -220,6 +222,10 @@ service:
       processors: [resource, transform, filter, batch]
       exporters: [otlphttp]
 ```
+
+`severity_number` 0 means *unspecified*: it is the value on any record whose severity was never parsed, such as a `file_log` line the `severity_parser` in § 5 did not match. `severity_number < 9` alone would drop those records along with TRACE and DEBUG.
+
+> <sub>**Sources:** [logs.proto (OpenTelemetry GitHub)](https://github.com/open-telemetry/opentelemetry-proto/blob/main/opentelemetry/proto/logs/v1/logs.proto) — *"enum SeverityNumber { SEVERITY_NUMBER_UNSPECIFIED = 0;"* (TRACE 1–4, DEBUG 5–8, INFO 9).</sub>
 
 <a id="file-based-log-collection"></a>
 ## 5. File-Based Log Collection
