@@ -1,6 +1,6 @@
 # WFLOW-08: JavaScript & HTTP Actions
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 10/23/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 10/27/2026
 
 ## Custom Code and API Integration
 When built-in actions aren't enough, use JavaScript and HTTP requests for custom integrations. This notebook covers the JavaScript SDK, HTTP request patterns, and common integration scenarios.
@@ -169,7 +169,7 @@ export default async function () {
 
 ### Add Problem Comment
 
-> **Deprecation — Dynatrace API 1.349 (pre-release; rollout planned from 10/06/2026).** The [API 1.349 changelog (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-349) marks the Environment API v2 `/problems` endpoints deprecated, including *"POST /problems/{problemId}/comments Deprecated"*, and names no successor. Verify it has reached your tenant; until then the current guidance remains the working path.
+> **Deprecation — Dynatrace API 1.349 (staged tenant rollout from 10/27/2026).** The [API 1.349 changelog (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-349) marks the Environment API v2 `/problems` endpoints deprecated, including *"POST /problems/{problemId}/comments Deprecated"*, and names no successor. Verify it has reached your tenant; until then the current guidance remains the working path.
 
 ```javascript
 import { execution, result } from '@dynatrace-sdk/automation-utils';

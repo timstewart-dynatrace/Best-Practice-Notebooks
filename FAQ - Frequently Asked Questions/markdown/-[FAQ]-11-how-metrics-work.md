@@ -1,6 +1,6 @@
 # FAQ-11: How Do Metrics Work in Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 10/26/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 10/27/2026
 
 ## Overview
 
@@ -174,7 +174,7 @@ The Grail catalog is also consolidated, not 1:1. The built-in-metrics page state
 | Data Explorer, Dashboards Classic | Classic | Metric selector |
 | Metrics API v2 (`/api/v2/metrics/query`) | Classic | Metric selector |
 
-The migration state, per the docs: *"most but not all metrics are already supported on Grail"* — service, infrastructure, cloud, container/Kubernetes, and runtime families are available, with others not yet supported — the metrics FAQ marks the remaining gaps, such as custom buckets for Grail metrics and deletion of Grail metric data, as *"planned for a future release."* SaaS 1.349 (pre-release; rollout planned from 10/06/2026) announces the first of them: *"Metrics now supports custom buckets."* Verify it has reached your tenant; until then the current guidance remains the working path. Data Explorer and Dashboards Classic ship a built-in **metric-selector-to-DQL converter** to help move assets. It does not cover everything: for what it cannot handle, the upgrade guide says to *"manually convert them by mapping Classic aggregations, transformations, and filters to their DQL equivalents."* Classic's "Auto" pseudo-aggregation is the common snag — *"As DQL doesn't have an equivalent pseudo-aggregation, you need to specify the aggregation explicitly."*
+The migration state, per the docs: *"most but not all metrics are already supported on Grail"* — service, infrastructure, cloud, container/Kubernetes, and runtime families are available, with others not yet supported — the metrics FAQ marks the remaining gaps, such as custom buckets for Grail metrics and deletion of Grail metric data, as *"planned for a future release."* SaaS 1.349 (staged tenant rollout from 10/27/2026) announces the first of them: *"Metrics now supports custom buckets."* Verify it has reached your tenant; until then the current guidance remains the working path. Data Explorer and Dashboards Classic ship a built-in **metric-selector-to-DQL converter** to help move assets. It does not cover everything: for what it cannot handle, the upgrade guide says to *"manually convert them by mapping Classic aggregations, transformations, and filters to their DQL equivalents."* Classic's "Auto" pseudo-aggregation is the common snag — *"As DQL doesn't have an equivalent pseudo-aggregation, you need to specify the aggregation explicitly."*
 
 **Practical rule:** author every *new* chart, alert, and automation in DQL against `dt.*` keys; treat metric selectors as the maintenance language for existing Classic assets until you migrate them (§8.4).
 
@@ -185,7 +185,7 @@ The migration state, per the docs: *"most but not all metrics are already suppor
 > - <sub>[Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits)</sub>
 > - <sub>[Metric selector conversion (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/preserve-metrics-and-service-visibility/metrics/metric-selector-conversion)</sub>
 > - <sub>[Data Explorer (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/explorer)</sub>
-> - <sub>[What's new in Dynatrace SaaS 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-349) — *"Metrics now supports custom buckets."* (pre-release, read 10/23/2026)</sub>
+> - <sub>[What's new in Dynatrace SaaS 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-349) — *"Metrics now supports custom buckets."* (rollout from 10/27/2026, read 10/27/2026)</sub>
 
 <a id="ingest-paths"></a>
 ## 4. How a Data Point Is Born: The Ingest Paths
