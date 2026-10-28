@@ -1,6 +1,6 @@
 # MZ2POL-03: Assessment and Migration Planning
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 4 of 17 | **Created:** December 2025 | **Last Updated:** 10/25/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 4 of 17 | **Created:** December 2025 | **Last Updated:** 10/27/2026
 
 ## Overview
 
@@ -135,7 +135,7 @@ A zone that restricted access does **not** become a bucket by default. Buckets a
 
 | Limitation | Impact on Planning |
 |------------|-------------------|
-| One data type per bucket | Need separate buckets for logs and spans (metrics: custom buckets only from SaaS 1.349, pre-release) |
+| One data type per bucket | Need separate buckets for logs and spans (metrics: custom buckets only from SaaS 1.349, staged rollout from 10/27/2026) |
 | Maximum custom buckets per environment: 250 by default from SaaS 1.346 (staged tenant rollout from 08/25/2026); 80 before it | Plan for scale within your tenant's limit. *Organize data*, *Partition data* and the 1.346 release note state 250; the upgrade guide's *Data partitioning* and *Logs bucket strategy* pages (published 08/24/2026) still state 80 (read 10/25/2026) — check which default your tenant has before planning to either number |
 | 1–3 TB/day target per log bucket | *"Design your bucket strategy so that each bucket receives between 1 TB and 3 TB of log data per day."* About 4–12 hours of logs per default 500 GB scan |
 | Split other tables above 2 TB/day | *"We recommend splitting up buckets that receive more than 2 TB of daily ingest."* |
@@ -280,7 +280,7 @@ For environments where SVG doesn't render
 If a retention, cost or compliance case needs dedicated buckets:
 
 - [ ] Bucket naming convention finalized
-- [ ] Buckets created for each data type (logs and spans; metrics: custom buckets only from SaaS 1.349, pre-release)
+- [ ] Buckets created for each data type (logs and spans; metrics: custom buckets only from SaaS 1.349, staged rollout from 10/27/2026)
 - [ ] OpenPipeline routing rules configured
 - [ ] Data flowing to correct buckets verified
 - [ ] Bucket-specific policies created

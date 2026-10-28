@@ -1,6 +1,6 @@
 # WFLOW-05: PagerDuty & ServiceNow Integration
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 5 of 10 | **Created:** January 2026 | **Last Updated:** 10/26/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 5 of 10 | **Created:** January 2026 | **Last Updated:** 10/27/2026
 
 ## Incident Management Automation
 Integrate Dynatrace workflows with enterprise incident management platforms. This notebook covers PagerDuty and ServiceNow integration patterns, bi-directional sync, and incident lifecycle management.
@@ -431,7 +431,7 @@ link_back:
 
 Dynatrace's own ServiceNow sample passes `event()["event.id"]` as the `problemId` of the problems API in a Problem-triggered workflow; the comment call takes the same ID.
 
-> **Deprecation — Dynatrace API 1.349 (pre-release; rollout planned from 10/06/2026).** The [API 1.349 changelog (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-349) marks the Environment API v2 `/problems` endpoints deprecated, including *"POST /problems/{problemId}/comments Deprecated"*, and names no successor. Verify it has reached your tenant; until then the current guidance remains the working path.
+> **Deprecation — Dynatrace API 1.349 (staged tenant rollout from 10/27/2026).** The [API 1.349 changelog (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-349) marks the Environment API v2 `/problems` endpoints deprecated, including *"POST /problems/{problemId}/comments Deprecated"*, and names no successor. Verify it has reached your tenant; until then the current guidance remains the working path.
 
 > <sub>**Sources:** [wftpl_sample_servicenow_incident_man.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/Messaging%20and%20Incident%20Management/wftpl_sample_servicenow_incident_man.yaml) — *"{problemId: davisEvent['event.id'], fields: 'impactAnalysis'}"*.</sub>
 

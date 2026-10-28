@@ -1,6 +1,6 @@
 # SPANS-06: Security Analysis with Spans
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 6 of 8 | **Created:** December 2025 | **Last Updated:** 10/12/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 6 of 8 | **Created:** December 2025 | **Last Updated:** 10/28/2026
 
 ## Protecting Distributed Traces and Ensuring Compliance
 This notebook demonstrates how to use span data for security analysis, audit for sensitive data exposure, and ensure compliance with regulations.
@@ -133,14 +133,14 @@ fetch spans, from:-1h
 //   db.name              -> db.namespace         (stable; 57,281)
 // Confirm the catalog for your tenant with:
 //   fetch dt.semantic_dictionary.fields | filter startsWith(name, "db.") | fields name, stability
-// Find database queries that might contain sensitive data
+// Find database queries that might contain sensitive data (contains() is case-sensitive by default, so match case-insensitively)
 fetch spans, from:-1h
 | filter isNotNull(db.query.text)
-| filter contains(db.query.text, "password") or
-        contains(db.query.text, "ssn") or
-        contains(db.query.text, "credit") or
-        contains(db.query.text, "email") or
-        contains(db.query.text, "phone")
+| filter contains(db.query.text, "password", caseSensitive: false) or
+        contains(db.query.text, "ssn", caseSensitive: false) or
+        contains(db.query.text, "credit", caseSensitive: false) or
+        contains(db.query.text, "email", caseSensitive: false) or
+        contains(db.query.text, "phone", caseSensitive: false)
 | fields dt.service.name,
          db.system,
          db.namespace,

@@ -1,6 +1,6 @@
 # FAQ-02: Tagging — Sources, Standards, and Strategy
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 10/23/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 10/27/2026
 
 ## Overview
 
@@ -351,7 +351,7 @@ The exact strings `target` expects for a primary tag versus a reserved field are
 
 > **Scopes differ by rule type.** The OneAgent how-to page says host/process rules are *"supported at the environment scope and host group scope."* The central-enrichment page adds **Kubernetes cluster** and **cloud account** scopes for Kubernetes and cloud rules (*"Rules per scope 50 Applies independently at each scope (environment, cluster, host group, cloud account)."*). The schema page lists `HOST`, `KUBERNETES_CLUSTER`, `HOST_GROUP`, `AWS_ACCOUNT`, `AZURE_MICROSOFT_RESOURCES_SUBSCRIPTIONS`, `GCP_PROJECT` and `environment`; `HOST` appears only there. For OneAgent host tagging, design around environment and host group; treat a host-scoped rule as untested until you have tried it in your tenant.
 >
-> **SaaS 1.349 (pre-release; rollout planned from 10/06/2026):** the Ingest Enrichment Configuration *"no longer allows the creation of new rules on host scopes"*; for existing host-scoped rules the notes recommend *"moving them to a different scope, such as a host-group"*. Verify it has reached your tenant; until then the current guidance remains the working path.
+> **SaaS 1.349 (staged tenant rollout from 10/27/2026):** the Ingest Enrichment Configuration *"no longer allows the creation of new rules on host scopes"*; for existing host-scoped rules the notes recommend *"moving them to a different scope, such as a host-group"*. Verify it has reached your tenant; until then the current guidance remains the working path.
 
 #### Limits worth knowing before you design around it
 
@@ -377,7 +377,7 @@ The exact strings `target` expects for a primary tag versus a reserved field are
 > - <sub>[Ingest Enrichment Configuration schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-ingest-enrichment-config) — `builtin:ingest.enrichment.config` properties and its seven listed scopes. Read 09/28/2026.</sub>
 > - <sub>[OneAgent remote configuration API — POST a configuration job (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/remote-configuration/oneagent/post-config-job) — *"By default OneAgents will be restarted when network zone, host group, host tags or host properties are reconfigured - the restart is required to apply the changes."*</sub>
 > - <sub>[Remote configuration management of OneAgents and ActiveGates (DT docs)](https://docs.dynatrace.com/docs/ingest-from/bulk-configuration) — *"Removing host properties and tags may require up to seven hours to take effect."*</sub>
-> - <sub>[What's new in Dynatrace SaaS 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-349) — *"no longer allows the creation of new rules on host scopes"*; *"moving them to a different scope, such as a host-group"* (pre-release, read 10/23/2026)</sub>
+> - <sub>[What's new in Dynatrace SaaS 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-349) — *"no longer allows the creation of new rules on host scopes"*; *"moving them to a different scope, such as a host-group"* (rollout from 10/27/2026, read 10/27/2026)</sub>
 > - <sub>**Derived:** the two-step migration and the "when the classic path is still right" table combine the precedence order with the limits above.</sub>
 
 <a id="cloud-specifics"></a>

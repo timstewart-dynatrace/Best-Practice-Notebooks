@@ -1,6 +1,6 @@
 # ORGNZ-02: Understanding Grail Buckets
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 10/25/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 10/27/2026
 
 ## Overview
 
@@ -138,7 +138,7 @@ Each bucket is associated with exactly **one data type**. You cannot mix data ty
 -->
 > **Important:** Metrics do not support custom buckets — all metric data routes to `default_metrics`.
 >
-> **SaaS 1.349 (pre-release; rollout planned from 10/06/2026):** *"Metrics now supports custom buckets."* The notes add: *"You can optionally route subsets of metrics into custom buckets using configuration rules"* ([What's new in Dynatrace SaaS 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-349)). Verify it has reached your tenant; until then the current guidance remains the working path.
+> **SaaS 1.349 (staged tenant rollout from 10/27/2026):** *"Metrics now supports custom buckets."* The notes add: *"You can optionally route subsets of metrics into custom buckets using configuration rules"* ([What's new in Dynatrace SaaS 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-349)). Verify it has reached your tenant; until then the current guidance remains the working path.
 
 <a id="system-tables"></a>
 ## System Tables
