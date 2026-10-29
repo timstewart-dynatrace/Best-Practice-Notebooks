@@ -1,6 +1,6 @@
 # DTM-15: Capacity and Scaling
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 15 — Capacity and Scaling | **Created:** September 2026 | **Last Updated:** 10/21/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 15 — Capacity and Scaling | **Created:** September 2026 | **Last Updated:** 10/29/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -105,7 +105,22 @@ A three-node cluster survives losing a node (DTM-10 §4), but the survivors take
 
 Read the margin against the whole cluster's processing capacity, not one node's: a cluster whose typical load already uses most of its capacity has no room for either a failure or a spike. In community practice, the sizing table's per-node figures (§2) are the reference for "capacity" here — verify with your own load, since the docs don't state how the one-third is measured.
 
-> <sub>**Sources:** [Single-cluster high availability (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability).</sub>
+### 4.1 Do the arithmetic for your node count
+
+When a node fails, its share of the load moves to the others. If every node runs at a typical utilization *u*, the survivors run at about *u × n ÷ (n − 1)* after one loss. That assumes the load spreads evenly and grows in proportion, which the docs don't promise:
+
+| Nodes | Survivors after one loss, at 75% typical | Highest typical load that keeps survivors at 100% |
+|-------|------------------------------------------|---------------------------------------------------|
+| 3 | about 113% | about 67% |
+| 4 | 100% | 75% |
+| 5 | about 94% | 80% |
+| 6 | 90% | about 83% |
+
+One-third headroom puts typical load at three-quarters of capacity (75%). That covers one lost node from four nodes up. **On a three-node cluster it doesn't:** the two survivors would carry half as much again as they do today. A three-node cluster needs typical load nearer two-thirds, or an accepted risk of load reduction (§5.1) until the failed node is back.
+
+The same arithmetic applies to planning for two lost nodes on five or more (DTM-10 §4). Five nodes at 75% leave three survivors at 125%, so typical load would have to stay at or below 60%.
+
+> <sub>**Sources:** [Single-cluster high availability (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability). **Derived:** §4.1 applies the one-third rule to a failed node's traffic moving to the survivors; the even-spread assumption is this notebook's.</sub>
 
 <a id="signals"></a>
 ## 5. Capacity Signals
@@ -210,7 +225,7 @@ DTM-11 §5 covers the operations and DTM-12 §7 what they do to Cassandra. From 
 ## 9. Recommended Approach
 
 1. **Size from the table, then plan the second step.** Know which dimension you'll grow in first, and keep the storage layout resizable (separate mounts, LVM).
-2. **Keep one-third headroom**, and re-check it whenever load grows and before removing a node.
+2. **Keep one-third headroom**, and re-check it whenever load grows and before removing a node. On three nodes, keep typical load nearer two-thirds (§4.1).
 3. **Treat repeated adaptive load reduction as a capacity finding**, not noise. Episodes of 15 minutes or more mean scaling or reducing load.
 4. **Read CMC Events for traffic control and heap-memory events.** Neither emails.
 5. **Watch the throughput metrics** (`dsfm:server.*`) for steady growth, and for drops.

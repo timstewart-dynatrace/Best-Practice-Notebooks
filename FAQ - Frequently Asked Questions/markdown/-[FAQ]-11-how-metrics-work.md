@@ -1,6 +1,6 @@
 # FAQ-11: How Do Metrics Work in Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 10/27/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -15,10 +15,11 @@ It goes deep on the mechanics: the data-point model (gauge summaries and count d
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Stage | What happens |
 |-------|--------------|
-| 1. Produce | OneAgent built-ins (10-second samples), OTLP exporters/Collector, Metrics API v2 + local host ingest (StatsD, Telegraf, scripts), Extensions 2.0, OpenPipeline extraction from logs/spans/events |
-| 2. Normalize | Every measurement becomes a data point: gauge (min/max/sum/count summary) or count (delta), attached to a metric key + up to 50 dimensions |
+| 1. Produce | OneAgent built-ins (10-second samples), OTLP exporters/Collector (delta counters and histograms, http/protobuf only), Metrics API v2 + local host ingest (StatsD, Telegraf, scripts), Extensions 2.0, OpenPipeline extraction from logs/spans/events |
+| 2. Normalize | Every measurement becomes a data point: gauge (min/max/sum/count summary) or count (delta), attached to a metric key (3–255 characters) + up to 50 dimensions, with a timestamp from 1 hour in the past to 10 minutes in the future; stored in 1-minute time slots; a series is one key × dimension tuple |
 | 3. Store (dual-write) | Metrics Classic: 1-min granularity decaying with age, 5-year fixed retention. Metrics powered by Grail: 1-min granularity over entire history, 15 months included, extensible to 10 years |
-| 4. Query | DQL `timeseries` in Notebooks/Dashboards (always included — no Query billing); metric selectors in Data Explorer / Metrics API v2 (Classic) |
+| 4. Query | DQL `timeseries` in Notebooks/Dashboards (always included — no Query billing; at most 1,500 elements per series); metric selectors in Data Explorer / Metrics API v2 (Classic) |
+| Billing (DPS) | Ingest & Process billed per data point; `dt.*` keys are non-billable, with broad exceptions (§ 9.2); Retain billed in GiB-days above the included 462 days |
 For environments where SVG doesn't render
 -->
 
@@ -152,7 +153,9 @@ Dynatrace currently operates **two metric databases side by side**, and understa
 | Retention | 5 years, not configurable | 15 months included, extensible to 10 years |
 | Cardinality | 1 million dimension tuples per metric | Limitless dimensions (excluding highly volatile) |
 | Max data points per query | 20 million | 500 million |
+| Note | Peaks older than 14 days are smoothed away | `timeseries` queries always included (no Query billing) |
 Center: the same measurement is dual-written to both stores; history is not migrated.
+DQL cannot read `builtin:*` keys and selectors cannot read `dt.*` keys — each store answers only for its own key form. Author new charts, alerts, and automation in DQL against `dt.*` keys; migrate Classic assets with the built-in selector-to-DQL converter.
 For environments where SVG doesn't render
 -->
 
@@ -234,6 +237,8 @@ When code already runs on a OneAgent-monitored host, you can skip tokens entirel
 2. **Counters and histograms must be delta**: *"the Dynatrace backend exclusively works with delta values and requires the respective aggregation temporality."* Cumulative counters and cumulative histograms are not ingested — *"Cumulative histograms aren't ingested (similarly to cumulative counters)."* A cumulative UpDownCounter (a non-monotonic sum) is accepted and stored as a gauge, per the page's instrument mapping table. Fix it at the SDK (`OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=DELTA`) or in a Collector with the `cumulativetodelta` processor (set `max_staleness` above the receive interval so counter state is not evicted between reports).
 3. **Histogram support is partial**: explicit-bucket histograms (Dynatrace 1.300+) are stored as histograms **only when Advanced OTLP metric dimensions is enabled** — otherwise they are ingested as counters, with no buckets to take percentiles from; for exponential histograms *"Dynatrace ingests the histogram's min/max/sum/count but doesn't ingest the buckets"*; histogram points without a sum (negative recordings) are dropped; OTLP *summary* metrics are not supported at all.
 
+**A Collector processor can create the temporality problem too.** Two processors that ship only in the full Dynatrace Bindplane OTel Collector build emit sums of their own: `metricstats` marks its sums cumulative, and `metricextract`'s `counter_*` types create sums without setting a temporality. By the mapping table, a monotonic cumulative sum is not ingested and a non-monotonic one is stored as a gauge; the page does not say what happens to a sum with no temporality set. After `metricstats`, add `cumulativetodelta` (included in the Dynatrace OTel Collector). With `metricextract`, use a gauge type, or confirm what your tenant stores before relying on a counter.
+
 Attribute mapping: data-point attributes become dimensions by default; resource and scope attributes pass through an allow-list — unless the tenant enables **Advanced OTLP metric dimensions**, in which case *all* resource/scope/data-point attributes become dimensions except a deny list, and `otel.scope.name`/`otel.scope.version` are always added. On conflicts, data-point attributes win over scope, which wins over resource. Limits shift with that mode too: 50 → 100 dimensions, 100 → 350-character dimension keys, 255 → 2,048-character values; requests cap at 4 MB uncompressed and 15,000 data points; instrument units longer than 63 characters are silently dropped.
 
 ### 4.5 Extensions 2.0
@@ -250,6 +255,7 @@ For technology you cannot instrument directly, an extension is a **declarative Y
 > - <sub>[StatsD (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/statsd) — ports 18125/18126; *"OneAgent deployed on Kubernetes, for example using Dynatrace Operator, isn't supported."*</sub>
 > - <sub>[OTLP API (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api) — endpoints, HTTP/protobuf-only; *"To authenticate, use a platform token with Bearer in the Authorization HTTP header."*</sub>
 > - <sub>[OTLP metrics ingest concepts (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/about-metrics-ingest) — delta temporality, histogram type mapping (explicit-bucket histogram → Histogram with Advanced OTLP metric dimensions, Counter without; read 10/02/2026); instrument mapping table rows Counter Cumulative → N/A and UpDownCounter Cumulative → Gauge, and *"Cumulative histograms aren't ingested (similarly to cumulative counters)."* (re-read 10/15/2026)</sub>
+> - <sub>**Code read (10/29/2026):** at tag `v1.2.0` of `dynatrace-bindplane-otel-contrib`, [`metricstatsprocessor/processor.go`](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/processor/metricstatsprocessor/processor.go) sets `AggregationTemporalityCumulative` on its sums (line 283); [`metricextractprocessor/processor_ottl.go`](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/processor/metricextractprocessor/processor_ottl.go) creates `counter_*` sums with `SetEmptySum()` and sets no temporality (line 111). Both are in the [full Dynatrace Bindplane OTel Collector manifest](https://github.com/Dynatrace/dynatrace-bindplane-otel-collector/blob/v1.2.0/manifests/dynatrace-bindplane-otel-collector/manifest.yaml); `cumulativetodeltaprocessor` is in the [Dynatrace OTel Collector manifest](https://github.com/Dynatrace/dynatrace-otel-collector/blob/v0.59.0/manifest.yaml)</sub>
 > - <sub>[OTLP metrics configuration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/configure-otlp-metrics)</sub>
 > - <sub>[OTLP metrics limitations (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/about-metrics-ingest) — size/length limits, 63-character unit cap</sub>
 > - <sub>[Collector configuration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector/configuration) — `cumulativetodelta` + `max_staleness` guidance</sub>

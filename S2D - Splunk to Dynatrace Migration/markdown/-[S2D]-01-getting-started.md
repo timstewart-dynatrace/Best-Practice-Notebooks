@@ -1,6 +1,6 @@
 # S2D-01: Splunk to Dynatrace Migration - Getting Started
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 10/05/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -9,13 +9,20 @@ This notebook series provides comprehensive guidance for migrating monitoring ca
 ![Migration Overview](images/01-migration-overview.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
-| Source | Target | Coverage |
-|---|--------|----------|
-| Splunk Queries | DQL Queries | S2D-03 |
-| Splunk Alerts | Anomaly Detectors | S2D-04 |
-| Splunk Alerts | Workflows | S2D-05 |
-| Splunk Dashboards | Dynatrace Dashboards | S2D-08 |
-| Splunk Indexes | Dynatrace Buckets | S2D-02 |
+Configuration migration — the migration moves configuration: queries, alerts, dashboards and reports.
+| Splunk | Dynatrace | Coverage |
+|--------|-----------|----------|
+| SPL queries | DQL queries | S2D-03 |
+| Scheduled alerts (timeframe ≤ 60 min) | Anomaly detectors — continuous, every minute | S2D-04 |
+| Scheduled alerts (timeframe > 60 min, or few runs a day) | Workflows — scheduled trigger | S2D-05 |
+| Dashboards | Dashboards | S2D-08 |
+| Reports | Workflows, notebooks or dashboards | S2D-05, S2D-09 |
+Data — not migrated:
+| Splunk | Dynatrace | Coverage |
+|--------|-----------|----------|
+| Indexes — history stays in Splunk or an archive | Buckets (Grail) — new data from the point ingest starts | S2D-02 (verify new log data) |
+Indexed history is not migrated — see Historical Splunk Data.
+Series notebooks: S2D-02 Locating Logs · S2D-03 SPL to DQL · S2D-04 Anomaly Detectors · S2D-05 Workflow Alerts · S2D-06 ArrayMovingSum · S2D-07 Metric Creation · S2D-08 Dashboard Migration · S2D-09 Naming Standards
 For environments where SVG doesn't render
 -->
 
@@ -121,6 +128,21 @@ A successful migration follows this general sequence:
 1. **Recreate visualizations** - Build equivalent charts
 2. **Apply filters** - Configure time and segment filters
 3. **Validate accuracy** - Compare with Splunk dashboards
+
+### Historical Splunk Data
+
+Data already stored in Splunk indexes is **not migrated** into Dynatrace log storage. The migration moves configuration — queries, alerts, dashboards — and Dynatrace holds log data only from the point ingest starts. Replaying a bulk export of Splunk history through log ingest does not work either: *"The event is dropped if the log event contains a timestamp before the current time minus 24 hours."*
+
+SaaS 1.348 widens that window — *"The log ingestion pipeline now accepts log records with timestamps up to 72 hours in the past"* — with a **staged tenant rollout** (from 10/12/2026); verify it has reached your tenant before relying on it. Until it does, 24 hours remains the working limit. Either way the window covers days, not the months or years a Splunk index holds.
+
+Plan for history instead:
+
+1. **Keep historical data readable outside Dynatrace** - Keep Splunk searchable, or move the data to an archive, for as long as your audit, compliance or investigation requirements say it must be kept.
+2. **Size the parallel run to the look-back you need** - In community practice, teams run both platforms until Dynatrace has accumulated the history its dashboards, alert baselines and the data-driven threshold strategy in S2D-04 depend on — verify the window against your own longest look-back before cutover.
+
+The `splunksearchapireceiver` Collector component, which ships in the Dynatrace Bindplane OTel Collector distribution, exports Splunk search results with each event's original `_time` as the record timestamp, so it is bound by the same age limit and cannot backfill history either.
+
+> <sub>**Sources:** [Log Management and Analytics default limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits), [SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348), [splunksearchapireceiver at v1.2.0 (Dynatrace GitHub)](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/tree/v1.2.0/receiver/splunksearchapireceiver). **Code read (10/29/2026):** `model.go` maps the search result's `_time` to `Time`; `receiver.go` parses it and passes it to `log.SetTimestamp`; `metadata.yaml` lists `distributions: [Dynatrace-Bindplane]`.</sub>
 
 <a id="series-roadmap"></a>
 ## Series Roadmap

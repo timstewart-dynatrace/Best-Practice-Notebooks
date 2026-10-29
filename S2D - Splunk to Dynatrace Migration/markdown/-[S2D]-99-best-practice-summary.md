@@ -1,6 +1,6 @@
 # S2D-99: Best Practice Summary
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -43,6 +43,7 @@ This notebook consolidates every actionable best practice from the S2D (Splunk t
 | 4 | Map Splunk indexes to Dynatrace buckets | Each Splunk index maps to a Grail bucket; document the mapping before translation | Critical | Process |
 | 5 | Validate log availability before query translation | Run DQL validation queries (S2D-02) before attempting SPL-to-DQL conversion | Critical | Process |
 | 6 | Compare log volumes between platforms | Run equivalent time-bounded queries in both Splunk and Dynatrace to confirm counts match | Recommended | Validation |
+| 91 | Do not plan to migrate historical Splunk data | Log ingest drops records stamped more than 24 hours in the past (72 hours from SaaS 1.348, staged rollout — verify on your tenant). Keep Splunk or an archive readable for the required retention period, and run both platforms until Dynatrace holds the look-back your dashboards and alerts need (S2D-01) | Critical | Process |
 
 <a id="log-discovery-and-validation"></a>
 ## 2. Log Discovery and Validation
@@ -184,11 +185,11 @@ This notebook consolidates every actionable best practice from the S2D (Splunk t
 
 ## Summary
 
-This notebook contains **90 best practices** across 10 categories for Splunk to Dynatrace migration:
+This notebook contains **91 best practices** across 10 categories for Splunk to Dynatrace migration:
 
 | Category | Count | Priority Breakdown |
 |----------|-------|--------------------|
-| Migration Planning | 6 | 4 Critical, 2 Recommended |
+| Migration Planning | 7 | 5 Critical, 2 Recommended |
 | Log Discovery and Validation | 7 | 2 Critical, 5 Recommended |
 | Query Translation (SPL to DQL) | 17 | 11 Critical, 6 Recommended |
 | Alert Migration - Anomaly Detectors | 10 | 6 Critical, 4 Recommended |
@@ -198,7 +199,7 @@ This notebook contains **90 best practices** across 10 categories for Splunk to 
 | Dashboard Migration | 7 | 1 Critical, 6 Recommended |
 | Naming Standards | 11 | 4 Critical, 6 Recommended, 1 Optional |
 | DQL Performance and Syntax | 10 | 4 Critical, 5 Recommended, 1 Optional |
-| **Total** | **90** | **42 Critical, 46 Recommended, 2 Optional** |
+| **Total** | **91** | **43 Critical, 46 Recommended, 2 Optional** |
 
 ## References
 

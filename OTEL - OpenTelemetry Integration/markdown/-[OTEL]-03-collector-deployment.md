@@ -1,6 +1,6 @@
 # OTEL-03: Collector Deployment Patterns
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 3 of 8 | **Created:** January 2026 | **Last Updated:** 10/28/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 3 of 8 | **Created:** January 2026 | **Last Updated:** 10/29/2026
 
 ## Deploying the OpenTelemetry Collector
 The OTel Collector can be deployed in various patterns depending on your infrastructure. This notebook covers deployment modes, Kubernetes configurations, and best practices for production.
@@ -129,6 +129,8 @@ spec:
 ```
 
 > **Collector version currency (checked 10/28/2026):** the pins in this notebook (`otel/opentelemetry-collector-contrib:0.151.0`, Dynatrace distro `v0.48.0`) are the **validated baseline** for these examples. Newer Dynatrace-distro releases exist — up to **v0.59.0** (released 10/27/2026, wrapping upstream v0.163.0). Review the [release notes](https://github.com/Dynatrace/dynatrace-otel-collector/releases) for every version you cross before bumping; earlier examples of breaking changes include the `filter` processor's default `error_mode` changing to `ignore` (0.49), `span_metrics` rejecting duplicate dimension names at startup (0.50), and `memory_limiter` self-metrics being renamed to `otelcol_processor_memory_limiter_*` (0.51 — affects self-monitoring dashboards that chart those series). Upgrade deliberately per the always-pin guidance in this section, reviewing the [release notes](https://github.com/Dynatrace/dynatrace-otel-collector/releases) for each version you cross.
+
+> **Production image:** the DaemonSet, sidecar and gateway examples pin Contrib so the YAML runs anywhere. For production, swap in the pinned Dynatrace distribution (`ghcr.io/dynatrace/dynatrace-otel-collector/dynatrace-otel-collector:v0.48.0`) — Dynatrace *"recommends using the Contrib distribution only for testing purposes"*. OTEL-07 § 1 covers what Dynatrace Support covers.
 
 <a id="gateway-mode"></a>
 ## 3. Gateway Mode
@@ -277,10 +279,11 @@ The Helm install above creates a raw `Deployment` that you own and roll over man
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Stage | Resource | What it does |
 |-------|----------|--------------|
-| 1 | OpenTelemetry Operator | Installed once per cluster from the Helm chart |
-| 2 | OpenTelemetryCollector CR | You write this — collector config inline |
-| 3 | Operator reconciles | Creates managed Deployment, ConfigMap, ServiceAccount |
-| 4 | ClusterRole + ClusterRoleBinding | Provisioned separately for cross-namespace pod discovery |
+| 1 | OpenTelemetryCollector CR | You write this — collector config inline — and `kubectl apply` it |
+| 2 | Kubernetes API server | Stores the CR; controllers see it via watch |
+| 3 | OpenTelemetry Operator | Controller installed once per cluster from the Helm chart; watches the CR |
+| 4 | Operator reconciles | Creates managed Deployment, ConfigMap, Service, ServiceAccount |
+| 5 | ClusterRole + ClusterRoleBinding | You provision these separately — cluster-scoped read for Prometheus pod discovery |
 For environments where SVG does not render
 -->
 
@@ -413,7 +416,7 @@ This builds directly on the OpenTelemetry Operator pattern in §4 — the **Targ
 | Tier | Resource | Role |
 |------|----------|------|
 | Target Allocator | Operator component | Discovers targets via CRDs; consistent-hash assigns them to scrapers |
-| Scraper tier | Deployment + HPA | Stateless `prometheus` receiver that polls the allocator for its slice; scales horizontally |
+| Scraper tier | Deployment + HPA | Stateless `prometheus` receiver that polls the allocator for its slice; scales horizontally; hand-off via `loadbalancing` exporter (`routing_key: resource`) |
 | Gateway tier | StatefulSet | Stateful processing (cumulativetodelta, k8sattributes); receives a resource-hashed stream so a series lands on one gateway |
 | Dynatrace | OTLP API | `otlphttp` export to `/api/v2/otlp` |
 For environments where SVG does not render
@@ -910,6 +913,7 @@ In this notebook, you learned:
 - [Collector Deployment](https://opentelemetry.io/docs/collector/deploy/)
 - [Helm Chart](https://github.com/open-telemetry/opentelemetry-helm-charts)
 - [Docker Images](https://hub.docker.com/r/otel/opentelemetry-collector-contrib)
+- [Dynatrace OTel Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector) — *"Dynatrace recommends using the Contrib distribution only for testing purposes."*
 
 ---
 

@@ -1,6 +1,6 @@
 # FAQ-24: Can We Trust Dynatrace With Our Data?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 24 — Trusting the Platform With Your Data | **Created:** September 2026 | **Last Updated:** 10/15/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 24 — Trusting the Platform With Your Data | **Created:** September 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -71,9 +71,9 @@ This entry routes rather than restates. The mechanics live in the ORGNZ, IAM, OP
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Axis | Mechanism | Controlled by | Failure mode |
 |------|-----------|---------------|--------------|
-| Captured | Masking before storage | OneAgent (regular expressions), OpenPipeline (DPL) | Access control can only decide who sees the leak |
+| Captured | Masking before storage | OneAgent (regex), OTel Collector redaction/transform (regex), OpenPipeline (DPL) | Access control can only decide who sees the leak |
 | Stored | Region and buckets, encrypted at rest | Hosting region, bucket retention | Kept longer, or elsewhere, than obligations allow |
-| Accessed | IAM policy and boundary | dt.security_context, bucket name | Silent: the wrong people see it, or no one does |
+| Accessed | IAM policy and boundary — a WHERE clause or boundary | dt.security_context, bucket name | Silent: the wrong people see it, or no one does |
 | Proven | Audit events | event.kind == "AUDIT_EVENT" in dt.system.events | Controls that held, but cannot be demonstrated |
 For environments where SVG doesn't render
 -->
@@ -130,15 +130,23 @@ The trade-off is stated plainly on the OneAgent masking page: *"if you choose to
 
 That second point is the one that catches teams out. A OneAgent rule applies only to what OneAgent captures: *"If you import your data to Dynatrace via generic ingest, you need to mask the sensitive data on the source level, before ingestion."* Logs arriving over the API, from an OpenTelemetry Collector, or through a log shipper never meet the OneAgent rule. For those, the choice is between masking at the source and masking in OpenPipeline.
 
+**For data that passes through an OpenTelemetry Collector, "the source" has a concrete form.** The Collector's `redaction` and `transform` processors mask values before they leave your network. Dynatrace documents both with sample configurations for card numbers and email addresses, and both are included in the Dynatrace OTel Collector. **OTEL-02 § 4 (Masking Sensitive Data)** has the configuration. Their patterns are regular expressions, like OneAgent's, but they are a separate rule set: a pattern added to the OneAgent rule is not added to the Collector.
+
 **The two layers use different pattern languages.** A OneAgent rule's search expression is *"A regular expression to match the string that you want to mask."* OpenPipeline masking runs in the processing stage — the stage where, per the OpenPipeline docs, *"Fields are edited, and sensitive data is masked."* Its pattern functions take DPL, not regular expressions. A rule written once is therefore not a rule applied everywhere; **FAQ-15** covers the translation, including the places where regular-expression habits give the wrong answer in DPL.
 
 | | Without a masking plan | With one | Impact |
 |---|---|---|---|
 | Where clear text exists | Wherever the data first lands | Only inside your environment, for captured data | Fewer places to defend |
-| Non-OneAgent channels | Masked by nothing | Masked at the source or in OpenPipeline | Closes the silent gap |
+| Non-OneAgent channels | Masked by nothing | Masked at the source (for Collector data, its `redaction` / `transform` processors) or in OpenPipeline | Closes the silent gap |
 | Rule maintenance | One rule assumed to cover everything | One rule per layer, in that layer's language | Coverage you can actually state |
 
-> <sub>**Sources:** [Methods of masking sensitive data (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-use-cases/methods-of-masking-sensitive-data), [Sensitive data masking in OneAgent (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-sensitive-data-masking), [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing). **Derived:** that OpenPipeline's pattern functions take DPL rather than regular expressions rests on FAQ-15's reading of those functions.</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[Methods of masking sensitive data (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-use-cases/methods-of-masking-sensitive-data)</sub>
+> - <sub>[Sensitive data masking in OneAgent (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-sensitive-data-masking)</sub>
+> - <sub>[Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)</sub>
+> - <sub>[Mask sensitive data with the OTel Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector-use-cases/redact) — *"One of the following Collector distributions with the transform and/or redaction processors:"*, with the Dynatrace OTel Collector listed</sub>
+> - <sub>[Dynatrace OTel Collector manifest (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-otel-collector/blob/v0.59.0/manifest.yaml) — `redactionprocessor` and `transformprocessor` both listed in v0.59.0</sub>
+> - <sub>**Derived:** that OpenPipeline's pattern functions take DPL rather than regular expressions rests on FAQ-15's reading of those functions; that the Collector processors take regular expressions rests on the sources in FAQ-15 § 3.5.</sub>
 
 <a id="stored"></a>
 ## 5. Stored — Region, Encryption, Retention
@@ -259,7 +267,7 @@ Controls that held are only half of trust. The other half is being able to show 
 |---------|------------|------------------|-----|
 | Segments as access control | A segment hides other teams' data | Every query already respects IAM permissions; a segment filters the view and holds no data of its own | Scope access in IAM on dt.security_context |
 | = or IN on an array | A valid boundary using security_context IN (...) | When a record field is an array, =, STARTSWITH and IN always return false; nothing errors | Records and Smartscape: MATCH. Classic entities: startsWith (MATCH is not available). Check with type() first |
-| One masking layer only | PII masked at capture, so the job looks done | OneAgent masks with regular expressions and OpenPipeline with DPL; data ingested another way never meets the OneAgent rule | Decide, per source, which layer masks it |
+| One masking layer only | PII masked at capture, so the job looks done | OneAgent and the Collector mask with regular expressions, OpenPipeline with DPL; data ingested another way never meets the OneAgent rule | Decide, per source, which layer masks it |
 For environments where SVG doesn't render
 -->
 
@@ -279,7 +287,7 @@ All three pass every validator. The policy is valid, the segment works, the mask
 Work the axes in order. Each step assumes the one before it is done.
 
 1. **Decide what should never arrive.** List the sensitive values in your data — card numbers, credentials, personal data — before any access design. Mask at capture wherever OneAgent collects the data, so clear text never leaves your environment.
-2. **Inventory your ingest channels.** For every channel OneAgent does not collect — API, OpenTelemetry, log shippers — decide whether to mask at the source or in OpenPipeline, and write that rule in that layer's language.
+2. **Inventory your ingest channels.** For every channel OneAgent does not collect — API, OpenTelemetry, log shippers — decide whether to mask at the source or in OpenPipeline, and write that rule in that layer's language. For OpenTelemetry data, the source is the Collector's `redaction` and `transform` processors (OTEL-02 § 4).
 3. **Settle residency before you provision.** The region belongs to the environment. If residency is an obligation, it is an input to environment design, not a later setting.
 4. **Design buckets for storage, not for access.** Use separate buckets for retention, cost, and hard compliance boundaries. Default to `dt.security_context` for who sees what.
 5. **Measure security-context coverage.** Run the coverage check in section 6. Every record without the field sits outside every security-context policy — fix it with enrichment.

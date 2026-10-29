@@ -1,6 +1,6 @@
 # FAQ-23: How Do I Monitor Box With Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 23 — Monitoring Box With Dynatrace | **Created:** August 2026 | **Last Updated:** 10/23/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 23 — Monitoring Box With Dynatrace | **Created:** August 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -26,7 +26,7 @@ This entry is a **worked example of FAQ-19**. The generic decisions — signal c
 3. [The Four Signal Classes](#signal-classes)
 4. [The Events API — The Constraint That Shapes Everything](#events-api)
 5. [Sizing: A Worked Example at 1,000,000 Events/Day](#sizing)
-6. [Choosing the Collector — Workflow or Python](#choosing)
+6. [Choosing the Collector — Workflow, Python or the Collector Receiver](#choosing)
 7. [Implementation A — Dynatrace Workflow](#workflow)
 8. [Implementation B — Python](#python)
 9. [Ingestion, Processing, and Storage](#ingestion)
@@ -260,9 +260,9 @@ Decide retention *before* you turn the collector on. Reducing retention later do
 ---
 
 <a id="choosing"></a>
-## 6. Choosing the Collector — Workflow or Python
+## 6. Choosing the Collector — Workflow, Python or the Collector Receiver
 
-![Choosing the Collector — Workflow or Python](images/23-workflow-vs-python.png)
+![Choosing the Collector — Workflow by default](images/23-workflow-vs-python.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Aspect | Dynatrace Workflow (JS runtime) | Python collector |
@@ -274,6 +274,8 @@ Decide retention *before* you turn the collector on. Reducing retention later do
 | Cursor storage | stateClient app state (verify from a workflow first) | Your own durable store |
 | Scheduling/retry | Built in | You build it |
 | Best for | Steady-state polling up to ~35,000 events/run | Backfill, replay, very high volume |
+For Workflow vs Python, the 120-second timeout decides. At 1M events/day (~7 pages of 500 per 5-minute run, about 10% of the run budget) use a Workflow; reach for Python for backfill beyond the two-week window or above ~35,000 events per run. Page latency is an estimate — measure it in your own tenant.
+Third option: the restapi Collector receiver (beta; full Bindplane Collector build, outside Dynatrace Collector support) — no code, but no dedupe and no 429 back-off. See § 6.1.
 -->
 
 | | **Workflow (JS runtime)** | **Python** |
@@ -298,6 +300,73 @@ Decide retention *before* you turn the collector on. Reducing retention later do
 A common and sensible split: **Python for the one-time historical backfill, Workflow for steady state.** They write to the same `log.source` and the same bucket, and the backfill runs once.
 
 > <sub>**Sources:** [JavaScript runtime limits (Dynatrace Developer)](https://developer.dynatrace.com/develop/reference/javascript-runtime/), [Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action) — *"The task result size is limited to 6 MB."*, [Get Enterprise Events (Box Dev Docs)](https://developer.box.com/guides/events/enterprise-events/for-enterprise). **Derived:** the ~35,000-events-per-run boundary combines the documented 120 s ceiling with the 500-event page size and an estimated per-page latency — verify locally per § 5.2.</sub>
+
+### 6.1 The REST API Collector receiver
+
+A third option needs no code of your own. The `restapi` receiver for the OpenTelemetry Collector is a generic REST poller: it calls a URL on a schedule, follows the API's pagination, and emits each item of the response array as a log record. It supports OAuth 2.0 client credentials with extra token parameters, which is what Box's enterprise service account needs, and an opaque cursor such as `stream_position`. It is maintained in the `dynatrace-bindplane-otel-contrib` repository and built into the full Dynatrace Bindplane Distribution of the Collector (DBDOT). It is not in the slim DBDOT build or in the Dynatrace OTel Collector distribution, and Dynatrace's Collector support covers only the components that distribution includes. Its README configures it in plain Collector YAML, so Bindplane is optional. Its stability is **beta**.
+
+Measured against the rules this entry depends on, v1.2.0 (released 10/28/2026) gets the cursor rule right and falls short in several other places:
+
+| Rule from this entry | `restapi` receiver v1.2.0 | Effect |
+|---|---|---|
+| Write the cursor only after ingest succeeds (§ 7.3, gotcha 5) | Each page goes to the pipeline before the cursor advances. A pipeline error ends the poll without saving | Meets the rule as far as the exporter — see the queue row |
+| Persist the cursor between runs (§ 4.2) | Saved after each page and at the end of each poll, but only with a `storage` extension. Changing `url` invalidates the saved cursor | Without `storage`, a restart is a first run (next row) |
+| Start a new stream at `now` (§ 8.2) | An opaque cursor cannot be seeded: `starting_offset` is rejected with `offset_type: opaque`, and the first request omits `stream_position`. Adding `stream_position=now` to the URL does not help — the receiver adds its own parameter beside it on later requests | Box documents `now` and *"`0` or `null` will return all events"*, not an omitted parameter. If the first run starts at the beginning, it replays up to two weeks, and records older than the Log Age limit are dropped at ingest |
+| Back off on `429` using `retry-after` (§ 4.1) | No `429` or `Retry-After` handling. Any non-2xx response is an error, and the next attempt waits for the next poll, whose interval grows toward `max_poll_interval` | The cursor does not move, so nothing is lost. Rarely binding at Box's rate limit (§ 5) |
+| No `timestamp` on events older than ~23 h (§ 9.1, gotcha 16) | The record time comes from the first top-level `timestamp`, `time`, `created_at` … field — for Box, `created_at`, always | A backlog older than the Log Age limit is discarded at OTLP ingest. Applying the 23 h rule needs a `transform` processor rule (not written or tested here) |
+| Dedupe on `event_id` (§ 4, § 12.2) | No deduplication | `admin_logs_streaming` duplicates reach Dynatrace. Count them with § 12.2 and dedupe at query time |
+| A crash must not lose collected events (§ 13) | The exporter's sending queue is in memory unless you give it `storage`, so a page counts as forwarded once it is queued | A crash can lose queued records the cursor has already passed. Set `sending_queue.storage` too |
+| Poll every 5 minutes (§ 5) | Adaptive interval: it drops to `min_poll_interval` only when `page_limit` is set and the last page was full — not whenever data arrives, as the README says. Without `page_limit` each poll drains every page and the interval settles at `max_poll_interval` | Set `max_poll_interval: 5m` (the default) for the § 5 cadence |
+
+**If you test it, start from this configuration — it has not been run against a Box enterprise:**
+
+```yaml
+extensions:
+  file_storage:
+    directory: /var/lib/otelcol/box   # must survive restarts
+receivers:
+  restapi/box:
+    url: https://api.box.com/2.0/events?stream_type=admin_logs_streaming
+    auth_mode: oauth2
+    oauth2:
+      client_id: ${env:BOX_CLIENT_ID}
+      client_secret: ${env:BOX_CLIENT_SECRET}
+      token_url: https://api.box.com/oauth2/token
+      endpoint_params:
+        box_subject_type: enterprise
+        box_subject_id: ${env:BOX_ENTERPRISE_ID}
+    response_field: entries
+    pagination:
+      mode: offset_limit
+      offset_limit:
+        offset_field_name: stream_position
+        next_offset_field_name: next_stream_position
+        offset_type: opaque
+        limit_field_name: limit
+        limit: 500
+    max_poll_interval: 5m
+    storage: file_storage
+exporters:
+  otlphttp:
+    # your environment's OTLP endpoint and token
+    sending_queue:
+      storage: file_storage   # persistent queue
+```
+
+Add `file_storage` to `service.extensions` and the receiver to a logs pipeline that uses the exporter. The receiver puts the whole Box event in the log body. The § 10 field mapping and the § 12 and § 13 queries read the `box.*` attributes and the `log.source` the Workflow and Python collectors write, so map them in OpenPipeline or adapt the queries before you rely on them.
+
+**When it fits:** steady-state streaming, once you have run its first poll against a Box sandbox and seen where the stream starts. The Workflow (§ 7) stays the default, and the `admin_logs` backfill (§ 8.3) is unchanged: the receiver stamps every record with its event time, so without a `transform` rule it cannot replay events older than the Log Age limit. The receiver is new and actively developed, so re-check this table against each release.
+
+> <sub>**Sources:**</sub>
+> - <sub>[restapireceiver README (Dynatrace GitHub)](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/restapireceiver/README.md) — *"When a storage extension is configured, the receiver saves its pagination state to storage after each page fetch."*</sub>
+> - <sub>[restapireceiver metadata (Dynatrace GitHub)](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/restapireceiver/metadata.yaml) — *"beta: [logs, metrics]"*</sub>
+> - <sub>[OpenTelemetry Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector) — *"This support covers only the components and their versions that are included in the Dynatrace OTel Collector."*</sub>
+> - <sub>[List user and enterprise events (Box Dev Docs)](https://developer.box.com/reference/get-events) — *"`now` will return an empty list events and the latest stream position for initialization."*</sub>
+> - <sub>[Client credentials grant (Box Dev Docs)](https://developer.box.com/guides/authentication/client-credentials) — *"Every token request names one of three subjects."*</sub>
+> - <sub>[Exporter helper (OpenTelemetry GitHub)](https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/exporterhelper/README.md) — *"There is no in-memory queue when set."*</sub>
+> - <sub>[Ingest OTLP logs (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-logs) — *"Log events older than the Log Age limit are discarded."*</sub>
+> - <sub>**Code read (10/29/2026):** at tag `v1.2.0`, `receiver.go` sends each page to the pipeline before reading the next cursor and returns on a pipeline error before saving; `client.go` treats every non-2xx status as an error and contains no `Retry-After` handling (control: its OAuth2 `token_url`, `scopes` and `endpoint_params` handling is found in the same file); `client.go` adds pagination parameters to any already in the URL rather than replacing them; `config.go` rejects `starting_offset` with `offset_type: opaque`; `pagination.go` omits the cursor parameter until a token arrives; `logs.go` reads the record time from the first of `timestamp`, `time`, `created_at`, `createdAt`, `date`, `datetime`, `@timestamp`. Component lists: `restapireceiver v1.2.0` is in the full DBDOT manifest and in neither the slim DBDOT manifest nor the Dynatrace OTel Collector manifest (0.59.0). Not run against Box</sub>
+> - <sub>**Derived:** the queue row combines the exporter-helper sentence with the receiver forwarding a page before it saves the cursor</sub>
 
 ---
 

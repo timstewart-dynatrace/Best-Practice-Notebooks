@@ -170,7 +170,7 @@ You are deploying **Dynatrace Managed**, the self-hosted, on-premises deployment
 | 3. Configure the cluster | [DTM](../DTM%20-%20Dynatrace%20Managed/) — notebook 02 (cluster configuration) | Email, Mission Control, sign-in, privileges, backups |
 | 4. Environments and access | [DTM](../DTM%20-%20Dynatrace%20Managed/) — notebook 03 (environments) | Environment boundaries, identity source, permissions |
 | 5. ActiveGates, then OneAgents | [DTM](../DTM%20-%20Dynatrace%20Managed/) — notebooks 04 and 05 | ActiveGates first: OneAgent installers carry their endpoints |
-| 6. Operate | [DTM](../DTM%20-%20Dynatrace%20Managed/) — notebooks 10–16 and 99 | Five-layer health model and the weekly checklist |
+| 6. Operate | [DTM](../DTM%20-%20Dynatrace%20Managed/) — notebooks 10–17 and 99 | Five-layer health model and the weekly checklist |
 
 Exit criteria: the cluster design written down; the design and configuration review in DTM notebook 99 passed; first OneAgents reporting through Environment ActiveGates; the weekly health check running.
 

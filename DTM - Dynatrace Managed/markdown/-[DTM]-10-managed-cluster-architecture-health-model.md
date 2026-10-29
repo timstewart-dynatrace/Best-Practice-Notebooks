@@ -1,6 +1,6 @@
 # DTM-10: Managed Cluster Architecture and Health Model
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 10 — Managed Cluster Architecture and Health Model | **Created:** September 2026 | **Last Updated:** 10/22/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 10 — Managed Cluster Architecture and Health Model | **Created:** September 2026 | **Last Updated:** 10/29/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -183,7 +183,7 @@ Five places report cluster health. They overlap, but each has a job the others c
 
 ### 6.1 Cluster Management Console (CMC)
 
-The first stop for a human. *"Home displays the Dynatrace Managed deployment overview, with a graphical representation of your deployment at a glance."* It also shows the date and storage location of the **last backup**. *"Deployment status provides an overview of your Cluster infrastructure"* — expand a node's row for its details. **Events** *"lists log events by message and timestamp."* To test the Mission Control link on demand, open the **Licensing** page and select **Check Mission Control connection** in the upper-right corner.
+The first stop for a human. *"Home displays the Dynatrace Managed deployment overview, with a graphical representation of your deployment at a glance."* It also shows the date and storage location of the **last backup**. *"Deployment status provides an overview of your Cluster infrastructure"* — expand a node's row for its details. **Events** *"lists log events by message and timestamp."* **Audit log** *"lists events triggered by the cluster and selected configuration changes for all environments"*, but only *"changes related to cluster-wide configuration, licensing, storage quota, and permissions"*. Environment-level entries come from the Audit Logs API. To test the Mission Control link on demand, open the **Licensing** page and select **Check Mission Control connection** in the upper-right corner.
 
 ### 6.2 Cluster event notifications
 

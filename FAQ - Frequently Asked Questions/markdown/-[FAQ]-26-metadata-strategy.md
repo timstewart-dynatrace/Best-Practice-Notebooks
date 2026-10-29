@@ -1,6 +1,6 @@
 # FAQ-26: What Metadata Should We Set, Where, and Why?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 26 — Metadata Strategy | **Created:** October 2026 | **Last Updated:** 10/23/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 26 — Metadata Strategy | **Created:** October 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -200,7 +200,7 @@ Three methods, set out in full in **K8S-10**: **central rules** that promote nam
 
 Add values as **resource attributes** — `OTEL_RESOURCE_ATTRIBUTES` at the SDK, or a `resource` processor in the Collector. Any attribute named `primary_tags.<key>` is treated as a primary tag, and `dt.security_context`, `dt.cost.costcenter` and `dt.cost.product` are recognized as well. When both the SDK and the Collector set a key, the last writer wins, which is normally the Collector. Choose `upsert` or `insert` on purpose.
 
-Built-in fields such as `dt.host_group.id` arrive automatically only when the OTLP data comes through OneAgent injection or the Dynatrace Operator. OTLP sent directly or through a standalone Collector gets only what you attach. A central configuration for standalone OpenTelemetry resource attributes is *"planned, but not yet available"* — until it arrives, resource attributes and OpenPipeline are the working paths.
+Built-in fields such as `dt.host_group.id` arrive automatically only when the OTLP data comes through OneAgent injection or the Dynatrace Operator. OTLP sent directly or through a standalone Collector gets only what you attach. A central configuration for standalone OpenTelemetry resource attributes is *"planned, but not yet available"* — until it arrives, resource attributes and OpenPipeline are the working paths. Where the value lives only outside the data, such as in a CMDB, §5.8 covers the Collector option.
 
 > <sub>**Sources:** [Enrich OpenTelemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-otel) — *"The dt.security_context, dt.cost.costcenter, and dt.cost.product attributes are also recognized as primary Grail tags automatically."*</sub>
 
@@ -268,9 +268,23 @@ RUM is different from every other producer because nothing about it can be confi
 
 ### 5.8 Everything else: APIs, log shippers and CMDBs
 
-Data sent straight to an ingest API or through a log shipper has no enrichment page of its own. Two documented paths reach it. **OpenPipeline primary Grail tag rules** apply to *"any incoming record of any type"* before routing, and each rule takes an ordered list of source fields, using the first that is present. **Set security context** processors cover spans, logs and metrics after routing. When the value isn't on the data at all, for example ownership kept in a CMDB, neither path can create it. The WFLOW-95 lab instead uses a scheduled workflow that writes CMDB values onto hosts as tags, which OneAgent then carries.
+Data sent straight to an ingest API or through a log shipper has no enrichment page of its own. Two documented paths reach it. **OpenPipeline primary Grail tag rules** apply to *"any incoming record of any type"* before routing, and each rule takes an ordered list of source fields, using the first that is present. **Set security context** processors cover spans, logs and metrics after routing. When the value isn't on the data at all, for example ownership kept in a CMDB, neither path can create it.
 
-> <sub>**Sources:** [Set primary Grail tag rules in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/get-started/primary-grail-tags), [Configure security context (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-security-context) — *"At-source enrichment is always preferred over OpenPipeline-based enrichment for the security context."*</sub>
+**Data that passes through a Collector has one more option.** The `lookup` processor matches a field on each record against a CSV file, a Redis store or an HTTP API, and adds the columns of the matching row to the record before ingest. It ships only in the full Dynatrace Bindplane OTel Collector build — not the slim build, and not the Dynatrace OTel Collector, which is the boundary of Dynatrace's Collector support. Three behaviours to plan for:
+
+- **It fails open.** While the source is unreachable, records pass through un-enriched, with one warning in the Collector log. A key with no match is logged at debug level only.
+- **It overwrites.** A column with the same name as an existing attribute replaces it, so a column named `dt.security_context` or `primary_tags.team` replaces the value set at source.
+- **Misses are not cached.** On the Redis and API sources, a key with no match is looked up again for every record that carries it.
+
+Run the §7 coverage audit after enabling it. It never sees OneAgent-captured data, so for host tags the WFLOW-95 lab remains the answer: a scheduled workflow that writes CMDB values onto hosts as tags, which OneAgent then carries.
+
+> <sub>**Sources:**</sub>
+> - <sub>[Set primary Grail tag rules in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/get-started/primary-grail-tags)</sub>
+> - <sub>[Configure security context (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-security-context) — *"At-source enrichment is always preferred over OpenPipeline-based enrichment for the security context."*</sub>
+> - <sub>[lookupprocessor README (Dynatrace GitHub)](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/processor/lookupprocessor/README.md) — *"This processor enriches telemetry by looking up values from an external data lookup and adding the resulting fields to the configured `context`."*</sub>
+> - <sub>[Dynatrace Bindplane OTel Collector manifest (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-bindplane-otel-collector/blob/v1.2.0/manifests/dynatrace-bindplane-otel-collector/manifest.yaml) — *"processor/lookupprocessor v1.2.0"*</sub>
+> - <sub>[Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector) — *"This support covers only the components and their versions that are included in the Dynatrace OTel Collector."*</sub>
+> - <sub>**Code read (10/29/2026):** at tag `v1.2.0`, [`source.go`](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/processor/lookupprocessor/source.go) logs one `Warn` — *"records pass through un-enriched until it recovers"* — when the source goes down (lines 83–88); [`processor.go`](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/processor/lookupprocessor/processor.go) logs a failed lookup at `Debug` and returns (line 391), and writes every returned column with `PutStr` (lines 395–397); [`cache.go`](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/processor/lookupprocessor/cache.go) returns a source error without caching it (lines 124–127). Not run against a live CMDB. The processor is absent from the slim build and the Dynatrace OTel Collector manifest</sub>
 
 <a id="silent-failure-modes"></a>
 ## 6. Silent Failure Modes

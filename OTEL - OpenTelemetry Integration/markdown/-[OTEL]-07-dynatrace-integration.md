@@ -1,6 +1,6 @@
 # OTEL-07: Dynatrace OTLP Integration
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 7 of 8 | **Created:** January 2026 | **Last Updated:** 10/28/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 7 of 8 | **Created:** January 2026 | **Last Updated:** 10/29/2026
 
 ## Complete Setup for OpenTelemetry with Dynatrace
 This notebook provides end-to-end configuration for sending OpenTelemetry data to Dynatrace, including authentication, endpoints, and verification.
@@ -77,7 +77,11 @@ Dynatrace provides its own **Collector distribution** with verified, production-
 | Features | Pre-configured for Dynatrace, upstream-compatible components |
 | Docs | [Dynatrace Collector](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector) |
 
-> **Tip:** The Dynatrace Collector distribution is recommended for production deployments. It includes verified components and stays current with upstream releases.
+> **Tip:** Use the Dynatrace Collector distribution for production. Its x86-64 and ARM64 builds *"are supported by the Dynatrace Support team"*. For Core, Contrib and Builder setups Dynatrace gives limited support, and *"This support covers only the components and their versions that are included in the Dynatrace OTel Collector."* Contrib is for test setups: *"Dynatrace recommends using the Contrib distribution only for testing purposes."*
+>
+> If you need a component the Dynatrace distribution does not ship, the same page lists the OpenTelemetry Collector Builder for building your own Collector — *"When you need to fully customize the Collector instance and only run the components required for your use case."* A Builder setup gets the same limited support, so components outside the Dynatrace distribution are not covered.
+
+> <sub>**Sources:** [Dynatrace OTel Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector) — *"Dynatrace provides limited support for Core, Contrib, and Builder setups."*</sub>
 
 ### Environment ID
 
@@ -108,10 +112,15 @@ Find your environment ID:
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Part | Description | Length |
 |------|-------------|--------|
-| Prefix | Token type identifier (e.g., dt0c01 for API v2) | 6 chars |
-| Public ID | Token identifier (safe to log) | 24 chars |
-| Secret | Secret key (keep secure!) | 64 chars |
+| Prefix | Token type identifier — `dt0s16` platform token, `dt0c01` classic access token | 6 chars |
+| Public portion | Public identifier | 24 chars |
+| Secret portion | Treat it like a password | 64 chars |
 Parts are separated by dots (.)
+
+| Token type | Authorization header | Scopes |
+|------------|----------------------|--------|
+| Platform token | `Authorization: Bearer dt0s16.…` | `openpipeline:traces:ingest`, `openpipeline:metrics:ingest`, `openpipeline:logs:ingest` |
+| Classic access token | `Authorization: Api-Token dt0c01.…` | `openTelemetryTrace.ingest`, `metrics.ingest`, `logs.ingest` |
 For environments where SVG doesn't render
 -->
 
@@ -149,11 +158,11 @@ Using the wrong scheme returns **401 Unauthorized** even when the token has the 
 # Avoid - Non-deterministic deployments
 image: otel/opentelemetry-collector-contrib:latest
 
-# Recommended - Pin to a specific version
-image: otel/opentelemetry-collector-contrib:0.151.0
-
-# Or use the Dynatrace distribution (pinned, not :latest)
+# Production - the Dynatrace distribution, pinned (see §1 for what Dynatrace Support covers)
 image: ghcr.io/dynatrace/dynatrace-otel-collector/dynatrace-otel-collector:v0.48.0
+
+# Test setups - Contrib, pinned (Dynatrace recommends Contrib for testing only)
+image: otel/opentelemetry-collector-contrib:0.151.0
 ```
 
 Check the [OpenTelemetry Collector releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) or [Dynatrace Collector releases](https://github.com/Dynatrace/dynatrace-otel-collector/releases) for the current stable version.
@@ -495,9 +504,9 @@ These do not conflict on the wire, but they overlap on what telemetry they produ
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Component | Pod placement | Signals it owns |
 |-----------|---------------|-----------------|
-| OneAgent (DaemonSet) | One per node | Host metrics, process detection, OneAgent-language traces, logs |
+| OneAgent (DaemonSet) | One per node | Host metrics, process group detection, OneAgent-language traces, logs |
 | DynaKube operator | Deployment in dynatrace namespace | Reconciles OneAgent + ActiveGate; injects OTLP env vars (v1.8+) |
-| OTel Collector | Deployment in o11y namespace | Prometheus scrape; OTLP receiver from app SDKs; OTLP export to DT |
+| OTel Collector | Deployment in o11y namespace | Prometheus scrape; OTLP receiver from app SDKs; logs (OTLP); OTLP export to DT |
 For environments where SVG does not render
 -->
 
@@ -552,6 +561,11 @@ processors:
 
 For full pipeline shape including this processor see **OTEL-05 §6.5 Full Pipeline**.
 
+> **Gotcha — processors that create sums.** Prometheus is not the only source of sums Dynatrace will not ingest. A processor that builds new sum metrics sets their temporality itself. Two examples from the full Dynatrace Bindplane OTel Collector build (`dynatrace-bindplane-otel-contrib` v1.2.0): `metricstatsprocessor` emits its statistics as **cumulative** sums when the input is a sum, and `metricextractprocessor` with `metric_type: counter_double` or `counter_int` creates sums with **no temporality set**. Cumulative sums are not ingested — *"Cumulative histograms aren't ingested (similarly to cumulative counters)."* What Dynatrace does with an unspecified temporality is not documented, so do not send it.
+>
+> - After `metricstatsprocessor`, add `cumulativetodelta` (it ships in the Dynatrace OTel Collector as well). It converts only monotonic sums — *"Non-monotonic sums are excluded."* — so check the output for non-monotonic inputs.
+> - For `metricextractprocessor`, keep a gauge type (`gauge_double`, the default, or `gauge_int`). `cumulativetodelta` skips any sum whose temporality is not cumulative, so it cannot fix a `counter_*` metric.
+
 ### 9.4. Auth Scheme Reminder
 
 OTLP from a Collector uses `Authorization: Api-Token ${TOKEN}` (classic) or `Authorization: Bearer ${TOKEN}` (Platform Token). DynaKube's data-ingest token follows the same rule — match the scheme to the token prefix. See **§2 Authentication Setup → Token Type and Auth Scheme** for the matrix.
@@ -590,19 +604,27 @@ Once a team runs more than a handful of OTel Collectors, the work shifts from wr
 | Telemetry that must reach Dynatrace **and** another backend | Multi-destination routing from the same Collectors |
 | Deployment model | Cloud or self-hosted |
 
-Two practical notes:
+Practical notes:
 
 - **Bindplane does not change the coexistence decisions above.** It manages *Collectors*; the signal-routing table in §9.1 and the Span Sensor vs OTLP rule still decide which component emits which signal.
 - **Do not write into `dt.bindplane.*`.** From SaaS 1.346 that namespace is *"reserved exclusively for Bindplane"*. A processing rule that sets those fields should move to a namespace you own.
 - **Bindplane is optional.** It helps operate many Collectors; it is not a prerequisite for sending OTel data to Dynatrace. As with any SaaS sprint, rollout to tenants is staged — check the tenant version.
+- **Know which Collector Bindplane runs, and what its support covers.** *"Bindplane uses the Dynatrace Bindplane OTel Collector by default, or you can bring your own OpAMP-compatible OTel Collector."* The Dynatrace OTel Collector support statement in §1 covers *"only the components and their versions that are included in the Dynatrace OTel Collector."* The full Dynatrace Bindplane OTel Collector ships components the Dynatrace OTel Collector does not — `metricstatsprocessor` and `metricextractprocessor` from `dynatrace-bindplane-otel-contrib`, for example — and those fall outside that statement.
 
 > <sub>**Sources:**</sub>
 > - <sub>[k8sattributes processor (OpenTelemetry Collector Contrib GitHub)](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/k8sattributesprocessor)</sub>
-> - <sub>[Cumulative to Delta processor (OpenTelemetry Collector Contrib GitHub)](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/cumulativetodeltaprocessor)</sub>
+> - <sub>[Cumulative to Delta processor (OpenTelemetry Collector Contrib GitHub)](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/cumulativetodeltaprocessor) — *"Non-monotonic sums are excluded."*</sub>
 > - <sub>[Configure OTLP Metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/configure-otlp-metrics)</sub>
 > - <sub>[Dynatrace Operator (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator)</sub>
-> - <sub>[About OTLP metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/about-metrics-ingest) — *"The Dynatrace backend exclusively works with delta values and requires the respective aggregation temporality."*</sub>
-> - <sub>[Bindplane (DT docs)](https://docs.dynatrace.com/docs/ingest-from/bindplane) — *"Bindplane is a unified telemetry pipeline to manage OpenTelemetry Collector fleets centrally"*; *"Collectors can send data to multiple backends simultaneously, including Dynatrace and Splunk."*</sub>
+> - <sub>[About OTLP metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/about-metrics-ingest) — *"The Dynatrace backend exclusively works with delta values and requires the respective aggregation temporality."*; *"Cumulative histograms aren't ingested (similarly to cumulative counters)."*</sub>
+> - <sub>[Bindplane (DT docs)](https://docs.dynatrace.com/docs/ingest-from/bindplane) — *"Bindplane is a unified telemetry pipeline to manage OpenTelemetry Collector fleets centrally"*; *"Collectors can send data to multiple backends simultaneously, including Dynatrace and Splunk."*; *"Bindplane uses the Dynatrace Bindplane OTel Collector by default, or you can bring your own OpAMP-compatible OTel Collector."*</sub>
+> - <sub>[Dynatrace OTel Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector) — *"This support covers only the components and their versions that are included in the Dynatrace OTel Collector."*</sub>
+> - <sub>[Dynatrace OTel Collector manifest (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-otel-collector/blob/main/manifest.yaml)</sub>
+> - <sub>[Dynatrace Bindplane OTel Collector manifest v1.2.0 (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-bindplane-otel-collector/blob/v1.2.0/manifests/dynatrace-bindplane-otel-collector/manifest.yaml)</sub>
+> - <sub>[metricstatsprocessor v1.2.0 (Dynatrace GitHub)](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/processor/metricstatsprocessor/processor.go#L282-L284)</sub>
+> - <sub>[metricextractprocessor v1.2.0 (Dynatrace GitHub)](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/processor/metricextractprocessor/processor_ottl.go#L110-L111)</sub>
+> - <sub>**Code read (10/29/2026):** `metricstatsprocessor/processor.go` L282–284 sets `AggregationTemporalityCumulative` on every sum it emits; `metricextractprocessor/processor_ottl.go` L110–111 creates a sum for `counter_*` types with no temporality call; `cumulativetodeltaprocessor/processor.go` (contrib v0.163.0) skips any sum whose temporality is not cumulative. The Dynatrace Bindplane OTel Collector manifest (v1.2.0) lists both processors; the Dynatrace OTel Collector manifest (v0.59.0) lists neither and does list `cumulativetodeltaprocessor`.</sub>
+> - <sub>**Derived:** §9.6 support boundary combines the Dynatrace OTel Collector support statement with the two manifests.</sub>
 > - <sub>[Dynatrace to acquire Bindplane (Dynatrace press release, 04/08/2026)](https://www.dynatrace.com/news/press-release/dynatrace-to-acquire-bindplane/) — *"today announced it has signed a definitive agreement to acquire Bindplane"*</sub>
 > - <sub>[What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — *"The `dt.bindplane.*` namespace is now reserved exclusively for Bindplane."*</sub>
 > - <sub>[OpenTelemetry Host Monitoring extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/opentelemetry-host-monitoring) — *"This extension automatically generates entities for hosts and their running processes."*</sub>
@@ -615,7 +637,7 @@ Two practical notes:
 In this notebook, you learned:
 
 - Dynatrace OTLP endpoints (HTTP only — gRPC requires Collector)
-- Dynatrace OTel Collector distribution for production deployments
+- Dynatrace OTel Collector distribution for production deployments, what Dynatrace Support covers, and Contrib for test setups
 - API token creation with required scopes; classic `Api-Token` vs Platform `Bearer` auth schemes
 - Complete Collector configuration
 - Direct SDK export configuration
@@ -623,7 +645,7 @@ In this notebook, you learned:
 - Span attributes that enhance Dynatrace analysis
 - OTLP metric dimensions changes and auto-configuration
 - Verification and troubleshooting
-- Coexistence patterns across OneAgent, DynaKube, and the OTel Collector — signal routing, entity-model joining via `metadata.dynatrace.com/*`, counter temporality
+- Coexistence patterns across OneAgent, DynaKube, and the OTel Collector — signal routing, entity-model joining via `metadata.dynatrace.com/*`, counter temporality, and processors that create sums Dynatrace will not ingest
 - Managing OTel Collector fleets centrally with Bindplane, and the reserved `dt.bindplane.*` namespace
 
 ---
