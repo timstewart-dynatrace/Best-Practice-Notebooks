@@ -1,6 +1,6 @@
 # DTM-13: Elasticsearch Store Health
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 13 — Elasticsearch Store Health | **Created:** September 2026 | **Last Updated:** 10/21/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 13 — Elasticsearch Store Health | **Created:** September 2026 | **Last Updated:** 10/29/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -273,13 +273,14 @@ Checked against the Managed documentation on 09/28/2026 and **not found**:
 | What *"might be overloaded"* means, or what to do about it | Treat it like the log-pressure events (§6) |
 | Where Davis problems and events are stored | Not in the docs. A Dynatrace product manager's 2019 forum answer puts *events* and *problems* in Elasticsearch ([what are the different type of data (Dynatrace community)](https://community.dynatrace.com/t5/Alerting/what-are-the-different-type-of-data/td-p/122675)) |
 | A `dsfm:` self-monitoring metric for the store's own disk or health | Measure on the node (§5). Only log-*ingest* metrics are documented (§6) |
+| Where an environment's log ingest limit is set, and its value | Watch the rejected-events metric (§6). The Log Monitoring troubleshooting page answers *"Who can increase the ingestion limit per tenant?"* by referring readers to a Dynatrace product expert |
 
 **Two conflicts in the docs:**
 
 - **Snapshot interval.** *Backup and restore a cluster* says *"every 2 hours"*. The *Pre-upgrade information* page's Managed-vs-SaaS comparison table says *"Elasticsearch snapshots every 2 days"*. This notebook follows the operational backup page. Confirm the interval your cluster actually runs in CMC **Settings > Backup**.
 - **Copy counts.** The backup page says *"there are two replicas in addition to the primary shard"*, which fits user sessions (three copies) but not log events (two). The retention and HA pages are the more specific source per data type (§2).
 
-> <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Pre-upgrade information (DT docs)](https://docs.dynatrace.com/managed/upgrade/up-information), [Data retention periods (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods). **Observed 09/28/2026:** none of the four gaps is filled anywhere in the 2,681 pages under `/managed/` (crawled and searched for Elasticsearch disk thresholds and watermarks, the overload event, event-store statements, and `dsfm:` metric names — the only Elasticsearch-related `dsfm:` metrics found are the two log-ingest counters in §6).</sub>
+> <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Pre-upgrade information (DT docs)](https://docs.dynatrace.com/managed/upgrade/up-information), [Data retention periods (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods), [Log Monitoring troubleshooting (DT docs)](https://docs.dynatrace.com/managed/analyze-explore-automate/log-monitoring/lmc-troubleshooting), [Manage your monitoring environments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/manage-your-monitoring-environments). **Observed 10/29/2026:** the environments page lists log quotas and Log Monitoring storage, but no per-minute ingest limit. **Observed 09/28/2026:** none of the four gaps is filled anywhere in the 2,681 pages under `/managed/` (crawled and searched for Elasticsearch disk thresholds and watermarks, the overload event, event-store statements, and `dsfm:` metric names — the only Elasticsearch-related `dsfm:` metrics found are the two log-ingest counters in §6).</sub>
 
 <a id="recommendation"></a>
 ## 11. Recommended Approach

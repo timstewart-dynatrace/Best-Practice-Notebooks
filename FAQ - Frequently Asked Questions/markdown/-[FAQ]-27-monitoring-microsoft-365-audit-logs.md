@@ -116,7 +116,7 @@ There is one ready-made component. The `m365` receiver for the OpenTelemetry Col
 | Route | Covers | Path | Owner |
 |-------|--------|------|-------|
 | A | Entra ID sign-ins (interactive, non-interactive, service principal, managed identity) and directory audit | Entra ID diagnostic settings, then Event Hub, then Azure log forwarding, then OpenPipeline (built-in Entra ID bundle) | Documented by Dynatrace |
-| B | Workload audit: Audit.Exchange, Audit.SharePoint, Audit.General, DLP.All | Management Activity API, then your collector (Python or Workflow), then Log Ingest API v2, then your own pipeline | You build and own it |
+| B | Workload audit: Audit.Exchange, Audit.SharePoint, Audit.General, DLP.All | Management Activity API, then your collector (Python or Workflow), then Log Ingest API v2, then your own pipeline. Ready-made alternative: the m365 Collector receiver (beta, OTLP; outside Dynatrace Collector support) — § 8.1 | You build and own it |
 | Not a route | Microsoft 365, Office 365 Hub extension | ActiveGate; service-health, usage and license metrics | Counts users from audit logs; records no change logs |
 -->
 
@@ -192,7 +192,8 @@ GCC, GCC High and DoD tenants use different API hosts (`manage-gcc.office.com`, 
 | 0 to 24 h | Accepted | Accepted | Fetchable |
 | 24 to 72 h | Dropped if stamped with event time | Accepted | Fetchable |
 | 72 h to 7 days | Dropped if stamped with event time | Dropped if stamped with event time | Fetchable |
-| Fix | Always send CreationTime as m365.creation_time; set timestamp from it only when under 23 h old; treat an ingest 200 as a partial failure | | |
+| How a record ends up old | Microsoft is late (core services typically 60–90 min, others longer, no guaranteed maximum); the collector was down (catch-up replays blobs published while it was not running); a new subscription (first blobs can take up to 12 h, and events inside are out of order) | | |
+| Fix | Always send CreationTime as m365.creation_time; set timestamp from it only when under 23 h old; older records land at ingest time and stay queryable on their real time; treat an ingest 200 as a partial failure | | |
 -->
 
 Two documented limits disagree by a factor of seven, and the collector sits between them:
@@ -323,7 +324,7 @@ If you have a choice, a sensible split is FAQ-23's: Workflow for steady state, w
 
 ### 8.1 The `m365` Collector receiver
 
-A third option needs no code of your own. The `m365` receiver for the OpenTelemetry Collector subscribes to the Management Activity API, polls it every 5 minutes by default, and emits each audit record as an OTLP log record whose timestamp is the event's `CreationTime`. It also scrapes Microsoft Graph usage reports as metrics. It is maintained in the `dynatrace-bindplane-otel-contrib` repository and built into the full Dynatrace Bindplane Distribution of the Collector (DBDOT). It is not in the slim DBDOT build or in the Dynatrace OTel Collector distribution. Its README configures it in plain Collector YAML; Bindplane can manage the same receiver as its **Microsoft 365** source, and the README's examples need no Bindplane server. Its stability is **beta**.
+A third option needs no code of your own. The `m365` receiver for the OpenTelemetry Collector subscribes to the Management Activity API, polls it every 5 minutes by default, and emits each audit record as an OTLP log record whose timestamp is the event's `CreationTime`. It also scrapes Microsoft Graph usage reports as metrics. It is maintained in the `dynatrace-bindplane-otel-contrib` repository and built into the full Dynatrace Bindplane Distribution of the Collector (DBDOT — the *Dynatrace Bindplane OTel Collector* in Dynatrace's docs). It is not in the slim DBDOT build or in the Dynatrace OTel Collector distribution, which is where Dynatrace's Collector support ends: *"This support covers only the components and their versions that are included in the Dynatrace OTel Collector."* Its README configures it in plain Collector YAML; Bindplane can manage the same receiver as its **Microsoft 365** source, and the README's examples need no Bindplane server. Its stability is **beta**.
 
 Measured against the rules this entry depends on, v1.2.0 (released 10/28/2026) falls short in several places:
 
@@ -363,7 +364,9 @@ Add `file_storage` to the `service.extensions` list and the receiver to a logs p
 > <sub>**Sources:**</sub>
 > - <sub>[m365receiver README (Dynatrace GitHub)](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/m365receiver/README.md) — *"The storage extension prevents duplication of data after a agent restart by remembering which data were previously collected. No storage is used when omitted."*</sub>
 > - <sub>[m365receiver metadata (Dynatrace GitHub)](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/m365receiver/metadata.yaml) — *"beta: [metrics, logs]"*</sub>
-> - <sub>[DBDOT Collector manifest (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-bindplane-otel-collector/blob/main/manifests/dynatrace-bindplane-otel-collector/manifest.yaml) — *"receiver/m365receiver v1.2.0"*</sub>
+> - <sub>[DBDOT Collector manifest (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-bindplane-otel-collector/blob/v1.2.0/manifests/dynatrace-bindplane-otel-collector/manifest.yaml) — *"receiver/m365receiver v1.2.0"*</sub>
+> - <sub>[Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector) — *"This support covers only the components and their versions that are included in the Dynatrace OTel Collector."*</sub>
+> - <sub>[Bindplane (DT docs)](https://docs.dynatrace.com/docs/ingest-from/bindplane) — product name *Dynatrace Bindplane OTel Collector*</sub>
 > - <sub>[Microsoft 365 source (Bindplane docs)](https://docs.bindplane.com/integrations/sources/microsoft-365)</sub>
 > - <sub>[Ingest OTLP logs (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-logs) — *"Log events older than the Log Age limit are discarded."*</sub>
 > - <sub>[Management Activity API reference (Microsoft Learn)](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference) — *"they must be no more than 24 hours apart, with the start time no more than 7 days in the past."*</sub>

@@ -1,6 +1,6 @@
 # FAQ-19: How Do I Bring a Third-Party SaaS Platform's Telemetry Into Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 19 — Integrating Third-Party SaaS Telemetry | **Created:** July 2026 | **Last Updated:** 10/27/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 19 — Integrating Third-Party SaaS Telemetry | **Created:** July 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -90,16 +90,18 @@ This is where most integration plans go wrong, and the failure is nearly always 
 | Raw TCP / TLS (no headers, no auth) | Collector hop required | OTel Collector (ActiveGate syslog only if the stream is syslog-framed) |
 | Syslog (RFC 3164 / 5424) | ActiveGate syslog ingest | ActiveGate (multi-env not supported) |
 | Nothing — pull only (REST API) | Scheduled poller | Workflow, extension, or collector |
+| Files written to object storage (S3 / Blob / GCS) | S3: Dynatrace S3 log forwarder. Blob / GCS: no documented route | S3: a Lambda in your AWS account. Blob / GCS: a Collector receiver (optional) |
 | Already in a pipeline (SIEM feed exists) | Multi-home an output | Nothing new; inherits pipeline availability |
 For environments where SVG doesn't render
 -->
 
 | What the vendor can send | Route into Dynatrace | Notes |
 |---|---|---|
-| **HTTPS POST** to an arbitrary URL with custom headers | **Direct** to the Dynatrace log ingest API | The only genuinely direct route. Requires the vendor to support a custom endpoint *and* a custom `Authorization` header |
+| **HTTPS POST** to an arbitrary URL with custom headers | **Direct** to the Dynatrace log ingest API | The only genuinely direct route. Requires the vendor to support a custom endpoint *and* a custom `Authorization` header. Where it cannot set the header, a collector must terminate the push — § 3.3 |
 | **Raw TCP / TLS** to a host and port | **Collector hop required** — an OpenTelemetry Collector with a TCP or log receiver, or an existing pipeline product. The ActiveGate syslog receiver applies only if the stream is RFC 3164 / 5424 syslog | The vendor cannot authenticate to a Dynatrace API over raw TCP. Something must terminate the stream and forward it |
 | **Syslog** (RFC 3164 / 5424) | **ActiveGate syslog ingestion** or an OTel Collector `syslog` receiver | Environment ActiveGate on Linux, 1.295+, using its embedded OTel Collector. Multi-environment ActiveGates do not support syslog ingestion |
-| **Nothing — pull only (REST API)** | **Scheduled poller** — a Dynatrace workflow, an extension, or a collector | Common for experience/score APIs. Watch for per-request time-window limits, which set your minimum poll frequency |
+| **Nothing — pull only (REST API)** | **Scheduled poller** — a Dynatrace workflow, an extension, or a collector | Common for experience/score APIs. Watch for per-request time-window limits, which set your minimum poll frequency. A generic Collector poller exists — check it against § 3.3 first |
+| **Files written to object storage** — S3, Azure Blob Storage, Google Cloud Storage | **S3:** the Dynatrace **S3 log forwarder**, a Lambda function you deploy in your AWS account. **Azure Blob / GCS:** no documented Dynatrace route for files at rest | The S3 forwarder takes generic text logs and JSON streams, not only AWS service logs, and drops records older than 24 hours. Dynatrace's Azure and Google Cloud log forwarding read Event Hubs and Pub/Sub, not stored objects. For Blob and GCS, the Collector receivers in § 3.3 are an optional complement |
 | **Already flowing to a pipeline product** you run | **Multi-home** an additional output to Dynatrace | Usually the cleanest enterprise answer — see below |
 
 > <sub>**Sources:**</sub>
@@ -108,6 +110,9 @@ For environments where SVG doesn't render
 > - <sub>[Cribl via HTTP (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-http/)</sub>
 > - <sub>[Cribl via OpenTelemetry (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-opentelemetry/)</sub>
 > - <sub>[Syslog via OpenTelemetry Collector (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/syslog-via-opentelemetry-collector/) — the listed collector-hop routes for feeds that cannot post directly. The two Cribl listings read *"Provided by Cribl"* and *"Support By the partner"*; the syslog collector listing reads *"Provided by Dynatrace"*</sub>
+> - <sub>[Ingest AWS logs from Amazon S3 (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/ingest-telemetry/aws-logs/amazon-s3-log-forwarder) — the forwarder runs as *"an event-driven AWS Lambda function that you deploy in your own AWS account"*; *"Additionally, you can forward and ingest generic text logs and JSON streams"*; *"Log records with timestamps older than 24 hours are dropped at ingest."*</sub>
+> - <sub>[Cloud provider log forwarding (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-cloud-provider-log-forwarding) — *"Azure log forwarding allows you to stream Azure logs from Azure Event Hubs into Dynatrace logs via an Azure Function App instance."*; for Google Cloud, *"During setup, a new Pub/Sub subscription will be created."*</sub>
+> - <sub>**Docs check (10/29/2026):** the cloud provider log forwarding page, the Azure log forwarder setup page and the S3 forwarder page were read for a route that ingests objects already stored in Azure Blob Storage or Google Cloud Storage. None was found (control: the same pages document the S3 route). The Azure forwarder deploys a storage account as part of its own resources, not as a log source</sub>
 
 ### 3.1 The multi-home pattern — usually the right enterprise answer
 
@@ -131,6 +136,57 @@ Before designing a custom route, check whether the vendor already has a Dynatrac
 - **No listing exists** — you are building and owning the integration yourself. That is a legitimate and common position, but it should be a *decision*, not a discovery made in week three. It means you own the parsing, the field mapping, the failure modes, and the upgrade path when the vendor changes its schema.
 
 In community practice, the second case is more common than teams expect for security and networking platforms specifically — verify for your own vendor rather than assuming either way.
+
+### 3.3 Generic Collector receivers — and what to check in any of them
+
+When no documented route fits a feed, a generic OpenTelemetry Collector receiver can sometimes fill the gap. Four are maintained in the `dynatrace-bindplane-otel-contrib` repository:
+
+| Receiver (v1.2.0) | Fills which row | Stability | Record time it sets |
+|---|---|---|---|
+| `restapi` | Pull only — polls a REST API with pagination, OAuth 2.0 client credentials and a checkpoint | beta | The first top-level `timestamp`, `time`, `created_at` … field, else the poll time |
+| `httpreceiver` | HTTPS push — an HTTP endpoint the vendor posts to; it answers `200` only after the pipeline accepts the records | beta | Observed time only; the vendor's own time stays in the body |
+| `azureblobpollingreceiver` | Files in Azure Blob Storage — polls a container for new blobs | beta | Observed time only, for NDJSON, text and `{"records":[...]}` blobs |
+| `gcspubsubeventreceiver` | Files in Google Cloud Storage — reads each new object announced by a Pub/Sub notification | alpha | The time the object is read, for every line |
+
+All four ship only in the full Dynatrace Bindplane Distribution of the Collector (DBDOT). They are not in the slim DBDOT build or in the Dynatrace OTel Collector distribution, and Dynatrace's Collector support covers only the components that distribution includes. They configure in plain Collector YAML, so Bindplane is optional. Treat them as complements: where a documented Dynatrace route exists for a feed — direct ingest, ActiveGate syslog, the S3 log forwarder, a Hub extension — use it. FAQ-23 § 6.1 assesses `restapi` against Box, and FAQ-27 § 8.1 assesses the vendor-specific `m365` receiver against Microsoft 365.
+
+A receiver whose record time is not the event time needs a `transform` rule, or OpenPipeline parsing, before time-based queries mean anything.
+
+**What to check in any generic poller or receiver** — a Collector component, a Workflow, or a script you wrote:
+
+| Check | Why it matters | Where it was found |
+|---|---|---|
+| **Rate limits.** Does it honour `429` and `Retry-After`, or treat them as errors? | A poller that ignores them keeps hitting the limit. One that treats them as errors must at least not move its cursor | `restapi` v1.2.0 treats every non-2xx as an error (FAQ-23 § 6.1) |
+| **Checkpoint after forwarding.** Is the cursor written only after the records were accepted downstream, and is it durable — a storage extension or your own store? | A cursor written first loses a window on any failure. One held only in memory loses its place on every restart | `m365` v1.2.0 advances its checkpoint even when a listing fails (FAQ-27 § 8.1) |
+| **Persistent exporter queue.** In a Collector, is `sending_queue.storage` set? | Without it the queue is in memory: records count as forwarded once queued, so a crash loses them after the checkpoint has moved | Any Collector-based collector |
+| **Last page and first run.** What happens when the API returns no next cursor, and where does a first run start? | Dropping the cursor restarts the stream. An unseeded first run may replay everything the API still holds | `restapi` cannot seed an opaque cursor (FAQ-23 § 6.1); `m365` reads only the first page of a listing (FAQ-27 § 8.1) |
+| **Which timestamp.** Does it stamp the vendor's event time, or the time it read the record? | Log ingest drops records older than 24 hours, so event time on a backlog loses it. Read time keeps it but places it at the wrong point on the timeline | The table above |
+| **Duplicates.** Does the API repeat records, and does anything dedupe them? | Repeats inflate counts and ingest cost | Box `admin_logs_streaming` (FAQ-23 § 4) |
+
+Where the cursor is written, and whether the exporter queue persists, decide what a crash costs:
+
+![Where the cursor is written decides what a crash loses](images/19-poller-checkpoint-and-queue_930x500.png)
+
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+Lane: Vendor API (page n) -> Receiver / poller -> Exporter sending queue (in memory, the default; or sending_queue.storage, persistent) -> Dynatrace ingest -> accepted.
+| Design | Cursor written | Queue | Crash after cursor write |
+|---|---|---|---|
+| Any design, crash before hand-off | Not yet moved | Either | Nothing lost — the page is re-read |
+| Collector receiver | After the page is handed to the pipeline | In memory (default) | Queued records the cursor has passed can be lost |
+| Collector receiver | After the page is handed to the pipeline | `sending_queue.storage` (persistent) | Queued records survive; exporting continues on restart |
+| Workflow / Python collectors (FAQ-23, FAQ-27) | After ingest succeeds | None | Nothing lost — the cursor has not passed unaccepted records |
+Checkpoint after records are accepted downstream; give a Collector a storage extension and a persistent queue.
+For environments where SVG doesn't render
+-->
+
+> <sub>**Sources:**</sub>
+> - <sub>[OpenTelemetry Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector) — *"This support covers only the components and their versions that are included in the Dynatrace OTel Collector."*</sub>
+> - <sub>[restapireceiver README (Dynatrace GitHub)](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/restapireceiver/README.md), [httpreceiver README (Dynatrace GitHub)](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/httpreceiver/README.md) — *"Anything that is able to send logs to an endpoint using HTTP will be able to utilize this receiver."*</sub>
+> - <sub>[azureblobpollingreceiver README (Dynatrace GitHub)](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/azureblobpollingreceiver/README.md), [gcspubsubeventreceiver README (Dynatrace GitHub)](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/gcspubsubeventreceiver/README.md) — *"consumes GCS event notifications for object finalization events"*</sub>
+> - <sub>[Log ingestion limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits) — *"The event is dropped if the log event contains a timestamp before the current time minus 24 hours."*</sub>
+> - <sub>[Exporter helper (OpenTelemetry GitHub)](https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/exporterhelper/README.md) — *"There is no in-memory queue when set."*; *"If the collector instance is killed while having some items in the persistent queue, on restart the items will be picked and the exporting is continued."*</sub>
+> - <sub>**Code read (10/29/2026):** at tag `v1.2.0`, each receiver's `metadata.yaml` gives the stability shown; `restapireceiver/logs.go` reads the record time from the first of `timestamp`, `time`, `created_at`, `createdAt`, `date`, `datetime`, `@timestamp`; `httpreceiver/logs.go` sets only the observed time and writes `200` after the pipeline accepts the records (`500` if it does not); `internal/blobconsume` sets only the observed time in its NDJSON, text, line and records-JSON consumers; `gcspubsubeventreceiver/internal/worker/worker.go` sets both times to the read time. Component lists: all four are in the full DBDOT manifest and none is in the slim DBDOT manifest or the Dynatrace OTel Collector manifest (0.59.0) (control: the full manifest lists `m365receiver`, which FAQ-27 reads the same way)</sub>
+> - <sub>**Derived:** the checklist generalizes the gaps found in FAQ-23 § 6.1 and FAQ-27 § 8.1; the queue row combines the exporter-helper sentence with a receiver forwarding records before it saves its cursor</sub>
 
 ---
 

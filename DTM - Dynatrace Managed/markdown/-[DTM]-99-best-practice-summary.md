@@ -1,6 +1,6 @@
 # DTM-99: Best Practice Summary and Health-Check Checklist
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 99 — Best Practice Summary and Health-Check Checklist | **Created:** September 2026 | **Last Updated:** 10/22/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 99 — Best Practice Summary and Health-Check Checklist | **Created:** September 2026 | **Last Updated:** 10/29/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -8,7 +8,7 @@
 
 This notebook puts the cluster-health notebooks on one page. DTM-10 introduced a five-layer health model for a self-hosted Dynatrace Managed cluster (node and process, storage, capacity, connectivity, lifecycle), and DTM-11 to DTM-16 covered one layer each. It also gathers the design and configuration checks from DTM-01 to DTM-05. This notebook turns them into something to run: a checklist per layer, one table of every signal that never reaches your mailbox, a review cadence, the numbers worth knowing, the anti-patterns that cause most of the trouble, and the gaps the documentation leaves.
 
-Use it as the operating reference, and the earlier notebooks for the detail behind each line.
+Use it as the operating reference, and the earlier notebooks for the detail behind each line. For a one-off review of a cluster, with a rating for every check and a list of the evidence to request, use DTM-17.
 
 ---
 
@@ -292,6 +292,7 @@ A healthy Managed cluster is five things at once. Its nodes and services run. It
 | DTM-14: Cluster ActiveGates and Mission Control Connectivity | 4 — Connectivity |
 | DTM-15: Capacity and Scaling | 3 — Capacity |
 | DTM-16: Backup, Upgrade, and Disaster Recovery | 5 — Lifecycle |
+| DTM-17: Running a Cluster Health Assessment | All layers, as a one-off rated review |
 
 **The design-and-configure notebooks:**
 

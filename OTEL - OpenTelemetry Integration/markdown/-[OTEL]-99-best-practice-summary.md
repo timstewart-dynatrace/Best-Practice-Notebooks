@@ -1,6 +1,6 @@
 # OTEL-99: Best Practice Summary
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/28/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/29/2026
 
 ## Introduction
 
@@ -32,9 +32,9 @@ This notebook consolidates every actionable best practice from the OTEL series (
 | 1 | Always use the `batch` processor | `processors.batch.timeout: 10s`, `send_batch_size: 1000`, `send_batch_max_size: 1500` | Critical | OTEL-02 |
 | 2 | Always use the `memory_limiter` processor | `processors.memory_limiter.check_interval: 1s`, `limit_mib:` 80% of container memory, `spike_limit_mib:` 25% of limit | Critical | OTEL-02 |
 | 3 | Place `memory_limiter` first in every pipeline | `processors: [memory_limiter, resource, batch]` | Critical | OTEL-02, OTEL-08 |
-| 4 | Pin Collector image to a specific version | `image: otel/opentelemetry-collector-contrib:0.151.0` (never `latest`) | Critical | OTEL-03, OTEL-07 |
+| 4 | Pin Collector image to a specific version | `image: ghcr.io/dynatrace/dynatrace-otel-collector/dynatrace-otel-collector:v0.48.0` (never `latest`; pin Contrib the same way in test setups, e.g. `otel/opentelemetry-collector-contrib:0.151.0`) | Critical | OTEL-03, OTEL-07 |
 | 5 | Validate config before deploy | Run `otelcol-contrib validate --config=config.yaml` | Critical | OTEL-08 |
-| 6 | Use the Contrib or Dynatrace distribution | `otel/opentelemetry-collector-contrib` or `ghcr.io/dynatrace/dynatrace-otel-collector/dynatrace-otel-collector` | Recommended | OTEL-02, OTEL-07 |
+| 6 | Run the Dynatrace OTel Collector in production; use Contrib only for testing | Production: `ghcr.io/dynatrace/dynatrace-otel-collector/dynatrace-otel-collector` — the distribution Dynatrace Support covers; its limited support for Core, Contrib and Builder setups covers only the components the Dynatrace distribution includes. Test setups: `otel/opentelemetry-collector-contrib` | Recommended | OTEL-02, OTEL-07 |
 | 7 | Use `GOMEMLIMIT` instead of deprecated `memory_ballast` | Set `GOMEMLIMIT` env var to ~80% of container memory limit | Critical | OTEL-02 |
 | 8 | Use environment variables for all secrets | `${DT_API_TOKEN}`, `${DT_ENV_ID}` in YAML config | Critical | OTEL-02 |
 | 9 | Add a default `service.name` via resource processor | `processors.resource.attributes: [{key: service.name, value: "unknown-service", action: insert}]` | Recommended | OTEL-07, OTEL-08 |
@@ -85,7 +85,7 @@ This notebook consolidates every actionable best practice from the OTEL series (
 | 36 | Treat OTel and OneAgent as complementary — decide per workload | OTel-only is a complete path; OneAgent where fully managed collection or runtime depth is wanted; both where that fits. Mixed estates are normal | Critical | OTEL-01 |
 | 37 | Keep existing OTel instrumentation when adding OneAgent | Layer, don't convert; pick one ingestion path per process (Span Sensor **or** OTLP export) to avoid duplicate spans | Critical | OTEL-01, OTEL-07 |
 | 38 | Add OneAgent where runtime-access capabilities are needed | Application Security (RVA / RAP), Live Debugger (Java, Node.js; OneAgent 1.309+), automatic RUM JavaScript injection — not provided by OTel telemetry | Recommended | OTEL-01 |
-| 39 | Manage large Collector fleets centrally | Bindplane (OpAMP-based fleet management, multi-destination routing) — optional, not a prerequisite; never write into the reserved `dt.bindplane.*` namespace (SaaS 1.346) | Recommended | OTEL-07 |
+| 39 | Manage large Collector fleets centrally | Bindplane (OpAMP-based fleet management, multi-destination routing) — optional, not a prerequisite; never write into the reserved `dt.bindplane.*` namespace (SaaS 1.346); components only in the Dynatrace Bindplane OTel Collector fall outside the Dynatrace OTel Collector support statement | Recommended | OTEL-07 |
 | 40 | Give OTel-only hosts host and process entities | Collector `hostmetrics` with the Dynatrace reference configuration + activate the OpenTelemetry Host Monitoring extension from Hub | Recommended | OTEL-07 |
 
 <a id="resource-attributes-and-entity-mapping"></a>
@@ -214,7 +214,7 @@ This notebook contains **95 best practices** extracted from the OTEL series, org
 ## References
 
 - [Dynatrace OpenTelemetry Integration](https://docs.dynatrace.com/docs/ingest-from/opentelemetry)
-- [Dynatrace Collector Distribution](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector)
+- [Dynatrace Collector Distribution](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector) — *"Dynatrace recommends using the Contrib distribution only for testing purposes."*
 - [OTLP API Endpoints](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api)
 - [Configure OTLP Metrics](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/configure-otlp-metrics)
 - [OpenTelemetry Official Docs](https://opentelemetry.io/docs/)

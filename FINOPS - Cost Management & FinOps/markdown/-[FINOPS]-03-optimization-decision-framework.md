@@ -1,6 +1,6 @@
 # FINOPS-03: DPS Consumption Optimization — When to Cut, Tune, or Filter
 
-> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 03 — DPS Consumption Optimization — When to Cut, Tune, or Filter | **Created:** May 2026 | **Last Updated:** 10/23/2026
+> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 03 — DPS Consumption Optimization — When to Cut, Tune, or Filter | **Created:** May 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -68,8 +68,8 @@ The three-lever split is this entry's framing, not a Dynatrace taxonomy — Dyna
 |-------|---------------------------|---------------|
 | Cut | Not load-bearing? | Stop emitting at source — disable monitor, remove logging, decommission host |
 | Tune | Parameter wrong? | Adjust signal parameter — retention, sampling rate, ingest interval, resolution |
-| Filter | Subset noisy? | Drop subset of flowing signal at OpenPipeline — DEBUG logs, healthcheck spans, high-cardinality dimensions |
-Bias toward upstream levers: Cut (emission) → Filter (ingest) → Tune (storage).
+| Filter | Subset noisy? | Drop subset of flowing signal at OpenPipeline or in an OpenTelemetry Collector — DEBUG logs, healthcheck spans, high-cardinality dimensions |
+Bias toward upstream levers: Cut (emission) → Filter (Collector or OpenPipeline) → Tune (storage).
 -->
 
 This entry sorts every consumption-reduction option into one of three patterns. Naming them helps the conversation move past "reduce cost" to deciding which signal-emission behavior to change.
@@ -167,6 +167,8 @@ For traces especially. Reduce trace-ingest sample rate from 100% (all spans) to 
 3. Keep error and exception traces at a higher rate where your sampling mechanism supports it (for example, tail-based sampling in an OpenTelemetry Collector) — confirm what your ingest path offers before relying on it.
 4. Measure investigation success after one month — can your team still root-cause issues with the new sample rate?
 
+**In an OpenTelemetry Collector, sample whole traces, not single spans.** The Dynatrace OTel Collector includes two trace-consistent samplers: `tail_sampling`, which decides after a trace completes (the mechanism in step 3), and `probabilistic_sampler`, a rate sampler whose decision is keyed to the trace — *"For traces pipelines, the source of randomness is always the TraceID."* Avoid any processor that drops a random fraction of spans one span at a time: it cuts volume by the same ratio, but leaves most traces with spans missing. OTEL-04 (Trace Instrumentation) covers head versus tail sampling and the two-tier Collector layout tail sampling needs; SPANS-07 (Grail Buckets & OpenPipeline) covers the OneAgent and OpenPipeline sides.
+
 ### Resolution tuning
 
 For metrics. Lengthening a metric's collection interval lowers `data_points` consumption — **but only above one minute**. Dynatrace aggregates sub-minute measurements into one-minute buckets and bills each timeseries for at most one data point per minute, so moving a metric from 10-second to 1-minute collection changes nothing on the bill, while moving it from 1-minute to 5-minute cuts its billed points ~5×. Workflow:
@@ -202,6 +204,9 @@ Query-side tuning has one property that makes it unusually easy to sell: unlike 
 
 > <sub>**Sources:**</sub>
 > - <sub>[Best practices for Log Management and Analytics (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-best-practices) — per-bucket retention periods</sub>
+> - <sub>[Probabilistic Sampling Processor (OpenTelemetry Collector Contrib GitHub)](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/probabilisticsamplerprocessor) — *"To achieve consistency, sampling randomness is taken from a deterministic aspect of the input data."*; *"For traces pipelines, the source of randomness is always the TraceID."*</sub>
+> - <sub>[Dynatrace OTel Collector manifest (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-otel-collector/blob/main/manifest.yaml) — lists `probabilisticsamplerprocessor` and `tailsamplingprocessor`, read 10/29/2026; [Dynatrace OTel Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector) — *"This support covers only the components and their versions that are included in the Dynatrace OTel Collector."*</sub>
+> - <sub>**Derived:** a sampler that decides span by span, rather than by trace ID, keeps partial traces — the contrast with the probabilistic-sampler quote above.</sub>
 > - <sub>[Best practices for optimizing metrics cost (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/best-practices-metrics) — *"For metrics collected at intervals shorter than one minute, Dynatrace aggregates the incoming measurements into fixed one‑minute buckets for efficient storage and querying. Therefore, each timeseries is billed for no more than one data point per minute."*; *"Longer ingest intervals can introduce gaps when you view data at one‑minute resolution. This can impact existing alerting setups."*</sub>
 > - <sub>[Metrics powered by Grail - Query (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-query) — *"is always included in your DPS subscription and never results in costs."*; *"Queries involving other data types generally incur usage at each query, even when they output timeseries format."*</sub>
 > - <sub>[Optimize dashboards running log queries (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-use-cases/lma-log-query-dashboard) — *"If you are using log queries, you are charged per execution."*</sub>
@@ -238,6 +243,29 @@ Custom metrics emitted with a high-cardinality dimension (user.id, request.id, s
 
 **Common mistake:** assuming the dimension is the data. Often, the metric is useful at aggregate (counts per minute) and the dimension was added for debug-style exploration. Confirm before dropping the dimension.
 
+### Where the filter runs — OpenPipeline or the Collector
+
+An OpenPipeline drop saves Retain, not Ingest & Process. Log ingest is metered on *"raw data in bytes sent to Dynatrace before enrichment and transformation"*, and Dynatrace states that filtering incoming logs *"generates usage for Ingest & Process"*. A record dropped in OpenPipeline has already been sent.
+
+For data that reaches Dynatrace through an OpenTelemetry Collector, the same filter can run in the Collector instead. The `filter` and `transform` processors are both in the Dynatrace OTel Collector, so they are within Dynatrace support. A record the Collector drops is never sent, so it never reaches the ingest meter.
+
+![Where the Filter Runs — and Which Meters It Avoids](images/03-filter-placement-meters_930x500.png)
+
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Filter point | Saves Ingest & Process | Saves Retain | Can route instead of drop | Rule lives in | Covers |
+|--------------|------------------------|--------------|---------------------------|---------------|--------|
+| OTel Collector | Yes | Yes | No — drop is final | Every Collector | Collector-routed data only |
+| OpenPipeline | No | Yes | Yes — short-retention bucket | One place | All sources |
+OneAgent logs do not pass through a Collector: filter them with OneAgent log ingest rules or in OpenPipeline.
+Where the raw records may be needed later, keep OpenPipeline as the default filter point.
+-->
+
+The trade-offs decide which to use:
+
+- **A Collector drop is final.** The data never reaches Dynatrace, so the OpenPipeline alternatives — routing it to a short-retention bucket instead of dropping it, or changing the rule later and keeping what arrives — are gone for that data. Where the raw records may be needed later, keep OpenPipeline as the default.
+- **A Collector rule lives in every Collector.** Each Collector that carries the data needs the same rule, and they drift apart unless they are deployed from one configuration. An OpenPipeline rule is one place for every source.
+- **It only covers data that passes through a Collector.** OneAgent logs do not. Filter those with OneAgent log ingest rules (above; FAQ-08 explains how they decide what is stored) or in OpenPipeline.
+
 ### When to Filter vs Tune
 
 In this entry's framing, Filter targets a *known-noisy subset*. Tune adjusts a *parameter applied to everything*. If the noise is concentrated in a subset you can name ("DEBUG logs in prod," "healthcheck spans," "synthetic-traffic dimension on app metric X"), Filter. If the noise is *diffuse* ("all our traces are too detailed for the value they provide"), Tune the sample rate.
@@ -257,6 +285,10 @@ Filters without owners become invisible cost optimization that no one can safely
 > - <sub>[Best practices for Log Management and Analytics (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-best-practices) — filter logs on ingest with OneAgent or OpenPipeline</sub>
 > - <sub>[Best practices for optimizing metrics cost (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/best-practices-metrics) — *"High-cardinality dimensions, such as user IDs or request IDs, significantly increase metric storage requirements. Removing a high-cardinality dimension reduces the number of stored timeseries and can lower cost."*</sub>
 > - <sub>[OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline), [OPLOGS topic series](../../oplogs/) — full filter-syntax depth</sub>
+> - <sub>[Log Management & Analytics - Ingest & Process (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/log-analytics/dps-log-ingest) — *"Ingested data is the amount of raw data in bytes sent to Dynatrace before enrichment and transformation."*</sub>
+> - <sub>[DPS Log Management (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-log-management) — *"filtering generates usage for Ingest & Process, but not for Retain"*</sub>
+> - <sub>[Dynatrace OTel Collector manifest (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-otel-collector/blob/main/manifest.yaml) — lists `filterprocessor` and `transformprocessor`, read 10/29/2026; [Dynatrace OTel Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector) — *"This support covers only the components and their versions that are included in the Dynatrace OTel Collector."*</sub>
+> - <sub>**Derived:** a record dropped in the Collector is never sent, so the ingest definition above does not count it.</sub>
 
 <a id="decision-tree"></a>
 ## 6. Decision Tree by Data Type
@@ -266,7 +298,7 @@ A working version of this entry's framework for each major data type — verify 
 ### Logs
 
 1. **Cut first?** Is the log-emitting application code still relevant? If a service emits logs no one reads and the service itself is on a deprecation path, Cut at the application.
-2. **Filter next?** Are DEBUG / TRACE logs being emitted in production? Filter at OpenPipeline. Are known-benign patterns repeating (favicon 404s, etc.)? Filter pattern-by-pattern.
+2. **Filter next?** Are DEBUG / TRACE logs being emitted in production? Filter at OpenPipeline — or, for logs that arrive through an OpenTelemetry Collector and will not be needed later, in the Collector, which also saves Ingest & Process (§5). Are known-benign patterns repeating (favicon 404s, etc.)? Filter pattern-by-pattern.
 3. **Tune last?** Adjust retention per bucket based on actual lookback patterns. Move buckets between Retain and Retain-with-Included-Queries tiers based on query frequency.
 
 ### Traces
@@ -329,7 +361,7 @@ Automation Workflow bills **workflow-hours**: every deployed standard workflow i
 |-------|--------|----------|---------------|-------------|------------|
 | Cut | ★★★ Eliminates activity | High (emit-side coordination) | High (re-enable) | Lost visibility during future unrelated incident | 6-month review, stage in non-prod, document rationale |
 | Tune | ★★ Proportional reduction | Low (platform-team unilateral) | Medium (re-tune) | Forensic lookback shortened; tail-distribution sampled out | Buffer 1.5-2× longest lookback, differential sampling, per-metric not global |
-| Filter | ★★★ Targeted; preserves rest | Medium (pattern owner sign-off) | High (remove filter) | Filter drift — noise becomes signal over time | Owner per filter, 6-month review, specific not category-wide, env-scoped |
+| Filter | ★★★ Targeted; preserves rest (OpenPipeline or Collector) | Medium (pattern owner sign-off) | High (remove filter) | Filter drift — noise becomes signal over time; Collector rules drift across Collectors | Owner per filter, 6-month review, specific not category-wide, env-scoped; deploy Collector rules from one configuration |
 -->
 
 | Lever | Visible benefit | Hidden cost | Mitigation |

@@ -1,6 +1,6 @@
 # DTM-16: Backup, Upgrade, and Disaster Recovery
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 16 — Backup, Upgrade, and Disaster Recovery | **Created:** September 2026 | **Last Updated:** 10/21/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 16 — Backup, Upgrade, and Disaster Recovery | **Created:** September 2026 | **Last Updated:** 10/29/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -231,6 +231,19 @@ For environments where SVG doesn't render
 
 A single node is the common case, and it needs no restore: *"The Managed Cluster maintains three copies of this data, so Dynatrace Managed continues to operate after the loss of one node."* A full restore from backup is for losing the cluster. Once the cluster's data is gone, the gaps in §2 become permanent.
 
+### 8.1 A second, independent cluster
+
+Some organizations keep a second Managed cluster as a standby. The documentation describes two recovery mechanisms, restore from backup and Premium HA, and no standby arrangement between independent clusters (§9). Nothing keeps the two in step for you. If a second cluster is your recovery path, four questions decide whether it works, and each needs an owner:
+
+| Question | Why it matters | How to check |
+|----------|----------------|--------------|
+| Is its configuration the same? | Dashboards, alerting, management zones and settings exist only on the cluster where someone created them | Export each environment on both sides and compare, or deploy both from one source. Each environment in the CMC has an **Export configuration** action: *"To export the configuration of the selected Dynatrace environment"* |
+| Does it hold enough history? | Each cluster keeps only the data sent to it, under its own retention settings | Compare retention per environment (DTM-13 §4) with the history the business needs after a failover |
+| Can agents and users reach it? | OneAgents carry the endpoints from their installer (DTM-05 §2) | A documented switch: DNS names that can be repointed, or a reconfiguration procedure, and sign-in set up on both clusters |
+| Can it carry the load? | After a failover it takes the primary's traffic on top of its own | Its headroom (DTM-15 §4.1) against the combined load |
+
+The second cluster also has its own backups, versions and certificates, so the rest of this notebook applies to it unchanged. DTM-17 (D8) turns these questions into assessment checks.
+
 > <sub>**Sources:** [Single-cluster high availability (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability), [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Multi-data center failover (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/failover), [Recover from another data center (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/recover-from-data-center).</sub>
 
 <a id="doc-gaps"></a>
@@ -243,12 +256,13 @@ A single node is the common case, and it needs no restore: *"The Managed Cluster
 | A procedure for testing a restore without disturbing production | Rehearse on isolated hosts, kept off Mission Control (§4.3) |
 | Whether Session Replay data is backed up | Assume it isn't. It isn't in the documented scope (§2) |
 | A replacement procedure for a single failed node in a single-DC cluster | Remove the node and add a new one (DTM-12 §7) |
+| A standby arrangement between two independent clusters, or a way to keep their configuration in step | Treat the second cluster as a cluster in its own right and check it as in §8.1 |
 
 **One conflict.** The Elasticsearch snapshot interval: the backup page says *"every 2 hours"*, while the *Pre-upgrade information* comparison table says *"Elasticsearch snapshots every 2 days"*. This series follows the backup page (DTM-13 §10). Confirm in CMC **Settings > Backup**.
 
 **One caution.** The backup-and-restore page shows *Published Mar 22, 2018* and no later update date, although its content refers to current features. Read its procedure against your installed version.
 
-> <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Pre-upgrade information (DT docs)](https://docs.dynatrace.com/managed/upgrade/up-information). **Observed 10/01/2026:** the three gaps were searched for across the Managed cluster operation and high-availability pages; none is filled.</sub>
+> <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Pre-upgrade information (DT docs)](https://docs.dynatrace.com/managed/upgrade/up-information). **Observed 10/01/2026:** the first three gaps were searched for across the Managed cluster operation and high-availability pages; none is filled. The standby row was added 10/29/2026 after the same pages and the [Cluster Management Console (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console) page were re-read.</sub>
 
 <a id="recommendation"></a>
 ## 10. Recommended Approach
@@ -270,6 +284,7 @@ Lifecycle health is the layer you only find out about when it's needed. Backups 
 
 | Notebook | Layer |
 |----------|-------|
+| DTM-17: Running a Cluster Health Assessment | A one-off rated review across all five layers |
 | DTM-99: Best Practice Summary and Health-Check Checklist | All five layers on one page |
 
 ---

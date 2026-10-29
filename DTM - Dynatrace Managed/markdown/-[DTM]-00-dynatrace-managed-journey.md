@@ -1,6 +1,6 @@
 # DTM-00: The Dynatrace Managed Journey
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 00 — The Dynatrace Managed Journey | **Created:** October 2026 | **Last Updated:** 10/22/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 00 — The Dynatrace Managed Journey | **Created:** October 2026 | **Last Updated:** 10/29/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -54,6 +54,7 @@ Advice written for SaaS elsewhere in this collection (Grail buckets, OpenPipelin
 | You are deciding how to split the cluster into environments, or who can sign in | DTM-03: Environment Best Practices | DTM-15 §6 for quotas |
 | You are placing or updating ActiveGates | DTM-04: ActiveGate Deployment on Managed | DTM-14 for the traffic path and certificates |
 | You are rolling out OneAgents or setting their update policy | DTM-05: OneAgent Deployment on Managed | DTM-04 first |
+| You are reviewing a cluster once — before a purchase, a renewal, a migration or after a run of incidents — and need a rated result | DTM-17: Running a Cluster Health Assessment | The notebook each failing check points to |
 | You are new to how a Managed cluster works | DTM-10: Managed Cluster Architecture and Health Model | DTM-11 to DTM-16, one per health layer |
 | A node, service or restart question | DTM-11: Server Nodes and Processes | — |
 | A data store question (metrics, user sessions, logs) | DTM-12: Cassandra Metrics Store Health, DTM-13: Elasticsearch Store Health | DTM-15 for sizing |
@@ -70,7 +71,7 @@ Advice written for SaaS elsewhere in this collection (Grail buckets, OpenPipelin
 |---------|------|-------|
 | **00** | Map | This notebook |
 | **01–09** | Design and configure | Best practices for designing and configuring a cluster, its environments, ActiveGates and OneAgents (DTM-01 to DTM-05) |
-| **10–19** | Operate | Keeping a running cluster healthy: the health model, then one notebook per layer (DTM-10 to DTM-16) |
+| **10–19** | Operate | Keeping a running cluster healthy: the health model, one notebook per layer (DTM-10 to DTM-16), and a one-off assessment method (DTM-17) |
 | **99** | Summary | The health checklist, the design and configuration review, and the review cadence for the whole series |
 
 Each band has room for more notebooks, so a new topic goes into its band instead of shifting the numbers after it.

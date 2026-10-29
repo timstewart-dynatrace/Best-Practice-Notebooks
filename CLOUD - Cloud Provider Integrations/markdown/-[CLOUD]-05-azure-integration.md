@@ -1,6 +1,6 @@
 # CLOUD-05: Azure Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 10/27/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -301,7 +301,7 @@ timeseries mem = avg(cloud.azure.microsoft_compute.virtualmachines.AvailableMemo
 
 ## 6. Forwarding Azure Logs and Events
 
-Azure does not expose logs through an API that Dynatrace polls. Every Azure log path starts with an Azure Monitor **diagnostic setting** that streams a resource's logs to a destination — for Dynatrace, an **Event Hub**. What differs between the options is who creates the diagnostic settings and what reads the Event Hub.
+Azure does not expose logs through an API that Dynatrace polls. Every Azure log path in this section starts with an Azure Monitor **diagnostic setting** that streams a resource's logs to a destination — for Dynatrace, an **Event Hub**. What differs between the options is who creates the diagnostic settings and what reads the Event Hub.
 
 ### Three Ways to Get Azure Logs into Grail
 
@@ -323,6 +323,24 @@ Azure does not expose logs through an API that Dynatrace polls. Every Azure log 
 > **Microsoft 365 audit is not in this table.** Exchange, SharePoint and OneDrive, Teams and DLP audit records live in Microsoft 365's unified audit log and are read from the Office 365 Management Activity API, not from an Azure diagnostic setting, so this route does not deliver them. **FAQ-27** covers that collector and how it pairs with the Entra ID row above: send Entra ID sign-ins through this route, and leave `Audit.AzureActiveDirectory` out of the collector so they are not collected twice. The *Microsoft 365, Office 365* Hub extension is not a substitute — it produces service-health and usage metrics, and *"The extension uses audit logs to count O365 service users."*
 >
 > <sub>**Sources:** [Microsoft 365, Office 365 extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/microsoft-365-office-365), [Management Activity API reference (Microsoft Learn)](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference).</sub>
+
+> **Logs that land only in a storage account.** The Dynatrace Azure logs route reads Event Hubs, so a source that Azure writes only to a storage account is outside it. Virtual network flow logs are the common case: they are a Network Watcher feature rather than a diagnostic setting, and *"Flow data from virtual network flow logs is sent to Azure Storage."* For such a source, the `azureblobpolling` receiver for the OpenTelemetry Collector can poll the container and forward the records to Dynatrace. It complements the Event Hubs route for sources that route cannot reach; it does not replace it. The receiver is maintained in the `dynatrace-bindplane-otel-contrib` repository, its stability is **beta**, and it ships only in the full Dynatrace Bindplane OTel Collector build — not the slim build and not the Dynatrace OTel Collector, whose support *"covers only the components and their versions that are included in the Dynatrace OTel Collector."* Bindplane can manage it but is not required. Read at v1.2.0:
+>
+> - **Set `enable_incremental_read: true`.** It is off by default, and the default path reads each blob once, whole. Flow logs are *"ingested into a block blob at one-minute intervals by appending blocks"*, so records appended after that first read are never ingested. On the default path a failed blob read is only logged and the poll window still advances, so that blob is not retried. The README calls the flag temporary: it is meant to become the default.
+> - **Use `blob_format: records-json`** for Azure's `{"records":[...]}` exports, so each array element becomes its own log record.
+> - **Connection string only.** The receiver authenticates with the storage account's connection string; there is no managed-identity option.
+> - **Event time is not set.** Records carry only the observed (collection) timestamp. If you need when the event happened, parse the record's `time` field, for example in OpenPipeline.
+> - **One collector per container or prefix.** Progress is checkpointed in the collector's own `storage` extension and is not shared between collectors, so two instances reading the same blobs ingest them twice. Without a `storage` extension, a restart falls back to `initial_lookback`.
+>
+> <sub>**Sources:**</sub>
+> - <sub>[Forward Azure logs (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/ingest-telemetry/azure-logs-and-events/azure-logs) — *"This page explains how to forward Azure logs to Dynatrace via Event Hubs."*</sub>
+> - <sub>[Virtual network flow logs (Microsoft Learn)](https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview) — *"Flow data from virtual network flow logs is sent to Azure Storage."*</sub>
+> - <sub>[OpenTelemetry Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector) — *"This support covers only the components and their versions that are included in the Dynatrace OTel Collector."*</sub>
+> - <sub>[azureblobpollingreceiver README (Dynatrace GitHub)](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/azureblobpollingreceiver/README.md) — *"When it is off (the default), every format keeps the legacy behavior of parsing each blob whole on every poll and deduping by name, which loses records appended to a blob after it is first read."*</sub>
+> - <sub>[azureblobpollingreceiver metadata (Dynatrace GitHub)](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/azureblobpollingreceiver/metadata.yaml) — *"beta: [metrics, logs, traces]"*</sub>
+> - <sub>[DBDOT Collector manifest (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-bindplane-otel-collector/blob/v1.2.0/manifests/dynatrace-bindplane-otel-collector/manifest.yaml) — *"receiver/azureblobpollingreceiver v1.2.0"*</sub>
+> - <sub>**Code read (10/29/2026):** at tag `v1.2.0`, `config.go` leaves `enable_incremental_read` false by default (`factory.go` does not set it) and requires `connection_string`; `internal/azureblob/blob_client.go` builds its client only with `NewClientFromConnectionString`; on the default path a blob read error is logged ("Error consuming blob", `receiver.go`) and `finalizePoll` still advances the poll time; the `internal/blobconsume` consumers set `ObservedTimestamp` and never `Timestamp`; the checkpoint is one key per receiver instance in its storage extension. Not run against an Azure storage account</sub>
+> - <sub>**Catalog observation (10/29/2026):** no `azureblobpollingreceiver` entry in the slim DBDOT manifest or the Dynatrace OTel Collector manifest</sub>
 
 ### Setting Up the Dynatrace Pull Path
 

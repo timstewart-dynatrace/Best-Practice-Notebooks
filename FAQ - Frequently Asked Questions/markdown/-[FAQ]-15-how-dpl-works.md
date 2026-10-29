@@ -1,6 +1,6 @@
 # FAQ-15: How Does DPL Work?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 15 — How Does DPL Work? | **Created:** July 2026 | **Last Updated:** 10/23/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 15 — How Does DPL Work? | **Created:** July 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -248,7 +248,8 @@ This is the part that surprises people: **regex is alive and well in Dynatrace �
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Surface | Pattern language |
 |---|---|
-| OneAgent sensitive-data masking (capture time, pre-ingest) | Regex (RE2 syntax) |
+| Before ingest — OneAgent sensitive-data masking (on the host) | Regex (RE2 syntax) |
+| Before ingest — OpenTelemetry Collector masking: `redaction` processor; `transform` processor with OTTL `replace_pattern` / `replace_all_patterns` (a separate rule set from OneAgent's) | Regex |
 | Management-zone rules (`contains regex` / `does not contain regex`) | Regex |
 | Request naming rules | Regex |
 | OpenPipeline processing and masking | DQL + DPL |
@@ -256,9 +257,12 @@ This is the part that surprises people: **regex is alive and well in Dynatrace �
 | Classic log processing matcher, log metrics, log events | DQL matcher — no regex |
 | Log processing rule bodies | DPL |
 | DQL parse / matchesPattern / replacePattern / splitByPattern | DPL |
+Consequence: masking the same PII uses two pattern languages in three places — regex on the OneAgent and in an OTel Collector, DPL in OpenPipeline. A rule written in one place and assumed to carry over never fires, and never says so.
 -->
 
 The practical consequence is worth stating directly: **masking the same PII uses two different pattern languages depending on where you mask it.** Redacting at capture time on the OneAgent is a regex rule; redacting the same field in OpenPipeline is DPL. A team that standardizes on one and assumes it applies to the other will ship a rule that never fires. **OPMIG-08** covers the OpenPipeline side.
+
+Data that passes through an OpenTelemetry Collector adds a third place. The Collector's `redaction` and `transform` processors also take regular expressions, but they are a separate rule set from OneAgent's, configured in the Collector (**OTEL-02 § 4**). So it is still two languages, but three places to keep in step. The `mask` processor, which ships only in the full Dynatrace Bindplane OTel Collector build, compiles its rules as Go regular expressions too.
 
 ### 3.6 Functions that sound like regex but aren't
 
@@ -291,6 +295,9 @@ DPL cannot express that failure mode: every quantifier is bounded and look-behin
 > - <sub>[Dynatrace Pattern Language (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language) — character groups described as "Regular Expression compatible"</sub>
 > - <sub>[Regular expressions in Dynatrace (DT docs)](https://docs.dynatrace.com/docs/manage/tags-and-metadata/reference/regular-expressions-in-dynatrace) — the catastrophic-backtracking warning, the `(.*)+b` example, and the no-backreferences / no-repeated-groups restrictions</sub>
 > - <sub>[Sensitive data masking (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-sensitive-data-masking) — *"Search expression: A regular expression to match the string that you want to mask. Use the regular expression format."* The linked words "regular expression" point to [RE2 syntax (Google GitHub)](https://github.com/google/re2/wiki/syntax)</sub>
+> - <sub>[Mask sensitive data with the OTel Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector-use-cases/redact) — *"One of the following Collector distributions with the transform and/or redaction processors:"*</sub>
+> - <sub>[OTTL functions (OpenTelemetry GitHub)](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.163.0/pkg/ottl/ottlfuncs/README.md) — *"`regex_pattern` is a regex string indicating a segment to replace."*</sub>
+> - <sub>**Code read (10/29/2026):** [`processor/maskprocessor/processor.go`](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/processor/maskprocessor/processor.go) at tag `v1.2.0` imports Go's `regexp` package and compiles each rule with `regexp.Compile`; the processor is listed in the [full Dynatrace Bindplane OTel Collector manifest](https://github.com/Dynatrace/dynatrace-bindplane-otel-collector/blob/v1.2.0/manifests/dynatrace-bindplane-otel-collector/manifest.yaml) and in neither the slim build nor the Dynatrace OTel Collector manifest</sub>
 > - <sub>[Management zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/permission-management/management-zones/management-zone-rules) — regex permitted only in the `contains regex` / `does not contain regex` operators</sub>
 > - <sub>[DQL matcher in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline) — matching conditions accept neither regex nor DPL</sub>
 > - <sub>[String functions (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions/string-functions) — `like` SQL wildcards; `matchesValue` / `matchesPhrase` wildcard scope</sub>
