@@ -1,6 +1,6 @@
 # FAQ-27: How Do I Get Microsoft 365 Audit Logs Into Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 27 — Microsoft 365 Audit Logs Into Dynatrace | **Created:** October 2026 | **Last Updated:** 10/27/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 27 — Microsoft 365 Audit Logs Into Dynatrace | **Created:** October 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -8,13 +8,13 @@ The request usually arrives as one line — "get the O365 audit logs into Dynatr
 
 - **There is a Microsoft 365 extension on the Dynatrace Hub, and it is not an audit feed.** It runs on an ActiveGate and produces service-health, usage and license metrics. Its documentation says it reads audit logs only to count users and that no change logs are recorded or exported. Installing it is worthwhile for those metrics; it does not answer the audit question.
 - **Microsoft Entra ID sign-ins already have a documented Dynatrace route.** Entra ID diagnostic settings stream to an Event Hub, Azure log forwarding sends them to Dynatrace, and OpenPipeline has a built-in bundle for them. Collecting the same sign-ins a second time through the Management Activity API is duplication, not coverage.
-- **The workload audit — Exchange, SharePoint and OneDrive, Teams and the rest, DLP — has no Dynatrace route.** For that, you build and own a collector. It has to cope with a feed that Microsoft delivers late, out of order and with duplicates, against an ingest API that drops records stamped more than 24 hours in the past.
+- **The workload audit — Exchange, SharePoint and OneDrive, Teams and the rest, DLP — has no documented Dynatrace route.** A ready-made OpenTelemetry Collector receiver exists, but its current version misses rules this entry depends on (§ 8.1). Either way, you run and own a collector. It has to cope with a feed that Microsoft delivers late, out of order and with duplicates, against an ingest API that drops records stamped more than 24 hours in the past.
 
 That last pairing is the expensive one. A collector that stamps each record with its event time works on the first day and then loses records quietly — after any outage longer than a day, and whenever Microsoft is late. Nothing errors: the ingest API answers `200` instead of `204`, and the records are gone.
 
 This entry is the third **worked example of FAQ-19**, after Zscaler (**FAQ-20**) and Box (**FAQ-23**). The generic decisions — signal classes, route choice, extract-then-discard, bucket isolation — are made there; here they are made for Microsoft 365.
 
-> **A note on the code and the DQL in this entry.** Both collectors (§ 9 and § 10) were checked against Microsoft's Management Activity API reference and exercised against mocked Microsoft and Dynatrace endpoints on 10/27/2026 — pagination, duplicate removal, the timestamp rule, the partial-ingest stop and the 7-day gap check. **They have not been run against a live Microsoft 365 tenant.** Run them against a test tenant before production. The parse and duplicate queries (§ 13.1, § 13.2) run against synthetic records with `data record(...)` at zero bytes scanned; the rest read real logs and are billed as queries — each scanned up to about a gigabyte on the validation tenant with no Microsoft 365 data present, so keep their timeframes short and scope them to your bucket once it exists. All queries were executed against a live tenant on 10/27/2026.
+> **A note on the code and the DQL in this entry.** Both collectors (§ 9 and § 10) were checked against Microsoft's Management Activity API reference and exercised against mocked Microsoft and Dynatrace endpoints on 10/27/2026 — pagination, duplicate removal, the timestamp rule, the partial-ingest stop and the 7-day gap check. **They have not been run against a live Microsoft 365 tenant.** Run them against a test tenant before production. The assessment of the `m365` Collector receiver in § 8.1 comes from reading its v1.2.0 source on 10/29/2026; it was not run either. The parse and duplicate queries (§ 13.1, § 13.2) run against synthetic records with `data record(...)` at zero bytes scanned; the rest read real logs and are billed as queries — each scanned up to about a gigabyte on the validation tenant with no Microsoft 365 data present, so keep their timeframes short and scope them to your bucket once it exists. All queries were executed against a live tenant on 10/27/2026.
 
 ---
 
@@ -27,7 +27,7 @@ This entry is the third **worked example of FAQ-19**, after Zscaler (**FAQ-20**)
 5. [The 24-Hour Timestamp Trap](#timestamp-trap)
 6. [Duplicates and the Checkpoint](#checkpoint)
 7. [App Registration and Credentials](#app-registration)
-8. [Choosing the Collector — Python or Workflow](#choosing)
+8. [Choosing the Collector — Python, Workflow or the Collector Receiver](#choosing)
 9. [Implementation A — Python](#python)
 10. [Implementation B — Dynatrace Workflow](#workflow)
 11. [Ingestion, Processing, and Storage](#ingestion)
@@ -65,9 +65,9 @@ Use two routes. Send **Entra ID sign-ins and directory audit** through the docum
 | Decision | Answer | Why |
 |---|---|---|
 | **Entra ID sign-ins and audit** | Diagnostic settings → Event Hub → Azure log forwarding | Documented by Dynatrace, with a built-in OpenPipeline bundle for sign-ins (§ 2.2) |
-| **Workload audit** | Pull from the Management Activity API | No Dynatrace route exists; Microsoft is de-emphasizing webhooks (§ 4) |
+| **Workload audit** | Pull from the Management Activity API | No documented Dynatrace route; Microsoft is de-emphasizing webhooks (§ 4) |
 | **Content types** | `Audit.Exchange`, `Audit.SharePoint`, `Audit.General`, plus `DLP.All` if needed | Leave out `Audit.AzureActiveDirectory` while Entra arrives by the other route (§ 3.1) |
-| **Collector** | **Python** by default; a **Workflow** for small tenants | Microsoft's volume is set by your tenant, not by you, and a Workflow run stops at 120 s (§ 8) |
+| **Collector** | **Python** by default; a **Workflow** for small tenants; the **`m365` Collector receiver** only where its v1.2.0 gaps are acceptable | Microsoft's volume is set by your tenant, not by you; a Workflow run stops at 120 s; the receiver reads only the first page of each content listing (§ 8) |
 | **Timestamp** | Event time only when it is under 23 h old; always keep it in `m365.creation_time` | Ingest drops older timestamps — and Microsoft keeps content for 7 days (§ 5) |
 | **Checkpoint** | Per content type, on `contentCreated`, written only after a successful ingest | The API lists content by when it was published, not when the event happened (§ 6) |
 | **Duplicates** | Remove within a run; count once with `dedup` at query time | Microsoft says duplicates are expected and removing them is the consumer's job (§ 6) |
@@ -92,14 +92,17 @@ What it does with audit logs is narrow. Its documentation says it uses them to c
 
 For identity, Dynatrace documents the route end to end. In the Azure portal, **Microsoft Entra ID > Diagnostic settings** streams the categories you choose — `AuditLogs`, `SignInLogs`, `NonInteractiveUserSignInLogs`, `ServicePrincipalSignInLogs`, `ManagedIdentitySignInLogs`, `ProvisioningLogs` — to an Event Hub, and Azure log forwarding sends them to Dynatrace. The setting is tenant-wide, so one setting covers every user and application. For sign-ins, OpenPipeline has a built-in technology bundle, **Azure Entra ID Audit Logs**, that maps them onto the semantic dictionary's security-event model.
 
-### 2.3 Nothing covers the workload audit
+### 2.3 Nothing documented covers the workload audit
 
-For Exchange, SharePoint and OneDrive, Teams and the other workloads, and for DLP events, there is no Dynatrace extension or documented route as of 10/27/2026. You build this one. The rest of this entry is about building it well.
+For Exchange, SharePoint and OneDrive, Teams and the other workloads, and for DLP events, there is no Dynatrace extension or documented route as of 10/27/2026.
+
+There is one ready-made component. The `m365` receiver for the OpenTelemetry Collector polls the same Management Activity API. It is maintained in a Dynatrace GitHub repository and built into the Dynatrace Bindplane Distribution of the Collector. In v1.2.0 it reads only the first page of each content listing and shares one checkpoint across all content types; § 8.1 sets out where that matters and how to configure it safely. Whether you adopt it or build your own, you run and own the collector, and the rest of this entry is about doing that well.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Microsoft 365, Office 365 extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/microsoft-365-office-365) — *"The extension uses audit logs to count O365 service users."*; *"No change logs are recorded or exported by the extension."*; *"The extension runs on Dynatrace ActiveGate."*</sub>
 > - <sub>[Forward Azure logs (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/ingest-telemetry/azure-logs-and-events/azure-logs) — *"Entra ID diagnostic settings are tenant-scoped, not subscription-scoped."*</sub>
 > - <sub>[Ingest Microsoft Entra ID sign-in logs (DT docs)](https://docs.dynatrace.com/docs/secure/threat-observability/security-events-ingest/ingest-microsoft-entra-id)</sub>
+> - <sub>[m365receiver README (Dynatrace GitHub)](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/m365receiver/README.md)</sub>
 > - <sub>**Catalog observation (10/27/2026):** § 2.3's no-route claim rests on the Dynatrace documentation assistant, a web search of dynatrace.com and the extension page above, which covers metrics only — re-check the Hub before quoting it, because listings appear over time</sub>
 
 ---
@@ -298,7 +301,7 @@ A client secret expires. Put its expiry date in your calendar, and alert on toke
 ---
 
 <a id="choosing"></a>
-## 8. Choosing the Collector — Python or Workflow
+## 8. Choosing the Collector — Python, Workflow or the Collector Receiver
 
 | | **Python** | **Workflow (JS runtime)** |
 |---|---|---|
@@ -316,6 +319,56 @@ A client secret expires. Put its expiry date in your calendar, and alert on toke
 If you have a choice, a sensible split is FAQ-23's: Workflow for steady state, with the Python collector built and tested as the catch-up tool.
 
 > <sub>**Sources:** [JavaScript runtime (Dynatrace Developer)](https://developer.dynatrace.com/develop/reference/javascript-runtime/) — *"Function execution times out after 120 seconds."*; [Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action) — *"The task result size is limited to 6 MB."*; [Office 365 Activity Feed Azure Function sample (Microsoft Learn)](https://learn.microsoft.com/en-us/samples/officedev/o365-activityfeed-azurefunction/office-365-activity-feed-sample/).</sub>
+
+
+### 8.1 The `m365` Collector receiver
+
+A third option needs no code of your own. The `m365` receiver for the OpenTelemetry Collector subscribes to the Management Activity API, polls it every 5 minutes by default, and emits each audit record as an OTLP log record whose timestamp is the event's `CreationTime`. It also scrapes Microsoft Graph usage reports as metrics. It is maintained in the `dynatrace-bindplane-otel-contrib` repository and built into the full Dynatrace Bindplane Distribution of the Collector (DBDOT). It is not in the slim DBDOT build or in the Dynatrace OTel Collector distribution. Its README configures it in plain Collector YAML; Bindplane can manage the same receiver as its **Microsoft 365** source, and the README's examples need no Bindplane server. Its stability is **beta**.
+
+Measured against the rules this entry depends on, v1.2.0 (released 10/28/2026) falls short in several places:
+
+| Rule from this entry | `m365` receiver v1.2.0 | Effect |
+|---|---|---|
+| Follow every `NextPageUri` (§ 4) | Reads the first page of each content listing only | A busy tenant loses content blobs, with no error |
+| Checkpoint per content type, written only after success (§ 6) | One checkpoint for all content types, advanced after every poll even when a type's listing failed | A failed poll loses that window for that content type |
+| Catch up one day-window at a time (§ 4) | Lists from the checkpoint to now in one request | After an outage of more than 24 h the listing exceeds Microsoft's limit and fails, and the checkpoint moves past the gap |
+| Survive a restart (§ 14) | The checkpoint persists only with a `storage` extension | Without one, a restart resumes at now minus the poll interval and the downtime is lost |
+| `PublisherIdentifier` on every call (§ 4) | Not sent | No dedicated throttling quota |
+| Leave out `Audit.AzureActiveDirectory` while Route A runs (§ 3.1) | `logs.azureAD` defaults to `true` | Every sign-in twice unless you turn it off |
+| Government clouds (§ 4.2) | Commercial `manage.office.com` and `login.microsoftonline.com` hosts only | Not usable for GCC, GCC High or DoD |
+| Certificate credentials (§ 7) | Client secret only | Track the secret's expiry and rotate it |
+| Event time only under 23 h (§ 5) | `timestamp` is always `CreationTime` | OTLP log ingest discards records older than the Log Age limit — the same trap |
+
+**If you use it, configure it like this:**
+
+```yaml
+extensions:
+  file_storage:
+    directory: /var/lib/otelcol/m365   # must survive restarts
+receivers:
+  m365:
+    tenant_id: ${env:M365_TENANT_ID}
+    client_id: ${env:M365_CLIENT_ID}
+    client_secret: ${env:M365_CLIENT_SECRET}
+    logs:
+      azureAD: false   # Entra ID arrives by Route A (§ 3.1)
+      dlp: false       # turn on only if you need DLP.All
+    storage: file_storage
+```
+
+Add `file_storage` to the `service.extensions` list and the receiver to a logs pipeline that exports to your environment's OTLP endpoint. The queries in § 13 and § 14 read fields the Python and Workflow collectors write — `audit.id`, `m365.content_type`, `m365.collected_at`, `log.source == "microsoft365.audit"`. The receiver writes the record ID as `id` and the content type as the resource attribute `m365.audit`, with short names such as `exchange` rather than `Audit.Exchange`, and sets none of the others, so map them in OpenPipeline or adapt the queries before you rely on them.
+
+**When it fits:** a commercial-cloud tenant where you have confirmed that a listing for your busiest content type returns no `NextPageUri` header, with Route A carrying Entra ID, a `storage` extension, and a staleness alert that catches an outage within hours. Otherwise use the Python collector. The receiver is new and actively developed, so re-check this table against each release before relying on it.
+
+> <sub>**Sources:**</sub>
+> - <sub>[m365receiver README (Dynatrace GitHub)](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/m365receiver/README.md) — *"The storage extension prevents duplication of data after a agent restart by remembering which data were previously collected. No storage is used when omitted."*</sub>
+> - <sub>[m365receiver metadata (Dynatrace GitHub)](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/m365receiver/metadata.yaml) — *"beta: [metrics, logs]"*</sub>
+> - <sub>[DBDOT Collector manifest (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-bindplane-otel-collector/blob/main/manifests/dynatrace-bindplane-otel-collector/manifest.yaml) — *"receiver/m365receiver v1.2.0"*</sub>
+> - <sub>[Microsoft 365 source (Bindplane docs)](https://docs.bindplane.com/integrations/sources/microsoft-365)</sub>
+> - <sub>[Ingest OTLP logs (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-logs) — *"Log events older than the Log Age limit are discarded."*</sub>
+> - <sub>[Management Activity API reference (Microsoft Learn)](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference) — *"they must be no more than 24 hours apart, with the start time no more than 7 days in the past."*</sub>
+> - <sub>**Code read (10/29/2026):** `client.go` and `logs.go` at tag `v1.2.0` contain no reference to `NextPageUri` or `PublisherIdentifier` (control: `contentUri`, `startTime` and `CreationTime` are found in the same files); one `NextStartTime` checkpoint is shared by all content types and advanced after every poll; the listing window runs from that checkpoint to now with no 24-hour split; every content-type flag defaults to `true`; the only credential field is `client_secret`; the token and API hosts are hard-coded. Not run against a Microsoft 365 tenant</sub>
+> - <sub>**Catalog observation (10/29/2026):** no `m365receiver` entry in the Dynatrace OTel Collector manifest (0.59.0) or the slim DBDOT manifest</sub>
 
 ---
 
@@ -1076,6 +1129,7 @@ Phase 6 is the one teams skip, and it is the only way to find out whether the co
 | 14 | **`CreationTime` parsed as local time** | Every record shifted by the UTC offset | It is UTC with no suffix — append `Z` (§ 5) |
 | 15 | **`Drop record` in Processing** | Raw discarded and metrics never built | `No storage assignment` in the Bucket assignment stage (§ 11.2) |
 | 16 | **`=` or `IN` on `dt.security_context`** | An IAM policy that matches nothing | Read FAQ-24 before writing the policy (§ 11.3) |
+| 17 | **Running the `m365` Collector receiver on its defaults** | Sign-ins twice; a gap after every restart | Set `logs.azureAD: false` and a `storage` extension (§ 8.1) |
 
 Gotchas 1, 3, 5 and 13 share FAQ-23's shape: each produces a confident, plausible answer — metrics flowing, `200 OK`, a first page of results, a health check that says `OK` — rather than an error.
 
@@ -1087,6 +1141,8 @@ Gotchas 1, 3, 5 and 13 share FAQ-23's shape: each produces a confident, plausibl
 **Use what exists first.** Install the Hub extension if you want Microsoft 365 service health and adoption metrics, and send Entra ID sign-ins and directory audit through Azure log forwarding. Neither needs a collector.
 
 **Then build one collector for the workload audit, in Python.** Subscribe to `Audit.Exchange`, `Audit.SharePoint` and `Audit.General` — plus `DLP.All` if you need it, and `Audit.AzureActiveDirectory` only if Entra ID cannot take the other route. Checkpoint per content type on `contentCreated`, follow every `NextPageUri`, and send `PublisherIdentifier` on every call. Use a Workflow instead only after measuring that your tenant drains inside one run.
+
+**Consider the `m365` Collector receiver only for a small commercial-cloud tenant.** Turn off `azureAD`, give it a `storage` extension, and first confirm that your listings fit on one page — v1.2.0 does not follow `NextPageUri` (§ 8.1). Re-check its gaps on each release.
 
 **Get the timestamp rule right before anything else.** Send the event time as `m365.creation_time` on every record, stamp `timestamp` from it only when it is under 23 hours old, and treat an ingest `200` as a failure. Then prove it by stopping the collector for more than a day.
 
