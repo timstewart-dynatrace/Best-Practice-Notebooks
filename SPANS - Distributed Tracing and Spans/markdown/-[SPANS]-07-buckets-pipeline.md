@@ -1,6 +1,6 @@
 # SPANS-07: Grail Buckets & OpenPipeline
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 7 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 7 of 8 | **Created:** December 2025 | **Last Updated:** 10/28/2026
 
 ## Data Architecture and Processing for Distributed Traces
 This notebook covers Dynatrace Grail's bucket architecture for span storage, OpenPipeline configuration patterns, and data governance strategies.
@@ -325,10 +325,11 @@ fetch spans, from:-1h
 
 ```dql
 // Identify sensitive services for routing
+// contains() is case-sensitive by default, so match case-insensitively
 fetch spans, from:-1h
-| filter contains(span.name, "payment") or
-        contains(span.name, "auth") or
-        contains(span.name, "login")
+| filter contains(span.name, "payment", caseSensitive: false) or
+        contains(span.name, "auth", caseSensitive: false) or
+        contains(span.name, "login", caseSensitive: false)
 | summarize {count = count()}, by:{dt.service.name, span.name}
 | sort count desc
 ```

@@ -89,12 +89,13 @@ fetch spans, from:-1h
 
 ```dql
 // Find URLs with potential user identifiers
+// contains() is case-sensitive by default, so match case-insensitively
 fetch spans, from:-1h
 | filter isNotNull(url.path)
-| filter contains(url.path, "user") or 
-        contains(url.path, "email") or
-        contains(url.path, "customer") or
-        contains(url.path, "account")
+| filter contains(url.path, "user", caseSensitive: false) or 
+        contains(url.path, "email", caseSensitive: false) or
+        contains(url.path, "customer", caseSensitive: false) or
+        contains(url.path, "account", caseSensitive: false)
 | fields dt.service.name,
          http.route,
          url.path
@@ -263,9 +264,10 @@ fetch spans, from:-1h
 
 ```dql
 // Authentication failure rate over time
+// contains() is case-sensitive by default, so match case-insensitively
 fetch spans, from:-1h
 | filter isNotNull(http.response.status_code)
-| filter contains(http.route, "auth") or contains(http.route, "login") or contains(span.name, "login")
+| filter contains(http.route, "auth", caseSensitive: false) or contains(http.route, "login", caseSensitive: false) or contains(span.name, "login", caseSensitive: false)
 | fieldsAdd time_bucket = bin(start_time, 10m)
 | summarize {
     total_attempts = count(),
@@ -278,8 +280,9 @@ fetch spans, from:-1h
 
 ```dql
 // High-frequency authentication failures by service
+// contains() is case-sensitive by default, so match case-insensitively
 fetch spans, from:-1h
-| filter contains(span.name, "auth") or contains(span.name, "login")
+| filter contains(span.name, "auth", caseSensitive: false) or contains(span.name, "login", caseSensitive: false)
 | filter span.status_code == "error" or http.response.status_code == 401 or http.response.status_code == 403
 | summarize {
     failure_count = count()
@@ -357,12 +360,13 @@ Monitor access patterns to sensitive endpoints like admin panels, configuration 
 
 ```dql
 // Find access to admin or configuration endpoints
+// contains() is case-sensitive by default, so match case-insensitively
 fetch spans, from:-1h
 | filter span.kind == "server"
-| filter contains(url.path, "admin") 
-      or contains(url.path, "config")
-      or contains(url.path, "settings")
-      or contains(span.name, "admin")
+| filter contains(url.path, "admin", caseSensitive: false) 
+      or contains(url.path, "config", caseSensitive: false)
+      or contains(url.path, "settings", caseSensitive: false)
+      or contains(span.name, "admin", caseSensitive: false)
 | fields start_time,
          dt.service.name,
          http.request.method,
@@ -375,11 +379,12 @@ fetch spans, from:-1h
 
 ```dql
 // Monitor data export or bulk operations
+// contains() is case-sensitive by default, so match case-insensitively
 fetch spans, from:-1h
 | filter span.kind == "server"
-| filter contains(url.path, "export")
-      or contains(url.path, "download")
-      or contains(url.path, "bulk")
+| filter contains(url.path, "export", caseSensitive: false)
+      or contains(url.path, "download", caseSensitive: false)
+      or contains(url.path, "bulk", caseSensitive: false)
 | summarize {
     access_count = count(),
     unique_traces = countDistinctExact(trace.id)
@@ -390,12 +395,13 @@ fetch spans, from:-1h
 
 ```dql
 // Identify services that might handle regulated data
+// contains() is case-sensitive by default, so match case-insensitively
 fetch spans, from:-1h
-| filter contains(span.name, "health") or
-        contains(span.name, "patient") or
-        contains(span.name, "payment") or
-        contains(span.name, "card") or
-        contains(span.name, "billing")
+| filter contains(span.name, "health", caseSensitive: false) or
+        contains(span.name, "patient", caseSensitive: false) or
+        contains(span.name, "payment", caseSensitive: false) or
+        contains(span.name, "card", caseSensitive: false) or
+        contains(span.name, "billing", caseSensitive: false)
 | summarize {
     span_count = count(),
     unique_operations = countDistinct(span.name)
@@ -567,6 +573,7 @@ fetch spans, from:-1h
 
 ```dql
 // Final audit: Summary of potential security concerns
+// contains() is case-sensitive by default, so match case-insensitively
 fetch spans, from:-1h
 | summarize {
     total_spans = count(),
@@ -574,7 +581,7 @@ fetch spans, from:-1h
     spans_with_db_query = countIf(isNotNull(db.query.text)),
     spans_with_errors = countIf(span.status_code == "error"),
     auth_failures = countIf(
-        (contains(span.name, "auth") or contains(span.name, "login")) and
+        (contains(span.name, "auth", caseSensitive: false) or contains(span.name, "login", caseSensitive: false)) and
         (span.status_code == "error" or http.response.status_code >= 400))
   }
 | fieldsAdd url_percent = (spans_with_url * 100.0) / total_spans
