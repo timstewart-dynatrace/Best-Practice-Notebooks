@@ -1,6 +1,6 @@
 # AUTOM-96 LAB: GitHub Actions CI/CD for Dynatrace Terraform
 
-> **Series:** AUTOM — Dynatrace Automation | **Reference:** 96 — GitHub Actions CI/CD LAB | **Created:** May 2026 | **Last Updated:** 10/02/2026
+> **Series:** AUTOM — Dynatrace Automation | **Reference:** 96 — GitHub Actions CI/CD LAB | **Created:** May 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -75,7 +75,7 @@ The pipeline has three zones: **GitHub** (source + runner + state), a **trust bo
 |------|-----------|------|
 | GitHub | Developer / Repo / Actions Runner / PR comment / Merge | The source-of-truth + execution surface |
 | GitHub | S3 state backend | Durable Terraform state; itself authn'd via OIDC |
-| Trust boundary | GitHub OIDC token | JWT issued per workflow run; sub claim carries the repo plus either the ref or the environment |
+| Trust boundary | GitHub OIDC token | JWT issued per workflow run; sub claim carries the repo plus the ref, the environment, or pull_request |
 | Trust boundary | AWS IAM trust + Vault jwt auth | Two parallel federated trusts (GitHub -> AWS for state, GitHub -> Vault for the token), scoped by a sub-claim glob — no static credential |
 | Trust boundary | DT Platform Token | Lives in Vault at secret/dynatrace/lab; scopes settings:objects:read/write; only ephemerally in runner memory; never in GitHub Secrets, never in Terraform state |
 | Dynatrace | DT Admin (out-of-band) | Mints the Platform Token in DT UI, deposits it in Vault |
@@ -355,15 +355,19 @@ path "secret/data/dynatrace/lab" {
 }
 EOF
 
-# Create a role that is assumable by the workflow
-vault write auth/jwt/role/dynatrace-terraform-lab \
-  role_type="jwt" \
-  user_claim="actor" \
-  bound_audiences="https://github.com/<your-org>" \
-  bound_claims_type="glob" \
-  bound_claims='{"sub":"repo:<your-org>@<org-id>/<your-repo>@<repo-id>:*"}' \
-  policies="dynatrace-lab-read" \
-  ttl="15m"
+# Create a role that is assumable by the workflow. bound_claims is a map, which the
+# Vault CLI cannot set as a key=value argument, so pass the whole role as JSON
+vault write auth/jwt/role/dynatrace-terraform-lab - <<'EOF'
+{
+  "role_type": "jwt",
+  "user_claim": "actor",
+  "bound_audiences": "https://github.com/<your-org>",
+  "bound_claims_type": "glob",
+  "bound_claims": { "sub": "repo:<your-org>@<org-id>/<your-repo>@<repo-id>:*" },
+  "policies": "dynatrace-lab-read",
+  "ttl": "15m"
+}
+EOF
 ```
 
 > **`bound_claims` uses the same `sub` format as the AWS trust policy** — for a repo created before July 15, 2026, use `repo:<your-org>/<your-repo>:*`.

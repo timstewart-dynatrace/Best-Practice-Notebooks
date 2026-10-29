@@ -1,6 +1,6 @@
 # AUTOM-03: Monaco Configuration-as-Code
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 3 of 9 | **Created:** January 2026 | **Last Updated:** 10/24/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 3 of 9 | **Created:** January 2026 | **Last Updated:** 10/29/2026
 
 Monaco (Monitoring as Code) is Dynatrace's official CLI tool for configuration management. It uses YAML files to define configurations and supports version control, CI/CD integration, and multi-environment deployments.
 
@@ -508,7 +508,7 @@ Commit both folders together with the gap list above. Checking the export agains
 
 > <sub>**Sources:**</sub>
 > - <sub>[Monaco commands — Filtering of downloaded files (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas) — *"Typically, these types contain secrets that must not be exported"*; *"Read-only configurations are also excluded."*</sub>
-> - <sub>[Monaco YAML configuration — type fields (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas-type-fields) — *"Monaco does not download Ready-made documents."*; [Monaco settings client, v2.30.1 (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.1/pkg/client/dtclient/settings_client.go) — *"AdminAccess requests resources of all owners for owner-based OpenPipeline schemas"*; *"existing commands like monaco deploy ignore any account configuration"*</sub>
+> - <sub>[Monaco YAML configuration — type fields (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas-type-fields) — *"Monaco does not download Ready-made documents."*; *"existing commands like monaco deploy ignore any account configuration"*; [Monaco settings client, v2.30.1 (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.1/pkg/client/dtclient/settings_client.go) — *"AdminAccess requests resources of all owners for owner-based OpenPipeline schemas"*</sub>
 > - <sub>[Default settings download filters (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/pkg/resource/settings/filter.go) — *"builtin:host.monitoring.mode is not reliable during download"*</sub>
 > - <sub>[Monaco v2.30.0 release notes (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/tag/v2.30.0) — *"Requires `settings:objects:admin`."*</sub>
 > - <sub>[Monaco v2.26.0 release notes (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/tag/v2.26.0) — *"Account management: deploy, download, and delete boundaries"*</sub>

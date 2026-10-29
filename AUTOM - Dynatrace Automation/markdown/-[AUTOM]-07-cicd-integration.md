@@ -1,6 +1,6 @@
 # AUTOM-07: CI/CD Integration
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 10/29/2026
 
 CI/CD integration brings software development practices to Dynatrace configuration management. By storing configs in Git and deploying via pipelines, teams gain version control, review processes, and automated deployments.
 
@@ -1322,7 +1322,7 @@ Bamboo's **Plan Branches** feature creates a child plan per Bitbucket branch aut
 
 **Gating the Apply stage to main only:**
 
-In community practice, the usual approach is **branch-aware stage conditions**. Bamboo Specs lets you mark a stage with a `final: true` flag or use plan-branch overrides. In practice for this pattern:
+In community practice, the usual approach is **branch-aware stage conditions** through plan-branch overrides. Do not use `final: true` for this — Bamboo runs a final stage *"even if previous results fail"*, so it is not a gate. In practice for this pattern:
 
 - Define the Apply stage with `manual: true` in the YAML (as above).
 - In the Bamboo UI under the plan's *Branches* tab, set the **Branch overrides** to disable the Apply stage on plan branches — only the main-branch plan executes Apply.
