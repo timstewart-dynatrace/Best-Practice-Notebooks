@@ -1,12 +1,12 @@
 # APPSEC-09: IAM and Gen3 Permissions for AppSec
 
-> **Series:** APPSEC — Application Security | **Notebook:** 9 of 10 | **Created:** June 2026 | **Last Updated:** 10/02/2026
+> **Series:** APPSEC — Application Security | **Notebook:** 9 of 10 | **Created:** June 2026 | **Last Updated:** 10/28/2026
 
 ## Overview
 
 AppSec data is among the most sensitive material in Dynatrace — vulnerability inventory, captured attack payloads, compliance findings. Granting too much access exposes private payloads; granting too little blocks the SOC from doing its job. This notebook is the IAM-design notebook for AppSec: the permission catalog (verified verbatim against the IAM policy statements reference), three persona policies, boundary patterns, and the privacy carve-out for `view-sensitive-request-data`.
 
-This is the most-grounded notebook in the series — the [IAM policy statements reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) was resolvable at series-creation time and the tokens below were verified verbatim on 06/04/2026.
+This is the most-grounded notebook in the series — the [IAM policy statements reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) was resolvable at series-creation time and the tokens below were re-verified verbatim on 10/02/2026.
 
 ![AppSec IAM persona matrix](images/09-appsec-permission-matrix_930x500.png)
 
@@ -56,7 +56,7 @@ The `environment:roles:*` permissions — `view-security-problems`, `manage-secu
 - The Vulnerabilities app and API → `vulnerability-service:vulnerabilities:read` / `:write`, plus the app's documented default policies: *Read Entities*, *Read Security Events*, and one of *Admin User*, *Pro User* or *Standard User*
 - Classic apps only → `environment:roles:*`
 
-A complete AppSec persona policy needs the Grail grants and the vulnerability-service grants; the classic roles matter only while you still use the classic apps. See IAM-04 § Policy Authoring for the underlying DSL grammar.
+A complete AppSec persona policy needs the Grail grants and the vulnerability-service grants; the classic roles matter only while you still use the classic apps. See IAM-04 § 2, *Policy Statement Syntax*, for the underlying DSL grammar.
 
 > <sub>**Sources:** [IAM policy statements reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `storage:security.events:read`: *"Read security.events from grail"*; `vulnerability-service:vulnerabilities:read`: *"Allows viewing vulnerabilities"*; [Vulnerability Analytics (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/vulnerability-analytics) — *"This permissions section refers to the classic Third-Party Vulnerabilities and Security Overview apps, which are deprecated."*; [Vulnerabilities (DT docs)](https://docs.dynatrace.com/docs/secure/vulnerabilities) — *"Read Entities Read Security Events One of the following user policies: Admin User , Pro User , Standard User"* (all re-read 10/02/2026).</sub>
 

@@ -1,6 +1,6 @@
 # APPSEC-01: Fundamentals and the Three Pillars of Application Security
 
-> **Series:** APPSEC — Application Security | **Notebook:** 1 of 10 | **Created:** June 2026 | **Last Updated:** 10/02/2026
+> **Series:** APPSEC — Application Security | **Notebook:** 1 of 10 | **Created:** June 2026 | **Last Updated:** 10/28/2026
 
 ## Overview
 
@@ -49,7 +49,7 @@ This notebook orients you to the surface area: what each pillar does, what data 
 <a id="three-pillars"></a>
 ## 1. The Three Pillars
 
-The three pillars are separate DPS capabilities, each enabled and billed on its own: Runtime Vulnerability Analytics and Runtime Application Protection in GiB-hours, Kubernetes Security Posture Management in host-hours per scanned cluster. RVA and RAP run in the OneAgent code module; SPM is independent of OneAgent. All three write their findings to the same Grail `security.events` table and share the entity model.
+The three pillars are separate DPS capabilities, each enabled and billed on its own: Runtime Vulnerability Analytics and Runtime Application Protection in GiB-hours, Kubernetes Security Posture Management in host-hours (each node scanned during an hour counts as one host-hour). RVA and RAP run in the OneAgent code module; SPM is independent of OneAgent. All three write their findings to the same Grail `security.events` table and share the entity model.
 
 ### Runtime Vulnerability Analytics (RVA)
 
