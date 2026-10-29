@@ -1,6 +1,6 @@
 # AUTOM-98 LAB: Terraform for Dynatrace
 
-> **Series:** AUTOM — Dynatrace Automation | **Reference:** 98 — Terraform Hands-On LAB | **Created:** April 2026 | **Last Updated:** 10/02/2026
+> **Series:** AUTOM — Dynatrace Automation | **Reference:** 98 — Terraform Hands-On LAB | **Created:** April 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -235,7 +235,7 @@ resource "dynatrace_document" "first_notebook" {
         title = "Error logs, last hour"
         state = {
           input = {
-            value = "fetch logs, from:-1h\n| filter loglevel == \"ERROR\"\n| summarize errors = count()"
+            value = "fetch logs, from:-1h\n| filter status == \"ERROR\"\n| summarize errors = count()"
           }
         }
       }
