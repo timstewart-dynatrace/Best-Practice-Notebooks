@@ -1,6 +1,6 @@
 # OPMIG-01: OpenPipeline Migration Guide: Part 1
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 10/23/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 10/30/2026
 
 ## Introduction & Why Migrate from Classic to OpenPipeline v2.0
 
@@ -343,9 +343,7 @@ fetch logs, from: now() - 7d
 // Check which logs are already processed by OpenPipeline vs Classic
 // This helps identify migration progress
 fetch logs, from: now() - 24h
-| fieldsAdd pipeline_type = if(isNotNull(dt.openpipeline.pipelines), "OpenPipeline", 
-                            else: if(isNotNull(dt.openpipeline.source), "OpenPipeline", 
-                            else: "Classic"))
+| fieldsAdd pipeline_type = if(in(dt.openpipeline.pipelines, "logs:default"), "Classic pipeline", else: "OpenPipeline")
 | summarize {log_count = count()}, by: {pipeline_type}
 | sort log_count desc
 ```
@@ -368,7 +366,7 @@ fetch logs, from: now() - 24h
 
 ```dql
 // Identify which pipelines are processing your logs
-// Shows custom pipelines already configured
+// Shows every pipeline id, including the classic `logs:default`
 fetch logs, from: now() - 24h
 | filter isNotNull(dt.openpipeline.pipelines)
 | summarize {log_count = count()}, by: {dt.openpipeline.pipelines}
@@ -382,10 +380,11 @@ fetch logs, from: now() - 24h
 Use these queries to assess your migration readiness and identify areas that need attention.
 
 ```dql
-// Check parsing coverage - how many logs have structured data?
-// Low coverage indicates need for parsing pipelines
+// Check parsing coverage - how many logs have a detected log level?
+// loglevel and status are never null: a record with no detected level reads NONE.
+// Low coverage indicates need for parsing pipelines. Custom fields need their own check (OPMIG-06)
 fetch logs, from: now() - 24h
-| fieldsAdd has_structured_data = isNotNull(loglevel) OR isNotNull(status)
+| fieldsAdd has_structured_data = loglevel != "NONE"
 | summarize {
     total = count(),
     structured = countIf(has_structured_data),
@@ -400,12 +399,13 @@ fetch logs, from: now() - 24h
 fetch logs, from: now() - 24h
 | summarize {
     total = count(),
-    debug_logs = countIf(loglevel == "DEBUG" OR status == "DEBUG"),
-    info_logs = countIf(loglevel == "INFO" OR status == "INFO"),
+    debug_logs = countIf(loglevel == "DEBUG"),
+    info_logs = countIf(loglevel == "INFO"),
     health_checks = countIf(contains(toString(content), "health") OR contains(toString(content), "heartbeat")),
-    metrics_endpoints = countIf(contains(toString(content), "/metrics") OR contains(toString(content), "/prometheus"))
+    metrics_endpoints = countIf(contains(toString(content), "/metrics") OR contains(toString(content), "/prometheus")),
+    // one countIf, so a record matching two conditions is counted once
+    droppable = countIf(loglevel == "DEBUG" OR contains(toString(content), "health") OR contains(toString(content), "heartbeat") OR contains(toString(content), "/metrics") OR contains(toString(content), "/prometheus"))
   }
-| fieldsAdd droppable = debug_logs + health_checks + metrics_endpoints
 | fieldsAdd potential_savings_pct = round((toDouble(droppable) / toDouble(total)) * 100, decimals: 1)
 ```
 

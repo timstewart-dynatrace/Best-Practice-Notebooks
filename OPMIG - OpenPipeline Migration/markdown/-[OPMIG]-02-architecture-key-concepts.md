@@ -1,6 +1,6 @@
 # OPMIG-02: OpenPipeline Migration Guide: Part 2
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 10/26/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 10/30/2026
 
 ## Architecture & Key Concepts
 ---
@@ -58,7 +58,7 @@ Understanding how data flows through OpenPipeline is essential for designing eff
 |-------|------------|-------------|
 | **Ingest** | OneAgent, Generic API, OTLP, Custom (built-in / ready-made / custom sources) | Data entry points; source recorded in `dt.openpipeline.source` |
 | **Pre-processing** *(custom sources only, optional)* | Source-level DQL transform | Normalize raw data into a common shape before routing |
-| **Routing** | Dynamic matchers (DQL) or static assignment (custom sources) | Route records to one or more pipelines |
+| **Routing** | Dynamic matchers (DQL) or static assignment (custom sources) | Each record takes the first matching route; extraction in at most 5 pipelines (pipeline groups) |
 | **Pipeline** | Fixed sequence of stages: **Processing** (DQL, Add/Remove/Rename fields, Drop record, GeoIP lookup (Early Access), Inline lookup) → Smartscape node → Smartscape edge → Permission → Product allocation → Cost allocation → **Bucket assignment** → **Metric extraction** → **Davis** → **Data extraction** | Masking, dropping, parsing and transformation all happen in the first stage (Processing); the extraction stages run after bucket assignment |
 | **Storage** | Grail bucket chosen by the Bucket assignment stage (or not stored — No storage assignment), retention per bucket | Persist to a Grail bucket, or skip retention with the No storage assignment processor |
 -->
@@ -180,7 +180,7 @@ The DQL processor uses DQL commands to transform data. Available commands:
 |---------|---------|----------|
 | `fieldsAdd` | Add new fields | `fieldsAdd environment = "prod"` |
 | `fieldsRemove` | Remove fields | `fieldsRemove sensitive_field` |
-| `fieldsRename` | Rename fields | `fieldsRename old_name = new_name` |
+| `fieldsRename` | Rename fields | `fieldsRename new_name = old_name` |
 | `parse` | Extract with DPL patterns | `parse content, "LD:prefix INT:count"` |
 
 **fieldsAdd Examples:**
@@ -229,7 +229,8 @@ DPL is a powerful pattern matching language used in the `parse` command.
 | `IPADDR` | IPv4 or IPv6 address | `192.168.1.1`, `::1` |
 | `IPV4ADDR` | IPv4 address only | `10.0.0.1` |
 | `IPV6ADDR` | IPv6 address only | `2001:db8::1` |
-| `TIMESTAMP` | Timestamp with format | `2024-01-15T10:30:00Z` |
+| `TIMESTAMP('<format>')` | Timestamp in the format you give (bare `TIMESTAMP` returned null on this example) | `TIMESTAMP('yyyy-MM-ddTHH:mm:ssZ'):t` on `2024-01-15T10:30:00Z` |
+| `ISO8601` | ISO 8601 timestamp | `2024-01-15T10:30:00Z` |
 | `LD` | Line data (to delimiter) | Any text until delimiter |
 | `DATA` | Any data (greedy) | Consumes remaining text |
 | `SPACE` | Whitespace | Spaces, tabs |
@@ -247,7 +248,9 @@ DPL is a powerful pattern matching language used in the `parse` command.
 | Optional | `MATCHER?` | Matcher is optional |
 | Literal | `'exact text'` | Match literal string |
 | Alternatives | `('opt1'\|'opt2')` | Match either option |
-| Quantifier | `MATCHER{2,5}` | Match 2-5 times |
+| Quantifier | `MATCHER{2,5}` | Bounds the characters the matcher consumes: `WORD{1,3}` on `hello` returns `hel` |
+
+> <sub>**Sources:** [DPL time and date (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-time-date) — `ISO8601`. Timestamp and quantifier results run with `data record(...)` on 10/30/2026.</sub>
 
 > **Quantifier caveat:** `{n,m}` is not universal. `INT` accepts only `*` and `+` —
 > `INT{3}` is rejected. For fixed-width digit runs use a character class: `[0-9]{3}`.
@@ -265,7 +268,7 @@ DPL is a powerful pattern matching language used in the `parse` command.
 | parse content, "IPADDR:client_ip SPACE '-' SPACE LD:user SPACE '[' LD:log_time ']'"
 
 // Extract JSON payload
-| parse content, "LD JSON:payload"
+| parse content, "LD? JSON:payload"
 
 // Parse with optional port
 | parse content, "IPADDR:ip (':' INT:port)?"
@@ -305,7 +308,7 @@ This comprehensive reference contains ALL OpenPipeline limits you need to know f
 | **Max field name length** | 255 characters † | Field creation fails |
 | **Max string field length** | 32 KB † | Content truncated |
 | **Max array size** | 1000 elements † | Array truncated |
-| **Max nesting depth (JSON)** | 10 levels † | Deeper levels flattened |
+| **Max nesting depth (log records)** | 5 levels | *"The maximum number of levels ingested with nested objects"* |
 
 ### Processing Limits
 
@@ -315,7 +318,7 @@ This comprehensive reference contains ALL OpenPipeline limits you need to know f
 | **Max processors per pipeline** | 1,000 (100 in a base pipeline) | Cannot add more processors to pipeline |
 | **Max DQL commands per processor** | 10 commands † | Split complex logic into multiple processors |
 | **Max parse operations per processor** | 100 patterns † | Create additional parse processors |
-| **Max fields per record** | 500 fields † | Additional fields ignored |
+| **Max attributes per log record** | 500 | *"The maximum number of attributes a log can contain"* |
 | **Processing timeout per record** | 30 seconds † | Record dropped if exceeded |
 | **Max processor name length** | 100 characters † | Validation error |
 
@@ -438,10 +441,11 @@ The limits page does not publish a general ban on creating `dt.*` fields, but th
 | **>5 pipelines in a group needed** | Consolidate processing logic, use conditional processors |
 | **>10 metric dimensions** | Reduce cardinality, use separate metrics |
 
-† Not stated on the *OpenPipeline limits* page (read 09/28/2026) — treat as community-reported and verify in your tenant before planning to it. Every unmarked number in the tables above is on that page.
+† Not stated on the *OpenPipeline limits* page (read 09/28/2026) or the *Log Management and Analytics default limits* page (read 10/30/2026) — treat as community-reported and verify in your tenant before planning to it. Every unmarked number in the tables above is on one of those pages. Where a record-type limit is stricter, *"the record-type limit takes precedence"*.
 
 > <sub>**Sources:**</sub>
 > - <sub>[OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits) — *"If the timestamp is more than 10 minutes in the future, it's adjusted to the ingest server time plus 10 minutes."*; *"The request payload size maximum limit is 10 MB per configuration scope."*; *"Once the available processing memory is exhausted, the record is dropped."*</sub>
+> - <sub>[Log Management and Analytics default limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-limits) — *Nested objects*: 5 levels; *Number of log attributes*: 500.</sub>
 > - <sub>[What's new in SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"The log ingestion pipeline now accepts log records with timestamps up to 72 hours in the past, extended from the previous 24-hour limit."*</sub>
 
 ---
@@ -661,7 +665,7 @@ Two orders are in play, and only one of them is yours to choose:
 | 10 | Data extraction | Business event, software development lifecycle event |
 -->
 
-> 💡 **Tip:** Masking is not automatically first. Inside the Processing stage, place masking processors **before** any processor that copies, parses or extracts from the sensitive field — a processor listed ahead of the masking processor sees the raw value. Records reach Bucket assignment and storage only after the whole Processing stage has run. The diagram groups processors by purpose; the execution order the platform enforces is the stage sequence above.
+> 💡 **Tip:** Masking is not automatically first. Inside the Processing stage, place masking processors **before** any processor that copies, parses or extracts from the sensitive field — a processor listed ahead of the masking processor sees the raw value. Records reach Bucket assignment and storage only after the whole Processing stage has run. The platform enforces the stage sequence in the diagram; the order inside Processing is yours.
 >
 > <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — stage table, in execution order; *"The processor order in the stage; each processor output becomes the input for the next one."*</sub>
 

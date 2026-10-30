@@ -1,6 +1,6 @@
 # OPMIG-06: Processing, Parsing & Transformation
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 10/12/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 10/30/2026
 
 ---
 
@@ -72,7 +72,7 @@ The DQL processor supports a subset of DQL commands for data transformation.
 |---------|---------|----------|
 | `fieldsAdd` | Add new fields | `fieldsAdd env = "production"` |
 | `fieldsRemove` | Remove fields | `fieldsRemove sensitive_field` |
-| `fieldsRename` | Rename fields | `fieldsRename old = new_name` |
+| `fieldsRename` | Rename fields | `fieldsRename new_name = old` |
 | `parse` | Extract with DPL | `parse content, "LD? 'count=' INT:count"` |
 | `jsonExtract` | Lift a JSON string's root-level keys to fields | JSON logs |
 | `fieldsFlatten` | Flatten a nested record into fields | after `parse … "JSON:x"` |
@@ -169,7 +169,7 @@ DPL is a powerful pattern matching language for extracting structured data from 
 | `MATCHER?` | Optional match | `(':' INT:port)?` |
 | `'literal'` | Match exact text | `'error_code='` |
 | `(a\|b)` | Alternatives | `('user='\|'userId=')` |
-| `MATCHER{n,m}` | Quantifier | `WORD{1,3}` |
+| `MATCHER{n,m}` | Bounds the characters the matcher consumes | `WORD{1,3}` on `hello` returns `hel` |
 
 > **Quantifier caveat:** `{n,m}` is not universal. `INT` accepts only `*` and `+` —
 > `INT{3}` is rejected. For fixed-width digit runs use a character class: `[0-9]{3}`.
@@ -187,11 +187,11 @@ parse content, "LD? 'error_code=' INT:error_code"
 parse content, "IPADDR:client_ip ':' INT:port"
 
 // Extract JSON payload
-parse content, "LD JSON:payload"
+parse content, "LD? JSON:payload"
 ```
 
 > **Three rules that decide whether a pattern returns anything** (each verified with `data record(...)` on 10/02/2026):
-> 1. **`parse` anchors at the start of the field.** A pattern that opens with `'user='` returns **null** on every line that does not *begin* with `user=` — no error. Prefix it with `LD?` to skip any leading text (or none). `parse` does *not* need to consume the whole field; trailing text is ignored.
+> 1. **`parse` anchors at the start of the field.** A pattern that opens with `'user='` returns **null** on every line that does not *begin* with `user=` — no error. Prefix it with `LD?` to skip any leading text (or none): `LD? 'user=' NSPACE:u` on `user=abc x` returns `abc`. At column 0 this can still go wrong: `LD? IPADDR:ip` on a line beginning with the IP returns `92.168.1.100`, and `LD? '"' …` on a line beginning with `"` returns null (run 10/30/2026). `parse` does *not* need to consume the whole field; trailing text is ignored.
 > 2. **A trailing `LD:x` runs to the end of the line**, not the end of the value — `'requestId=' LD:id` on `requestId=abc-123 status=OK` returns `abc-123 status=OK`. End with `NSPACE:x`, a typed matcher, or a closing literal.
 > 3. **`LD` never crosses a line break.** In a multi-line record (a stack trace), `LD? 'at ' …` cannot reach line 2. Use `DATA? 'at ' …` for the first match, or `parseAll(content, "…")` to collect every match as an array.
 >
@@ -446,7 +446,7 @@ fieldsAdd normalized_level = if(contains(content, "ERROR") OR contains(content, 
 | Syslog | `Dec 12 10:30:45` | `TIMESTAMP('MMM dd HH:mm:ss')` |
 | Java | `2024-12-12 10:30:45,123` | `TIMESTAMP('yyyy-MM-dd HH:mm:ss,SSS')` |
 | MySQL | `2024-12-12 10:30:45` | `TIMESTAMP('yyyy-MM-dd HH:mm:ss')` |
-| Unix Epoch | `1702380645` | `LONG:epoch` → `toTimestamp(epoch * 1000)` |
+| Unix Epoch | `1702380645` | `LONG:epoch` → `toTimestamp(epoch * 1000000000)` (a long is read as nanoseconds) |
 
 ### HTTP Request Patterns
 
@@ -534,6 +534,8 @@ parse content, "LD? IPV6ADDR:ipv6"
 parse content, "LD:protocol '://' LD:hostname (':' INT:port)? '/' LD:path"
 ```
 
+`LD?` can consume one character before a typed matcher that could also match further in: `LD? IPADDR:ip ':' INT:port` on `192.168.1.100:8080 rest` returns `92.168.1.100`, with no error. If the value can be at column 0, use `IPADDR:ip ':' INT:port` for those lines (run 10/30/2026).
+
 ---
 
 ---
@@ -572,7 +574,7 @@ parse content, """
 | `grok { }` | DQL parse processor |
 | `mutate { add_field }` | `fieldsAdd field = "value"` |
 | `mutate { remove_field }` | `fieldsRemove field` |
-| `mutate { rename }` | `fieldsRename old = new` |
+| `mutate { rename }` | `fieldsRename new = old` |
 | `drop { }` | Drop processor |
 | `json { }` | `jsonExtract`, or `parse content, "JSON:x"` + `fieldsFlatten x` |
 | `date { }` | TIMESTAMP in parse |
@@ -590,7 +592,7 @@ filter {
 
 **OpenPipeline:**
 1. Drop processor: `loglevel == "DEBUG"`
-2. DQL parse: `parse content, "TIMESTAMP('yyyy-MM-dd HH:mm:ss'):ts SPACE LD:level SPACE DATA:msg"`
+2. DQL parse: `parse content, "TIMESTAMP('yyyy-MM-ddTHH:mm:ss.SSSZ'):ts SPACE LD:level SPACE DATA:msg"`
 3. DQL add: `fieldsAdd env = "production"`
 
 ---
@@ -646,16 +648,16 @@ Drop processors remove records from the pipeline before storage.
 | Readiness probes | `matchesValue(content, "*/ready*")` |
 | Metrics endpoints | `matchesValue(content, "*/metrics*")` |
 | Heartbeats | `matchesPhrase(content, "heartbeat")` |
+| Specific source | `log.source == "noisy-service"` |
 
 > Matching conditions accept `matchesValue` (with `*` wildcards, any substring) and `matchesPhrase` (whole tokens); `contains()` is not enabled in a matcher.
-| Specific source | `log.source == "noisy-service"` |
 
 ### Drop Processor Configuration
 
 ```
 Processor Type: Drop
 Name: Drop debug logs
-Matching Condition: loglevel == "DEBUG" OR status == "DEBUG"
+Matching Condition: loglevel == "DEBUG"
 ```
 
 ### Combining Drop Conditions
@@ -706,7 +708,7 @@ When JSON is embedded in a log message:
 
 ```dql
 // Extract JSON from text (trailing text after the JSON is ignored)
-parse content, "LD JSON:embedded_json"
+parse content, "LD? JSON:embedded_json"
 ```
 
 ### Pattern 4: Compute Response Time Categories
@@ -739,14 +741,13 @@ After configuring processors, validate that parsing is working correctly.
 
 ```dql
 // Check parsing success rate across all pipelines
+// loglevel and status are never null: a record with no detected level reads NONE
 fetch logs, from: now() - 1h
 | summarize {
     total = count(),
-    with_loglevel = countIf(isNotNull(loglevel)),
-    with_status = countIf(isNotNull(status)),
-    with_either = countIf(isNotNull(loglevel) OR isNotNull(status))
+    with_loglevel = countIf(loglevel != "NONE")
   }
-| fieldsAdd parsing_rate = round((toDouble(with_either) / toDouble(total)) * 100, decimals: 1)
+| fieldsAdd parsing_rate = round((toDouble(with_loglevel) / toDouble(total)) * 100, decimals: 1)
 ```
 
 ```dql
@@ -755,16 +756,16 @@ fetch logs, from: now() - 1h
 | filter isNotNull(dt.openpipeline.pipelines)
 | summarize {
     total = count(),
-    parsed = countIf(isNotNull(loglevel))
+    parsed = countIf(loglevel != "NONE")
   }, by: {dt.openpipeline.pipelines}
 | fieldsAdd parsing_rate = round((toDouble(parsed) / toDouble(total)) * 100, decimals: 1)
 | sort parsing_rate asc
 ```
 
 ```dql
-// Sample logs that failed parsing (no loglevel extracted)
+// Sample logs that failed parsing (no level detected: loglevel is NONE)
 fetch logs, from: now() - 1h
-| filter isNull(loglevel) AND isNull(status)
+| filter loglevel == "NONE"
 | fields timestamp, log.source, dt.openpipeline.pipelines, content
 | limit 25
 ```
@@ -784,7 +785,7 @@ fetch logs, from: now() - 1h
 ```dql
 // Sample successfully parsed logs to verify field extraction
 fetch logs, from: now() - 1h
-| filter isNotNull(loglevel)
+| filter loglevel != "NONE"
 | limit 20
 ```
 

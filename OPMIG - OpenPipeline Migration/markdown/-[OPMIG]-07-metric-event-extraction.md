@@ -1,6 +1,6 @@
 # OPMIG-07: Metric & Event Extraction
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 10/14/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 10/30/2026
 
 ---
 
@@ -320,6 +320,24 @@ Matching: matchesPhrase(content, "order placed successfully")
 
 ### Querying Business Events
 
+```dql
+// Query business events extracted from logs
+fetch bizevents, from: now() - 24h
+| filter event.type == "com.example.order.placed"
+| fields timestamp, order_id, customer_id, total_amount
+| limit 50
+```
+
+```dql
+// Business event analytics - order totals by hour
+fetch bizevents, from: now() - 24h
+| filter event.type == "com.example.order.placed"
+| makeTimeseries {
+    order_count = count(),
+    total_revenue = sum(total_amount)
+  }, interval: 1h
+```
+
 ---
 
 <a id="business-kpi-extraction-new"></a>
@@ -355,24 +373,6 @@ Dimensions: feature_name, feature_enabled, user_segment
 ```
 
 ---
-
-```dql
-// Query business events extracted from logs
-fetch bizevents, from: now() - 24h
-| filter event.type == "com.example.order.placed"
-| fields timestamp, order_id, customer_id, total_amount
-| limit 50
-```
-
-```dql
-// Business event analytics - order totals by hour
-fetch bizevents, from: now() - 24h
-| filter event.type == "com.example.order.placed"
-| makeTimeseries {
-    order_count = count(),
-    total_revenue = sum(total_amount)
-  }, interval: 1h
-```
 
 ---
 

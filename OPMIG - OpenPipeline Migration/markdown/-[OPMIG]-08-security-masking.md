@@ -1,6 +1,6 @@
 # OPMIG-08: Security, Masking & Compliance
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 8 of 10 | **Created:** December 2025 | **Last Updated:** 10/12/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 8 of 10 | **Created:** December 2025 | **Last Updated:** 10/30/2026
 
 ---
 
@@ -51,7 +51,7 @@ Place masking processors **first within the Processing stage**, before any proce
 
 **Routing runs before any pipeline processor**, so routing matchers always see the raw value — keep PII out of routing conditions, or mask at capture (OneAgent-side masking) when the value must never reach Dynatrace.
 
-![Masking Executes First](images/masking-order.png)
+![Place masking first in the Processing stage](images/masking-order.png)
 
 <!--MARKDOWN_TABLE_ALTERNATIVE
 | Stage | Contents | PII Status |
@@ -377,8 +377,8 @@ After configuring masking, verify it's working correctly.
 ```dql
 // Check for any remaining card numbers in stored logs — if masking works, this returns 0 rows.
 // replacePattern() finds a CREDITCARD match anywhere; matchesPhrase(content, "4111") would not,
-// and the !<< / !>> bounds keep digit runs inside UUIDs from counting as cards.
 // because an unbroken 16-digit number is a single token that "4111" never equals.
+// The !<< / !>> bounds keep digit runs inside UUIDs from counting as cards.
 fetch logs, from: now() - 24h
 | filter replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]", replacement: "") != content
 | fields timestamp, log.source, dt.openpipeline.pipelines
@@ -513,7 +513,7 @@ fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A
 
 **Masking Processor 2: CVV Codes**
 ```dql
-fieldsAdd content = replacePattern(content, "('cvv='|'cvc=') [0-9]{3,4}", replacement: "cvv=[REDACTED]")
+fieldsAdd content = replacePattern(content, "('cvv='|'cvc='|'CVV='|'CVC=') [0-9]{3,4}", replacement: "cvv=[REDACTED]")
 ```
 
 **Masking Processor 3: Emails** (DQL processor, matching condition `true`)

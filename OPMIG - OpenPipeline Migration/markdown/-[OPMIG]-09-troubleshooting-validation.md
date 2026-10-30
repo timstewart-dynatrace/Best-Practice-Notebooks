@@ -1,6 +1,6 @@
 # OPMIG-09: Troubleshooting & Validation
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 10/26/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 10/30/2026
 > **Level:** Intermediate  
 > **Prerequisites:** OPMIG-01 through OPMIG-08  
 > **Estimated Time:** 45 minutes  
@@ -196,9 +196,9 @@ Visual decision trees for diagnosing and resolving common OpenPipeline issues.
 <!--MARKDOWN_TABLE_ALTERNATIVE
 | Step | Question | If Found/No | If Not Found/Yes |
 |------|----------|-------------|------------------|
-| 1 | Query for unmasked data? | Masking broken → Step 2 | May be working, verify |
+| 1 | Query for unmasked data: `filter replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]", replacement: "") != content` | Masking broken → Step 2 | May be working, verify |
 | 2 | Processor order correct? | Move masking earlier | Go to Step 3 |
-| 3 | DPL pattern matches? | Update DPL pattern | Go to Step 4 |
+| 3 | DPL pattern matches? Test: `replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]", replacement: "[REDACTED]")` | Update DPL pattern | Go to Step 4 |
 | 4 | All fields masked? | Add field masking, fieldsRemove | Complete! |
 -->
 
@@ -226,6 +226,48 @@ Note: OpenPipeline exposes no per-record processing-time field — diagnose by v
 <a id="pipeline-health-monitoring"></a>
 ## Pipeline Health Monitoring
 Monitor the overall health of your OpenPipeline configuration.
+
+```dql
+// Overview: Log volume by pipeline (last 24 hours)
+fetch logs, from: now() - 24h
+| summarize {log_count = count()}, by: {dt.openpipeline.pipelines}
+| sort log_count desc
+```
+
+```dql
+// Pipeline volume trend over time
+fetch logs, from: now() - 24h
+| makeTimeseries {log_count = count()}, by: {dt.openpipeline.pipelines}, interval: 1h
+```
+
+```dql
+// Check for logs still on the classic pipeline (potential routing issues).
+// isNull() never fires: classic records carry dt.openpipeline.pipelines too
+fetch logs, from: now() - 1h
+| filter in(dt.openpipeline.pipelines, "logs:default")
+| summarize {unrouted_count = count()}, by: {log.source}
+| sort unrouted_count desc
+```
+
+```dql
+// Bucket distribution check
+fetch logs, from: now() - 24h
+| summarize {
+    log_count = count()
+  }, by: {dt.system.bucket, dt.openpipeline.pipelines}
+| sort log_count desc
+```
+
+```dql
+// Log source health - are all expected sources sending data?
+fetch logs, from: now() - 1h
+| summarize {
+    log_count = count(),
+    last_seen = max(timestamp)
+  }, by: {log.source}
+| fieldsAdd minutes_since_last = (now() - last_seen) / 1m
+| sort minutes_since_last desc
+```
 
 ---
 
@@ -582,13 +624,6 @@ The schema IDs (`builtin:openpipeline.logs.pipelines`, `builtin:openpipeline.log
 
 ---
 
-```dql
-// Overview: Log volume by pipeline (last 24 hours)
-fetch logs, from: now() - 24h
-| summarize {log_count = count()}, by: {dt.openpipeline.pipelines}
-| sort log_count desc
-```
-
 ---
 
 <a id="performance-troubleshooting-new"></a>
@@ -700,9 +735,11 @@ fetch logs, from: now() - 1h
     total = count(),
     debug = countIf(loglevel == "DEBUG"),
     trace = countIf(loglevel == "TRACE"),
-    health = countIf(contains(content, "/health"))
+    health = countIf(contains(content, "/health")),
+    // one countIf, so a record matching two conditions is counted once
+    droppable = countIf(loglevel == "DEBUG" OR loglevel == "TRACE" OR contains(content, "/health"))
 }, by: {log.source}
-| fieldsAdd droppable_pct = toDouble(debug + trace + health) / toDouble(total) * 100
+| fieldsAdd droppable_pct = toDouble(droppable) / toDouble(total) * 100
 | filter droppable_pct > 30
 | sort droppable_pct desc
 ```
@@ -853,40 +890,6 @@ If dimension has > 1,000 unique values → BUCKET IT or REMOVE IT
 
 ---
 
-```dql
-// Pipeline volume trend over time
-fetch logs, from: now() - 24h
-| makeTimeseries {log_count = count()}, by: {dt.openpipeline.pipelines}, interval: 1h
-```
-
-```dql
-// Check for logs without pipeline assignment (potential routing issues)
-fetch logs, from: now() - 1h
-| filter isNull(dt.openpipeline.pipelines)
-| summarize {unrouted_count = count()}, by: {log.source}
-| sort unrouted_count desc
-```
-
-```dql
-// Bucket distribution check
-fetch logs, from: now() - 24h
-| summarize {
-    log_count = count()
-  }, by: {dt.system.bucket, dt.openpipeline.pipelines}
-| sort log_count desc
-```
-
-```dql
-// Log source health - are all expected sources sending data?
-fetch logs, from: now() - 1h
-| summarize {
-    log_count = count(),
-    last_seen = max(timestamp)
-  }, by: {log.source}
-| fieldsAdd minutes_since_last = (now() - last_seen) / 1m
-| sort minutes_since_last desc
-```
-
 ---
 
 <a id="common-issues-solutions"></a>
@@ -919,7 +922,7 @@ fetch logs, from: now() - 1h
 ### Issue 2: Parsing Not Working
 
 **Symptoms:**
-- `loglevel` field is null
+- `loglevel` is `NONE`
 - Expected parsed fields missing
 
 **Diagnosis:**
@@ -927,7 +930,7 @@ fetch logs, from: now() - 1h
 ```dql
 // Find logs with parsing failures
 fetch logs, from: now() - 1h
-| filter isNull(loglevel)
+| filter loglevel == "NONE"
 | fields timestamp, log.source, dt.openpipeline.pipelines, content
 | limit 20
 ```
@@ -1112,7 +1115,7 @@ After migration, establish these maintenance practices.
 fetch logs, from: now() - 7d
 | summarize {
     total_logs = count(),
-    parsed_logs = countIf(isNotNull(loglevel)),
+    parsed_logs = countIf(loglevel != "NONE"),
     error_logs = countIf(status == "ERROR"),
     pipelines_used = countDistinct(dt.openpipeline.pipelines),
     sources_active = countDistinct(log.source)
@@ -1123,10 +1126,10 @@ fetch logs, from: now() - 7d
 
 ```dql
 // Find new log sources that may need pipeline configuration
-// (records with no pipeline, or on the default route: the classic pipeline, id "logs:default").
+// (records on the default route: the classic pipeline, id "logs:default").
 // dt.openpipeline.pipelines is an array, so compare with in(), never ==.
 fetch logs, from: now() - 24h
-| filter isNull(dt.openpipeline.pipelines) OR in(dt.openpipeline.pipelines, "logs:default")
+| filter in(dt.openpipeline.pipelines, "logs:default")
 | summarize {
     log_count = count(),
     first_seen = min(timestamp)
@@ -1201,7 +1204,7 @@ fetch logs, from: now() - 24h
     // The classic pipeline also sets dt.openpipeline.pipelines ("logs:default"),
     // so with_pipeline alone cannot tell migrated from unmigrated records.
     classic_pipeline = countIf(in(dt.openpipeline.pipelines, "logs:default")),
-    with_loglevel = countIf(isNotNull(loglevel)),
+    with_loglevel = countIf(loglevel != "NONE"),
     with_masking = countIf(contains(content, "REDACTED")),
     unique_sources = countDistinct(log.source),
     unique_pipelines = countDistinct(dt.openpipeline.pipelines)

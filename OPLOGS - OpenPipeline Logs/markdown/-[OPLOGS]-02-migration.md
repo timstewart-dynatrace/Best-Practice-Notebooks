@@ -1,6 +1,6 @@
 # OPLOGS-02: Migration to OpenPipeline
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 10/26/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 10/30/2026
 
 ## Planning and Executing Your Log Migration
 This notebook guides you through assessing your current log environment and planning migration to OpenPipeline v2.0.
@@ -91,9 +91,10 @@ fetch logs, from: now() - 24h
     total = count(),
     health_checks = countIf(matchesPhrase(content, "health") OR matchesPhrase(content, "healthcheck")),
     heartbeats = countIf(matchesPhrase(content, "heartbeat")),
-    debug_logs = countIf(loglevel == "DEBUG" OR status == "DEBUG")
+    debug_logs = countIf(loglevel == "DEBUG"),
+    // one countIf, so a record matching two conditions is counted once
+    droppable = countIf(matchesPhrase(content, "health") OR matchesPhrase(content, "healthcheck") OR matchesPhrase(content, "heartbeat") OR loglevel == "DEBUG")
   }
-| fieldsAdd droppable = health_checks + heartbeats + debug_logs
 | fieldsAdd savings_pct = round((toDouble(droppable) / toDouble(total)) * 100, decimals: 1)
 ```
 

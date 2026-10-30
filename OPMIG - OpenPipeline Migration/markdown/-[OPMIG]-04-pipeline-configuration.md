@@ -1,6 +1,6 @@
 # OPMIG-04: OpenPipeline Migration Guide: Part 4
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 4 of 10 | **Created:** December 2025 | **Last Updated:** 10/12/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 4 of 10 | **Created:** December 2025 | **Last Updated:** 10/30/2026
 
 ## Pipeline Configuration Fundamentals
 ---
@@ -31,7 +31,6 @@ By the end of this notebook, you will:
 - ✅ Configure processors with best practices
 - ✅ Test configurations with sample data
 - ✅ **Build complete end-to-end pipeline examples**
-- ✅ **Configure pipelines via API/code**
 - ✅ Verify pipeline processing with DQL
 
 ---
@@ -381,7 +380,7 @@ fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A
 
 **Processor 2: Mask CVV**
 ```dql
-fieldsAdd content = replacePattern(content, "('cvv='|'cvc=') [0-9]{3,4}", replacement: "cvv=[REDACTED]")
+fieldsAdd content = replacePattern(content, "('cvv='|'cvc='|'CVV='|'CVC=') [0-9]{3,4}", replacement: "cvv=[REDACTED]")
 ```
 
 **Processor 3: Parse Payment Data**
@@ -570,7 +569,7 @@ fieldsRemove password, secret_key, api_token
 
 #### Rename Fields for Standardization
 ```
-fieldsRename old_field_name = standardized_name
+fieldsRename standardized_name = old_field_name
 ```
 
 ### Drop Processor Examples
@@ -582,7 +581,7 @@ Drop processors remove records matching conditions:
 | `loglevel == "DEBUG"` | Drop all debug logs |
 | `matchesValue(content, "*healthz*")` | Drop health check logs |
 | `matchesValue(content, "*/metrics*")` | Drop Prometheus scrapes |
-| `status == "TRACE"` | Drop trace-level logs |
+| `loglevel == "TRACE"` | Drop trace-level logs |
 
 > Matchers accept `matchesValue` (with `*` wildcards, any substring) and `matchesPhrase` (whole tokens); `contains()` is not enabled in a matching condition.
 
@@ -746,8 +745,7 @@ fetch logs, from: now() - 1h
 | filter isNotNull(dt.openpipeline.pipelines)
 | summarize {
     total = count(),
-    with_loglevel = countIf(isNotNull(loglevel)),
-    with_status = countIf(isNotNull(status))
+    with_loglevel = countIf(loglevel != "NONE")
   }, by: {dt.openpipeline.pipelines}
 | fieldsAdd parsing_rate = round((toDouble(with_loglevel) / toDouble(total)) * 100, decimals: 1)
 ```
