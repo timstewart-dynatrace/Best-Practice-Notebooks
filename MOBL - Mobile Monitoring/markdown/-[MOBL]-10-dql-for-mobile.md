@@ -1,6 +1,6 @@
 # MOBL-10: DQL for Mobile Analytics
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 10 of 12 | **Created:** February 2026 | **Last Updated:** 10/14/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 10 of 12 | **Created:** February 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -68,7 +68,7 @@ The following table maps each mobile data type to its Grail location and the DQL
 
 > **Correction (09/28/2026).** Earlier revisions of this notebook said mobile data is ingested as business events, identified by `event.provider == "www.dynatrace.com/mobile"`, with `useraction.*` fields and `event.type == "com.dynatrace.crash"`. None of that exists: every such query ran and returned zero rows, silently. The semantic dictionary (read 09/28/2026) places the mobile models -- `rum_mobile_user_action`, `rum_crash`, `rum_anr`, `rum_app_start`, `rum_request`, `rum_api_reported_error` -- in `user.events`, and the session model `rum.user_session` in `user.sessions`.
 
-> <sub>**Dictionary:** models `rum_crash` (description: supported only for OneAgent for Mobile), `rum_mobile_user_action`, `rum_app_start`, `rum_request` with `data_object == "user.events"`; `rum.user_session` with `data_object == "user.sessions"`; fields `frontend.name` (`stable`), `os.name` (`stable`), `app.short_version` (`stable`), `duration` (`stable`), `trace.id` (`stable`), `device.model.identifier` (`experimental`), `geo.country.iso_code` (`experimental`), read 09/28/2026. No row for any `useraction.*` field under `startsWith(name, "useraction")`, read 09/28/2026 (control: `startsWith(name, "os.")` returns rows).</sub>
+> <sub>**Dictionary:** models `rum_crash` (description: supported only for OneAgent for Mobile), `rum_mobile_user_action`, `rum_app_start`, `rum_request` with `data_object == "user.events"`; `rum.user_session` with `data_object == "user.sessions"`; fields `frontend.name` (`stable`), `os.name` (`stable`), `app.short_version` (`stable`), `duration` (`stable`), `trace.id` (`stable`), `device.model.identifier` (`stable`), `geo.country.iso_code` (`stable`), read 10/29/2026. No row for any `useraction.*` field under `startsWith(name, "useraction")`, read 09/28/2026 (control: `startsWith(name, "os.")` returns rows).</sub>
 
 <a id="querying-entities"></a>
 
@@ -262,7 +262,7 @@ fetch user.sessions, from:-7d
 
 **Interpreting crash rates.** There is no single industry standard. One published external anchor is Google Play's Android vitals *bad behavior threshold*: a user-perceived crash rate of **1.09%** overall (8% per phone model) and an ANR rate of **0.47%**. Google measures the share of **daily active users** who saw a crash, not the share of sessions, so this query's session rate is not directly comparable — use the threshold as a ceiling to stay well below, and set your own target from your app's baseline.
 
-> <sub>**Sources:** [Android vitals (Android Developers)](https://developer.android.com/topic/performance/vitals) — bad-behavior thresholds table: *"User-perceived crash rate 1.09% 8% 4%"*, *"User-perceived ANR rate 0.47% 8% 5%"*.</sub>
+> <sub>**Sources:** [Android vitals (Android Developers)](https://developer.android.com/google/play/vitals) — bad-behavior thresholds table: *"User-perceived crash rate 1.09% 8% 4%"*, *"User-perceived ANR rate 0.47% 8% 5%"*.</sub>
 
 > **Note:** Because `user.sessions` has one record per session, `countIf(error.has_crash == true)` counts each crashed session once, however many crashes it had. Subtract the rate from 100% for the crash-free session rate.
 

@@ -220,8 +220,8 @@ That order also sorts by what you can act on — 1 and 2 are configuration you c
 
 > <sub>**Sources:**</sub>
 > - <sub>[Dynatrace SaaS release notes 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344) — Session Replay unavailability details in Users & Sessions</sub>
-> - <sub>[Configure Session Replay Classic for web applications (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay/configure-session-replay-web) — *"Actual percentage of sessions recorded with SR = cost and traffic control for RUM × cost and traffic control for Session Replay"*; *"If Session Replay is enabled and no URL exclusion rules are defined, all pages are recorded with Session Replay by default."*</sub>
-> - <sub>[Technical restrictions for Session Replay Classic for web applications (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay/session-replay-restrictions-web)</sub>
+> - <sub>[Configure Session Replay Classic for web applications (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/configure-session-replay-web) — *"Actual percentage of sessions recorded with SR = cost and traffic control for RUM × cost and traffic control for Session Replay"*; *"If Session Replay is enabled and no URL exclusion rules are defined, all pages are recorded with Session Replay by default."*</sub>
+> - <sub>[Technical restrictions for Session Replay Classic for web applications (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-restrictions-web)</sub>
 
 <a id="correlating-data"></a>
 
@@ -335,10 +335,10 @@ In this notebook, we covered:
 
 ### References
 
-- [Session Replay (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay)
+- [Session Replay (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic)
 - [Session Replay with strong privacy requirements (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay-latest/configure-session-replay-web/session-replay-strong-privacy-req-web)
-- [Configure Session Replay for web applications (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay/configure-session-replay-web)
-- [Technical restrictions for Session Replay Classic for web applications (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay/session-replay-restrictions-web)
+- [Configure Session Replay for web applications (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/configure-session-replay-web)
+- [Technical restrictions for Session Replay Classic for web applications (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-restrictions-web)
 
 ---
 

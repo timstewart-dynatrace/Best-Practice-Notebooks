@@ -77,7 +77,7 @@ For environments where SVG doesn't render
 
 Crash rate is the most critical mobile KPI. Google Play states that its Android vitals thresholds affect visibility — *"To maximize your title's visibility on Google Play, please keep it under these thresholds"* (user-perceived crash rate 1.09%, ANR rate 0.47%; MOBL-10 §8 explains why those are per-user, not per-session, rates).
 
-> <sub>**Sources:** [Android vitals (Android Developers)](https://developer.android.com/topic/performance/vitals).</sub>
+> <sub>**Sources:** [Android vitals (Android Developers)](https://developer.android.com/google/play/vitals).</sub>
 
 The following query builds a daily timeseries of mobile sessions and of sessions that contained a crash, read from `user.sessions` (one record per session, with `error.has_crash`). Dividing the two gives a session crash rate.
 
@@ -340,8 +340,8 @@ Continue to **MOBL-12: Advanced Instrumentation & Optimization** to explore:
 ## References
 
 - [Dashboards and notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks)
-- [Anomaly detection metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence-classic/anomaly-detection/metric-events)
-- [Mobile App Monitoring](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications)
+- [Anomaly detection metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection-classic/metric-events)
+- [Mobile App Monitoring](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications)
 - [Davis Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
 - [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows)
 - [Event triggers for workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger)

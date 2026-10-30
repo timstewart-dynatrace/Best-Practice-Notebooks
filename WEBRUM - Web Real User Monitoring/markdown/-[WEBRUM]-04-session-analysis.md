@@ -334,8 +334,8 @@ In this notebook, we covered:
 
 ### References
 
-- [Define user action and session properties (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/additional-configuration/define-user-action-and-session-properties)
-- [USQL — custom session queries (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data)
+- [Define user action and session properties (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/additional-configuration/define-user-action-and-session-properties)
+- [USQL — custom session queries (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data)
 - [User events — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events) — *"Used for internal optimization when storing the data and not intended for query usage."*
 - [Semantic Dictionary changelog 1.349 (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-349)
 

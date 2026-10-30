@@ -407,8 +407,8 @@ In this notebook, we covered:
 ### References
 
 - [Apdex Standard](https://www.apdex.org/)
-- [Dynatrace RUM Dashboards](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/analyze-and-use)
-- [Metric Events for Alerting](https://docs.dynatrace.com/docs/dynatrace-intelligence-classic/anomaly-detection/metric-events)
+- [Dynatrace RUM Dashboards](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/analyze-and-use)
+- [Metric Events for Alerting](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection-classic/metric-events)
 - [User events — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events) — *"Used for internal optimization when storing the data and not intended for query usage."*
 - [Semantic Dictionary changelog 1.349 (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-349)
 

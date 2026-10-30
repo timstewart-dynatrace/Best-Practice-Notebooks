@@ -191,7 +191,7 @@ Tenants that already manage alerting as classic metric events (`builtin:anomaly-
 }
 ```
 
-> <sub>**Sources:** [builtin:anomaly-detection.metric-events schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-anomaly-detection-metric-events); [Metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence-classic/anomaly-detection/metric-events) — *"We encourage you to try Anomaly Detection"*.</sub>
+> <sub>**Sources:** [builtin:anomaly-detection.metric-events schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-anomaly-detection-metric-events); [Metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection-classic/metric-events) — *"We encourage you to try Anomaly Detection"*.</sub>
 
 ### Validation
 

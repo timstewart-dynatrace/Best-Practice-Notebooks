@@ -1,6 +1,6 @@
 # MOBL-03: Android SDK Setup (Kotlin & Jetpack Compose)
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 3 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 3 of 12 | **Created:** February 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -24,7 +24,7 @@ This notebook walks through setting up Dynatrace Mobile RUM (Real User Monitorin
 
 | Requirement | Details |
 |-------------|----------|
-| **Dynatrace Environment** | SaaS with Grail, with **Enable RUM** turned on for mobile and the **New Real User Monitoring Experience** turned on for the frontend (Section 1) |
+| **Dynatrace Environment** | SaaS with Grail, with a mobile frontend created in Experience Vitals (RUM Classic frontends: RUM turned on for the frontend; Section 1) |
 | **Minimum versions** | Android API level 23, Gradle 8.0, Android Gradle Plugin 8.1.1, Java 17, Kotlin 2.1.0 (an Android Studio release that supports AGP 8.1.1+) |
 | **Jetpack Compose** | 1.4 – 1.10 |
 | **Permissions** | Dynatrace admin access to create mobile applications; `storage:user.events:read` and `storage:smartscape:read` for the verification queries |
@@ -39,10 +39,8 @@ Before instrumenting your Android project, you need to register the application 
 
 ### Steps
 
-1. **Turn on RUM for mobile at the environment level:** **Settings > Collect and capture > Real User Monitoring > Enablement and cost control > Mobile** → **Enable RUM**.
-2. **Create the frontend:** open **Experience Vitals**, select **Add Frontend**, and follow the Frontend creation wizard with **Android** as the platform and a meaningful name (e.g., `My Android App - Production`).
-3. **Turn on the New Real User Monitoring Experience for the frontend:** **Experience Vitals > Overview > Mobile** → select the frontend → **Settings** → **Enablement and cost control** → **New Real User Monitoring Experience**. The `user.events` queries in Section 7 read the data this sends to Grail; with it off they return nothing.
-4. From the instrumentation wizard, note:
+1. **Create the frontend:** open **Experience Vitals**, select **Frontend** in the upper-right corner, select the **Mobile** type, and follow the Frontend creation wizard with **Android** as the platform and a meaningful name (e.g., `My Android App - Production`).
+2. From the instrumentation wizard, note:
 
 | Property | Description | Example |
 |----------|-------------|----------|
@@ -62,7 +60,9 @@ While in the Dynatrace UI, review these settings:
 | **Session replay** | Enable if you need visual session data (increases data volume) |
 | **Data privacy** | Configure according to your organization's requirements |
 
-> <sub>**Sources:** [Initial setup for Android frontends (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/android/id-01-initial-setup) — *"Under Enablement and cost control, turn on New Real User Monitoring Experience."*; *"Turn on Enable RUM."*</sub>
+> **Upgrading a RUM Classic Android frontend?** Turn RUM on for it: **Experience Vitals > Overview > Mobile** → select the frontend → **Settings** → under **Enablement and cost control**, turn on **RUM**. For all mobile frontends at once: **Settings > Collect and capture > Real User Monitoring > Enablement and cost control > Mobile** → **RUM**. The `user.events` / `user.sessions` queries in this series read the data RUM sends to Grail.
+
+> <sub>**Sources:** [Initial setup for Android frontends (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/android/id-01-initial-setup) — *"Select Frontend in the upper-right corner. Select the Mobile type of frontend."*; [Enable RUM for Android frontends (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/android/id-01-initial-setup/enable-rum-for-android-frontends) — *"If you already monitor your Android frontends with RUM Classic, upgrading to RUM requires only a configuration change."*, *"Under Enablement and cost control , turn on RUM ."*</sub>
 
 <a id="gradle-plugin"></a>
 ## 2. Gradle Plugin Setup
@@ -125,11 +125,15 @@ dynatrace {
 
 > **Correction (09/28/2026).** Earlier revisions applied the plugin in the app-level build file and configured it with a `defaultConfig { applicationId(...) }` block plus `variants { register(...) }` overrides. That DSL does not exist. The documented shape is the top-level `dynatrace { configurations { ... } }` block shown here, with the IDs inside `autoStart { }`.
 
-> <sub>**Sources:** [Instrumentation via Dynatrace Android Gradle plugin (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin) — *"You should apply the Dynatrace Android Gradle to the top-level build file"*, [Configure multi-module projects (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/configure-multi-module-projects).</sub>
+> <sub>**Sources:** [Instrumentation via Dynatrace Android Gradle plugin (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin) — *"You should apply the Dynatrace Android Gradle to the top-level build file"*, [Configure multi-module projects (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/configure-multi-module-projects).</sub>
 
 > **Gradle 9.7 is supported (OneAgent for Mobile 8.345, released 08/03/2026).** The Dynatrace Android Gradle plugin adds *"Support for Gradle version 9.7"*. If your project is pinned below that in `gradle-wrapper.properties`, this removes the plugin as a reason not to move; if you are already on 9.7, use the 8.345 plugin or later. Build 8.345.1 also resolves two ANRs in **Jetpack Compose** instrumentation — one in Compose with Session Replay, one in Compose user-interaction monitoring — worth knowing if Compose instrumentation was deferred on those grounds.
 
 > <sub>**Sources:** [What's new in OneAgent for Mobile 8.345 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-345) — Gradle 9.7 support and the Android 8.345.1 fixes, read 08/28/2026.</sub>
+
+> **Breaking (OneAgent for Mobile 8.349, published 10/15/2026, rollout start 10/06/2026).** *"The debug-only certificate validation option that disabled SSL certificate checks has been removed from the Dynatrace Android Gradle plugin (the certificateValidation property) and the OneAgent for Android SDK ( ConfigurationBuilder#withCertificateValidation )."* *"Builds that still reference it will fail to compile."* Remove `certificateValidation` / `withCertificateValidation` before you upgrade; for trust rules and certificate handling the release note points to Android's Network Security Configuration.
+
+> <sub>**Sources:** [What's new in OneAgent for Mobile 8.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-349) — *"Remove all references to this option from your Gradle plugin configuration and OneAgent initialization code before upgrading"*, read 10/29/2026.</sub>
 
 <a id="build-gradle-config"></a>
 ## 3. build.gradle Configuration
@@ -192,7 +196,7 @@ configure<com.dynatrace.tools.android.dsl.DynatraceExtension> {
 
 > **Warning:** Never commit real Application IDs or Beacon URLs to public repositories. Use environment variables or a `local.properties` file excluded from version control.
 
-> <sub>**Sources:** [Configure plugin for instrumentation processes (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/configure-plugin-for-instrumentation), [Adjust OneAgent configuration (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/adjust-oneagent-configuration) — *"All properties related to hybrid application monitoring are part of HybridWebView DSL, so configure them via the hybridWebView block."*, [Configure monitoring capabilities (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/monitoring-capabilities) — *"You can deactivate crash reporting with the crashReporting property."*</sub>
+> <sub>**Sources:** [Configure plugin for instrumentation processes (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/configure-plugin-for-instrumentation), [Adjust OneAgent configuration (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/adjust-oneagent-configuration) — *"All properties related to hybrid application monitoring are part of HybridWebView DSL, so configure them via the hybridWebView block."*, [Configure monitoring capabilities (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/monitoring-capabilities) — *"You can deactivate crash reporting with the crashReporting property."*</sub>
 
 <a id="auto-instrumentation"></a>
 ## 4. Auto-Instrumentation (Activities & Fragments)
@@ -208,7 +212,7 @@ The Dynatrace Gradle plugin automatically instruments the following interactions
 | **Button clicks** | `View.OnClickListener` events | Captured with view ID and text |
 | **Jetpack Compose** | `Modifier.clickable`, `combinedClickable`, `toggleable`, `swipeable`, `pullRefresh`, `Slider`/`RangeSlider`, `HorizontalPager` | Enabled by default from plugin 8.271 |
 | **RecyclerView taps** | Item click events in lists | Requires standard click listeners |
-| **OkHttp requests** | HTTP/HTTPS calls via OkHttp 3.x / 4.x | Headers injected for distributed tracing |
+| **OkHttp requests** | HTTP/HTTPS calls via OkHttp 3, 4 and 5 | Headers injected for distributed tracing |
 | **HttpURLConnection** | Standard Java HTTP calls | Auto-correlated to user actions |
 | **WebView actions** | Page loads and JS interactions | Requires `hybridWebView { enabled(true) }` |
 
@@ -228,7 +232,7 @@ The Dynatrace Gradle plugin automatically instruments the following interactions
 
 > **Correction (09/28/2026).** Earlier revisions said Compose taps and navigation could not be detected automatically and told readers to wrap every `onClick` in `enterAction` / `leaveAction`. On plugin 8.271+ that duplicates the automatically captured actions. Use manual actions only for the business-level pattern below.
 
-> <sub>**Sources:** [Instrument Android apps (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app) — *"Jetpack Compose auto-instrumentation is enabled by default starting with Dynatrace Android Gradle plugin version 8.271."*, [Configure monitoring capabilities (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/monitoring-capabilities).</sub>
+> <sub>**Sources:** [Instrument Android apps (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app) — *"Jetpack Compose auto-instrumentation is enabled by default starting with Dynatrace Android Gradle plugin version 8.271."*, [Configure monitoring capabilities (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/monitoring-capabilities).</sub>
 
 ### Business-Level Actions Spanning Several Interactions
 
@@ -402,7 +406,7 @@ If no data appears:
 
 | Check | Action |
 |-------|--------|
-| **New RUM Experience** | Turned on for the frontend (Section 1) — with it off, `user.events` stays empty for this app |
+| **RUM on the frontend** | Frontend created in Experience Vitals; a RUM Classic frontend needs RUM turned on (Section 1) — with it off, `user.events` stays empty for this app |
 | **Application ID** | Verify it matches the Dynatrace mobile app configuration |
 | **Beacon URL** | Confirm the URL is reachable from the device/emulator |
 | **Network access** | Ensure the device has internet connectivity |
@@ -436,12 +440,12 @@ In this notebook, you learned:
 
 ## References
 
-- [Instrument Android apps (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app)
-- [Dynatrace Mobile RUM Overview](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications)
-- [Instrumentation via Dynatrace Android Gradle plugin (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin)
-- [Configure plugin for instrumentation processes (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/configure-plugin-for-instrumentation)
-- [OneAgent SDK for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/oneagent-sdk-for-android)
-- [Manual instrumentation with OneAgent SDK for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/manual-instrumentation)
+- [Instrument Android apps (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app)
+- [Dynatrace Mobile RUM Overview](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications)
+- [Instrumentation via Dynatrace Android Gradle plugin (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin)
+- [Configure plugin for instrumentation processes (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/configure-plugin-for-instrumentation)
+- [OneAgent SDK for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/oneagent-sdk-for-android)
+- [Manual instrumentation with OneAgent SDK for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/manual-instrumentation)
 
 ---
 

@@ -1,6 +1,6 @@
 # MOBL-04: Cross-Platform Frameworks
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 4 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 4 of 12 | **Created:** February 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -26,9 +26,9 @@ This notebook walks through instrumenting **Flutter**, **React Native**, **Cordo
 
 | Requirement | Details |
 |-------------|----------|
-| **Dynatrace Environment** | SaaS with Grail, with **Enable RUM** on for mobile and the **New Real User Monitoring Experience** on for each frontend (MOBL-02 §1) — the `user.events` queries here return nothing without it |
+| **Dynatrace Environment** | SaaS with Grail, with each mobile frontend created in Experience Vitals (RUM Classic frontends: RUM turned on, MOBL-02 §1) — the `user.events` queries here return nothing without it |
 | **Permissions** | `Mobile app settings` write access; `storage:user.events:read`, `storage:user.sessions:read`, `storage:smartscape:read` for the queries |
-| **Flutter** | Flutter 3.x with Dart 3.x (for Flutter sections) |
+| **Flutter** | Flutter 3.24.0+ with Dart 3.0.0+ (for Flutter sections) |
 | **React Native** | React Native 0.72+ with Node.js 18+ (for RN sections) |
 | **Mobile App** | At least one mobile application configured in Dynatrace |
 | **Previous Notebooks** | MOBL-01 through MOBL-03 recommended |
@@ -73,7 +73,7 @@ In `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  dynatrace_flutter_plugin: ^3.347.1   # current release on pub.dev, 10/02/2026
+  dynatrace_flutter_plugin: ^3.349.1   # current release on pub.dev, 10/29/2026
 ```
 
 Run `flutter pub get` to install the plugin.
@@ -256,7 +256,7 @@ Upload one source map per platform for every release you ship — a release with
 
 > **Note:** Flutter crashes are symbolicated with the native artifacts — dSYM symbol extract files (iOS) and R8/ProGuard mapping files (Android), see MOBL-03 §6.
 
-> <sub>**Sources:** [Upload and manage symbol files (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/analyze-and-use/upload-and-manage-symbol-files) — *"The Dynatrace platform lets you manage Android mapping files, iOS or tvOS symbol extract files and React Native source maps"*, *"For Dynatrace SaaS, the maximum storage size for source maps and symbol files is 1 GiB."*; [@dynatrace/react-native-plugin README (npm)](https://www.npmjs.com/package/@dynatrace/react-native-plugin) — *"Once generated, upload your sourcemaps to Dynatrace."*</sub>
+> <sub>**Sources:** [Upload and manage symbol files (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/analyze-and-use/upload-and-manage-symbol-files) — *"The Dynatrace platform lets you manage Android mapping files, iOS or tvOS symbol extract files and React Native source maps"*, *"For Dynatrace SaaS, the maximum storage size for source maps and symbol files is 1 GiB."*; [@dynatrace/react-native-plugin README (npm)](https://www.npmjs.com/package/@dynatrace/react-native-plugin) — *"Once generated, upload your sourcemaps to Dynatrace."*</sub>
 
 ### Event Volume by Application
 
@@ -303,7 +303,7 @@ dotnet add package Dynatrace.OneAgent.MAUI
 
 > **Correction (09/28/2026).** Earlier revisions named the package `Dynatrace.Xamarin` (not a published package; nuget.org returns 404) and described Xamarin as supported and .NET MAUI as "preview". Both statuses were inverted.
 
-> <sub>**Sources:** [Xamarin NuGet package (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/cross-platform-frameworks/xamarin-nuget) — *"we will end support for the Dynatrace Xamarin NuGet package in May 2025."*, [.NET MAUI (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/cross-platform-frameworks/maui).</sub>
+> <sub>**Sources:** [Xamarin NuGet package (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/cross-platform-frameworks/xamarin-nuget) — *"we will end support for the Dynatrace Xamarin NuGet package in May 2025."*, [.NET MAUI (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/cross-platform-frameworks/maui).</sub>
 
 ### Platform Distribution
 

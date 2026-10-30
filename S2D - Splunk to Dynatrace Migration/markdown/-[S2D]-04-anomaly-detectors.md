@@ -371,7 +371,7 @@ fetch logs, from:now()-24h
 ## References
 
 - [anomaly-detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection)
-- [Anomaly detection metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence-classic/anomaly-detection/metric-events)
+- [Anomaly detection metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection-classic/metric-events)
 - [Anomaly detection configuration (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-configuration)
 - [Anomaly Detection DQL writing guide (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/anomaly-detection-dql-best-practice)
 - [Alerting profiles — classic surface (DT docs)](https://docs.dynatrace.com/docs/shortlink/alerting-profiles)

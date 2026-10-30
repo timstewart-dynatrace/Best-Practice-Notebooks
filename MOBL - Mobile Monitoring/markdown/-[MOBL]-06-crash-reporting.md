@@ -1,6 +1,6 @@
 # MOBL-06: Crash Reporting & ANR Detection
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 6 of 12 | **Created:** February 2026 | **Last Updated:** 10/14/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 6 of 12 | **Created:** February 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -65,7 +65,7 @@ It is important to understand the distinction between handled exceptions and unh
 
 > **Correction (09/28/2026).** Earlier revisions said crash beacons are always stored and sent "on the next launch". The documentation says they are generally sent immediately.
 
-> <sub>**Sources:** [Configure monitoring capabilities (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/monitoring-capabilities) — *"In general, the crash details are sent immediately after the crash, so the user doesn’t have to relaunch the application. However, in some cases, the application should be reopened within 10 minutes so that the crash report is sent."*</sub>
+> <sub>**Sources:** [Configure monitoring capabilities (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/monitoring-capabilities) — *"In general, the crash details are sent immediately after the crash, so the user doesn’t have to relaunch the application. However, in some cases, the application should be reopened within 10 minutes so that the crash report is sent."*</sub>
 
 <a id="ios-symbolication"></a>
 
@@ -108,7 +108,7 @@ DTXDssClient -upload appid=<APPLICATION_ID> apitoken=<API_TOKEN> os=ios \
 
 > **Correction (10/02/2026).** Earlier revisions showed `DTXDssClient -ApiToken … -DtApplicationID … -Server …` flags. The documented syntax is `key=value` pairs after `-upload`, as above.
 
-> <sub>**Sources:** [Upload and manage symbol files (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/analyze-and-use/upload-and-manage-symbol-files) — *"For iOS or tvOS symbolication, you need to preprocess dSYM files using the DSSClient before you can upload them to Dynatrace."*; *"Symbolication of system library stack trace lines is not supported."*</sub>
+> <sub>**Sources:** [Upload and manage symbol files (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/analyze-and-use/upload-and-manage-symbol-files) — *"For iOS or tvOS symbolication, you need to preprocess dSYM files using the DSSClient before you can upload them to Dynatrace."*; *"Symbolication of system library stack trace lines is not supported."*</sub>
 
 ### Bitcode Considerations
 
@@ -163,7 +163,7 @@ Source maps and symbol files share a 1 GiB storage quota per SaaS environment; w
 
 > **Correction (10/02/2026).** Earlier revisions showed a Gradle `symbols { apitoken '…' }` block that uploads mapping files during the build. That block is not documented; the upload routes are the four above.
 
-> <sub>**Sources:** [Upload and manage symbol files (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/analyze-and-use/upload-and-manage-symbol-files) — *"The Dynatrace platform supports four different ways of uploading Android mapping files and iOS or tvOS symbol extract files"*; *"For Dynatrace SaaS, the maximum storage size for source maps and symbol files is 1 GiB."*; [Mobile Symbolication API — PUT (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/mobile-symbolication-api/put-files-app-version) — *"you need an access token with DssFileManagement scope"*.</sub>
+> <sub>**Sources:** [Upload and manage symbol files (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/analyze-and-use/upload-and-manage-symbol-files) — *"The Dynatrace platform supports four different ways of uploading Android mapping files and iOS or tvOS symbol extract files"*; *"For Dynatrace SaaS, the maximum storage size for source maps and symbol files is 1 GiB."*; [Mobile Symbolication API — PUT (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/mobile-symbolication-api/put-files-app-version) — *"you need an access token with DssFileManagement scope"*.</sub>
 
 > **Important:** Upload mapping files for every release build. If a mapping file is missing for a specific app version, crashes from that version will show obfuscated stack traces.
 

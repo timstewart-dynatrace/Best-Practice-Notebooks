@@ -312,8 +312,8 @@ In this notebook, we covered:
 
 ### References
 
-- [Configure error detection for web applications (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/additional-configuration/configure-errors)
-- [User actions in RUM Classic (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/rum-concepts/user-actions)
+- [Configure error detection for web applications (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/additional-configuration/configure-errors)
+- [User actions in RUM Classic (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/rum-concepts/user-actions)
 - [User events — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events) — *"Used for internal optimization when storing the data and not intended for query usage."*
 - [Semantic Dictionary changelog 1.349 (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-349)
 

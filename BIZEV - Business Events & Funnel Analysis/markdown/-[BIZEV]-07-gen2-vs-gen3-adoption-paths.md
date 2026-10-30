@@ -229,10 +229,10 @@ It approximates the same headline question with real constraints: *"FUNNEL does 
 > - <sub>[Request attributes (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/request-attributes)</sub>
 > - <sub>[Calculated service metrics (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/calculated-service-metric) — "OpenPipeline metric extraction now replaces calculated service metrics"; new customers cannot create them</sub>
 > - <sub>[Calculated service metrics upgrade (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/preserve-metrics-and-service-visibility/metrics/calculated-service-metrics-upgrade) — "Currently, no deprecation date is set."</sub>
-> - <sub>[Session and action properties (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/additional-configuration/define-user-action-and-session-properties)</sub>
-> - <sub>[USQL (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data)</sub>
-> - <sub>[Custom metrics from user sessions (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/additional-configuration/custom-metrics-from-user-sessions)</sub>
-> - <sub>[Conversion goals (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/analyze-and-use/define-conversion-goals)</sub>
+> - <sub>[Session and action properties (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/additional-configuration/define-user-action-and-session-properties)</sub>
+> - <sub>[USQL (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data)</sub>
+> - <sub>[Custom metrics from user sessions (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/additional-configuration/custom-metrics-from-user-sessions)</sub>
+> - <sub>[Conversion goals (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/analyze-and-use/define-conversion-goals)</sub>
 > - <sub>[Log metrics (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/log-monitoring/analyze-log-data/log-metrics-classic)</sub>
 > - <sub>[Log Monitoring landing page (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/log-monitoring) — *"Log Monitoring Classic (SaaS) will reach end-of-life by 2027."*</sub>
 > - <sub>[Metric ingestion (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics)</sub>

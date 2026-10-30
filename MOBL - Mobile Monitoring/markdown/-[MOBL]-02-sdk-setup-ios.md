@@ -1,6 +1,6 @@
 # MOBL-02: iOS SDK Setup (Swift & SwiftUI)
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 2 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 2 of 12 | **Created:** February 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -32,7 +32,7 @@ The Dynatrace iOS SDK provides:
 |-------------|----------|
 | **Xcode** | 16.0 or later |
 | **iOS Deployment Target** | iOS 15.0 or later (tvOS 15.0+). From April 2027 Dynatrace stops supporting iOS 15 and 16; the minimum becomes iOS 17 |
-| **Dynatrace Environment** | SaaS with Grail, with **Enable RUM** turned on for mobile and the **New Real User Monitoring Experience** turned on for the frontend (Section 1) |
+| **Dynatrace Environment** | SaaS with Grail, with a mobile frontend created in Experience Vitals (RUM Classic frontends: RUM turned on for the frontend; Section 1) |
 | **Mobile App Configuration** | A mobile app created in Dynatrace (or you will create one in Section 1) |
 | **Language** | Swift 5.7+ |
 | **Permissions** | `storage:user.events:read`, `storage:user.sessions:read` (mobile RUM on Grail), `storage:smartscape:read` (app inventory) |
@@ -50,16 +50,14 @@ Before integrating the SDK into your iOS project, you need to create a **mobile 
 
 ### Steps
 
-1. **Turn on RUM for mobile at the environment level:** **Settings > Collect and capture > Real User Monitoring > Enablement and cost control > Mobile** → **Enable RUM**.
-2. **Create the frontend:** open **Experience Vitals**, select **Add Frontend**, and follow the Frontend creation wizard with **iOS** as the platform. The wizard gives you the **Application ID** and **Beacon URL** — copy both.
-3. **Turn on the New Real User Monitoring Experience for the frontend:** **Experience Vitals > Overview > Mobile** → select the frontend → **Settings** → **Enablement and cost control** → **New Real User Monitoring Experience**.
-4. Optionally enable **Crash reporting**, **Session replay**, or **User tagging** from the frontend settings.
+1. **Create the frontend:** open **Experience Vitals**, select **Add Frontend**, and follow the Frontend creation wizard with **iOS** as the platform. The wizard gives you the **Application ID** and **Beacon URL** — copy both.
+2. Optionally enable **Crash reporting**, **Session replay**, or **User tagging** from the frontend settings.
 
-> ⚠️ **Do not skip step 3.** The `user.events` / `user.sessions` queries in this series read the data the New RUM Experience sends to Grail. The setup guide makes turning it on the first step; with it off, the verification queries in Section 7 return nothing.
+> **Upgrading a RUM Classic iOS frontend?** Turn RUM on for it: **Experience Vitals > Overview > Mobile** → select the frontend → **Settings** → under **Enablement and cost control**, turn on **RUM**. For all mobile frontends at once: **Settings > Collect and capture > Real User Monitoring > Enablement and cost control > Mobile** → **RUM**. The `user.events` / `user.sessions` queries in this series read the data RUM sends to Grail.
 
 > **Tip:** The instrumentation wizard in Experience Vitals shows your Application ID and Beacon URL at any time. (RUM Classic tenants find them under **Mobile > Your App > Settings > General**.)
 
-> <sub>**Sources:** [Initial setup for iOS frontends (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/ios/id-01-initial-setup) — *"Under Enablement and cost control, turn on New Real User Monitoring Experience."*; *"Go to Settings > Collect and capture > Real User Monitoring > Enablement and cost control > Mobile. Turn on Enable RUM."*</sub>
+> <sub>**Sources:** [Initial setup for iOS frontends (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/ios/id-01-initial-setup) — *"Select Add Frontend in the upper-right corner. Follow the steps in the Frontend creation wizard . Select iOS as your platform."*; [Enable RUM for iOS frontends (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/ios/id-01-initial-setup/enable-rum-for-ios-frontends) — *"If you already monitor your iOS frontends with RUM Classic, upgrading to RUM requires only a configuration change."*, *"Under Enablement and cost control , turn on RUM ."*</sub>
 
 <a id="installing-sdk"></a>
 
@@ -219,7 +217,7 @@ checkout?.leave()
 
 > **Correction (09/28/2026).** Earlier revisions of this section told readers to decorate SwiftUI views with a `.dtAction(name:)` modifier. No such modifier exists in the Dynatrace iOS SDK, so those samples did not compile. SwiftUI controls are instrumented by `DTSwiftInstrumentor`.
 
-> <sub>**Sources:** [Instrument SwiftUI controls (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-ios-app/instrumentation/instrument-swiftui-controls) — *"Run brew install DTSwiftInstrumentor to install our SwiftUI instrumentor."*, [OneAgent SDK for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios).</sub>
+> <sub>**Sources:** [Instrument SwiftUI controls (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/instrumentation/instrument-swiftui-controls) — *"Run brew install DTSwiftInstrumentor to install our SwiftUI instrumentor."*, [OneAgent SDK for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios).</sub>
 
 <a id="manual-startup"></a>
 
@@ -385,11 +383,11 @@ Continue to **MOBL-03: Android SDK Setup (Kotlin & Jetpack Compose)** for the An
 
 ## References
 
-- [Dynatrace Mobile Monitoring Documentation](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications)
-- [iOS SDK Integration Guide](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-ios-app/instrumentation/get-started-with-ios-monitoring)
-- [SwiftUI Instrumentation](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-ios-app/instrumentation/instrument-swiftui-controls)
-- [OneAgent SDK for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios)
-- [Mobile App Configuration Settings](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-ios-app/customization/configuration-settings)
+- [Dynatrace Mobile Monitoring Documentation](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications)
+- [iOS SDK Integration Guide](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/instrumentation/get-started-with-ios-monitoring)
+- [SwiftUI Instrumentation](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/instrumentation/instrument-swiftui-controls)
+- [OneAgent SDK for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios)
+- [Mobile App Configuration Settings](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/customization/configuration-settings)
 
 ---
 

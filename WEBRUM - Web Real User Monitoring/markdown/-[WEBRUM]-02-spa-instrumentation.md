@@ -265,7 +265,7 @@ Out of the box, RUM Classic captures page loads; XHR actions are something you a
 
 Application settings → **Capturing > Async web requests and SPAs** → **Generic support** → **Capture fetch() requests** (and **Capture XmlHttpRequest (XHR)** for XHR-based calls)
 
-> <sub>**Sources:** [Configure Real User Monitoring Classic to capture XHR actions (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/initial-setup/configure-dynatrace-real-user-monitoring-to-capture-xhr-actions) — *"When you activate XHR-action support, you add visibility into each kind of user interaction, not just the regular page loads that are captured by default."*</sub>
+> <sub>**Sources:** [Configure Real User Monitoring Classic to capture XHR actions (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/initial-setup/configure-dynatrace-real-user-monitoring-to-capture-xhr-actions) — *"When you activate XHR-action support, you add visibility into each kind of user interaction, not just the regular page loads that are captured by default."*</sub>
 
 ```dql
 // Unit trap (08/12/2026): New RUM timing fields such as lcp.start_time and ttfb.value
@@ -560,12 +560,12 @@ In this notebook, we covered:
 
 ### References
 
-- [User actions in RUM Classic (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/rum-concepts/user-actions)
+- [User actions in RUM Classic (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/rum-concepts/user-actions)
 - [Android mobile frontends (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/android)
-- [Web applications in RUM Classic (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications)
-- [Link cross-origin XHR user actions and their distributed traces (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/initial-setup/link-cross-origin-xhrs)
-- [Customize RUM with the JavaScript API (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/additional-configuration/customize-rum)
-- [Customize RUM with the JavaScript API (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/additional-configuration/customize-rum)
+- [Web applications in RUM Classic (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications)
+- [Link cross-origin XHR user actions and their distributed traces (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/initial-setup/link-cross-origin-xhrs)
+- [Customize RUM with the JavaScript API (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/additional-configuration/customize-rum)
+- [Customize RUM with the JavaScript API (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/additional-configuration/customize-rum)
 - [User events — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events) — *"Used for internal optimization when storing the data and not intended for query usage."*
 - [Semantic Dictionary changelog 1.349 (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-349)
 

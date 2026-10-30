@@ -1,6 +1,6 @@
 # MOBL-01: Mobile Monitoring Fundamentals
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 1 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 1 of 12 | **Created:** February 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -120,7 +120,7 @@ Dynatrace provides native SDKs for all major mobile platforms and cross-platform
 | Android | Dynatrace Android Agent | Kotlin, Java | Activities, Fragments, Jetpack Compose (plugin 8.271+) |
 | Flutter | dynatrace_flutter_plugin | Dart | Navigation, HTTP |
 | React Native | @dynatrace/react-native-plugin | JavaScript/TypeScript | Navigation, Fetch/XHR |
-| Cordova | dynatrace-cordova-plugin | JavaScript | WebView-based |
+| Cordova | @dynatrace/cordova-plugin | JavaScript | WebView-based |
 | .NET MAUI | Dynatrace.OneAgent.MAUI | C# | Platform views |
 | Xamarin | Dynatrace.OneAgent.Xamarin -- **end of support May 2025**; migrate to .NET MAUI | C# | Platform views |
 
@@ -274,7 +274,7 @@ What this changes in practice:
 
 Follow these steps to set up mobile monitoring for your application:
 
-1. **Create a mobile frontend and turn on the New RUM Experience** -- Turn on **Enable RUM** for mobile (**Settings > Collect and capture > Real User Monitoring > Enablement and cost control > Mobile**), create the frontend with **Experience Vitals > Add Frontend**, then turn on **New Real User Monitoring Experience** in the frontend's **Settings > Enablement and cost control**. The Grail `user.events` / `user.sessions` queries throughout this series read the data the New RUM Experience sends; with it off they return nothing. MOBL-02 / MOBL-03 have the step-by-step.
+1. **Create a mobile frontend** -- create the frontend in **Experience Vitals** with the Frontend creation wizard. A frontend already monitored with RUM Classic needs **RUM** turned on in its **Settings > Enablement and cost control**. The Grail `user.events` / `user.sessions` queries throughout this series read the data RUM sends; MOBL-02 / MOBL-03 have the step-by-step.
 
 2. **Integrate the SDK** -- Add the Dynatrace mobile SDK to your app's build system (CocoaPods/SPM for iOS, Gradle for Android, npm for React Native/Flutter). Follow the platform-specific setup guide.
 

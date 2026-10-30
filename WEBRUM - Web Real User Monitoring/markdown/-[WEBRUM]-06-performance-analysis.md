@@ -333,7 +333,7 @@ In this notebook, we covered:
 
 ### References
 
-- [Dynatrace Performance Analysis](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/analyze-and-use/waterfall-analysis)
+- [Dynatrace Performance Analysis](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/analyze-and-use/waterfall-analysis)
 - [Navigation Timing API](https://developer.mozilla.org/en-US/docs/Web/API/Performance_API/Navigation_timing)
 - [TTFB Best Practices](https://web.dev/articles/ttfb)
 - [User events — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events) — *"Used for internal optimization when storing the data and not intended for query usage."*

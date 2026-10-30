@@ -301,7 +301,7 @@ That reverses the older advice in this section. A metric event is still the ligh
 The Davis detector remains a first-class config-as-code target: provision it with Monaco or Terraform exactly as in **AUTOM-03 (Monaco) / AUTOM-04 (Terraform)**, with the schema name as the `--settings-schema` / resource selector. Check any schema's status in AUTOM-02's catalog before building a long-lived project around it.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence-classic/anomaly-detection/metric-events)</sub>
+> - <sub>[Metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection-classic/metric-events)</sub>
 > - <sub>[Anomaly detection configuration (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-configuration)</sub>
 > - <sub>[Upgrade metric alerting (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/metric-alerting) — *"Only metric selectors are available to transform."* and *"the check can't detect whether the data from the metric is available or the necessary tags are present"*</sub>
 > - <sub>[Settings 2.0 schemas removed in Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas) — lists `builtin:anomaly-detection.metric-events`; *"None of the schemas on this page are visible in Latest Dynatrace."*</sub>

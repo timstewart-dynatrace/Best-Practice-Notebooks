@@ -63,7 +63,7 @@ Dynatrace captures real user experience through a **JavaScript agent** that is a
 
 > **Note:** Where the web server runs OneAgent, automatic injection is the default path — OneAgent in full-stack monitoring mode *"by default automatically injects the RUM JavaScript"* into the pages it serves, with no code change. In community practice it is the preferred method for that reason; manual injection and agentless RUM are for serving tiers where OneAgent cannot run.
 >
-> <sub>**Sources:** [Configure automatic injection in RUM Classic (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/initial-setup/rum-injection).</sub>
+> <sub>**Sources:** [Configure automatic injection in RUM Classic (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/initial-setup/rum-injection).</sub>
 
 <a id="rum-vs-synthetic"></a>
 
@@ -145,7 +145,7 @@ The Semantic Dictionary exposes the linkage itself as **`frontend.link`** — *"
 
 > **The topology side belongs to the tracing series.** SPANS-04 is the better home for the service-dependency-graph and trace-exploration mechanics; this note exists so a reader arriving from RUM knows the linkage exists and what it is called.
 
-> <sub>**Sources:** [Dynatrace SaaS release notes 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344), [Link cross-origin XHR user actions and their distributed traces (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/initial-setup/link-cross-origin-xhrs) — *"Its addition needs to be explicitly enabled because the endpoints that handle the cross-origin requests need to be configured to accept the header."* **Dictionary:** `frontend.link` (`experimental`, type `record`), read 09/28/2026.</sub>
+> <sub>**Sources:** [Dynatrace SaaS release notes 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344), [Link cross-origin XHR user actions and their distributed traces (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/initial-setup/link-cross-origin-xhrs) — *"Its addition needs to be explicitly enabled because the endpoints that handle the cross-origin requests need to be configured to accept the header."* **Dictionary:** `frontend.link` (`experimental`, type `record`), read 09/28/2026.</sub>
 
 ### Session Types
 
@@ -369,7 +369,7 @@ In this notebook, we covered:
 
 ### References
 
-- [Dynatrace RUM Overview](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications)
+- [Dynatrace RUM Overview](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications)
 - [RUM JavaScript version (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/web-frontends/additional-configuration/rum-javascript-version)
 - [Monitor web performance with DQL (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/analyze-and-alert/rum-dql-web-performance)
 - [User events — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events) — *"Used for internal optimization when storing the data and not intended for query usage."*
