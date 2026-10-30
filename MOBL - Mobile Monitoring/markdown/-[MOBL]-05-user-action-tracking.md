@@ -90,7 +90,7 @@ Dynatrace auto-instrumentation covers both imperative (UIKit, Android Views) and
 
 > **Tip:** If your app uses SwiftUI, add `DTSwiftInstrumentor` to the build (and CI) early; for Compose, confirm the plugin is 8.271 or later. Reserve custom actions (Section 5) for business-level flows.
 
-> <sub>**Sources:** [What's new in OneAgent for Mobile 8.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-347) — the app-start user action and cold-start capping quoted above; [Instrument Android apps (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app) — *"Jetpack Compose auto-instrumentation is enabled by default starting with Dynatrace Android Gradle plugin version 8.271."*; [Instrument SwiftUI controls (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-ios-app/instrumentation/instrument-swiftui-controls).</sub>
+> <sub>**Sources:** [What's new in OneAgent for Mobile 8.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-347) — the app-start user action and cold-start capping quoted above; [Instrument Android apps (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app) — *"Jetpack Compose auto-instrumentation is enabled by default starting with Dynatrace Android Gradle plugin version 8.271."*; [Instrument SwiftUI controls (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/instrumentation/instrument-swiftui-controls).</sub>
 
 <a id="action-lifecycle"></a>
 ## 3. Action Lifecycle
@@ -148,7 +148,7 @@ configure<com.dynatrace.tools.android.dsl.DynatraceExtension> {
 
 > **Correction (09/28/2026).** Earlier revisions gave detection defaults (3 taps, 1 second, a proximity radius), a tunable sensitivity setting and a `RageTap` user-action type. None of those is documented, and the semantic dictionary (read 09/28/2026) has no rage-tap field on `user.events`. §6.3 therefore uses a clearly labelled query-side heuristic.
 
-> <sub>**Sources:** [Configure monitoring capabilities (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/monitoring-capabilities) — *"OneAgent detects such behavior as a rage tap."*</sub>
+> <sub>**Sources:** [Configure monitoring capabilities (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/monitoring-capabilities) — *"OneAgent detects such behavior as a rage tap."*</sub>
 
 ### Why Rage Taps Matter
 
@@ -166,7 +166,7 @@ Rage taps are a leading indicator of poor user experience. Common root causes in
 
 Custom user actions let you measure business-critical interactions that are not automatically captured by the SDK. Use them to wrap multi-step processes like checkout flows, search operations, or any logic where you want precise timing and child event association.
 
-> <sub>**Sources:** [OneAgent SDK for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios), [OneAgent SDK for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/oneagent-sdk-for-android), [dynatrace_flutter_plugin (pub.dev)](https://pub.dev/packages/dynatrace_flutter_plugin).</sub>
+> <sub>**Sources:** [OneAgent SDK for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios), [OneAgent SDK for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/oneagent-sdk-for-android), [dynatrace_flutter_plugin (pub.dev)](https://pub.dev/packages/dynatrace_flutter_plugin).</sub>
 
 ### iOS (Swift)
 
@@ -195,7 +195,7 @@ DynatraceRootAction action = Dynatrace().enterAction('Add to Cart');
 action.leaveAction();
 ```
 
-> <sub>**Sources:** [OneAgent SDK for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios) — the Swift custom-action sample closes the action with `action?.leave()`; [dynatrace_flutter_plugin (pub.dev)](https://pub.dev/packages/dynatrace_flutter_plugin) — *"Only one sub-action level is allowed; you can't create a sub sub-action."*</sub>
+> <sub>**Sources:** [OneAgent SDK for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios) — the Swift custom-action sample closes the action with `action?.leave()`; [dynatrace_flutter_plugin (pub.dev)](https://pub.dev/packages/dynatrace_flutter_plugin) — *"Only one sub-action level is allowed; you can't create a sub sub-action."*</sub>
 
 ### Best Practices for Custom Actions
 
@@ -315,7 +315,7 @@ If auto-detected action names are not descriptive enough, you can configure **us
 
 These are mobile rules over the generated action name — not the CSS-selector or page-group rules used for web applications. Check whether your frontend offers the same settings in the New RUM Experience before you rely on them. In code, you can also rename autogenerated actions with the SDK (`DTXAction` modify APIs on iOS).
 
-> <sub>**Sources:** [User action naming rules for mobile (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/additional-configuration/naming-rules-mobile) — *"You can define user action naming rules to change the automatically generated names to a predefined name."*; [OneAgent SDK for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios) — *"Set naming rules (mobile app settings > Naming rules) to configure user action naming rules or extraction rules"*.</sub>
+> <sub>**Sources:** [User action naming rules for mobile (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/additional-configuration/naming-rules-mobile) — *"You can define user action naming rules to change the automatically generated names to a predefined name."*; [OneAgent SDK for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios) — *"Set naming rules (mobile app settings > Naming rules) to configure user action naming rules or extraction rules"*.</sub>
 
 > **Important:** Naming rule changes apply only to newly captured actions. Historical data retains the original action names.
 

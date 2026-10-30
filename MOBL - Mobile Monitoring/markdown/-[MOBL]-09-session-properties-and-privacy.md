@@ -1,6 +1,6 @@
 # MOBL-09: Session Properties & Data Privacy
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 9 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 9 of 12 | **Created:** February 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -90,7 +90,7 @@ action.leaveAction()
 
 > **Correction (09/28/2026).** Earlier revisions called `DTXAction.reportValue(...)` / `Dynatrace.reportValue(...)` statically. Both SDKs report values on an action instance.
 
-> <sub>**Sources:** [OneAgent SDK for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/oneagent-sdk-for-android) — *"The reported values must be part of a user action."*, [OneAgent SDK for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios).</sub>
+> <sub>**Sources:** [OneAgent SDK for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/oneagent-sdk-for-android) — *"The reported values must be part of a user action."*, [OneAgent SDK for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios).</sub>
 
 ### Where Mobile Properties Come From
 
@@ -177,7 +177,7 @@ Dynatrace.identifyUser(null)
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Level | Description | Data Captured |
 |-------|-------------|---------------|
-| Off | No monitoring at all | Nothing -- SDK is completely silent |
+| Off | Single monitoring event only | One "Loading <App>" event with device metadata; business events are still sent unless the app checks the level before calling `sendBizEvent` |
 | Performance | Anonymous performance data only | Crashes, actions, network timings (no user identification) |
 | User Behavior | Full RUM with user identification | All actions, sessions, user tags, session properties, replay |
 For environments where SVG doesn't render
@@ -187,7 +187,7 @@ Dynatrace provides three **data collection levels** that control how much teleme
 
 | Level | Description | Data Captured |
 |-------|-------------|---------------|
-| **Off** | No monitoring | Nothing -- SDK is completely silent |
+| **Off** | Single monitoring event only | One "Loading <App>" event with device metadata (the IP address travels with the HTTP request); identifiers randomized on every launch. Business events are still sent unless your app checks the level before calling `sendBizEvent` |
 | **Performance** | Anonymous performance data | Crashes, actions, network timings (no user info) |
 | **User Behavior** | Full RUM with user identification | Actions, sessions, user tags, properties, session replay |
 
@@ -219,7 +219,7 @@ Dynatrace.applyUserPrivacyOptions(
 
 OneAgent **persists** these preferences and applies them again when the app restarts, and starts a new session whenever they change.
 
-> <sub>**Sources:** [OneAgent SDK for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios) — *"OneAgent persists the data privacy preferences and automatically applies them when the application is restarted."*, [OneAgent SDK for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/oneagent-sdk-for-android).</sub>
+> <sub>**Sources:** [OneAgent SDK for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios) — *"OneAgent persists the data privacy preferences and automatically applies them when the application is restarted."*, [OneAgent SDK for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/oneagent-sdk-for-android).</sub>
 
 ### What Each Level Controls
 
@@ -243,7 +243,7 @@ OneAgent **persists** these preferences and applies them again when the app rest
 
 ### How Opt-In Mode Works
 
-1. **Enable opt-in mode** -- Add the `DTXUserOptIn` key (set to `true`) to `Info.plist` on iOS, or set `userOptIn(true)` in the Dynatrace Android Gradle plugin configuration (MOBL-03 §3). OneAgent starts, but collects nothing until preferences are applied.
+1. **Enable opt-in mode** -- Add the `DTXUserOptIn` key (set to `true`) to `Info.plist` on iOS, or set `userOptIn(true)` in the Dynatrace Android Gradle plugin configuration (MOBL-03 §3). OneAgent starts at the Off level and, until preferences are applied, sends only a single "Loading <App>" event with device metadata. If no data at all may be transmitted before consent, the docs say to *"turn off the OneAgent for Mobile auto-start and start it manually after consent is given"*.
 2. **Consent dialog shown** -- The app displays a privacy consent dialog explaining what data will be collected and why.
 3. **User grants consent** -- The app calls `applyUserPrivacyOptions` with the level the user agreed to.
 4. **User declines** -- The app does nothing (or applies `OFF` explicitly); the app functions normally without monitoring.
@@ -301,7 +301,7 @@ OneAgent **persists** the privacy preferences you apply and re-applies them on t
 
 > **Correction (09/28/2026).** Earlier revisions implemented opt-in by disabling auto-start and calling a startup method, created privacy options with `DTXUserPrivacyOptions()`, and said the SDK does not persist consent. The documented mechanism is the `DTXUserOptIn` key / `userOptIn` property plus `applyUserPrivacyOptions`, and OneAgent persists the preferences.
 
-> <sub>**Sources:** [OneAgent SDK for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios) — *"To activate the user opt-in mode, add the DTXUserOptIn configuration key to your app's Info.plist file"*, [Adjust OneAgent configuration (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/adjust-oneagent-configuration) — *"To activate the user opt-in mode (when you use the automatic OneAgent startup ), enable the userOptIn property."*</sub>
+> <sub>**Sources:** [OneAgent SDK for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios) — *"To activate the user opt-in mode, add the DTXUserOptIn configuration key to your app's Info.plist file"*, [Adjust OneAgent configuration (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/adjust-oneagent-configuration) — *"To activate the user opt-in mode (when you use the automatic OneAgent startup ), enable the userOptIn property."*, [Configure data privacy for mobile (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/additional-configuration/configure-rum-privacy-mobile) — *"Only a single monitoring event is sent"*, *"turn off the OneAgent for Mobile auto-start and start it manually after consent is given"*.</sub>
 
 <a id="privacy-compliance"></a>
 

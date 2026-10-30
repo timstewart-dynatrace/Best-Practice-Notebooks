@@ -1,6 +1,6 @@
 # MOBL-07: Network Request Monitoring
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 7 of 12 | **Created:** February 2026 | **Last Updated:** 10/13/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 7 of 12 | **Created:** February 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -52,7 +52,8 @@ The Dynatrace Mobile SDK automatically intercepts HTTP(S) requests made through 
 | iOS | Alamofire (URLSession-based) | Yes |
 | Android | OkHttp | Yes |
 | Android | HttpURLConnection | Yes |
-| Flutter | dart:io HttpClient | Yes |
+| Flutter | Dart `http` package via `Dynatrace().createHttpClient()` | Yes (wrapper client) |
+| Flutter | `dart:io HttpClient`, gRPC, custom stacks | No -- manual web request monitoring |
 | React Native | Fetch API, XMLHttpRequest | Yes |
 
 > **Note:** Third-party libraries that use non-standard HTTP stacks (e.g., custom socket implementations) may require manual instrumentation. Check the Dynatrace documentation for your specific SDK version.
@@ -94,9 +95,9 @@ For environments where SVG doesn't render
 
 ### Connection Types
 
-The SDK records the connection type at the time of each request in `network.connection.type` (with detail in `network.connection.subtype`). Typical categories are below; run `summarize count(), by:{network.connection.type}` on your own data to see the exact values your agents report:
+The SDK records the connection type at the time of each request in `network.connection.type` (dictionary examples `wifi`, `cell`) and the technology in `network.connection.subtype` (examples `lte`, `802.11x`); the cellular generations below are subtype values. Run `summarize count(), by:{network.connection.type, network.connection.subtype}` on your own data to see the exact values your agents report:
 
-| Type | Description |
+| Connection | Description |
 |------|-------------|
 | **WiFi** | Connected via WiFi network |
 | **5G** | 5th generation cellular network |
@@ -181,7 +182,7 @@ For environments where SVG doesn't render
 
 > **Correction (09/28/2026).** Earlier revisions named the mobile correlation header `x-dtc`. That is the web RUM JavaScript header; the mobile SDK uses `x-dynatrace` and, from 8.333, W3C trace context. OneAgent for Mobile 8.333 was released 02/23/2026 with rollout from 02/24/2026; mobile agent versions reach users with app releases, so older builds in the field still send only `x-dynatrace`.
 
-> <sub>**Sources:** [OneAgent SDK for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/oneagent-sdk-for-android) — *"To track web requests, add the x-dynatrace HTTP header with a unique value to the web request."*, [What's new in OneAgent for Mobile 8.333 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-333) — *"OneAgent for Mobile now injects W3C Trace Context headers ( traceparent and tracestate ) into outbound requests"*, [Frontend-backend linking (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/concepts/frontend-backend-linking).</sub>
+> <sub>**Sources:** [OneAgent SDK for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/oneagent-sdk-for-android) — *"To track web requests, add the x-dynatrace HTTP header with a unique value to the web request."*, [What's new in OneAgent for Mobile 8.333 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-333) — *"OneAgent for Mobile now injects W3C Trace Context headers ( traceparent and tracestate ) into outbound requests"*, [Frontend-backend linking (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/concepts/frontend-backend-linking).</sub>
 
 <a id="querying-network-requests"></a>
 
@@ -340,8 +341,8 @@ Continue to **MOBL-08: Session Replay for Mobile** to see how Session Replay rec
 
 ## References
 
-- [Dynatrace Mobile App Monitoring](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications)
-- [Dynatrace Mobile SDK Documentation](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-hybrid-app)
+- [Dynatrace Mobile App Monitoring](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications)
+- [Dynatrace Mobile SDK Documentation](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-hybrid-app)
 - [Distributed tracing (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing)
 - [Dynatrace Query Language (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
 

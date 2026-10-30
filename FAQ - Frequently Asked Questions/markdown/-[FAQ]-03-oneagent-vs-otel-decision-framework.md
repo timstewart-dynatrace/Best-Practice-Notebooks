@@ -111,7 +111,7 @@ OpenTelemetry alone can fully instrument an application and ship to Dynatrace vi
 > - <sub>[Runtime Vulnerability Analytics (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/vulnerability-analytics) — *"Dynatrace OneAgent monitors loaded libraries, runtime components, and data flows in real time."*</sub>
 > - <sub>[Runtime Application Protection (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/application-protection) — *"Code-level visibility provided by OneAgent"*</sub>
 > - <sub>[Live Debugger (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/live-debugger) — *"OneAgent version 1.309+ with Java Live-Debugger and Node.js Live-Debugger"*</sub>
-> - <sub>[RUM JavaScript injection (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/initial-setup/rum-injection) — *"Once OneAgent is deployed in full-stack monitoring mode on a host, it by default automatically injects the RUM JavaScript"*</sub>
+> - <sub>[RUM JavaScript injection (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/initial-setup/rum-injection) — *"Once OneAgent is deployed in full-stack monitoring mode on a host, it by default automatically injects the RUM JavaScript"*</sub>
 > - <sub>[OneAgent SDK for Java (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-Java) — *"not supported on serverless code modules .. Consider using OpenTelemetry instead"* (a statement about the **SDK**, not about OneAgent itself — see §4)</sub>
 
 <a id="what-each-is"></a>
@@ -249,7 +249,7 @@ The same release also adds OneAgent Azure SDK tracing for **Service Bus** (Java,
 > - <sub>[Runtime Vulnerability Analytics (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/vulnerability-analytics) — *"Dynatrace OneAgent monitors loaded libraries, runtime components, and data flows in real time."*</sub>
 > - <sub>[Runtime Application Protection (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/application-protection) — *"Code-level visibility provided by OneAgent"*</sub>
 > - <sub>[Live Debugger (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/live-debugger) — *"OneAgent version 1.309+ with Java Live-Debugger and Node.js Live-Debugger"*</sub>
-> - <sub>[RUM JavaScript injection (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/initial-setup/rum-injection) — *"Once OneAgent is deployed in full-stack monitoring mode on a host, it by default automatically injects the RUM JavaScript"*</sub>
+> - <sub>[RUM JavaScript injection (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/initial-setup/rum-injection) — *"Once OneAgent is deployed in full-stack monitoring mode on a host, it by default automatically injects the RUM JavaScript"*</sub>
 > - <sub>[Use OneAgent with OpenTelemetry (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-and-opentelemetry/oneagent-otel)</sub>
 > - <sub>[OneAgent SDK for Java (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-Java) — *"The OneAgent SDK is not supported on serverless code modules, including those for AWS Lambda."* — the SDK, not the agent</sub>
 > - <sub>**Derived:** the "verify the deployed agent, not the tenant sprint" qualifier follows from agent fleets upgrading independently of tenant version</sub>
@@ -567,7 +567,7 @@ Dynatrace is explicit that the two are designed to coexist. From the Dynatrace O
 > - <sub>[Runtime Vulnerability Analytics (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/vulnerability-analytics) — *"Dynatrace OneAgent monitors loaded libraries, runtime components, and data flows in real time."*</sub>
 > - <sub>[Runtime Application Protection (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/application-protection) — *"Code-level visibility provided by OneAgent"*</sub>
 > - <sub>[Live Debugger (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/live-debugger) — *"OneAgent version 1.309+ with Java Live-Debugger and Node.js Live-Debugger"*</sub>
-> - <sub>[RUM JavaScript injection (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/initial-setup/rum-injection) — *"Once OneAgent is deployed in full-stack monitoring mode on a host, it by default automatically injects the RUM JavaScript"*</sub>
+> - <sub>[RUM JavaScript injection (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/initial-setup/rum-injection) — *"Once OneAgent is deployed in full-stack monitoring mode on a host, it by default automatically injects the RUM JavaScript"*</sub>
 > - <sub>[OpenTelemetry main site (opentelemetry.io)](https://opentelemetry.io/) — vendor neutrality, signal coverage, ecosystem</sub>
 > - <sub>[Unified services (DT docs)](https://docs.dynatrace.com/docs/shortlink/unified-service) — services detected with Service Detection v2 *"were first introduced for OpenTelemetry"*; *"Automatic endpoint detection and monitoring"*</sub>
 > - <sub>[OpenTelemetry Host Monitoring extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/opentelemetry-host-monitoring) — *"This extension automatically generates entities for hosts and their running processes."*</sub>
@@ -802,7 +802,7 @@ Davis AI is deliberately not on this list: it runs on OTel data too. OneAgent fi
 > - <sub>[Runtime Vulnerability Analytics (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/vulnerability-analytics) — *"Dynatrace OneAgent monitors loaded libraries, runtime components, and data flows in real time."*</sub>
 > - <sub>[Runtime Application Protection (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/application-protection) — *"Code-level visibility provided by OneAgent"*</sub>
 > - <sub>[Live Debugger (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/live-debugger) — *"OneAgent version 1.309+ with Java Live-Debugger and Node.js Live-Debugger"*</sub>
-> - <sub>[RUM JavaScript injection (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/initial-setup/rum-injection) — *"Once OneAgent is deployed in full-stack monitoring mode on a host, it by default automatically injects the RUM JavaScript"*</sub>
+> - <sub>[RUM JavaScript injection (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/initial-setup/rum-injection) — *"Once OneAgent is deployed in full-stack monitoring mode on a host, it by default automatically injects the RUM JavaScript"*</sub>
 >
 > <sub>The Clojure `core.async` note is **community guidance**, not vendor-documented.</sub>
 

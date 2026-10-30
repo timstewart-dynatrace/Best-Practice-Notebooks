@@ -1,6 +1,6 @@
 # MOBL-99: Best Practice Summary
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/13/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -157,7 +157,7 @@ Best practices for GDPR, CCPA, and general data privacy compliance.
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|--------------|-----------------|----------|--------|
 | 1 | Implement opt-in mode for GDPR compliance | `DTXUserOptIn = true` (iOS) or `userOptIn(true)` (Android); call `applyUserPrivacyOptions` after user consent | **Critical** | MOBL-09 |
-| 2 | Collect nothing until the user chooses | In opt-in mode OneAgent captures no data until `applyUserPrivacyOptions` is called; `PERFORMANCE` is the anonymous level a user can choose, `USER_BEHAVIOR` the full one | **Critical** | MOBL-09 |
+| 2 | Collect nothing until the user chooses | In opt-in mode OneAgent sends only a single "Loading <App>" event (device metadata) until `applyUserPrivacyOptions` is called -- turn off auto-start and start manually after consent if nothing may be sent; `PERFORMANCE` is the anonymous level a user can choose, `USER_BEHAVIOR` the full one | **Critical** | MOBL-09 |
 | 3 | Rely on OneAgent to persist the applied preferences | OneAgent persists privacy preferences and re-applies them on restart; the app only needs to ask when no choice exists yet | **Critical** | MOBL-09 |
 | 4 | Provide a way to withdraw consent in app settings | Set data collection level to `Off` when user revokes consent | **Critical** | MOBL-09 |
 | 5 | Handle right-to-erasure requests with the documented deletion routes | Sensitive Data Center deletion request (UI) or Grail record deletion (API, covers `user.events`, `user.sessions`, `user.replays`) | **Critical** | MOBL-09 |
@@ -257,11 +257,11 @@ Mandatory patterns and filters for querying mobile data in Grail.
 
 ## References
 
-- [Dynatrace Mobile Monitoring Documentation](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications)
-- [iOS SDK Integration Guide](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-ios-app/instrumentation/get-started-with-ios-monitoring)
-- [Instrument Android apps (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app)
-- [Session Replay for Mobile](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay)
-- [Mobile SDK Privacy Settings](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/additional-configuration/configure-rum-privacy-mobile)
+- [Dynatrace Mobile Monitoring Documentation](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications)
+- [iOS SDK Integration Guide](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/instrumentation/get-started-with-ios-monitoring)
+- [Instrument Android apps (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app)
+- [Session Replay for Mobile](https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic)
+- [Mobile SDK Privacy Settings](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/additional-configuration/configure-rum-privacy-mobile)
 
 ---
 

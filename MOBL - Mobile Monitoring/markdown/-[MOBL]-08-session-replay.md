@@ -1,6 +1,6 @@
 # MOBL-08: Session Replay for Mobile
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 8 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 8 of 12 | **Created:** February 2026 | **Last Updated:** 10/29/2026
 
 ## Overview
 
@@ -56,7 +56,7 @@ Two capture modes exist:
 
 > **Correction (09/28/2026).** Earlier revisions said Session Replay "is **not** a video recording", captures "UI state rather than pixels", and typically adds "< 50 KB per session". None of this is supported by the Session Replay documentation, which describes screenshots and a video-like reconstruction.
 
-> <sub>**Sources:** [Session Replay Classic for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay/session-replay-ios) — *"Session Replay is a video-like reconstruction of the user interactions with mobile applications that use captured events and data."*, [Session Replay Classic for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay/session-replay-android) — *"Session Replay is not available for cross-platform frameworks such as Cordova, React Native, Flutter, Xamarin, and more"*</sub>
+> <sub>**Sources:** [Session Replay Classic for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-ios) — *"Session Replay is a video-like reconstruction of the user interactions with mobile applications that use captured events and data."*, [Session Replay Classic for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-android) — *"Session Replay is not available for cross-platform frameworks such as Cordova, React Native, Flutter, Xamarin, and more"*</sub>
 
 <a id="enabling-session-replay"></a>
 
@@ -75,11 +75,11 @@ Session Replay is switched on **in the mobile app's settings in Dynatrace**, not
 | **Full Session Replay below 100%** | A random selection of sessions is captured -- this percentage is the only sampling control |
 | **Session Replay on crashes** | All sessions with a crash are captured, regardless of the Full Session Replay setting and percentage |
 
-Then complete the Session Replay steps of the instrumentation wizard for your platform. There is **no client-side sample rate**, and no `Info.plist` or Gradle key that enables Session Replay or sets a privacy mode; masking is configured in code (Section 3).
+Then complete the Session Replay steps of the instrumentation wizard for your platform. There is **no client-side sample rate**, and no `Info.plist` or Gradle key that sets a sample rate or a privacy mode; masking is configured in code (Section 3). One client-side key does exist: for an instrumented **SwiftUI** app, also set `DTXSwiftUIEnableSessionReplayInstrumentation` to `true` in `Info.plist` (*"Set the DTXSwiftUIEnableSessionReplayInstrumentation configuration key to true in your project's Info.plist file."* — Session Replay for iOS).
 
 > **Correction (09/28/2026).** Earlier revisions configured Session Replay with Info.plist keys (`DTXSessionReplayEnabled`, `DTXSessionReplayPrivacyMode`, `DTXSessionReplaySampleRate`, `DTXSessionReplayOnCrash`) and Gradle properties (`sessionReplay`, `sessionReplayPrivacyMode`, `sessionReplaySampleRate`, `sessionReplayOnCrash`), and described an SDK sample rate that combines with the server rate. None of these exists on the Session Replay pages.
 
-> <sub>**Sources:** [Session Replay Classic for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay/session-replay-android) — *"From the application settings, select General > Enablement and cost control . Turn on Enable Full Session Replay or Enable Session Replay on crashes ."*, [Session Replay Classic for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay/session-replay-ios).</sub>
+> <sub>**Sources:** [Session Replay Classic for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-android) — *"From the application settings, select General > Enablement and cost control . Turn on Enable Full Session Replay or Enable Session Replay on crashes ."*, [Session Replay Classic for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-ios).</sub>
 
 <a id="privacy-masking-levels"></a>
 
@@ -92,16 +92,16 @@ Privacy is a critical concern when capturing session replays. Dynatrace provides
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Privacy Level | Description | What Is Masked |
 |---------------|-------------|----------------|
-| Safest | Maximum privacy protection | All text content, images, user inputs, labels |
-| Safe | Balanced approach for most apps | Input fields, personal data; static labels remain visible |
+| Safest | Maximum privacy protection | Editable text fields, images, labels, web views and switches |
+| Safe | Balanced approach for most apps | Editable text fields only; labels, images, web views and switches remain visible |
 | Custom | Developer-controlled masking | Starts with the same elements as Safest; the developer then masks or unmasks specific views |
 For environments where SVG doesn't render
 -->
 
 | Level | Description | Masked Elements |
 |-------|-------------|----------------|
-| **Safest** | Maximum privacy | All text, images, inputs masked |
-| **Safe** | Balanced approach | Inputs, personal data masked; labels visible |
+| **Safest** | Maximum privacy | Editable text fields, images, labels, web views and switches masked |
+| **Safe** | Balanced approach | Editable text fields masked; labels, images, web views and switches visible |
 | **Custom** | Developer-defined | By default the same as Safest; mask/unmask specific views via the API |
 
 OneAgent applies **Safest** by default. To use Safe or Custom, set the masking level through the API.
@@ -165,7 +165,7 @@ On both platforms, a view whose `accessibilityIdentifier` (iOS) or `android:tag`
 
 > **Tip:** Start with the default **Safest** level or with **Safe**, and move to **Custom** only when specific elements need to be unmasked for debugging. This keeps privacy by default.
 
-> <sub>**Sources:** [Session Replay Classic for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay/session-replay-ios) — *"Custom —by default, masks the same elements as Safest"*, [Session Replay Classic for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay/session-replay-android).</sub>
+> <sub>**Sources:** [Session Replay Classic for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-ios) — *"Safest —all the editable text fields, images, labels, web views, and switches are masked. Safe —all the editable text fields are masked."*, *"Custom —by default, masks the same elements as Safest"*, [Session Replay Classic for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-android).</sub>
 
 <a id="sampling-cost-control"></a>
 
@@ -229,13 +229,13 @@ With **Enable Session Replay on crashes** turned on, every session that ends in 
 
 Crash replay is the **Enable Session Replay on crashes** toggle in the app settings (**General > Enablement and cost control**, Section 2). There is no `Info.plist` or Gradle key for it. Separately, the user's privacy choice must allow it: the OneAgent SDK privacy options carry a `crashReplayOptedIn` flag (MOBL-09 §3).
 
-> <sub>**Sources:** [Session Replay Classic for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay/session-replay-android) — *"Enabling Session Replay on Crashes means guarantees that, regardless of the Enable Full Session Replay setting and its const and traffic control value, all sessions with crash are will be captured."* (sic)</sub>
+> <sub>**Sources:** [Session Replay Classic for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-android) — *"Enabling Session Replay on Crashes means guarantees that, regardless of the Enable Full Session Replay setting and its const and traffic control value, all sessions with crash are will be captured."* (sic)</sub>
 
 <a id="platform-configuration"></a>
 
 ## 6. Platform Configuration
 
-Session Replay has no platform configuration keys to set: enablement and the capture percentage live in the app settings (Section 2), and masking is set in code (Section 3). What differs by platform is the requirements:
+Enablement and the capture percentage live in the app settings (Section 2), and masking is set in code (Section 3). The one platform key is iOS-only: SwiftUI apps also need `DTXSwiftUIEnableSessionReplayInstrumentation` set to `true` in `Info.plist` (Section 2). What differs by platform is the requirements:
 
 | | iOS | Android |
 |---|---|---|
@@ -329,10 +329,10 @@ Continue to **MOBL-09: Session Properties & Data Privacy** to explore session pr
 
 ## References
 
-- [Session Replay for Mobile](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay)
-- [Session Replay Classic for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay/session-replay-android)
-- [Session Replay Classic for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay/session-replay-ios)
-- [Mobile SDK Privacy Settings](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/additional-configuration/configure-rum-privacy-mobile)
+- [Session Replay for Mobile](https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic)
+- [Session Replay Classic for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-android)
+- [Session Replay Classic for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-ios)
+- [Mobile SDK Privacy Settings](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/additional-configuration/configure-rum-privacy-mobile)
 - [Dynatrace Platform Subscription (DT docs)](https://docs.dynatrace.com/docs/license)
 
 ---
