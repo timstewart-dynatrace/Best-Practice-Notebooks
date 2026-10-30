@@ -1,6 +1,6 @@
 # FAQ-10: How Do I Size and Scale ActiveGates?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 10 — ActiveGate Sizing and Scaling | **Created:** July 2026 | **Last Updated:** 10/22/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 10 — ActiveGate Sizing and Scaling | **Created:** July 2026 | **Last Updated:** 10/30/2026
 
 ## Overview
 
@@ -8,7 +8,7 @@
 
 This entry consolidates the decision: which dimension drives sizing for each ActiveGate capability, the current documented baselines for host-based, containerized, and synthetic-enabled ActiveGates, how high availability and network zones change the math, and — the part teams most often skip — the `dt.sfm.active_gate.*` self-monitoring metrics that tell you an ActiveGate is saturating *before* data starts dropping.
 
-Deployment mechanics stay with their owning series: ONBRD-03 (installing and deploying ActiveGates), the K8S series (DynaKube and containerized ActiveGates), SYNTH (private synthetic locations), and FAQ-05 (managing ActiveGate updates). This entry owns the sizing decision itself.
+Deployment mechanics stay with their owning series: ONBRD-03 (installing and deploying ActiveGates), the K8S series (DynaKube and containerized ActiveGates), SYNTH (private synthetic locations), and FAQ-05 (managing ActiveGate updates). FAQ-28 decides when and where to deploy them, including VMs compared with Kubernetes. This entry owns the sizing decision itself.
 
 ---
 
