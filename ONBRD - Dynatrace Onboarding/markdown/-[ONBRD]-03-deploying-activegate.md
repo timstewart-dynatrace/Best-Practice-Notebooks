@@ -100,7 +100,7 @@ Dynatrace defines two support levels for third-party technologies:
 | **Private synthetic monitors** | Test internal applications |
 | **Remote extensions** | Extensions that poll remote sources (SNMP, databases, APIs) run from an ActiveGate group; local extensions run on OneAgent |
 | **AWS / Azure classic integration** | See Clouds app status below — classic polling runs through an ActiveGate (on SaaS hosted on AWS, Dynatrace provides one for the built-in AWS services); GCP needs none on SaaS |
-| **VMware monitoring** | vCenter integration |
+| **VMware monitoring** | The classic VMware module is superseded on Latest Dynatrace; use the VMware (remote monitoring) extension, which runs on an ActiveGate group (see the note below) |
 | **Kubernetes full-stack** | Cluster API access for events, metrics |
 
 > **Update — Clouds App (status as of 10/2026):** The **Clouds app** supports direct cloud connections **without ActiveGate** — but coverage varies per cloud:
@@ -114,6 +114,10 @@ Dynatrace defines two support levels for third-party technologies:
 > ActiveGate is still required for **remote extensions**, **private synthetic locations**, and classic AWS / Azure polling where the Clouds app is not used. On SaaS, the GCP collector's *"dynatraceUrl"* is *"your environment URL"*; an ActiveGate appears there only as a Managed log-ingest option. See [Clouds app documentation](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring), [Azure Cloud Platform Monitoring (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-onboarding), [Set up Dynatrace on Google Cloud (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform) and the **CLOUD series** for per-provider deep dives.
 >
 > <sub>**Sources:** [Set up the Dynatrace GCP integration on GKE (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-integrations/gcp-guide/deploy-k8) — *"For Managed deployments: You can use an existing ActiveGate for log ingestion."*, [SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348), [AWS CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/cloudwatch-metrics) — *"An ActiveGate capable of monitoring your AWS account for classic (built-in) supported services is already provided and available within the Dynatrace AWS account (only for SaaS environments hosted on AWS)."*, [Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions) — *"Run extensions locally on the monitored host to collect data from local data sources with the Extension Execution Controller."*</sub>
+
+> **Superseded modules.** *"For ActiveGates connected to Dynatrace tenants in Group 3 (Enhanced), the superseded modules are blocked from loading and will not execute."* That covers classic AWS, Azure, Cloud Foundry, Oracle database insights, VMware and memory dumps. The replacements are AWS and Azure Cloud Platform Monitoring, the Cloud Foundry extension, Databases, and the VMware (remote monitoring) extension. Memory dumps have *"No successor solution"*. Check which group your tenant is in before you plan an ActiveGate for one of these.
+>
+> <sub>**Sources:** [ActiveGate purposes and functionality (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/capabilities).</sub>
 
 ### Routing OneAgent Traffic: Through an ActiveGate or Direct?
 
@@ -364,7 +368,7 @@ Deploy ActiveGates based on network segmentation:
 | **AWS** | Deploy in management VPC or shared services subnet |
 | **Azure** | Hub VNet with peering to spoke VNets |
 | **GCP** | Shared VPC host project |
-| **Kubernetes** | Deploy as StatefulSet or standalone VM outside cluster |
+| **Kubernetes** | Run routing and Kubernetes monitoring in the cluster through the Operator (§ 7); run remote extensions on host-based ActiveGates outside it |
 
 <a id="generating-tokens"></a>
 ## 5. Generating Tokens
@@ -440,9 +444,9 @@ Deploying ActiveGate in Kubernetes requires careful consideration of where, how,
 |----------|----------------|-----------|
 | **Cluster-only monitoring** | ✅ Yes | Co-located with workloads, simplifies networking |
 | **Routing for in-cluster OneAgents** | ✅ Yes | Lower latency, no external hops |
-| **Extensions 2.0 for K8s resources** | ✅ Yes | Direct access to cluster APIs |
+| **Remote extensions** | ❌ Host-based ActiveGate | The container image does not include the Extensions module. SQL extensions are the exception: they run on Kubernetes through the Operator, not on an ActiveGate (see the note below) |
 | **Multi-cluster routing** | ⚠️ Consider | May need external AG for cross-cluster |
-| **Private synthetic monitoring** | ❌ Usually VM | Synthetic requires stable network, not pod restarts |
+| **Private synthetic monitoring** | ✅ Supported | Containerized private locations are documented and auto-scale (SYNTH-04); in community practice some teams still choose VMs for a fixed egress IP |
 | **Routing for external hosts** | ❌ VM preferred | External hosts need stable, routable IP |
 | **Air-gapped environments** | ❌ VM preferred | Often need dedicated proxy tier |
 
@@ -451,9 +455,13 @@ Deploying ActiveGate in Kubernetes requires careful consideration of where, how,
 | Scenario | Why VM is Better |
 |----------|------------------|
 | **Routing for VMs/bare metal** | VMs need stable IPs, not pod IPs |
-| **Private synthetic locations** | Synthetic tests sensitive to pod restarts |
-| **Extensions polling external systems** | External systems may not allow K8s egress IPs |
+| **Private synthetic locations, when you need a fixed egress IP** | In community practice a VM is simpler to allow-list; both deployments are supported |
+| **Extensions polling external systems** | The Extensions module runs on host-based ActiveGates only |
 | **Compliance requiring dedicated hosts** | Some compliance requires dedicated hardware |
+
+> **What the container image leaves out.** *"The container image covers only a subset of that, provided by the core ActiveGate process."* The capability matrix marks Extensions, syslog ingestion, zRemote, memory dumps and classic AWS monitoring as unavailable on a containerized ActiveGate. *"Remote configuration management works for OneAgents in Full-Stack and Infrastructure Monitoring mode and for host-based ActiveGates"*, not containerized ones, according to a page labelled Dynatrace Classic. For SQL databases, Dynatrace documents a separate path: *"Run SQL monitoring extensions on Kubernetes using Dynatrace Operator."* (Dynatrace 1.346+). For the whole decision, including VM and Kubernetes trade-offs, see **FAQ-28: When and where should I deploy ActiveGates?**
+>
+> <sub>**Sources:** [Differences between containerized and host-based ActiveGates (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/activegate-in-container/differences), [ActiveGate purposes and functionality (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/capabilities), [Remote configuration management (DT docs)](https://docs.dynatrace.com/docs/ingest-from/bulk-configuration-classic), [Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions), [SQL extensions on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/kubernetes), [Containerized private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/containerized-locations-synth-app).</sub>
 
 ### Deployment Architecture
 
@@ -461,7 +469,7 @@ Deploying ActiveGate in Kubernetes requires careful consideration of where, how,
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Component | Location | Purpose |
 |-----------|----------|---------|
-| ActiveGate StatefulSet | dynatrace namespace | Routing, extensions |
+| ActiveGate StatefulSet | dynatrace namespace | Routing, Kubernetes monitoring |
 | Headless Service | dynatrace namespace | Pod DNS discovery |
 | LoadBalancer Service | dynatrace namespace | External access (optional) |
 | PVC (optional) | dynatrace namespace | Persistent logs/cache |

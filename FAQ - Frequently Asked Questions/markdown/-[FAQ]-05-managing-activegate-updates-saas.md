@@ -1,6 +1,6 @@
 # FAQ-05: How to manage ActiveGate updates on Dynatrace SaaS
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 05 — Managing ActiveGate Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 10/27/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 05 — Managing ActiveGate Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 10/30/2026
 
 ## Overview
 
@@ -172,7 +172,7 @@ Once you disable auto-update, pin a target version, or confine updates to window
 - **Latest Dynatrace.** Go to **Settings > Fleet management > ActiveGate version and updates**. Rather than *Auto-update disabled*, prefer **Auto-update during an update window**: set the **Target version**, then create the window on the **Manage update windows** tab (name, recurrence, start time, timezone, duration). You keep control of *when*, and Dynatrace still does the installing. For an AG you manage manually, use its **Update now to target version** button (SaaS 1.343+); per-AG settings override the environment default.
 - **Dynatrace Classic.** Go to **Settings > Updates > ActiveGate updates**, expand the ActiveGate, and select **Update**. The button is there only while that ActiveGate's *Automatic updates at earliest convenience* toggle is off. Status moves through *Update pending* and *Update in progress* to *Up to date*; *Update problem* means the old version is still running — check the auto-updater and installer logs.
 - **Without the UI.** Run the new ActiveGate installer over the existing install; no uninstall is needed and the configuration is migrated. Back up `custom.properties` and `launcheruserconfig.conf` first — they are not overwritten, but Dynatrace recommends the backup.
-- **Containerized ActiveGates** are outside all of the above: auto-update and one-click update apply only to installer-based ActiveGates. Update container images through your own tooling (on Kubernetes, the Dynatrace Operator — see the K8S series).
+- **Containerized ActiveGates** are outside all of the above: auto-update and one-click update apply only to installer-based ActiveGates. Update container images through your own tooling (on Kubernetes, the Dynatrace Operator — see the K8S series). *"ActiveGate is updated automatically on pod restart whenever there is a new version available, unless the image already specifies a certain version."* The remote configuration page, labelled Dynatrace Classic, excludes them too, so change their network zone and group in the deployment. ([Differences between containerized and host-based ActiveGates (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/activegate-in-container/differences), [Remote configuration management (DT docs)](https://docs.dynatrace.com/docs/ingest-from/bulk-configuration-classic)). For choosing between the two deployments, see FAQ-28.
 
 **2. Validate the ActiveGates** (§7) before moving on. The ActiveGate list flags any ActiveGate more than five versions behind with a yellow warning icon.
 
