@@ -1,6 +1,6 @@
 # OPMIG-99: Best Practice Summary
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 10 of 10 | **Created:** March 2026 | **Last Updated:** 10/23/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 10 of 10 | **Created:** March 2026 | **Last Updated:** 10/30/2026
 
 Definitive best practice settings for migrating from classic logs to OpenPipeline. Each entry specifies the exact configuration.
 
@@ -35,7 +35,7 @@ Definitive best practice settings for migrating from classic logs to OpenPipelin
 
 | Practice | Recommended Setting/Value | Priority |
 |----------|---------|----------|
-| Inventory all log sources first | `fetch logs, from:-7d \| summarize count(), by:{log.source} \| sort count desc` | Critical |
+| Inventory all log sources first | `fetch logs, from:-7d \| summarize n = count(), by:{log.source} \| sort n desc` | Critical |
 | Score sources with weighted priority matrix | Volume 25%, Cost Savings 25%, Security Risk 25%, Parsing Complexity 10%, Business Criticality 15% | Critical |
 | Execute migration in 4 waves | Wave 1 (weeks 1-2): critical/security. Wave 2 (3-4): high-volume. Wave 3 (5-6): standard prod. Wave 4 (7+): dev/test | Critical |
 | Keep same API endpoint | `/api/v2/logs/ingest` works identically for Classic and OpenPipeline — no code changes | Recommended |
@@ -93,12 +93,12 @@ Definitive best practice settings for migrating from classic logs to OpenPipelin
 | Practice | Recommended Setting/Value | Priority |
 |----------|---------|----------|
 | Use a Technology bundle where one exists | Apache HTTP, Nginx, Syslog (RFC 3164/5424), Java (Log4j, Logback, …) bundles; there is no generic JSON bundle — use `jsonExtract` for JSON logs | Recommended |
-| Apache/Nginx DPL pattern | `IPADDR:client_ip SPACE '-' SPACE LD:user SPACE '[' TIMESTAMP(...):log_time ']' SPACE '"' LD:method SPACE LD:request_path SPACE LD:protocol '"' SPACE INT:status_code SPACE INT:response_bytes` | Recommended |
+| Apache/Nginx DPL pattern | `IPADDR:client_ip SPACE '-' SPACE LD:user SPACE '[' TIMESTAMP('dd/MMM/yyyy:HH:mm:ss Z'):log_time ']' SPACE '"' LD:method SPACE LD:request_path SPACE LD:protocol '"' SPACE INT:status_code SPACE INT:response_bytes` | Recommended |
 | Java/Log4j DPL pattern | `TIMESTAMP('yyyy-MM-dd HH:mm:ss,SSS'):log_timestamp SPACE '[' LD:thread ']' SPACE LD:level SPACE LD:logger SPACE '-' SPACE DATA:message` | Recommended |
-| Start key=value patterns with `LD?` | `parse` anchors at the start of the field: `LD? ('user='\|'userId='\|'user_id=') NSPACE:user_id` finds the key anywhere; without `LD?` it returns null unless the line begins with the key | Critical |
+| Start key=value patterns with `LD?` | `parse` anchors at the start of the field: `LD? ('user='\|'userId='\|'user_id=') NSPACE:user_id` finds the key anywhere; without `LD?` it returns null unless the line begins with the key. `LD? IPADDR:ip` on a line beginning with the IP returns `92.168.1.100` (OPMIG-06) | Critical |
 | Grok-to-DPL conversion | `%{IP}` → `IPADDR`, `%{INT}` → `INT`, `%{WORD}` → `WORD`, `%{GREEDYDATA}` → `DATA` | Recommended |
 | Test patterns in DPL Architect | `https://{env}.apps.dynatrace.com/ui/apps/dynatrace.dpl.architect` | Critical |
-| Target >90% parsing success rate | Query `countIf(isNotNull(loglevel))/count()` per pipeline — investigate below 90% | Recommended |
+| Target >90% parsing success rate | Query `countIf(loglevel != "NONE")/count()` per pipeline — investigate below 90% | Recommended |
 | Normalize missing log levels | `if(contains(content, "[ERROR]"), "ERROR", else: ...)` for logs without `loglevel` | Recommended |
 
 <a id="metric-extraction-red"></a>
@@ -122,7 +122,7 @@ Definitive best practice settings for migrating from classic logs to OpenPipelin
 |----------|---------|----------|
 | Masking processors FIRST in the Processing stage | Sensitive data redacted before parsing, extraction and storage. Routing runs before any processor — keep PII out of routing conditions | Critical |
 | Credit cards | Built-in `CREDITCARD` matcher, bounded: `!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]` → `[CC_REDACTED]`. Unbounded, it rewrites digit runs inside UUIDs | Critical |
-| CVV codes | `('cvv='\|'cvc=') [0-9]{3,4}` → `cvv=[REDACTED]` | Critical |
+| CVV codes | `('cvv='\|'cvc='\|'CVV='\|'CVC=') [0-9]{3,4}` → `cvv=[REDACTED]` | Critical |
 | Email addresses | `[a-zA-Z0-9._%+-]+ '@' [a-zA-Z0-9.-]+` → `[EMAIL_REDACTED]` (no built-in `EMAIL` matcher exists) | Critical |
 | IP addresses (GDPR) | Built-in `IPADDR` matcher → `[IP_REDACTED]` | Critical |
 | SSNs | `[0-9]{3} '-' [0-9]{2} '-' [0-9]{4}` → `[SSN_REDACTED]` (`INT` takes no `{n}` quantifier) | Critical |
@@ -167,10 +167,10 @@ Definitive best practice settings for migrating from classic logs to OpenPipelin
 |----------|---------|----------|
 | Max record size | Request payload max 10 MB per configuration scope; record max 16 MB after processing — exceeding = rejected/dropped | Critical |
 | Timestamp window | Logs: 24h past (72h from SaaS 1.348 — rollout start 10/12/2026, staged tenant rollout; verify before relying on it). Metrics: 1h past. Future timestamps >10 min are **adjusted** to ingest time + 10 min, not dropped (spans excepted) | Critical |
-| Max fields per record | Field-count, nesting and array limits are not on the limits page — verify in your tenant; 32 KB per log attribute | Recommended |
+| Max fields per record | Logs: 5 levels of nested objects, 500 attributes per record, 32 KB per log attribute. Array limits are not on the limits page — verify in your tenant | Recommended |
 | Rate limits | Log Ingest API: 500 req/min/token. OTLP: 1,000 req/min. Config API: 100 req/min (not on the limits page — verify) | Recommended |
 
-> <sub>**Sources:** [OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits) — *"If the timestamp is more than 10 minutes in the future, it's adjusted to the ingest server time plus 10 minutes."*; *"The request payload size maximum limit is 10 MB per configuration scope."*; [What's new in SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"The log ingestion pipeline now accepts log records with timestamps up to 72 hours in the past, extended from the previous 24-hour limit."*</sub>
+> <sub>**Sources:** [Log Management and Analytics default limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-limits) — *Nested objects*: 5 levels; *Number of log attributes*: 500; [OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits) — *"If the timestamp is more than 10 minutes in the future, it's adjusted to the ingest server time plus 10 minutes."*; *"The request payload size maximum limit is 10 MB per configuration scope."*; [What's new in SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"The log ingestion pipeline now accepts log records with timestamps up to 72 hours in the past, extended from the previous 24-hour limit."*</sub>
 
 ---
 
@@ -188,8 +188,8 @@ Diagnostic queries to check whether your DQL/DPL parsers are working correctly. 
 fetch logs, from: now() - 24h
 | summarize {
     total = count(),
-    with_loglevel = countIf(isNotNull(loglevel)),
-    without_loglevel = countIf(isNull(loglevel))
+    with_loglevel = countIf(loglevel != "NONE"),
+    without_loglevel = countIf(loglevel == "NONE")
   }, by: {dt.openpipeline.pipelines}
 | fieldsAdd parse_rate = round((toDouble(with_loglevel) / toDouble(total)) * 100, decimals: 1)
 | sort parse_rate asc
@@ -207,7 +207,7 @@ fetch logs, from: now() - 24h
 fetch logs, from: now() - 24h
 | summarize {
     total = count(),
-    parsed = countIf(isNotNull(loglevel))
+    parsed = countIf(loglevel != "NONE")
   }, by: {log.source}
 | fieldsAdd parse_rate = round((toDouble(parsed) / toDouble(total)) * 100, decimals: 1)
 | filter parse_rate < 90
@@ -219,7 +219,7 @@ fetch logs, from: now() - 24h
 // Replace 'your-source' with source from previous query
 fetch logs, from: now() - 1h
 | filter log.source == "your-source"
-| filter isNull(loglevel)
+| filter loglevel == "NONE"
 | fields content
 | limit 30
 ```

@@ -1,6 +1,6 @@
 # OPMIG-03: OpenPipeline Migration Guide: Part 3
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 3 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 3 of 10 | **Created:** December 2025 | **Last Updated:** 10/30/2026
 
 ## Migration Assessment & Planning
 ---
@@ -223,7 +223,7 @@ fetch logs, from: now() - 7d
 | summarize {
     total_records = count(),
     unique_hosts = countDistinct(dt.entity.host),
-    has_loglevel = countIf(isNotNull(loglevel)),
+    has_loglevel = countIf(loglevel != "NONE"),
     error_count = countIf(loglevel == "ERROR" OR status == "ERROR")
   }, by: {log.source}
 | fieldsAdd parsing_coverage = round((toDouble(has_loglevel) / toDouble(total_records)) * 100, decimals: 1)
@@ -267,17 +267,14 @@ Identify which log sources need parsing pipelines to extract structured data.
 
 ```dql
 // Overall parsing coverage assessment
-// What percentage of logs have structured log levels?
+// What percentage of logs have a detected log level?
+// loglevel and status are never null: a record with no detected level reads NONE
 fetch logs, from: now() - 24h
 | summarize {
     total = count(),
-    with_loglevel = countIf(isNotNull(loglevel)),
-    with_status = countIf(isNotNull(status)),
-    either = countIf(isNotNull(loglevel) OR isNotNull(status))
+    with_loglevel = countIf(loglevel != "NONE")
   }
 | fieldsAdd loglevel_coverage = round((toDouble(with_loglevel) / toDouble(total)) * 100, decimals: 1)
-| fieldsAdd status_coverage = round((toDouble(with_status) / toDouble(total)) * 100, decimals: 1)
-| fieldsAdd overall_coverage = round((toDouble(either) / toDouble(total)) * 100, decimals: 1)
 ```
 
 ```dql
@@ -286,7 +283,7 @@ fetch logs, from: now() - 24h
 fetch logs, from: now() - 7d
 | summarize {
     total_records = count(),
-    parsed = countIf(isNotNull(loglevel) OR isNotNull(status))
+    parsed = countIf(loglevel != "NONE")
   }, by: {log.source}
 | filter total_records > 1000
 | fieldsAdd parsing_pct = round((toDouble(parsed) / toDouble(total_records)) * 100, decimals: 1)
@@ -299,7 +296,7 @@ fetch logs, from: now() - 7d
 // Sample unparsed log content for pattern analysis
 // Review these to design parsing rules
 fetch logs, from: now() - 1h
-| filter isNull(loglevel) AND isNull(status)
+| filter loglevel == "NONE"
 | fields timestamp, log.source, content
 | limit 50
 ```
@@ -333,8 +330,8 @@ Identify logs that can be dropped or routed to shorter retention buckets to redu
 fetch logs, from: now() - 7d
 | summarize {
     total = count(),
-    debug_logs = countIf(loglevel == "DEBUG" OR status == "DEBUG"),
-    trace_logs = countIf(loglevel == "TRACE" OR status == "TRACE")
+    debug_logs = countIf(loglevel == "DEBUG"),
+    trace_logs = countIf(loglevel == "TRACE")
   }
 | fieldsAdd debug_pct = round((toDouble(debug_logs) / toDouble(total)) * 100, decimals: 2)
 | fieldsAdd trace_pct = round((toDouble(trace_logs) / toDouble(total)) * 100, decimals: 2)
@@ -349,9 +346,10 @@ fetch logs, from: now() - 7d
     health_checks = countIf(contains(toString(content), "health") OR contains(toString(content), "healthz")),
     readiness = countIf(contains(toString(content), "ready") OR contains(toString(content), "readiness")),
     liveness = countIf(contains(toString(content), "alive") OR contains(toString(content), "liveness")),
-    metrics = countIf(contains(toString(content), "/metrics") OR contains(toString(content), "/prometheus"))
+    metrics = countIf(contains(toString(content), "/metrics") OR contains(toString(content), "/prometheus")),
+    // one countIf, so a record matching two conditions is counted once
+    droppable = countIf(contains(toString(content), "health") OR contains(toString(content), "ready") OR contains(toString(content), "readiness") OR contains(toString(content), "alive") OR contains(toString(content), "liveness") OR contains(toString(content), "/metrics") OR contains(toString(content), "/prometheus"))
   }
-| fieldsAdd droppable = health_checks + readiness + liveness + metrics
 | fieldsAdd savings_pct = round((toDouble(droppable) / toDouble(total)) * 100, decimals: 2)
 ```
 
@@ -359,7 +357,7 @@ fetch logs, from: now() - 7d
 // Log level distribution by source
 // Identify sources with high debug/trace output
 fetch logs, from: now() - 7d
-| filter isNotNull(loglevel)
+| filter loglevel != "NONE"
 | summarize {record_count = count()}, by: {log.source, loglevel}
 | sort log.source asc, record_count desc
 ```
@@ -379,11 +377,12 @@ fetch logs, from: now() - 1h
 fetch logs, from: now() - 7d
 | summarize {
     total = count(),
-    droppable_debug = countIf(loglevel == "DEBUG" OR status == "DEBUG" OR loglevel == "TRACE"),
+    droppable_debug = countIf(loglevel == "DEBUG" OR loglevel == "TRACE"),
     droppable_health = countIf(contains(toString(content), "health") OR contains(toString(content), "/metrics")),
-    info_logs = countIf(loglevel == "INFO" OR status == "INFO")
+    info_logs = countIf(loglevel == "INFO"),
+    // one countIf, so a record matching two conditions is counted once
+    potential_drops = countIf(loglevel == "DEBUG" OR loglevel == "TRACE" OR contains(toString(content), "health") OR contains(toString(content), "/metrics"))
   }, by: {log.source}
-| fieldsAdd potential_drops = droppable_debug + droppable_health
 | fieldsAdd drop_pct = round((toDouble(potential_drops) / toDouble(total)) * 100, decimals: 1)
 | filter potential_drops > 100
 | sort potential_drops desc
@@ -590,9 +589,11 @@ fetch logs, from: now() - 7d
     daily_avg = count() / 7,
     
     // COST SAVINGS FACTOR
-    debug_count = countIf(loglevel == "DEBUG" or status == "DEBUG"),
-    trace_count = countIf(loglevel == "TRACE" or status == "TRACE"),
+    debug_count = countIf(loglevel == "DEBUG"),
+    trace_count = countIf(loglevel == "TRACE"),
     health_checks = countIf(contains(toString(content), "health") or contains(toString(content), "/ready")),
+    // one countIf, so a record matching two conditions is counted once
+    droppable = countIf(loglevel == "DEBUG" or loglevel == "TRACE" or contains(toString(content), "health") or contains(toString(content), "/ready")),
     
     // SECURITY FACTOR (indicators)
     potential_pii = countIf(
@@ -603,7 +604,7 @@ fetch logs, from: now() - 7d
     ),
     
     // PARSING FACTOR
-    parsed_records = countIf(isNotNull(loglevel)),
+    parsed_records = countIf(loglevel != "NONE"),
     
     // ERROR RATE (criticality indicator)
     error_count = countIf(loglevel == "ERROR" or status == "ERROR"),
@@ -611,7 +612,6 @@ fetch logs, from: now() - 7d
     unique_hosts = countDistinct(dt.entity.host)
   }, by: {log.source}
 | filter total_records > 1000  // Only sources with meaningful volume
-| fieldsAdd droppable = debug_count + trace_count + health_checks
 | fieldsAdd drop_pct = round((toDouble(droppable) / toDouble(total_records)) * 100, decimals: 1)
 | fieldsAdd parsing_pct = round((toDouble(parsed_records) / toDouble(total_records)) * 100, decimals: 1)
 | fieldsAdd error_rate = round((toDouble(error_count) / toDouble(total_records)) * 100, decimals: 2)
@@ -702,9 +702,9 @@ Score each source with the weights and tiers in [Migration Priority Scoring Matr
 fetch logs, from: now() - 7d
 | summarize {
     total_records = count(),
-    debug_count = countIf(loglevel == "DEBUG" OR status == "DEBUG"),
+    debug_count = countIf(loglevel == "DEBUG"),
     error_count = countIf(loglevel == "ERROR" OR status == "ERROR"),
-    has_parsing = countIf(isNotNull(loglevel)),
+    has_parsing = countIf(loglevel != "NONE"),
     unique_hosts = countDistinct(dt.entity.host)
   }, by: {log.source}
 | filter total_records > 1000
@@ -783,9 +783,9 @@ fetch logs, from: now() - 7d
     total_records = count(),
     daily_avg = count() / 7,
     unique_hosts = countDistinct(dt.entity.host),
-    debug_count = countIf(loglevel == "DEBUG" OR status == "DEBUG"),
+    debug_count = countIf(loglevel == "DEBUG"),
     error_count = countIf(loglevel == "ERROR" OR status == "ERROR"),
-    parsed_count = countIf(isNotNull(loglevel))
+    parsed_count = countIf(loglevel != "NONE")
   }, by: {log.source, dt.openpipeline.source, dt.system.bucket}
 | fieldsAdd parsing_pct = round((toDouble(parsed_count) / toDouble(total_records)) * 100, decimals: 1)
 | fieldsAdd drop_opportunity_pct = round((toDouble(debug_count) / toDouble(total_records)) * 100, decimals: 1)

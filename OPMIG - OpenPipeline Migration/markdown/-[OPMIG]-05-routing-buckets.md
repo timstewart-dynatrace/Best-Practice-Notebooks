@@ -1,6 +1,6 @@
 # OPMIG-05: Dynamic Routing & Bucket Management
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 10/26/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 10/30/2026
 
 ---
 
@@ -224,7 +224,7 @@ Configure:
 |------|--------|-----------|--------|--------|
 | Critical | error_logs | 90 days | ~5% | Higher cost, critical data |
 | Standard | default_logs | 35 days | ~60% | Standard retention |
-| Development | dev_logs | 7 days | ~35% | Short retention |
+| Development | dev_logs | 7 days | — | Short retention |
 | Drop | none | 0 days | dropped | Zero cost |
 -->
 
@@ -460,9 +460,9 @@ fetch logs, from: now() - 7d
 | filter dt.system.bucket == "default_logs"
 | summarize {
     total = count(),
-    debug = countIf(loglevel == "DEBUG" OR status == "DEBUG"),
-    trace = countIf(loglevel == "TRACE" OR status == "TRACE"),
-    info = countIf(loglevel == "INFO" OR status == "INFO")
+    debug = countIf(loglevel == "DEBUG"),
+    trace = countIf(loglevel == "TRACE"),
+    info = countIf(loglevel == "INFO")
   }
 | fieldsAdd debug_pct = round((toDouble(debug) / toDouble(total)) * 100, decimals: 2)
 | fieldsAdd trace_pct = round((toDouble(trace) / toDouble(total)) * 100, decimals: 2)
@@ -582,9 +582,9 @@ Routing sends each record to **one** route — the first that matches. To run a 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Pipeline | Purpose | Output |
 |----------|---------|--------|
-| Pipeline 1: metrics-extraction | Parse response_time, extract metric | 📊 Metric: request_duration |
-| Pipeline 2: log-storage | Parse additional fields, route to bucket | 📋 Log: payment_logs |
-| **Result** | Both outputs from single log | Metric ✓ + Log ✓ |
+| Base pipeline (shared by every team) | Mask PII, set cost center | Runs with the member pipeline |
+| Member pipeline (payments team) | Parse response_time, metric extraction, bucket assignment | 📊 Metric: request_duration; 📋 Log: payment_logs (stored once) |
+| **Result** | One route per record | A single pipeline can also extract a metric and store the log; a group is for sharing processing across teams |
 -->
 
 You do **not** need two pipelines to extract a metric and store the log — one pipeline does both (Metric extraction and Bucket assignment are stages of the same pipeline). Use a group when several teams need the same baseline processing and their own additions on top.
@@ -798,7 +798,7 @@ ephemeral_healthcheck_logs
 |----------|-------------|
 | **Specific first** | Place specific routes before general ones |
 | **Test conditions** | Validate matching conditions with sample data |
-| **Avoid overlap** | Unless intentional multi-pipeline is needed |
+| **Avoid overlap** | A record matching two routes takes only the first |
 | **Document routes** | Keep a map of route → pipeline → bucket |
 | **Monitor the default route** | High default-route volume = missing routes |
 

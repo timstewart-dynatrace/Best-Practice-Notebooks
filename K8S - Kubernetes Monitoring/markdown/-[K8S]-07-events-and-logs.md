@@ -1,6 +1,6 @@
 # K8S-07: Kubernetes Events and Log Ingestion
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 7 of 14 | **Created:** January 2026 | **Last Updated:** 10/15/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 7 of 14 | **Created:** January 2026 | **Last Updated:** 10/30/2026
 
 ## Capturing and Analyzing Kubernetes Events and Logs
 Kubernetes events and container logs provide crucial insights for debugging and operational awareness. This notebook covers event monitoring, log ingestion configuration, and analysis patterns in Dynatrace.
@@ -438,7 +438,7 @@ fetch logs, from:-1h
 ```dql
 // Log level distribution by namespace
 fetch logs, from: now() - 1h
-| filter isNotNull(k8s.namespace.name) and isNotNull(loglevel)
+| filter isNotNull(k8s.namespace.name) and loglevel != "NONE"
 | summarize count = count(), by:{k8s.namespace.name, loglevel}
 | sort count desc
 | limit 30

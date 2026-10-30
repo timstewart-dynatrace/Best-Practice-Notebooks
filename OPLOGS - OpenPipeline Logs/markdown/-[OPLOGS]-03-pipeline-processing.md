@@ -1,6 +1,6 @@
 # OPLOGS-03: OpenPipeline Processing
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 10/14/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 10/30/2026
 
 ## Configuring Pipeline Stages for Log Transformation
 This notebook covers OpenPipeline processing stages: parsing, enrichment, metric extraction, event generation, bucket routing, and filtering.
@@ -134,8 +134,7 @@ fetch logs, from: now() - 1h
 // Verify fields already extracted by OpenPipeline
 fetch logs, from: now() - 1h
 | summarize {
-    has_loglevel = countIf(isNotNull(loglevel)),
-    has_status = countIf(isNotNull(status)),
+    has_loglevel = countIf(loglevel != "NONE"),
     has_trace_id = countIf(isNotNull(trace_id)),
     has_span_id = countIf(isNotNull(span_id))
   }
