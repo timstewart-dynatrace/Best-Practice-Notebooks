@@ -1,6 +1,6 @@
 # NRLC-04: Alert & Workflow Migration
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 4 of 9 | **Created:** April 2026 | **Last Updated:** 10/23/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 4 of 9 | **Created:** April 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -182,7 +182,7 @@ NR NRQL Condition
 
 | NR | DT |
 |----|----|
-| `thresholdType: STATIC` + `operator: ABOVE` | `monitoringStrategy: STATIC_THRESHOLD` + `alertCondition: ABOVE` |
+| `thresholdType: STATIC` + `operator: ABOVE` | `analyzer.input`: `threshold` + `alertCondition: ABOVE` |
 | `thresholdType: BASELINE` | DT auto-adaptive baseline (recommended; configures Dynatrace Intelligence) |
 | `terms.priority: CRITICAL` | The detector's threshold, with event template `event.type: CUSTOM_ALERT` — the engine emits `CUSTOM_ALERT` for every migrated detector (`alert_transformer.py`, `main` branch, read 10/14/2026) |
 | `terms.priority: WARNING` | Used for the threshold **only when the condition has no CRITICAL term**; otherwise the warning term is not migrated. If the NR warning paged someone, add a second detector for it by hand with `CUSTOM_ALERT` and route it in the workflow. Do not give it an info event type to mark it as "lower severity": *"An info event never opens a problem on its own"*, so no problem-triggered workflow ever sees it |
@@ -191,9 +191,11 @@ NR NRQL Condition
 
 | NR | DT |
 |----|----|
-| `5 minutes` | `samples: 5, violatingSamples: 5` (1-min granularity) |
-| `at least once in 5 minutes` | `samples: 5, violatingSamples: 1` |
-| `for at least 5 minutes` | `samples: 5, violatingSamples: 5` |
+| `5 minutes` | `slidingWindow: 5, violatingSamples: 5` (1-min granularity) |
+| `at least once in 5 minutes` | `slidingWindow: 5, violatingSamples: 1` |
+| `for at least 5 minutes` | `slidingWindow: 5, violatingSamples: 5` |
+
+> <sub>**Sources:** [builtin:davis.anomaly-detectors schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-davis-anomaly-detectors).</sub>
 
 **Confidence consideration:** the NRQL must compile to HIGH-confidence DQL. MEDIUM/LOW translations should be hand-validated before becoming production alerts.
 
@@ -257,9 +259,9 @@ In Gen3, notifications are not standalone objects — they are **tasks inside a 
 
 **Critical:** every task that uses a secret (token, webhook URL, API key) **must have its secret rotated and re-entered** — in the app's connection for Slack, PagerDuty, ServiceNow and Microsoft Teams, or in the task config / Dynatrace credentials vault for *HTTP Request* tasks. The transformer can't migrate secrets — it emits placeholder values that must be filled in before the Workflow is enabled.
 
-**Workflow task ordering:** tasks within a Workflow run in declared order by default (or in parallel if explicitly configured). Migration places critical tasks (PagerDuty) first so they fire even if a later task (e.g., a downstream automation script) fails.
+**Workflow task ordering:** *"The tasks run as a directed acyclic graph (DAG)."* Order comes from the transitions between tasks, not the order they are declared or placed: *"Rearranging the tasks alone doesn't change the logical flow."* A task runs when its predecessors finish in the state its task condition requires (the *"default condition configuration (success and skipped)"*). Make the critical task the predecessor, and set the condition on any task that must also run after a failure.
 
-> <sub>**Sources:** [Upgrade from Classic problem notification to simple workflows (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — classic integration → workflow connector mapping, incl. Opsgenie and xMatters, [Slack Connector setup (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-setup) — *"Your Dynatrace Slack Connector requires an OAuth token to authorize sending messages to Slack."*, [PagerDuty Connector setup (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-setup), [Dynatrace workflow samples — AGENTS.md (Dynatrace GitHub)](https://github.com/Dynatrace/Dynatrace-workflow-samples/blob/main/AGENTS.md) — action identifiers `dynatrace.email:send-email`, `dynatrace.slack:slack-send-message`, `dynatrace.automations:http-function`.</sub>
+> <sub>**Sources:** [Upgrade from Classic problem notification to simple workflows (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — classic integration → workflow connector mapping, incl. Opsgenie and xMatters, [Slack Connector setup (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-setup) — *"Your Dynatrace Slack Connector requires an OAuth token to authorize sending messages to Slack."*, [PagerDuty Connector setup (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-setup), [Dynatrace workflow samples — AGENTS.md (Dynatrace GitHub)](https://github.com/Dynatrace/Dynatrace-workflow-samples/blob/main/AGENTS.md) — action identifiers `dynatrace.email:send-email`, `dynatrace.slack:slack-send-message`, `dynatrace.automations:http-function`, [Build workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build).</sub>
 
 <a id="dual-alert"></a>
 ## 7. Dual-Alert Window Pattern
@@ -305,7 +307,7 @@ Count distinct problems, not records. `fetch events | filter event.kind == "DAVI
 
 > <sub>**Sources:** [Settings API schemas (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas), [builtin:maintenance-windows schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-maintenance-windows), [builtin:alerting.maintenance-window schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-alerting-maintenance-window), [Upgrade from Classic maintenance windows (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/upgrade-from-classic-maintenance-windows), [SaaS 1.348 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348).</sub>
 
-Mute rules that filter on metric values (e.g., "mute when load < 10") translate — the transformer converts them to `builtin:davis.anomaly-detectors` with an embedded filter expression rather than a separate maintenance window, because DT maintenance windows scope by entity not by signal value.
+For a NRQL-based mute rule, including one that filters on metric values (e.g., "mute when load < 10"), the transformer emits a maintenance-window envelope, a workflow filter holding only a comment (`/* migrated mute rule — verify: <nrql> */`) and a warning. The tool's coverage matrix calls this a *"LOW-confidence DQL-comment translation"*. Rewrite the condition by hand in the Problem trigger.
 
 ## Summary
 

@@ -1,6 +1,6 @@
 # NRLC-07: Logs, Tags & Drop Rules
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 7 of 9 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 7 of 9 | **Created:** April 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -86,7 +86,7 @@ Tested with `data record(content = "…") | parse content, "…"` on `10.0.0.1 -
 ### Tag rule (NR entity tag → OpenPipeline enrichment)
 ```yaml
 # OpenPipeline enrichment that adds environment attribute to ingested logs
-matcher: contains(k8s.namespace.name, "prod")
+matcher: matchesValue(k8s.namespace.name, "*prod*")
 field: environment
 value: prod
 ```
@@ -185,12 +185,12 @@ NR has account-wide tags applied to entities. DT has both **entity tags** (appli
 
 ```yaml
 # OpenPipeline enrichment example
-matcher: contains(k8s.namespace.name, "prod")
+matcher: matchesValue(k8s.namespace.name, "*prod*")
 field: environment
 value: prod
 ```
 
-The `TagTransformer` emits one OpenPipeline enrichment rule per unique NR tag pattern. (Gen2 auto-tagging is also supported for hybrid tenants but is not the recommended Gen3 approach.)
+The `TagTransformer` emits one OpenPipeline enrichment rule per unique NR tag pattern. Its matchers use `contains(entity.name, "...")`, which matching conditions reject (§ Embedded Translation Context), so rewrite them with `matchesValue`. (Gen2 auto-tagging is also supported for hybrid tenants but is not the recommended Gen3 approach.)
 
 <a id="cost"></a>
 ## 5. Cost Optimization Patterns

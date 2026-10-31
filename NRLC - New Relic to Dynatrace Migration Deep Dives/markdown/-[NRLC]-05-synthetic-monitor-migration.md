@@ -1,12 +1,12 @@
 # NRLC-05: Synthetic Monitor Migration
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 5 of 9 | **Created:** April 2026 | **Last Updated:** 10/19/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 5 of 9 | **Created:** April 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
-New Relic offers four synthetic monitor types plus two specialized types: Ping, Simple Browser, API (multi-step), Step (Scripted Browser), Certificate Check, and Broken Links. Dynatrace offers HTTP, Browser, and Multi-step HTTP monitors. This deep dive maps the NR types to their DT equivalents, covers the location mapping (NR public/private → DT public/private), and flags the scripted-browser caveat that drives most of the manual migration effort.
+New Relic has seven synthetic monitor types: Ping, Simple Browser, Step, Scripted Browser, Scripted API, Certificate Check, and Broken Links. Dynatrace offers HTTP, Browser, and Multi-step HTTP monitors. This deep dive maps the NR types to their DT equivalents, covers locations (the transformer does not map them), and flags the scripted-browser caveat that drives most of the manual migration effort.
 
-**Phase 24 specialized synthetics (post-2026-04-15):** `synthetic_specialized_transformer` now auto-converts **Certificate Check** monitors → DT HTTP Monitor with a certificate-expiry validation rule (the documented rule type is `certificateExpiryDateConstraint`; see §1 — the transformer emits `certificateExpiryDate`), and **Broken Links** monitors → DT Multi-step HTTP Monitor (capped at 50 links). Ping + Simple Browser + API continue to auto-convert via `synthetic_transformer` (Phase 11). Scripted Browser remains manual.
+**Phase 24 specialized synthetics (post-2026-04-15):** `synthetic_specialized_transformer` now auto-converts **Certificate Check** monitors → DT HTTP Monitor with a certificate-expiry validation rule (the documented rule type is `certificateExpiryDateConstraint`; see §1 — the transformer emits `certificateExpiryDate`), and **Broken Links** monitors → DT Multi-step HTTP Monitor (capped at 50 links). Ping + Simple Browser continue to auto-convert via `synthetic_transformer` (Phase 11). Scripted API and Scripted Browser remain manual: the transformer emits a shell and a warning.
 
 ---
 
@@ -16,7 +16,7 @@ New Relic offers four synthetic monitor types plus two specialized types: Ping, 
 2. [Ping → HTTP Monitor](#ping)
 3. [Simple Browser → Browser Monitor](#browser)
 4. [API (Multi-step) → Multi-step HTTP Monitor](#api)
-5. [Step (Scripted Browser) → Browser Monitor](#step)
+5. [Scripted Browser → Browser Monitor](#step)
 6. [Location Mapping](#locations)
 7. [Authentication & Secrets](#auth)
 8. [Validation Pattern](#validation)
@@ -41,14 +41,14 @@ Synthetic monitors don't contain NRQL queries, so there's no translation context
 ### Public location lookup (run at migration time)
 
 ```bash
-# Cache DT public location IDs into the transformer's lookup table.
+# List the DT location IDs to remap monitors to.
 # Classic Environment API v2 endpoint: access token (dt0c01.*) with
 # the syntheticLocations.read scope, sent as Api-Token — not a platform token.
 curl -H "Authorization: Api-Token $DT_API_TOKEN" \
   https://<tenant>.live.dynatrace.com/api/v2/synthetic/locations
 ```
 
-Public location IDs are tenant-specific; the transformer queries on first run and caches.
+The transformer assigns every monitor one default public location (`GEOLOCATION-9999453BE4BDB3CD`) and does not query this list. Use it to remap `locations[]` by hand (§6).
 
 > **Platform alternative (early adopter):** `GET https://<tenant>.apps.dynatrace.com/platform/synthetic/v1/locations?type=PUBLIC` with a platform token holding `synthetic:locations:read` — Dynatrace recommends migrating to it, and documents all of its endpoints as Early Adopter — they *"can change in non-compatible ways"*. The classic call keeps working.
 >
@@ -76,12 +76,13 @@ The transformer captures the *shape* of the auth (which header, which step) but 
 |---------|---------|-------------|---------------|
 | Ping | HTTP Monitor | `synthetic_transformer` (Phase 11) | None |
 | Simple Browser | Browser Monitor | `synthetic_transformer` (Phase 11) | None |
-| API (Multi-step) | Multi-step HTTP Monitor | `synthetic_transformer` (Phase 11) | Low — verify chained variable extraction |
+| Scripted API | Multi-step HTTP Monitor | `synthetic_transformer` (Phase 11): shell + warning | **High — rebuild the script logic by hand (§4)** |
 | **Certificate Check** | HTTP Monitor w/ `certificateExpiryDateConstraint` rule | `synthetic_specialized_transformer` (Phase 24) | Rename the rule type: the transformer emits `certificateExpiryDate` (`main` branch, read 10/14/2026), which is not one of the documented values (`patternConstraint`, `regexConstraint`, `httpStatusesList`, `certificateExpiryDateConstraint`) — [http_monitor resource (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/http_monitor.md) |
 | **Broken Links** | Multi-step HTTP Monitor (50-link cap) | `synthetic_specialized_transformer` (Phase 24) | Low — verify link list discovery |
-| Step (Scripted Browser) | Browser Monitor (clickpath) | Stub + manual | **High — 30–60 min per script** |
+| Scripted Browser | Browser Monitor (clickpath) | Stub + manual | **High — 30–60 min per script** |
+| Step | No branch in the transformer (`STEP_MONITOR`): it falls through to the HTTP monitor default | None | Review each one: the output is an HTTP monitor, not a browser monitor |
 
-The first five auto-convert. For Scripted Browser monitors, the engine emits a stub with a TODO and the original NR script attached as a tag for reference.
+Ping, Simple Browser, Certificate Check and Broken Links auto-convert. For Scripted Browser monitors, the engine emits a navigate event plus a JavaScript TODO event, with a warning; the original NR script is not attached.
 
 <a id="ping"></a>
 ## 2. Ping → HTTP Monitor
@@ -91,11 +92,11 @@ The first five auto-convert. For Scripted Browser monitors, the engine emits a s
 | `name` | `name` |
 | `uri` | `requests[0].url` |
 | `period` (1, 5, 10, 15, 30, 60 min) | `frequencyMin` |
-| `locations[]` | `locations[]` (mapped per §6) |
+| `locations[]` | `locations[]` (one default location; remap by hand, §6) |
 | `verifyName`, `verifySSL` | `requests[0].validation.rules` |
 | `bypassHEADRequest` | `requests[0].requestBody`/method config |
 
-**Output:** a single-request HTTP monitor that runs from the mapped DT locations on the mapped frequency.
+**Output:** a single-request HTTP monitor that runs from the locations you set on the mapped frequency.
 
 <a id="browser"></a>
 ## 3. Simple Browser → Browser Monitor
@@ -115,22 +116,16 @@ Migration is structural; the metrics are roughly equivalent but not bit-identica
 
 NR API monitors are JS scripts with multiple `$http.get/post/...` calls and chained variable extraction. DT Multi-step HTTP monitors use a declarative request chain.
 
-Conversion approach:
+**The transformer does not convert the script.** It emits an HTTP monitor shell and a warning: *"The script logic needs manual recreation in Dynatrace."* The steps below are yours:
 
-1. Parse the NR JS script statement-by-statement
-2. Extract each `$http.*` call into a DT request step
-3. Map response body extraction (`$http.response.body.json.field`) to DT's body extractor with JSONPath
-4. Convert chained variables (e.g., `var token = response.body.token; ...next request uses token`) to DT request variables
-5. Flag any non-trivial JS logic (loops, conditionals, custom helpers) for manual review
+1. Read the NR JS script statement by statement
+2. Rebuild each `$http.*` call as a DT request step
+3. Rebuild response parsing and chained variables (e.g., `var token = response.body.token; ...next request uses token`) with pre- and post-execution scripts, which allow *"parsing the response, modifying the request URL, or skipping requests under certain conditions"*
 
-**Confidence:**
-
-- HIGH for linear request chains with simple variable extraction
-- MEDIUM for chains with conditional logic
-- LOW for scripts with loops or external helper modules
+> <sub>**Sources:** [Create and configure an HTTP monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor).</sub>
 
 <a id="step"></a>
-## 5. Step (Scripted Browser) → Browser Monitor
+## 5. Scripted Browser → Browser Monitor
 
 **This is the migration's biggest manual cost.**
 
@@ -144,30 +139,20 @@ $browser.get('https://example.com/login')
   .then(() => $browser.waitForAndFindElement($driver.By.id('dashboard'), 5000));
 ```
 
-DT Browser Monitors use a **clickpath** model: a sequence of typed actions (navigate, click, type, validate). Custom JS hooks exist (`pre/postRequestExecutionScript`) but the model is fundamentally different.
+DT Browser Monitors use a **clickpath** model: a sequence of typed actions (navigate, click, type, validate).
 
 **Migration approach:**
 
-1. Auto-emit a stub DT Browser Monitor with the target URL
-2. Attach the original NR script as a tag/note
-3. Engineer rebuilds the user journey using DT's clickpath recorder or DSL
-4. Validation: confirm the new clickpath catches the same regressions during a 1-week dual-run
+1. The transformer emits a stub DT Browser Monitor with the target URL; it does not attach the original NR script
+2. Engineer rebuilds the user journey using DT's clickpath recorder or DSL
+3. Validation: confirm the new clickpath catches the same regressions during a 1-week dual-run
 
 **Effort estimate:** ~30–60 min per scripted browser monitor, depending on complexity.
 
 <a id="locations"></a>
 ## 6. Location Mapping
 
-The transformer maintains a lookup table from NR location codes to DT location IDs:
-
-| NR Public Location | DT Public Location | Notes |
-|-------------------|-------------------|-------|
-| `AWS_US_EAST_1` | `GEOLOCATION-9999000000000001` (lookup) | DT IDs are tenant-specific |
-| `AWS_EU_WEST_1` | `GEOLOCATION-...` | |
-| `AWS_AP_SOUTHEAST_2` | `GEOLOCATION-...` | |
-| ... | ... | |
-
-Public location IDs are queried via `GET /api/v2/synthetic/locations` at migration time — they're not portable across tenants. The transformer queries the DT tenant on first run and caches the mapping.
+The transformer does not map NR locations. It assigns every monitor one default public location (`GEOLOCATION-9999453BE4BDB3CD`). Remap `locations[]` by hand from `GET /api/v2/synthetic/locations`.
 
 **Private locations:**
 
@@ -175,7 +160,7 @@ Public location IDs are queried via `GET /api/v2/synthetic/locations` at migrati
 |--------------------|--------------------|
 | Minion installation in your VPC | ActiveGate with synthetic capability |
 
-Private locations require DT ActiveGate setup (see Dynatrace docs). The transformer maps NR private location names to DT private location names by string match; mismatches require manual lookup.
+Private locations require DT ActiveGate setup (see Dynatrace docs). Private locations are not mapped either: assign them by hand.
 
 <a id="auth"></a>
 ## 7. Authentication & Secrets
@@ -198,13 +183,13 @@ After migration, validate synthetics with this pattern:
 
 1. **Run-level:** confirm the new DT monitor executes successfully on its first scheduled run
 2. **Frequency match:** verify DT runs at the same cadence as NR (no gaps, no double-runs)
-3. **Location coverage:** confirm all mapped locations are reporting
+3. **Location coverage:** confirm all remapped locations are reporting
 4. **Failure detection:** intentionally break the target (in a non-prod env) and confirm DT detects the failure within the same window NR would have
 5. **SLA continuity:** during dual-run, confirm DT's availability % matches NR's within ±0.5%
 
 ## Summary
 
-Synthetic migration is mostly mechanical for Ping, Simple Browser, and API monitors. Scripted Browser monitors are the long pole — budget 30–60 min per script. Plan for credential re-entry as a coordinated event, not as part of the auto-import.
+Synthetic migration is mostly mechanical for Ping and Simple Browser monitors. Scripted API monitors are rebuilt by hand, and Scripted Browser monitors are the long pole — budget 30–60 min per script. Locations are remapped by hand for every monitor. Plan for credential re-entry as a coordinated event, not as part of the auto-import.
 
 Continue to **NRLC-06 SLO & Workload Migration** for service-level migration.
 
@@ -215,7 +200,7 @@ Continue to **NRLC-06 SLO & Workload Migration** for service-level migration.
 # 1. Inventory NR synthetic monitors (Ping, Browser, API, Step)
 python3 migrate.py migrate --export-only --components synthetics --output ./synthetics-run
 
-# 2. Transform (auto-converts Ping/Browser/API; stubs Step monitors) and write a report — nothing is imported
+# 2. Transform (auto-converts Ping/Simple Browser; emits shells for scripted monitors; Step monitors become HTTP monitors) and write a report — nothing is imported
 python3 migrate.py migrate --dry-run --report --components synthetics --output ./synthetics-run
 
 # 3. Import (export → transform → import); writes ./synthetics-run/rollback-manifest.json

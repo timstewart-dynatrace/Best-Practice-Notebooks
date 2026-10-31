@@ -1,6 +1,6 @@
 # NRLC-08: Validation, Diff & Rollback
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 8 of 9 | **Created:** April 2026 | **Last Updated:** 10/19/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 8 of 9 | **Created:** April 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -35,8 +35,8 @@ Every migrated artifact passes through three tiers of validation:
 
 | Tier | What It Checks | Tool | Speed | Catches |
 |------|---------------|------|-------|---------|
-| **Tier 1: Syntax** | DQL parses; no malformed JSON | `DQLSyntaxValidator` | Fast | Compiler bugs, malformed translations |
-| **Tier 2: Tenant** | Referenced metrics, entities, buckets, enrichment attributes exist | `DTEnvironmentRegistry` | Medium | Environment-specific drift, missing prerequisites |
+| **Tier 1: Syntax** | Offline pattern checks on the DQL | `DQLSyntaxValidator` | Fast | Unbalanced parentheses or braces, a wrong first command, known bad patterns |
+| **Tier 2: Tenant** | Referenced metrics and entities exist; buckets and enrichment attributes checked by hand | `DTEnvironmentRegistry` | Medium | Environment-specific drift, missing prerequisites |
 | **Tier 3: Behavioral** | Same data shape and magnitudes as NR | Dual-run + DQL diff | Slow (days) | Semantic translation errors |
 
 All three tiers must pass before an artifact is production-ready. Skipping Tier 3 is the most common mistake — syntactically valid DQL can still produce wrong numbers.
@@ -47,8 +47,8 @@ All three tiers must pass before an artifact is production-ready. Skipping Tier 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Tier | What it checks | Speed |
 |------|---------------|-------|
-| 1. Syntax | DQL parses (DQLSyntaxValidator) | ms |
-| 2. Tenant | Referenced metrics/entities/MZs exist (DTEnvRegistry) | seconds |
+| 1. Syntax | Offline pattern checks (DQLSyntaxValidator) | ms |
+| 2. Tenant | Referenced metrics/entities exist (DTEnvRegistry) | seconds |
 | 3. Behavioral | Same data shape/values as NR (dual-run diff) | days |
 
 Tolerance: dashboards ±5%, alerts ±10%, SLOs ±0.5%, synthetics ±0.5%
@@ -58,20 +58,15 @@ For environments where SVG doesn't render
 <a id="syntax"></a>
 ## 2. DQL Syntax Validation
 
-The `DQLSyntaxValidator` posts each DQL query to the Grail language service's validation endpoint without executing it:
+The `DQLSyntaxValidator` runs offline pattern checks: balanced parentheses and braces, a valid first command, known invalid patterns and anti-patterns. It makes no network call, so it cannot catch an unknown function or a field that does not exist.
+
+With a tenant, `DTEnvironmentRegistry.validate_dql_syntax` submits the query for execution:
 
 ```
-POST /platform/storage/query/v1/query:verify
-body: { query: "<DQL>" }
+POST /platform/storage/query/v1/query:execute
 ```
 
-This is the dedicated Grail language-service endpoint for DQL syntax validation (sibling endpoints `/query:parse` and `/query:autocomplete` cover parsing and autocomplete) — it is not a Settings 2.0 object write, since posting a DQL string embedded in a Settings object would validate the object's schema, not the query itself. DT responds with parser errors if the DQL is invalid. Common issues caught:
-
-- Unknown DQL functions
-- Misuse of named parameters (e.g., `round(value, 2)` instead of `round(value, decimals: 2)`)
-- Array-vs-scalar type errors on `timeseries` results
-- Reserved keyword as field name (must be backtick-quoted)
-- Missing time range on `fetch` (warning, not error)
+That catches parser errors, but not an unknown field: on the validation tenant, a filter on a nonexistent field returned 0 rows with an empty `notifications` array (10/31/2026). Tier 3 is what finds it.
 
 ### Auto-Fix Loop
 
@@ -95,17 +90,21 @@ The `DTEnvironmentRegistry` lazy-loads tenant inventory:
 | Metric keys (`dt.host.cpu.usage`, etc.) | `GET /api/v2/metrics` — on a latest-Dynatrace tenant, prefer the DQL `metrics` command | Metric exists; displayName, unit |
 | Entity types and IDs | `GET /api/v2/entities` — on a latest-Dynatrace tenant, prefer `smartscapeNodes` (FAQ entry 16) | Entity present; resolves names ↔ IDs |
 | Existing dashboards | `GET /platform/document/v1/documents` | Avoids duplicate creation |
-| OpenPipeline enrichment rules | `GET /api/v2/settings/objects?schemaIds=builtin:openpipeline.logs.pipelines` (and `.routing`, `.ingest-sources` per scope) | Enrichment rule exists; produces expected attribute values on ingested data |
-| Buckets | `GET /platform/storage/management/v1/bucket-definitions` | Bucket exists with expected retention; routing rule targets it correctly |
-| Synthetic locations | `GET /api/v2/synthetic/locations` (platform alternative, early adopter: `GET /platform/synthetic/v1/locations`, `synthetic:locations:read`) | NR location → DT location lookup |
-| Notifications | `GET /api/v2/settings/objects?schemaIds=builtin:problem.notifications` — the **schema** is blocked at upgrade (the `objects` endpoint is not); workflow-based notifications replace it | No duplicate notification objects |
+| Synthetic locations | `GET /api/v2/synthetic/locations` (platform alternative, early adopter: `GET /platform/synthetic/v1/locations`, `synthetic:locations:read`) | Location exists. The synthetic transformer does not use this lookup (NRLC-05 §6) |
+
+The registry does not cover these, so check them by hand:
+
+| Check | API |
+|-------|-----|
+| OpenPipeline enrichment rules | `GET /api/v2/settings/objects?schemaIds=builtin:openpipeline.logs.pipelines` (and `.routing`, `.ingest-sources` per scope) |
+| Buckets and their retention | `GET /platform/storage/management/v1/bucket-definitions` |
+| Notifications | `GET /api/v2/settings/objects?schemaIds=builtin:problem.notifications` — the **schema** is blocked at upgrade (the `objects` endpoint is not); workflow-based notifications replace it |
 
 > **Note — OpenPipeline API deprecation:** The direct `GET/PUT /platform/openpipeline/v1/configurations` endpoints were deprecated in SaaS 1.327 and reached end of life on **June 29, 2026**. Read and manage OpenPipeline configuration through Settings 2.0 with the `builtin:openpipeline.<scope>.routing`, `builtin:openpipeline.<scope>.pipelines`, and `builtin:openpipeline.<scope>.ingest-sources` schemas. See the official [API deprecation guide](https://docs.dynatrace.com/docs/dynatrace-api/basics/deprecation-migration-guides).
 
 Common failures caught here:
 
 - Migrated alert references `dt.host.cpu.usage` but tenant only ingests `dt.host.cpu.user` (and OOTB metric naming changed in DT version)
-- DQL attribute filter references an attribute value not produced by any OpenPipeline enrichment (rule not yet applied or typo)
 - Entity name lookup returns multiple matches — ambiguous selector
 - Synthetic location `AWS_US_EAST_1` not enabled in target tenant
 
@@ -207,22 +206,20 @@ The rollback:
 <a id="reports"></a>
 ## 7. Conversion Quality Reports
 
-After each migration phase, generate a quality report:
+Generate a quality report without importing anything. Without `--dry-run`, this command runs a full import. It writes `./output/reports/conversion-report.html` and `.json`:
 
 ```bash
-python3 migrate.py migrate --report --output report.html
+python3 migrate.py migrate --dry-run --report --output ./output
 ```
 
 Report sections:
 
 | Section | Content |
 |---------|---------|
-| **Summary** | Counts: total / migrated / skipped / failed |
-| **By component** | Per-type breakdown: dashboards N/M, alerts N/M, etc. |
-| **NRQL conversion** | HIGH / MEDIUM / LOW counts; LOW queries listed |
-| **Failed translations** | Each failure with reason and source query |
-| **Manual review queue** | APM conditions, scripted browsers, LOW-confidence DQL |
-| **Rollback eligibility** | Time-bounded list of recently-migrated entities |
+| **Summary** | Counts for the run |
+| **Query Details** | Queries named in migration warnings about NRQL or confidence |
+
+The report has no manual review queue and no rollback list.
 
 Reports are the migration's audit trail — attach them to your change-management ticket for each phase.
 

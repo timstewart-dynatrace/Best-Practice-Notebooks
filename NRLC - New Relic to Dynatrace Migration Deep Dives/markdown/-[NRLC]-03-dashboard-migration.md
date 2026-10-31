@@ -1,6 +1,6 @@
 # NRLC-03: Dashboard Migration
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 3 of 9 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 3 of 9 | **Created:** April 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -13,7 +13,7 @@ Dashboards are the highest-volume migration artifact and the most user-visible. 
 ## Table of Contents
 
 1. [NR Dashboard Model](#nr-model)
-2. [DT Dashboard Model (Documents v2)](#dt-model)
+2. [DT Dashboard Model (Document API)](#dt-model)
 3. [DashboardTransformer Behavior](#transformer)
 4. [Widget-Level Translation](#widgets)
 5. [Multi-Page Dashboards](#multi-page)
@@ -132,9 +132,9 @@ Key fields exposed via NerdGraph (`DashboardEntity`):
 - `widgets[].visualization.id` — identifies widget type
 
 <a id="dt-model"></a>
-## 2. DT Dashboard Model (Documents v2)
+## 2. DT Dashboard Model (Document API)
 
-Dynatrace Gen3 dashboards are stored as **Documents** in the Documents v2 API. Each dashboard is a single-page JSON document:
+Dynatrace Gen3 dashboards are stored as **Documents** in the Document API (`/platform/document/v1`). Each dashboard is a single-page JSON document:
 
 ```json
 {
@@ -188,7 +188,6 @@ NR Dashboard JSON
 
 **Output:** N documents per source dashboard (where N = number of NR pages). Each document has:
 - A name like `<dashboard-name> — <page-name>` (avoids name collisions)
-- Tags: `migrated-from-nr`, `nr-dashboard-guid:<guid>`, `nr-page:<page-name>`
 - A migration-metadata tile (optional) with the source GUID for traceability
 
 <a id="widgets"></a>
@@ -221,12 +220,12 @@ Visualization-specific settings (axis labels, color overrides, sort order) are c
 | NR | DT | Notes |
 |----|----|-------|
 | Dashboard (multi-page) | Document × N | one per page |
-| Alert Policy + Condition | Workflow + Metric Event (Gen3) | decoupled |
+| Alert Policy + Condition | Workflow + anomaly detector (Gen3) | decoupled |
 | APM Condition | Dynatrace Intelligence Adaptive Baseline | manual review |
 | Synthetic (4 types) | HTTP/Browser/Multi-step (3 types) | scripted browser is manual |
-| SLO | SLO v2 | metric expression must match |
+| SLO | SLO (SLO app) | metric expression must match |
 | Workload | OpenPipeline enrichment + IAM policy condition on enriched attribute | rules-based |
-| Drop Rule | OpenPipeline filter | NRQL → DPL |
+| Drop Rule | OpenPipeline Drop record processor | NRQL → DQL matching condition |
 For environments where SVG doesn't render
 -->
 
@@ -237,14 +236,7 @@ NR's multi-page dashboards become **N separate DT documents**. There's no native
 
 **Naming pattern (default):** `<dashboard-name> — <page-name>`
 
-**Tag pattern (for grouping):**
-```
-migrated-from-nr
-nr-dashboard-guid:<original-guid>
-nr-page-index:<0,1,2,...>
-```
-
-Users can create a Dynatrace **launchpad** that lists all related documents with the `nr-dashboard-guid:<x>` tag, restoring the multi-page navigation pattern.
+The transformer does not tag the documents it creates with the source dashboard.
 
 ### Cross-page links
 
@@ -293,7 +285,7 @@ After migration, validate dashboards with a three-tier check:
 | Tier | Method | What It Catches |
 |------|--------|-----------------|
 | **Tier 1: Schema** | DT API rejects malformed documents, **plus** opening each imported dashboard in the Dashboards app | Invalid JSON, missing required fields, tiles the API stored but the app cannot render |
-| **Tier 2: Query validity** | `DQLSyntaxValidator` posts each tile's DQL | Bad DQL syntax, references to nonexistent fields |
+| **Tier 2: Query validity** | `DQLSyntaxValidator` offline checks, then each tile's DQL run against the tenant | Bad DQL syntax. An unknown field is not caught: it runs and returns nothing, with no notification |
 | **Tier 3: Visual diff** | Open NR dashboard side-by-side with DT document | Layout drift, missing data, color/axis mismatches |
 
 **Tier 1 needs both checks, not just the API response.** A document the API *accepts* can still fail dashboard validation at render time — API acceptance means the document was stored, not that it draws. For a bulk transformer run that distinction is the whole game: a systematic defect in the transformer produces the same malformed tile in every dashboard it touches, and if the only gate is the HTTP status code, N dashboards ship unusable with N successful `2xx` responses in the log. **Sample-open imported dashboards even when every call returned 2xx** — the failure mode is silent by construction.
@@ -341,13 +333,13 @@ python3 migrate.py migrate --rollback ./dashboards-run/rollback-manifest.json
 **Single-query translation** for an ad-hoc widget:
 
 ```bash
-nrql-translator query "SELECT count(*) FROM Transaction FACET host"
+npm run cli -- query "SELECT count(*) FROM Transaction FACET host"
 ```
 
 **Batch Excel translation** (for very large dashboard portfolios):
 
 ```bash
-nrql-translator excel --in dashboards-queries.xlsx --out dashboards-dql.xlsx
+npm run cli -- excel dashboards-queries.xlsx --output dashboards-dql.xlsx
 ```
 
 ---

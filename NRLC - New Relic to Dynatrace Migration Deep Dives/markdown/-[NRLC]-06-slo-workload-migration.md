@@ -1,12 +1,12 @@
 # NRLC-06: SLO & Workload Migration
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 6 of 9 | **Created:** April 2026 | **Last Updated:** 10/14/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 6 of 9 | **Created:** April 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
 SLOs are the service contracts that survive migration only if their math survives. Workloads are the groupings that determine what an SLO targets. This deep dive covers SLO metric expression migration, what the `audit-slos` command does and does not check (it validates the Dynatrace side only; the NR-vs-DT math comparison is manual), and the conversion of NR workloads to Gen3 OpenPipeline enrichments + IAM-scoped buckets.
 
-**Phase 23 key transactions:** `key_transaction_transformer` auto-emits a bundle for each NR Key Transaction — Platform SLO (SLO Service Public API, `/platform/slo/v1/slos`) + OpenPipeline enrichment attribute (`keyTransaction.name`) + Workflow with `migratedFrom` tag. Phase 11 `slo_transformer` handles SLO v1 / v2 and emits Platform SLO API bodies — `dynatrace_platform_slo` in the Terraform export, Monaco `slo-v2` in the Monaco export; the classic `builtin:monitoring.slo` schema is no longer emitted (`main` branch, read 10/14/2026); Phase 11 `workload_transformer` emits an OpenPipeline enrichment rule + Grail Filter Segment (`dynatrace_segment`; not a `builtin:*` Settings schema) + bucket-scoped IAM policy (Gen3 default) with `LegacyWorkloadTransformer` preserving Management Zone under `--legacy`.
+**Phase 23 key transactions:** `key_transaction_transformer` auto-emits a bundle for each NR Key Transaction — Platform SLO (SLO Service Public API, `/platform/slo/v1/slos`) + OpenPipeline enrichment attribute (`keyTransaction.name`) + Workflow with `migratedFrom` tag. Phase 11 `slo_transformer` handles SLO v1 / v2 and emits Platform SLO API bodies — `dynatrace_platform_slo` in the Terraform export, Monaco `slo-v2` in the Monaco export; the classic `builtin:monitoring.slo` schema is no longer emitted (`main` branch, read 10/14/2026); Phase 11 `workload_transformer` emits a Grail Filter Segment (`dynatrace_segment`; not a `builtin:*` Settings schema) + an IAM policy skeleton (Gen3 default) with `LegacyWorkloadTransformer` preserving Management Zone under `--legacy`.
 
 ---
 
@@ -43,11 +43,9 @@ SELECT percentage(count(*), WHERE error IS FALSE) FROM Transaction
 ```
 
 ```dql
-// DQL (SLI): share of requests that did not fail, per service
-timeseries {total = sum(dt.service.request.count), failed = sum(dt.service.request.failure_count)}, from:-1h, by:{dt.smartscape.service}
-| fieldsAdd sli = 100 * (1 - arraySum(failed) / arraySum(total))
-| fieldsAdd service = getNodeName(dt.smartscape.service)
-| fields service, sli
+// DQL (SLI): share of requests that did not fail, per service, as an array of doubles
+timeseries {total = sum(dt.service.request.count), failures = sum(dt.service.request.failure_count, default:0)}, by:{dt.smartscape.service}
+| fieldsAdd sli = (((total[] - failures[]) / total[]) * 100)
 // target: 99.9
 ```
 
@@ -61,9 +59,10 @@ SELECT percentage(count(*), WHERE duration < 0.5) FROM Transaction
 ```
 
 ```dql
-fetch spans, from:-1h
+fetch spans
 | filter isNotNull(endpoint.name)
-| summarize sli = 100.0 * countIf(duration < 500ms) / count()
+| makeTimeseries {total = count(), good = countIf(duration < 500ms)}
+| fieldsAdd sli = 100.0 * good[] / total[]
 // target: 99
 ```
 
@@ -107,14 +106,14 @@ An NR SLO has:
 The migration target is the Grail-based **Service-Level Objectives** app, reached through the **SLO Service Public API** (Terraform: `dynatrace_platform_slo`). A DT SLO has:
 - `name`, `description`, `tags`
 - `criteria` — `target` (numeric percentage), optional `warning` (early-warning percentage), and the evaluation timeframe as `timeframeFrom` / `timeframeTo` (e.g. `now-7d` / `now`)
-- `customSli.indicator` — a DQL query that returns the SLI as a percentage
+- `customSli.indicator` — a DQL query that returns `sli` as an array of doubles, in percent
 - optional filter segments that scope the SLI (bucket + enriched-attribute scope in Gen3)
 
 Structurally similar; the math layer is what migrates.
 
 > **Not the classic SLO.** `builtin:monitoring.slo` (Terraform `dynatrace_slo_v2`, API token scopes `slo.read` / `slo.write`) is **SLO Classic**. Use it only to manage classic SLOs that already exist; author migrated SLOs in the modern app, which authenticates with platform permissions (`slo:slos:read` / `slo:slos:write`). SLO-05 covers both paths and the classic surface's upgrade status. Dynatrace's upgrade guidance for existing classic SLOs is to *"keep both SLOs running for one evaluation period and compare the values before you remove the Classic SLO."*
 
-> <sub>**Sources:** [Upgrade from Service-Level Objectives Classic (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/service-level-objective-upgrade-classic), [dynatrace_platform_slo resource (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_slo.md) — *"an OAuth client including the following permissions: View SLOs (`slo:slos:read`) and Create and edit SLOs (`slo:slos:write`)"*, [dynatrace_slo_v2 resource (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/slo_v2.md) — "schemaId: `builtin:monitoring.slo`".</sub>
+> <sub>**Sources:** [Create SLO (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives/create-slo) — *"Your query must include an sli field that returns an array of double type values"*, [Upgrade from Service-Level Objectives Classic (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/service-level-objective-upgrade-classic), [dynatrace_platform_slo resource (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_slo.md) — *"an OAuth client including the following permissions: View SLOs (`slo:slos:read`) and Create and edit SLOs (`slo:slos:write`)"*, [dynatrace_slo_v2 resource (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/slo_v2.md) — "schemaId: `builtin:monitoring.slo`".</sub>
 
 <a id="expressions"></a>
 ## 2. Metric Expression Migration
@@ -138,11 +137,9 @@ SELECT count(*) FROM Transaction WHERE error IS FALSE
 
 **DT SLI (DQL):**
 ```dql
-// DQL (SLI): share of requests that did not fail, per service
-timeseries {total = sum(dt.service.request.count), failed = sum(dt.service.request.failure_count)}, from:-1h, by:{dt.smartscape.service}
-| fieldsAdd sli = 100 * (1 - arraySum(failed) / arraySum(total))
-| fieldsAdd service = getNodeName(dt.smartscape.service)
-| fields service, sli
+// DQL (SLI): share of requests that did not fail, per service, as an array of doubles
+timeseries {total = sum(dt.service.request.count), failures = sum(dt.service.request.failure_count, default:0)}, by:{dt.smartscape.service}
+| fieldsAdd sli = (((total[] - failures[]) / total[]) * 100)
 // target: 99.9
 ```
 
@@ -157,16 +154,17 @@ SELECT percentage(count(*), WHERE duration < 0.5) FROM Transaction
 
 **DT SLI (DQL):**
 ```dql
-fetch spans, from:-1h
+fetch spans
 | filter isNotNull(endpoint.name)
-| summarize sli = 100.0 * countIf(duration < 500ms) / count()
+| makeTimeseries {total = count(), good = countIf(duration < 500ms)}
+| fieldsAdd sli = 100.0 * good[] / total[]
 // target: 99
 ```
 
 **Conversion considerations:**
 
 - NR units in NRQL are often seconds; DT durations take a duration literal (`500ms`). To turn a duration into a number, divide by a unit (`duration / 1ms`)
-- NR's `error IS FALSE` maps to "request not failed": the `dt.service.request.failure_count` metric, or `span.status_code != "error"` on request spans. `isNull(error)` is not a translation — `error` is not a Dynatrace field
+- NR's `error IS FALSE` maps to "request not failed": the `dt.service.request.failure_count` metric, or `coalesce(span.status_code, "unset") != "error"` on request spans, because `span.status_code` is null on successful requests and `!=` does not match null. `isNull(error)` is not a translation — `error` is not a Dynatrace field
 - Time windows: NR `SINCE 7 days ago` becomes the SLO criteria timeframe `timeframeFrom: now-7d`, `timeframeTo: now`
 - Entity scope: NR's workload becomes a DT bucket + enriched-attribute filter (Gen3 pattern)
 
@@ -198,7 +196,9 @@ In **Dynatrace Gen3**, the equivalent is built on **OpenPipeline enrichment** �
 | `entitySearchQueries[]` (NRQL filter) | OpenPipeline matcher conditions (matchesValue on namespace, host group, etc.) |
 | Tags-based selection | OpenPipeline matcher reads existing tags and emits a normalized workload attribute |
 
-The `WorkloadTransformer` emits one OpenPipeline enrichment rule per workload (plus an optional bucket-routing rule if the workload should land in its own bucket) and a recommended IAM policy condition (e.g., `storage:bucket-name == "workload_checkout_logs"`). Once enriched, the workload identifier is queryable in DQL (`filter workload.name == "checkout"`) and durable across dashboards, alerts, and SLOs without depending on Gen2 entity grouping.
+The `WorkloadTransformer` emits a segment and an IAM policy skeleton; OpenPipeline enrichment and bucket routing are yours to build. A bucket condition reads `storage:bucket-name = "workload_checkout_logs"`. Once enriched, the workload identifier is queryable in DQL (`filter workload.name == "checkout"`) and durable across dashboards, alerts, and SLOs without depending on Gen2 entity grouping.
+
+> <sub>**Sources:** [IAM policy statements (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements).</sub>
 
 <a id="selectors"></a>
 ## 5. Entity Selector Translation
@@ -233,7 +233,7 @@ When delta exceeds tolerance:
 
 ## Summary
 
-SLO migration succeeds when the math is equivalent within tolerance. `audit-slos` confirms the Dynatrace SLOs evaluate and reference real metrics; the NR-vs-DT comparison itself is a manual check. workload → OpenPipeline enrichment conversion is mechanical for tag-based workloads and manual for GUID-based ones. Always run the 7-day delta check before declaring SLO migration complete.
+SLO migration succeeds when the math is equivalent within tolerance. `audit-slos` confirms the Dynatrace SLOs evaluate and reference real metrics; the NR-vs-DT comparison itself is a manual check. The workload transformer emits a segment and an IAM policy skeleton; OpenPipeline enrichment is built by hand. Always run the 7-day delta check before declaring SLO migration complete.
 
 Continue to **NRLC-07 Logs, Tags & Drop Rules**.
 

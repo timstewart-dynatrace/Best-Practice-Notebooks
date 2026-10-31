@@ -1,6 +1,6 @@
 # NRLC-02: NRQL → DQL Translation
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 2 of 9 | **Created:** April 2026 | **Last Updated:** 10/14/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 2 of 9 | **Created:** April 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -118,7 +118,7 @@ For environments where SVG doesn't render
 <a id="surface"></a>
 ## 3. Translation Surface
 
-**Supported NRQL clauses:** `SELECT`, `FROM`, `WHERE`, `FACET`, `TIMESERIES`, `LIMIT`, `ORDER BY`, `COMPARE WITH`, `SLIDE BY`, `SINCE`, `UNTIL`
+**Supported NRQL clauses:** `SELECT`, `FROM`, `WHERE`, `FACET`, `TIMESERIES`, `LIMIT`, `ORDER BY`, `COMPARE WITH`, `SINCE`, `UNTIL`
 
 **Supported aggregations:** `count`, `average`/`avg`, `sum`, `min`, `max`, `uniqueCount`, `percentile`, `latest`, `earliest`, `uniques`, `median`, `stddev`, `rate`, `percentage`, `cdfPercentage`, `filter`, `histogram`, `funnel`, `apdex` (with caveats)
 
@@ -157,7 +157,7 @@ Every translation gets a confidence label and a 0–100 score. The scoring is ru
 | Use of `apdex()` | LOW (threshold not portable) |
 | Use of `funnel()` | LOW (multi-stage; manual review) |
 | Subquery with `lookup` | MEDIUM (correctness depends on lookup data) |
-| `SLIDE BY` | MEDIUM (DT supports but rarely-used path) |
+| `SLIDE BY` | LOW: the compiler emits `rolling()`, and DQL has no such function (`UNKNOWN_FUNCTION`). Rewrite it by hand per §8 |
 | Nested `if()` in `FACET CASES` | MEDIUM (emits nested DQL; review structure) |
 | `COMPARE WITH` | MEDIUM (emits append + time-shift; verify alignment) |
 | Standard `SELECT count(*) FROM X WHERE Y FACET Z TIMESERIES` | HIGH |
@@ -289,7 +289,7 @@ The compiler picks the `fetch` source from a built-in lookup. There is no CLI fl
 | NRQL | DQL | Notes |
 |------|-----|-------|
 | `count(*)` | `count()` | |
-| `count(field)` | `count(field)` | counts non-null |
+| `count(field)` | `countIf(isNotNull(field))` | counts non-null; `count()` takes no positional field |
 | `uniqueCount(field)` | `countDistinct(field)` | |
 | `average(field)` / `avg(field)` | `avg(field)` | |
 | `sum(field)` | `sum(field)` | |
@@ -297,7 +297,7 @@ The compiler picks the `fetch` source from a built-in lookup. There is no CLI fl
 | `percentile(field, 95)` | `percentile(field, 95)` | DQL uses positional; NRQL uses positional |
 | `median(field)` | `median(field)` | |
 | `stddev(field)` | `stddev(field)` | on a duration field use `stddev(duration / 1ms)` — `stddev(duration)` returns 0 with no warning |
-| `latest(field)` | `takeLast(field)` | with `sort timestamp desc` if needed |
+| `latest(field)` | `takeLast(field)` | with `sort start_time desc` on spans, `sort timestamp desc` on logs, if needed |
 | `earliest(field)` | `takeFirst(field)` | |
 | `uniques(field)` | `collectDistinct(field)` | |
 | `rate(count(*), 1 minute)` | `makeTimeseries count(), interval:1m` | structural rewrite; `timeseries` needs a metric key |
@@ -352,15 +352,24 @@ Three projects expose the same compiler in different shapes:
 
 | Tool | Form | Use Case |
 |------|------|----------|
-| **[`nrql-engine`](https://github.com/timstewart-dynatrace/nrql-engine)** | TypeScript library (`npm install @timstewart-dynatrace/nrql-engine`) | Embed in your own tool, web app, or CI — **planned future home: [`dynatrace-dma`](https://github.com/dynatrace-dma) (Dynatrace Migration Assistant)** |
+| **[`nrql-engine`](https://github.com/timstewart-dynatrace/nrql-engine)** | TypeScript library on GitHub Packages (`@timstewart-dynatrace/nrql-engine`; see the install note below) | Embed in your own tool, web app, or CI — **planned future home: [`dynatrace-dma`](https://github.com/dynatrace-dma) (Dynatrace Migration Assistant)** |
 | **[`nrql-translator`](https://github.com/timstewart-dynatrace/nrql-translator)** | Thin CLI around the engine | Single query, batch Excel, validation, notebook generation |
 | **[`NewRelic-to-Dynatrace-Migration-Utilities`](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities)** | Python CLI orchestrating full migration | End-to-end NR→DT including all entity transformers |
+
+**Installing the engine.** It is not on npmjs.com. Its README says it needs *"authentication even for public packages"*: export a `GITHUB_TOKEN` with `read:packages`, and add this to `.npmrc`:
+
+```text
+@timstewart-dynatrace:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+```
+
+**Running the translator.** Run it from a checkout of the repository: `npm install`, then `npm run build:all`.
 
 ### Single-query CLI
 
 ```bash
 # Using nrql-translator
-nrql-translator query "SELECT count(*) FROM Transaction FACET host"
+npm run cli -- query "SELECT count(*) FROM Transaction FACET host"
 
 # Or Dynatrace-NewRelic Python CLI
 python3 migrate.py compile "SELECT count(*) FROM Transaction FACET host"
@@ -373,15 +382,15 @@ python3 migrate.py compile "SELECT count(*) FROM Transaction FACET host"
 python3 migrate.py batch --file all-queries.csv
 
 # Excel batch (preserves dashboard mapping)
-nrql-translator excel --in dashboards.xlsx --out dashboards-dql.xlsx
+npm run cli -- excel dashboards.xlsx --output dashboards-dql.xlsx
 ```
 
 ### Notebook output
 
-The translator can emit a Dynatrace notebook directly from a batch:
+The translator can emit a Dynatrace notebook from a `*_ast_test.json` file. It does not read a CSV:
 
 ```bash
-nrql-translator notebook --in dashboard-queries.csv --out migrated-dashboard.ipynb
+npm run cli -- notebook dashboard_ast_test.json -o migrated-dashboard.ipynb
 ```
 
 
@@ -403,8 +412,8 @@ Translation alone doesn't guarantee correctness. The full loop is:
 NRQL → [compile] → DQL → [syntax validate] → [tenant validate] → [behavioral validate]
 ```
 
-1. **Syntax validate** — the engine's `DQLSyntaxValidator` posts the DQL to the Grail language service's `POST /platform/storage/query/v1/query:verify` endpoint for parser-level validation. No data executes.
-2. **Tenant validate** — `DTEnvironmentRegistry` checks that referenced metrics, entities, buckets, and OpenPipeline enrichment attributes actually exist in the target tenant.
+1. **Syntax validate** — the engine's `DQLSyntaxValidator` runs offline pattern checks and makes no network call. With a tenant, `DTEnvironmentRegistry.validate_dql_syntax` submits the query to `POST /platform/storage/query/v1/query:execute`.
+2. **Tenant validate** — `DTEnvironmentRegistry` checks that referenced metrics and entities exist in the target tenant. Buckets and OpenPipeline enrichment attributes are not in the registry, so check those by hand (NRLC-08 §3).
 3. **Behavioral validate** — run both NRQL (against NR) and translated DQL (against DT) over the same time window and compare result shape and magnitudes.
 
 ### Auto-fix

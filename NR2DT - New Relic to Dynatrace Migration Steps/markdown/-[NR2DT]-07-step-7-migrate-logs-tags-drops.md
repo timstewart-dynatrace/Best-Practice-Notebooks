@@ -1,6 +1,6 @@
 # NR2DT-07: Step 7 — Migrate Logs, Tags & Drop Rules
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 7 of 10 | **Created:** April 2026 | **Last Updated:** 10/14/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 7 of 10 | **Created:** April 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -82,12 +82,12 @@ Compare against NR's `SELECT count(*) FROM Log SINCE 1 day ago`. Volumes should 
 
 ### Drop rule effectiveness
 
-Confirm dropped patterns are being filtered. Use the **same matcher as the drop rule** (NR2DT-03 §5 drops `contains(content, "GET /health")`):
+Confirm dropped patterns are being filtered. Use the **same matcher as the drop rule** (NR2DT-03 §5 drops `matchesValue(content, "*GET /health*")`):
 
 ```dql
 // Same matcher as the drop rule: n should be 0 once the rule is active
 fetch logs, from:-1h
-| filter contains(content, "GET /health")
+| filter matchesValue(content, "*GET /health*")
 | summarize n = count()
 ```
 
