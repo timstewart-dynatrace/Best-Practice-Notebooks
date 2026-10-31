@@ -1,6 +1,6 @@
 # NRLC-01: New Relic vs. Dynatrace — Platform Comparison
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 1 of 9 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 1 of 9 | **Created:** April 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -15,8 +15,6 @@ Three sprint-1.337 changes affect the NR→DT component conversion patterns:
 1. **OTel `service.name` enrichment** — Dynatrace now uses the OpenTelemetry `service.name` resource attribute to enrich the existing service entity (Smartscape displays `service.name (detected name)`; new `dt.service.name` field). NR services that emit OTel via the New Relic Collector → Dynatrace path map cleanly without two-services-per-process duplication.
 2. **OneAgent primary fields/tags at the source** (`dt.security_context`, `dt.cost.costcenter`, `dt.cost.product` + customer-defined primary tags) — top-level on all signals. Reduces parse-processor work for migrated NR data.
 3. **Entity API: `attributes` removed** + **Event API: `metadata` removed from `GET /events`** (sprint-337 Dynatrace API). Update any conversion-engine code (Dynatrace-NewRelic / nrql-engine / nrql-translator) that parses these properties — the engine repositories are listed in **NRLC-09 §1**.
-
-The Authorization scheme by token prefix rule documented in NRLC-05 remains correct and is reinforced by sprint-337's broader Platform-token push.
 
 ---
 
@@ -64,7 +62,7 @@ See **NRLC-09** for the full 42-transformer + 14-subcommand inventory and the [c
 
 **New Relic** is built around a unified telemetry data platform (NRDB) where every signal — metrics, events, logs, traces — is stored as discrete events in a columnar database. Agents (APM, Infrastructure, Browser, Mobile, OpenTelemetry collector) push data via HTTP. NerdGraph (GraphQL) is the unified API for both data queries and configuration.
 
-**Dynatrace** is built around **Smartscape topology + Dynatrace Intelligence + Grail data lakehouse**. OneAgent does deep instrumentation including code-level discovery; ActiveGate handles routing. Configuration lives in Settings (v2) and Documents (v2) APIs; data lives in Grail (queried via DQL). The platform infers entity relationships automatically (Smartscape) and applies causal AI to detect root cause.
+**Dynatrace** is built around **Smartscape topology + Dynatrace Intelligence + Grail data lakehouse**. OneAgent does deep instrumentation including code-level discovery; ActiveGate handles routing. Configuration lives in the Settings (v2) and Document (`/platform/document/v1`) APIs; data lives in Grail (queried via DQL). The platform infers entity relationships automatically (Smartscape) and applies causal AI to detect root cause.
 
 | Aspect | New Relic | Dynatrace |
 |--------|-----------|-----------|
@@ -72,7 +70,7 @@ See **NRLC-09** for the full 42-transformer + 14-subcommand inventory and the [c
 | Agent model | Multiple agents per signal type | Single OneAgent (auto-discovery) + ActiveGate routing |
 | Topology | User-built workloads, manual entity grouping | Smartscape (auto-discovered, real-time) |
 | AI model | NRDB anomaly detection + APM Proactive Detection | Dynatrace Intelligence causal engine + adaptive baselines |
-| Configuration API | NerdGraph (GraphQL) | Settings v2, Documents v2, Config v1 (REST) |
+| Configuration API | NerdGraph (GraphQL) | Settings v2, Document API, Config v1 (REST) |
 | Query language | NRQL (SQL-like) | DQL (pipeline-based) |
 
 The most consequential difference: **Dynatrace infers entity relationships automatically; New Relic relies on user-defined workloads.** This affects how dashboards, alerts, and SLOs scope their target entities.
@@ -97,9 +95,9 @@ For environments where SVG doesn't render
 
 ### New Relic
 - **Single ingest endpoint per data type** (Metric, Event, Log, Trace APIs)
-- All data lands in NRDB; retention is account-wide (typically 8 days for events, 30+ for metrics)
+- All data lands in NRDB; retention is set per data type (8 days for APM data, for example)
 - Drop rules and parsing rules apply at ingest
-- **No data tiering** — retention is uniform per data type
+- **Data Plus** adds *"up to an additional 90 days of retention (for most data types)"*
 
 ### Dynatrace
 - **OneAgent + ActiveGate + OpenPipeline + Grail** — multiple ingest paths
@@ -107,7 +105,9 @@ For environments where SVG doesn't render
 - OpenPipeline performs parse, mask, enrich, route, and metric extraction *before* storage
 - Per-bucket pricing: "Retain with Included Queries" or "Usage-based"
 
-**Migration implication:** New Relic's flat retention maps poorly to Dynatrace's tiered buckets. Plan retention per data class during migration design (see **ORGNZ-02 — Understanding Grail Buckets** and **ORGNZ-99 — Best Practice Summary** for the recommended bucket strategy template).
+**Migration implication:** New Relic's per-data-type retention maps poorly to Dynatrace's per-bucket retention. Plan retention per data class during migration design (see **ORGNZ-02 — Understanding Grail Buckets** and **ORGNZ-99 — Best Practice Summary** for the recommended bucket strategy template).
+
+> <sub>**Sources:** [Manage data retention (New Relic docs)](https://docs.newrelic.com/docs/data-apis/manage-data/manage-data-retention/).</sub>
 
 <a id="queries"></a>
 ## 3. Query Languages: NRQL vs. DQL
@@ -173,7 +173,7 @@ Plus: Service → Service Group, Application → Application Group, custom entit
 
 ### New Relic
 - **Account / Sub-account** structure with role-based permissions per account
-- Users get roles: Admin, Standard User, Restricted User
+- Standard roles include All product admin, Standard user and Read only
 - Permissions per category (Alerts, APM, Infrastructure, Insights/Dashboards)
 
 ### Dynatrace
@@ -185,33 +185,42 @@ Plus: Service → Service Group, Application → Application Group, custom entit
 | NR Concept | DT Equivalent | Mapping |
 |-----------|--------------|---------|
 | Sub-account isolation | Tenant + OpenPipeline-enriched data + IAM policy bucket/attribute condition | Soft isolation via data-level attribute scoping |
-| Restricted User | Policy with bucket scope + DQL-attribute conditions | Fine-grained per-resource (Gen3 pattern) |
-| Admin role | Tenant admin policy | Full tenant access |
+| Read only role | Policy with bucket scope + DQL-attribute conditions | Fine-grained per-resource (Gen3 pattern) |
+| All product admin role | Tenant admin policy | Full tenant access |
 
 **Migration implication:** A NR multi-account setup typically becomes a single DT tenant + an attribute taxonomy applied via OpenPipeline enrichment + bucket-scoped IAM policies. See **FAQ-01 — Host Group Naming Strategy**, **ORGNZ-02 / ORGNZ-99** (Grail bucket strategy), and the **IAM** series (especially IAM-04 / IAM-05 / IAM-11 WORKSHOP) for the design patterns.
+
+> <sub>**Sources:** [User management concepts (New Relic docs)](https://docs.newrelic.com/docs/accounts/accounts-billing/new-relic-one-user-management/user-management-concepts/) — *"Standard roles include: All product admin"*.</sub>
 
 <a id="pricing"></a>
 ## 6. Pricing Models
 
 ### New Relic
-- **Usage-based**: per GB of ingested data + per user (Full / Core / Basic)
+- **Usage-based**: per GB of ingested data + per user (Full platform and Core are billed, Basic is not); a Data + Core Compute option is in Preview
 - Single rate across all data types
 - No retention tier discount
 
 ### Dynatrace
 - **Dynatrace Platform Subscription (DPS)**: consumption units (DPS) tied to specific capability use
-- Different DPS rates per capability: log ingest, log retention with included queries, log usage-based queries, full-stack monitoring (host hours), detected problem analysis, etc.
+- Different DPS rates per capability: log ingest, log retention with included queries, log usage-based queries, full-stack monitoring (GiB-hours), etc.
 - **Bucket pricing tiers** allow optimization: keep hot data with included queries, cold data on usage-based
 
 | Cost Driver | New Relic | Dynatrace |
 |-------------|-----------|-----------|
 | Log ingest | $/GB | DPS per GB ingested |
 | Log retention | Bundled in retention period | Separate DPS rate; tunable per bucket |
-| Log queries | Free within retention | DPS per query (usage-based buckets) or included (RWIQ) |
-| Hosts | Per user (full-stack indirectly) | DPS per host hour (FSM) |
-| Synthetics | Per check | DPS per execution |
+| Log queries | Free within retention | DPS per GiB scanned (usage-based buckets) or included (RWIQ) |
+| Hosts | Per user (full-stack indirectly) | DPS per GiB-hour of host memory (FSM) |
+| Synthetics | Per check | DPS per synthetic action (browser) or synthetic request (HTTP) |
 
 **Migration implication:** NR's flat rate often appears cheaper at small scale but doesn't scale efficiently. DT's tiered model lets you right-size cost per data class. A 30–60% reduction is typical when an OpenPipeline + tiered bucket strategy replaces NR's flat ingest. See **NRLC-07 Logs/Tags/Drops** for cost-optimization patterns.
+
+> <sub>**Sources:**</sub>
+> - <sub>[Full-Stack Monitoring (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability/full-stack-monitoring) — *"Consumption is based on host memory"*</sub>
+> - <sub>[Log query (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/log-analytics/dps-log-query) — *"It is calculated per gibibyte scanned"*</sub>
+> - <sub>[Browser monitor (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/real-user-synthetic-monitoring/browser-monitor-clickpath) — *"usage based on the number of synthetic actions executed"*</sub>
+> - <sub>[HTTP monitor (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/real-user-synthetic-monitoring/http-monitor) — *"HTTP Monitor consumption is measured in synthetic requests"*</sub>
+> - <sub>[Pricing and billing (New Relic docs)](https://docs.newrelic.com/docs/accounts/accounts-billing/new-relic-one-pricing-billing/new-relic-one-pricing-billing/)</sub>
 
 <a id="mapping"></a>
 ## 7. Concept Mapping Reference
@@ -223,17 +232,17 @@ Quick-reference table for every major concept this series touches:
 | NRQL | DQL | NRLC-02 |
 | Dashboard (multi-page) | Document (single-page × N) | NRLC-03 |
 | Alert Policy | Workflow (Gen3) | NRLC-04 |
-| NRQL Alert Condition | Metric Event | NRLC-04 |
+| NRQL Alert Condition | Anomaly detector | NRLC-04 |
 | APM Condition | Adaptive Baseline (Dynatrace Intelligence) | NRLC-04 |
 | Synthetic Ping | HTTP Monitor | NRLC-05 |
 | Synthetic Browser | Browser Monitor | NRLC-05 |
 | Synthetic API | HTTP Monitor (multi-step) | NRLC-05 |
 | Synthetic Step Monitor | Browser Monitor (clickpath) | NRLC-05 |
-| SLO | SLO (v2) | NRLC-06 |
+| SLO | SLO (Service-Level Objectives app) | NRLC-06 |
 | Workload | OpenPipeline enrichment + IAM policy condition on enriched attribute | NRLC-06 |
 | Tag | Tag (entity / Grail dimension) | NRLC-07 |
-| Drop Rule | OpenPipeline filter | NRLC-07 |
-| Notification Channel (Email/Slack/PD) | Notification (built-in / webhook) | NRLC-04 |
+| Drop Rule | OpenPipeline `Drop record` processor | NRLC-07 |
+| Notification Channel (Email/Slack/PD) | Workflow task (connector or HTTP Request) | NRLC-04 |
 | Log Parsing Rule | OpenPipeline DPL parser | NRLC-07 |
 | Sub-account | Bucket + OpenPipeline enrichment + IAM | NRLC-01 §5 |
 | User Role | IAM Policy + Group | NRLC-01 §5 |

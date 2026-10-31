@@ -1,6 +1,6 @@
 # NRLC-09: Toolchain Reference & End-to-End Runbook
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 9 of 9 | **Created:** April 2026 | **Last Updated:** 10/14/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 9 of 9 | **Created:** April 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -68,7 +68,7 @@ The master reference for the open-source toolchain that powers every preceding n
 | Embed translation in your own tool/web app | `nrql-engine` |
 | One-off NRQL→DQL on the command line | `nrql-translator` |
 | Translate a batch of dashboard queries | `nrql-translator excel` or `migrate.py batch` |
-| Generate a DT notebook from translated queries | `nrql-translator notebook` |
+| Generate a DT notebook from a `*_ast_test.json` file | `nrql-translator notebook` |
 
 
 ![NR → DT Migration Toolchain Overview](images/09-toolchain-overview_930x500.png)
@@ -117,15 +117,16 @@ cp .env.example .env
 
 ### Required DT API Token Scopes
 
-- `dashboards.read` + `dashboards.write` (or Documents v2: `documents:read`, `documents:write`)
-- `metrics.read`
-- `entities.read`
-- `settings:objects.read` + `settings:objects.write`
-- `synthetic.read` + `synthetic.write`
-- `notifications.write`
-- `iam-policies.read` (for IAM policy + OpenPipeline configuration validation)
+From the tool's [token scopes reference (migration utilities GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/main/docs/token-scopes.md):
 
-> **Note:** These are Classic API token scopes (the `<area>.<action>` style). **Platform Tokens use policy-based permissions** instead and are the recommended default on Gen3 tenants — see Dynatrace IAM docs for the equivalent policy statements. OAuth clients use the same platform permissions — not the classic `<area>.<action>` scopes. SLOs are platform-only here: the tool writes them through the SLO Service Public API, so the credential needs `slo:slos:read` (plus `slo:slos:write` for migrate runs), not `slo.read` / `slo.write`; the Terraform `dynatrace_platform_slo` resource takes an OAuth client (`DT_CLIENT_ID`, `DT_CLIENT_SECRET`, `DT_ACCOUNT_ID`) with those permissions.
+| Credential | Permissions |
+|------------|-------------|
+| Platform token (`dt0s16.`, the default): preflight | `settings:schemas:read`, `settings:objects:read`, `document:documents:read`, `automation:workflows:read`, `slo:slos:read` |
+| Platform token: full migrate adds | `settings:objects:write`, `document:documents:write`, `automation:workflows:write`, `automation:workflows:run`, `slo:slos:write` |
+| Platform token: Grail reads | `storage:logs:read`, `storage:events:read`, `storage:metrics:read`, `storage:spans:read`, `storage:entities:read`, `storage:buckets:read` |
+| Classic token (`dt0c01.`, with `--legacy`) | `ReadConfig`, `WriteConfig`, `DataExport`, `ExternalSyntheticIntegration`, `events.ingest` |
+
+> **Note:** OAuth clients use the same platform permissions — not the classic `<area>.<action>` scopes. SLOs are platform-only here: the tool writes them through the SLO Service Public API, so the credential needs `slo:slos:read` (plus `slo:slos:write` for migrate runs), not `slo.read` / `slo.write`; the Terraform `dynatrace_platform_slo` resource takes an OAuth client (`DT_CLIENT_ID`, `DT_CLIENT_SECRET`, `DT_ACCOUNT_ID`) with those permissions.
 
 ### Configuration File (`.env`)
 
@@ -225,7 +226,7 @@ Migrating one entity type at a time is the safe pattern. The `--components` flag
 | `baseline_alerts` | NR baseline / outlier NRQL conditions → Dynatrace Intelligence adaptive detectors | `baseline_alert_transformer` (Phase 17) |
 | `non_nrql_alerts` | Infrastructure / Synthetic / Browser / Mobile / External-service / Multi-location-synthetic conditions | `non_nrql_alert_transformer` (Phase 17) |
 | `lookup_tables` | NR `WHERE IN` lookups → Resource Store JSONL + DQL `lookup` subquery | `lookup_table_transformer` (Phase 17) |
-| `maintenance_windows` | NR scheduled + recurring maintenance + mute rules → DT Maintenance Windows + detector filters | `maintenance_window_transformer` (Phase 17) |
+| `maintenance_windows` | NR scheduled + recurring maintenance + mute rules → DT maintenance-window envelopes; a mute rule's condition arrives as a LOW-confidence comment in a workflow filter | `maintenance_window_transformer` (Phase 17) |
 | `change_tracking` | NR deployment markers → DT events API (`CUSTOM_DEPLOYMENT`, `CUSTOM_CONFIGURATION`) | `change_tracking_transformer` (Phase 17) |
 | `custom_event_ingest` | NR custom events → bizevent CloudEvent payloads | `custom_event_ingest_transformer` (Phase 17) |
 | `synthetics` | NR Ping / Browser / Scripted API / Scripted Browser → `dynatrace_http_monitor`/`dynatrace_browser_monitor` (Config-v1, `ExternalSyntheticIntegration` scope) | `synthetic_transformer` (Phase 11) |

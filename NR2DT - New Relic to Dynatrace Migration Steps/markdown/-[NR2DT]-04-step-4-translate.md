@@ -1,6 +1,6 @@
 # NR2DT-04: Step 4 — Translate
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 4 of 10 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 4 of 10 | **Created:** April 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -63,7 +63,7 @@ MEDIUM means the translation is structurally correct but has edge cases worth ve
 |---------|----------------|
 | `COMPARE WITH` | Time alignment correct; append produces the expected shape |
 | Subquery via `lookup` | Lookup target exists as queryable Grail data |
-| `SLIDE BY` | Sliding window semantics preserved |
+| `SLIDE BY` | The compiler emits `rolling()`, which does not exist in DQL; rewrite by hand per NRLC-02 |
 | Nested `if()` in `FACET CASES` | Nested DQL emits the right structure |
 | Custom event types | Source mapping (FROM → fetch) correct |
 
