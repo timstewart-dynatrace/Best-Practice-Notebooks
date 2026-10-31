@@ -1,6 +1,6 @@
 # AIOPS-05: AI Models — Causal, Predictive, and Generative
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 5 of 8 | **Created:** May 2026 | **Last Updated:** 10/14/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 5 of 8 | **Created:** May 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -101,11 +101,11 @@ Tuning these is the difference between alert fatigue and silent failure.
 
 Worth a closer look because it's where most teams underuse the platform.
 
-Seasonal baseline learns the metric's recurring patterns — daily, weekly, and where enough data exists, yearly. Detection considers the *expected value at this time of week*, not just "is the metric high."
+Seasonal baseline learns the metric's recurring patterns — daily and weekly patterns, trained on the last 14 days. Detection considers the *expected value at this time of week*, not just "is the metric high."
 
 **The use case:** any metric that varies with business activity. Login traffic peaks at 8 AM and noon. Database write volume peaks at end-of-month. ETL job durations peak on Sunday night. A static threshold or even an auto-adaptive baseline misses these — they see the seasonal peak as either noise or as the new normal.
 
-**Common mistake:** applying seasonal baseline to a metric that doesn't have seasonality. The model still produces output, but the bands are essentially the global baseline plus statistical noise.
+**Common mistake:** applying seasonal baseline to a metric that doesn't have seasonality. The model still produces output, but validation falls back to a simple model whose calculated interval stays constant over time.
 
 Below is an example that exercises the analyzer engine — pick a metric you know has weekly seasonality (host CPU on a business-hours app, for instance) and feed it in.
 

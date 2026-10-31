@@ -1,6 +1,6 @@
 # AIOPS-02: Anomaly Detection
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 2 of 8 | **Created:** May 2026 | **Last Updated:** 10/23/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 2 of 8 | **Created:** May 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -64,7 +64,7 @@ Davis learns the metric's baseline and shifts the detection threshold as the bas
 **Use when:** the metric trends over time but doesn't have weekly / daily seasonality. Service throughput on a steadily-growing app is a classic fit. Newly deployed or newly changed traffic needs about a week to produce a representative baseline — see the history-window note below.
 
 ### 1.3 Seasonal baseline
-Davis learns the metric's daily, weekly, and (where it has data) yearly seasonality. Detection considers the *expected* pattern — Tuesday at 3 AM and Friday at noon get different thresholds.
+Davis learns the metric's daily and weekly patterns, trained on the last 14 days. Detection considers the *expected* pattern — Tuesday at 3 AM and Friday at noon get different thresholds.
 
 **Use when:** the metric has obvious recurrence — business hours, weekday/weekend differences, monthly billing cycles. Give it roughly two weeks before trusting day-of-week distinctions — see below.
 
@@ -78,7 +78,7 @@ Davis builds baselines per-dimension automatically — per region, per browser, 
 ### 1.5 Novelty detection and forecasting
 **Novelty** flags patterns the model has never seen — sudden new error types, never-before metric shapes. **Forecasting** projects a series forward, useful for capacity planning and trend extrapolation.
 
-**Use when:** you're hunting for *unknown unknowns* (novelty) or projecting growth (forecast). Both available as Davis analyzers — see Section 5.
+**Use when:** you're hunting for *unknown unknowns* (novelty) or projecting growth (forecast). Both available as Davis analyzers — see Section 7.
 
 **How much history before you can trust it.** Auto-adaptive detection calculates its threshold from a trailing **7-day** reference window; seasonal baseline uses a trailing **14-day** window. A service that was just deployed, or whose traffic pattern just changed, won't have a representative auto-adaptive baseline for about a week, and won't have enough history to distinguish weekday from weekend behavior for about two — a detector built on either mechanism before then is judging against an incomplete picture, not a wrong one.
 
@@ -125,7 +125,7 @@ Sections 1–3 told you *which* mechanism to pick and *where* to configure it. T
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Step | What you do | Key choices |
 |------|-------------|-------------|
-| 1 · Query | Provide a `timeseries` query for the metric to watch | `from:` required; `by:` dimensions; prototype in a notebook first |
+| 1 · Query | Provide a `timeseries` query for the metric to watch | no `from:` in a `timeseries` detector query; `by:` dimensions; prototype in a notebook first |
 | 2 · Analyzer | Choose how the series is judged | Static threshold / Auto-adaptive / Seasonal baseline + tuning |
 | 3 · Event template | Define the event that fires | Name, description, event type, properties with `{dims:...}` |
 | 4 · Davis event | Detector fires on breach | Surfaces as a Davis problem → routing & SLOs; promote to config-as-code |
@@ -134,7 +134,7 @@ For environments where SVG doesn't render
 
 ### Step 1 — The query contract
 
-The detector samples a `timeseries` query on a schedule. Critically, **you do not write a `filter ... > threshold` in the detector query** — the analyzer (Step 2) is what decides whether the series is anomalous. Your query's job is to *return the metric*, grouped by the dimensions you want to alert per (`by:{...}`). A `from:` range is mandatory.
+The detector samples a `timeseries` query on a schedule. Critically, **you do not write a `filter ... > threshold` in the detector query** — the analyzer (Step 2) is what decides whether the series is anomalous. Your query's job is to *return the metric*, grouped by the dimensions you want to alert per (`by:{...}`). Don't put `from:` or `to:` in a `timeseries` detector query.
 
 > **Develop the query in a notebook first.** This is the notebook-as-scratchpad pattern: write and run the `timeseries` here, confirm it returns the shape you expect, then paste it into the detector. A query that returns nothing in a notebook will silently never fire as a detector.
 
@@ -269,18 +269,20 @@ timeseries {
     total    = sum(dt.service.request.count)
   },
   by:{dt.smartscape.service},
-  from:-1h, interval:1m
+  interval:1m
 | fieldsAdd error_rate = (failures[] / total[]) * 100
 | fieldsKeep timeframe, interval, dt.smartscape.service, error_rate
 ```
 
 **Watchpoints when writing custom-alert DQL:**
 
-- Always include a `from:` time range. Detectors that omit it are rejected.
+- Don't include `from:` or `to:` in a `timeseries` detector query. The custom alert fails when it executes a query that has them.
 - Use named-parameter `decimals:`, `then:`, `else:` where required (`round`, `if`, `substring`).
 - Aggregations used downstream need explicit aliases (`error_rate = ...`, `mttr = ...`).
 - Element-wise array operations on timeseries: `failures[] / total[]` returns an array. Keep the series as an array for a detector — `arrayAvg` + `filter` is an ad-hoc notebook check, not a detector query.
 - Use `default:0` on sparse counters so zero-failure intervals count as 0, not null. Without it, an average over the array covers only the minutes that had failures and overstates the rate.
+
+> <sub>**Sources:** [Anomaly Detection DQL writing guide (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/anomaly-detection-dql-best-practice) — *"Don't use from: and to: when creating a DQL query for the custom alert. Otherwise, you'll get failures whenever the custom alert tries to execute your query"*.</sub>
 
 <a id="schemas"></a>
 ## 6. Metric Events and Settings 2.0 Schemas

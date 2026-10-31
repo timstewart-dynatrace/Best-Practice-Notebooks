@@ -1,6 +1,6 @@
 # AIOPS-03: Davis AI — Problems and Root Cause Analysis
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 10/23/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -172,7 +172,7 @@ Filter by entity context to scope to a team or environment. Two common variants:
 // Active problems in a specific Kubernetes namespace
 fetch dt.davis.problems, from:-2h
 | filter event.status == "ACTIVE"
-| filter k8s.namespace.name == "production"
+| filter matchesValue(k8s.namespace.name, "production")
 | sort event.start desc
 | fields display_id, event.name, event.category, root_cause_entity_name
 | limit 50
@@ -291,7 +291,7 @@ Setting this expectation with stakeholders matters as much as the mechanism itse
 
 > <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting) — *"alerts from different entities are merged when the entities are causally connected in the Smartscape topology"*, [Dynatrace Intelligence (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence) — *"deterministic, causation-based analysis"*. **Derived:** an empty root cause is expected when no second signal sits on a causally connected entity.</sub>
 
-**Track this as a trend, not a snapshot.** The bucketing query above characterizes a point in time; the same `root_cause_entity_id` field trended daily shows whether the expected-empty population is holding steady or whether something upstream — topology, tagging, correlation — is regressing.
+**Track this as a trend, not a snapshot.** The bucketing query below characterizes a point in time; the same `root_cause_entity_id` field trended daily shows whether the expected-empty population is holding steady or whether something upstream — topology, tagging, correlation — is regressing.
 
 ```dql
 // Characterize your own null-root-cause problems: single-entity (expected) vs multi-entity (audit for topology gap)
