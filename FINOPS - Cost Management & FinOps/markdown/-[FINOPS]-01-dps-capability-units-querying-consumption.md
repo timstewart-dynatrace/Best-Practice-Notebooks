@@ -1,6 +1,6 @@
 # FINOPS-01: DPS Capability Units and Querying Consumption with DQL
 
-> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 01 — DPS Capability Units and Querying Consumption with DQL | **Created:** May 2026 | **Last Updated:** 10/14/2026
+> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 01 — DPS Capability Units and Querying Consumption with DQL | **Created:** May 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -50,7 +50,7 @@
 | Question | One-line answer |
 |----------|-----------------|
 | Where does consumption data live? | Per-record: `fetch dt.system.events \| filter event.kind == "BILLING_USAGE_EVENT"`. Pre-aggregated: `timeseries <metric>(dt.billing.<capability>.usage)`. |
-| What's the unit field? | Per capability — 7 distinct unit-field families. `billed_gibibyte_hours`, `billed_container_hours`, `billed_pod_hours`, `billed_bytes`, `ingested_bytes` (Traces-Ingest only), `data_points` (Metrics), `billed_synthetic_action_count`, `billed_http_request_count`, `billed_sessions`, `billed_invocations`, or record-count (Workflows). |
+| What's the unit field? | Per capability — no single unit field. `billed_gibibyte_hours`, `billed_host_hours`, `billed_container_hours`, `billed_pod_hours`, `billed_bytes`, `ingested_bytes` (Traces-Ingest only), `data_points` (Metrics), `billed_synthetic_action_count`, `billed_http_request_count`, `billed_sessions`, `billed_invocations`, or record-count (Workflows). |
 | What's the canonical filter pattern? | `event.kind == "BILLING_USAGE_EVENT"` then `dedup event.id` before any aggregation. |
 | How do I attribute cost to a team or product? | Use the pre-aggregated `dt.billing.*_by_costcenter` / `_by_product` metric series (Logs and Traces only), or `expand dt.cost.costcenter` / `expand dt.cost.product` on the per-record events. Other capabilities attribute via `usage.bucket`, `dt.entity.host` (moving to `dt.smartscape.host` with SaaS 1.347), or `dt.entity.application`. |
 | How fresh is the data? | Most capabilities update every 15 minutes (`usage.start` / `usage.end`). Metrics - Ingest lags by ~4 hours, so query timeframes shorter than 4 hours are incomplete. Automation Workflow uses 1-hour windows. |
@@ -130,7 +130,7 @@ Every billable activity emits a record into `dt.system.events` with `event.kind 
 Use this surface when you need:
 
 - Per-host, per-bucket, per-test, per-workflow attribution
-- Query-side billing (`Log Management & Analytics - Query`, `Events - Query`, `Traces - Query`) with `client.application_context` and `user.email`
+- Query-side billing (`Log Management & Analytics - Query`, `Events - Query`, `Traces - Query`) with `client.source` and `user.email`
 - Capabilities that don't have a pre-aggregated metric series (Logs - Retain, Events, Metrics - Ingest, Synthetic, RUM, AppEngine, Automation Workflow)
 - Custom chargeback expansion via `expand dt.cost.costcenter` / `dt.cost.product`
 
@@ -194,7 +194,7 @@ Dynatrace's cost tutorials call it mandatory in every billing query. In communit
 
 ### `usage.bucket` vs `usage.event_bucket`
 
-`usage.bucket` is present on every bucket-scoped capability observed, including all three Events capabilities. **Events - Ingest & Process** additionally carries `usage.event_bucket`; Events - Retain and Events - Query do not. Group by `usage.bucket`; when unifying across capabilities, `coalesce(usage.bucket, usage.event_bucket)` is a safe fold.
+`usage.bucket` is present on every bucket-scoped capability observed, including all three Events capabilities. On the validation tenant, **Events - Ingest & Process** also carried `usage.event_bucket` until 10/07/2026 and has not since; Events - Retain and Events - Query did not. Group by `usage.bucket`; when unifying across capabilities, `coalesce(usage.bucket, usage.event_bucket)` is a safe fold.
 
 > <sub>**Sources:** [Trace a cost spike to its root cause (DT docs)](https://docs.dynatrace.com/docs/manage-your-costs/control/investigate-a-spike) — *"Dynatrace refreshes metering records when correcting measurements."*; every billing query in that tutorial and in [Forecast costs with run-rate projections (DT docs)](https://docs.dynatrace.com/docs/manage-your-costs/predict/project-run-rate) applies `filter event.kind == "BILLING_USAGE_EVENT"` and `dedup event.id`. [Standard Function Calls consumption (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/appengine-functions/standard-function-calls) — filter on `event.type == "AppEngine Functions - Small"` *"to find Standard Function Call invocations"*, and both example queries filter on `(billing_type == "BILLABLE" OR isNull(billing_type))`. Field coverage read on a SaaS tenant 10/05/2026 (30 days): AppEngine `billing_type` null on 60/60 records; `usage.bucket` on 3,185/3,185 Events Ingest, 1,984/1,984 Events Retain and 8,871/8,871 Events Query records; `usage.event_bucket` on Events Ingest only.</sub>
 
@@ -258,7 +258,7 @@ Logs, Events, Traces, Files, and Data Egress all bill in bytes. Use `fetch dt.sy
 | Log Management & Analytics - Retain | `billed_bytes` | `usage.bucket` |
 | Log Management & Analytics - Retain with Included Queries | `billed_bytes` | `usage.bucket` |
 | Log Management & Analytics - Query | `billed_bytes` | (`query_start` instead) |
-| Events - Ingest & Process | `billed_bytes` | `usage.bucket` (also `usage.event_bucket`) |
+| Events - Ingest & Process | `billed_bytes` | `usage.bucket` |
 | Events - Retain | `billed_bytes` | `usage.bucket` |
 | Events - Query | `billed_bytes` | `usage.bucket` — one record per query per bucket read; time on `query_start` |
 | **Traces - Ingest & Process** | **`ingested_bytes`** | `usage.bucket` |
@@ -339,7 +339,9 @@ Synthetic, RUM, AppEngine, and Automation Workflow bill on counts rather than by
 |------------|-----------|-------------|
 | Browser Monitor / Clickpath | `billed_synthetic_action_count` | `dt.entity.synthetic_test` |
 | HTTP Monitor | `billed_http_request_count` | `dt.entity.http_check` |
-| Real User Monitoring | `billed_sessions` | `dt.entity.application`, `device.type` |
+| Real User Monitoring | `billed_sessions` | `coalesce(dt.entity.application, dt.entity.device_application)` |
+| Real User Monitoring with Session Replay | `billed_replay_sessions` | `coalesce(dt.entity.application, dt.entity.device_application)` |
+| Real User Monitoring Property | `billed_property_sessions` | `coalesce(dt.entity.application, dt.entity.device_application)` |
 | AppEngine Functions - Small | `billed_invocations` | `user.email`, `caller.app.id` |
 | Automation Workflow | (record count — 1 per standard workflow per hour of existence) | `workflow.title`, `workflow.owner`, `workflow.trigger_type` |
 
@@ -372,7 +374,7 @@ fetch dt.system.events, from:-7d
 
 ```dql
 // AppEngine Functions - Small — invocation count by function type
-// (Ad-hoc = workflow-task invocations, Actions = workflow actions, App functions = standalone app code)
+// (Ad-hoc = invoked in Notebooks, Dashboards, Workflows or via API; Actions = custom actions in workflows; App functions = invoked in a custom app)
 fetch dt.system.events, from:-7d
 | filter event.type == "AppEngine Functions - Small"
 | filter event.kind == "BILLING_USAGE_EVENT"
@@ -512,7 +514,7 @@ This is also how you settle the question *"does the Distributed Tracing or Servi
 
 Three attribution surfaces exist, in increasing order of attribution power:
 
-1. **`usage.bucket` / `usage.event_bucket`** — every byte-based capability includes the bucket name. Effective only if your bucket-naming convention encodes team / product / environment (covered in ORGNZ).
+1. **`usage.bucket` / `usage.event_bucket`** — most byte-based capabilities include the bucket name; Log Query and Files records do not on the validation tenant (10/31/2026). Effective only if your bucket-naming convention encodes team / product / environment (covered in ORGNZ).
 2. **`dt.cost.costcenter[]` / `dt.cost.product[]` arrays** — present on Metrics, Logs - Retain, and a few other capabilities. Each record carries an array of `{key, billed_bytes}` (or `{key, data_points}`) tuples — one per cost center or product the usage is allocated to.
 3. **Pre-aggregated `dt.billing.*_by_costcenter` / `_by_product` metric series** — Dynatrace pre-computes the cost-center / product attribution for **Logs - Ingest** and **Traces - Ingest** and exposes them as standard metric series. Fastest to query.
 
@@ -563,7 +565,7 @@ Retain is the case where pitfall #6 bites after an `expand`: each record is an h
 | 6 | Using `sum()` on retention bytes | Each hourly record carries the cumulative bucket size; summing inflates by 24× per day | Use `max(billed_bytes)` for Retain event types; `sum()` is correct for Ingest |
 | 7 | Forgetting the included-quota subtraction for Metrics-Ingest | Over-reports billable metric consumption by the included allowance | Use the canonical query in §8; the included-quota math is non-trivial |
 | 8 | Bucketing query-side billing on `timestamp` | Misaligns with actual query execution time | Bucket on `query_start` for query-side billing events |
-| 9 | Grouping Events Retain / Query by `usage.event_bucket` | A single null row — only Events Ingest carries `usage.event_bucket` | Group by `usage.bucket`; `coalesce(usage.bucket, usage.event_bucket)` for cross-capability work |
+| 9 | Grouping Events Retain / Query by `usage.event_bucket` | A single null row — current records do not carry `usage.event_bucket` | Group by `usage.bucket`; `coalesce(usage.bucket, usage.event_bucket)` for cross-capability work |
 | 10 | Strict `billing_type == "BILLABLE"` on AppEngine | The field is often null, so the filter drops every record and reports zero usage | `billing_type == "BILLABLE" or isNull(billing_type)` — Dynatrace's own AppEngine queries keep nulls |
 
 > <sub>**Sources:** [Trace a cost spike to its root cause (DT docs)](https://docs.dynatrace.com/docs/manage-your-costs/control/investigate-a-spike) — lists *"Missing dedup event.id"* as a common investigation mistake (pitfall #1). Pitfalls #2–#8 come from live tenant validation against the DPS Usage Details DEMO dashboard's queries (2026-05-19); #9 and #10 were re-read on a SaaS tenant 10/05/2026, and #10's fix is the filter in [Standard Function Calls consumption (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/appengine-functions/standard-function-calls).</sub>
@@ -646,7 +648,7 @@ A workable plan for putting in-tenant consumption visibility in place:
 <a id="summary"></a>
 ## Summary
 
-DPS consumption lives in two places — per-record in `dt.system.events` and pre-aggregated in `dt.billing.*`. The schema is per-capability with seven distinct unit-field families, and the three non-negotiable patterns (`dedup event.id`, `event.kind` filter, and the null-tolerant `billing_type` filter on AppEngine) appear in every well-formed query. The ready-made Usage dashboards are the bootstrap; the queries in §§5–9 are the building blocks. DQL totals will not exactly match the Subscription portal, and that is by design — the portal does subscription-currency conversion and reconciliation that DQL does not. Use both surfaces deliberately.
+DPS consumption lives in two places — per-record in `dt.system.events` and pre-aggregated in `dt.billing.*`. The schema is per-capability, and the three non-negotiable patterns (`dedup event.id`, `event.kind` filter, and the null-tolerant `billing_type` filter on AppEngine) appear in every well-formed query. The ready-made Usage dashboards are the bootstrap; the queries in §§5–9 are the building blocks. DQL totals will not exactly match the Subscription portal, and that is by design — the portal does subscription-currency conversion and reconciliation that DQL does not. Use both surfaces deliberately.
 
 ## Next Steps
 
