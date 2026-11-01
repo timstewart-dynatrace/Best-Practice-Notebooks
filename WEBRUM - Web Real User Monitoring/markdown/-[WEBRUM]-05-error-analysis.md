@@ -1,6 +1,6 @@
 # WEBRUM-05: Error Analysis
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 5 of 10 | **Created:** March 2026 | **Last Updated:** 10/23/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 5 of 10 | **Created:** March 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -27,7 +27,7 @@ JavaScript errors are among the most impactful issues affecting web application 
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Grail enabled |
 | **RUM Enabled** | Web applications with error capture active |
-| **Permissions** | `storage:events:read` |
+| **Permissions** | `storage:user.events:read`, `storage:user.sessions:read` |
 | **Previous Notebook** | WEBRUM-01: RUM Fundamentals |
 
 <a id="error-types"></a>

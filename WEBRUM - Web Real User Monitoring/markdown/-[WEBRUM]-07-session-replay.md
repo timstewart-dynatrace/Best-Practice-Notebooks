@@ -1,6 +1,6 @@
 # WEBRUM-07: Session Replay
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 7 of 10 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 7 of 10 | **Created:** March 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -28,7 +28,7 @@ Session Replay allows you to visually replay a user's interaction with your web 
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Session Replay license |
 | **Session Replay Enabled** | Configured for at least one web application |
-| **Permissions** | `storage:events:read`, Session Replay viewer permission |
+| **Permissions** | `storage:user.events:read`, `storage:user.sessions:read`, Session Replay viewer permission |
 | **Previous Notebooks** | WEBRUM-01: RUM Fundamentals, WEBRUM-04: Session Analysis |
 
 <a id="how-it-works"></a>
@@ -50,12 +50,14 @@ Dynatrace Session Replay captures the visual state of the web page as the user i
 | Mode | Description | Data Volume | Privacy Impact |
 |------|-------------|-------------|----------------|
 | **Visual replay** | Full DOM + CSS reconstruction | High | Highest — captures visible content |
-| **Resource capture** | Includes external resources (images, CSS files) | Very high | Captures all visual assets |
+| **Resource capture** | Stylesheets are captured and stored; images and fonts are retrieved from the original location at playback | Very high | Captures stylesheets |
 | **Minimal mode** | DOM structure only, no external resources | Low | Lower — placeholder images |
 
-> **Important:** Session Replay data is stored separately from RUM metrics and has its own retention period (typically 35 days by default in the classic model). Replay storage counts against your session replay quota.
+> **Important:** Session Replay data is stored separately from RUM metrics. In the classic model, the default retention for captured resources is 35 days. Replay storage counts against your session replay quota.
 
 > **Update (SaaS 1.343, July 2026 — staged tenant rollout) — Session Replay reaches general availability on Grail.** Replay data is stored natively in the Grail data lakehouse (`fetch user.replays`), with the video player, timeline, and multi-platform support built on that storage. On Grail-based tenants, replay retention follows the Grail bucket configuration rather than the classic quota model above. The classic model remains current for tenants that have not yet received 1.343 or still store replay in the classic surface — verify which model your tenant uses before planning retention.
+
+> <sub>**Sources:** [Configure Session Replay Classic for web applications (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/configure-session-replay-web) — *"Images and fonts aren't captured."*; *"The default retention time for captured resources is 35 days."*</sub>
 
 <a id="data-privacy"></a>
 
@@ -63,43 +65,48 @@ Dynatrace Session Replay captures the visual state of the web page as the user i
 
 Session Replay captures real user interactions, which may include sensitive data. Proper masking is essential for compliance with GDPR, CCPA, HIPAA, and other privacy regulations.
 
-### Masking Levels
+### Masking Options
 
-| Level | Behavior | Use Case |
-|-------|----------|----------|
-| **Open** | No masking — all content visible | Non-sensitive public pages only |
-| **Mask user input** | Input field values replaced with asterisks | Default — protects typed data |
-| **Mask all text** | All text content replaced with blocks | Strict privacy environments |
-| **Block element** | Entire elements replaced with placeholders | Specific sensitive components |
+| Option | What is masked | When to use |
+|--------|----------------|-------------|
+| **Mask all** | All texts, user input, attribute values, and images | Testing Session Replay, or confirming that confidential data is not collected |
+| **Mask user input** | All user input, including options in list boxes. Default since Dynatrace 1.262 | Confidential information comes only from user input |
+| **Allow list** | Everything in *Mask all*, except the elements you specify | The documented recommendation for most applications |
+| **Block list** | Only the elements you specify | You want to clear rules from the *Mask all* set, or add your own |
+
+*Mask all*, *Mask user input* and *Allow list* do not hide user interactions with elements. With *Block list*, you can choose to hide interactions with masked elements.
 
 ### HTML Attributes for Granular Control
 
 Apply masking directly in your HTML:
 
 ```html
-<!-- Mask specific input -->
-<input type="text" data-dtrum-mask="true" />
-
-<!-- Block entire section from replay -->
-<div data-dtrum-block="true">
+<!-- Mask this node and its descendants. RUM JavaScript 1.345+ also accepts data-dt-mask -->
+<div data-dtrum-mask>
   <p>Sensitive content here</p>
 </div>
 
-<!-- Allow recording of specific element (override page-level masking) -->
-<span data-dtrum-unmask="true">Public content</span>
+<!-- Unmask this element. Needs the allow-list entry described below -->
+<span data-dtrum-allow>Public content</span>
 ```
+
+`data-dtrum-allow` takes effect through the *Allow list* option: add one recording allow-list entry whose target element is the CSS selector `[data-dtrum-allow]`.
 
 ### CSS Selector Masking Rules
 
-Configure in **Settings > Web and mobile monitoring > Session Replay > Data privacy**:
+From the application settings, go to **General settings > Data privacy > Session Replay > Content masking preferences**, select *Allow list* or *Block list*, and add the rules. Elements are defined by CSS selector. With *Block list*, selectors like these name what gets masked:
 
 | Selector | Effect |
 |----------|--------|
 | `.credit-card-form input` | Mask all inputs in credit card forms |
 | `[data-sensitive]` | Mask elements with custom attribute |
-| `.pii-container` | Block entire PII containers |
+| `.pii-container` | Mask PII containers |
 
 > **Warning:** Always err on the side of over-masking. It is better to mask non-sensitive content than to accidentally capture PII. Conduct a privacy review before enabling Session Replay in production.
+
+> <sub>**Sources:**</sub>
+> - <sub>[Configure Session Replay Classic for web applications (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/configure-session-replay-web) — *"Mask user input is the default masking option starting with Dynatrace version 1.262"*; *"you can use data-dt-mask instead of data-dtrum-mask"*; *"General settings > Data privacy > Session Replay"*</sub>
+> - <sub>[Session Replay for strong privacy requirements (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay-latest/configure-session-replay-web/session-replay-strong-privacy-req-web) — *"Each HTML element that contains only allowed content can be marked with the attribute data-dtrum-allow"*</sub>
 
 <a id="configuration"></a>
 
@@ -131,7 +138,7 @@ Use capture rules to record specific session types:
 | Page complexity (DOM size) | More complex pages = larger snapshots |
 | Session duration | Longer sessions = more mutation data |
 | SPA vs. traditional | SPAs generate more mutations from in-page updates |
-| Resource capture enabled | Significantly increases storage (images, CSS) |
+| Resource capture enabled | Significantly increases storage (stylesheets) |
 
 <a id="finding-replays"></a>
 
@@ -204,7 +211,7 @@ The queries above filter for `characteristics.has_replay == true`. A `false` —
 | **Outside the sampling rate** | In community practice, the most frequent cause. The effective recording rate is the RUM cost and traffic control **multiplied by** the Session Replay one — at 50% × 20%, 90% of sessions correctly have no replay | Both cost and traffic control settings for the application (§3) |
 | **Replay disabled for the application** | Session Replay is configured per application, not globally — a tenant with replay enabled can still have applications without it | Settings → Session Replay, per application |
 | **Unsupported browser** | Session Replay publishes its own list of browser versions supported for recording, separate from RUM's; sessions from browsers outside it are not recorded | `browser.name` / `browser.version` on the session |
-| **A page blocked capture** | URL exclusion rules stop recording on matching pages, and page- or element-level privacy rules (`data-dtrum-block`, CSS selector block rules) suppress capture — sometimes on exactly the pages you care about (§2) | Session Replay URL exclusion and data-privacy configuration |
+| **A page blocked capture** | URL exclusion rules stop recording on matching pages, sometimes on exactly the pages you care about. Masking rules hide matched content in the replay (§2) | Session Replay URL exclusion and data-privacy configuration |
 | **Quota exhausted** | In community practice, where a consumption limit caps replay volume, eligible sessions stop being recorded once it is reached — confirm how your licensing applies before assuming this | Session Replay consumption |
 
 **Forthcoming — SaaS 1.344 (released 07/27/2026, staged tenant rollout from 07/29/2026): Session Replay reports the reason itself.** Users & Sessions gains specific information about why session recordings become unavailable, which collapses the elimination exercise below into a single read in the UI. Verify 1.344 has reached your tenant before relying on it; until then — and for any tenant still on an earlier sprint — the manual order below is the working path.
@@ -230,7 +237,7 @@ That order also sorts by what you can act on — 1 and 2 are configuration you c
 Session Replay is most powerful when correlated with performance data. Use DQL to find sessions that experienced specific performance issues, then review the replay to understand the visual impact.
 
 ```dql
-// Slow sessions with replay — sessions with poor page load times
+// Long sessions with replay (session duration, not load time)
 fetch user.sessions, from:-24h
 | filter dt.rum.user_type == "real_user"
 | filter isNotNull(characteristics.has_replay) and characteristics.has_replay == true

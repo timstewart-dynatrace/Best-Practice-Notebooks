@@ -1,6 +1,6 @@
 # WEBRUM-09: Migrating USQL to DQL
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 9 of 10 | **Created:** July 2026 | **Last Updated:** 10/23/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 9 of 10 | **Created:** July 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -55,7 +55,7 @@ The useful surprise is on the left: classic RUM on Grail preserves the USQL fiel
 | Source | Target | Nature of the change |
 |--------|--------|----------------------|
 | USQL on Gen2 | Classic RUM on Grail | Grammar only — SELECT/FROM/WHERE become fetch/filter/summarize; field names carry over |
-| USQL on Gen2 | New RUM | Grammar plus a full field-name translation; user.events splits into 17 event-type models |
+| USQL on Gen2 | New RUM | Grammar plus a full field-name translation; user.events splits into a set of event-type models (20 on 10/31/2026) |
 For environments where SVG doesn't render
 -->
 
@@ -188,17 +188,19 @@ Under New RUM the event-type models each expose their own fields — `rum_except
 | `stringProperties.<key>` | `stringProperties.<key>` | `session_properties.<key>` |
 | `bounce` | `userActionCount == 1` | `user_action_count == 1` — see note below |
 
-**Fields with no direct New RUM equivalent in the session model:** `city`, `continent`, `region` (only `geo.country.iso_code` is present), `userExperienceScore`, `matchingConversionGoals`, `newUser`, `numberOfRageClicks`. See [section 8](#what-does-not-translate).
+**Added in SaaS 1.348 (rollout from 10/12/2026, staged — verify on your tenant):** `userExperienceScore` maps to `experience.score` (`experimental`). `city` / `continent` / `region` map to `geo.city.name` / `geo.continent.name` / `geo.region.name` on `user.events`; on `user.sessions`, verify on your tenant. Until these reach you, section 8's working paths apply.
+
+**Fields with no direct New RUM equivalent in the session model:** `matchingConversionGoals`, `newUser`, `numberOfRageClicks`. See [section 8](#what-does-not-translate).
 
 **Bounce.** Dynatrace defines a bounced session as *"A session with only one user action or navigation"*. The rest of this series counts it as `user_action_count == 1`, which keeps sessions with zero user actions out of the bounce count; compare the result with the **Bounced Sessions** filter in Users & Sessions before treating the two as identical.
 
 **New RUM adds** counters USQL had no equivalent for: `navigation_count`, `page_summary_count`, `request_count`, `user_interaction_count`, `view_summary_count`, and a broken-out error family (`error.exception_count`, `error.http_4xx_count`, `error.http_5xx_count`, `error.csp_violation_count`, `error.anr_count`).
 
-> <sub>**Sources:** [User session structure (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/rum/user-sessions/user-session-structure) for the USQL column; live query of `dt.semantic_dictionary.models` (model `rum.user_session`, Dynatrace tenant, 07/23/2026) for the New RUM column; [User sessions in web frontends (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/web-frontends/concepts/user-sessions-web) — *"A session with only one user action or navigation is tagged as bounced."*</sub>
+> <sub>**Sources:** [User sessions — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-sessions) — *"Weighted average Experience Score for the user session"*; [User session structure (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/rum/user-sessions/user-session-structure) for the USQL column; live query of `dt.semantic_dictionary.models` (model `rum.user_session`, Dynatrace tenant, 07/23/2026) for the New RUM column; [User sessions in web frontends (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/web-frontends/concepts/user-sessions-web) — *"A session with only one user action or navigation is tagged as bounced."*</sub>
 
 > **`device.type` is being removed from the user-session model (Semantic Dictionary 1.348, released 08/25/2026).** A migrated USQL `device` query that lands on `device.type` stops resolving once 1.348 reaches your tenant.
 >
-> **No replacement is documented.** The same version adds a `client.*` family (`client.type`, `client.version`, `client.application.id`, and others) which *looks* like the successor, but the changelog states no mapping and this entry will not assert one. Verified against a live tenant on 09/09/2026: that tenant is still pre-1.348 — `device.type` is present on the `rum.user_session` model (`user.sessions`) and no `client.type` field exists yet — so the row above is accurate today and cannot responsibly be re-pointed until 1.348 lands.
+> **No replacement is documented.** The same version adds a `client.*` family (`client.type`, `client.version`, `client.application.id`, and others) which *looks* like the successor, but the changelog states no mapping and this entry will not assert one. The docs session-model page no longer lists `device.type`. Verified against a live tenant on 10/31/2026: `device.type` is still on the `rum.user_session` model and on 3,269 of 3,269 sessions in 24 h, and `client.type` on none, so the row above still holds there and cannot responsibly be re-pointed yet.
 >
 > The removal is scoped to the **user-session** model. `device.type` also sits on three `dt.system.events` RUM billing models (`real_user_monitoring_usage_event` and siblings) that the changelog does not touch, so consumption queries splitting by it are unaffected — see FINOPS-01.
 
@@ -212,7 +214,7 @@ Under New RUM the event-type models each expose their own fields — `rum_except
 | `name` | `action.name` | `interaction.name` / `ui_element.name` |
 | `type` | `action.type` | `characteristics.has_*` flags (`has_page_summary`, `has_navigation`, `has_request`, …) — not `characteristics.classifier` |
 | `duration` | `duration` | `duration` |
-| `application` | `application` | `dt.rum.application.entities` |
+| `application` | `application` | `frontend.name` |
 | `largestContentfulPaint` | `largestContentfulPaint` | `web_vitals.largest_contentful_paint` |
 | `firstInputDelay` | `firstInputDelay` | `web_vitals.first_input_delay` |
 | `cumulativeLayoutShift` | `cumulativeLayoutShift` | `web_vitals.cumulative_layout_shift` |
@@ -279,7 +281,7 @@ fetch user.sessions, from:-24h
 
 // --- Classic RUM on Grail ---
 fetch user.sessions, from:-24h
-| filter browser.name == "Chrome"
+| filter browserFamily == "Chrome"
 | summarize avg_duration = avg(duration)
 
 // --- New RUM ---
@@ -304,8 +306,9 @@ fetch user.sessions, from:-24h
 
 // --- New RUM ---
 // fetch user.sessions, from:-24h
-// | summarize total = count(),
-//     with_errors = countIf(error.count > 0),
+// | filter dt.rum.user_type == "real_user"
+// | summarize {total = count(),
+//     with_errors = countIf(error.count > 0)},
 //     by:{geo.country.iso_code}
 // | fieldsAdd error_pct = round(toDouble(with_errors) / toDouble(total) * 100.0, decimals: 1)
 // | sort error_pct desc
@@ -348,9 +351,9 @@ fetch user.events, from:-24h
 // fetch user.events, from:-24h
 // | filter characteristics.has_user_action == true
 // | filter isNotNull(web_vitals.largest_contentful_paint)
-// | summarize avg_lcp = avg(web_vitals.largest_contentful_paint),
-//     p90_lcp = percentile(web_vitals.largest_contentful_paint, 90),
-//     by:{dt.rum.application.entities}
+// | summarize {avg_lcp = avg(web_vitals.largest_contentful_paint),
+//     p90_lcp = percentile(web_vitals.largest_contentful_paint, 90)},
+//     by:{frontend.name}
 // | sort p90_lcp desc
 ```
 
@@ -361,20 +364,20 @@ fetch user.events, from:-24h
 |---|---|---|
 | `FUNNEL` | No DQL equivalent | Rebuild as sequential `countIf()` stages, or model the funnel as business events — see the BIZEV series |
 | `matchingConversionGoals` | Not in the New RUM session model | Conversion goals are a classic-application construct; express the goal as a filter on the action or as a business event |
-| `userExperienceScore` | Not in the New RUM session model | Apdex-style classification has to be derived from duration thresholds |
-| `city` / `continent` / `region` | Only `geo.country.iso_code` in New RUM | Country-level granularity only, unless enriched at ingest |
+| `userExperienceScore` | `experience.score` (`experimental`), SaaS 1.348, staged tenant rollout | Verify the field has reached your tenant. Until then, deriving an Apdex-style classification from duration thresholds remains the working path |
+| `city` / `continent` / `region` | `geo.city.name` / `geo.continent.name` / `geo.region.name` on `user.events` | SaaS 1.348, staged tenant rollout. On `user.sessions`, verify on your tenant: the 1.348 note says all events and sessions, while the session model page lists only `geo.country.iso_code`. Until then, country-level granularity on sessions remains the working path |
 | `newUser` | Not in the New RUM session model | Derive from user-id first-seen, or track as a session property |
-| `numberOfRageClicks` / `numberOfRageTaps` | Not a session-level counter in New RUM | Count the corresponding event-type records |
+| `numberOfRageClicks` / `numberOfRageTaps` | No rage-click field or event model in the dictionary (10/31/2026) | See WEBRUM-05 § 6 |
 | `KEYS` / `CONDITION` | No DQL equivalent | `KEYS` was USQL property discovery; use `fieldsSummary` or the Semantic Dictionary |
 
 **Two behavioural differences worth knowing before you trust a result:**
 
-- **Session windowing.** `fetch user.sessions, from:-24h` returns sessions by their timestamp within the window. Long sessions can begin outside a narrow window, so a correlation query over a short range can under-count. Widen the lookback and filter afterwards when session boundaries matter.
+- **Session windowing.** `fetch user.sessions, from:-24h` queries a time window. Long sessions can begin outside a narrow window, so a correlation query over a short range can under-count. Widen the lookback and filter afterwards when session boundaries matter.
 - **Closed sessions only.** USQL documented that only closed sessions are queryable. Expect a comparable lag before an in-flight session is complete in Grail, and do not treat the most recent minutes as final.
 
 **If `fetch user.sessions` returns nothing at all**, work through section 2 before assuming a field name is wrong — an unpopulated bucket, a missing `storage:user.sessions:read` scope, and a wrong field name all produce an empty result set, and only one of them is a query problem.
 
-> <sub>**Sources:** [Custom queries, segmentation, and aggregation of session data (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data) — `FUNNEL` limits, closed-session constraint, `KEYS`/`CONDITION`; live query of `dt.semantic_dictionary.models` for the absent-field determinations.</sub>
+> <sub>**Sources:** [Custom queries, segmentation, and aggregation of session data (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data) — `FUNNEL` limits, closed-session constraint, `KEYS`/`CONDITION`; live query of `dt.semantic_dictionary.models` for the absent-field determinations; [User sessions — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-sessions) — *"Weighted average Experience Score for the user session"*; [Dynatrace SaaS release notes 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"Rollout start on Oct 12, 2026"*; *"The following new attributes are available across all RUM events and sessions"*. **Dictionary:** no field containing `rage` on any `user.events` or `user.sessions` model, read 10/31/2026 (control: the same filter returned `characteristics.classifier` on 20 models).</sub>
 
 <a id="summary-and-next-steps"></a>
 ## 9. Summary and Next Steps
