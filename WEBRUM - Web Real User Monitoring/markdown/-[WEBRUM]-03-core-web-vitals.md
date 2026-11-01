@@ -1,6 +1,6 @@
 # WEBRUM-03: Core Web Vitals
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 3 of 10 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 3 of 10 | **Created:** March 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -28,7 +28,7 @@ Core Web Vitals (CWV) are Google's standardized metrics for measuring real-world
 | **Dynatrace Environment** | SaaS with Grail enabled |
 | **RUM Enabled** | Web applications with Core Web Vitals capture enabled |
 | **Browser Support** | CWV are Chromium-based only (Chrome, Edge); Safari/Firefox have partial support |
-| **Permissions** | `storage:events:read`, `storage:metrics:read` |
+| **Permissions** | `storage:user.events:read`, `storage:user.sessions:read`, `storage:metrics:read` |
 | **Previous Notebook** | WEBRUM-01: RUM Fundamentals |
 
 <a id="understanding-cwv"></a>

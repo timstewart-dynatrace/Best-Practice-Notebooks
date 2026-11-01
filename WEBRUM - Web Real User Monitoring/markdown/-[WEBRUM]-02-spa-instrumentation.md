@@ -1,6 +1,6 @@
 # WEBRUM-02: SPA Instrumentation
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 2 of 10 | **Created:** March 2026 | **Last Updated:** 10/23/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 2 of 10 | **Created:** March 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -28,7 +28,7 @@ Single-Page Applications (SPAs) present unique challenges for Real User Monitori
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Grail enabled |
 | **RUM Enabled** | At least one SPA with RUM injection active |
-| **Permissions** | `storage:events:read`, `storage:entities:read` |
+| **Permissions** | `storage:user.events:read`, `storage:user.sessions:read`, `storage:entities:read` |
 | **Knowledge** | Familiarity with SPA frameworks (Angular, React, or Vue.js) |
 | **Previous Notebook** | WEBRUM-01: RUM Fundamentals |
 
@@ -426,9 +426,13 @@ Add to your `Info.plist`:
 ```xml
 <key>DTXHybridApplication</key>
 <true/>
-<key>DTXMonitoredDomains</key>
+<key>DTXSetCookiesForDomain</key>
 <array>
-    <string>app.example.com</string>
+    <string>.example.com</string>
+</array>
+<key>DTXSetSecureCookiesForDomain</key>
+<array>
+    <string>.example.com</string>
 </array>
 ```
 
@@ -455,7 +459,9 @@ When hybrid monitoring is enabled, the Mobile OneAgent SDK sets a **`dtAdk` cook
 | `x-dtc` header | Optional, explicitly enabled — links **cross-origin** XHR actions to distributed traces where RUM cookies cannot reach; same-origin requests correlate via the RUM cookies |
 | `applicationId` | Routes beacons to the correct Dynatrace application |
 
-> **Important:** Only add your own domains to `domains` / `DTXMonitoredDomains`. Never instrument third-party WebViews (e.g., OAuth login pages, payment providers) — this can break functionality and violate privacy policies.
+> **Important:** Only add your own domains to `domains` / `DTXSetCookiesForDomain`. Never instrument third-party WebViews (e.g., OAuth login pages, payment providers) — this can break functionality and violate privacy policies.
+
+> <sub>**Sources:** [Instrument hybrid apps (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-hybrid-app) — *"configuration keys to allow OneAgent to pass cookies to WKWebView and domains specified in your app's Info.plist file"*.</sub>
 
 ### Step 5: Validate the Setup
 

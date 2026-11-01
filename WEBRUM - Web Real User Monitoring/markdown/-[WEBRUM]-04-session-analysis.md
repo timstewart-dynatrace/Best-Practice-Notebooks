@@ -1,6 +1,6 @@
 # WEBRUM-04: Session Analysis
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 4 of 10 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 4 of 10 | **Created:** March 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -28,7 +28,7 @@ User session analysis is the foundation of understanding how real users interact
 | **Dynatrace Environment** | SaaS with Grail enabled |
 | **RUM Enabled** | Web applications with session capture active |
 | **Session Properties** | Custom session properties configured (optional but recommended) |
-| **Permissions** | `storage:events:read` |
+| **Permissions** | `storage:user.events:read`, `storage:user.sessions:read` |
 | **Previous Notebook** | WEBRUM-01: RUM Fundamentals |
 
 <a id="session-properties"></a>
@@ -62,10 +62,12 @@ These are the New RUM names the queries below use. The classic names (`sessionId
 
 Define custom properties via **Settings > Web and mobile monitoring > Session and user action properties**. Common examples:
 
-- `session.user_id` — Authenticated user identifier
-- `session.plan_type` — Subscription tier (free, pro, enterprise)
-- `session.cart_value` — Shopping cart total
-- `session.ab_variant` — A/B test variant
+- `session_properties.user_id` — Authenticated user identifier
+- `session_properties.plan_type` — Subscription tier (free, pro, enterprise)
+- `session_properties.cart_value` — Shopping cart total
+- `session_properties.ab_variant` — A/B test variant
+
+> <sub>**Sources:** [User sessions — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-sessions) — *"Contains the value for the session property named"*.</sub>
 
 ```dql
 // Session/performance field vocabulary corrected 08/12/2026 (New RUM). Classic camelCase RUM

@@ -1,6 +1,6 @@
 # WEBRUM-01: Web RUM Fundamentals
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 1 of 10 | **Created:** March 2026 | **Last Updated:** 10/23/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 1 of 10 | **Created:** March 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -38,7 +38,7 @@ Practical impact for WEBRUM authors:
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Grail enabled |
 | **RUM Enabled** | At least one web application with RUM injection active |
-| **Permissions** | `storage:events:read`, `storage:entities:read` |
+| **Permissions** | `storage:user.events:read`, `storage:user.sessions:read`, `storage:smartscape:read`, `storage:entities:read` |
 | **Data** | At least 24 hours of RUM session data |
 
 <a id="how-dynatrace-rum-works"></a>
@@ -245,12 +245,12 @@ Let's explore the most common user actions:
 
 > **`dt.rum.application.id` is being deprecated (Semantic Dictionary 1.348, released 08/25/2026).** It moves from `stable` to `deprecated`. This series used to group by it; the per-application queries now group and filter by `frontend.name`, the stable primary field *"present on every user event and user session"* (corrected 10/14/2026). The change is still worth knowing if your own queries use the ID.
 >
-> **Deprecated is not removed.** Every query in this series keeps working; a deprecated field is a signal about where to point *new* work, not a break. Verified 09/09/2026 on the validation tenant, which is still pre-1.348 and returns `stable` for this field — so nothing has changed there yet.
+> **Deprecated is not removed.** Every query in this series keeps working; a deprecated field is a signal about where to point *new* work, not a break. Read 10/31/2026 on the validation tenant: its dictionary still returns `stable` for this field and has no row for the successor, so nothing has changed there yet.
 >
-> The changelog names no successor. Rather than guess one, check the dictionary when 1.348 reaches your tenant:
+> The User events page names the successor, `dt.rum.instrumentation.id`. Check the dictionary on your own tenant:
 > `fetch dt.semantic_dictionary.fields | filter name == "dt.rum.application.id" | fields name, stability, description`
 
-> <sub>**Sources:** [Enrich RUM telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-rum) — *"This primary field is present on every user event and user session; its value comes from the frontend nodes defined in Dynatrace."* **Dictionary:** `frontend.name` (`stable`), `dt.rum.application.id` (`stable`), read 10/14/2026.</sub>
+> <sub>**Sources:** [Enrich RUM telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-rum) — *"This primary field is present on every user event and user session; its value comes from the frontend nodes defined in Dynatrace."* [User events — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events) — `dt.rum.application.id` *"deprecated Replaced with dt.rum.instrumentation.id"*. **Dictionary:** `frontend.name` (`stable`), `dt.rum.application.id` (`stable`), no row for `dt.rum.instrumentation.id`, read 10/31/2026.</sub>
 
 ```dql
 // Field vocabulary corrected 08/12/2026 — this series targets **New RUM**, but was written

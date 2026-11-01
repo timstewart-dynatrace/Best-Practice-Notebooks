@@ -1,6 +1,6 @@
 # WEBRUM-06: Performance Analysis
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 6 of 10 | **Created:** March 2026 | **Last Updated:** 10/05/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 6 of 10 | **Created:** March 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -27,7 +27,7 @@ Web performance directly impacts user experience, conversion rates, and SEO rank
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Grail enabled |
 | **RUM Enabled** | Web applications with detailed timing capture |
-| **Permissions** | `storage:events:read` |
+| **Permissions** | `storage:user.events:read`, `storage:user.sessions:read` |
 | **Previous Notebooks** | WEBRUM-01: RUM Fundamentals, WEBRUM-03: Core Web Vitals |
 
 <a id="page-load-waterfall"></a>

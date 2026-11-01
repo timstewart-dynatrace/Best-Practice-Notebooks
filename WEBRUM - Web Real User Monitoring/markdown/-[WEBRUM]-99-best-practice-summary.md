@@ -1,6 +1,6 @@
 # WEBRUM-99: Best Practice Summary
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 10 of 10 | **Created:** March 2026 | **Last Updated:** 10/19/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 10 of 10 | **Created:** March 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -28,7 +28,7 @@ This notebook consolidates every actionable best practice from the WEBRUM series
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Grail enabled |
 | **RUM Enabled** | At least one web application with RUM injection active |
-| **Permissions** | `storage:events:read`, `storage:metrics:read`, `storage:entities:read` |
+| **Permissions** | `storage:user.events:read`, `storage:user.sessions:read`, `storage:metrics:read`, `storage:entities:read` |
 | **Previous Notebooks** | WEBRUM-01 through WEBRUM-08 (for full context) |
 
 <a id="rum-agent-configuration"></a>
@@ -42,7 +42,7 @@ This notebook consolidates every actionable best practice from the WEBRUM series
 | 3 | Use manual injection for CDN/static-hosted apps | Add RUM `<script>` tag to `<head>` before all other scripts when no server-side OneAgent exists | Recommended | WEBRUM-02 |
 | 4 | Use agentless RUM only as last resort | Select agentless monitoring only when OneAgent cannot be deployed at all | Optional | WEBRUM-02 |
 | 5 | Set session timeout to 30 minutes | Keep the default 30-minute inactivity timeout for session boundaries | Recommended | WEBRUM-01 |
-| 6 | Enable Fetch API monitoring | **Settings > Web and mobile monitoring > Async web requests and SPAs > Fetch requests**: **Enabled** | Critical | WEBRUM-02 |
+| 6 | Enable Fetch API monitoring | Application settings → **Capturing > Async web requests and SPAs > Generic support > Capture fetch() requests**: **Enabled** | Critical | WEBRUM-02 |
 | 7 | Deploy RUM + Synthetic together | Use synthetic for availability SLAs and baselines; use RUM for real user experience | Critical | WEBRUM-01, WEBRUM-08 |
 | 7a | Tag RUM data with OpenPipeline DQL processors | Processor on `frontend.name` with `isNull(primary_tags.<key>)` in all six RUM scopes; `arrayContains(frontend.name, …)` in User sessions | Recommended | WEBRUM-01 |
 
@@ -52,7 +52,7 @@ This notebook consolidates every actionable best practice from the WEBRUM series
 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---|---|---|---|
-| 8 | Enable SPA route change capture | **Settings > Web and mobile monitoring > Async web requests and SPAs > SPA route changes**: **Enabled** | Critical | WEBRUM-02 |
+| 8 | Enable SPA route change capture | Application settings → **Capturing > Async web requests and SPAs > SPA route changes**: **Enabled** | Critical | WEBRUM-02 |
 | 9 | Enable Async Web Requests capture | **Settings > Web and mobile monitoring > Async web requests and SPAs > Async web requests**: **Enabled** | Critical | WEBRUM-02 |
 | 10 | Configure user action naming rules for dynamic URLs | Replace dynamic segments: `/users/{id}` becomes `/users/{*}` via **Settings > Web and mobile monitoring > User action naming** | Critical | WEBRUM-02 |
 | 11 | Use `data-dtname` attribute on interactive elements | Add `data-dtname="Checkout"` to buttons/links for meaningful action names | Recommended | WEBRUM-02 |
@@ -62,7 +62,7 @@ This notebook consolidates every actionable best practice from the WEBRUM series
 | 15 | Separate mobile WebView and desktop into distinct RUM apps | Create two Dynatrace applications; use application detection rules based on User-Agent string | Recommended | WEBRUM-02 |
 | 16 | Add custom User-Agent suffix for WebView detection | Android: `setUserAgentString()` / iOS: `applicationNameForUserAgent` with app name + version | Recommended | WEBRUM-02 |
 | 17 | Enable hybrid WebView monitoring in mobile SDK | Android: `hybridWebView { enabled true; domains "your-domain.com" }` / iOS: `DTXHybridApplication = true` | Recommended | WEBRUM-02 |
-| 18 | Never instrument third-party WebViews | Only add your own domains to `domains` / `DTXMonitoredDomains` — never OAuth, payment, or external pages | Critical | WEBRUM-02 |
+| 18 | Never instrument third-party WebViews | Only add your own domains to `domains` / `DTXSetCookiesForDomain` — never OAuth, payment, or external pages | Critical | WEBRUM-02 |
 
 <a id="core-web-vitals-thresholds"></a>
 
@@ -122,8 +122,8 @@ This notebook consolidates every actionable best practice from the WEBRUM series
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---|---|---|---|
 | 49 | Set Session Replay default masking to "Mask user input" | **Settings > Session Replay > Data privacy > Default masking level**: **Mask user input** | Critical | WEBRUM-07 |
-| 50 | Block entire PII containers with `data-dtrum-block="true"` | Add `data-dtrum-block="true"` to any `<div>` containing sensitive data (SSN, CC, health info) | Critical | WEBRUM-07 |
-| 51 | Add CSS masking rules for all form inputs with sensitive data | **Settings > Session Replay > Data privacy**: add selectors like `.credit-card-form input`, `[data-sensitive]` | Critical | WEBRUM-07 |
+| 50 | Mask elements holding sensitive data with `data-dtrum-mask` | Add `data-dtrum-mask` to any element holding sensitive data (SSN, CC, health info) | Critical | WEBRUM-07 |
+| 51 | Add CSS masking rules for all form inputs with sensitive data | Application settings → **General settings > Data privacy > Session Replay > Content masking preferences**, *Allow list* or *Block list*: add selectors like `.credit-card-form input`, `[data-sensitive]` | Critical | WEBRUM-07 |
 | 52 | Set replay sampling rate based on traffic volume | High-traffic production: **1-5%**; internal apps: **10-25%**; pre-prod: **50-100%** | Recommended | WEBRUM-07 |
 | 53 | Enable error-triggered replay capture | Configure conditional capture: automatically record sessions when JavaScript errors occur | Recommended | WEBRUM-07 |
 | 54 | Enable frustration-triggered replay capture | Configure conditional capture for sessions with rage clicks or exit intent | Recommended | WEBRUM-07 |
@@ -138,7 +138,7 @@ This notebook consolidates every actionable best practice from the WEBRUM series
 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---|---|---|---|
-| 59 | Define custom session properties for business context | Configure **Settings > Web and mobile monitoring > Session and user action properties** with: `session.user_id`, `session.plan_type`, `session.cart_value`, `session.ab_variant` | Critical | WEBRUM-04 |
+| 59 | Define custom session properties for business context | Configure **Settings > Web and mobile monitoring > Session and user action properties** with: `session_properties.user_id`, `session_properties.plan_type`, `session_properties.cart_value`, `session_properties.ab_variant` | Critical | WEBRUM-04 |
 | 60 | Target bounce rate below 40% | **% of sessions with user_action_count == 1 < 40%** | Recommended | WEBRUM-04, WEBRUM-08 |
 | 61 | Segment sessions by engagement level | Bucket sessions: No actions (0), Bounce (1 action), Low (2-3), Medium (4-10), High (10+) | Recommended | WEBRUM-04 |
 | 62 | Track entry and exit pages | Use `takeFirst(page.detected_name)` and `takeLast(page.detected_name)` on page summaries grouped by `dt.rum.session.id` to map user journeys | Recommended | WEBRUM-04 |
@@ -164,7 +164,7 @@ This notebook consolidates every actionable best practice from the WEBRUM series
 | 75 | Alert on CWV regression | Threshold: **LCP p75 > 4 seconds** sustained for **30 minutes** | Recommended | WEBRUM-08 |
 | 76 | Use metric event evaluation window of 15 minutes | **Settings > Anomaly detection > Metric events**: evaluation window **15m**, sliding window **5m** | Recommended | WEBRUM-08 |
 | 77 | Prefer Dynatrace Intelligence anomaly detection over static thresholds in production | Dynatrace Intelligence automatically baselines normal behavior, reducing false positives from seasonal patterns | Recommended | WEBRUM-08 |
-| 78 | Combine RUM and synthetic in a single dashboard | Use `append` to show side-by-side comparison: RUM real-user metrics vs synthetic clean-room metrics | Recommended | WEBRUM-08 |
+| 78 | Combine RUM and synthetic in a single dashboard | Compare the two WEBRUM-08 § 7 queries side by side: RUM real-user metrics vs synthetic clean-room metrics | Recommended | WEBRUM-08 |
 | 79 | Track CWV pass rate as executive KPI | Target: **> 75% of page loads meeting all three CWV thresholds** | Recommended | WEBRUM-08 |
 
 > **Where new alerts are created (SaaS 1.344).** Row 76 configures the legacy metric-events surface; WEBRUM-08 recommends Davis anomaly detectors (custom alerts) for new RUM alerting. *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the **Anomaly Detection** app is where custom alerts are created, and WEBRUM-08 builds the modern path there.

@@ -1,6 +1,6 @@
 # WEBRUM-08: Dashboards and Alerting
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 8 of 10 | **Created:** March 2026 | **Last Updated:** 10/23/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 8 of 10 | **Created:** March 2026 | **Last Updated:** 10/31/2026
 
 ## Overview
 
@@ -27,7 +27,7 @@ An effective RUM monitoring strategy requires both visibility (dashboards) and p
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Grail enabled |
 | **RUM Enabled** | Web applications with at least 7 days of data |
-| **Permissions** | `storage:events:read`, `storage:metrics:read`, dashboard create permissions |
+| **Permissions** | `storage:user.events:read`, `storage:user.sessions:read`, `storage:metrics:read`, dashboard create permissions |
 | **Previous Notebooks** | All prior WEBRUM notebooks (01-07) |
 
 <a id="executive-kpis"></a>
@@ -350,7 +350,7 @@ RUM and synthetic monitoring complement each other. Combining them provides a co
 
 ### Side-by-Side Comparison
 
-Use `append` to compare RUM and synthetic performance for the same application:
+Compare the two queries below to see RUM and synthetic performance for the same application:
 
 ```dql
 // RUM session summary — real user experience
