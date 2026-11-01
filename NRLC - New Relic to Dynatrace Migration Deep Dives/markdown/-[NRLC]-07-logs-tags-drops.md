@@ -204,7 +204,7 @@ Migration is a chance to reset the cost profile. Common patterns:
 | Tier infra logs to 14 days | Route to a 14-day bucket (vs. 35-day default) |
 | Tier compliance logs to 365 days | Route to a usage-based pricing bucket |
 | Extract metrics from logs | OpenPipeline metric extraction (avoids querying raw logs) |
-| Sample low-value high-volume logs | OpenPipeline sampling processor |
+| Reduce low-value high-volume logs | Sample at the source or forwarder; OpenPipeline has no log sampling processor. In OpenPipeline, use a Drop record condition, or No storage assignment to keep metric extraction |
 
 Combined, these typically yield **30–60% lower DPS spend** than a default-bucket-only deployment. See **ORGNZ-02 / ORGNZ-99** for the full Grail bucket design pattern.
 
