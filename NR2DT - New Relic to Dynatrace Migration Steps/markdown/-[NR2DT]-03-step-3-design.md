@@ -136,7 +136,7 @@ value: prod
 
 - Drop health-check logs (`matchesValue(content, "*GET /health*")`)
 - Drop DEBUG logs in production
-- Sample sidecar proxy logs
+- Reduce sidecar proxy logs at the source or forwarder (OpenPipeline has no log sampling processor)
 
 <a id="gate"></a>
 ## 6. Step Exit Criteria
