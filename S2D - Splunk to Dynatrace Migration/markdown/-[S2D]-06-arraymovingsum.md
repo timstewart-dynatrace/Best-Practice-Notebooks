@@ -1,6 +1,6 @@
 # S2D-06: ArrayMovingSum for Extended Timeframes
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 6 of 9 | **Created:** January 2026 | **Last Updated:** 10/14/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 6 of 9 | **Created:** January 2026 | **Last Updated:** 11/02/2026
 
 ## Overview
 
@@ -28,7 +28,7 @@ This notebook explains how to use `arrayMovingSum` to create rolling aggregation
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Grail enabled |
-| **Permissions** | `logs.read` |
+| **Permissions** | `storage:logs:read`, `storage:buckets:read` |
 | **Knowledge** | Basic DQL and array functions |
 
 ## Learning Objectives

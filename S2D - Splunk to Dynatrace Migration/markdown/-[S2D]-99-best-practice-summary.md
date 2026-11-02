@@ -1,6 +1,6 @@
 # S2D-99: Best Practice Summary
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/29/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 11/02/2026
 
 ## Overview
 
@@ -28,7 +28,7 @@ This notebook consolidates every actionable best practice from the S2D (Splunk t
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Grail enabled |
-| **Permissions** | `logs.read`, `settings.write`, `documents.write`, `automation.write` |
+| **Permissions** | `storage:logs:read`, `storage:buckets:read`, `settings:objects:write`, `document:documents:write`, `automation:workflows:write` |
 | **Splunk Access** | Ability to view existing queries, alerts, dashboards |
 | **Knowledge** | Familiarity with both Splunk SPL and Dynatrace DQL |
 
@@ -106,7 +106,7 @@ This notebook consolidates every actionable best practice from the S2D (Splunk t
 | 42 | Specify timeframe explicitly in the DQL query, not from dashboard | `fetch logs, from:now()-7d` in the workflow query itself | Critical | Alerting |
 | 43 | Workflow queries do NOT require `makeTimeseries` output | Use `summarize` to return a single aggregated value | Recommended | Alerting |
 | 44 | Set event timeout in the JavaScript event creation step | `timeout: 15` (minutes) to auto-expire events | Recommended | Alerting |
-| 45 | Workflow events do NOT auto-close or auto-update | Design event lifecycle accordingly; events expire by timeout only | Critical | Alerting |
+| 45 | Workflow-posted events: refresh by resending; timeout defaults to 15 minutes, capped at 360 | [Ingest an event (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event): *"Problem-opening events can be refreshed and therefore kept open by sending the same payload again."* *"If not set, 15 is used."* *"capped to a maximum of 360 minutes (6 hours)"* | Critical | Alerting |
 | 46 | Workflow events are NOT correlated by Dynatrace Intelligence | No root-cause analysis or problem grouping | Recommended | Alerting |
 | 47 | Account for workflow license consumption | Every standard workflow is billed per hour it exists, regardless of how often it runs; the DQL it executes is billed separately as query consumption | Recommended | Licensing |
 | 48 | For business-hours-only alerting, filter by hour in the Dynatrace Intelligence query instead of using a Workflow | `fieldsAdd hour = getHour(timestamp, timezone:"America/New_York")` then `filter hour >= 8 and hour < 18` (queries run in UTC; set your time zone) | Recommended | Alerting |
@@ -172,7 +172,7 @@ This notebook consolidates every actionable best practice from the S2D (Splunk t
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|----------------|----------|----------|
-| 81 | Always specify a time range on `fetch` | `fetch logs, from:-1h` (never bare `fetch logs`) | Critical | Performance |
+| 81 | Always specify a time range on `fetch`, except in a custom-alert query | `fetch logs, from:-1h`; for a custom alert, [DQL writing guide (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/anomaly-detection-dql-best-practice): *"Don't use from: and to: when creating a DQL query for the custom alert."* | Critical | Performance |
 | 82 | Filter immediately after `fetch` | Place `filter` commands before any `fieldsAdd`, `parse`, or `summarize` | Critical | Performance |
 | 83 | Use `==` for exact matches, `matchesPhrase` for token search | `==` is faster than `~` or `matchesPhrase` when the full value is known | Recommended | Performance |
 | 84 | Target specific Grail buckets | `fetch logs, bucket:{"app_logs_*"}` to avoid scanning all buckets | Recommended | Performance |

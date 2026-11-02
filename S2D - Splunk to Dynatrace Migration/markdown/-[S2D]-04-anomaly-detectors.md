@@ -1,6 +1,6 @@
 # S2D-04: Alert Migration - Anomaly Detectors
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 10/23/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 11/02/2026
 
 ## Overview
 
@@ -9,7 +9,7 @@ This notebook explains how to translate Splunk alert conditions into Dynatrace A
 ![Splunk vs Dynatrace Alerting](images/04-splunk-vs-dynatrace-alerting.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
-| Aspect | Splunk | Dynatrace |
+| Aspect | Splunk (scheduled alerts) | Dynatrace |
 |---|--------|------------|
 | Execution | Scheduled | Continuous (every minute) |
 | Evaluation | Single point-in-time | Sliding window |
@@ -37,7 +37,7 @@ For environments where SVG doesn't render
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Grail enabled |
-| **Permissions** | `logs.read`, `settings.write` |
+| **Permissions** | `storage:logs:read`, `storage:buckets:read`, `settings:objects:write` |
 | **Knowledge** | Understanding of source Splunk alert logic |
 
 ## Learning Objectives
@@ -53,7 +53,7 @@ By the end of this notebook, you will be able to:
 ## Splunk vs Dynatrace Alerting
 ### Splunk Alerting Model
 
-In Splunk, alerts are **scheduled queries** that:
+[Alert types (Splunk docs)](https://help.splunk.com/en/splunk-enterprise/alert-and-respond/alerting-manual/10.6/choose-an-alert-type/alert-types): *"There are two alert types, scheduled and real-time."* This section covers scheduled alerts, which:
 - Run at defined intervals (e.g., every 5 minutes)
 - Evaluate a query over a timeframe (e.g., last 15 minutes)
 - Trigger when results exceed a threshold (e.g., count > 10)

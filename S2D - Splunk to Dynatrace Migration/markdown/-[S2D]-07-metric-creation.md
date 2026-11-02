@@ -1,6 +1,6 @@
 # S2D-07: Metric Creation from Logs
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 10/05/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 11/02/2026
 
 ## Overview
 
@@ -29,7 +29,7 @@ This notebook explains when to request metric extraction and how to provide the 
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with OpenPipeline |
-| **Permissions** | `logs.read`, OpenPipeline access (typically platform team) |
+| **Permissions** | `storage:logs:read`, `storage:buckets:read`, OpenPipeline access (typically platform team) |
 | **Knowledge** | Completed SPL to DQL translation |
 
 ## Learning Objectives
@@ -157,7 +157,7 @@ fetch logs, from:-24h
 | **Dimensions** | `k8s.deployment.name`, `k8s.namespace.name` |
 | **Metric Name** | `log.ecommerce.error_count` |
 
-`status == "ERROR"` covers every error-or-worse level (SEVERE, ERROR, CRITICAL, ALERT, EMERGENCY). Confirm with your platform team that `status` is populated before the metric-extraction stage of your pipeline; if it is not, list the levels explicitly instead.
+`status == "ERROR"` covers every error-or-worse level (SEVERE, ERROR, CRITICAL, ALERT, FATAL, EMERGENCY; [Automatic log enrichment (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-api/lma-log-data-transformation)). Confirm with your platform team that `status` is populated before the metric-extraction stage of your pipeline; if it is not, list the levels explicitly instead.
 
 <a id="best-practices"></a>
 ## Best Practices
