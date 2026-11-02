@@ -161,7 +161,7 @@ fetch logs
 > timeseries count = sum(dt.log.status_per_entity_count), filter:{status == "ERROR" and k8s.cluster.name == "production" and k8s.workload.name == "checkout-service"}, by:{dt.entity.cloud_application}, interval:1m
 > ```
 >
-> Confirm the metric exists on your tenant first (`metrics | filter metric.key == "dt.log.status_per_entity_count"`). For a condition it cannot express, extract your own metric at ingest (FAQ-09, OPIPE), and keep the log query only where no metric fits. The thresholds below apply to either form.
+> **Compare the metric with your logs for each target before you rely on a workload filter.** On that tenant on 11/02/2026, the `hipstershop` namespace had 133,369 metric records in an hour with no `k8s.workload.name` and 33 with one, while its logs carried no `k8s.workload.name` at all. An alert on a filter that matches nothing never fires, and nothing warns you. Confirm the metric exists on your tenant first (`metrics | filter metric.key == "dt.log.status_per_entity_count"`). For a condition it cannot express, extract your own metric at ingest (FAQ-09, OPIPE), and keep the log query only where no metric fits. The thresholds below apply to either form.
 >
 > <sub>**Sources:** [Log alerts (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/alerting-on-logs) — *"Keep in mind that these queries are executed every minute, which can increase license consumption."*; *"This method is not typically recommended as the primary alerting strategy."* [Log Management & Analytics - Query (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/log-analytics/dps-log-query) — *"It is calculated per gibibyte scanned (GiB scanned)."*</sub>
 
