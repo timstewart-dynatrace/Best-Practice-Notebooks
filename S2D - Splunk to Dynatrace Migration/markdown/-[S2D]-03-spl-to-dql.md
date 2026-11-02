@@ -1,6 +1,6 @@
 # S2D-03: SPL to DQL Translation
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 3 of 9 | **Created:** January 2026 | **Last Updated:** 10/14/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 3 of 9 | **Created:** January 2026 | **Last Updated:** 11/02/2026
 
 ## Overview
 
@@ -38,7 +38,7 @@ For environments where SVG doesn't render
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS or Managed with Grail |
-| **Permissions** | `logs.read` |
+| **Permissions** | `storage:logs:read`, `storage:buckets:read` |
 | **Knowledge** | Familiarity with source SPL queries |
 
 ## Learning Objectives
@@ -65,7 +65,7 @@ By the end of this notebook, you will be able to:
 | `head 10` | `limit 10` | Limit results |
 | `eval new=field1+field2` | `fieldsAdd new = field1 + field2` | Calculate fields |
 | `rename old AS new` | `fieldsRename old, alias:new` | Rename fields |
-| `dedup field` | `dedup field` | Keeps the first record per value; add `sort:{…}` to choose which |
+| `dedup field` | `dedup field` | Keeps the first record per value; add `sort:{…}` to choose which. Nulls differ: DQL keeps one record for null values, while Splunk drops them by default ([dedup (Splunk docs)](https://help.splunk.com/en/splunk-enterprise/search/spl-search-reference/10.6/search-commands/dedup): *"Default: false. All events where any of the selected fields are null are dropped."*) |
 
 ### String Matching
 

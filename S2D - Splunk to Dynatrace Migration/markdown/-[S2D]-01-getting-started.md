@@ -1,6 +1,6 @@
 # S2D-01: Splunk to Dynatrace Migration - Getting Started
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 10/29/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 11/02/2026
 
 ## Overview
 
@@ -56,7 +56,7 @@ These changes reinforce the Gen3-first migration baseline.
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Grail enabled |
-| **Permissions** | `logs.read`, `settings.read` |
+| **Permissions** | `storage:logs:read`, `storage:buckets:read`, `settings:objects:read` |
 | **Splunk Access** | Ability to view existing queries, alerts, dashboards |
 | **Knowledge** | Basic familiarity with both Splunk SPL and Dynatrace DQL |
 

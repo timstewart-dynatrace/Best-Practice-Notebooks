@@ -1,6 +1,6 @@
 # S2D-08: Dashboard Migration Best Practices
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 8 of 9 | **Created:** January 2026 | **Last Updated:** 10/05/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 8 of 9 | **Created:** January 2026 | **Last Updated:** 11/02/2026
 
 ## Overview
 
@@ -25,7 +25,7 @@ This notebook provides guidance for migrating Splunk dashboards to Dynatrace. Wh
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Dashboards |
-| **Permissions** | `documents.write`, `logs.read` |
+| **Permissions** | `document:documents:write`, `storage:logs:read`, `storage:buckets:read` |
 | **Knowledge** | Completed SPL to DQL translation (S2D-03) |
 
 ## Learning Objectives
@@ -140,11 +140,14 @@ fetch logs, from:-1h
 
 Dynatrace dashboards support variables for interactive filtering:
 
-| Variable Type | Use Case |
+| Variable Type | What it is |
 |--------------|----------|
-| Text | Free-form input |
-| Query-based | Dynamic dropdown from query |
-| Static | Predefined options |
+| DQL | *"the value is returned from a query you enter when you define the variable."* |
+| Code | *"the value is returned from code you enter when you define the variable."* |
+| List | *"a comma-separated values (CSV) list of values."* |
+| Free Text | *"free text. You can enter a Default value."* |
+
+> <sub>**Sources:** [Variable component (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/dashboards-new/components/dashboard-component-variable).</sub>
 
 ### Using Variables in Queries
 

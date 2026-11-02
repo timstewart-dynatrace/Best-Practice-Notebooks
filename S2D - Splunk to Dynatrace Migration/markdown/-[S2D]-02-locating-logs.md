@@ -1,6 +1,6 @@
 # S2D-02: Locating Logs in Dynatrace
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 2 of 9 | **Created:** January 2026 | **Last Updated:** 10/05/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 2 of 9 | **Created:** January 2026 | **Last Updated:** 11/02/2026
 
 ## Overview
 
@@ -40,7 +40,7 @@ For environments where SVG doesn't render
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS or Managed with Grail |
-| **Permissions** | `logs.read`, `settings.read` |
+| **Permissions** | `storage:logs:read`, `storage:buckets:read`, `settings:objects:read` |
 | **Splunk Access** | Ability to run queries against source indexes |
 | **Infrastructure Knowledge** | Understanding of application deployment topology |
 

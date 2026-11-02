@@ -1,6 +1,6 @@
 # S2D-05: Alert Migration - Workflow-Based Alerts
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 5 of 9 | **Created:** January 2026 | **Last Updated:** 10/14/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 5 of 9 | **Created:** January 2026 | **Last Updated:** 11/02/2026
 
 ## Overview
 
@@ -39,7 +39,7 @@ For environments where SVG doesn't render
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Workflows enabled |
-| **Permissions** | `automation.write`, `logs.read` |
+| **Permissions** | `automation:workflows:write`, `storage:logs:read`, `storage:buckets:read` |
 | **Knowledge** | Understanding of Dynatrace Workflows |
 
 ## Learning Objectives
@@ -90,8 +90,10 @@ Before choosing workflows, consider these limitations:
 | **License consumption** | Every standard workflow is billed per hour it exists, regardless of how often it runs; the DQL it runs is billed separately as query consumption |
 | **Setup effort** | More complex than anomaly detectors |
 | **Event handling** | Manual event creation required |
-| **No auto-update** | Events won't update or auto-close |
+| **Event lifetime** | *"Problem-opening events can be refreshed and therefore kept open by sending the same payload again."* Timeout: *"If not set, 15 is used."* It is *"capped to a maximum of 360 minutes (6 hours)"* |
 | **No Dynatrace Intelligence correlation** | Won't be correlated with other problems |
+
+> <sub>**Sources:** [Ingest an event (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event).</sub>
 
 <a id="basic-alerting-workflow-structure"></a>
 ## Basic Alerting Workflow Structure
@@ -220,25 +222,25 @@ fetch logs, from:now()-24h
 | filter status == "ERROR"
 | summarize error_count = count(), by:{k8s.deployment.name, k8s.namespace.name, dt.entity.cloud_application}
 | filter error_count > 100
-| lookup [smartscapeNodes "K8S_DEPLOYMENT" | fields id, id_classic],
+| lookup [smartscapeNodes "K8S_DEPLOYMENT", "K8S_STATEFULSET", "K8S_DAEMONSET", "K8S_REPLICASET", "K8S_JOB", "K8S_CRONJOB" | fields id, id_classic],
     sourceField: dt.entity.cloud_application, lookupField: id_classic, fields:{smartscape_id = id}
 | sort error_count desc
 | limit 5
 ```
 
-Executed against the validation tenant over 24 hours on 10/05/2026, the top five breaching rows resolved like this:
+Executed against the validation tenant over 24 hours on 11/02/2026, the top five breaching rows resolved like this:
 
 | `k8s.deployment.name` | `k8s.namespace.name` | `error_count` | resolved `smartscape_id` |
 |---|---|---:|---|
-| `fluent-bit` | `dynatrace-fluent-bit` | 1,109,094 | *null* |
-| *(null)* | `online-boutique` | 1,087,312 | *null* |
-| *(null)* | `kube-system` | 247,191 | *null* |
-| `recommendationservice-*` | `hipstershop` | 197,551 | `K8S_DEPLOYMENT-184217F70116D1CD` |
-| *(null)* | *(null)* | 144,243 | *null* |
+| `fluent-bit` | `dynatrace-fluent-bit` | 1,117,049 | `K8S_DAEMONSET-E24C5E76BAC4EF6B` |
+| *(null)* | `online-boutique` | 1,086,402 | *null* |
+| `recommendationservice-*` | `hipstershop` | 196,718 | `K8S_DEPLOYMENT-184217F70116D1CD` |
+| *(null)* | *(null)* | 142,577 | *null* |
+| *(null)* | `kube-system` | 140,685 | *null* |
 
-**Four of the top five do not resolve, including the two largest.** The `fluent-bit` logs carry a `dt.entity.cloud_application` value with no matching Smartscape deployment node. The other three unresolved rows carry no deployment context at all.
+**Three of the top five do not resolve, including the second largest.** All three carry no `dt.entity.cloud_application` value, so there is nothing to look up. The lookup spans all six workload node types because a `dt.entity.cloud_application` value can map to any of them: the `fluent-bit` row resolves to a DaemonSet, not a Deployment.
 
-Skip those rows rather than sending an unattributed event for them. An event you cannot attribute is worse than no event: it lands on the environment entity, and on the validation tenant above, problems attached to the environment alone averaged 14.7 events each and named nothing actionable. No tuning will stop it. If a workload you care about lands in that group, the fix is upstream — get the workload properly monitored — not in the alerting template.
+Skip the rows that stay null rather than sending an unattributed event for them. An event you cannot attribute is worse than no event: it lands on the environment entity, and on the validation tenant above, problems attached to the environment alone averaged 14.7 events each and named nothing actionable. No tuning will stop it. If a workload you care about lands in that group, the fix is upstream — get the workload properly monitored — not in the alerting template.
 
 To find detectors already failing this way in your tenant, AIOPS-02 §8 ranks them by firing count and shows which are unattributed; AIOPS-03 §1 covers the correlation rules themselves, and ALERT-99 §3 explains which Davis data object to count when you audit.
 
@@ -330,8 +332,8 @@ This preserves the benefits of Dynatrace Intelligence while limiting alert times
    - A workflow *can* send email or Slack directly (*"Automate sending out-of-the-box emails based on the events and schedules defined for your workflows."*), but that bypasses correlation
 
 2. **Event lifecycle is manual**
-   - Events won't auto-update or auto-close
-   - Consider event timeout settings
+   - *"Problem-opening events can be refreshed and therefore kept open by sending the same payload again."*
+   - Timeout: *"If not set, 15 is used."* It is *"capped to a maximum of 360 minutes (6 hours)"* ([Ingest an event (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event))
 
 3. **License considerations**
    - Every standard workflow is billed per hour it exists, regardless of how often it runs: *"Workflow hours are the number of hours that a workflow has existed in your environment, measured since the point of its creation."*

@@ -1,6 +1,6 @@
 # DTM-99: Best Practice Summary and Health-Check Checklist
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 99 — Best Practice Summary and Health-Check Checklist | **Created:** September 2026 | **Last Updated:** 10/29/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 99 — Best Practice Summary and Health-Check Checklist | **Created:** September 2026 | **Last Updated:** 11/01/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -264,7 +264,7 @@ The Managed documentation is the primary source for this series. These are the m
 | [Proactive self-monitoring for Dynatrace Managed](https://www.dynatrace.com/news/blog/proactive-self-monitoring-ensures-seamless-operations-for-dynatrace-managed-at-scale/) | Dynatrace blog | Reading the capacity indicator (DTM-15) |
 | [Premium High Availability and turnkey disaster recovery](https://www.dynatrace.com/news/blog/premium-high-availability-and-turnkey-disaster-recovery-for-dynatrace-managed-early-adopter/) | Dynatrace blog | Node-loss tolerance by cluster size (DTM-10) |
 | [Dynatrace Self-Monitoring (Managed)](https://www.dynatrace.com/hub/detail/dynatrace-self-monitoring-managed/) | Dynatrace Hub | A packaged capacity view (DTM-15) |
-| [dtmgd](https://github.com/dynatrace-oss/dtmgd) and [dynatrace-managed-mcp](https://github.com/dynatrace-oss/dynatrace-managed-mcp) | Dynatrace open source (Apache-2.0) | A read-only CLI and MCP server for Managed environments and the cluster API |
+| [dtmgd](https://github.com/dynatrace-oss/dtmgd) and [dynatrace-managed-mcp](https://github.com/dynatrace-oss/dynatrace-managed-mcp) | Dynatrace open source (Apache-2.0) | A CLI and an MCP server for Managed environments and the cluster API. The MCP server's documented token scopes are read scopes. `dtmgd` v0.5.0 and later also writes Settings 2.0 objects where a context's write level allows it; *"every context is `readonly` until you raise it"* (dtmgd README) |
 | [state of nodes](https://community.dynatrace.com/t5/Alerting/state-of-nodes/m-p/113564) | Dynatrace community | All 12 `operationState` values (DTM-11) |
 | [How to restart Dynatrace nodes on the cluster](https://community.dynatrace.com/t5/Dynatrace-Managed-Q-A/How-to-restart-Dynatrace-nodes-on-the-cluster/td-p/117644) | Dynatrace community | The CMC per-node Restart (DTM-11, a recorded conflict) |
 | [Elasticsearch store usage differences](https://community.dynatrace.com/t5/Troubleshooting/Why-there-is-difference-in-Elasticsearch-store-usage-between/ta-p/200631) | Dynatrace community KB | Elasticsearch watermarks (DTM-13) |
