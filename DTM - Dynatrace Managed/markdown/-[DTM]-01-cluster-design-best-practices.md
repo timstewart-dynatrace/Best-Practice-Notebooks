@@ -1,6 +1,6 @@
 # DTM-01: Cluster Design Best Practices
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 01 — Cluster Design Best Practices | **Created:** October 2026 | **Last Updated:** 10/21/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 01 — Cluster Design Best Practices | **Created:** October 2026 | **Last Updated:** 11/02/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -136,19 +136,20 @@ Storage is the part of the design that is hardest to fix after data arrives. The
 
 **Host basics that rule out designs.** Managed *"supports installation on physical and virtualized hosts but not in containers."* It *"requires a fixed IPv4 address. It supports only IPv4 address spaces."* Set an English locale: *"Set the system locale to an English option, for example LANG=en_US.UTF-8"*.
 
-**Don't build new nodes on an operating system that is about to leave support.** The operating system requirements page lists the supported distributions and announces these removals:
+**Don't build new nodes on an operating system that is about to leave support, or already has.** The operating system requirements page lists the supported distributions and announces these removals; the first two have already taken effect:
 
 | Operating system | Managed support ends |
 |------------------|----------------------|
-| Red Hat Enterprise Linux 9.4, 9.7 | 11/01/2026 |
-| Ubuntu 16.04 | 11/01/2026 |
+| Red Hat Enterprise Linux 9.4, 9.7 | 11/01/2026 (ended) |
+| Ubuntu 16.04 | 11/01/2026 (ended) |
 | Amazon Linux 2 | 01/01/2027 |
+| SUSE Enterprise Linux 15.4 | 07/01/2027 |
 
 The list moves with every release, so read the page when you provision, not this table. A cluster of identical nodes (§3) also means **one operating system version across all nodes**; in community practice, mixing versions makes later upgrades harder to plan.
 
 **In the cloud,** use the memory-optimized families the docs list (AWS `r6i`, Azure `E…as v6`, Google Cloud `n4-highmem`) and keep the documented ratio: *"Maintain a vCPU to RAM (random access memory) ratio of 1:8 to optimize performance."* The node minimum still applies: *"Hosts must have at least 32 GB RAM."*
 
-> <sub>**Sources:** [Operating system requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/operating-system-requirements) — *"The following operating systems will no longer be supported starting 01 November 2026"*, [Hardware requirements for cloud deployments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-cloud-requirements), [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements).</sub>
+> <sub>**Sources:** [Operating system requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/operating-system-requirements) — *"The following operating systems are no longer supported since 01 November 2026"*, *"The following operating systems will no longer be supported starting 01 January 2027"*, *"will no longer be supported starting 01 July 2027"*, [Hardware requirements for cloud deployments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-cloud-requirements), [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements).</sub>
 
 <a id="doc-gaps"></a>
 ## 7. What the Documentation Does Not Say
