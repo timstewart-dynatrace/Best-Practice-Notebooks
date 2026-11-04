@@ -41,11 +41,13 @@ Distributed traces can inadvertently capture sensitive information:
 <!--MARKDOWN_TABLE_ALTERNATIVE
 | Risk Area | Examples | Mitigation |
 |-----------|----------|------------|
-| URLs | User IDs, emails, tokens | Use http.route, mask PII |
+| URLs (`url.path`, `url.query` / `url.full`) | User IDs, emails, tokens | Use http.route, mask PII |
 | Headers | Auth tokens, cookies | Drop sensitive headers |
-| DB Queries | User data in WHERE | Parameterize queries |
+| DB Queries (`db.query.text`) | User data in WHERE | Parameterize queries |
 | Errors | Stack traces with context | Truncate/filter |
 | Custom Attrs | Business data | Evaluate per case |
+
+PII audit query: fetch spans | filter contains(url.query, "email", caseSensitive: false) or contains(url.query, "password", caseSensitive: false) or contains(url.query, "token", caseSensitive: false)
 -->
 
 ### Fields to Consider for Protection
@@ -194,6 +196,8 @@ HTTP status codes can reveal security-relevant patterns:
 | 404 | Not Found | Endpoint probing (if spiking) |
 | 429 | Too Many Requests | Rate limiting triggered |
 | 5xx | Server Error | Potential exploit attempts |
+
+Query: fetch spans | filter in(http.response.status_code, {401, 403, 429, 500}) | summarize n = count(), by:{http.response.status_code}
 -->
 
 ```dql
@@ -346,7 +350,7 @@ fetch spans, from:-1h
 | summarize {
     requests = count(),
     unique_operations = countDistinct(span.name),
-    error_rate = (countIf(span.status_code == "error") * 100.0) / count()
+    error_rate = (countIf(span.status_code == "error" or http.response.status_code >= 500) * 100.0) / count()
   }, by:{dt.service.name}
 | filter error_rate > 20
 | sort error_rate desc

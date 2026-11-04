@@ -1,6 +1,6 @@
 # SPANS-05: Advanced Span Analytics
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 5 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 5 of 8 | **Created:** December 2025 | **Last Updated:** 10/28/2026
 
 ## Time-Series Analysis and Complex Aggregations
 This notebook covers advanced analytical techniques for span data, including time-series analysis, trend detection, and complex aggregations for building dashboards and reports.
@@ -141,7 +141,7 @@ fetch spans, from:-1h
 | filter span.kind == "server"
 | summarize {
     total_requests = count(),
-    error_count = countIf(span.status_code == "error"),
+    error_count = countIf(span.status_code == "error" or http.response.status_code >= 500),
     avg_duration_ms = avg(duration) / 1ms,
     p50_duration_ms = percentile(duration, 50) / 1ms,
     p95_duration_ms = percentile(duration, 95) / 1ms,
@@ -162,7 +162,7 @@ fetch spans, from:-1h
 | filter span.kind == "server"
 | summarize {
     request_count = count(),
-    error_count = countIf(span.status_code == "error"),
+    error_count = countIf(span.status_code == "error" or http.response.status_code >= 500),
     slow_count = countIf(duration > 1s),  // > 1 second
     avg_duration_ms = avg(duration) / 1ms,
     p95_duration_ms = percentile(duration, 95) / 1ms
@@ -255,7 +255,7 @@ fetch spans, from:-1h
 | filter span.kind == "server"
 | summarize {
     total_requests = count(),
-    total_errors = countIf(span.status_code == "error"),
+    total_errors = countIf(span.status_code == "error" or http.response.status_code >= 500),
     unique_services = countDistinct(dt.service.name),
     avg_latency_ms = avg(duration) / 1ms
   }
@@ -268,7 +268,7 @@ fetch spans, from:-1h
 | filter span.kind == "server"
 | summarize {
     requests = count(),
-    errors = countIf(span.status_code == "error"),
+    errors = countIf(span.status_code == "error" or http.response.status_code >= 500),
     p95_ms = percentile(duration, 95) / 1ms
   }, by:{dt.service.name}
 | fieldsAdd error_rate = (errors * 100.0) / requests

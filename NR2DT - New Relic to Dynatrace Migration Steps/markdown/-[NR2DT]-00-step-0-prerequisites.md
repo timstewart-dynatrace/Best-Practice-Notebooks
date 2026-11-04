@@ -1,6 +1,6 @@
 # NR2DT-00: Tenant Prerequisites — Minimum Setup Before Migration
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Reference:** 00 — Tenant Prerequisites | **Created:** May 2026 | **Last Updated:** 10/25/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Reference:** 00 — Tenant Prerequisites | **Created:** May 2026 | **Last Updated:** 11/03/2026
 
 ## Overview
 
@@ -53,7 +53,9 @@ These five items shape the target Dynatrace tenant. They do not all have to be *
 
 **Recommended Approach:** group hosts by ownership × environment (e.g., `prod-app-payments`, `nonprod-app-payments`). Set the host group at OneAgent install time via `oneagentctl --set-host-group`.
 
-**Consideration:** retroactively re-grouping hosts breaks history-based thresholds, IAM scoping, and any automation keyed on host group. Sprint 1.337 lets OneAgent emit `team`, `cost_center`, `env` as primary tags directly via `oneagentctl --set-host-tag` — prefer this over OpenPipeline post-processing where possible.
+**Consideration:** retroactively re-grouping hosts breaks history-based thresholds, IAM scoping, and any automation keyed on host group. OneAgent 1.333+ can set primary Grail tags at the source — `--set-host-tag` at install time, or `oneagentctl --set-host-tag` on an existing installation — and the key carries the `primary_tags.` prefix (`primary_tags.team`, `primary_tags.cost_center`, `primary_tags.env`); a bare `team=…` key is not a primary Grail tag. Prefer this over OpenPipeline post-processing where possible.
+
+> <sub>**Sources:** [Primary Grail tags on OneAgent (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — *"Primary Grail field and tag enrichment requires OneAgent version 1.333+."*, read 11/03/2026.</sub>
 
 **Trade-offs of Deferring:** a single all-hosts default group breaks per-environment alerting, blocks IAM scoping, and forces a post-migration re-tagging sweep.
 
@@ -145,7 +147,7 @@ python3 migrate.py preflight
 export DYNATRACE_DETECTOR_ACTOR="<service-user-uuid>"
 ```
 
-**Consideration:** `migrate.py` imports NR alert conditions as Davis anomaly detectors, whose `executionSettings.actor` must be a service-user UUID. When the variable is unset, the `migrate` command (not `preflight`) prints a warning and the detectors fail to import, so Wave 3 fails on its first run.
+**Consideration:** `migrate.py` imports NR alert conditions as Davis anomaly detectors, whose `executionSettings.actor` must be a service-user UUID. When the variable is unset, both `preflight` and `migrate` print a warning and the detectors fail to import, so Wave 3 fails on its first run.
 
 **Where covered:** NR2DT-05 § Wave 3
 
@@ -182,7 +184,9 @@ export DYNATRACE_DETECTOR_ACTOR="<service-user-uuid>"
 
 **Recommended Approach:** if any source-side workload emits OTLP rather than going through OneAgent, confirm the Dynatrace OTLP endpoint is configured and reachable, and that the OTel collector is forwarding to it with the correct API token.
 
-**Consideration:** Sprint 1.337's OneAgent + OTel `service.name` enrichment means OTel-instrumented services map cleanly to DT services without the historical two-services-per-process pattern. This affects taxonomy decisions in NR2DT-03.
+**Consideration:** SaaS 1.337 lets the OTel `service.name` attribute name SDv1 services; Smartscape shows the name in the form `service.name (detected name)`. This affects taxonomy decisions in NR2DT-03.
+
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337) — *"You can now use the OTel service.name attribute to customize the name of SDv1 services."*, read 11/03/2026.</sub>
 
 **Where covered:**
 - OTEL series — OpenTelemetry integration

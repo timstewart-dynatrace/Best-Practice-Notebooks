@@ -1,6 +1,6 @@
 # K8S-09: Troubleshooting Kubernetes Monitoring
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 9 of 14 | **Created:** January 2026 | **Last Updated:** 10/15/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 9 of 14 | **Created:** January 2026 | **Last Updated:** 11/03/2026
 
 ## Debugging Dynatrace Monitoring in Kubernetes
 When monitoring doesn't work as expected, systematic troubleshooting is essential. This notebook covers common issues, diagnostic procedures, and resolution steps for Dynatrace Kubernetes monitoring.
@@ -596,7 +596,7 @@ The Dynatrace community maintains a curated [Kubernetes/OpenShift troubleshootin
 | `CrashLoopBackOff: Downgrading OneAgent is not supported, please uninstall the old version first` | [Downgrading OneAgent (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/CrashLoopBackOff-Downgrading-OneAgent-is-not-supported-uninstall/ta-p/230199) |
 | Crash loop on pods when installing OneAgent | [Crash loop on install (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/Crash-loop-on-pods-when-installing-OneAgent/ta-p/230200) |
 | Deployment succeeded but `dynatrace-oneagent` container not ready / not running / no meaningful logs / image can't be pulled | ["Deployment seems successful, but…" family (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/Deployment-seems-successful-but-the-dynatrace-oneagent-container/ta-p/230201) — sibling articles cover each variant |
-| `ImagePullBackOff` on OneAgent / ActiveGate pods | [ImagePullBackoff (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/ImagePullBackoff-error-on-OneAgent-and-ActiveGate-pods/ta-p/230212); on K8s 1.35+ with private registries also check the `imagePullCredentialsVerificationPolicy` heads-up |
+| `ImagePullBackOff` on OneAgent / ActiveGate pods | [ImagePullBackoff (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/ImagePullBackoff-error-on-OneAgent-and-ActiveGate-pods/ta-p/230212); on Kubernetes 1.35+ with a private registry, *"the kubelet verifies pull credentials per pod, even for images already cached on the node"*, so injected pods without their own pull secret fail with `ImagePullBackOff` — see [Use a private registry (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/container-registries/use-private-registry) and ONBRD-05 §5 |
 | `CannotPullContainerError` | [CannotPullContainerError (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/CannotPullContainerError/ta-p/230208) |
 | No Dynatrace pods scheduled on control-plane nodes | [Control-plane taints/tolerations (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/No-pods-scheduled-on-control-plane-nodes/ta-p/230206) |
 | Error applying the DynaKube custom resource on GKE | [GKE custom resource error (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/Error-when-applying-the-custom-resource-on-GKE/ta-p/230207) |

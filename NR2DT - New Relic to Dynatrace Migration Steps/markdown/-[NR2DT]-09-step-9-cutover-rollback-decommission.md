@@ -1,6 +1,6 @@
 # NR2DT-09: Step 9 — Cutover, Rollback & Decommission
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 9 of 10 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 9 of 10 | **Created:** April 2026 | **Last Updated:** 11/03/2026
 
 ## Overview
 
@@ -68,7 +68,7 @@ For environments where SVG doesn't render
 <a id="rollback"></a>
 ## 2. Rollback Plan
 
-Every full `migrate` run (no `--dry-run`, no `--import-only`) writes `rollback-manifest.json` into its `--output` directory, listing the entities it created. `--import-only` runs write no manifest. Retain each manifest for **at least 30 days** post-cutover.
+Every `migrate` run except `--import-only` writes `rollback-manifest.json` into its `--output` directory: a full run lists the entities it created, and a `--dry-run` preview writes it with no entries, replacing any manifest already there. `--import-only` runs write no manifest. Retain each manifest for **at least 30 days** post-cutover.
 
 ### Rollback command
 

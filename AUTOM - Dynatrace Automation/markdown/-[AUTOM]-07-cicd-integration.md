@@ -1,6 +1,6 @@
 # AUTOM-07: CI/CD Integration
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 10/29/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 11/03/2026
 
 CI/CD integration brings software development practices to Dynatrace configuration management. By storing configs in Git and deploying via pipelines, teams gain version control, review processes, and automated deployments.
 
@@ -1802,7 +1802,7 @@ spec:
   chart:
     spec:
       chart: dynatrace-operator
-      version: "1.10.2"   # exact pin; bump in a reviewed commit (see §10)
+      version: "1.10.4"   # exact pin; bump in a reviewed commit (see §10)
       sourceRef:
         kind: HelmRepository
         name: dynatrace
@@ -1881,11 +1881,11 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - namespace.yaml
-  - https://github.com/Dynatrace/dynatrace-operator/releases/download/v1.10.2/kubernetes.yaml
+  - https://github.com/Dynatrace/dynatrace-operator/releases/download/v1.10.4/kubernetes.yaml
   - dynakube.yaml
 ```
 
-> **Pin the Operator manifest.** A `releases/latest/download/…` URL resolves to whichever Operator release is newest at build time — on 10/02/2026 that is **1.11.0**, the release that removes `v1beta4`. Every sync would then roll out an Operator upgrade nobody chose. Pin the version you validated (`v1.10.2` here) and move it in a reviewed commit, after reading the release notes for every version you cross.
+> **Pin the Operator manifest.** A `releases/latest/download/…` URL resolves to whichever Operator release is newest at build time — on 10/02/2026 that is **1.11.0**, the release that removes `v1beta4`. Every sync would then roll out an Operator upgrade nobody chose. Pin the version you validated (`v1.10.4` here) and move it in a reviewed commit, after reading the release notes for every version you cross.
 
 **Cluster overlay (production-east):**
 ```yaml
