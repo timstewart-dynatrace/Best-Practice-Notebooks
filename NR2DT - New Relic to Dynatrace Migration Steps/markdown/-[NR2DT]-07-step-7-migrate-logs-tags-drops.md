@@ -1,6 +1,6 @@
 # NR2DT-07: Step 7 — Migrate Logs, Tags & Drop Rules
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 7 of 10 | **Created:** April 2026 | **Last Updated:** 10/31/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 7 of 10 | **Created:** April 2026 | **Last Updated:** 11/03/2026
 
 ## Overview
 
@@ -44,9 +44,11 @@ The log components are named `log_parsing`, `drop_rules` and `tags`. `logs`, `dr
 > <sub>**Sources:** [migrate.py @ 78cbfce (tool repo, GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py), [config/settings.py @ 78cbfce (tool repo, GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/config/settings.py), read 10/05/2026.</sub>
 
 This step applies:
-- Drop rules (NRQL filters → OpenPipeline `filterOut` processors)
+- Drop rules (NRQL filters → OpenPipeline **Drop record** processors)
 - Parsing rules (Grok → DPL parsers)
 - Tag rules (NR entity tags → OpenPipeline enrichment rules emitting attributes on ingested data)
+
+> <sub>**Sources:** [Processing (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — *"Drops a record. The record isn't processed further and isn't stored."*, read 11/03/2026.</sub>
 
 <a id="forwarders"></a>
 ## 2. Reconfigure Log Forwarders

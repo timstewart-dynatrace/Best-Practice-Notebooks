@@ -1,6 +1,6 @@
 # NR2DT-05: Step 5 — Migrate Dashboards & Alerts
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 5 of 10 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 5 of 10 | **Created:** April 2026 | **Last Updated:** 11/03/2026
 
 ## Overview
 
@@ -65,9 +65,9 @@ python3 migrate.py migrate --components dashboards --output ./run-dashboards
 
 > **Never run `migrate` without `--dry-run`, `--export-only` or `--import-only` unless you intend to import.** `--diff` and `--report` do not make a run read-only: both run *after* the import phase, so `migrate --diff` without `--dry-run` imports first and then diffs the objects it has just created.
 
-Review the preview's diff table (`CREATE` / `UPDATE` / `CONFLICT` / `ORPHAN`) before importing. The import run writes `./run-dashboards/rollback-manifest.json` — keep it; NR2DT-09 rolls back from it. Use a separate `--output` directory per run, because each full run overwrites the manifest in its directory. (`--import-only --input ./run-dashboards --components dashboards` imports exactly the previewed `transformed/dynatrace_config.json` instead, but writes **no** rollback manifest. `--import-only` without `--input` stops with an error.)
+Review the preview's diff table (`CREATE` / `UPDATE` / `CONFLICT` / `ORPHAN`) before importing. The import run writes `./run-dashboards/rollback-manifest.json` — keep it; NR2DT-09 rolls back from it. Use a separate `--output` directory per run, because every run except `--import-only` — including a `--dry-run` preview — overwrites the manifest in its directory, and a preview writes it with no entries. (`--import-only --input ./run-dashboards --components dashboards` imports exactly the previewed `transformed/dynatrace_config.json` instead, but writes **no** rollback manifest. `--import-only` without `--input` stops with an error.)
 
-> <sub>**Sources:** [migrate.py @ 78cbfce (tool repo, GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py), read 10/05/2026.</sub>
+> <sub>**Sources:** [migrate.py @ 78cbfce (tool repo, GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py), read 10/05/2026; [migration/state.py @ 78cbfce (tool repo, GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migration/state.py), read 11/03/2026.</sub>
 
 **W1 — Dashboard parity:**
 

@@ -1,6 +1,6 @@
 # ORGNZ-02: Understanding Grail Buckets
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 10/27/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 11/03/2026
 
 ## Overview
 
@@ -99,6 +99,10 @@ fetch dt.system.buckets
 The built-in set varies by tenant and grows as Dynatrace adds capabilities — the query above is authoritative for your environment. (Checked 09/24/2026: the validation tenant also carries `default_security_events`, `default_security` and several other `default_*` event buckets not listed here.)
 
 > **Note:** The `default_securityevents` table was recently migrated to a new Grail security events schema. If you use security events, follow the [Grail security table migration guide](https://docs.dynatrace.com/docs/secure/threat-observability/concepts) to complete any required actions.
+
+> **Forthcoming — SaaS 1.353 (planned December 2026), announced in the SaaS 1.350 pre-release notes:** *"With Dynatrace SaaS version 1.353, planned for December 2026, security events become fully configurable in OpenPipeline, and security event storage consolidates into a single Grail bucket with a new default retention period."* *"All events will flow into the new default_security bucket automatically."* Act before it reaches your tenant if you query security events by bucket name — *"Notebooks, dashboards, and workflows filtering on default_securityevents or default_securityevents_builtin need updating."* — or if *"You rely on retention beyond 35 days."* Until SaaS 1.353 reaches your tenant, the security-event buckets and retention listed above remain current.
+
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.350 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-350) — pre-release notes, rollout planned from 11/10/2026.</sub>
 
 > **Extended retention:** You can extend bucket retention beyond the defaults by joining the Dynatrace preview program. See [Preview releases](https://docs.dynatrace.com/docs/whats-new/preview-releases#extended-retention-for-rum-and-synthetic) for details.
 

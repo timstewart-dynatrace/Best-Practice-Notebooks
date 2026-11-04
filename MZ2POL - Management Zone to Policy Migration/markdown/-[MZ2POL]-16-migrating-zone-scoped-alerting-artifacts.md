@@ -1,6 +1,6 @@
 # MZ2POL-16: Migrating the Rest of Zone-Scoped Alerting
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 17 of 17 | **Created:** October 2026 | **Last Updated:** 10/23/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 17 of 17 | **Created:** October 2026 | **Last Updated:** 11/03/2026
 
 > **Purpose:** MZ2POL-09 moves zone-scoped alerting profiles and problem notifications onto problem-triggered workflows. A zone also scopes metric events, maintenance windows and classic SLOs, and notification payloads may have printed it. Each of these has its own successor, its own upgrade guide and its own trap. This notebook migrates them, then proves the result per problem before anything classic is switched off.
 
@@ -176,6 +176,8 @@ Filter on `dt.settings.schema_id`, not on `event.provider` — ALERT-02 §4 show
 A dedicated upgrade guide for maintenance windows was published on 09/09/2026. Its summary: *"Latest Dynatrace scopes windows with DQL matcher expressions on Grail data instead of management zones, and suppresses notifications through a workflow Problem trigger filter instead of built-in detection modes."* MZ2POL-15 §10 predates it and lists maintenance windows as having no documented replacement; read this section instead.
 
 > **New maintenance windows are in Early Access and labelled Preview.** SaaS 1.341 (rollout started 06/16/2026) introduced them: *"Maintenance windows are available in Early Access."* Every page describing the new model carries a *Preview* label. Confirm that *Settings > General > Maintenance windows* exists on your tenant before planning around it. Until it does, classic maintenance windows remain the working path, and nothing below replaces them.
+
+> **Forthcoming — SaaS 1.350 (pre-release notes, rollout planned from 11/10/2026):** *"You can now suppress problems for a specific maintenance window. During an active window, Dynatrace skips problem creation for the entities in the window's scope"*. *"Suppression is a per-window choice."* *"When you create a maintenance window, or while it is still scheduled for the future, turn on problem suppression under Scope > Data scope."* Until SaaS 1.350 reaches your tenant, the upgrade guide's *"Dynatrace always detects problems"* in the table below stands, and suppression stays in the workflow trigger filter. Source: [What's new in Dynatrace SaaS 1.350 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-350).
 
 ### What changes
 

@@ -1,6 +1,6 @@
 # K8S-14: Kubernetes Deployment Guide
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 14 of 14 | **Type:** LAB | **Created:** April 2026 | **Last Updated:** 10/30/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 14 of 14 | **Type:** LAB | **Created:** April 2026 | **Last Updated:** 11/03/2026
 
 ## Overview
 
@@ -99,7 +99,7 @@ export DATA_INGEST_TOKEN="<data-ingest-token>"
 
 ```bash
 helm install dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator \
-  --version 1.10.2 \
+  --version 1.10.4 \
   --create-namespace \
   --namespace dynatrace \
   --atomic
@@ -107,7 +107,7 @@ helm install dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operato
 
 The `--atomic` flag ensures the installation is rolled back automatically if any component fails to start.
 
-> **Pin `--version` so this lab is reproducible.** Without it Helm takes whatever is newest at run time, so two people running this lab a month apart get different operators. **1.10.2** (released July 30, 2026) is the recommended pin: it fixes a workload/namespace **tagging-precedence regression**, a `dynatrace-webhook` `CrashLoopBackOff` under the gVisor runtime class, and injected pods hanging on the OneAgent-binary download, and it starts logging metadata-enrichment rules it cannot apply. The tagging fix is a **behaviour change** if you have several rules for one key — see K8S-10 before upgrading a cluster that relies on the old ordering. **Skip 1.10.0** (auto-update defect; flagged `prerelease: true` on the [releases page](https://github.com/Dynatrace/dynatrace-operator/releases)). Estates adopt operator releases on their own schedule — **1.10.1 remains a working pin** until you upgrade, with the OpenShift-manifest caveat in K8S-09 §2. Never pin below 1.4.1 (CSI liveness-probe crash-loop window — K8S-09 §2). **Operator 1.11.1** ([released 10/22/2026](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-1)) is the newest release; **1.11.0** (released 10/01/2026) removes the `v1beta4` DynaKube API (this lab already uses `v1beta6`) and adds image-volume code-module injection (K8S-12 § 2). Move the pin to 1.11.0 once you have validated it on a non-production cluster.
+> **Pin `--version` so this lab is reproducible.** Without it Helm takes whatever is newest at run time, so two people running this lab a month apart get different operators. **1.10.4** (released October 22, 2026) is the recommended pin. **1.10.3** (October 15, 2026) fixed the CSI driver cleanup that could delete OneAgent code modules still in use by running pods (K8S-09 §2; the Helm chart enables the CSI driver by default), and **1.10.4** fixes CVE-2026-111943 — its release notes say *"We recommend that you upgrade to this version."* [1.10.4 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-4) is *"released only on GitHub (Helm and manifests)"*; OperatorHub and cloud-marketplace installs get the same fix in 1.11.1. It also carries the 1.10.2 fixes for a workload/namespace **tagging-precedence regression**, a `dynatrace-webhook` `CrashLoopBackOff` under the gVisor runtime class, and injected pods hanging on the OneAgent-binary download, and it starts logging metadata-enrichment rules it cannot apply. The tagging fix is a **behaviour change** if you have several rules for one key — see K8S-10 before upgrading a cluster that relies on the old ordering. **Skip 1.10.0** (auto-update defect; flagged `prerelease: true` on the [releases page](https://github.com/Dynatrace/dynatrace-operator/releases)). Estates adopt operator releases on their own schedule — earlier 1.10.x pins keep running until you upgrade but lack the CSI cleanup and CVE fixes, and 1.10.1 carries the OpenShift-manifest caveat in K8S-09 §2. Never pin below 1.4.1 (CSI liveness-probe crash-loop window — K8S-09 §2). **Operator 1.11.1** ([released 10/22/2026](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-1)) is the newest release; **1.11.0** (released 10/01/2026) removes the `v1beta4` DynaKube API (this lab already uses `v1beta6`) and adds image-volume code-module injection (K8S-12 § 2). Move the pin to 1.11.0 once you have validated it on a non-production cluster.
 
 ### Step 2: Create the Token Secret
 

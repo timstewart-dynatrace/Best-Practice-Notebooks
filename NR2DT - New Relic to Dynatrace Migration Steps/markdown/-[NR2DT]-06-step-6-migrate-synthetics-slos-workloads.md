@@ -1,6 +1,6 @@
 # NR2DT-06: Step 6 — Migrate Synthetics, SLOs & Workloads
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 6 of 10 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 6 of 10 | **Created:** April 2026 | **Last Updated:** 11/03/2026
 
 ## Overview
 
@@ -49,9 +49,11 @@ python3 migrate.py migrate --components synthetics --output ./run-synthetics
 **Scripted browser monitors:**
 
 1. The transformer emits a stub Browser Monitor with the target URL
-2. The original NR JS script is attached as a tag for reference
+2. The original NR script is **not** copied: the stub carries a `migrated-from: newrelic` tag and a placeholder JavaScript step (`// TODO: Add custom validation from New Relic script`), and the run prints a warning naming the monitor's URL
 3. An engineer rebuilds the user journey using DT's clickpath recorder or DSL
 4. Validation: confirm the new clickpath catches the same regressions during a 1-week dual-run
+
+> <sub>**Sources:** [transformers/synthetic_transformer.py @ 78cbfce (tool repo, GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/transformers/synthetic_transformer.py), read 11/03/2026.</sub>
 
 **W2 — Synthetics SLA:** dual-run for ≥ 1 week. DT availability % matches NR within ±0.5%. If delta exceeds, investigate location coverage and credential validity first.
 

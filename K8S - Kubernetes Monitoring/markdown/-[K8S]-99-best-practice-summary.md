@@ -1,18 +1,18 @@
 # K8S-99: Best Practice Summary
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/27/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 11/03/2026
 
 ## Overview
 
 This notebook consolidates every actionable best practice for Dynatrace Kubernetes monitoring and DynaKube configuration extracted from the K8S series (notebooks 01-14). Each practice specifies the exact setting, value, priority, and category. Use this as a definitive checklist for new deployments and audits of existing environments.
 
-**Operator Version:** 1.10.2 (validated pin in this series; 1.11.1, released 10/22/2026, is the newest; 1.11.0 is in the note below) | **DynaKube API:** `dynatrace.com/v1beta6` — current, use for new DynaKubes (`v1beta5` remains accepted; no rewrite required) | **Helm:** `oci://public.ecr.aws/dynatrace/dynatrace-operator --version 1.10.2` — skip 1.10.0 (pin the version you have validated in your estate)
+**Operator Version:** 1.10.4 (validated pin in this series; 1.11.1, released 10/22/2026, is the newest; 1.11.0 is in the note below) | **DynaKube API:** `dynatrace.com/v1beta6` — current, use for new DynaKubes (`v1beta5` remains accepted; no rewrite required) | **Helm:** `oci://public.ecr.aws/dynatrace/dynatrace-operator --version 1.10.4` — skip 1.10.0 (pin the version you have validated in your estate)
 
-> **Operator version policy (as of 08/11/2026).** **1.10.2 is the recommendation** — released July 30, 2026 with a published changelog. It resolves four issues: a workload/namespace **tagging-precedence regression**, a `dynatrace-webhook` `CrashLoopBackOff` under the gVisor runtime class, injected pods hanging on the OneAgent-binary download (timeout raised to 15 minutes), and metadata-enrichment rules that could not be applied being silently disregarded rather than logged.
+> **Operator version policy (as of 11/03/2026).** **1.10.4 is the recommendation** — released October 22, 2026. **1.10.3** (October 15, 2026) fixed the CSI driver cleanup that could delete OneAgent code modules still in use by running pods (K8S-09 §2; the Helm chart enables the CSI driver by default), and **1.10.4** fixes CVE-2026-111943 — its release notes say *"We recommend that you upgrade to this version."* [1.10.4 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-4) is *"released only on GitHub (Helm and manifests)"*; OperatorHub and cloud-marketplace installs get the same fix in 1.11.1. It also carries the four 1.10.2 fixes (July 30, 2026): a workload/namespace **tagging-precedence regression**, a `dynatrace-webhook` `CrashLoopBackOff` under the gVisor runtime class, injected pods hanging on the OneAgent-binary download (timeout raised to 15 minutes), and metadata-enrichment rules that could not be applied being silently disregarded rather than logged.
 >
 > **The tagging fix is a behaviour change, not just a bug fix.** Where several tagging rules match the same key, 1.10.2 applies **only the first matching rule**; earlier versions let each subsequent rule overwrite the previous one. A cluster whose enrichment depends on last-rule-wins ordering will produce different tags after the upgrade — audit your rules first. See K8S-10.
 >
-> **1.10.1 remains a working pin.** Estates upgrade operators on their own schedule, and 1.10.1 is still the fix for the 1.10.0 defects — subject to the OpenShift-manifest caveat in K8S-09 §2. **Skip 1.10.0** — its own release notes advise skipping it (auto-update defect) and it is flagged **`prerelease: true`** on the [GitHub releases page](https://github.com/Dynatrace/dynatrace-operator/releases), a signal you can verify before pinning. Do not pin below 1.4.1 in any case (CSI liveness-probe crash-loop window — K8S-09 §2).
+> **Earlier 1.10.x pins keep running.** Estates upgrade operators on their own schedule; 1.10.1 and 1.10.2 still fix the 1.10.0 defects but lack the CSI cleanup and CVE fixes, and 1.10.1 is subject to the OpenShift-manifest caveat in K8S-09 §2. **Skip 1.10.0** — its own release notes advise skipping it (auto-update defect) and it is flagged **`prerelease: true`** on the [GitHub releases page](https://github.com/Dynatrace/dynatrace-operator/releases), a signal you can verify before pinning. Do not pin below 1.4.1 in any case (CSI liveness-probe crash-loop window — K8S-09 §2).
 
 > **Operator 1.11.0 (released 10/01/2026).** Removes the `v1beta4` DynaKube API from the CRD (*"Applying DynaKube resources that still use v1beta4 will fail"*), adds image-volume code-module injection, which *"replaces the CSI driver as the recommended approach"* (Kubernetes 1.35+ and containerd 2.2+ or CRI-O 1.33+ required; rule 7), adds `spec.kubernetesMonitoring` to size the Kubernetes-monitoring ActiveGate separately in one DynaKube, and accepts workload and pod labels and annotations as enrichment sources (rules 39–41). Minimum version for a direct upgrade: 1.6.0. Move the pin once you have validated 1.11.0 on a non-production cluster.
 
@@ -51,7 +51,7 @@ This notebook consolidates every actionable best practice for Dynatrace Kubernet
 | **Dynatrace Environment** | SaaS with Grail and Kubernetes monitoring enabled |
 | **Kubernetes Cluster** | A version supported by your Operator release |
 | **Helm** | v3.x |
-| **Dynatrace Operator** | v1.10.2 (July 30, 2026, recommended pin) via `oci://public.ecr.aws/dynatrace/dynatrace-operator` — v1.10.1 remains a working pin until you upgrade; skip 1.10.0 (see the version-policy note above) |
+| **Dynatrace Operator** | v1.10.4 (October 22, 2026, recommended pin) via `oci://public.ecr.aws/dynatrace/dynatrace-operator` — GitHub/Helm only, so OperatorHub and marketplace installs take 1.11.1; earlier 1.10.x pins lack the CSI cleanup and CVE fixes; skip 1.10.0 (see the version-policy note above) |
 | **Knowledge** | K8S-01 through K8S-13 |
 
 <a id="deployment-mode-selection"></a>
@@ -72,7 +72,7 @@ This notebook consolidates every actionable best practice for Dynatrace Kubernet
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|-----------------|----------|----------|
-| 6 | Install operator via Helm OCI, always with an explicit `--version` | `helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator --version 1.10.2 --namespace dynatrace --create-namespace --install --atomic` | **Critical** | Installation |
+| 6 | Install operator via Helm OCI, always with an explicit `--version` | `helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator --version 1.10.4 --namespace dynatrace --create-namespace --install --atomic` | **Critical** | Installation |
 | 7 | Choose a code-module delivery mode deliberately | Image volumes on Operator 1.11.0+ where nodes meet the requirements (Dynatrace's recommended approach); otherwise `csidriver.enabled: true`; ephemeral volumes when a privileged DaemonSet is ruled out (Operator 1.10.0+). To leave CSI, migrate first — never flip `csidriver.enabled: false` first | **Critical** *(making the choice)* | Installation |
 | 8 | Set platform explicitly | `platform: "kubernetes"` or `platform: "openshift"` | Recommended | Installation |
 | 9 | Create dedicated namespace | `kubectl create namespace dynatrace` | **Critical** | Installation |
@@ -218,7 +218,7 @@ Starting points from community practice, not Dynatrace-published figures — mea
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|-----------------|----------|----------|
-| 51 | Pin OTel Collector image to a specific, verified version (example: `0.57.0`, released 09/24/2026 — check the [releases](https://github.com/Dynatrace/dynatrace-otel-collector/releases) before installing) | `spec.templates.otelCollector.imageRef.tag: "0.57.0"` | **Critical** | OTel |
+| 51 | Pin OTel Collector image to a specific, verified version (example: `0.57.0`, released 09/24/2026 — check the [releases](https://github.com/Dynatrace/dynatrace-otel-collector/releases) before installing). Pin **until automatic resolution covers it in your estate**: that needs Operator 1.11+ and a SaaS version *"currently planned for 1.352"* (K8S-02 §2). Once both are in place, keep the pin if you mirror privately or need change control, or remove `imageRef` to let the Operator resolve the image | `spec.templates.otelCollector.imageRef.tag: "0.57.0"` | **Critical** | OTel |
 | 52 | Never use `latest` tag for OTel Collector | Always specify explicit version tag | **Critical** | OTel |
 | 53 | Set OTel Collector resource limits | `limits: {cpu: 500m, memory: 512Mi}` for staging; `{cpu: 1000m, memory: 1Gi}` for production | Recommended | OTel |
 | 54 | Configure `telemetryIngest` with required protocols | `spec.telemetryIngest.protocols: [otlp]` (add `statsd`, `jaeger`, `zipkin` as needed) | Recommended | OTel |
@@ -277,7 +277,7 @@ Starting points from community practice, not Dynatrace-published figures — mea
 |---|---------------|-----------------|----------|----------|
 | 70 | Manage DynaKube via GitOps (ArgoCD or Flux) | Store DynaKube YAML in Git, apply via GitOps controller | Recommended | Lifecycle |
 | 71 | Use Kustomize overlays for environment-specific config | `base/dynakube.yaml` + `overlays/{dev,staging,prod}/` patches | Recommended | Lifecycle |
-| 72 | Pin an **exact** operator chart version in ArgoCD/Flux | `targetRevision: 1.10.2` (ArgoCD) or `version: "1.10.2"` (Flux) — prefer an exact pin over a `1.10.x` range, because an operator upgrade can change chart *defaults* with no Git commit to review (K8S-02 §8). Never pin below 1.4.1; skip 1.10.0 | **Critical** | Lifecycle |
+| 72 | Pin an **exact** operator chart version in ArgoCD/Flux | `targetRevision: 1.10.4` (ArgoCD) or `version: "1.10.4"` (Flux) — prefer an exact pin over a `1.10.x` range, because an operator upgrade can change chart *defaults* with no Git commit to review (K8S-02 §8). Never pin below 1.4.1; skip 1.10.0 | **Critical** | Lifecycle |
 | 73 | Set `selfHeal: true` in ArgoCD for drift correction | `syncPolicy.automated.selfHeal: true` | Recommended | Lifecycle |
 | 74 | Set `prune: false` for DynaKube in ArgoCD | Prevent accidental DynaKube deletion on Git removal | **Critical** | Lifecycle |
 | 75 | Use Flux `dependsOn` to order operator before DynaKube | `dependsOn: [{name: dynatrace-operator}]` | Recommended | Lifecycle |

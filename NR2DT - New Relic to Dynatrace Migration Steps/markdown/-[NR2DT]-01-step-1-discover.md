@@ -1,6 +1,6 @@
 # NR2DT-01: Step 1 — Discover
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 1 of 10 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 1 of 10 | **Created:** April 2026 | **Last Updated:** 11/03/2026
 
 ## Overview
 
@@ -12,11 +12,13 @@ This is procedural. For the *why* behind each artifact and the deeper translatio
 
 Sprint 1.337 introduces three changes worth surfacing during the discovery step:
 
-1. **OneAgent primary fields/tags at source** — when designing the post-migration tag taxonomy (see NR2DT-03 Design), prefer OneAgent primary tags over OpenPipeline parsing where possible. Hosts can emit `team`, `cost_center`, `env` as top-level fields via `oneagentctl --set-host-tag`.
-2. **OTel `service.name` enrichment** — if the New Relic source uses OTel auto-instrumentation, services map cleanly to Dynatrace without the historical two-services-per-process pattern (NRLC-01 § Sprint 1.337 covers the deeper detail).
+1. **OneAgent primary fields/tags at source** — when designing the post-migration tag taxonomy (see NR2DT-03 Design), prefer OneAgent primary tags over OpenPipeline parsing where possible. From OneAgent 1.333, hosts set primary Grail tags with `--set-host-tag` / `oneagentctl --set-host-tag`; the key carries the `primary_tags.` prefix (`primary_tags.team`, `primary_tags.cost_center`, `primary_tags.env`).
+2. **OTel `service.name` for SDv1 service names** — SaaS 1.337 lets the OTel `service.name` attribute name SDv1 services; Smartscape shows the name in the form `service.name (detected name)` (NRLC-01 § Sprint 1.337 covers the deeper detail).
 3. **Settings v2 + Platform tokens** for new automation (NR2DT-04 Translate, NR2DT-09 Cutover scripts).
 
 **Engine impact:** the Dynatrace-NewRelic conversion engine and lab-setup scripts in `topics/nr2dt/lab-setup/` were validated end-to-end on a live Gen3 sprint tenant 2026-04-20 — re-verify before each new engagement that the conversion engine handles sprint-337's API removals (Entity API `attributes`, Event API `metadata`).
+
+> <sub>**Sources:** [Primary Grail tags on OneAgent (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — *"Primary Grail field and tag enrichment requires OneAgent version 1.333+."*, [What's new in Dynatrace SaaS 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337) — *"You can now use the OTel service.name attribute to customize the name of SDv1 services."*, read 11/03/2026.</sub>
 
 ---
 
@@ -137,7 +139,7 @@ This runs the NerdGraph enumeration for every entity class and writes per-compon
 
 ```bash
 ls -lh inventory/
-cat inventory/exports/newrelic_export.json | jq '. | keys, [.dashboards|length, .alert_policies|length, .synthetic_monitors|length, .slos|length, .workloads|length]'
+cat inventory/exports/newrelic_export.json | jq '{dashboards: (.dashboards|length), alert_policies: (.alert_policies|length), synthetic_monitors: (.synthetic_monitors|length), slos: (.slos|length), workloads: (.workloads|length)}'
 ```
 
 **Expected counts to capture** (your numbers, for the wave plan in Step 2):

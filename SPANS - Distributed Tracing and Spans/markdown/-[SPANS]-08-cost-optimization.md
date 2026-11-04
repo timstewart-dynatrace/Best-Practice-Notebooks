@@ -1,6 +1,6 @@
 # SPANS-08: Cost-Efficient DQL Queries
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 8 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 8 of 8 | **Created:** December 2025 | **Last Updated:** 10/28/2026
 
 ## Optimizing Span Queries for Performance and Cost Efficiency
 This notebook covers best practices for writing cost-efficient DQL queries, minimizing query consumption while maintaining effective observability.
@@ -241,7 +241,7 @@ fetch spans, from:-1h
 | filter span.kind == "server"
 | summarize {
     span_count = count(),
-    error_count = countIf(span.status_code == "error"),
+    error_count = countIf(span.status_code == "error" or http.response.status_code >= 500),
     avg_duration_ms = avg(duration) / 1ms
   }, by:{dt.service.name}
 | sort span_count desc
@@ -260,7 +260,7 @@ fetch spans, from:-1h
 | filter span.kind == "server"
 | summarize {
     requests = count(),
-    errors = countIf(span.status_code == "error")
+    errors = countIf(span.status_code == "error" or http.response.status_code >= 500)
   }, by:{dt.service.name}
 | sort requests desc
 | limit 20
@@ -272,7 +272,7 @@ fetch spans, from:-1h
 | filter span.kind == "server"
 | summarize {
     total_requests = count(),
-    error_count = countIf(span.status_code == "error"),
+    error_count = countIf(span.status_code == "error" or http.response.status_code >= 500),
     p50_duration_ms = percentile(duration, 50) / 1ms,
     p95_duration_ms = percentile(duration, 95) / 1ms
   }, by:{dt.service.name}
@@ -356,7 +356,7 @@ fetch spans, from:-1h, bucket: {"default_spans"}   // use your own bucket names
 | filter span.kind == "server"
 | summarize {
     requests = count(),
-    errors = countIf(span.status_code == "error"),
+    errors = countIf(span.status_code == "error" or http.response.status_code >= 500),
     avg_latency_ms = avg(duration) / 1ms
   }, by:{dt.service.name}
 | fieldsAdd error_rate = (errors * 100.0) / requests

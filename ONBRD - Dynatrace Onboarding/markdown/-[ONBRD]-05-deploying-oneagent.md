@@ -1,6 +1,6 @@
 # ONBRD-05: Deploying OneAgent
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 10/30/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 11/03/2026
 
 ## Getting Data Into Dynatrace
 OneAgent is the foundation of Dynatrace monitoring. This notebook covers deployment strategies, installation methods, and verification steps to ensure your infrastructure is reporting data.
@@ -262,13 +262,13 @@ kubectl -n dynatrace create secret generic dynakube --from-literal="apiToken=<AP
 
 # Install from the OCI registry, pinned to the version you validated
 helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator \
-  --version 1.10.2 \
+  --version 1.10.4 \
   --namespace dynatrace \
   --install --atomic \
   --set installCRD=true
 ```
 
-> **Install from the OCI registry.** The Operator 1.11.0 release notes direct Helm installs to `oci://public.ecr.aws/dynatrace/dynatrace-operator`: the legacy `dynatrace/helm-charts` repository is archived, and *"If you can't use OCI, point your Helm repository to dynatrace/dynatrace-operator instead"* (`helm repo add dynatrace https://raw.githubusercontent.com/Dynatrace/dynatrace-operator/main/config/helm/repos/stable`). `1.10.2` is the version validated across these notebooks; Operator **1.11.1** ([released 10/22/2026](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-1)) is the newest — validate it on a non-production cluster before moving the pin.
+> **Install from the OCI registry.** The Operator 1.11.0 release notes direct Helm installs to `oci://public.ecr.aws/dynatrace/dynatrace-operator`: the legacy `dynatrace/helm-charts` repository is archived, and *"If you can't use OCI, point your Helm repository to dynatrace/dynatrace-operator instead"* (`helm repo add dynatrace https://raw.githubusercontent.com/Dynatrace/dynatrace-operator/main/config/helm/repos/stable`). `1.10.4` ([released 10/22/2026](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-4); it adds the CSI driver cleanup fix from 1.10.3 and fixes CVE-2026-111943) is the version validated across these notebooks — it is *"released only on GitHub (Helm and manifests)"*, so OperatorHub and marketplace installs take 1.11.1; Operator **1.11.1** ([released 10/22/2026](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-1)) is the newest — validate it on a non-production cluster before moving the pin.
 >
 > <sub>**Sources:** [Operator 1.11.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0) — *"The Helm repository located in dynatrace/helm-charts is archived and no longer receives updates."*</sub>
 
@@ -284,11 +284,11 @@ helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operato
 
 3. **Apply to cluster**
    ```bash
-   kubectl apply -f https://github.com/Dynatrace/dynatrace-operator/releases/download/v1.10.2/kubernetes.yaml
+   kubectl apply -f https://github.com/Dynatrace/dynatrace-operator/releases/download/v1.10.4/kubernetes.yaml
    kubectl apply -f dynakube.yaml
    ```
 
-   > **Pin a version you have validated.** The URL above is pinned rather than tracking a moving `latest` on purpose — a manifest install is the path you reach for precisely when you need reproducibility (air-gapped, GitOps, change-controlled clusters). `1.10.2` (published 07/30/2026) is the version validated across these notebooks. **Skip `1.10.0`:** its own release notes advise waiting for `1.10.1`, and GitHub now marks the `v1.10.0` release a prerelease — the machine-readable trace of that advice. Its [release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-2) published on 07/30/2026 and carry four fixes — a Kubernetes workload/namespace **tagging-precedence regression** (from 1.10.2 only the first matching rule for a key applies, a behavior change as well as a fix), `dynatrace-webhook` `CrashLoopBackOff` on **gVisor** runtime-class nodes, injected pods hanging on the OneAgent-binary download (timeout raised to 15 minutes), and metadata-enrichment rules that could not be applied now being logged rather than silently ignored. `1.10.1` remains a working pin until you move — estates adopt on their own schedule. **Operator 1.11.1** ([released 10/22/2026](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-1)) is the newest release; **1.11.0** (released 10/01/2026) removes the `v1beta4` DynaKube API from the CRD (below) and adds image-volume code-module injection, and its notes set the upgrade floor at *"Minimum operator version required for direct upgrade: 1.6.0"* — validate it before moving the pin. **On OpenShift, read the 1.10.2 Known Issue before pinning either**: the `RuntimeDefault` seccomp profile applied since 1.9.0 can collide with SecurityContextConstraints — see FAQ-13. Whatever you pin, validate it in a non-production cluster before it reaches the rest of the fleet, and check the [Dynatrace Operator releases](https://github.com/Dynatrace/dynatrace-operator/releases) page for the version current when you read this.
+   > **Pin a version you have validated.** The URL above is pinned rather than tracking a moving `latest` on purpose — a manifest install is the path you reach for precisely when you need reproducibility (air-gapped, GitOps, change-controlled clusters). `1.10.4` (published 10/22/2026) is the version validated across these notebooks: it adds the CSI driver cleanup fix from 1.10.3 and fixes CVE-2026-111943 (*"We recommend that you upgrade to this version."* — [Operator 1.10.4 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-4)). **Skip `1.10.0`:** its own release notes advise waiting for `1.10.1`, and GitHub now marks the `v1.10.0` release a prerelease — the machine-readable trace of that advice. The 1.10.2 [release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-2) published on 07/30/2026 and carry four fixes — a Kubernetes workload/namespace **tagging-precedence regression** (from 1.10.2 only the first matching rule for a key applies, a behavior change as well as a fix), `dynatrace-webhook` `CrashLoopBackOff` on **gVisor** runtime-class nodes, injected pods hanging on the OneAgent-binary download (timeout raised to 15 minutes), and metadata-enrichment rules that could not be applied now being logged rather than silently ignored. `1.10.1` and `1.10.2` keep running until you move — estates adopt on their own schedule — but lack those two fixes. **Operator 1.11.1** ([released 10/22/2026](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-1)) is the newest release; **1.11.0** (released 10/01/2026) removes the `v1beta4` DynaKube API from the CRD (below) and adds image-volume code-module injection, and its notes set the upgrade floor at *"Minimum operator version required for direct upgrade: 1.6.0"* — validate it before moving the pin. **On OpenShift, read the 1.10.2 Known Issue before pinning either**: the `RuntimeDefault` seccomp profile applied since 1.9.0 can collide with SecurityContextConstraints — see FAQ-13. Whatever you pin, validate it in a non-production cluster before it reaches the rest of the fleet, and check the [Dynatrace Operator releases](https://github.com/Dynatrace/dynatrace-operator/releases) page for the version current when you read this.
 
 4. **Verify deployment**
    ```bash
@@ -378,7 +378,7 @@ spec:
 
 ### Air-Gapped / Private Registry Deployment
 
-For environments without internet access, host images in a private registry:
+For environments without internet access, host the images in a private registry. Five things go wrong in an air-gapped rollout more often than the DynaKube itself: the mirror copies one architecture, injected pods have no pull credentials, a component nobody listed still points at a public registry, auto-update silently stops, and the Helm chart itself is fetched from the internet.
 
 ```yaml
 apiVersion: dynatrace.com/v1beta6
@@ -389,8 +389,13 @@ metadata:
 spec:
   apiUrl: https://{tenant-id}.live.dynatrace.com/api
 
+  # Pull secret for the Operator-managed components in the dynatrace namespace only.
+  # Injected application pods need their own credentials (see "Pull credentials" below).
+  customPullSecret: my-registry-pull-secret
+
   # Custom image locations for air-gapped environments
-  # Point every image at the mirrored copy, pinned to an immutable tag
+  # Point every image at the mirrored copy, pinned to an immutable tag.
+  # Setting image / codeModulesImage turns off auto-update for that component.
   oneAgent:
     cloudNativeFullStack:
       image: my-registry.example.com/dynatrace/dynatrace-oneagent:1.347.49.20260928-064841
@@ -402,13 +407,16 @@ spec:
     image: my-registry.example.com/dynatrace/dynatrace-activegate:1.345.70.20260918-003121
 ```
 
+**Mirror every architecture, with its signatures.** Dynatrace publishes multi-arch images, and the mirroring guide says: *"We strongly recommend that you use the Skopeo CLI instead of Docker CLI for copying Dynatrace container images from public to private registries, as the Docker CLI does not provide an easy way to copy multi-arch images and signatures."* A `docker pull` / `tag` / `push` loop copies only the architecture of the machine that ran it, so a mixed-architecture node pool (K8S-02 §3) would find no image on its other nodes. `skopeo copy --all` copies the whole multi-arch index. Signatures are copied only when Skopeo's registries configuration sets `use-sigstore-attachments` to `true`.
+
 **Image Mirroring Script:**
 ```bash
-# Mirror required images to a private registry.
-# public.ecr.aws is the documented registry for Dynatrace component images. These
-# repositories publish no :latest tag - pin immutable tags. The tags below existed on
-# 10/02/2026; pick current ones from gallery.ecr.aws/dynatrace before you mirror.
-OPERATOR_TAG=v1.10.2
+# Mirror required images to a private registry, keeping every architecture.
+# Copy from a supported public registry; the guide says "Please do not use the Dynatrace
+# built-in registry for copying images to private registries" (Classic Full-Stack excepted).
+# These repositories publish no :latest tag - pin immutable tags. The tags below existed on
+# 10/02/2026 (operator: 11/03/2026); pick current ones from gallery.ecr.aws/dynatrace before you mirror.
+OPERATOR_TAG=v1.10.4
 ONEAGENT_TAG=1.347.49.20260928-064841
 CODEMODULES_TAG=1.347.49.20260928-064841
 ACTIVEGATE_TAG=1.345.70.20260918-003121
@@ -420,15 +428,39 @@ IMAGES=(
   "public.ecr.aws/dynatrace/dynatrace-activegate:${ACTIVEGATE_TAG}"
 )
 
-# Pushes to my-registry.example.com/dynatrace/<image>:<tag> - the paths the DynaKube above uses
+# Optional: verify the signatures first (requires cosign)
+cosign verify \
+  --certificate-identity-regexp 'https://github\.com/Dynatrace/dynatrace-operator/\.github/workflows/.+' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  "public.ecr.aws/dynatrace/dynatrace-operator:${OPERATOR_TAG}"
+for img in "${IMAGES[@]:1}"; do
+  cosign verify --insecure-ignore-tlog --key https://ca.dynatrace.com/v1/cosign.pub "$img"
+done
+
+# Copies to my-registry.example.com/dynatrace/<image>:<tag> - the paths the DynaKube above uses
 for img in "${IMAGES[@]}"; do
-  docker pull "$img"
-  docker tag "$img" "my-registry.example.com/${img#*/}"
-  docker push "my-registry.example.com/${img#*/}"
+  skopeo copy --all "docker://${img}" "docker://my-registry.example.com/${img#*/}"
 done
 ```
 
-> Without `codeModulesImage`, Cloud Native Full-Stack and Application Only still fetch code modules from the tenant. The DynaKube reference says of it: *"Avoid mutable tags such as latest and use a digest or immutable tag for reproducible deployments."* ([DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters))
+> Without `codeModulesImage`, Cloud Native Full-Stack and Application Only still fetch code modules from the tenant. The DynaKube reference says of it: *"Avoid mutable tags such as latest and use a digest or immutable tag for reproducible deployments."* Mirror only what your observability option uses: the guide maps each option to the images it needs.
+
+**Pull credentials reach the `dynatrace` namespace only.** The *Use a private registry* page says *"The `customPullSecret` field in a DynaKube configuration authenticates only the components that Dynatrace Operator manages in the `dynatrace` namespace."* Injected pods run a Dynatrace init container whose image the node pulls, and the Operator does not copy the secret into application namespaces. Provide credentials at one of three levels: on each **node**, as a pull secret in every application **namespace** and its service accounts, or through `imagePullSecrets` on the **pod**. This matters more from Kubernetes 1.35: *"the `KubeletEnsureSecretPulledImages` feature gate is enabled by default and the kubelet verifies pull credentials per pod, even for images already cached on the node. If you don't distribute pull secrets as described above, injected pods fail with `ImagePullBackOff`."*
+
+**Every component you deploy needs a mirrored image.** OneAgent, code modules and ActiveGate are only the start. Components configured under `spec.templates` take their own `imageRef` — the log module, Extension Execution Controller, SQL extension executor, OpenTelemetry Collector and Node Configuration Collector. The [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters) reference states, per field, when `imageRef` is required and from which version it applies, and K8S-02 §2 summarizes which components resolve automatically on which Operator and SaaS versions; the log module's, for example, is marked *"imageRef parameter is Required."* Automatic resolution hands back public-registry image URIs, so in a cluster that cannot reach a public registry, point every component you enable at the mirror.
+
+**Pinning an image turns off auto-update for that component.** The auto-update guide: *"To disable auto-update, set the image field in the DynaKube. Omit the field to keep auto-update enabled."* With a mirror, updating becomes your job: re-mirror every architecture you run, then move the tag. The Operator is not among the components it updates for you either — upgrade it as in K8S-02 §8.
+
+**The Helm chart also comes from a public registry.** `helm install` / `helm upgrade` with `oci://public.ecr.aws/dynatrace/dynatrace-operator` pulls the chart from the internet, and the *Use a private registry* page lists *"Allow egress traffic to public registry"* as a prerequisite. For a cluster with no internet path, `helm pull` the chart on a connected machine and install from the `.tgz`, `helm push` it to your own OCI registry, or render manifests with `helm template` and apply those. Point the Operator's own image at the mirror with the chart's `imageRef.repository`, `imageRef.tag` and `customPullSecret` values (K8S-02 §3).
+
+> <sub>**Sources:**</sub>
+> - <sub>[Store Dynatrace images in private registries (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/container-registries/prepare-private-registry) — *"Requires use-sigstore-attachments to be set to true in Skopeo's container registries configuration."*</sub>
+> - <sub>[Verify Dynatrace image signatures (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/container-registries/verify-image-signature) — *"For other images, the `--insecure-ignore-tlog` flag is required during verification."*</sub>
+> - <sub>[Use a private registry (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/container-registries/use-private-registry)</sub>
+> - <sub>[Configure auto-update for Dynatrace Operator managed components (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/updates-and-maintenance/auto-update-components)</sub>
+> - <sub>[DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters)</sub>
+> - <sub>[helm pull (Helm docs)](https://helm.sh/docs/helm/helm_pull/) — *"Retrieve a package from a package repository, and download it locally"*; [Use OCI-based registries (Helm docs)](https://helm.sh/docs/topics/registries/)</sub>
+> - <sub>**Derived:** the single-architecture failure combines Dynatrace's multi-arch images with the Docker CLI limitation quoted above; "automatic resolution hands back public-registry image URIs" reads the auto-update guide's description of resolving *"the latest public image URIs"*; the Operator not being self-updated reads its list of managed components, which does not include it.</sub>
 
 ### Kubernetes Metadata and Dynatrace Tags
 
