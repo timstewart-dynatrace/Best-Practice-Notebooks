@@ -1,6 +1,6 @@
 # FAQ-05: How to manage ActiveGate updates on Dynatrace SaaS
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 05 — Managing ActiveGate Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 10/30/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 05 — Managing ActiveGate Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 11/04/2026
 
 ## Overview
 
@@ -93,6 +93,8 @@ A few mechanics worth knowing:
 
 **API 1.344** (published 07/15/2026, rollout from 07/29/2026) then **removed both properties from six Cluster API v2 endpoints** — the global and per-AG `/activeGates/autoUpdate` endpoints and their validators — marking four of them *"Broken compatibility"*, and changed the read-only status of properties on the per-AG endpoints. The changelog lists **no** removal for the per-environment `/activeGates/autoUpdate/{envId}` endpoints that 1.342 also extended; check your cluster's API reference for those. If you automate **Dynatrace Managed** ActiveGate updates, drop both properties from the affected request bodies once your cluster is on 1.344 or later — go by your own cluster's API version, not the rollout date.
 
+**API 1.350** (pre-release, published 11/02/2026, rollout planned from 11/10/2026) lists both properties again — *"Added properties: targetVersion updateWindows"* — on the same six endpoints: `GET` / `PUT /activeGates/autoUpdate` and its validator, and `GET` / `PUT /activeGates/{agId}/autoUpdate` and its validator. Until your cluster is on 1.350, the 1.344 removal above is the working state. The 1.350 notes are pre-release and may change before GA.
+
 On **SaaS**, nothing was removed: the Environment API v2 reference for `PUT /api/v2/activeGates/autoUpdate` still documents `targetVersion` and `updateWindows` (read 09/28/2026), alongside the Fleet management settings page. An earlier revision of this document said the properties were never part of the SaaS API; that was wrong.
 
 Separately, **ActiveGate 1.343** deprecated the SaaS ActiveGate *listing* endpoints — `GET /api/v2/activeGates`, `GET /api/v2/activeGates/{agId}` and `GET /api/v2/activeGates/groups` — in favor of the `ACTIVEGATE` Smartscape node (§7). The auto-update endpoints are not on that list.
@@ -106,6 +108,7 @@ The general lesson: a capability announced in one sprint can be withdrawn in the
 > - <sub>[ActiveGate auto-update configuration API — PUT global (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/activegates/auto-update-config/put-global) — SaaS `PUT /api/v2/activeGates/autoUpdate` request body lists `targetVersion` and `updateWindows` (read 09/28/2026)</sub>
 > - <sub>[ActiveGate 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343) — *"These are replaced by the ACTIVEGATE Smartscape node."*</sub>
 > - <sub>[API changelog 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-344) — lists *"Removed properties: targetVersion , updateWindows"* on six Cluster API v2 `/activeGates/autoUpdate` endpoints, four marked *"Broken compatibility"*; no removal is listed for `/activeGates/autoUpdate/{envId}`, which 1.342 also extended (both changelogs re-read 09/28/2026)</sub>
+> - <sub>[API changelog 1.350 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-350) — pre-release, *"Rollout start on Nov 10, 2026 (planned)"*; under *Cluster API v2* `/activeGates/autoUpdate` and `/activeGates/{agId}/autoUpdate` (each with its validator): *"Added properties: targetVersion updateWindows"* (read 11/04/2026)</sub>
 > - <sub>[SaaS 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343) — *"Fleet Management is now available."*</sub>
 > - <sub>[Fleet Management (DT docs)](https://docs.dynatrace.com/docs/ingest-from/fleet-management) — *"Plan and control updates with target versions and update windows."*; *"Define an update window to control when updates are applied."*</sub>
 > - <sub>**Derived:** the "drop both properties once the cluster is on 1.344" instruction follows from the 1.344 Cluster API schema removal plus the staged-rollout model</sub>
@@ -365,7 +368,7 @@ In community practice, rollback is usually a containment move while the underlyi
 | **Disabling auto-update on a single AG and forgetting — leaving a known vulnerability unpatched on in-path infrastructure.** | "We'll update manually." Nobody does. The cost is usually described as version drift, which understates it: AG security fixes ship *inside* ordinary version updates (ActiveGate 1.343 backported the fix for CVE-2026-40984 and CVE-2026-40983 into the ActiveGate for Kubernetes image), so a forgotten AG is not merely behind on features — it holds an open vulnerability window on a component that terminates agent connections and holds connector credentials, for as long as nobody notices. | Either run HA so you can leave auto-update on — the recommended answer — or pair manual mode with a named owner, a calendar mechanism, **and** a check that the manual path fits inside your vulnerability-remediation SLA (§3). If it does not fit, that is the signal to deploy the second AG rather than to tighten the reminder. |
 | **Disabling ActiveGate auto-update to freeze the synthetic browser.** | The browser changes during AG updates, so the AG switch looks like the control. | Use the private location's *Enable Chrome(-ium) auto-update* switch (Linux) instead, and keep the AG itself updating (§6). |
 | **Not validating cloud connectors after an update.** | Connector behavior is usually stable; teams skip the check. | Glance at connector status pages and ingest-lag for cloud metrics post-update — a quick check that catches the rare regression. |
-| **Automating Managed AG auto-update against `targetVersion` / `updateWindows`.** | Both properties were added to the Cluster API v2 `autoUpdate` endpoints in 1.342 and read as a stable capability. | API 1.344 removes both from six Cluster API endpoints (§2). Strip them from those Managed request bodies once your cluster is on 1.344. On SaaS the Environment API v2 still documents both (§2). |
+| **Automating Managed AG auto-update against `targetVersion` / `updateWindows`.** | Both properties were added to the Cluster API v2 `autoUpdate` endpoints in 1.342 and read as a stable capability. | API 1.344 removes both from six Cluster API endpoints (§2). Strip them from those Managed request bodies once your cluster is on 1.344. API 1.350 (pre-release, rollout planned from 11/10/2026) lists them again on the same endpoints (§2). On SaaS the Environment API v2 still documents both (§2). |
 
 *These pitfalls are community practice, observed across fleets often enough to flag; Dynatrace does not document them as anti-patterns.*
 
@@ -404,7 +407,7 @@ ActiveGate update management is operationally distinct from OneAgent update mana
 - Convert any single-AG architectures serving production roles to HA pairs.
 - Leave auto-update on for every AG; use update windows (not "off") where a role needs a known time, and record an owner for any AG left on manual.
 - Check the manual-mode AGs against your vulnerability-remediation SLA; where the SLA cannot be met, plan the second AG.
-- If you automate Dynatrace Managed AG auto-update, check your request bodies against the API 1.344 change — `targetVersion` and `updateWindows` are gone from six Cluster API endpoints (§2).
+- If you automate Dynatrace Managed AG auto-update, check your request bodies against the API 1.344 change — `targetVersion` and `updateWindows` are gone from six Cluster API endpoints (§2), and API 1.350 (pre-release, rollout planned from 11/10/2026) lists them again on the same six.
 - Confirm auto-update is actually on for your ActiveGates — existing environments keep their earlier setting. Where it is off, confirm AG versions are at or ahead of the OneAgents behind them.
 - Read **FAQ-04** for the OneAgent-side of the same problem, and **FAQ-16 §2** for why ActiveGate is the odd row in the classic-to-Smartscape mapping.
 - Document AG roles, HA topology, and update policy alongside your host-group naming (see **FAQ-01**) and tagging strategy (see **FAQ-02**).

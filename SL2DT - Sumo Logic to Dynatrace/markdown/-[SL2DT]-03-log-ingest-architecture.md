@@ -1,6 +1,6 @@
 # SL2DT-03: Log Ingest Architecture
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 3 of 11 | **Created:** April 2026 | **Last Updated:** 10/26/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 3 of 11 | **Created:** April 2026 | **Last Updated:** 11/04/2026
 
 ## Overview
 
@@ -443,7 +443,7 @@ resource "dynatrace_openpipeline_v2_logs_pipelines" "pipeline_prod_api" {
 
 > <sub>**Sources:** [OpenPipeline processing stage (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing-stage).</sub>
 
-Redaction (masking the 16-digit card-number pattern from the earlier illustrative example) belongs in a dedicated masking/DQL processor stage — see OPLOGS-03 and OPIPE for the current redaction processor shape rather than a standalone `"type": "redact"` block, which does not exist in the current API.
+Redaction (for example, masking card numbers) belongs in a dedicated masking/DQL processor stage — see OPLOGS-03 and OPIPE for the current redaction processor shape rather than a standalone `"type": "redact"` block, which does not exist in the current API.
 
 Route-to-bucket is a separate concern from the pipeline's processors — it's handled by the pipeline's `storage` stage / bucket-assignment processor (`bucket_assignment_processor` in Terraform), not a top-level `targetBucket` field on the pipeline object.
 
