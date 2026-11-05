@@ -1,6 +1,6 @@
 # SL2DT-99: Summary & Runbook Index
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 11 of 11 | **Created:** April 2026 | **Last Updated:** 10/14/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 11 of 11 | **Created:** April 2026 | **Last Updated:** 11/04/2026
 
 ## Overview
 
@@ -215,14 +215,15 @@ timeseries avg_cpu = avg(dt.host.cpu.usage), from:-1h, by:{dt.entity.host}
 // holding an ARRAY of "key:value" strings, so a tag is matched with an iterative expression —
 // iAny(startsWith(tags[], "team:")) — not addressed as a nested field. The old cell failed with
 // FIELD_DOES_NOT_EXIST. Pass the whole `tags` array through the lookup and read it downstream.
+// Join on the host entity ID. `host.name` is not the host entity's name, so a
+// host.name → entity.name join matches no host and leaves `tags` empty.
 fetch logs, from:-1h
 | filter sumo.source_category == "prod/api"
-| summarize c = count(), by:{host.name}
+| summarize c = count(), by:{dt.entity.host}
 | lookup [fetch dt.entity.host, from:-7d
-         | fieldsAdd hostname = entity.name
-         | fields hostname, tags],
-    sourceField:host.name, lookupField:hostname,
-    fields:{tags}
+         | fields id, entity.name, tags],
+    sourceField:dt.entity.host, lookupField:id,
+    fields:{entity.name, tags}
 ```
 
 <a id="timeline"></a>

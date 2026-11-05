@@ -1,6 +1,6 @@
 # SL2DT-05: Monitor & Alert Conversion
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 5 of 11 | **Created:** April 2026 | **Last Updated:** 10/14/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 5 of 11 | **Created:** April 2026 | **Last Updated:** 11/04/2026
 
 ## Overview
 
@@ -284,6 +284,7 @@ tasks:
         | filter sumo.source_category == "prod/api"
         | summarize {total = count(), errors = countIf(contains(content, "error", caseSensitive:false))}
         | fieldsAdd error_pct = 100.0 * toDouble(errors) / toDouble(total)
+        | filter total > 0
   - name: check_threshold
     action: dynatrace.automations:http-function   # ServiceNow Table API — see §6
     predecessors: [check_error_rate]
@@ -304,7 +305,7 @@ tasks:
         }
 ```
 
-A DQL task in state *Success* can still return no records, and reading `records[0]` from an empty result makes the condition error. Guard with `| length > 0`, as above.
+A DQL task in state *Success* can still return no records, and reading `records[0]` from an empty result makes the condition error. Guard with `| length > 0`, as above. An ungrouped `summarize` always returns one record — with no matching logs it returns `total` 0 and no `error_pct` — so the query ends with `| filter total > 0`: the no-data case then returns no records and the guard applies.
 
 > <sub>**Sources:** [DQL query action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/dql-query-workflow-action) — *"Accessing a specific record without first checking the array length will cause a condition error."*</sub>
 

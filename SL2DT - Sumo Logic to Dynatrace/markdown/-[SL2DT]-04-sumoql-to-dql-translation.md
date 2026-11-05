@@ -1,6 +1,6 @@
 # SL2DT-04: SumoQL → DQL Translation
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 4 of 11 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 4 of 11 | **Created:** April 2026 | **Last Updated:** 11/04/2026
 
 ## Overview
 
@@ -32,7 +32,7 @@ This is the largest engineering effort in the migration — a typical customer h
 | **Audience** | Core migration engineers + app-team reviewers |
 | **Skill reference** | `sumoql-to-dql` SKILL.md + mapping-tables.md + examples.md |
 | **Inputs** | Inventory from SL2DT-02 (dashboards.json, monitors.json, searches.json, fers.json) |
-| **Dynatrace access** | Platform Token with `storage:logs:read` + `storage:events:read` + `storage:metrics:read` for validation |
+| **Dynatrace access** | Platform Token with `storage:buckets:read` + `storage:logs:read` + `storage:events:read` + `storage:metrics:read` for validation |
 | **Tools** | Python 3 for batch translation scripts; optionally a purpose-built migration tool (not yet published) |
 
 <a id="outputs"></a>
@@ -213,7 +213,7 @@ Outlier / anomaly detection patterns should become anomaly detectors, not DQL qu
 _sourceCategory=prod/api | timeslice 1m | count | outlier _count window=10 threshold=3
 ```
 
-**Do:** Configure a anomaly detector on a metric derived from the same log source. See SL2DT-05.
+**Do:** Configure an anomaly detector on a metric derived from the same log source. See SL2DT-05.
 
 **Don't:** Try to recreate outlier math in DQL. The baseline is brittle and doesn't adapt to seasonality.
 
@@ -380,14 +380,15 @@ DQL (requires entity attributes or a Grail lookup table):
 // holding an ARRAY of "key:value" strings, so a tag is matched with an iterative expression —
 // iAny(startsWith(tags[], "team:")) — not addressed as a nested field. The old cell failed with
 // FIELD_DOES_NOT_EXIST. Pass the whole `tags` array through the lookup and read it downstream.
+// Join on the host entity ID. `host.name` is not the host entity's name, so a
+// host.name → entity.name join matches no host and leaves `tags` empty.
 fetch logs, from:-1h
 | filter startsWith(sumo.source_category, "prod/")
-| summarize c = count(), by:{host.name}
+| summarize c = count(), by:{dt.entity.host}
 | lookup [fetch dt.entity.host, from:-7d
-         | fieldsAdd hostname = entity.name
-         | fields hostname, tags],
-    sourceField:host.name, lookupField:hostname,
-    fields:{tags}
+         | fields id, entity.name, tags],
+    sourceField:dt.entity.host, lookupField:id,
+    fields:{entity.name, tags}
 ```
 
 ### Example 5 — Outlier (LOW — Dynatrace Intelligence redirect)

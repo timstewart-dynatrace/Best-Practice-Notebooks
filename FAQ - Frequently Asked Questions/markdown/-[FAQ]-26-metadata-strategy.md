@@ -1,6 +1,6 @@
 # FAQ-26: What Metadata Should We Set, Where, and Why?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 26 — Metadata Strategy | **Created:** October 2026 | **Last Updated:** 10/29/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 26 — Metadata Strategy | **Created:** October 2026 | **Last Updated:** 11/04/2026
 
 ## Overview
 
@@ -194,7 +194,7 @@ Three methods, set out in full in **K8S-10**: **central rules** that promote nam
 
 **The double-injection trap.** When OneAgent injection and OTLP exporter injection are both active on a pod and set the same key, Dynatrace calls the result undefined. Use distinct keys.
 
-> <sub>**Sources:** [Enrich Kubernetes telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) — *"Workload-level: Dynatrace Operator version 1.11.0+ ActiveGate version 1.347+"* and *"When the same key is set at multiple levels, the pod-level value wins over the workload-level value, and the workload-level value wins over the namespace-level value."*, [ActiveGate 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347) — *"Rollout start on Sep 30, 2026"*, [Configure cost allocation (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-cost-allocation) — *"Pod annotations don't enrich Kubernetes metrics, events, Smartscape entities, or Prometheus metrics."*</sub>
+> <sub>**Sources:** [Enrich Kubernetes telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) — *"Workload-level: Dynatrace Operator version 1.11+ ActiveGate version 1.347+"* and *"When the same key is set at multiple levels, the pod-level value wins over the workload-level value, and the workload-level value wins over the namespace-level value."*, [ActiveGate 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347) — *"Rollout start on Sep 30, 2026"*, [Configure cost allocation (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-cost-allocation) — *"Pod annotations don't enrich Kubernetes metrics, events, Smartscape entities, or Prometheus metrics."*</sub>
 
 ### 5.3 OpenTelemetry
 
@@ -206,13 +206,13 @@ Built-in fields such as `dt.host_group.id` arrive automatically only when the OT
 
 ### 5.4 Cloud connections (AWS, Azure, Google Cloud)
 
-Account and region fields are populated automatically on telemetry from a cloud connection. To use your own cloud tags, central configuration maps a cloud tag to `dt.security_context`, `dt.cost.costcenter` or `dt.cost.product`, or forwards it as `aws.tags.<key>`, which is not yet a primary tag. Mapping a cloud tag straight to a **primary tag** is still marked *coming soon*. The AWS end-to-end example, published 10/06/2026, says *"Primary tag isn't yet available as a Target for AWS tag rules"*, and adds that once it is, *"you no longer need the OpenPipeline rule."* Until then, an OpenPipeline primary Grail tag rule promotes the forwarded field. List two sources in that rule: one for telemetry (`aws.tags.team`) and one for Smartscape nodes (`` `tags:aws`[team] ``). Set its matching condition to `isNull(primary_tags.team)`. *"The default condition is true, which overwrites values other sources already set"*, such as a Kubernetes team tag or a Lambda function's `DT_TAGS`.
+Account and region fields are populated automatically on telemetry from a cloud connection. To use your own cloud tags, central configuration maps a cloud tag to `dt.security_context`, `dt.cost.costcenter` or `dt.cost.product`, or forwards it as `aws.tags.<key>`, which is not yet a primary tag. Mapping a cloud tag straight to a **primary tag** is not yet available as a target. The AWS end-to-end example, published 10/06/2026, says *"Primary tag isn't yet available as a Target for AWS tag rules"*, and adds that once it is, *"you no longer need the OpenPipeline rule."* Until then, an OpenPipeline primary Grail tag rule promotes the forwarded field. List two sources in that rule: one for telemetry (`aws.tags.team`) and one for Smartscape nodes (`` `tags:aws`[team] ``). Set its matching condition to `isNull(primary_tags.team)`. *"The default condition is true, which overwrites values other sources already set"*, such as a Kubernetes team tag or a Lambda function's `DT_TAGS`.
 
 **What these rules reach.** Cloud tag rules tag only the data that comes through the cloud connection: cloud metrics, cloud logs and the cloud Smartscape nodes (`AWS_EC2_INSTANCE`, `AWS_LAMBDA_FUNCTION`, `AWS_RDS_DB_INSTANCE` in the example). OneAgent data from the same VM needs the Host/Process property rule in §5.1. A Lambda function *"doesn't load the ingest enrichment configuration"*, so its telemetry is tagged by `DT_TAGS` only.
 
 **Version gate.** These pages apply to **new cloud connections only** and to Dynatrace **1.348+**. SaaS releases reach tenants in a staged rollout, so check that your tenant has the release before you design around it. Classic cloud connections are not covered. FAQ-02 §4 covers naming drift between cloud providers, which is the main reason to normalize in one rule.
 
-> <sub>**Sources:** [Enrich AWS telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-aws) — *"This page applies to new cloud connections only."* and *"Primary Grail tags (coming soon): This option is not yet directly available as Target and will be added in one of the next releases."*, [Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"Primary tag isn't yet available as a Target for AWS tag rules, which is why this step needs the OpenPipeline rule."*</sub>
+> <sub>**Sources:** [Enrich AWS telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-aws) — *"This page applies to new cloud connections only."* and *"Primary Grail tags : This option is not yet directly available as Target ."* (page updated 11/03/2026), [Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"Primary tag isn't yet available as a Target for AWS tag rules, which is why this step needs the OpenPipeline rule."*</sub>
 
 ### 5.5 Extensions (Extensions 2.0)
 
