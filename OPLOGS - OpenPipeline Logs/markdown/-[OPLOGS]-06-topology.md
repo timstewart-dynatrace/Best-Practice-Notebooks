@@ -1,6 +1,6 @@
 # OPLOGS-06: Topology & Entity Context
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 6 of 8 | **Created:** December 2025 | **Last Updated:** 10/12/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 6 of 8 | **Created:** December 2025 | **Last Updated:** 11/06/2026
 
 ## Leveraging Entity Relationships in Log Analysis
 This notebook explores how Dynatrace enriches logs with entity context (hosts, processes, services, Kubernetes) for topology-aware analysis.
@@ -80,9 +80,9 @@ Relationships flow from infrastructure → application → kubernetes context.
 | `k8s.pod.uid` | Pod unique identifier |
 | `k8s.container.name` | Container name |
 | `k8s.cluster.name` | Cluster name |
-| `k8s.deployment.name` | Deployment name |
+| `k8s.deployment.name` | Deployment name (`experimental`; prefer `k8s.workload.name` + `k8s.workload.kind`) |
 | `k8s.workload.name` | Workload name |
-| `k8s.workload.kind` | Workload type (Deployment, StatefulSet, etc.) |
+| `k8s.workload.kind` | Workload kind, lowercase (`deployment`, `statefulset`, `daemonset`, …) |
 
 ```dql
 // Discover available entity fields in your logs — classic (deprecated) and Smartscape (stable)

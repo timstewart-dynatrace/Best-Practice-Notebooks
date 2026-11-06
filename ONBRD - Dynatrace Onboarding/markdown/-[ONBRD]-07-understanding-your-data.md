@@ -1,6 +1,6 @@
 # ONBRD-07: Understanding Your Data
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 11/03/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 11/05/2026
 
 ## Exploring What Dynatrace Discovered
 With OneAgent deployed, Dynatrace has automatically discovered your infrastructure, processes, and services. This notebook helps you understand what's been found and how to explore your data.
@@ -168,9 +168,9 @@ Documented defaults for the built-in buckets (confirm against the query above):
 
 > <sub>**Sources:** [How to organize your data stored in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data) — *"default_logs logs 35 days default_metrics metrics 15 months default_spans spans 10 days"*, [Data retention periods (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods) — *"Davis problems and events 14 months"*.</sub>
 
-> **Forthcoming — SaaS 1.353 (planned December 2026), announced in the SaaS 1.350 pre-release notes:** *"With Dynatrace SaaS version 1.353, planned for December 2026, security events become fully configurable in OpenPipeline, and security event storage consolidates into a single Grail bucket with a new default retention period."* *"All events will flow into the new default_security bucket automatically."* Act before it reaches your tenant if you query security events by bucket name — *"Notebooks, dashboards, and workflows filtering on default_securityevents or default_securityevents_builtin need updating."* — or if *"You rely on retention beyond 35 days."* Until SaaS 1.353 reaches your tenant, the security-event buckets and retention listed above remain current.
+> **Forthcoming — SaaS 1.353 (planned December 2026), announced in the SaaS 1.350 release notes:** *"With Dynatrace SaaS version 1.353, planned for December 2026, security events become fully configurable in OpenPipeline, and security event storage consolidates into a single Grail bucket with a new default retention period."* *"All events will flow into the new default_security bucket automatically."* Act before it reaches your tenant if you query security events by bucket name — *"Notebooks, dashboards, and workflows filtering on default_securityevents or default_securityevents_builtin need updating."* — or if *"You rely on retention beyond 35 days."* Until SaaS 1.353 reaches your tenant, the security-event buckets and retention listed above remain current.
 
-> <sub>**Sources:** [What's new in Dynatrace SaaS 1.350 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-350) — pre-release notes, rollout planned from 11/10/2026.</sub>
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.350 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-350) — *"Rollout start on Nov 4, 2026"*.</sub>
 
 > **Where to go deeper:**
 > - **ORGNZ-02 / ORGNZ-99** — Grail bucket strategy and retention design

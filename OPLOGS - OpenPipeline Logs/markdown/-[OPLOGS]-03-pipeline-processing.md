@@ -1,6 +1,6 @@
 # OPLOGS-03: OpenPipeline Processing
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 10/30/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 11/06/2026
 
 ## Configuring Pipeline Stages for Log Transformation
 This notebook covers OpenPipeline processing stages: parsing, enrichment, metric extraction, event generation, bucket routing, and filtering.
@@ -232,7 +232,7 @@ Enrichment that previously needed a DQL `if()` ladder — or an external system 
 | Identifier → ownership | App ID to business unit or cost centre |
 | Attribute → security context | Existing attribute to a `dt.security_context` value |
 
-It is available in the **Processing** stage across every scope — logs, spans, metrics, business events, security events, user events and sessions, and the Davis/SDLC event pipelines — not logs alone. SaaS 1.345 released 08/11/2026 with a **staged tenant rollout**; verify the processor is present in your pipeline editor before designing against it. The `if()`-ladder pattern shown below remains correct and keeps working, and is still the better fit when the mapping is computed rather than enumerated.
+It is available in the **Processing** stage of the logs, events, generic events, Davis events, SDLC events, security events, business events, spans, metrics, user events and user sessions scopes — not logs alone, though system events is not among them (Processing in OpenPipeline, stage table). SaaS 1.345 released 08/11/2026 with a **staged tenant rollout**; verify the processor is present in your pipeline editor before designing against it. The `if()`-ladder pattern shown below remains correct and keeps working, and is still the better fit when the mapping is computed rather than enumerated.
 
 Add **computed attributes** to logs for enhanced analysis and filtering.
 

@@ -1,6 +1,6 @@
 # OPLOGS-99: Best Practice Summary
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/23/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 11/06/2026
 
 Definitive best practice settings for OpenPipeline log processing. Each entry specifies the exact configuration — no hedging, no options.
 
@@ -177,7 +177,7 @@ fetch logs, from: now() - 6h
 | makeTimeseries {
     errors = countIf(status == "ERROR"),
     warnings = countIf(status == "WARN"),
-    info = countIf(status == "INFO")
+    info = countIf(status == "INFO" AND NOT in(loglevel, {"DEBUG", "TRACE"}))
   }, interval: 5m
 ```
 

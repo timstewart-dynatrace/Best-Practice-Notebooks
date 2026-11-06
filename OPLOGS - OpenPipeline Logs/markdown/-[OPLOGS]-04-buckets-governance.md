@@ -1,6 +1,6 @@
 # OPLOGS-04: Buckets & Data Governance
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 10/23/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 11/06/2026
 
 ## Strategic Storage Management for OpenPipeline Logs
 This notebook covers Grail bucket architecture, retention policies, routing configuration, access control, and cost optimization strategies.
@@ -237,7 +237,7 @@ A **route** sends a record to a **pipeline**; the **bucket** is chosen inside th
 fetch logs, from: now() - 1h
 | fieldsAdd target_bucket = if(loglevel == "DEBUG" OR loglevel == "TRACE", "debug_logs",
                             else: if(status == "ERROR", "error_logs",
-                            else: if(contains(content, "audit") OR contains(content, "security"), "audit_logs",
+                            else: if(matchesValue(content, "*audit*") OR matchesValue(k8s.namespace.name, "*security*"), "audit_logs",
                             else: "default_logs")))
 | summarize {count = count()}, by: {target_bucket, loglevel}
 | sort target_bucket asc, count desc
