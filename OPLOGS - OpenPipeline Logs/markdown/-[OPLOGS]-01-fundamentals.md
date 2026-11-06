@@ -1,6 +1,6 @@
 # OPLOGS-01: OpenPipeline Fundamentals
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 1 of 8 | **Created:** December 2025 | **Last Updated:** 10/14/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 1 of 8 | **Created:** December 2025 | **Last Updated:** 11/06/2026
 
 ## Understanding the Unified Data Ingestion Framework
 This notebook introduces OpenPipeline, Dynatrace's unified data processing framework for logs, traces, metrics, and events.
@@ -138,7 +138,7 @@ OpenPipeline adds metadata fields to every log record:
 |-------|-------------|
 | `timestamp` | When the log was generated |
 | `content` | The log message body |
-| `loglevel` | Log severity (ERROR, WARN, INFO, DEBUG, NONE) |
+| `loglevel` | Log severity as ingested — e.g. ERROR, SEVERE, WARN, INFO, DEBUG, NONE (the `status` row below lists every value and its group) |
 | `status` | Severity group derived from `loglevel`: ERROR (SEVERE, ERROR, CRITICAL, ALERT, FATAL, EMERGENCY), WARN, INFO (INFO, TRACE, DEBUG, NOTICE), NONE — use it for error-class counts |
 | `log.source` | Source identifier (e.g., "Container Output") |
 | `log.iostream` | Stream type (stdout, stderr) |
@@ -272,7 +272,8 @@ Continue to **OPLOGS-02: Migration Guide** to learn how to migrate from classic 
 - [Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail)
 - [Dynatrace Query Language (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
 - [Automatic log enrichment (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-api/lma-log-data-transformation) — *"a status attribute is created with a value that is a sum of loglevel values based on the following grouping"*
-- [Log ingestion API (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-api) — delivery reliability: HTTP 204 success, retryable codes + exponential backoff, ActiveGate disk-queue buffering, `503 Usable space limit reached`
+- [Log ingestion API (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-api) — client retries with exponential backoff, ActiveGate disk-queue buffering, `503 Usable space limit reached`
+- [Log Monitoring API v2 - POST ingest logs (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/log-monitoring-v2/post-ingest-logs) — HTTP 204 success (no body); each response code marked retryable or not
 
 ---
 

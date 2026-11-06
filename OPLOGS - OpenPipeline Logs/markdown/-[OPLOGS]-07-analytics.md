@@ -1,6 +1,6 @@
 # OPLOGS-07: Analytics & Dashboards
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 7 of 8 | **Created:** December 2025 | **Last Updated:** 10/12/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 7 of 8 | **Created:** December 2025 | **Last Updated:** 11/06/2026
 
 ## Aggregation, Time Series, and Visualization Queries
 This notebook covers aggregation functions, time series analysis, statistical patterns, and dashboard-ready queries for log analytics.
@@ -102,7 +102,7 @@ fetch logs, from: now() - 1h
     total = count(),
     errors = countIf(status == "ERROR"),
     warnings = countIf(status == "WARN"),
-    info = countIf(status == "INFO")
+    info = countIf(status == "INFO" AND NOT in(loglevel, {"DEBUG", "TRACE"}))
   }, by: {k8s.namespace.name}
 | sort total desc
 | limit 15
