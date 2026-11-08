@@ -1,6 +1,6 @@
 # IAM-05: Boundary Design Patterns
 
-> **Series:** IAM — IAM Administration | **Notebook:** 5 of 12 | **Created:** January 2026 | **Last Updated:** 10/25/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 5 of 12 | **Created:** January 2026 | **Last Updated:** 11/07/2026
 
 ## Controlling Data Visibility with Boundaries
 Boundaries determine **what data** users can see. While policies control actions, boundaries filter visibility. This notebook covers boundary syntax, patterns, and implementation strategies, including how to scope access to lookup files in Grail.
@@ -830,6 +830,8 @@ Use the order in Section 4. When each tenant already has its own host group, the
 > <sub>**Sources:** [Configure security context (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-security-context) — *"Set a fixed value for all signals within a given scope (environment, Kubernetes cluster, host group)."*</sub>
 
 You can also set the context on the OneAgent at deployment. The June-2026 [tags hub](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) documents the host-tag form for `dt.*` primary fields (the older `--set-host-property` form remains documented in the oneagentctl reference):
+
+> **OneAgent 1.349 (rollout planned from 11/09/2026) — breaking change:** the [OneAgent 1.349 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349) say *"Code modules now drop any primary Grail tag attribute that is set via `oneagentctl --set-host-property`."* OneAgent updates roll out over weeks — check the version your hosts run; the host-tag form below is the one the tags hub documents.
 
 ```bash
 # Set via OneAgent installer / oneagentctl (tags-hub form)

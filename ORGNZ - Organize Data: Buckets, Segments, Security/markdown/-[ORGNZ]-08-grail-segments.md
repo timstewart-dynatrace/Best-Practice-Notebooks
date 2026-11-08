@@ -1,6 +1,6 @@
 # ORGNZ-08: Grail Segments
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 10/23/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 11/07/2026
 
 ## Overview
 
@@ -121,9 +121,8 @@ Filter conditions use the segment filter grammar (`=`, `in()`, `*` inside the va
 | Maximum includes (rules) per segment | 20 | Plan rule complexity accordingly |
 | Include blocks per data/entity type | 1 | Cannot have multiple rules for same type |
 | Expressions per filter condition | 1 min / 10 max | Maximum conditions per filter |
-| Values per variable | 10,000 | Maximum values in the variable dropdown |
+| Values per variable | 15,000 | Maximum values in the variable dropdown; a 5 MB byte cap also applies |
 | Selected variable values per segment | 100 | Classic entities |
-| Segments applied per query | 10 | Cannot stack unlimited segments |
 | Additional include per classic entity type + relationship | 1 | One relationship hop only |
 
 ### Operators and Wildcards
@@ -142,7 +141,7 @@ Segment filter conditions offer only two operators: **`=` and `in`**. There is n
 
 > An asterisk may also follow a variable name in a starts-with condition — for example `foo = $bar*` — which is what makes variable-driven segments practical.
 
-> <sub>**Sources:** [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits) — *"Only operators `=`, and `in()` are supported."*; classic entities: *"starts-with, contains, and ends-with are not supported"*, *"entity.name supports starts-with"*, *"Other properties only support equals"*. [Filter field (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/get-started/dynatrace-ui/ui-filter-field) — `in` *"matches one or more values in a list of values"*; *"Wildcards are not supported within the in () operator."*</sub>
+> <sub>**Sources:** [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits) — *"15,000 values in the variable dropdown (5 MB byte cap also applies)"*; *"Only operators `=`, and `in()` are supported."*; classic entities: *"starts-with, contains, and ends-with are not supported"*, *"entity.name supports starts-with"*, *"Other properties only support equals"*. [Filter field (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/get-started/dynatrace-ui/ui-filter-field) — `in` *"matches one or more values in a list of values"*; *"Wildcards are not supported within the in () operator."*</sub>
 
 <a id="segment-design-patterns"></a>
 ## Segment Design Patterns

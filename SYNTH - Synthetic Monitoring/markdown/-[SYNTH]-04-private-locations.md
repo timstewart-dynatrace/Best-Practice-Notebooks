@@ -1,6 +1,6 @@
 # SYNTH-04: Private Synthetic Locations
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 4 of 6 | **Created:** December 2025 | **Last Updated:** 10/25/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 4 of 6 | **Created:** December 2025 | **Last Updated:** 11/07/2026
 
 ## Monitoring Internal Applications from Your Infrastructure
 This notebook covers deploying and managing private synthetic locations (ActiveGates) for monitoring internal applications, APIs, and services not accessible from the public internet.
@@ -114,6 +114,7 @@ For browser monitors, additional requirements:
 | **1.343** (published 07/15/2026, rollout from 07/28/2026) | Chromium 150 | Chrome for Testing 150 | Chrome for Testing 150 |
 | **1.345** (rollout from 08/25/2026) | Chromium 151 | Chrome for Testing 151 | Chrome for Testing 151 |
 | **1.347** (published 10/01/2026, rollout from 09/30/2026) | Chromium 152 | Chrome for Testing 152 | Chrome for Testing 152 |
+| **1.349** ([notes](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-349) published 11/05/2026, rollout planned from 11/09/2026) | Chromium 153 (RHEL 9.8, Rocky Linux 9.8) | Chrome for Testing 153 (also RHEL 10.2, Rocky Linux 10.2) | Chrome for Testing 153 |
 
 Fleets move to each row as their ActiveGates update — check the ActiveGate version (query below) before assuming Chromium 152.
 

@@ -1,6 +1,6 @@
 # ORGNZ-10: Advanced Segment Definitions
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 10 of 10 | **Created:** February 2026 | **Last Updated:** 10/14/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 10 of 10 | **Created:** February 2026 | **Last Updated:** 11/07/2026
 
 ## Overview
 
@@ -267,12 +267,14 @@ The variable definition is a DQL query. The columns in the result set determine 
 
 | Rule | Detail |
 |------|--------|
-| Maximum values in dropdown | 10,000 per variable |
+| Maximum values in dropdown | 15,000 (a 5 MB byte cap also applies) |
 | Selected values per segment | 100 maximum |
 | Wildcard | Allowed **after** variable name: `$cluster*` (starts-with) |
 | No wildcard in names | Variable names and values cannot contain `*` |
 | Permissions | Users must have read access to entities queried by the variable DQL |
 | Empty dropdown | Usually means the user lacks permission for the variable query |
+
+> <sub>**Sources:** [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits) — *"15,000 values in the variable dropdown (5 MB byte cap also applies)"*.</sub>
 
 > **SaaS 1.347 — staged tenant rollout from 09/16/2026:** segment variable queries move from the consuming app's context to the Segments app's. Once the change reaches your tenant, *"variable queries succeed even when the consuming app lacks the required data scopes"*, provided users hold `ALLOW app-engine:apps:run WHERE shared:app-id = 'dynatrace.segments.management'` — without it, *"variable queries will fall back to the old behavior."* Until then, the two permission rows above describe the working behaviour. Source: [What's new in SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347).
 
@@ -324,6 +326,7 @@ Use these variables across **multiple includes** to build a segment that filters
 | Logs | dt.entity.process_group in ($id) | Signal include (entity ID filter) |
 | Metrics | dt.entity.process_group in ($id) | Signal include (entity ID filter) |
 | Events | dt.entity.process_group in ($id) | Signal include (entity ID filter) |
+Classic pattern: entity relationships in segments are only supported for backward compatibility with classic entities.
 For environments where SVG doesn't render
 -->
 
