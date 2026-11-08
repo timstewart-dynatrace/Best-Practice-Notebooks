@@ -1,6 +1,6 @@
 # ORGNZ-03: Bucket Strategy and Design
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 10/27/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 11/07/2026
 
 ## Overview
 
@@ -67,8 +67,10 @@ By the end of this notebook, you will:
 | First character | Must be a letter |
 | Allowed characters | Lowercase alphanumeric, underscores, hyphens |
 | Case | Lowercase only |
-| Reserved names | Cannot use `default_*` prefix |
+| Reserved names | Cannot start with `default_` or `dt_` |
 | Immutability | Names cannot be changed after creation |
+
+> <sub>**Sources:** [Bucket management SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-bucket-management/) — *"Bucket name can not start with"* `default_` or `dt_`.</sub>
 
 <a id="retention-strategy"></a>
 ## Retention Strategy
@@ -232,8 +234,10 @@ Bucket sizing shapes queryability because `fetch` stops after 500 GB of uncompre
 | Operation | Possible? | Alternative |
 |-----------|-----------|-------------|
 | Move data between buckets | No | Route new data via OpenPipeline |
-| Selective record deletion | No | Wait for retention to expire |
+| Delete selected records | Yes — record deletion API | Hard delete of the records a DQL filter matches, at most 24 hours of data per request; needs `storage:records:delete` (no default policy grants it) |
 | Bucket deletion | Yes | Deletes ALL data permanently |
+
+> <sub>**Sources:** [Record deletion in Grail via API (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/record-deletion-in-grail) — *"You can delete records from Grail using the API by leveraging DQL"*; *"The maximum timeframe for a record deletion request is 24 hours."*; *"There's no pre-defined policy that grants these permissions"*; *"Record deletion is final and can't be undone."*</sub>
 
 <a id="routing-data-to-buckets"></a>
 ## Routing Data to Buckets
@@ -265,7 +269,7 @@ OneAgent enriches telemetry at the source with standardized **primary fields** f
 
 Use `matchesValue` rather than `==` on `dt.security_context`: the field can hold an array, and the equality operator *"doesn't operate on elements being part of multi-value attributes."* See **ORGNZ-06: Security Context** for how the value is set and **OPLOGS** / **OPIPE** for pipeline configuration.
 
-Logs from official Dynatrace database extensions already have a built-in bucket, `default_database_monitoring`, which keeps them out of `default_logs` for faster queries and tighter IAM scoping. The `default_*` prefix is reserved — only Dynatrace-provided buckets use it.
+Logs from official Dynatrace database extensions already have a built-in bucket, `default_database_monitoring`, which keeps them out of `default_logs` for faster queries and tighter IAM scoping. The `default_` and `dt_` prefixes are reserved — a custom bucket name cannot start with either.
 
 **Smartscape Ownership integration.** Smartscape entities now carry ownership information that Dynatrace Workflows can read directly — useful when bucket-routing decisions depend on which team owns the producing host or service. See **WFLOW** for the routing-on-ownership pattern.
 

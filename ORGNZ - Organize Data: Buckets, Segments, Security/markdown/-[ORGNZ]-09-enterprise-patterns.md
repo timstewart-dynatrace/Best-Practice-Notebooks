@@ -1,6 +1,6 @@
 # ORGNZ-09: Enterprise Data Organization Patterns
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 9 of 10 | **Created:** January 2026 | **Last Updated:** 10/14/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 9 of 10 | **Created:** January 2026 | **Last Updated:** 11/07/2026
 
 ## Overview
 
@@ -64,7 +64,7 @@ Segment: finance-team-view
   - Includes related services and hosts
 
 Security Context: lob:finance
-  - IAM policy: ALLOW WHERE security_context = 'lob:finance'
+  - IAM policy: ALLOW WHERE security_context MATCH ('lob:finance')
   - Only finance team members can access
 ```
 
@@ -77,8 +77,8 @@ Complete isolation by business unit:
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | LOB | Buckets | Segment | Security Context | Policy |
 |-----|---------|---------|------------------|--------|
-| Finance | finance_logs_365d, finance_events_90d | finance-all-data | lob:finance | ALLOW WHERE context = 'lob:finance' |
-| Retail | retail_logs_90d, retail_events_35d | retail-all-data | lob:retail | ALLOW WHERE context = 'lob:retail' |
+| Finance | finance_logs_365d, finance_events_90d | finance-all-data | lob:finance | ALLOW WHERE context MATCH ('lob:finance') |
+| Retail | retail_logs_90d, retail_events_35d | retail-all-data | lob:retail | ALLOW WHERE context MATCH ('lob:retail') |
 For environments where SVG doesn't render
 -->
 
@@ -117,8 +117,12 @@ Set `lob:finance` / `lob:retail` at the source first — a `dt.security_context=
 ```
 // Finance policy
 ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH "finance_";
-ALLOW storage:logs:read, storage:events:read WHERE storage:dt.security_context = "lob:finance";
+ALLOW storage:logs:read, storage:events:read WHERE storage:dt.security_context MATCH ("lob:finance");
 ```
+
+> **Use `MATCH`, not `=`, for events.** `dt.security_context` on events is an array — on the validation tenant every event carrying a security context held an array (522,703 events over 7 days, checked 11/07/2026) — and *"Using `=`, `STARTSWITH` or `IN` when the field holds an array will always return `false`."* With `=`, the events half of this statement grants nothing and nothing errors. `MATCH` matches a single string or any element of an array, so one statement covers logs and events.
+
+> <sub>**Sources:** [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"If you expect your record filters might contain an array, use the MATCH operator in your IAM statements."*</sub>
 
 <a id="enterprise-pattern-2-environment-based-tiering"></a>
 ## Enterprise Pattern 2: Environment-Based Tiering

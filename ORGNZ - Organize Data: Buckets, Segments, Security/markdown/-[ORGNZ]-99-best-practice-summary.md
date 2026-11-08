@@ -1,6 +1,6 @@
 # ORGNZ-99: Best Practice Summary & DQL Reference
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/23/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 11/07/2026
 
 ## Overview
 
@@ -32,7 +32,7 @@ This notebook consolidates every actionable best practice from the ORGNZ series 
 | 1 | Size log buckets for 1–3 TB/day | Logs bucket best practice (08/24/2026): *"between 1 TB and 3 TB of log data per day"*. The older partition-data page (06/17/2026) says to split above 2 TB/day, the only figure stated for other tables | Critical | Performance |
 | 2 | One data type per bucket | Each bucket stores exactly one table type (logs, metrics, spans, events, bizevents, security.events) | Critical | Architecture |
 | 3 | Use consistent naming convention | Format: `<provider>_<type>_<retention>` or `<team>_<type>_<retention>` (e.g., `aws_logs_35d`, `team_platform_logs`) | Critical | Naming |
-| 4 | Bucket names: lowercase, letter-first, underscores/hyphens only | Regex: `^[a-z][a-z0-9_-]*$`; never use `default_*` prefix | Critical | Naming |
+| 4 | Bucket names: lowercase, letter-first, underscores/hyphens only | Regex: `^[a-z][a-z0-9_-]*$`; never start with `default_` or `dt_` (reserved) | Critical | Naming |
 | 5 | Plan bucket names before creation | Bucket names are immutable after creation; display names can be changed | Critical | Planning |
 | 6 | Stay within the custom-bucket environment default — 250 from SaaS 1.346 (80 on earlier versions) | Budget buckets across teams; request increase only if justified | Recommended | Planning |
 | 7 | Attribute cost with cost-allocation fields, not buckets | Set `dt.cost.costcenter` / `dt.cost.product` at the source (works for logs, traces, metrics and events); create a dedicated bucket only where a cost center also needs its own retention or access | Recommended | Cost |
@@ -41,7 +41,7 @@ This notebook consolidates every actionable best practice from the ORGNZ series 
 | 10 | Split high-volume buckets to maintain queryability | If a bucket exceeds the range in row 1, split by line of business first, then by application where volume or compliance justify it | Recommended | Performance |
 | 10a | Give an application its own bucket above 250 GB/day | *"Create a dedicated bucket for any application ingesting more than 250 GB/day."* Below that, applications can share a bucket | Recommended | Performance |
 
-> <sub>**Sources:** [Best practices for a logs bucket strategy (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy) — row 1 as quoted; *"Split log buckets by line of business rather than by individual application."*, [Use Grail buckets to partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data) — *"We recommend splitting up buckets that receive more than 2 TB of daily ingest."*, [Best practices for data partitioning (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/data-partitioning) — row 10a as quoted, [Set up Cost Allocation (DT docs)](https://docs.dynatrace.com/docs/manage-your-costs/allocate/plan-and-set-up) — row 7. Where the pages differ, the newer and more specific page is followed (read 10/14/2026).</sub>
+> <sub>**Sources:** [Best practices for a logs bucket strategy (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy) — row 1 as quoted; *"Split log buckets by line of business rather than by individual application."*, [Use Grail buckets to partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data) — *"We recommend splitting up buckets that receive more than 2 TB of daily ingest."*, [Best practices for data partitioning (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/data-partitioning) — row 10a as quoted, [Set up Cost Allocation (DT docs)](https://docs.dynatrace.com/docs/manage-your-costs/allocate/plan-and-set-up) — row 7. [Bucket management SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-bucket-management/) — row 4: *"Bucket name can not start with"* `default_` or `dt_`. Where the pages differ, the newer and more specific page is followed (read 10/14/2026).</sub>
 
 ### Validation Queries — Bucket Design
 
@@ -259,9 +259,11 @@ fetch logs, from:-1h
 | 48 | Set official segments to Public visibility | Platform-team segments: *Anyone in the environment*; application-team segments: *Unlisted*, surfaced through the team's shared notebooks and dashboards (segments have no share-with-group setting) | Recommended | Governance |
 | 49 | Use consistent segment naming prefixes | Prefixes: `team-`, `env-`, `app-`, `region-` (e.g., `team-platform-infra`, `env-production`) | Recommended | Naming |
 | 50 | Test segment filter conditions with DQL before creating the segment | Run the equivalent `filter` clause as a DQL query; verify record counts match expectations | Critical | Operations |
-| 51 | Limit segment variable dropdowns to 10,000 values | Maximum 10,000 values per variable; 100 selected values per segment | Recommended | Architecture |
-| 52 | Use entity relationship traversal for comprehensive segments | Top-down: host → process group → service; bottom-up: service → process group → host | Recommended | Architecture |
+| 51 | Limit segment variable dropdowns to 15,000 values | 15,000 values in the variable dropdown (5 MB byte cap also applies); 100 selected values per segment | Recommended | Architecture |
+| 52 | Use entity relationship traversal for comprehensive segments | Top-down: host → process group → service; bottom-up: service → process group → host. Caveat: Dynatrace says entity relationships in segments *"are only supported for backward compatibility with classic entities"* (see ORGNZ-08) | Recommended | Architecture |
 | 53 | Segments reduce scanned bytes | Applying a segment injects filters at query time, reducing data scanned and improving performance on high-volume buckets | Recommended | Performance |
+
+> <sub>**Sources:** [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits) — row 51: *"15,000 values in the variable dropdown (5 MB byte cap also applies)"*. [Include data in segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-includes) — row 52, as quoted.</sub>
 
 ### Validation Queries — Segment Design
 
@@ -415,8 +417,10 @@ fetch logs, from:-1h
 | 73 | Review segments quarterly | Remove unused segments; verify filter conditions still match data; check for empty results | Recommended | Operations |
 | 74 | Use combined approach for defense in depth | Buckets for retention/cost + Security context for access control + Segments for dynamic views — all three together | Critical | Architecture |
 | 75 | Implement in phases | Phase 1: Plan → Phase 2: Buckets + routing → Phase 3: IAM policies → Phase 4: Segments → Phase 5: Governance | Recommended | Operations |
-| 76 | Selective record deletion is not possible | Cannot delete individual records; wait for bucket retention to expire, or truncate the entire bucket | Critical | Operations |
+| 76 | Delete specific records with the record deletion API | Hard delete of the records a DQL filter matches; needs `storage:records:delete`; at most 24 hours of data per request, ending at least 4 hours before the request; final, and does not reduce bucket size | Critical | Operations |
 | 77 | Bucket deletion destroys all data permanently | Deleting a bucket removes ALL records immediately and irreversibly | Critical | Operations |
+
+> <sub>**Sources:** [Record deletion in Grail via API (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/record-deletion-in-grail) — row 76: *"You can delete records from Grail using the API by leveraging DQL"*; *"The maximum timeframe for a record deletion request is 24 hours."*; *"The end of the timeframe must be at least 4 hours prior to the time of record deletion."*; *"Deleting data using the record deletion API is a hard delete, but it won't reduce the bucket size."*</sub>
 
 ### Validation Queries — Governance and Operations
 

@@ -1,6 +1,6 @@
 # ORGNZ-02: Understanding Grail Buckets
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 11/05/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 11/07/2026
 
 ## Overview
 
@@ -297,8 +297,10 @@ fetch logs, from:-1h, bucket:{"default_logs", "audit_logs", "security_logs"}
 | Operation | Supported? | Alternative |
 |-----------|------------|-------------|
 | Move data between buckets | No | Route new data via OpenPipeline |
-| Selective record deletion | No | Wait for retention to expire |
+| Delete selected records | Yes — record deletion API | Hard delete of the records a DQL filter matches, at most 24 hours of data per request; needs `storage:records:delete` (no default policy grants it) |
 | Bucket deletion | Yes | Deletes ALL data permanently |
+
+> <sub>**Sources:** [Record deletion in Grail via API (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/record-deletion-in-grail) — *"You can delete records from Grail using the API by leveraging DQL"*; *"The maximum timeframe for a record deletion request is 24 hours."*; *"There's no pre-defined policy that grants these permissions"*; *"Record deletion is final and can't be undone."*</sub>
 
 <a id="bucket-naming-rules"></a>
 ## Bucket Naming Rules
@@ -308,7 +310,9 @@ fetch logs, from:-1h, bucket:{"default_logs", "audit_logs", "security_logs"}
 | First character | Must be a letter |
 | Allowed characters | Lowercase alphanumeric, underscores, hyphens |
 | Case | Lowercase only |
-| Reserved names | Cannot use `default_*` prefix |
+| Reserved names | Cannot start with `default_` or `dt_` |
+
+> <sub>**Sources:** [Bucket management SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-bucket-management/) — *"Bucket name can not start with"* `default_` or `dt_`.</sub>
 
 ### Valid Examples
 
@@ -325,6 +329,7 @@ app123_spans
 123_logs          # Starts with number
 Team_Logs         # Contains uppercase
 default_custom    # Uses reserved prefix
+dt_team_logs      # Uses reserved prefix
 my logs           # Contains space
 ```
 

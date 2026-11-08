@@ -1,6 +1,6 @@
 # FAQ-26: What Metadata Should We Set, Where, and Why?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 26 — Metadata Strategy | **Created:** October 2026 | **Last Updated:** 11/04/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 26 — Metadata Strategy | **Created:** October 2026 | **Last Updated:** 11/07/2026
 
 ## Overview
 
@@ -174,6 +174,8 @@ Three surfaces, from broadest to narrowest: **central ingest enrichment rules** 
 **The 1.345 trap.** From OneAgent 1.345, host `primary_tags` come only from host tags, not from `hostcustomproperties.conf`. A host that set them as properties stops sending them on upgrade, and nothing errors. FAQ-02 §3 has the audit.
 
 **Cloud tags on a VM that runs OneAgent.** Cloud tag rules don't reach this data. In Dynatrace's words, *"Cloud rules apply only to data that arrives through the cloud connection, so OneAgent on a cloud VM doesn't evaluate them."* OneAgent 1.343+ has its own route instead. It reads EC2 instance tags *"through the instance metadata service and exposes them as host properties named aws.tags.<key>"*. A Host/Process property rule at the host-group scope then maps each one to a primary tag, a security context or a cost field. *"Access to instance tags in instance metadata is off by default in AWS, so enable it on the instance first."* Azure VMs work the same way with `azure.tags.<key>`.
+
+> **OneAgent 1.349 (rollout planned from 11/09/2026) — breaking change for the Host/Process property route.** The [OneAgent 1.349 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349) say: *"In the Host/process property rules dropdown, the aws.tags and azure.tags based rules will temporarily no longer work as sources or in conditions for injected processes. Full cloud tags support, which brings that functionality back, is planned for a future release."* OneAgent updates roll out over weeks, so check the version your hosts run before relying on this route for data from injected processes; on OneAgent versions before 1.349 the route described above remains the working path.
 
 The OneAgent enrichment page (updated 09/14/2026) still says *"Cloud tags are not yet available as input fields for OneAgent."* The AWS enrichment page (09/17/2026) and the AWS end-to-end example (10/06/2026) both document the route above, so follow them, and check one host's data before rolling it out (§7).
 

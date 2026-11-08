@@ -1,6 +1,6 @@
 # MZ2POL-05: Migrating Management Zone Filtering to Segments
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 6 of 17 | **Created:** December 2025 | **Last Updated:** 11/04/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 6 of 17 | **Created:** December 2025 | **Last Updated:** 11/07/2026
 
 ## Overview
 
@@ -141,9 +141,8 @@ What you need to carry into the migration from those notebooks is a short list o
 | Includes per segment | 20 | A complex MZ with many rule types may not fit in one segment |
 | Include blocks per data type | 1 | You cannot add two `logs` includes — combine with `OR` inside one |
 | Expressions per filter condition | 10 | Caps how many conditions a single MZ rule can become |
-| Segments applied per query | 10 | Limits how far you can decompose one MZ into many small segments |
 | Segments per environment | 10,000 | Rarely binding, but relevant for very large estates |
-| Values in a variable dropdown | 10,000 | Relevant for tenant-wide variables such as host group |
+| Values in a variable dropdown | 15,000 (5 MB byte cap) | Relevant for tenant-wide variables such as host group |
 | Selected variable values per segment | 100 | Classic entities; constrains variable-driven consolidation |
 | Filter operators | `=` and `in()` only | There is no separate `contains` operator — see below |
 | Wildcards | `*` inside the value | Gives starts-with / contains / ends-with matching |
@@ -160,7 +159,7 @@ What you need to carry into the migration from those notebooks is a short list o
 | Include: events — scopes the problem feed | event.kind = "DAVIS_PROBLEM" AND primary_tags.team = "payments" |
 | Include: Entities — Smartscape nodes | type = "SERVICE" AND id in ($dt.smartscape.service) |
 | Logic | Includes are ORed; conditions inside one include are ANDed |
-| Limits | 20 includes; 1 include block per data type; 10 expressions per condition; 10 segments per query; = and in() only; wildcard inside the value; no exclusions; no * in variable names or values; anyone with storage:filter-segments:read can apply any segment |
+| Limits | 20 includes; 1 include block per data type; 10 expressions per condition; = and in() only; wildcard inside the value; no exclusions; no * in variable names or values; anyone with storage:filter-segments:read can apply any segment |
 For environments where SVG doesn't render
 -->
 
@@ -172,7 +171,7 @@ Reach for a type-specific include only when a dimension genuinely differs by dat
 
 > **Classic entity includes are a backward-compatibility path, not the default.** Dynatrace states that entity relationships in segments "are only supported for backward compatibility with classic entities." The includes page describes them for higher-cardinality classic entities (Kubernetes workloads filtered by their related clusters, for example), but the later Services and Smartscape tutorial says *"Do not use legacy dt.entity.* attributes in include blocks in your segments."* A migration should not build on them. For services in particular, §8 has the documented replacement.
 
-> <sub>**Sources:** [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits), [Include data in segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-includes) — verbatim: entity relationships in segments *"are only supported for backward compatibility with classic entities"*, [Filter Smartscape nodes with segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-filter-smartscape-nodes) — the `Data (all types)` include block is the recommended form, [Use segments to scope Services and Smartscape apps (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/segment-services) — as quoted.</sub>
+> <sub>**Sources:** [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits) — *"15,000 values in the variable dropdown (5 MB byte cap also applies)"*, [Include data in segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-includes) — verbatim: entity relationships in segments *"are only supported for backward compatibility with classic entities"*, [Filter Smartscape nodes with segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-filter-smartscape-nodes) — the `Data (all types)` include block is the recommended form, [Use segments to scope Services and Smartscape apps (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/segment-services) — as quoted.</sub>
 
 ---
 
