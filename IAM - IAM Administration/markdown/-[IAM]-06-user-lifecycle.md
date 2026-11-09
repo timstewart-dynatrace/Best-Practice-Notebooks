@@ -1,6 +1,6 @@
 # IAM-06: User Lifecycle and Provisioning
 
-> **Series:** IAM — IAM Administration | **Notebook:** 6 of 12 | **Created:** January 2026 | **Last Updated:** 10/23/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 6 of 12 | **Created:** January 2026 | **Last Updated:** 11/08/2026
 
 ## Automating User Management at Scale
 Manual user management doesn't scale. This notebook covers user lifecycle automation including SCIM provisioning, JIT access, service accounts, token management, and inviting external users from other domains.
@@ -622,7 +622,7 @@ In this notebook, you learned:
 - [Dynatrace API 1.348 changelog (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-348) — *"The following endpoints are deprecated"* (the `/apiTokens` family; rollout start 10/12/2026)
 - [Best practices for upgrading App Observability API endpoints (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-11-api-tokens/upgrade-api-endpoints) — *"For Phase 3 environments, classic API token creation is disabled; all new integrations must use platform tokens."*
 - [Account Management API](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api)
-- [Add a user to groups (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/user-management-api/post-user-groups) — *"Add user to user groups. Existing memberships are unaffected."*
+- [Add a user to groups (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/user-management-api/post-user-groups) — *"Adds a user to groups. Any existing group membership remains unaffected."*
 - [Remove a user from groups (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/user-management-api/delete-user-groups)
 - [Token concepts (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/token-concepts) — the IAM token types table lists *"Expiry configurable?"* as *"No"* for OAuth tokens
 - [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml) — *"Configuring multi-factor authentication (MFA) is not supported by Dynatrace."*; break-glass: *"we recommend that you invite a non-federated user to the environment with Account manager permissions"*

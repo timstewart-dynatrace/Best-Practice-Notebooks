@@ -1,6 +1,6 @@
 # IAM-02: SSO and Authentication Configuration
 
-> **Series:** IAM — IAM Administration | **Notebook:** 2 of 12 | **Created:** January 2026 | **Last Updated:** 10/13/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 2 of 12 | **Created:** January 2026 | **Last Updated:** 11/08/2026
 
 ## Setting Up Enterprise Authentication
 Single Sign-On (SSO) is the foundation of enterprise IAM. Configure SSO before setting up groups, policies, or user provisioning. This notebook covers SAML configuration, IdP integration, and authentication best practices.
@@ -205,17 +205,15 @@ Configure Dynatrace to accept SAML assertions from your IdP.
    - Identity & access management → SAML configuration → New configuration
    - Choose the federation type — global, account, or environment
 
-4. **Enter IdP Information**
+4. **Upload the IdP metadata**
    - **Name**: Descriptive name (e.g., "Corporate Okta")
-   - **IdP Entity ID**: From IdP metadata
-   - **IdP SSO URL**: From IdP metadata
-   - **IdP Certificate**: Upload X.509 certificate from IdP
+   - **IdP metadata**: select **Choose file** and upload the metadata file you received from your IdP
 
 5. **Get Dynatrace SP Information**
    - Copy ACS URL and Entity ID to configure in IdP
    - Download Dynatrace SP metadata if IdP supports it
 
-> <sub>**Sources:** [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml) — *"Before you can configure the domain for which you want to set up SAML, you need to prove ownership of the domain."*, *"go to Identity & access management > SAML configuration and select New configuration"*.</sub>
+> <sub>**Sources:** [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml) — *"Before you can configure the domain for which you want to set up SAML, you need to prove ownership of the domain."*, *"go to Identity & access management > SAML configuration and select New configuration"*, *"Select Choose file to specify the metadata file you received from your IdP."*.</sub>
 
 ### Configuration Options
 

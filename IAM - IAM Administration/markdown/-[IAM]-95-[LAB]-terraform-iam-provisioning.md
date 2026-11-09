@@ -1,6 +1,6 @@
 # IAM-95 LAB: Terraform IAM Provisioning — Groups, Policies, Boundaries, Bindings
 
-> **Series:** IAM — IAM Administration | **Reference:** 95 — Terraform IAM Provisioning LAB | **Created:** July 2026 | **Last Updated:** 10/14/2026
+> **Series:** IAM — IAM Administration | **Reference:** 95 — Terraform IAM Provisioning LAB | **Created:** July 2026 | **Last Updated:** 11/08/2026
 
 ## Overview
 
@@ -1046,10 +1046,10 @@ terraform destroy
 **Expected output (tail):**
 
 ```
-Destroy complete! Resources: 16 destroyed.
+Destroy complete! Resources: 17 destroyed.
 ```
 
-(19 if you applied Gamma.) Verify in the UI that no `TFTEST-` objects remain, then delete `terraform.tfvars`.
+(20 if you applied Gamma.) Verify in the UI that no `TFTEST-` objects remain, then delete `terraform.tfvars`.
 
 <a id="troubleshooting"></a>
 ## Troubleshooting
@@ -1065,7 +1065,7 @@ Destroy complete! Resources: 16 destroyed.
 <a id="validation-checklist"></a>
 ## Validation Checklist
 
-- [ ] `terraform plan` showed 16 to add before apply
+- [ ] `terraform plan` showed 17 to add before apply
 - [ ] Binding IDs contain `#-#environment#-#<env-id>`
 - [ ] The shared policy statement contains literal `${bindParam:team}`
 - [ ] Alpha's binding carries `parameters: {team: tftest-alpha}` + 1 boundary

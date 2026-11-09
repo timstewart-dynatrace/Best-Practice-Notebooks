@@ -680,7 +680,7 @@ Dynatrace ships three predefined fieldsets — two for spans and one for `user.e
 
 The RUM fieldset is in no default policy — grant it explicitly: `ALLOW storage:fieldsets:read WHERE storage:fieldset-name = "builtin-sensitive-user-events-and-sessions";`
 
-> <sub>**Sources:** [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"The three predefined fieldsets are:"*; *"You can use the field permissions with smartscape, but not with entities."*; [RUM data access controls best practices (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-02-post-ingest-enrichment/rum-data-access-controls) — *"This permission is not included in any policy by default and must be assigned explicitly"*.</sub>
+> <sub>**Sources:** [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"The three predefined fieldsets are:"*; *"You can use the field permissions with smartscape, but not with entities."*; [RUM data access controls best practices (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-04-observability-data-settings/rum-data-access-controls) — *"This permission is not included in any policy by default and must be assigned explicitly"*.</sub>
 
 ### Fieldset Permissions
 

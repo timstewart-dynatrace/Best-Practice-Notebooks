@@ -1,6 +1,6 @@
 # IAM-04: Policy Authoring and Management
 
-> **Series:** IAM — IAM Administration | **Notebook:** 4 of 12 | **Created:** January 2026 | **Last Updated:** 10/26/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 4 of 12 | **Created:** January 2026 | **Last Updated:** 11/08/2026
 
 ## Mastering Dynatrace Policy Syntax
 Policies are the heart of Dynatrace Gen3 IAM. They define what actions users can perform. This notebook provides a comprehensive guide to policy authoring, from basic syntax to advanced patterns.
@@ -43,7 +43,7 @@ Use `MATCH` for `user.sessions`: a session can span several frontends. Check eac
 
 > <sub>**Sources:**</sub>
 > - <sub>[SaaS 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337) — *"Statements like ALLOW storage:metrics:read WHERE storage:frontend.name = "mobile_app" let you selectively control access to metrics and Smartscape data at the record- and field level."*</sub>
-> - <sub>[RUM data access controls best practices (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-02-post-ingest-enrichment/rum-data-access-controls) — *"Because user sessions may span multiple frontends, use the MATCH operator"*; *"The frontend.name value may differ from the display name shown in Experience Vitals."*</sub>
+> - <sub>[RUM data access controls best practices (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-04-observability-data-settings/rum-data-access-controls) — *"Because user sessions may span multiple frontends, use the MATCH operator"*; *"The frontend.name value may differ from the display name shown in Experience Vitals."*</sub>
 > - <sub>[IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements)</sub>
 
 ---
@@ -91,7 +91,7 @@ Every policy contains one or more **statements** that define allowed actions.
 | Service | What capability | storage |
 | Resource | What object type | logs |
 | Action | What operation | read |
-| Condition | Optional filter | WHERE dt.security_context = "team-a" |
+| Condition | Optional filter | WHERE storage:dt.security_context = "team-a" |
 -->
 
 ### Basic Statement Structure
@@ -934,7 +934,7 @@ In this notebook, you learned:
 - Statement syntax: `ALLOW <service>:<resource>:<action>`
 - Services and actions reference
 - Condition expressions for fine-grained control
-- Seven common policy patterns
+- Ten common policy patterns
 - When to use default vs custom policies
 - Policy testing and validation approaches
 - GitOps for policy version control
