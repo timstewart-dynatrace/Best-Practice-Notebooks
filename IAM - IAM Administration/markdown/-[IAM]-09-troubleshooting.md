@@ -1,6 +1,6 @@
 # IAM-09: Troubleshooting Access Issues
 
-> **Series:** IAM — IAM Administration | **Notebook:** 9 of 12 | **Created:** January 2026 | **Last Updated:** 10/14/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 9 of 12 | **Created:** January 2026 | **Last Updated:** 11/08/2026
 
 ## Systematic Diagnosis of IAM Problems
 Access issues are among the most common support requests. This notebook provides a systematic methodology for diagnosing and resolving IAM-related problems including permission denials, policy conflicts, and boundary issues.
@@ -568,7 +568,7 @@ Congratulations! You've completed the IAM series.
 | **12: API Provisioning & Validation** | Provisioning scripts, binding reports, cleanup, validation DQL |
 | **95: Terraform IAM Provisioning (LAB)** | Groups, policies, boundaries and bindings as Terraform |
 | **96: Python IAM Provisioning (LAB)** | Step-by-step Account Management API provisioning in Python |
-| **99: Best Practice Summary** | 74 best practices with priorities and settings |
+| **99: Best Practice Summary** | 75 best practices with priorities and settings |
 
 ### Ongoing Maintenance
 

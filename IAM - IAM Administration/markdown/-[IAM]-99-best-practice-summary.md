@@ -1,6 +1,6 @@
 # IAM-99: Best Practice Summary
 
-> **Series:** IAM — IAM Administration | **Notebook:** Bonus Summary | **Created:** March 2026 | **Last Updated:** 10/25/2026
+> **Series:** IAM — IAM Administration | **Notebook:** Bonus Summary | **Created:** March 2026 | **Last Updated:** 11/08/2026
 
 ## Overview
 
@@ -111,7 +111,7 @@ This notebook distills every actionable best practice from the IAM series (IAM-0
 | 31 | Set security context at the source, not with auto-tags | OneAgent `--set-host-tag="dt.security_context=<value>"`, `DT_TAGS` per process, Kubernetes labels/annotations, OTel resource attributes; OpenPipeline enrichment last. Auto-tagging rules *"have no effect on Smartscape on Grail"* | **Recommended** | Boundaries |
 | 32 | Plan Grail buckets carefully: names are immutable, data cannot move | Naming: `<org>_<datatype>_<retention>` (e.g., `team_a_logs_90d`). Up to 250 custom buckets per environment by default from SaaS 1.346 (80 before). 1 data type per bucket | **Critical** | Boundaries |
 | 33 | Size log buckets at 1–3 TB/day | Target 1–3 TB/day per log bucket; split other tables above 2 TB/day. No per-bucket cap is documented, but the 500 GB scan limit shrinks the queryable window as a bucket grows; Dynatrace's split guidance varies between pages (IAM-05) | **Recommended** | Boundaries |
-| 34 | Use Primary Grail Fields for pipeline routing | Route to buckets based on `k8s.cluster.name`, `k8s.namespace.name`, `aws.account.id`, `azure.subscription.id`, `dt.host_group.id` | **Recommended** | Boundaries |
+| 34 | Use Primary Grail Fields for pipeline routing | Route to buckets based on `k8s.cluster.name`, `k8s.namespace.name`, `aws.account.id`, `azure.subscription`, `dt.host_group.id` | **Recommended** | Boundaries |
 | 35 | Give broad access by leaving bindings unbounded, not by wildcards | Leave admin/platform bindings **unbounded** rather than writing a wildcard; `IN ("*")` matches a zone literally named `*` | **Critical** | Boundaries |
 | 35a | Scope lookup files by folder, not by security context | `storage:files:*` accept only `storage:file-path`. Give every team a folder `/lookups/<team>/`. Bind one central read/write policy per team group with a boundary `storage:file-path startsWith "/lookups/<team>/";`. Put shared read on `/lookups/global/` in a separate unbounded policy. Keep both slashes in every prefix (IAM-05 Pattern 8) | **Recommended** | Boundaries |
 | 35b | Keep file-path-bounded policies to `storage:files:*` only | A file-path boundary does not restrict any other permission in the same policy. Add `storage:logs:read` there and it becomes unrestricted. Check *Boundary assignments per policy* (10) before sharing one policy across more than 10 teams | **Critical** | Boundaries |
@@ -210,7 +210,7 @@ This notebook distills every actionable best practice from the IAM series (IAM-0
 
 ## Summary
 
-This notebook consolidates **74 best practices** across 9 categories from the IAM series (IAM-01 through IAM-12). Use it as:
+This notebook consolidates **75 best practices** across 9 categories from the IAM series (IAM-01 through IAM-12). Use it as:
 
 - **Pre-deployment checklist** -- work through all Critical items before production
 - **Quarterly audit sheet** -- verify Recommended items are in place
@@ -221,7 +221,7 @@ This notebook consolidates **74 best practices** across 9 categories from the IA
 | Priority | Count | Action |
 |----------|-------|--------|
 | **Critical** | 34 | Must implement before production |
-| **Recommended** | 35 | Implement for enterprise-grade operations |
+| **Recommended** | 36 | Implement for enterprise-grade operations |
 | **Optional** | 5 | Beneficial for mature or compliance-heavy organizations |
 
 ### Cross-References

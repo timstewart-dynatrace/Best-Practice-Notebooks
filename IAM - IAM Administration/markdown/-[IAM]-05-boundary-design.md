@@ -1,6 +1,6 @@
 # IAM-05: Boundary Design Patterns
 
-> **Series:** IAM — IAM Administration | **Notebook:** 5 of 12 | **Created:** January 2026 | **Last Updated:** 11/07/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 5 of 12 | **Created:** January 2026 | **Last Updated:** 11/08/2026
 
 ## Controlling Data Visibility with Boundaries
 Boundaries determine **what data** users can see. While policies control actions, boundaries filter visibility. This notebook covers boundary syntax, patterns, and implementation strategies, including how to scope access to lookup files in Grail.
@@ -250,7 +250,7 @@ Boundaries filter based on these labels.
 | `k8s.cluster.name` | Kubernetes | Cluster-level isolation |
 | `k8s.namespace.name` | Kubernetes | Namespace-level access |
 | `aws.account.id` | AWS metadata | AWS account separation |
-| `azure.subscription.id` | Azure metadata | Azure subscription separation |
+| `azure.subscription` | Azure metadata | Azure subscription separation |
 | `gcp.project.id` | GCP metadata | GCP project separation |
 | `dt.host_group.id` | OneAgent config | Host group-based isolation |
 
