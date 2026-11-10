@@ -1,6 +1,6 @@
 # OTEL-07: Dynatrace OTLP Integration
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 7 of 8 | **Created:** January 2026 | **Last Updated:** 11/07/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 7 of 8 | **Created:** January 2026 | **Last Updated:** 11/09/2026
 
 ## Complete Setup for OpenTelemetry with Dynatrace
 This notebook provides end-to-end configuration for sending OpenTelemetry data to Dynatrace, including authentication, endpoints, and verification.
@@ -432,7 +432,7 @@ Dynatrace Operator (v1.8+) supports **automatic OTLP exporter configuration** fo
 
 For more details, see [Configure OTLP Metrics Ingestion](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/configure-otlp-metrics).
 
-> **ActiveGate 1.349 (rollout planned from 11/09/2026) — breaking change:** the [ActiveGate 1.349 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-349) say *"We have updated OTLP metric ingestion so that dimension values represented as String for Long and Boolean retain their original type. Exact comparisons that rely on the previous behavior might break and need adjustment."* Check the version of the ActiveGates that receive your OTLP metrics before changing comparisons; until 1.349 reaches them, current behavior applies.
+> **ActiveGate 1.349 (rollout from 11/09/2026) — breaking change:** the [ActiveGate 1.349 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-349) say *"We have updated OTLP metric ingestion so that dimension values represented as String for Long and Boolean retain their original type. Exact comparisons that rely on the previous behavior might break and need adjustment."* Check the version of the ActiveGates that receive your OTLP metrics before changing comparisons; until 1.349 reaches them, current behavior applies.
 
 ```dql
 // Verify OTel traces are arriving over OTLP

@@ -1,6 +1,6 @@
 # ALERT-04: ITSM Integration: ServiceNow
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 04 of 05 | **Created:** June 2026 | **Last Updated:** 10/23/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 04 of 05 | **Created:** June 2026 | **Last Updated:** 11/09/2026
 
 ## Overview
 
@@ -99,13 +99,13 @@ Carry the Dynatrace problem id into a ServiceNow field (`u_dynatrace_problem_id`
 <a id="connector"></a>
 ## 3. Rung 2 — Native ServiceNow Connector
 
-Dynatrace provides a native ServiceNow action for workflows that handles **Create Incident / Resolve incident / Comment on an incident / Update record** (plus Search incidents, Get Groups, and Create a vulnerability item) without hand-building HTTP calls — less wiring. De-duplication comes from *Search incidents*: look for an existing incident before *Create Incident* opens a new one. Closing comes from *Resolve incident*, which needs *"The number of the incident to resolve."*, so run it in a workflow whose trigger also fires on close (Problem state *active or closed*) and look the incident up first.
+Dynatrace provides a native ServiceNow action for workflows that handles **Create Incident / Resolve incident / Comment on an incident / Update record** (plus Search incidents, a generic Search, Create Record, Create Comment, Get Groups, and Create a vulnerability item) without hand-building HTTP calls — less wiring. De-duplication comes from *Search incidents*: look for an existing incident before *Create Incident* opens a new one. Closing comes from *Resolve incident*, which needs *"The number of the incident to resolve."*, so run it in a workflow whose trigger also fires on close (Problem state *active or closed*) and look the incident up first.
 
-The connection authenticates with **Basic Authentication** or **OAuth Client Credentials** (there is no API-key option). On Create Incident, `Category`, `Subcategory`, `Impact`, `Urgency`, and `Assignment Group` are required, and `Correlation ID` is optional (the docs describe it as a *"Unique identifier (in most cases, this is the Dynatrace event ID)."*), but set it anyway. It is what a ServiceNow-side rule, or a *Search incidents* step before *Create Incident*, can match on to avoid a duplicate. **WFLOW-05** walks the worked workflow setup — connection, each operation, the severity→Impact/Urgency mapping, and production hardening.
+The connection authenticates with **Basic Authentication** or **OAuth Client Credentials** (there is no API-key option). On Create Incident, `Category`, `Subcategory`, `Impact`, `Urgency`, and `Assignment Group` are required, and `Correlation ID` is optional (the docs describe it as a *"Unique identifier, usually the Dynatrace event ID."*), but set it anyway. It is what a ServiceNow-side rule, or a *Search incidents* step before *Create Incident*, can match on to avoid a duplicate. **WFLOW-05** walks the worked workflow setup — connection, each operation, the severity→Impact/Urgency mapping, and production hardening.
 
 > **Availability.** The native connector left preview at app version 1.0.0 (Hub release notes: *"Improve wording and remove preview label"*) and is now listed as the *ServiceNow* app. Rung 1 remains the fallback where the app is not installed or the connection cannot be approved, and the most portable option across tenants.
 
-> <sub>**Sources:** [ServiceNow for Workflows action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now), [ServiceNow for Workflows (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/servicenow-for-workflows-preview) — version history, release 1.0.0: *"Improve wording and remove preview label"*.</sub>
+> <sub>**Sources:** [ServiceNow for Workflows action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now), [ServiceNow Connector actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now/automation-workflows-service-now-actions) — *"The number of the incident to resolve."*; *"Unique identifier, usually the Dynatrace event ID."*, [Set up ServiceNow Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now/set-up-servicenow-connector) — *"Either use basic authentication or OAuth client credentials."*, [ServiceNow for Workflows (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/servicenow-for-workflows-preview) — version history, release 1.0.0: *"Improve wording and remove preview label"*.</sub>
 
 <a id="bidirectional"></a>
 ## 4. Rung 3 — ServiceNow-Side Event Management
@@ -138,7 +138,7 @@ If the problem fires without these, the incident lands in a default queue with n
 
 > <sub>**Sources:**</sub>
 > - <sub>[Send Dynatrace notifications to ServiceNow (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/problem-notifications/servicenow-classic)</sub>
-> - <sub>[ServiceNow for Workflows action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now) — native-connector operations, required fields (Category/Subcategory/Impact/Urgency/Assignment Group), and Basic/OAuth-Client-Credentials auth confirmed 06/17/2026; *Resolve incident* requires *"The number of the incident to resolve."* (re-read 10/06/2026)</sub>
+> - <sub>[ServiceNow Connector actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now/automation-workflows-service-now-actions) — native-connector operations, required fields (Category/Subcategory/Impact/Urgency/Assignment Group), and Basic/OAuth-Client-Credentials auth confirmed 06/17/2026; *Resolve incident* requires *"The number of the incident to resolve."* (re-read 11/09/2026)</sub>
 > - <sub>[ServiceNow for Workflows (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/servicenow-for-workflows-preview) — *"Search for available incidents to prevent duplicates from being created."*</sub>
 > - <sub>[HTTP request action for Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action) — *"Use the credential vault to store your credentials for Basic or Token authentication, or a Run JavaScript action to implement any other authentication."*</sub>
 > - <sub>[Create a simple workflow (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/simple-workflow) — a simple workflow allows *"Any action (except Run JavaScript, Run Workflow, Approval Request)"*</sub>

@@ -1,6 +1,6 @@
 # ALERT-01: End-to-End Alerting Architecture
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 01 of 05 | **Created:** June 2026 | **Last Updated:** 10/06/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 01 of 05 | **Created:** June 2026 | **Last Updated:** 11/09/2026
 
 ## Overview
 
@@ -78,9 +78,9 @@ Each step down costs more to build and maintain. Staying as high as possible is 
 
 > **Custom alerts live in Settings (SaaS 1.344+).** *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344's staged rollout started 07/29/2026. On a tenant still below 1.344, the **Anomaly Detection** app is where custom alerts are created.
 
-> **What "included" means for a custom alert.** A custom alert runs its query on every evaluation, by default once a minute. A metric query costs nothing extra: *"Querying metrics using the timeseries command is always included."* A query over logs or other records is billed each time it runs, which is why the docs pair records-based alerts with a long window and execution delay: *"instead of the custom alert running 60 times per hour at the default 1-minute interval, it runs only once per hour."*
+> **What "included" means for a custom alert.** A custom alert runs its query on every evaluation, by default once a minute. A metric query costs nothing extra: *"Querying metrics with the DQL timeseries command is included with Metrics - Ingest & Process, regardless of where the query originates"*. A query over logs or other records is billed each time it runs, which is why the docs pair records-based alerts with a long window and execution delay: *"instead of the custom alert running 60 times per hour at the default 1-minute interval, it runs only once per hour."*
 
-> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*, [Metrics powered by Grail overview (DPS) (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics) — *"Querying metrics using the timeseries command is always included."*, [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting) — *"instead of the custom alert running 60 times per hour at the default 1-minute interval, it runs only once per hour."*</sub>
+> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*, [Metrics consumption (DPS) (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/telemetry/dps-metrics) — *"Querying metrics with the DQL timeseries command is included with Metrics - Ingest & Process, regardless of where the query originates"*, [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting) — *"instead of the custom alert running 60 times per hour at the default 1-minute interval, it runs only once per hour."*</sub>
 
 ### A noise control on the routing side
 

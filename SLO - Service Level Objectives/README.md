@@ -2,11 +2,11 @@
 
 Defining and operating Service Level Objectives in Dynatrace — SLIs, error budgets, composition, burn-rate alerting, SLOs as code, and Site Reliability Guardians for point-in-time deployment gating. Every DQL query in the series was validated against a live tenant.
 
-> **Recommended:** Import the JSON files from NOTEBOOKS/ into a Dynatrace tenant for the best experience. These notebooks contain interactive DQL queries that execute against your environment's data.
+> **Recommended:** Import the JSON files from notebooks/ into a Dynatrace tenant for the best experience. These notebooks contain interactive DQL queries that execute against your environment's data.
 
 ## Structure
-- NOTEBOOKS/ — Dynatrace notebook JSON files
-- PDFs/ — Printable versions of each notebook
+- notebooks/ — Dynatrace notebook JSON files
+- pdfs/ — Printable versions of each notebook
 - markdown/ — Markdown exports of the notebooks
 
 ## Notebook Lineup
@@ -18,7 +18,7 @@ Defining and operating Service Level Objectives in Dynatrace — SLIs, error bud
 6. [Site Reliability Guardians](markdown/-[SLO]-06-site-reliability-guardians.md) — Point-in-time deployment validation gates: guardian types, DQL objectives (reference-SLO is Classic-only and deprecated), the Pass/Warning/Fail/Error/Info result model, creating and triggering a guardian, provisioning as code (Terraform/Monaco), CI/CD pipeline integration, and how guardians complement SLOs
 
 ## Usage
-1. Choose a format: import JSON from NOTEBOOKS/, read PDFs/ for print, or view markdown/ for lightweight browsing.
+1. Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.
 2. Start with the Fundamentals for orientation, then follow the numbered sequence — each notebook builds on the previous.
 
 ---
