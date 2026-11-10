@@ -1,6 +1,6 @@
 # FAQ-11: How Do Metrics Work in Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 10/29/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 11/09/2026
 
 ## Overview
 
@@ -72,7 +72,7 @@ If you remember one thing: **metrics are shaped at ingest, not at query time.** 
 > - <sub>[Metric ingestion protocol (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/reference/metric-ingestion-protocol)</sub>
 > - <sub>[Metric API FAQ (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/metric-faq) — "The finest granularity of a time slot is one minute."</sub>
 > - <sub>[Metrics FAQ (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/faq)</sub>
-> - <sub>[Metrics powered by Grail capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics) — "Querying metrics using the `timeseries` command is always included."</sub>
+> - <sub>[Metrics consumption (DPS) (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/telemetry/dps-metrics) — *"Querying metrics with the DQL timeseries command is included with Metrics - Ingest & Process, regardless of where the query originates"*</sub>
 > - <sub>**Derived:** the five-layer framing is an authoring synthesis of the cited pages; the docs describe each layer separately</sub>
 
 <a id="data-model"></a>
@@ -318,7 +318,7 @@ Retention is *"5 years, not configurable."* The practical consequence: a Classic
 
 ### 6.3 Metrics powered by Grail: full resolution, configurable retention
 
-Grail metrics keep **"1 minute over entire history."** Included retention is *"15 months (462 days) of 1-minute granularity"*, and *"For the default metrics bucket, the available retention period ranges from 1 day to 10 years (3,657 days)."* Retention beyond the included 15 months bills the Retain capability (§9). Retained data stays queryable until the end of the retention period. Note the current scoping: retention is set on the **default metrics bucket**; custom metric buckets are documented as *"planned for a future release"*, so per-metric retention splits are not yet available the way they are for logs.
+Grail metrics keep **"1 minute over entire history."** Included retention is *"15 months (462 days) of one-minute-granularity retention"*, and *"This retention can be increased to up to 10 years."* Retention beyond the included 15 months bills the Retain capability (§9). Retained data stays queryable until the end of the retention period. Note the current scoping: retention is set on the **default metrics bucket**; custom metric buckets are documented as *"planned for a future release"*, so per-metric retention splits are not yet available the way they are for logs.
 
 The Grail design also removed a classic artifact: Classic kept separate pre-aggregated and full-cardinality "detail" variants of some built-ins for performance; Grail *"is already optimized for such high cardinality queries"*, so only the detailed form exists.
 
@@ -326,8 +326,8 @@ The Grail design also removed a classic artifact: Classic kept separate pre-aggr
 > - <sub>[Metric API FAQ (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/metric-faq) — one-minute finest slot</sub>
 > - <sub>[Data retention periods (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods) — classic downsampling tiers, Grail 15-month default</sub>
 > - <sub>[Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits)</sub>
-> - <sub>[Metrics Retain capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-retain) — 462 days included, 10-year ceiling</sub>
-> - <sub>[Metrics FAQ (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/faq) — custom metric buckets planned</sub>
+> - <sub>[Metrics consumption (DPS) (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/telemetry/dps-metrics#retain) — 462 days included</sub>
+> - <sub>[Metrics FAQ (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/faq) — 10-year ceiling, custom metric buckets planned</sub>
 > - <sub>[Built-in metrics on Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail) — *"Since the pre-aggregated metric builtin:host.net.bytesRx is no longer necessary, only builtin:host.net.nic.bytesRx is supported by metrics on Grail"*</sub>
 
 <a id="cardinality"></a>
@@ -354,9 +354,9 @@ Metrics powered by Grail advertises *"limitless dimensions (excluding highly vol
 
 ### 7.3 The cardinality–cost interplay
 
-Dimensions do not bill directly — per the DPS docs, *"metric data points are not billed based on an increase in dimensions, but rather by the increased number of metric data points."* The catch is the second clause: every new tuple is a new series, and every series emits data points per interval. Splitting one metric into 1,000 series multiplies ingested data points by up to 1,000. Cardinality discipline is therefore simultaneously a reliability practice (Classic limits) and a cost practice (DPS ingest) — OPIPE-04 and FINOPS-03 §9 cover remediation patterns.
+Dimensions do not bill directly — per the DPS docs, *"Adding additional metric dimensions does not inherently generate consumption. Consumption is generated only when additional metric data points are stored in Dynatrace."* The catch is the second sentence: every new tuple is a new series, and every series emits data points per interval. Splitting one metric into 1,000 series multiplies ingested data points by up to 1,000. Cardinality discipline is therefore simultaneously a reliability practice (Classic limits) and a cost practice (DPS ingest) — OPIPE-04 and FINOPS-03 §9 cover remediation patterns.
 
-> <sub>**Sources:** [Metrics API best practices (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/best-practices) — limits, sliding window, rejection behavior, volatile-dimension math, self-monitoring dashboard, [Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits) — Grail limitless-dimensions posture, 100,000 custom keys, [Metrics Ingest & Process capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-ingest) — dimensions-vs-data-points billing rule.</sub>
+> <sub>**Sources:** [Metrics API best practices (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/best-practices) — limits, sliding window, rejection behavior, volatile-dimension math, self-monitoring dashboard, [Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits) — Grail limitless-dimensions posture, 100,000 custom keys, [Metrics consumption (DPS) (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/telemetry/dps-metrics#dimensions-consumption) — dimensions-vs-data-points billing rule.</sub>
 
 <a id="querying"></a>
 ## 8. Querying Metrics
@@ -426,7 +426,7 @@ Query-size ceilings differ by an order of magnitude and change what is *feasible
 > - <sub>[Metric selector conversion (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/preserve-metrics-and-service-visibility/metrics/metric-selector-conversion)</sub>
 > - <sub>[Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits) — 20M vs 500M query ceilings</sub>
 > - <sub>[SaaS 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343) — *"You can now query metric metadata via DQL with load"* (rollout from Jul 14, 2026)</sub>
-> - <sub>[Metrics powered by Grail capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics) — timeseries queries always included</sub>
+> - <sub>[Metrics consumption (DPS) (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/telemetry/dps-metrics) — timeseries queries always included</sub>
 
 > **New in the classic Metrics API (Dynatrace API 1.346, released 08/25/2026): `asHistogram` in the metric descriptor.** The API changelog adds an `asHistogram` enum value to the `transformations` property of the metric descriptor returned by `GET /metrics` and `GET /metrics/{metricKey}` (Environment API v2), and to `metricsMetadata` on the Early-Access `POST /ua/entity` and `POST /ua/list` — so a descriptor can now list `asHistogram` among the transformations a metric supports.
 >
@@ -437,33 +437,33 @@ Query-size ceilings differ by an order of magnitude and change what is *feasible
 <a id="cost"></a>
 ## 9. What Metrics Cost Under DPS
 
-The Metrics powered by Grail capability has three dimensions — **Ingest & Process**, **Retain**, and **Query** — but the third is a formality: *"querying metrics using the `timeseries` command is always included."* Metric reads never appear on the bill. (FAQ-09 reaches the same conclusion from the cost-decision angle: the Query dimension exists but is always included, so metric reads never bill.)
+The Metrics powered by Grail capability has three dimensions — **Ingest & Process**, **Retain**, and **Query** — but the third is a formality: *"Querying metrics with the DQL timeseries command is included with Metrics - Ingest & Process, regardless of where the query originates"*. Metric reads never appear on the bill. (FAQ-09 reaches the same conclusion from the cost-decision angle: the Query dimension exists but is always included, so metric reads never bill.)
 
 ### 9.1 Ingest & Process — billed per data point
 
-*"Ingested data is the number of metric data points sent to Dynatrace"*, where *"a metric data point is a single measurement of a metric."* The counting rules:
+*"Total Ingest & Process consumption is based on the number of data points that are stored in Grail."* — counted after processing — where a metric data point is *"A recorded measurement for a metric at a specific point in time, saved as a numeric value."* The counting rules:
 
 | Measurement | Billed data points |
 |-------------|-------------------|
 | Gauge or counter measurement | 1 |
 | Histogram measurement | 10 — *"except `dt.service.*` metric keys which are counted as one data point"* |
 
-Scale intuition from the docs' own example: one series reporting every minute is *"1 metric data point × 60 min × 24 h × 365 days = 525,600 metric data points/year."* Multiply by your series count (§7.3) — that, not dimension width, is the bill driver.
+Scale intuition from the docs' own example: *"a gauge or counter timeseries that reports every minute generates 60 data points per hour, while a histogram timeseries that reports every minute generates 600."* Multiply by your series count (§7.3) — that, not dimension width, is the bill driver.
 
 ### 9.2 What's included / non-billable
 
-- *"The following metric keys are non-billable: `dt.*`"* — but the exceptions are broad, and they run the other way. **All** `dt.cloud.aws.*`, `dt.cloud.azure.*` and `dt.osservice.*` metrics are billable apart from a short named list (for example `dt.cloud.aws.az.running` and the Azure `vms.*` counts); the NAM `dt.synthetic.multi_protocol.*` metrics are billable; and `dt.service.*` consume the included Full-Stack volume when the spans come from Full-Stack OneAgents and are charged as Metrics powered by Grail otherwise. In short: the host-monitoring catalog is generally free, cloud-integration and OS-service metrics are not; *"some built-in metrics are not billed — this includes, for example, host monitoring metrics included in Full-Stack Monitoring and Infrastructure Monitoring."*
+- *"The following metric keys are non-billable: `dt.*`"* — but the exceptions are broad, and they run the other way. **All** `dt.cloud.aws.*`, `dt.cloud.azure.*` and `dt.osservice.*` metrics are billable apart from a short named list (for example `dt.cloud.aws.az.running` and the Azure `vms.*` counts); the NAM `dt.synthetic.multi_protocol.*` metrics are billable; and `dt.service.*` consume the included Full-Stack volume when the spans come from Full-Stack OneAgents and are charged as Metrics powered by Grail otherwise. In short: the host-monitoring catalog is generally free, cloud-integration and OS-service metrics are not; *"Built-in metrics are included for both Full-Stack and Infrastructure Monitoring."*
 - Three `legacy.*` families — `legacy.containers.*`, `legacy.dotnet.perform.*` and `legacy.tomcat.*` — and everything in the `dt_system_metrics` bucket are non-billable.
-- Custom metrics draw first on an included allotment: *"the number of included Custom Metric data points is dependent on the total monitored GiB-hours of your deployment and the OneAgent mode."*
+- Custom metrics draw first on an included allotment that depends on the OneAgent mode: in Full-Stack, *"Dynatrace offers 900 included custom metric data points for each GiB of host memory, calculated at 15-minute intervals."* ([Full-Stack Monitoring (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability/full-stack-monitoring)); in Infrastructure Monitoring, *"Data points beyond the 1,500 per host per 15-minute interval are billed as Metrics powered by Grail"* ([Infrastructure Monitoring (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability/infrastructure-monitoring)).
 - During a licensing transition there is no double-billing: *"Only the consumption related to your active license applies, whether it's DDUs, DPS Custom Metrics Classic, or DPS Metrics powered by Grail."* ([Metrics FAQ (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/faq))
 
 ### 9.3 Retain — billed in GiB-days above the included window
 
-Retain's unit is *"the gibibyte-day (GiB-day)"* — storage volume, not data points — and it only accrues **beyond the included 462 days**. The docs' worked example: at 9 GiB/day of metric data retained for 5 years (1,832 days), billable retention is 9 GiB × (1,832 − 462) = 12,330 GiB carried per day. Extending metric retention is cheap relative to record retention, but it is not free — decide it deliberately (§10).
+Retain's unit is the GiB-day — *"One GiB-day is equal to one GiB of metrics retained for one day (24 hours)."* — storage volume, not data points — and it only accrues **beyond the included 462 days**. The docs' worked example: at about 30.73 GiB/day of metric data retained for 5 years (1,832 days), there are 1,832 − 462 = 1,370 billable retention days, so 30.73 GiB × 1,370 = 42,100.1 GiB is retained at full retention. Extending metric retention is cheap relative to record retention, but it is not free — decide it deliberately (§10).
 
 For querying your *own* tenant's metric consumption, FINOPS-01 documents the `dt.system.events` billing-event schema; FINOPS-02/03 cover forecasting and optimization levers.
 
-> <sub>**Sources:** [Metrics Ingest & Process capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-ingest) — data-point definition, counting rules, non-billable keys and the billable exceptions (*"The following dt.* metric keys are billable unless otherwise noted in the list above"*, read 10/02/2026; the page lists `legacy.containers.*`, `legacy.dotnet.perform.*` and `legacy.tomcat.*`, and states *"Metrics stored in the bucket dt_system_metrics are non-billable."*), included allotment, [Metrics FAQ (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/faq) — no double-billing during a licensing transition, [Metrics Retain capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-retain) — GiB-day unit, 462 days included, worked example, [Metrics powered by Grail capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics) — capability structure, query always included.</sub>
+> <sub>**Sources:** [Metrics consumption (DPS) (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/telemetry/dps-metrics) — data-point definition, counting rules, non-billable keys and the billable exceptions (*"The following metric keys are billable unless they are explicitly included by another rule"*, read 11/09/2026; the page lists `legacy.containers.*`, `legacy.dotnet.perform.*` and `legacy.tomcat.*`, and states *"Metrics stored in the dt_system_metrics bucket are also non-billable."*), GiB-day unit, worked Retain example, query always included, [Metrics FAQ (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/faq) — no double-billing during a licensing transition, [Full-Stack Monitoring (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability/full-stack-monitoring) and [Infrastructure Monitoring (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability/infrastructure-monitoring) — included custom metric allotments.</sub>
 
 <a id="recommended-approach"></a>
 ## 10. Recommended Approach

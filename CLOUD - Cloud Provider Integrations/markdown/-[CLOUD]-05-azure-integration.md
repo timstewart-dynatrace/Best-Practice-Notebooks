@@ -1,6 +1,6 @@
 # CLOUD-05: Azure Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 11/07/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 11/09/2026
 
 ## Overview
 
@@ -522,7 +522,7 @@ Azure follows the AWS pattern in CLOUD-02: an **Azure tag** rule at subscription
 - **Azure Functions** take `DT_TAGS`, like Lambda (CLOUD-04).
 - **Availability.** The Azure page no longer describes central configuration as expected; it now lists it as the recommended option: *"Promote Azure tags with central configuration"*. Confirm the *Azure tag* rule type exists in your tenant's Ingest enrichment configuration before relying on it.
 
-> **OneAgent 1.349 (rollout planned from 11/09/2026) — breaking change for the Host/Process property route.** The [OneAgent 1.349 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349) say: *"In the Host/process property rules dropdown, the aws.tags and azure.tags based rules will temporarily no longer work as sources or in conditions for injected processes. Full cloud tags support, which brings that functionality back, is planned for a future release."* OneAgent updates roll out over weeks, so check the version your hosts run before relying on this route for data from injected processes; on OneAgent versions before 1.349 the route described above remains the working path.
+> **OneAgent 1.349 (rollout from 11/09/2026) — breaking change for the Host/Process property route.** The [OneAgent 1.349 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349) say: *"In the Host/process property rules dropdown, the aws.tags and azure.tags based rules will temporarily no longer work as sources or in conditions for injected processes. Full cloud tags support, which brings that functionality back, is planned for a future release."* OneAgent updates roll out over weeks, so check the version your hosts run before relying on this route for data from injected processes; on OneAgent versions before 1.349 the route described above remains the working path.
 
 > <sub>**Sources:** [Enrich Azure telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-azure) — *"Promote Azure tags with central configuration"*, [Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"Azure VMs follow the same pattern."*</sub>
 

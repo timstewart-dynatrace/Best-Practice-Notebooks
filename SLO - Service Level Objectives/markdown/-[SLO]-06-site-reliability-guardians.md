@@ -1,6 +1,6 @@
 # SLO-06: Site Reliability Guardians
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 6 of 6 | **Created:** August 2026 | **Last Updated:** 10/14/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 6 of 6 | **Created:** August 2026 | **Last Updated:** 11/09/2026
 
 ## Overview
 
@@ -113,7 +113,7 @@ timeseries {
 
 ```dql
 // Guardian objective — availability. Higher is good; compare against target/warning with GREATER_THAN_OR_EQUAL.
-// Live-verified against the validation tenant: returned ~95.6% over the last 30 minutes.
+// Live-verified 11/09/2026: returned 95.88% over the last 30 minutes, notifications [].
 // Drop from: when pasting into a guardian objective — the validation sets the window.
 timeseries {
   total = sum(dt.service.request.count),
@@ -143,7 +143,7 @@ A guardian's objectives don't evaluate themselves — validation is triggered on
 - **On-demand** — an operator opens the guardian and selects **Validate**. Useful while authoring objectives, or for an ad hoc check.
 - **Automated, via Workflow** — a workflow with an event trigger runs the `dynatrace.site.reliability.guardian:validate-guardian-action` task, which validates a named guardian over a timeframe whenever a matching event arrives.
 
-Dynatrace's release-validation tutorial *"recommends using SDLC events to implement the release validation use case. Business events are also supported."* Its trigger filter matches finished deployments: `event.kind == "SDLC_EVENT" AND event.type == "deployment" AND event.status == "finished"`. Add `AND cicd.deployment.release_stage == "staging"` (or your stage) to scope validation to the deployment that just happened, not every deployment across every service. The tutorial sets the action's timeframe to *"Last 2 hours"*, to be adjusted to your deployment and stabilization window, and maps guardian variables from the triggering event so the release metadata is stored with the result:
+Dynatrace's release-validation tutorial *"recommends using SDLC events to implement the release validation use case. Business events are also supported."* Its trigger filter matches finished deployments: `event.kind == "SDLC_EVENT" AND event.type == "deployment" AND event.status == "finished"`. The tutorial makes a stage filter optional: add `AND cicd.deployment.release_stage == "staging"` (or your stage) to validate only deployments to that stage. The tutorial sets the action's timeframe to *"Last 2 hours"*, to be adjusted to your deployment and stabilization window, and maps guardian variables from the triggering event so the release metadata is stored with the result:
 
 | Guardian variable | Expression |
 |---|---|
@@ -206,9 +206,9 @@ resource "dynatrace_site_reliability_guardian" "checkout_release_gate" {
 }
 ```
 
-A few things this schema encodes, and where it diverges from the SLO-05 Terraform resource so you don't carry that field naming over by mistake:
+A few things this schema encodes, and where it diverges from the SLO-05 Terraform resources so you don't carry that field naming over by mistake:
 
-- **`target` / `warning`**, not SLO-05's `target_success` / `target_warning` — two different resources, two different argument names for a similar idea.
+- **`target` / `warning`** sit directly on each objective. `dynatrace_platform_slo` (SLO-05) uses the same two names inside `criteria_detail`; only the classic `dynatrace_slo_v2` uses `target_success` / `target_warning`.
 - **`comparison_operator`** takes exactly `GREATER_THAN_OR_EQUAL` or `LESS_THAN_OR_EQUAL` — not the SLO app's own comparison vocabulary.
 - **`objective_type = "REFERENCE_SLO"`** is the alternative to `DQL`: set `reference_slo` to a **Classic** SLO's `func:slo.*` metric key instead of writing a query. The docs mark referencing a Classic SLO as deprecated (§2), and a modern SLO-app SLO cannot be selected this way.
 - **`event_kind`** is `SDLC_EVENT` or `BIZ_EVENT` — matching the guardian-type distinction from §1.

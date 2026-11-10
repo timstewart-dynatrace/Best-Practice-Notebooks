@@ -37,4 +37,4 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 - Prefer `smartscapeNodes` query forms when quoting; `fetch dt.entity.*`
   variants shown in these notebooks are deprecated alternatives.
 - Cite by notebook ID (e.g. "SLO-04") and mention that the matching JSON in
-  `NOTEBOOKS/` can be imported into a Dynatrace tenant for interactive use.
+  `notebooks/` can be imported into a Dynatrace tenant for interactive use.

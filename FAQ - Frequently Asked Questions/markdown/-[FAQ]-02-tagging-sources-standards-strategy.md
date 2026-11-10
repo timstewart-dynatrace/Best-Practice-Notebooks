@@ -1,6 +1,6 @@
 # FAQ-02: Tagging — Sources, Standards, and Strategy
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 11/07/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 11/09/2026
 
 ## Overview
 
@@ -396,7 +396,7 @@ Cloud-provider tags are the source of record for cost-allocation, compliance, an
 
 **EC2 and other VMs running OneAgent:** cloud tag rules don't tag this data. *"Cloud rules apply only to data that arrives through the cloud connection, so OneAgent on a cloud VM doesn't evaluate them."* OneAgent 1.343+ reads the instance's tags itself, *"through the instance metadata service"*, and *"exposes them as host properties named aws.tags.<key>"*. Map each one with a Host/Process property rule at the host-group scope. *"Access to instance tags in instance metadata is off by default in AWS, so enable it on the instance first."* Azure VMs work the same way with `azure.tags.<key>`. To tag both the cloud node and the OneAgent data from one VM, you need both rules: the AWS tag rule for the cloud data and the Host/Process property rule for the OneAgent data.
 
-> **OneAgent 1.349 (rollout planned from 11/09/2026) — breaking change for the Host/Process property route.** The [OneAgent 1.349 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349) say: *"In the Host/process property rules dropdown, the aws.tags and azure.tags based rules will temporarily no longer work as sources or in conditions for injected processes. Full cloud tags support, which brings that functionality back, is planned for a future release."* OneAgent updates roll out over weeks, so check the version your hosts run before relying on this route for data from injected processes; on OneAgent versions before 1.349 the route described above remains the working path.
+> **OneAgent 1.349 (rollout from 11/09/2026) — breaking change for the Host/Process property route.** The [OneAgent 1.349 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349) say: *"In the Host/process property rules dropdown, the aws.tags and azure.tags based rules will temporarily no longer work as sources or in conditions for injected processes. Full cloud tags support, which brings that functionality back, is planned for a future release."* OneAgent updates roll out over weeks, so check the version your hosts run before relying on this route for data from injected processes; on OneAgent versions before 1.349 the route described above remains the working path.
 
 **AWS Lambda and other serverless code modules:** a Lambda function *"doesn't load the ingest enrichment configuration"*, so central rules don't apply. OneAgent also cannot read the account or region there, so you pass them in. The OneAgent tag-setup page: *"On serverless platforms, OneAgent can't auto-detect certain primary fields. Provide them via DT_TAGS at deploy time"* — `aws.account.id` and `aws.region` on AWS. Customer primary tags go in the same `DT_TAGS` variable.
 

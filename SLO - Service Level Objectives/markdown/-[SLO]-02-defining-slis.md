@@ -1,6 +1,6 @@
 # SLO-02: Defining SLIs
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 2 of 6 | **Created:** June 2026 | **Last Updated:** 10/14/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 2 of 6 | **Created:** June 2026 | **Last Updated:** 11/09/2026
 
 ## Overview
 
@@ -139,7 +139,7 @@ fetch spans, from:-1h
 
 > **Note the field values:** `duration` compares directly against a duration literal (`500ms`) — no nanosecond constants. If you filter on `span.kind`, its values are lowercase (`"server"`, `"client"`). Both are common mistakes that silently return zero rows.
 
-> <sub>**Sources:** [Traces — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/trace) — `request.is_root_span`: *"Replaced by transaction.is_root_span in combination with transaction.is_endpoint_request"*; page updated Sep 21, 2026, read 10/14/2026. **Dictionary:** no `transaction.*` row in the validation tenant's `dt.semantic_dictionary.fields` yet, read 10/14/2026 (control: `startsWith(name, "request.")` → `request.is_root_span` (`deprecated`), `request.is_failed` (`deprecated`)); the docs page is newer, and both fields are populated on spans there.</sub>
+> <sub>**Sources:** [Traces — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/trace) — `request.is_root_span`: *"Replaced by transaction.is_root_span in combination with transaction.is_endpoint_request"*; page updated Sep 21, 2026, read 10/14/2026. **Dictionary:** `transaction.is_root_span` (`experimental`), `transaction.is_endpoint_request` (`experimental`), `request.is_root_span` (`deprecated`), read 11/09/2026.</sub>
 
 The query above is the notebook read-out. The SLO-ready form uses `makeTimeseries` instead of `summarize`, so `sli` stays an array:
 
@@ -169,7 +169,7 @@ timeseries {
 | fields error_rate
 ```
 
-Express the SLO target as `success ≥ 99.5%` rather than `errors ≤ 0.5%` where you can — the SLO app and the error-budget math (SLO-03) are oriented around the "good" percentage, and keeping every SLI in the same direction avoids inverted-threshold confusion. For the SLO itself, that means the SLO-ready availability form in §2. The `error_rate_avg` scalar above is a notebook read-out.
+Express the SLO target as `success ≥ 99.5%` rather than `errors ≤ 0.5%` where you can — the SLO app and the error-budget math (SLO-03) are oriented around the "good" percentage, and keeping every SLI in the same direction avoids inverted-threshold confusion. For the SLO itself, that means the SLO-ready availability form in §2. The `error_rate` scalar above is a notebook read-out.
 
 <a id="custom"></a>
 ## 5. Custom / Business SLIs

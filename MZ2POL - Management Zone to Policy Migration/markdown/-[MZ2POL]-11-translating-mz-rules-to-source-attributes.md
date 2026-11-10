@@ -1,6 +1,6 @@
 # MZ2POL-11: Translating Management Zone Rules into Source Attributes
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 12 of 17 | **Created:** October 2026 | **Last Updated:** 11/07/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 12 of 17 | **Created:** October 2026 | **Last Updated:** 11/09/2026
 
 ## Overview
 
@@ -146,7 +146,7 @@ The 198 property keys fall into a dozen families. For each family, the table nam
 | **Custom devices and extensions** — `CUSTOM_DEVICE_*`, `CUSTOM_DEVICE_GROUP_*` | Extension monitoring configuration or endpoint; remote extensions inherit nothing (FAQ-26 §5.5) | `primary_tags.<key>`, special fields | Via `dt.security_context` |
 | **Network address** — `HOST_IP_ADDRESS` with `IS_IP_IN_RANGE` | No IP-range test exists on any Grail surface; set a subnet or zone value at deploy time | `primary_tags.<key>` | Via `dt.security_context` only |
 
-> **OneAgent 1.349 (rollout planned from 11/09/2026) — breaking change for the Host/Process property route.** The [OneAgent 1.349 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349) say: *"In the Host/process property rules dropdown, the aws.tags and azure.tags based rules will temporarily no longer work as sources or in conditions for injected processes. Full cloud tags support, which brings that functionality back, is planned for a future release."* OneAgent updates roll out over weeks, so check the version your hosts run before relying on this route for data from injected processes; on OneAgent versions before 1.349 the route described above remains the working path.
+> **OneAgent 1.349 (rollout from 11/09/2026) — breaking change for the Host/Process property route.** The [OneAgent 1.349 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349) say: *"In the Host/process property rules dropdown, the aws.tags and azure.tags based rules will temporarily no longer work as sources or in conditions for injected processes. Full cloud tags support, which brings that functionality back, is planned for a future release."* OneAgent updates roll out over weeks, so check the version your hosts run before relying on this route for data from injected processes; on OneAgent versions before 1.349 the route described above remains the working path.
 
 ### Three patterns in the table
 

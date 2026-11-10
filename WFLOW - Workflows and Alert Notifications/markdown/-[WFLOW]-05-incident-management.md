@@ -1,6 +1,6 @@
 # WFLOW-05: PagerDuty & ServiceNow Integration
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 5 of 10 | **Created:** January 2026 | **Last Updated:** 10/27/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 5 of 10 | **Created:** January 2026 | **Last Updated:** 11/09/2026
 
 ## Incident Management Automation
 Integrate Dynatrace workflows with enterprise incident management platforms. This notebook covers PagerDuty and ServiceNow integration patterns, bi-directional sync, and incident lifecycle management.
@@ -29,7 +29,7 @@ Integrate Dynatrace workflows with enterprise incident management platforms. Thi
 | **PagerDuty** | Admin access to create services and integrations |
 | **ServiceNow** | Admin access or integration user credentials |
 
-> <sub>**Sources:** [Set up PagerDuty Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-setup) — *"ALLOW settings:objects:read, settings:objects:write, settings:schemas:read WHERE settings:schemaId"*; [ServiceNow Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now) — *"Permissions needed for ServiceNow workflow actions: app-settings:objects:read"*; [Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger).</sub>
+> <sub>**Sources:** [Set up PagerDuty Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-setup) — *"ALLOW settings:objects:read, settings:objects:write, settings:schemas:read WHERE settings:schemaId"*; [Set up ServiceNow Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now/set-up-servicenow-connector) — *"Permissions needed for ServiceNow workflow actions: app-settings:objects:read"*; [Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger).</sub>
 
 <a id="integration-overview"></a>
 ## 1. Integration Overview
@@ -210,7 +210,7 @@ The ServiceNow connection supports two authentication methods — these are the 
 
 > There is no API-key option for this connector. Store the chosen credential in the connection, never inline in a workflow task.
 
-> <sub>**Sources:** [ServiceNow Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now) — *"Read resolution codes (table sys_choice , element close_code )"*, *"Either use basic authentication or OAuth client credentials."*</sub>
+> <sub>**Sources:** [Set up ServiceNow Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now/set-up-servicenow-connector) — *"Read resolution codes (table sys_choice , element close_code )"*, *"Either use basic authentication or OAuth client credentials."*</sub>
 
 <a id="servicenow-workflow-tasks"></a>
 ## 5. ServiceNow Workflow Tasks
@@ -286,7 +286,7 @@ input:
   correlationId: "DT-{{ event()['display_id'] }}"
 ```
 
-> <sub>**Sources:** [ServiceNow Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now) — *"Creates an incident in your ServiceNow environment."*; [wftpl_sample_servicenow_incident_man.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/Messaging%20and%20Incident%20Management/wftpl_sample_servicenow_incident_man.yaml) — *"action: dynatrace.servicenow:snow-create-incident"*; [wftpl_core_journey_auto-remediation.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/red%20hat%20ansible%20automation%20platform/wftpl_core_journey_auto-remediation.yaml) — *"action: dynatrace.servicenow:snow-comment-on-incident"*.</sub>
+> <sub>**Sources:** [ServiceNow Connector actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now/automation-workflows-service-now-actions) — *"Creates an incident in your ServiceNow instance."*; [wftpl_sample_servicenow_incident_man.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/Messaging%20and%20Incident%20Management/wftpl_sample_servicenow_incident_man.yaml) — *"action: dynatrace.servicenow:snow-create-incident"*; [wftpl_core_journey_auto-remediation.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/red%20hat%20ansible%20automation%20platform/wftpl_core_journey_auto-remediation.yaml) — *"action: dynatrace.servicenow:snow-comment-on-incident"*.</sub>
 
 **Severity → Impact / Urgency.** Dynatrace's unified `event.severity` is an integer **1–5** (1 Critical, 2 Major, 3 Minor, 4 Warning, 5 Informational; see WFLOW-04 §3 and AIOPS-03), and it is what the Davis problem and `fetch events` carry. ServiceNow `Impact`/`Urgency` run **1 (High) … 3 (Low)**, so the Dynatrace scale compresses:
 
@@ -345,7 +345,7 @@ input:
   resolutionCode: "<a close code from the editor's list>"   # Resolution Code
 ```
 
-> <sub>**Sources:** [ServiceNow Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now); [wftpl_core_journey_auto-remediation.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/red%20hat%20ansible%20automation%20platform/wftpl_core_journey_auto-remediation.yaml) — reads the incident number from `result("search_incident")[0].number`.</sub>
+> <sub>**Sources:** [ServiceNow Connector actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now/automation-workflows-service-now-actions); [wftpl_core_journey_auto-remediation.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/red%20hat%20ansible%20automation%20platform/wftpl_core_journey_auto-remediation.yaml) — reads the incident number from `result("search_incident")[0].number`.</sub>
 
 <a id="bi-directional-sync"></a>
 ## 6. Bi-Directional Sync
@@ -396,7 +396,7 @@ export default async function () {
 }
 ```
 
-> <sub>**Sources:** [Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action) — *"The following credential settings are required. The AppEngine scope is selected. Allow access without app context is turned on. The workflow actor has access to the credential."*</sub>
+> <sub>**Sources:** [Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action) — *"The AppEngine scope is selected for the credential. Allow access without app context is turned on for the credential. The workflow actor has access to the credential."*</sub>
 
 ### Write the Incident Number onto the Problem (link-back)
 
