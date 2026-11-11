@@ -1,6 +1,6 @@
 # CLOUD-02: AWS Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 2 of 8 | **Created:** March 2026 | **Last Updated:** 11/09/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 2 of 8 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -377,11 +377,11 @@ timeseries avgCpu = avg(dt.host.cpu.usage), from:-6h, by:{dt.entity.host}
 ```dql
 // Lambda invocations over the last 6 hours by function
 
-// Metric keys: these are the CloudWatch Metric Streams keys, named
+// Metric keys: these are the new AWS connection (Clouds app) keys, named
 // cloud.aws.lambda.<CloudWatchName>.By.FunctionName — e.g. Invocations / Errors / Duration /
-// Throttles / ConcurrentExecutions / IteratorAge. The AWS polling integration produces
-// dt.cloud.aws.lambda.* instead (see CLOUD-04 §1's table); a key from the other scheme returns an
-// empty result, not an error. The split dimension is FunctionName; dt.entity.aws_lambda_function
+// Throttles / ConcurrentExecutions / IteratorAge — carrying dt.da.source == "aws-metric-poller".
+// A classic AWS connection produces dt.cloud.aws.lambda.* instead (see CLOUD-04 §1's table); a key
+// from the other scheme returns an empty result, not an error. The split dimension is FunctionName; dt.entity.aws_lambda_function
 // is null on these metrics. Enumerate what your tenant has, one row per key, with:
 //   metrics from:now()-9d | filter startsWith(metric.key, "cloud.aws.lambda") or startsWith(metric.key, "dt.cloud.aws.lambda") | summarize n = count(), by:{metric.key} | sort metric.key asc
 timeseries invocations = sum(cloud.aws.lambda.Invocations.By.FunctionName), from:-6h, by:{FunctionName}
@@ -395,11 +395,11 @@ timeseries invocations = sum(cloud.aws.lambda.Invocations.By.FunctionName), from
 ```dql
 // Lambda error count over the last 6 hours by function
 
-// Metric keys: these are the CloudWatch Metric Streams keys, named
+// Metric keys: these are the new AWS connection (Clouds app) keys, named
 // cloud.aws.lambda.<CloudWatchName>.By.FunctionName — e.g. Invocations / Errors / Duration /
-// Throttles / ConcurrentExecutions / IteratorAge. The AWS polling integration produces
-// dt.cloud.aws.lambda.* instead (see CLOUD-04 §1's table); a key from the other scheme returns an
-// empty result, not an error. The split dimension is FunctionName; dt.entity.aws_lambda_function
+// Throttles / ConcurrentExecutions / IteratorAge — carrying dt.da.source == "aws-metric-poller".
+// A classic AWS connection produces dt.cloud.aws.lambda.* instead (see CLOUD-04 §1's table); a key
+// from the other scheme returns an empty result, not an error. The split dimension is FunctionName; dt.entity.aws_lambda_function
 // is null on these metrics. Enumerate what your tenant has, one row per key, with:
 //   metrics from:now()-9d | filter startsWith(metric.key, "cloud.aws.lambda") or startsWith(metric.key, "dt.cloud.aws.lambda") | summarize n = count(), by:{metric.key} | sort metric.key asc
 timeseries errors = sum(cloud.aws.lambda.Errors.By.FunctionName), from:-6h, by:{FunctionName}
@@ -416,11 +416,11 @@ Inspired by the [Cost Allocation Dashboard (Dynatrace community-examples)](https
 ```dql
 // Lambda error rate (errors/invocations) over 24h by function
 
-// Metric keys: these are the CloudWatch Metric Streams keys, named
+// Metric keys: these are the new AWS connection (Clouds app) keys, named
 // cloud.aws.lambda.<CloudWatchName>.By.FunctionName — e.g. Invocations / Errors / Duration /
-// Throttles / ConcurrentExecutions / IteratorAge. The AWS polling integration produces
-// dt.cloud.aws.lambda.* instead (see CLOUD-04 §1's table); a key from the other scheme returns an
-// empty result, not an error. The split dimension is FunctionName; dt.entity.aws_lambda_function
+// Throttles / ConcurrentExecutions / IteratorAge — carrying dt.da.source == "aws-metric-poller".
+// A classic AWS connection produces dt.cloud.aws.lambda.* instead (see CLOUD-04 §1's table); a key
+// from the other scheme returns an empty result, not an error. The split dimension is FunctionName; dt.entity.aws_lambda_function
 // is null on these metrics. Enumerate what your tenant has, one row per key, with:
 //   metrics from:now()-9d | filter startsWith(metric.key, "cloud.aws.lambda") or startsWith(metric.key, "dt.cloud.aws.lambda") | summarize n = count(), by:{metric.key} | sort metric.key asc
 timeseries {
@@ -463,8 +463,10 @@ In community practice, treat these minute ranges as planning estimates, not comm
 
 The Clouds App integration described in §3 is **polling-based** — Dynatrace calls CloudWatch `GetMetricData` on an interval. **CloudWatch Metric Streams** is a **separate, parallel** ingestion path that pushes metrics through Amazon Data Firehose to a Dynatrace HTTP endpoint in near real-time. It is **not** a replacement for the Clouds App — the two coexist.
 
+> **Metric Streams is a classic ingestion path.** The cloud-connection upgrade guide lists AWS CloudWatch Metric Streams as *"Not yet supported by new AWS connections. If you rely on Metric Streams today, keep that classic ingestion path until support ships."* Metric keys also differ: the new AWS connection writes `cloud.aws.<Service>.<Metric>.By.<Dimension>` keys with `dt.da.source == "aws-metric-poller"` (see CLOUD-04 §1).
+
 > **What Metric Streams does NOT replace from the Clouds App:**
-> - Entity discovery and topology (the Clouds App still owns `dt.entity.ec2_instance`, `dt.entity.aws_lambda_function`, etc. mapping)
+> - Entity discovery and topology — a new AWS connection creates Smartscape nodes (for example `AWS_EC2_INSTANCE`, `AWS_LAMBDA_FUNCTION`), not the classic `dt.entity.ec2_instance` / `dt.entity.aws_lambda_function` types: *"Classic entity IDs and classic entity types do not carry over to new Smartscape nodes."* Classic entity attributes for streamed metrics come from the **AWS Entities for Metric Streaming** extension (§7.5)
 > - AWS tag enrichment, tag-based filtering, and Dynatrace attribute enrichment (`dt.security_context`, `dt.cost.*`)
 > - CloudWatch Logs ingestion (Firehose subscriptions configured via the Clouds App — see CLOUD-07)
 > - EventBridge event ingestion
@@ -478,7 +480,7 @@ The Clouds App integration described in §3 is **polling-based** — Dynatrace c
 | **Latency requirement** | 5–15 minute alerting acceptable | Need sub-minute metric freshness (e.g., autoscaling reaction, SRE oncall dashboards) |
 | **CloudWatch API cost** | Manageable at current metric count | `GetMetricData` cost dominates AWS bill; flat Firehose ingest is cheaper |
 | **Metric selection granularity** | Per-metric / per-statistic control needed | Namespace-level acceptable for the streamed subset |
-| **AWS tag-driven workflows** | Required (filtering, alerts keyed on tags) | Not needed for the streamed metrics (entity mapping still comes from Clouds App / Hub extension) |
+| **AWS tag-driven workflows** | Required (filtering, alerts keyed on tags) | Not needed for the streamed metrics (classic entity mapping for streamed metrics comes from the Hub extension — §7.5) |
 | **ActiveGate footprint** | Already deployed | Want to avoid AG capacity scaling for metric polling |
 
 **Typical pattern:** keep the Clouds App polling enabled for entity discovery, tags, logs, and per-metric controls; add Metric Streams for the **high-volume, low-latency-sensitive namespaces** where polling cost or latency is the constraint. In community practice that shortlist often starts with `AWS/Lambda`, `AWS/ApplicationELB` and `AWS/RDS` — pick yours from your own polling cost and latency requirements.
@@ -676,7 +678,7 @@ In Dynatrace, open **Hub** and enable **AWS Entities for Metric Streaming**. Wit
 | **Per-region cost** | Each region adds Firehose ingestion + S3 backup storage. Plan regional scope deliberately. |
 | **No Terraform support for the Clouds App connection itself** | The CFN-based Clouds App onboarding has no Terraform-provider resource as of this writing. Metric Streams is a separate stack and remains scriptable via plain CloudFormation. |
 
-> <sub>**Sources:** [Amazon CloudWatch Metric Streams (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-metrics-ingest/cloudwatch-metric-streams), [Monitor AWS with CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/cloudwatch-metrics), [Create AWS connection via Settings (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/create-an-aws-connection/aws-connection-app-settings). **Derived:** the §7.1 "polling + selective streaming" coexistence pattern synthesizes both pages — no single page recommends this composition by name.</sub>
+> <sub>**Sources:** [Amazon CloudWatch Metric Streams (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-metrics-ingest/cloudwatch-metric-streams), [Monitor AWS with CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/cloudwatch-metrics), [Create AWS connection via Settings (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/create-an-aws-connection/aws-connection-app-settings), [Upgrade from classic to new cloud connections (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections) — *"Not yet supported by new AWS connections. If you rely on Metric Streams today, keep that classic ingestion path until support ships."* and *"Classic entity IDs and classic entity types do not carry over to new Smartscape nodes."*, [AWS metric and entity mapping (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections/metric-and-entity-mapping-aws) — classic `EC2_INSTANCE` → `AWS_EC2_INSTANCE`, `AWS_LAMBDA_FUNCTION` → `AWS_LAMBDA_FUNCTION`. **Derived:** the §7.1 "polling + selective streaming" coexistence pattern synthesizes both pages — no single page recommends this composition by name.</sub>
 
 <a id="cost-optimization"></a>
 

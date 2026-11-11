@@ -1,6 +1,6 @@
 # SL2DT-08: Automation & GitOps
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 8 of 11 | **Created:** April 2026 | **Last Updated:** 10/23/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 8 of 11 | **Created:** April 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -317,9 +317,9 @@ Platform Tokens and API keys live in:
 
 Never commit tokens. Every `*.env` file goes in `.gitignore`.
 
-**Workload identity federation (SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout)).** A CI job or other workload that already has its own identity — a GitHub Actions job, an Azure VM with a managed identity, a Kubernetes pod with a projected service account token — can call the Dynatrace API with a short-lived token from its own identity provider, which Dynatrace maps to a service user through a trust policy. That removes the stored Dynatrace secret altogether. Check that 1.348 has reached your tenant; until then, the CI secret stores above remain the working path.
+**Workload identity federation (SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout)).** A CI job or other workload that already has its own identity — a GitHub Actions job, an Azure VM with a managed identity, a Kubernetes pod with a projected service account token — can call the Dynatrace API with a short-lived token from its own identity provider, which Dynatrace maps to a service user through a trust policy. That removes the stored Dynatrace secret altogether. The feature page carries a *Preview* label and says *"Workload identity federation is an Early Access feature."* — access is requested through the Preview program. Check that 1.348 has reached your tenant and that your tenant has Early Access; until then, the CI secret stores above remain the working path.
 
-> <sub>**Sources:** [What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"so no Dynatrace client secret or platform token is ever stored alongside your workload, baked into an image, or saved in a CI secret."*; [Workload identity federation (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/workload-identity-federation).</sub>
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"so no Dynatrace client secret or platform token is ever stored alongside your workload, baked into an image, or saved in a CI secret."*; [Workload identity federation (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/workload-identity-federation) — *"Workload identity federation is an Early Access feature."*</sub>
 
 <a id="import-pipeline"></a>
 ## 6. Automating the Sumo Extract → DT Import Flow
@@ -582,22 +582,41 @@ name: drift-detect
 on:
   schedule:
     - cron: "0 6 * * 1"  # Weekly Monday
+permissions:
+  contents: read
+  issues: write
 jobs:
   drift:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform/envs/prod
+    env:                                   # same credentials the deploy pipeline uses
+      DT_ENV_URL: ${{ secrets.DT_ENV_URL }}
+      DT_API_TOKEN: ${{ secrets.DT_API_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-      - run: terraform plan -detailed-exitcode   # exit code 2 = drift in Terraform-managed resources
-      - if: failure()
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform init -input=false
+      - id: plan
+        run: terraform plan -detailed-exitcode -input=false -no-color
+        continue-on-error: true            # exit 2 (drift) must not stop the job
+      - if: steps.plan.outputs.exitcode == '1'
+        run: exit 1                        # plan itself failed: fail the run, open no issue
+      - if: steps.plan.outputs.exitcode == '2'
         uses: actions/github-script@v7
         with:
           script: |
-            github.rest.issues.create({
+            await github.rest.issues.create({
               owner: context.repo.owner, repo: context.repo.repo,
               title: 'Dynatrace config drift detected',
-              body: 'See attached diff'
+              body: `terraform plan reported changes. Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
             });
 ```
+
+`terraform plan -detailed-exitcode` exits **0** for no changes, **1** for an error and **2** for changes. Branch on the code: `if: failure()` would open a drift issue for a broken plan too, and would never see drift once `continue-on-error` is set. Point `env:` at the same credential variables your provider block reads.
+
+> <sub>**Sources:** [terraform plan (HashiCorp)](https://developer.hashicorp.com/terraform/cli/commands/plan) — *"0 = Succeeded with empty diff (no changes) 1 = Error 2 = Succeeded with non-empty diff (changes present)"*.</sub>
 
 `terraform plan -detailed-exitcode` is the drift signal here: it compares state with the tenant and exits `2` when they differ. Monaco has no equivalent — it has no `--report` flag, and a dry-run never contacts the tenant. For Monaco-managed configs, schedule a `monaco download` of production into a scratch folder and review it against git; the downloaded folder layout differs from a hand-built project, so compare per config rather than with a blind recursive diff.
 

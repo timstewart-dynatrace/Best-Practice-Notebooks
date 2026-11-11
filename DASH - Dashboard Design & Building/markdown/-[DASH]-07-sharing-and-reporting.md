@@ -1,6 +1,6 @@
 # DASH-07: Sharing and Reporting
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 11/02/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -80,11 +80,19 @@ The Dashboards app shares a dashboard three ways with Dynatrace users in your en
 
 The upgrade carries over neither of two classic-dashboard distribution features. *"The upgrade doesn't carry over anonymous links from Dashboards Classic"*; instead, *"New Dashboards supports external links, so create a new external link for the upgraded dashboard"* (below). *"Report subscriptions need to be recreated in Workflows"* — scheduled delivery is a Workflow (§3). From **SaaS 1.348** (rollout start 10/12/2026, staged tenant rollout) a dashboard owner can also create an **external link**: *"External links let you share a dashboard with people who don't have a Dynatrace account."* Embedding is optional per link: *"Enable Embedding to allow the dashboard to be embedded in an external page or tool such as Backstage or an internal portal."* Creating one needs *"the public-access:shares:read and public-access:shares:write permissions"*. Verify it has reached your tenant; until then, the three options above remain the working path.
 
+Before creating an external link, note what it does that an internal share does not:
+
+- **It runs as its creator.** *"Query and code tiles run under the identity of the user who created the link, regardless of who views it."* *"If the creator's account is removed or their data access permissions change, the link may stop returning data correctly."* Only *"the owner and creator of the dashboard"* can create one.
+- **Viewers cost money.** *"Sharing a dashboard externally may increase data usage and costs, since viewer requests are billed like any other access to the dashboard."*
+- **Removing the permission does not revoke links.** *"Removing permissions doesn't automatically delete existing links."* Existing links stay reachable until they are deleted or deactivated through the Public Access Admin API.
+- **Some tiles do not display.** *"Tiles with a Davis analyzer enabled"*, SLO tiles and image tiles show *"Tile not supported"* on a shared dashboard.
+- **Turning off the IP allowlist on a link needs a third permission:** *"the public-access:shares.ip-allowlist:write permission"*.
+
 > <sub>**Sources:**</sub>
 > - <sub>[Dashboards (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/dashboards-new) — *"Share links: Create links (URLs) pointing to your document and distribute the links through the channels of your choice (email, for example)."*</sub>
 > - <sub>[Share Dynatrace documents (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/get-started/dynatrace-ui/share) — *"No one outside your Dynatrace environment could use the link to access your document, of course, but anyone in your Dynatrace environment could use it."*</sub>
 > - <sub>[Upgrade from Dashboards Classic to Dashboards (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/get-apps-and-surfaces-working/upgrade-guide-dashboards) — *"The upgrade doesn't carry over anonymous links from Dashboards Classic."*</sub>
-> - <sub>[Share a dashboard externally (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/share-dashboard-externally) — the external-link, embedding and permission quotes above</sub>
+> - <sub>[Share a dashboard externally (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/share-dashboard-externally) — the external-link, embedding, permission, identity, cost and revocation quotes above</sub>
 > - <sub>[What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"Each link supports a passcode, expiration date, IP allowlist enforcement, and optional iframe embedding"*</sub>
 
 ### Dashboard Organization
@@ -237,6 +245,8 @@ Managing dashboards as code enables version control, peer review, and automated 
 >
 > Note what this gate is *not*. `terraform plan`, a JSON linter, and Monaco's own config validation all check the surrounding configuration, not the dashboard document itself — to those tools the payload is an opaque blob. A `2xx` from the Documents API means the document was accepted for storage, not that it renders. The only check that answers the question is opening the dashboard.
 
+> **Invalid query limits and Davis settings are removed — SaaS 1.350 (staged tenant rollout from 11/04/2026).** *"Dynatrace applies stricter rules to dashboards and will remove these options if they don't pass validation"*: query limits (`tiles.*.querySettings`) and analyze-and-alert options (`tiles.*.davis`). *"Dashboard tiles that contain invalid data in the querySettings or davis configuration in their JSON will see those settings removed."* This *"will mainly affect dashboards created or modified via the API or external AI tools."* *"The old configuration can be recovered from the version history and re-applied"*: select *Version history* from the dashboard menu, download a version from before the change, then paste its contents in *Edit JSON* — *"Errors in querySettings and davis will be shown, and you will need to resolve them to continue."* Verify the release has reached your tenant.
+
 The export → modify → review → deploy workflow described in §6 remains the working path. 1.344 raises the cost of skipping its validation step; it does not replace the workflow.
 
 ### Monaco Configuration Example
@@ -273,6 +283,7 @@ New dashboards are the Monaco **`document`** type (Monaco CLI 2.15.0+), not an `
 > <sub>**Sources:**</sub>
 > - <sub>[What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — the stricter dashboard-validation rule quoted above</sub>
 > - <sub>[What's new in Dynatrace SaaS 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344) — the 1.344 release that first shipped it</sub>
+> - <sub>[What's new in Dynatrace SaaS 1.350 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-350) — the `querySettings` / `davis` removal and version-history recovery quoted above</sub>
 > - <sub>[Monaco configuration YAML file - list of type fields (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas-type-fields) — *"Since Dynatrace Monaco CLI version 2.15.0+, the `document` type is supported, and it represents the API for Dashboards and Notebooks."*</sub>
 > - <sub>[Monaco configuration YAML file structure (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas) — *"The `environment` type parameter allows you to reference an environment variable."*</sub>
 > - <sub>[Monaco API support and access permission handling (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/monaco-api-support-and-access-handling) — *"OAuth credentials are required to target platform APIs"*</sub>

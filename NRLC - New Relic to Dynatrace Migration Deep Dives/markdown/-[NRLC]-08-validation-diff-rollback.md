@@ -1,6 +1,6 @@
 # NRLC-08: Validation, Diff & Rollback
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 8 of 9 | **Created:** April 2026 | **Last Updated:** 10/31/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 8 of 9 | **Created:** April 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -100,7 +100,9 @@ The registry does not cover these, so check them by hand:
 | Buckets and their retention | `GET /platform/storage/management/v1/bucket-definitions` |
 | Notifications | `GET /api/v2/settings/objects?schemaIds=builtin:problem.notifications` — the **schema** is blocked at upgrade (the `objects` endpoint is not); workflow-based notifications replace it |
 
-> **Note — OpenPipeline API deprecation:** The direct `GET/PUT /platform/openpipeline/v1/configurations` endpoints were deprecated in SaaS 1.327 and reached end of life on **June 29, 2026**. Read and manage OpenPipeline configuration through Settings 2.0 with the `builtin:openpipeline.<scope>.routing`, `builtin:openpipeline.<scope>.pipelines`, and `builtin:openpipeline.<scope>.ingest-sources` schemas. See the official [API deprecation guide](https://docs.dynatrace.com/docs/dynatrace-api/basics/deprecation-migration-guides).
+> **Note — OpenPipeline API deprecation:** The direct `GET` / `POST /platform/openpipeline/v1/configurations/{id}` endpoints were deprecated in SaaS 1.327 and reached end of life on **June 29, 2026**. Read and manage OpenPipeline configuration through Settings 2.0 with the `builtin:openpipeline.<scope>.routing`, `builtin:openpipeline.<scope>.pipelines`, and `builtin:openpipeline.<scope>.ingest-sources` schemas. The current OpenPipeline API reference still documents **List configurations** (`GET /platform/openpipeline/v1/configurations`, scope `openpipeline:configurations:read`), which lists configuration identifiers only. See the official [API deprecation guide](https://docs.dynatrace.com/docs/dynatrace-api/basics/deprecation-migration-guides).
+>
+> <sub>**Sources:** [SaaS 1.327 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-327) — *"are marked as deprecated."*, [SaaS 1.342 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-342) — *"On June 29, 2026, we will deactivate the legacy Configurations API and migrate all environments to the new configuration based on the Settings API."*, [List configurations (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-openpipeline-v1/configurations-get) — *"you need a platform token or OAuth access token with openpipeline:configurations:read scope"*.</sub>
 
 Common failures caught here:
 

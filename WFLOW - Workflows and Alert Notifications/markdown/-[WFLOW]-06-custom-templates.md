@@ -1,6 +1,6 @@
 # WFLOW-06: Custom Notification Templates
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 6 of 10 | **Created:** January 2026 | **Last Updated:** 10/06/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 6 of 10 | **Created:** January 2026 | **Last Updated:** 11/11/2026
 
 ## Rich Message Formatting
 Create professional, informative notifications with dynamic content, formatting, and data enrichment. This notebook covers Jinja templating, Slack Block Kit, Teams Adaptive Cards, and data enrichment patterns.
@@ -60,7 +60,7 @@ Create professional, informative notifications with dynamic content, formatting,
 | 3 (Minor) | :large_yellow_circle: | Yellow header | Yellow banner |
 | 4 (Warning) | :large_blue_circle: | Blue header | Blue banner |
 
-The problem record carries severity as `event.severity` on a 1–5 scale (`experimental` in the semantic dictionary), not as `CRITICAL`/`HIGH` strings. Dynatrace names the levels Critical, Major, Minor, Warning and Informational, and problems carry only the first three: *"Warning and Informational events appear in the event list and can be grouped into a problem by problem correlation, but they don't raise problems on their own."* The Warning row matters only for templates that also serve Davis events. The templates below convert it with `| int(5)`, so a missing severity renders as the lowest tier; from SaaS 1.348 severity is no longer defaulted (WFLOW-04 §3). WFLOW-02 §7 maps the other old field names.
+The problem record carries severity as `event.severity` on a 1–5 scale (`stable` in the semantic dictionary, read 11/11/2026), not as `CRITICAL`/`HIGH` strings. Dynatrace names the levels Critical, Major, Minor, Warning and Informational, and problems carry only the first three: *"Warning and Informational events appear in the event list and can be grouped into a problem by problem correlation, but they don't raise problems on their own."* The Warning row matters only for templates that also serve Davis events. The templates below convert it with `| int(5)`, so a missing severity renders as the lowest tier; from SaaS 1.348 severity is no longer defaulted (WFLOW-04 §3). WFLOW-02 §7 maps the other old field names.
 
 > <sub>**Sources:** [Standardized event severity (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications/standardized-event-severity).</sub>
 
@@ -532,7 +532,7 @@ With custom templates ready, implement auto-remediation:
 
 1. **WFLOW-07: Problem-Triggered Remediation** - Auto-remediation patterns
 2. **WFLOW-08: JavaScript & HTTP Actions** - Custom integrations
-3. **WFLOW-09: Security & Governance** - Best practices
+3. **WFLOW-09: Security, Governance & Monitoring** - Best practices
 
 ### Key Takeaways
 

@@ -1,6 +1,6 @@
 # DTM-01: Cluster Design Best Practices
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 01 — Cluster Design Best Practices | **Created:** October 2026 | **Last Updated:** 11/10/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 01 — Cluster Design Best Practices | **Created:** October 2026 | **Last Updated:** 11/11/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -52,7 +52,7 @@ The docs are blunt about up-front sizing: *"Exact sizing of a Managed Cluster is
 
 | Dimension | What it means | Limit or condition |
 |-----------|---------------|--------------------|
-| **Horizontal** | Add nodes | *"Dynatrace Managed supports up to 42 Cluster nodes."* |
+| **Horizontal** | Add nodes | *"Dynatrace Managed supports up to 42 Cluster nodes."* — from **Managed 1.348**; a cluster on an earlier version is limited to 30 |
 | **Vertical** | More RAM or CPU per node | *"When adding CPUs or RAM, keep all nodes equally sized."* |
 | **Storage** | Larger disks | *"Use resizable disk volumes."* (§5) |
 
@@ -61,7 +61,7 @@ Two design consequences:
 - **Growth has a cost in maintenance time.** *"Plan for somewhat longer maintenance windows as your Managed Cluster grows, and scale out to gain monitoring capacity rather than to speed up existing operations."*
 - **Check both per-node limits.** Each node size has a host-unit limit and a Full-Stack OneAgent limit, and *"Both columns are limits, so check which one your environment reaches first."* Many small hosts reach the OneAgent limit first. The sizing table and worked examples are in DTM-15 §2.
 
-> <sub>**Sources:** [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements) — *"Plan to scale along these dimensions"*.</sub>
+> <sub>**Sources:** [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements) — *"Plan to scale along these dimensions"*, [Managed 1.348 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-348) — *"Previously, a Managed Cluster was limited to 30 nodes (15 nodes per data center with Premium High Availability). Existing Managed Clusters receive the higher limits automatically after you upgrade."*</sub>
 
 <a id="node-placement"></a>
 ## 3. Node Count and Placement
@@ -96,7 +96,7 @@ Choose by **what you must survive**. A single cluster *"tolerates the loss of in
 |-------|----------|---------|---------|----------------|
 | **Single cluster** | One node | 3 nodes | *"Keep the latency between nodes at 10 ms or less."* | Identical hardware, separate hosts (§3) |
 | **Rack awareness** | All nodes in one rack | 3 racks, 3+ nodes each | Same low-latency network; *"network latency between sites needs to stay below 10 ms"* | *"The final number of racks is three"*; racks must *"reflect the underlying physical deployment location of nodes"* |
-| **Premium High Availability (PHA)** | A whole data center | 6 nodes, 3 per data center | *"Keep round-trip network latency at 100 ms or less."* | Online cluster only, 2 data centers, symmetric sizing, encrypted links between data centers |
+| **Premium High Availability (PHA)** | A whole data center | 6 nodes, 3 per data center | *"Keep round-trip network latency at 100 ms or less."* | Online cluster only, 2 data centers, symmetric sizing, encrypted links between data centers; at most 42 nodes, 21 per data center, from Managed 1.348 (30 and 15 before) |
 | **PHA + rack awareness** | A data center **and** a rack in the surviving one | 9+ nodes per data center to gain from racks | As above | *"For the highest resilience, make every data center in a PHA deployment rack-aware."* |
 
 **Decide before you install.** Rack membership can be set at installation (`--rack-dc`, `--rack-name`) or added later by a conversion. Moving to PHA is one-way: *"You cannot reverse a migration to PHA."* And PHA has conditions a design can't work around: *"PHA is available only for online Managed Clusters."* Offline clusters are covered in DTM-14 §7.
@@ -110,7 +110,8 @@ Choose by **what you must survive**. A single cluster *"tolerates the loss of in
 > <sub>**Sources:**</sub>
 > - <sub>[Single-cluster high availability (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability)</sub>
 > - <sub>[Rack awareness (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/rack-awareness) — *"Each rack holds at least three nodes."*</sub>
-> - <sub>[Multi-data center high availability (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/multi-data-centers) — *"Deploy at least six nodes, with three nodes per DC."*, *"Encrypt the connections between nodes in different DCs. Dynatrace Managed doesn't create or install the required certificates."*</sub>
+> - <sub>[Multi-data center high availability (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/multi-data-centers) — *"Deploy at least six nodes, with three nodes per DC."*, *"Deploy no more than 42 nodes, with no more than 21 nodes per DC."*, *"Encrypt the connections between nodes in different DCs. Dynatrace Managed doesn't create or install the required certificates."*</sub>
+> - <sub>[Managed 1.348 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-348) — *"You can now scale out your Managed Cluster to 42 nodes (21 nodes per data center with Premium High Availability)"*</sub>
 > - <sub>**Derived:** the "9+ nodes per data center" figure combines rack awareness's three racks with its three-nodes-per-rack recommendation.</sub>
 
 <a id="storage-layout"></a>

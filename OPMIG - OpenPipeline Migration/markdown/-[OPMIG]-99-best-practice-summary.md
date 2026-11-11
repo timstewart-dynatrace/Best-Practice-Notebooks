@@ -124,8 +124,8 @@ Definitive best practice settings for migrating from classic logs to OpenPipelin
 | Credit cards | Built-in `CREDITCARD` matcher, bounded: `!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]` → `[CC_REDACTED]`. Unbounded, it rewrites digit runs inside UUIDs | Critical |
 | CVV codes | `('cvv='\|'cvc='\|'CVV='\|'CVC=') [0-9]{3,4}` → `cvv=[REDACTED]` | Critical |
 | Email addresses | `[a-zA-Z0-9._%+-]+ '@' [a-zA-Z0-9.-]+` → `[EMAIL_REDACTED]` (no built-in `EMAIL` matcher exists) | Critical |
-| IP addresses (GDPR) | Built-in `IPADDR` matcher → `[IP_REDACTED]` | Critical |
-| SSNs | `[0-9]{3} '-' [0-9]{2} '-' [0-9]{4}` → `[SSN_REDACTED]` (`INT` takes no `{n}` quantifier) | Critical |
+| IP addresses (GDPR) | Built-in `IPADDR` matcher, bounded: `!<<[0-9A-Za-z:.-] IPADDR !>>[0-9A-Za-z-]` → `[IP_REDACTED]`. Unbounded, it rewrites part of an ARN such as `us-east-1::` | Critical |
+| SSNs | `!<<[0-9A-Za-z-] [0-9]{3} '-' [0-9]{2} '-' [0-9]{4} !>>[0-9A-Za-z-]` → `[SSN_REDACTED]` (`INT` takes no `{n}` quantifier) | Critical |
 | Bearer tokens | `'Bearer ' NSPACE` → `Bearer [TOKEN_REDACTED]` | Critical |
 | API keys and tokens | `<<(('api_key' \| 'API_KEY' \| 'apiKey' \| 'apikey' \| 'APIKEY' \| 'token' \| 'TOKEN') '=') NSPACE` → `[REDACTED]`, plus a separate statement for JSON-quoted keys. DPL literals are case-sensitive; a trailing `LD` would erase the rest of the line | Critical |
 | Passwords | `<<(('password' \| 'PASSWORD' \| 'Password' \| 'passwd' \| 'pwd') '=') NSPACE` → `[REDACTED]`; in URLs `'password=' [^&\s]+` | Critical |

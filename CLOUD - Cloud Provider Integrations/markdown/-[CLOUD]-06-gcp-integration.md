@@ -1,6 +1,6 @@
 # CLOUD-06: GCP Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 6 of 8 | **Created:** March 2026 | **Last Updated:** 11/10/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 6 of 8 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -415,13 +415,14 @@ Cloud Run is GCP's serverless container platform. It shares some monitoring patt
 | **Runtime** | Any Docker image | Managed runtimes + custom |
 | **Max duration** | Services: request timeout up to 60 minutes. Jobs: task timeout up to 7 days (1 hour for tasks using GPUs) | 15 minutes |
 | **Concurrency** | Multiple requests per instance (configurable, up to 1,000) | One per execution (default) |
-| **Monitoring** | OneAgent (Java/Node.js only) or OTLP — an OpenTelemetry Collector can run as a sidecar container | Lambda Layer |
+| **Monitoring** | OneAgent (Java, Node.js, Python — Python with OneAgent 1.349, staged rollout from 11/09/2026; verify it has reached your environment) or OTLP — an OpenTelemetry Collector can run as a sidecar container | Lambda Layer |
 | **Cold start** | Container pull + startup | Runtime initialization |
 
 > <sub>**Sources:**</sub>
 > - <sub>[Request timeout (Google Cloud)](https://docs.cloud.google.com/run/docs/configuring/request-timeout) — *"The timeout is set by default to 5 minutes (300 seconds) and can be extended up to 60 minutes (3600 seconds)."*</sub>
 > - <sub>[Task timeout (Google Cloud)](https://docs.cloud.google.com/run/docs/configuring/task-timeout) — *"For tasks using GPUs, the maximum available timeout is 1 hour."*</sub>
 > - <sub>[About concurrency (Google Cloud)](https://docs.cloud.google.com/run/docs/about-concurrency) — *"You can increase this to a maximum of 1,000."*</sub>
+> - <sub>[OneAgent 1.349 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349) — *"OneAgent now supports Python applications on Google Cloud Run."*</sub>
 
 ### Cloud Run Monitoring: OneAgent Coverage and Caveats
 

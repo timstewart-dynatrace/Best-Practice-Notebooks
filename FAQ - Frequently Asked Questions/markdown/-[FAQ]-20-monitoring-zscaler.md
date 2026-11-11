@@ -1,6 +1,6 @@
 # FAQ-20: How Do I Monitor Zscaler With Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 20 — Monitoring Zscaler With Dynatrace | **Created:** July 2026 | **Last Updated:** 10/15/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 20 — Monitoring Zscaler With Dynatrace | **Created:** July 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -10,7 +10,7 @@ The starting position in most organizations is worse than it needs to be. The th
 
 Two things about this integration are worth knowing before you plan it, because both are commonly assumed the other way:
 
-- **ZIA has a Dynatrace extension; ZPA and ZDX do not.** *Corrected 09/28/2026 — earlier revisions of this entry said the Hub listed no Zscaler integration at all.* A Dynatrace **Zscaler Internet Access (ZIA) extension** is on the Hub (minimum Dynatrace version 1.345): it takes the ZIA Cloud NSS feeds, extracts `zia.*` metrics, and discovers ZIA Location, User and Tunnel entities in Smartscape. No ZPA or ZDX listing was found as of 09/2026, so for those two product lines you are still building and owning the integration — a normal position, but one to decide deliberately rather than discover in week three. Re-check the Hub before planning; listings appear over time.
+- **ZIA and ZPA have Dynatrace extensions; ZDX does not.** *Corrected 11/11/2026 — earlier revisions of this entry said ZPA had no extension, and before 09/28/2026 that the Hub listed no Zscaler integration at all.* A Dynatrace **Zscaler Internet Access (ZIA) extension** is on the Hub (minimum Dynatrace version 1.345): it takes the ZIA Cloud NSS feeds, extracts `zia.*` metrics, and discovers ZIA Location, User and Tunnel entities in Smartscape. A **Zscaler Private Access (ZPA) extension** (minimum Dynatrace version 1.345; docs published 10/09/2026, announced in the SaaS 1.348 release notes) does the same for ZPA Log Streaming Service (LSS) logs — `zpa.*` metrics and ZPA user, application and App Connector topology — but still needs a log shipper you run, because LSS cannot reach Dynatrace on its own. No ZDX extension or Hub listing was found (checked 11/11/2026), so for ZDX you are still building and owning the integration — a normal position, but one to decide deliberately rather than discover in week three. Re-check the Hub before planning; listings appear over time.
 - **The three product lines do not share a transport.** ZIA can push over HTTPS; ZPA cannot; ZDX telemetry is pull-only — only ZDX *alerts* can be pushed, by webhook. A single ingestion design will not serve all three.
 
 This entry is the **worked example of FAQ-19**. Every structural decision — route, retention, topology, isolation — is made there generically; here they are made concretely for Zscaler. Read FAQ-19 first if you want the reasoning; read this if you want the answers.
@@ -20,7 +20,7 @@ This entry is the **worked example of FAQ-19**. Every structural decision — ro
 ## Table of Contents
 
 1. [Short Answer](#short-answer)
-2. [Turnkey for ZIA, Build-Your-Own for ZPA and ZDX](#no-turnkey)
+2. [Extensions for ZIA and ZPA, Build-Your-Own for ZDX](#no-turnkey)
 3. [The Three Data Planes and What Each Answers](#data-planes)
 4. [Transport Reality — Why One Route Will Not Work](#transports)
 5. [Recommended Ingestion Architecture](#architecture)
@@ -52,26 +52,26 @@ This entry is the **worked example of FAQ-19**. Every structural decision — ro
 <a id="short-answer"></a>
 ## 1. Short Answer
 
-**Activate the Dynatrace ZIA extension for ZIA, route ZPA through a collector, pull ZDX through its API if you have it, extract metrics and events at ingest, discard the raw records by default, and model the ZPA/ZDX side — applications, connectors, service edges — as `CUSTOM_*` Smartscape nodes.**
+**Activate the Dynatrace ZIA extension for ZIA and the ZPA extension for ZPA — ZPA still reaches Dynatrace through a log shipper you run — pull ZDX through its API if you have it, extract metrics and events at ingest, discard the raw records by default, and model what the extensions do not cover — ZDX, or a ZPA pipeline you build yourself — as `CUSTOM_*` Smartscape nodes.**
 
 | Product line | Transport it offers | Route into Dynatrace |
 |---|---|---|
 | **ZIA** (internet / SaaS) | Cloud NSS — HTTPS feed to an API-based collector | **Activate the ZIA extension** (Dynatrace 1.345+): Cloud NSS feeds push direct to the log ingest API, and the extension supplies parsing, `zia.*` metrics, topology and dashboards |
-| **ZPA** (private access) | LSS — **raw TCP, optionally TLS** | **Collector hop required.** Cannot reach a Dynatrace API unaided |
+| **ZPA** (private access) | LSS — **raw TCP, optionally TLS** | **Activate the ZPA extension** (Dynatrace 1.345+) and run a **log shipper** between LSS and the Dynatrace ingest API — LSS cannot reach a Dynatrace API unaided. The extension supplies parsing, `zpa.*` metrics, topology and dashboards |
 | **ZDX** (digital experience) | **REST API, pull only** for scores and metrics (API key exchanged for a bearer token); alerts can also be pushed by webhook | **Scheduled poller** — workflow, extension, or collector |
 
 And the single most important scoping point, stated plainly:
 
 > **ZIA and ZPA logs are not a substitute for ZDX.** They are the platform's own record of transactions it handled — excellent for access, policy, throughput, and connection outcomes. They do not contain device health, network-path quality, or page-fetch timing, because Zscaler does not observe those from the proxy. If the question is "why was it slow for this user," logs alone will not answer it, and no amount of ingestion engineering changes that.
 
-> <sub>**Sources:** [Zscaler Internet Access (ZIA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zia) — *"Activation has three parts: activate the extension from Dynatrace Hub, configure the two OpenPipeline dynamic routes, and configure the Zscaler Internet Access Cloud NSS feeds."*, [Integrating Cloud NSS with Cloud-Based SIEMs (Zscaler)](https://help.zscaler.com/zia/integrating-cloud-nss-cloud-based-siems), [Log Streaming Service (LSS) (Zscaler)](https://help.zscaler.com/zpa/about-log-streaming-service), [Understanding the ZDX API (Zscaler Legacy APIs)](https://help.zscaler.com/legacy-apis/understanding-zdx-api), [About Webhooks (Zscaler)](https://help.zscaler.com/zdx/about-webhooks).</sub>
+> <sub>**Sources:** [Zscaler Internet Access (ZIA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zia) — *"Activation has three parts: activate the extension from Dynatrace Hub, configure the two OpenPipeline dynamic routes, and configure the Zscaler Internet Access Cloud NSS feeds."*, [Zscaler Private Access (ZPA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zpa) — *"so a log shipper between ZPA and Dynatrace is required rather than optional"*, [Integrating Cloud NSS with Cloud-Based SIEMs (Zscaler)](https://help.zscaler.com/zia/integrating-cloud-nss-cloud-based-siems), [Log Streaming Service (LSS) (Zscaler)](https://help.zscaler.com/zpa/about-log-streaming-service), [Understanding the ZDX API (Zscaler Legacy APIs)](https://help.zscaler.com/legacy-apis/understanding-zdx-api), [About Webhooks (Zscaler)](https://help.zscaler.com/zdx/about-webhooks).</sub>
 
 ---
 
 <a id="no-turnkey"></a>
-## 2. Turnkey for ZIA, Build-Your-Own for ZPA and ZDX
+## 2. Extensions for ZIA and ZPA, Build-Your-Own for ZDX
 
-> **Correction (09/28/2026).** Earlier revisions of this section said there was no Zscaler listing in the Dynatrace Hub. That is no longer true for ZIA: Dynatrace now publishes a **Zscaler Internet Access (ZIA) extension**. It remains true for ZPA and ZDX. The build-your-own guidance below still applies to those two product lines, and to any ZIA feed type the extension does not parse.
+> **Correction (11/11/2026).** Earlier revisions of this section said ZPA had no Dynatrace extension or Hub listing. Dynatrace now publishes a **Zscaler Private Access (ZPA) extension** (docs published 10/09/2026, announced in the SaaS 1.348 release notes), alongside the **Zscaler Internet Access (ZIA) extension** recorded in the 09/28/2026 correction. It remains true for ZDX. The build-your-own guidance below still applies to ZDX, to any ZIA or ZPA feed type the extensions do not parse, and to a ZPA pipeline you choose to build yourself.
 
 ### 2.1 ZIA — activate the extension
 
@@ -86,27 +86,51 @@ The ZIA extension requires **Dynatrace version 1.345** or later and OpenPipeline
 
 It covers five Cloud NSS feed types — **Web, Firewall, DNS, Tunnel, and Admin Audit**. Any other ZIA feed you need (DLP, for instance) is back in build-your-own territory.
 
-The extension changes three things elsewhere in this entry. Its metric namespace is `zia.*`, not the `zscaler.zia.*` scheme suggested in § 8 — do not build a parallel ZIA scheme. It models **users as entities** (ZIA User), which § 7 advises against for a hand-built model — keep your custom model to ZPA and ZDX and do not add a second user entity. And its topology uses its own node types, so the § 7 custom nodes are for the product lines it does not cover.
+The extension changes three things elsewhere in this entry. Its metric namespace is `zia.*`, not the `zscaler.zia.*` scheme suggested in § 8 — do not build a parallel ZIA scheme. It models **users as entities** (ZIA User), which § 7 advises against for a hand-built model — keep your custom model to what the ZIA and ZPA extensions do not cover, and do not add a second user entity. And its topology uses its own node types, so the § 7 custom nodes are for what neither extension covers.
 
-### 2.2 ZPA and ZDX — no listing, so you own it
+### 2.2 ZPA — activate the extension, and run a log shipper
 
-No ZPA or ZDX extension or Hub listing was found as of 09/2026. The ingestion primitives you need all exist, but the ownership shape of the project is different, and it is better acknowledged at planning time:
+The ZPA extension requires **Dynatrace version 1.345** or later and OpenPipeline Settings 2.0. Activation has five parts — activate it from the Hub, configure its two OpenPipeline dynamic routes (logs and metrics), deploy a log shipper, configure the ZPA LSS Log Receivers, and verify. In return you get:
+
+| What the extension supplies | Detail |
+|---|---|
+| **Parsing** | A log pipeline that recognizes each supported LSS log type by its `sourcetype` value |
+| **Metrics** | Counter and value metrics under the **`zpa.*`** namespace |
+| **Topology** | ZPA User, Application, App Group, App Connector and App Connector Group entities, plus Private Service Edge and Private Cloud Controller entities and their groups |
+| **Content** | Dashboards, unified analysis screens, and alert templates — the templates ship disabled |
+
+It covers nine LSS log types — App Connector Metrics and Status, User Activity, User Status, Browser Access, and Private Service Edge and Private Cloud Controller Metrics and Status. Any other ZPA log type you stream is still ingested, but gets no packaged metrics, dashboards or topology.
+
+What the extension does **not** remove is the transport constraint in § 4.1. It bundles no data source, and LSS still cannot post to a Dynatrace endpoint, so you deploy and operate a log shipper. Its page documents two — **Fluent Bit** (to the log ingest API) and **BindPlane** (to the OTLP logs endpoint) — and says any shipper capable of a TCP input and an HTTP output can fill the role. Three constraints from that page shape the rest of this entry:
+
+- **Exact templates.** Each Log Receiver must use the extension's own JSON log stream template. The ZPA default template cannot be used, because it carries no field identifying the log type.
+- **Unmodified records.** The shipper must forward each record exactly as LSS wrote it; one that reformats, enriches, truncates, reorders or drops part of a record breaks the parsers. The page's way to reduce volume is to trim each template to the fields the extension parses — not to edit records in the shipper.
+- **One endpoint is enough.** Every log type can share one shipper endpoint, because each record carries its own `sourcetype`. You still configure one Log Receiver per log type.
+
+The extension changes three things elsewhere in this entry. Its metric namespace is `zpa.*`, not the `zscaler.zpa.*` scheme suggested in § 8. Its topology uses its own ZPA node types, which cover the ZPA side of the § 7 custom model. And it models **users as entities** (ZPA User). The hand-built ZPA guidance in §§ 4–8 remains as the alternative for a pipeline you build yourself; where you use the extension, its page is the documented route.
+
+### 2.3 ZDX — no listing, so you own it
+
+No ZDX extension or Hub listing was found (checked 11/11/2026). The ingestion primitives you need all exist, but the ownership shape of the project is different, and it is better acknowledged at planning time:
 
 | What "no listing" means | Consequence |
 |---|---|
 | **You own the parsing** | Field extraction is yours to write and maintain. There is no vendor-maintained mapping that updates itself |
 | **You own the schema drift** | When Zscaler adds or renames a log field, nothing warns you. Your pipeline quietly produces nulls |
-| **You own the failure modes** | A stalled LSS receiver or an expired ZDX credential surfaces as missing data, not as an alert — unless you build that alert |
+| **You own the failure modes** | An expired ZDX credential surfaces as missing data, not as an alert — unless you build that alert |
 | **Support boundaries are yours to navigate** | Dynatrace supports its ingest APIs and OpenPipeline; Zscaler supports its feeds. The integration between them is yours |
 | **Effort is front-loaded but bounded** | Once field mapping and topology are settled, the pipeline is stable. The cost is a project, not a permanent tax |
 
-**The one thing worth doing before you start:** re-check the Hub. The ZIA extension is the proof that vendor integrations appear over time, and adopting a supported path is strictly better than maintaining a custom one.
+**The one thing worth doing before you start:** re-check the Hub. The ZIA and ZPA extensions are the proof that vendor integrations appear over time, and adopting a supported path is strictly better than maintaining a custom one.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Zscaler Internet Access (ZIA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zia) — *"Minimum required Dynatrace version: Dynatrace version 1.345"*; discovers *"ZIA Location, ZIA User, and ZIA Tunnel entities"*</sub>
 > - <sub>[Zscaler Internet Access (ZIA) (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/zscaler-internet-access-zia/)</sub>
-> - <sub>[Dynatrace Hub (Dynatrace)](https://www.dynatrace.com/hub/) — no ZPA or ZDX listing found, checked 09/28/2026</sub>
-> - <sub>**Derived:** the ownership consequences in § 2.2 follow from the absence of a vendor-maintained listing, not from a Dynatrace statement about Zscaler specifically</sub>
+> - <sub>[Zscaler Private Access (ZPA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zpa) — *"Minimum required Dynatrace version: Dynatrace version 1.345."*; *"The extension bundles no data source, so there is nothing to install on an ActiveGate."*; *"The custom log stream templates replace the ZPA defaults"*; *"The shipper must forward records unmodified"*; *"Every log type can share the same shipper endpoint"*</sub>
+> - <sub>[Zscaler Private Access (ZPA) (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/zscaler-private-access-zpa/)</sub>
+> - <sub>[SaaS 1.348 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"New Zscaler Private Access (ZPA) and Zscaler Internet Access (ZIA) extensions"*</sub>
+> - <sub>[Dynatrace Hub (Dynatrace)](https://www.dynatrace.com/hub/) — no ZDX listing found, checked 11/11/2026</sub>
+> - <sub>**Derived:** the ownership consequences in § 2.3 follow from the absence of a vendor-maintained listing, not from a Dynatrace statement about Zscaler specifically</sub>
 
 ---
 
@@ -191,7 +215,7 @@ This is the section that most often invalidates a diagram drawn before the trans
 | **Direction** | Push | Push | **Pull** for telemetry; alerts can also push by webhook |
 | **Transport** | **HTTPS** to an API-based collector | **Raw TCP**, optional TLS | HTTPS REST |
 | **Auth** | Custom headers on the feed | None at transport level — network reachability is the control; optional mutual TLS | **API key** (key ID + secret) exchanged at `/oauth/token` for a 60-minute bearer token |
-| **Formats** | **JSON** — the exact format the ZIA extension requires; custom templates only for a self-built pipeline | CSV, TSV or **JSON** templates | JSON |
+| **Formats** | **JSON** — the exact format the ZIA extension requires; custom templates only for a self-built pipeline | CSV, TSV or **JSON** templates — the ZPA extension requires its own JSON templates | JSON |
 | **Reaches Dynatrace unaided?** | **Yes** | **No — collector hop required** | No — needs a scheduled caller |
 
 ### 4.1 ZPA LSS — the constraint to design around
@@ -200,14 +224,15 @@ LSS is configured as a **log receiver** defined by a host, a port, and an option
 
 | Terminator | When it fits |
 |---|---|
+| **Fluent Bit or BindPlane** | The two shippers the ZPA extension documents (§ 2.2). Fluent Bit posts to the log ingest API, BindPlane to the OTLP logs endpoint; both forward records unparsed |
 | **OpenTelemetry Collector** | The general answer. Run it near the connectors, use a TCP or syslog receiver, forward to Dynatrace |
-| **ActiveGate syslog ingestion** | If you template LSS output to syslog format. Environment ActiveGate on Linux, 1.295+; multi-environment ActiveGates are not supported |
+| **ActiveGate syslog ingestion** | Self-built pipelines only, if you template LSS output to syslog format — the ZPA extension needs its own JSON templates. Environment ActiveGate on Linux, 1.295+; multi-environment ActiveGates are not supported |
 | **An existing pipeline product** | If Zscaler logs already flow to a SIEM through one, multi-home an output (§ 5.2) — usually the least new infrastructure |
 
 Three further LSS properties shape the build:
 
-- **One log type per receiver configuration.** User Activity, App Connector Metrics, and App Connector Status are three separate LSS configurations. Each names its own host and TCP port, so they can share one collector host — in community practice on one port per log type, so the collector can tell the streams apart. Plan the configuration count up front.
-- **Choose JSON as the log template.** LSS offers CSV, TSV, and JSON templates. CSV means positional DPL parsing that breaks silently when Zscaler adds a column, whereas JSON tolerates schema growth.
+- **One log type per receiver configuration.** User Activity, App Connector Metrics, and App Connector Status are three separate LSS configurations. Each names its own host and TCP port. With the ZPA extension's templates every log type can share one shipper endpoint, because each record carries its own `sourcetype` (§ 2.2). For a self-built pipeline on a template without a log-type field, community practice is one port per log type, so the collector can tell the streams apart. Plan the configuration count up front.
+- **Choose JSON as the log template.** With the ZPA extension that means its own published templates, which are required (§ 2.2). For a self-built pipeline, LSS offers CSV, TSV, and JSON templates. CSV means positional DPL parsing that breaks silently when Zscaler adds a column, whereas JSON tolerates schema growth.
 - **A receiver outage is data loss.** Apart from audit logs, LSS does not send what was generated while the connection to the receiver was down. Run the collector highly available if gaps in the feed matter to you.
 
 ### 4.2 ZDX — pull for telemetry, webhooks for alerts
@@ -233,7 +258,8 @@ Practical consequences:
 > - <sub>[Integrating Cloud NSS with Cloud-Based SIEMs (Zscaler)](https://help.zscaler.com/zia/integrating-cloud-nss-cloud-based-siems)</sub>
 > - <sub>[Zscaler Internet Access (ZIA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zia) — *"Each feed must use the exact JSON Feed Output Format below so that field names match the pipeline parsers."*</sub>
 > - <sub>[Syslog ingestion with ActiveGate (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-syslog)</sub>
-> - <sub>**Derived:** the "collector hop required" conclusion for ZPA follows from LSS offering only raw TCP/TLS against a Dynatrace ingest API that requires HTTPS with an authorization header — neither vendor states the combination. The one-port-per-log-type layout is community practice, not a documented requirement</sub>
+> - <sub>[Zscaler Private Access (ZPA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zpa) — *"so a log shipper between ZPA and Dynatrace is required rather than optional"*; *"Every log type can share the same shipper endpoint"*</sub>
+> - <sub>**Derived:** the ActiveGate-syslog row is limited to self-built pipelines because the ZPA extension needs its own JSON templates, forwarded unmodified. The one-port-per-log-type layout is community practice for self-built pipelines, not a documented requirement</sub>
 
 ---
 
@@ -247,23 +273,23 @@ Two patterns, chosen by whether Zscaler logs already flow through a pipeline pro
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Pattern | ZIA | ZPA | ZDX |
 |---|---|---|---|
-| A — direct plus a collector | Cloud NSS HTTPS direct to the log ingest API | LSS raw TCP/TLS into an OTel Collector or ActiveGate syslog, then Dynatrace | Scheduled poller into metric ingest — separate track |
+| A — direct plus a log shipper | Cloud NSS HTTPS direct to the log ingest API | LSS raw TCP/TLS into a log shipper (Fluent Bit, BindPlane or an OTel Collector), then the ZPA extension; ActiveGate syslog only for a self-built pipeline | Scheduled poller into metric ingest — separate track |
 | B — multi-home from an existing pipeline | Existing pipeline gains a new Dynatrace output; the SIEM output is untouched | Same; the pipeline already terminates TCP, so no new collector | Unchanged — ZDX is pull, so the pipeline is not in this path |
-ZIA runs through the ZIA extension's own pipelines, metrics and ZIA Location / User / Tunnel entities. For ZPA (and ZDX), OpenPipeline extracts metrics, events, and CUSTOM_* nodes, then discards raw via No storage assignment; any retained raw goes to a dedicated bucket. ZDX telemetry never joins the log path. Pattern B's trade-off is that the feed inherits the pipeline's availability and change process.
+ZIA runs through the ZIA extension's own pipelines, metrics and ZIA Location / User / Tunnel entities, and ZPA through the ZPA extension's (zpa.* metrics, ZPA entities). For ZDX and any self-built pipeline, OpenPipeline extracts metrics, events, and CUSTOM_* nodes, then discards raw via No storage assignment; any retained raw goes to a dedicated bucket. ZDX telemetry never joins the log path. Pattern B's trade-off is that the feed inherits the pipeline's availability and change process.
 For environments where SVG doesn't render
 -->
 
-### 5.1 Pattern A — direct, plus a collector for ZPA
+### 5.1 Pattern A — direct, plus a log shipper for ZPA
 
 Appropriate when Zscaler logs are not already centralized, or when the existing pipeline is not something you want to depend on.
 
 | Feed | Path |
 |---|---|
 | **ZIA** | Cloud NSS → **Dynatrace log ingest API** → the **ZIA extension's** OpenPipeline routes (§ 2.1) |
-| **ZPA** | LSS → **OTel Collector / ActiveGate syslog** → Dynatrace → OpenPipeline |
+| **ZPA** | LSS → **log shipper** (Fluent Bit, BindPlane or an OTel Collector) → Dynatrace → the **ZPA extension's** OpenPipeline routes (§ 2.2). ActiveGate syslog only for a self-built pipeline |
 | **ZDX** | Scheduled poller → Dynatrace metric ingest → OpenPipeline |
 
-You run and monitor one collector — highly available if gaps matter, because LSS does not resend what it generated while the receiver was unreachable (§ 4.1). In exchange, the observability feed has no dependency on another team's platform.
+You run and monitor one log shipper — highly available if gaps matter, because LSS does not resend what it generated while the receiver was unreachable (§ 4.1). In exchange, the observability feed has no dependency on another team's platform.
 
 ### 5.2 Pattern B — multi-home from an existing pipeline
 
@@ -271,13 +297,13 @@ Appropriate — and usually preferable — when Zscaler logs already reach a SIE
 
 | Feed | Path |
 |---|---|
-| **ZIA + ZPA** | Zscaler → existing pipeline → *(existing SIEM output, untouched)* + **new Dynatrace output**. For ZIA, the extension's route matches on the NSS `sourcetype`, so the forwarded records must keep the Cloud NSS JSON shape it expects — or send ZIA direct (Pattern A) and multi-home ZPA only |
+| **ZIA + ZPA** | Zscaler → existing pipeline → *(existing SIEM output, untouched)* + **new Dynatrace output**. For ZIA, the extension's route matches on the NSS `sourcetype`, so the forwarded records must keep the Cloud NSS JSON shape it expects — or send ZIA direct (Pattern A) and multi-home ZPA only. For ZPA under the extension, the pipeline must forward its LSS records unmodified (§ 2.2) |
 | **ZDX** | Scheduled poller → Dynatrace (unchanged — ZDX is pull, so the pipeline is not in this path) |
 
 Why this is usually the right enterprise answer:
 
 - **The security pipeline is undisturbed.** Re-pointing a feed a SOC depends on is a change with a blast radius outside observability. Adding an output is not.
-- **You get a transformation point you control.** Mask, hash, and reduce fields on the observability copy while the security copy stays complete.
+- **You get a transformation point you control.** Mask, hash, and reduce fields on the observability copy while the security copy stays complete — except on records an extension parses, which must keep the extension's exact format (§ 2.2, § 6).
 - **The ZPA transport problem is already solved.** The pipeline terminates TCP already; its outputs are ordinary HTTP. No new collector.
 
 Dynatrace publishes Hub destinations for at least one common pipeline product over both HTTP and OpenTelemetry, so this is a supported path rather than an improvisation.
@@ -286,7 +312,7 @@ Dynatrace publishes Hub destinations for at least one common pipeline product ov
 
 **Note that ZDX telemetry does not participate in either pattern's log path.** It is an API pull producing metrics, and it stays a separate track. Teams routinely under-scope it because the architecture diagram shows one Zscaler box.
 
-> <sub>**Sources:** [Cribl via HTTP (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-http/), [Cribl via OpenTelemetry (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-opentelemetry/), [Syslog via OpenTelemetry Collector (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/syslog-via-opentelemetry-collector/).</sub>
+> <sub>**Sources:** [Zscaler Private Access (ZPA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zpa) — *"The shipper must forward records unmodified"*, [Cribl via HTTP (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-http/), [Cribl via OpenTelemetry (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-opentelemetry/), [Syslog via OpenTelemetry Collector (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/syslog-via-opentelemetry-collector/).</sub>
 
 ---
 
@@ -314,9 +340,11 @@ Zscaler logs carry user identity, destination, device, policy, and application c
 
 **ZIA under the extension.** The extension parses only feeds that use its exact JSON output format: a changed `sourcetype`, a non-JSON output type, or renamed fields mean the logs are still ingested but not parsed — no metrics, no topology, empty dashboards. Its page documents parsing, metric extraction and topology, and says nothing about where the raw ZIA records are stored, so check where they land (the bucket query below shows it) rather than assuming they are discarded.
 
+**ZPA under the extension.** The same holds for ZPA: records must use the extension's templates and arrive unmodified, or they are ingested but not parsed. Its page documents parsing, metrics and topology and does not say where the raw ZPA records are stored, so check that with the bucket query below as well.
+
 If you run a **self-built** ZIA pipeline on a non-JSON NSS template instead, a parsing example is worth having in hand. This runs as-is and scans nothing:
 
-> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — stage order, and the `Drop record` versus `No storage assignment` behaviour this table depends on, [Configure data storage and retention for logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment) — route-based storage assignment and per-bucket retention. [Zscaler Internet Access (ZIA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zia) — *"an output type other than JSON, or renamed or missing fields mean the logs are still ingested but are not parsed."* **Derived:** the retention-posture column applies FAQ-19 § 4's extract-then-discard rule to Zscaler's signal mix.</sub>
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — stage order, and the `Drop record` versus `No storage assignment` behaviour this table depends on, [Configure data storage and retention for logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment) — route-based storage assignment and per-bucket retention. [Zscaler Internet Access (ZIA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zia) — *"an output type other than JSON, or renamed or missing fields mean the logs are still ingested but are not parsed."* [Zscaler Private Access (ZPA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zpa) — *"a renamed field, or a missing one means the logs are still ingested but are not parsed"*. **Derived:** the retention-posture column applies FAQ-19 § 4's extract-then-discard rule to Zscaler's signal mix.</sub>
 
 ```dql
 // DPL parse of a templated ZIA-style web log line — for a SELF-BUILT ZIA
@@ -330,10 +358,11 @@ data record(content = "2026-07-31T10:15:02Z user=jdoe@example.com app=Salesforce
 | fields user, app, respcode, reqsize, respsize, location
 ```
 
-If you selected JSON output on the LSS receiver — recommended in § 4.1 — ZPA parsing is simpler and survives Zscaler adding fields:
+For a **self-built** ZPA pipeline on JSON output — recommended in § 4.1 — parsing is simpler and survives Zscaler adding fields. (With the ZPA extension, its own pipeline parses its templates.)
 
 ```dql
-// JSON-format ZPA User Activity record. Also runs standalone at zero scan.
+// JSON-format ZPA User Activity record, for a SELF-BUILT ZPA pipeline only —
+// the ZPA extension parses its own templates. Also runs standalone at zero scan.
 // Prefer this over CSV: adding a field upstream does not break the parse.
 // Zscaler documents most ZPA timing fields in microseconds; the unit of
 // ConnectionSetupTime is not stated — confirm it from your own feed before
@@ -344,17 +373,18 @@ data record(content = "{\"LogTimestamp\":\"2026-07-31T10:15:02Z\",\"Username\":\
 | fields user, app, connector, edge, setup_time
 ```
 
-While raw records are still being retained — during build-out, or where compliance requires it — confirm they land in the dedicated bucket rather than the default. This applies to the ZIA extension's records too. (Executed 10/02/2026: valid, no notifications, no rows on a tenant without Zscaler data. Re-run 10/15/2026: no rows, 0.11 GB scanned for the hour against 2.1 GB unfiltered.)
+While raw records are still being retained — during build-out, or where compliance requires it — confirm they land in the dedicated bucket rather than the default. This applies to the ZIA and ZPA extensions' records too. (Executed 10/02/2026: valid, no notifications, no rows on a tenant without Zscaler data. Re-run 10/15/2026: no rows, 0.11 GB scanned for the hour against 2.1 GB unfiltered. Re-run 11/11/2026 with the ZPA match added: valid, no notifications, no rows, 0.08 GB scanned for the hour.)
 
 ```dql
 // Where are retained Zscaler records landing? Any row whose bucket is
 // default_logs is a Zscaler record that missed its bucket assignment.
 // ZIA feeds carry sourcetype "zscalernss-*" (the ZIA extension's route key);
-// the log.source match is a placeholder for however your ZPA collector tags
-// its records — adapt it. Every record in the window is evaluated, and the
+// ZPA records sent with the ZPA extension's templates carry "zscalerlss" in
+// content (its route key). The log.source match is a placeholder for however
+// a self-built ZPA collector tags its records — adapt it. Every record in the window is evaluated, and the
 // bytes scanned follow what the filter matches (see FAQ-09): keep the window short.
 fetch logs, from:-1h
-| filter matchesPhrase(sourcetype, "zscalernss") or matchesValue(log.source, "*zscaler*")
+| filter matchesPhrase(sourcetype, "zscalernss") or matchesPhrase(content, "zscalerlss") or matchesValue(log.source, "*zscaler*")
 | summarize records = count(), by:{dt.system.bucket}
 ```
 
@@ -362,12 +392,13 @@ Once metric extraction is live, confirm the metrics exist before building dashbo
 
 ```dql
 // Which Zscaler metrics has extraction actually produced?
-// zia.* comes from the ZIA extension; zscaler.* is the self-built ZPA/ZDX
-// scheme suggested in section 8 — adjust it to whatever you settled on.
+// zia.* comes from the ZIA extension and zpa.* from the ZPA extension;
+// zscaler.* is the self-built scheme suggested in section 8 — adjust it to
+// whatever you settled on.
 // Zero rows means extraction is not producing — check the pipeline before
 // assuming a dashboard problem.
 metrics
-| filter startsWith(metric.key, "zia.") or startsWith(metric.key, "zscaler.")
+| filter startsWith(metric.key, "zia.") or startsWith(metric.key, "zpa.") or startsWith(metric.key, "zscaler.")
 | fields metric.key
 ```
 
@@ -389,7 +420,7 @@ timeseries requests = sum(zscaler.zia.request.count), from:-24h, by:{app, locati
 <a id="topology"></a>
 ## 7. Suggested Topology Model
 
-The highest-leverage design decision in this integration, and the one that pays off in every dashboard and alert afterwards. **Scope it to what the ZIA extension does not cover** — the extension already discovers ZIA Location, ZIA User and ZIA Tunnel entities (§ 2.1), so the model below is for ZPA and ZDX. The mechanics — Smartscape ID components, `CUSTOM_` / `EXT_` naming, static versus dynamic edges, and the prerequisite that both IDs exist on the record before an edge processor runs — are in **FAQ-19 § 5**. What follows is the Zscaler-specific model.
+The highest-leverage design decision in this integration, and the one that pays off in every dashboard and alert afterwards. **Scope it to what the extensions do not cover** — the ZIA extension already discovers ZIA Location, ZIA User and ZIA Tunnel entities (§ 2.1), and the ZPA extension ZPA User, Application, App Group, App Connector and App Connector Group entities among others (§ 2.2). With both extensions in place the model below is for ZDX; its ZPA rows apply only to a ZPA pipeline you build yourself — do not build `CUSTOM_*` ZPA nodes alongside the extension's own. The mechanics — Smartscape ID components, `CUSTOM_` / `EXT_` naming, static versus dynamic edges, and the prerequisite that both IDs exist on the record before an edge processor runs — are in **FAQ-19 § 5**. What follows is the Zscaler-specific model.
 
 | Node type | Examples | Defined by | Why it earns entity status |
 |---|---|---|---|
@@ -404,15 +435,16 @@ The highest-leverage design decision in this integration, and the one that pays 
 - **One feed defines each node; the rest enrich by ID only.** App Connector Metrics defines `CUSTOM_APP_CONNECTOR` — User Activity references it. Extracting the same node from two feeds gives you two sources of truth for its fields.
 - **Choose stable ID components.** Prefer Zscaler-assigned identifiers over display names. A connector renamed in the admin console should not become a second entity.
 - **Static edges for structure, dynamic for observation.** A connector *belongs to* a connector group — static. A service edge *served* an application during a window — dynamic, which means both Smartscape IDs must already be on the record when the edge processor runs.
-- **Do not model users as entities in your own model.** User identity is a hashed dimension (§ 6), not a node type. Modeling it produces enormous cardinality and a compliance surface you spent § 6 avoiding. The ZIA extension makes the opposite choice — it discovers ZIA User entities — so decide deliberately whether that is acceptable for your ZIA data, and do not add a second user entity for ZPA or ZDX.
+- **Do not model users as entities in your own model.** User identity is a hashed dimension (§ 6), not a node type. Modeling it produces enormous cardinality and a compliance surface you spent § 6 avoiding. The ZIA and ZPA extensions make the opposite choice — they discover ZIA User and ZPA User entities — so decide deliberately whether that is acceptable for your data, and do not add a second user entity for ZDX.
 - **Resist over-modeling.** Five node types is a maintainable topology. Fifteen is a second system.
 
 Verify the model exists before building on it — `smartscapeNodes` returns zero rows rather than an error for a type that was never extracted, so an empty result proves only that the query is valid:
 
-> <sub>**Sources:** [Zscaler Internet Access (ZIA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zia) — the extension's ZIA Location / User / Tunnel entities, [Smartscape node and edge extraction in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/smartscape-extraction) — `CUSTOM_*` node and edge extraction, ID components, and the requirement that both IDs be present on the record before an edge processor runs, [Define custom topology via OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-topology) — end-to-end worked example. **Derived:** the five-node Zscaler model is this entry's proposal, not a documented reference architecture.</sub>
+> <sub>**Sources:** [Zscaler Internet Access (ZIA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zia) — the extension's ZIA Location / User / Tunnel entities, [Zscaler Private Access (ZPA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zpa) — the extension's ZPA entities, [Smartscape node and edge extraction in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/smartscape-extraction) — `CUSTOM_*` node and edge extraction, ID components, and the requirement that both IDs be present on the record before an edge processor runs, [Define custom topology via OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-topology) — end-to-end worked example. **Derived:** the five-node Zscaler model is this entry's proposal, not a documented reference architecture.</sub>
 
 ```dql
-// Which Zscaler node types has extraction actually produced?
+// Which self-built (CUSTOM_*) Zscaler node types has extraction produced?
+// The ZPA extension's own node types are ZPA_* types, not CUSTOM_* (section 2.2).
 // Zero rows before the pipeline runs is expected, not an error.
 smartscapeNodes "CUSTOM_*"
 | dedup type
@@ -421,6 +453,8 @@ smartscapeNodes "CUSTOM_*"
 
 ```dql
 // Stale App Connectors — the disconnect signal worth alerting on.
+// Self-built model (section 7). With the ZPA extension, App Connectors are its
+// own ZPA nodes, and its "Not Reporting" alert templates cover silence.
 // lifetime[end] is a rolling "observed until" timestamp. A connector whose
 // lifetime[end] is older than 10 minutes has stopped reporting.
 //
@@ -439,7 +473,7 @@ smartscapeNodes CUSTOM_APP_CONNECTOR, from:-7d
 ```
 
 ```dql
-// Which connectors serve which private applications.
+// Which connectors serve which private applications — self-built model (section 7).
 // Node types uppercase, edge types lowercase.
 //
 // traverse REPLACES the record with the target node's own fields — id, name, type.
@@ -469,7 +503,7 @@ A starting point, **not a specification.** Zscaler field names vary by product l
 | ZIA Web | SaaS / app | `appname`, `url`, `respcode`, `reqsize`, `respsize` | `app`, `url`, `response_code`, `bytes_in`, `bytes_out` | SaaS performance and error rates |
 | ZDX API | Experience | score, DNS time, page-fetch time, TTFB, latency, packet loss | `zscaler.zdx.*` metrics | True user-experience monitoring |
 
-**A suggested metric naming scheme.** Consistency here is what makes dashboards and SLOs composable later. It is for the self-built ZPA and ZDX pipelines; **if you use the ZIA extension, its metrics are under `zia.*`** and the `zscaler.zia.*` row below applies only to a ZIA pipeline you build yourself:
+**A suggested metric naming scheme.** Consistency here is what makes dashboards and SLOs composable later. It is for ZDX and for any ZPA or ZIA pipeline you build yourself; **the ZIA extension's metrics are under `zia.*` and the ZPA extension's under `zpa.*`**, so the `zscaler.zia.*` and `zscaler.zpa.*` rows below apply only to pipelines you build yourself:
 
 | Signal | Metric key | Dimensions |
 |---|---|---|
@@ -500,7 +534,7 @@ Aligned to audience and data plane. Field names depend on your normalization (§
 | Dashboard | Content |
 |---|---|
 | **Executive experience overview** | ZDX score by application and location; top degraded SaaS and private applications; open problems by application entity |
-| **ZPA private access operations** | Sessions by application, user, location; connection-setup time p50 / p95 / p99; failures by application, connector, service edge; connector CPU, memory, active connections |
+| **ZPA private access operations** | Sessions by application, user, location; connection-setup time p50 / p95 / p99; failures by application, connector, service edge; connector CPU, memory, active connections. Start from the ZPA extension's dashboards (§ 2.2) |
 | **ZIA SaaS operations** | Top SaaS applications by volume; 4xx / 5xx by application; policy-induced latency and denies; throughput by application and location. Start from the ZIA extension's per-log-type dashboards (§ 2.1) |
 | **ZDX digital experience** | Application score and trend; DNS / page-fetch / TTFB by application; endpoint CPU, memory, Wi-Fi; path latency and packet loss by ISP and location |
 | **Pipeline health** | Records processed, metrics extracted, events created, records discarded by policy — the dashboard that tells you the integration itself is alive |
@@ -520,6 +554,8 @@ Raise alerts **against the entities from § 7**, never against raw log matches. 
 | ZDX score degradation | Application + location / user group | ZDX score (with `-1` no-data values dropped), DNS / PFT / TTFB, device and network metrics |
 | **Feed stopped** | The pipeline itself | Absence of expected metrics |
 
+With the ZPA extension, start from its alert templates: they ship disabled, and only its "Not Reporting" templates alert on absent data (§ 2.2).
+
 `ALERT-01` covers the end-to-end architecture, `ALERT-02` the detection-mechanism decision, `ALERT-03` routing and cost, and `ALERT-04` the ServiceNow integration ladder. Where an external event-correlation platform is the destination, the topology work in § 7 is exactly what makes those payloads worth correlating.
 
 ### 9.3 SLOs
@@ -527,6 +563,8 @@ Raise alerts **against the entities from § 7**, never against raw log matches. 
 Extracted metrics are already the right shape for an SLI. Define the objective in Dynatrace — where the query can be validated against live topology — using `SLO-02` for SLI definition and `SLO-04` for burn-rate alerting. Where an external SLO tool consumes the data, it queries the same validated metrics through a service user; defining the SLI in Dynatrace first is what keeps the two consistent.
 
 Candidate SLIs: ZDX score above threshold by application; private-application connection success rate; SaaS error rate by application.
+
+> <sub>**Sources:** [Zscaler Private Access (ZPA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zpa) — *"Alert templates are disabled by default."*</sub>
 
 ---
 
@@ -559,10 +597,10 @@ The `SYNTH` series covers configuration; the decision above is the part specific
 | Phase | Objective | Key actions | Deliverable |
 |---|---|---|---|
 | **1. Discovery** | Know what feeds exist and who owns them | Inventory ZIA, ZPA, ZDX licensing (ZDX API access needs the Advanced Plan) and log types; identify existing pipeline and SIEM routing; confirm retention constraints and their owner | Data-source matrix with owners; a signed retention position |
-| **2. Route decision** | One route per feed, from its transport | Apply § 4; choose Pattern A or B (§ 5); stand up the collector if Pattern A | An architecture that survives contact with ZPA |
-| **3. Ingestion** | Data landing in Grail | Activate the ZIA extension and configure its Cloud NSS feeds; configure LSS receivers (one configuration per log type, JSON template); build the ZDX poller | Validated datasets, one feed at a time |
+| **2. Route decision** | One route per feed, from its transport | Apply § 4; choose Pattern A or B (§ 5); stand up the log shipper if Pattern A | An architecture that survives contact with ZPA |
+| **3. Ingestion** | Data landing in Grail | Activate the ZIA extension and configure its Cloud NSS feeds; activate the ZPA extension, deploy its log shipper and configure one LSS receiver per log type with the extension's templates; build the ZDX poller | Validated datasets, one feed at a time |
 | **4. Normalize and extract** | Signal, not volume | Rename to canonical dimensions; extract metrics and events; apply masking and hashing; **No storage assignment** for discard | Security-approved OpenPipeline rules |
-| **5. Topology** | Entities, not strings | Build the § 7 node and edge processors; verify with `smartscapeNodes` | A verified topology model |
+| **5. Topology** | Entities, not strings | Build the § 7 node and edge processors for what the extensions do not cover; verify with `smartscapeNodes` | A verified topology model |
 | **6. Dashboards** | Visibility | Build the five dashboards in § 9.1 — pipeline health first | Dashboards that filter on entities |
 | **7. Alerting and SLOs** | Actionable output | Attach alerts to entities; define SLIs on extracted metrics; wire routing | An alert model with topology in the payload |
 | **8. Synthetics** | Only if § 10 justifies it | Private locations on user paths; correlate with existing signals | Synthetic tests and baselines |
@@ -587,8 +625,8 @@ Questions for the Zscaler administrator. Most integration delays trace to one of
 - Are logs sent directly from Zscaler, or already routed through a pipeline product?
 - If a pipeline exists, can it **multi-home** the selected streams to Dynatrace without changing the existing security output?
 - For ZPA LSS: where can a **TCP listener** be placed that App Connectors can reach, and will TLS be used?
-- Can the LSS log template be set to **JSON** rather than CSV or TSV?
-- Can the ZPA collector run **highly available**? LSS does not resend logs (audit logs excepted) generated while the receiver is unreachable.
+- Can each LSS receiver use the ZPA extension's exact log stream template — or, for a self-built pipeline, **JSON** rather than CSV or TSV?
+- Can the ZPA log shipper run **highly available**? LSS does not resend logs (audit logs excepted) generated while the receiver is unreachable.
 
 **Security and data handling**
 
@@ -615,7 +653,7 @@ Questions for the Zscaler administrator. Most integration delays trace to one of
 
 | Do | Instead of |
 |---|---|
-| Activate the ZIA extension for the feeds it covers | Hand-building a ZIA parser, metrics and topology it already supplies |
+| Activate the ZIA and ZPA extensions for the feeds they cover | Hand-building parsers, metrics and topology they already supply |
 | Route each product line by its own transport | One diagram arrow labelled "Zscaler → Dynatrace" |
 | Extract metrics and events, discard raw by default | Retaining everything and deciding later |
 | Use **No storage assignment**, not **Drop record** | Silently dropping records before extraction runs (FAQ-19 § 4.1) |
@@ -633,9 +671,9 @@ Questions for the Zscaler administrator. Most integration delays trace to one of
 |---|---|---|
 | 1 | **Assuming ZIA and ZPA logs can replace ZDX.** They record transactions at the proxy; they contain no device health, path quality, or page-fetch timing | Scope experience monitoring on ZDX availability (§ 3.4) |
 | 2 | **Drawing one arrow from Zscaler to Dynatrace.** ZIA pushes HTTPS, ZPA pushes raw TCP, ZDX telemetry is pull-only (its alerts can push by webhook) | Route per product line (§ 4) |
-| 3 | **Expecting ZPA LSS to reach the ingest API.** LSS has no HTTPS output and no header support | Terminate with an OTel Collector, ActiveGate syslog, or an existing pipeline (§ 4.1) |
+| 3 | **Expecting ZPA LSS to reach the ingest API.** LSS has no HTTPS output and no header support | Run a log shipper — Fluent Bit or BindPlane as the ZPA extension documents, an OTel Collector, or an existing pipeline; ActiveGate syslog only for a self-built pipeline (§ 4.1) |
 | 4 | **One LSS configuration for all ZPA log types.** Each receiver configuration streams one log type | Plan a configuration per log type (§ 4.1) |
-| 5 | **Leaving the LSS template on CSV.** Positional parsing breaks silently when Zscaler adds a column | Select JSON (§ 4.1) |
+| 5 | **Leaving the LSS template on a default.** The ZPA extension cannot use the ZPA default template, which carries no log-type field; on a self-built pipeline, positional CSV parsing breaks silently when Zscaler adds a column | Use the extension's templates, or JSON for a self-built pipeline (§ 2.2, § 4.1) |
 | 6 | **Polling the ZDX API aggressively — or too early.** Most report endpoints serve a two-hour window per request, data reaches the API an estimated 20 minutes after collection, and a score of `-1` means no data | Match cadence to the window and lag it; drop `-1` scores; build backfill as a loop (§ 4.2) |
 | 7 | **No alert on feed absence.** An expired ZDX credential or stalled receiver looks exactly like "no problems" | Alert on absence of expected metrics; build the pipeline-health dashboard (§ 9.1) |
 | 8 | **`Drop record` used for extract-then-discard.** It runs before every extractor | Use **No storage assignment** in the Bucket assignment stage (FAQ-19 § 4.1) |
@@ -645,8 +683,8 @@ Questions for the Zscaler administrator. Most integration delays trace to one of
 | 12 | **Retaining raw into the default bucket** by omission | Dedicated bucket with its own permissions and retention (§ 6, FAQ-19 § 6) |
 | 13 | **Building synthetics before checking ZDX.** Where ZDX is licensed it usually already answers the question, from real endpoints | Apply the § 10 test first |
 | 14 | **Treating the field mapping in § 8 as a specification.** Names vary by feed type, template, and account | Validate against your own feed output before building |
-| 15 | **Hand-building ZIA when the extension covers it.** A parallel `zscaler.zia.*` scheme and custom ZIA nodes duplicate what the extension supplies | Activate the ZIA extension (§ 2.1); keep custom work to ZPA, ZDX and ZIA feed types it does not parse |
-| 16 | **Templating a ZIA feed the extension parses.** A non-JSON output type or renamed fields are ingested but not parsed — no metrics, no topology, empty dashboards | Use the extension's exact JSON feed output format (§ 6) |
+| 15 | **Hand-building ZIA or ZPA when an extension covers it.** A parallel `zscaler.zia.*` or `zscaler.zpa.*` scheme and custom ZIA or ZPA nodes duplicate what the extensions supply | Activate the extensions (§ 2.1, § 2.2); keep custom work to ZDX and feed types they do not parse |
+| 16 | **Reshaping a feed an extension parses.** A non-JSON ZIA output type, renamed fields, or a shipper that reformats ZPA records leaves the logs ingested but not parsed — no metrics, no topology, empty dashboards | Use each extension's exact format and forward ZPA records unmodified (§ 2.2, § 6) |
 
 ---
 

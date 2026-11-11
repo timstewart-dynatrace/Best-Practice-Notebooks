@@ -1,6 +1,6 @@
 # AUTOM-05: Dynatrace Workflows
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 5 of 9 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 5 of 9 | **Created:** January 2026 | **Last Updated:** 11/11/2026
 
 Dynatrace Workflows is a built-in automation engine that enables event-driven actions directly within the platform. Unlike external tools, workflows run inside Dynatrace with full access to observability data.
 
@@ -153,7 +153,7 @@ workflow:
 
 Slack calls leave the platform, so allow `slack.com` under **Settings → General → External requests** before the first run.
 
-Problem-trigger event fields are the Grail problem-record field names (`event.name`, `event.category`, `event.status`, `display_id`, `root_cause_entity_id`, `affected_entity_ids`) — the same fields `fetch dt.davis.problems` returns — not the Classic problem-API names (`title`, `severity`, `impactLevel`, `rootCauseEntity`).
+Problem-trigger event fields are the Grail problem-record field names (`event.name`, `event.category`, `event.status`, `display_id`, `root_cause.smartscape_entity`, `smartscape.affected_entities`) — the same fields `fetch dt.davis.problems` returns — not the Classic problem-API names (`title`, `severity`, `impactLevel`, `rootCauseEntity`). The older `root_cause_entity_id`, `root_cause_entity_name` and `affected_entity_ids` still exist but are deprecated: *"root_cause_entity_id and root_cause_entity_name are deprecated in favor of root_cause.smartscape_entity , and affected_entity_ids in favor of smartscape.affected_entities . Build new payloads against the Smartscape fields."* Most problems carry no root cause, so read it with `.get()` as the examples below do.
 
 ### Problem Trigger Configuration
 
@@ -165,9 +165,9 @@ Problem-trigger event fields are the Grail problem-record field names (`event.na
 | Affected entities | Filter by entity tags — all defined tags, or any of them |
 | Minimum duration | Postpone the trigger until the problem has been open 5 minutes to one week |
 | Wait for root cause analysis | Start only after root-cause analysis has finished |
-| Additional custom filter query | A DQL matcher, for example `startsWith(root_cause_entity_id, "HOST-")` |
+| Additional custom filter query | A DQL matcher, for example `maintenance.is_under_maintenance == false` |
 
-There is no management-zone or entity-type option: scope with entity tags, or with a custom filter on fields such as `root_cause_entity_id`. ([Event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger), [dynatrace_automation_workflow resource (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/automation_workflow.md), [ServiceNow incident sample (Dynatrace GitHub)](https://github.com/Dynatrace/Dynatrace-workflow-samples/blob/main/samples/Messaging%20and%20Incident%20Management/wftpl_sample_servicenow_incident_man.yaml))
+There is no management-zone or entity-type option: scope with entity tags or affected entities. Do not scope on the root cause — the alert-notification upgrade guide: *"Do not filter on root_cause.smartscape_entity."* … *"A root-cause condition silently drops those problems. Filter on tags or affected entities instead."* ([Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification), [Event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger), [dynatrace_automation_workflow resource (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/automation_workflow.md), [ServiceNow incident sample (Dynatrace GitHub)](https://github.com/Dynatrace/Dynatrace-workflow-samples/blob/main/samples/Messaging%20and%20Incident%20Management/wftpl_sample_servicenow_incident_man.yaml))
 
 ---
 
@@ -188,8 +188,8 @@ export default async function () {
   return {
     problemId: problem['display_id'],
     name: problem['event.name'],
-    affectedEntities: (problem['affected_entity_ids'] ?? []).length,
-    rootCauseEntity: problem['root_cause_entity_name'] || 'Unknown',
+    affectedEntities: (problem['smartscape.affected_entities'] ?? problem['affected_entity_ids'] ?? []).length,
+    rootCauseEntity: problem['root_cause.smartscape_entity']?.name || 'Unknown',
     timestamp: new Date().toISOString()
   };
 }
@@ -208,9 +208,7 @@ tasks:
     action: dynatrace.automations:execute-dql-query
     input:
       query: |
-        timeseries avg(dt.host.cpu.usage), by:{dt.entity.host}, from:-30m
-        | filter dt.entity.host == "{{ event()['root_cause_entity_id'] }}"
-        | limit 10
+        timeseries cpu = avg(dt.host.cpu.usage), from:-30m, filter: {dt.smartscape.host == toSmartscapeId("{{ (event().get('root_cause.smartscape_entity') or {}).get('id', '') }}")}
 ```
 
 ---
@@ -286,11 +284,11 @@ workflow:
           import { execution } from '@dynatrace-sdk/automation-utils';
           export default async function () {
             const ex = await execution();
-            const entityId = (ex.event() ?? {})['root_cause_entity_id'] ?? '';
-            if (!entityId.startsWith('PROCESS_GROUP_INSTANCE-')) {
+            const rootCause = (ex.event() ?? {})['root_cause.smartscape_entity'] ?? {};
+            if (rootCause.type !== 'PROCESS') {
               return { skip: true };
             }
-            return { entityId, skip: false };
+            return { entityId: rootCause.id, skip: false };
           }
       predecessors: []
     restart_service:
@@ -334,7 +332,7 @@ workflow:
       action: dynatrace.automations:execute-dql-query
       input:
         query: |-
-          timeseries cpu = avg(dt.host.cpu.usage), from:-30m, filter: {dt.entity.host == "{{ event()['root_cause_entity_id'] }}"}
+          timeseries cpu = avg(dt.host.cpu.usage), from:-30m, filter: {dt.smartscape.host == toSmartscapeId("{{ (event().get('root_cause.smartscape_entity') or {}).get('id', '') }}")}
           | fieldsAdd avg_cpu = arrayAvg(cpu)
       predecessors: []
     scale_up:
@@ -359,13 +357,12 @@ workflow:
         value:
           categories:
             resource: true
-          customFilter: startsWith(root_cause_entity_id, "HOST-")
   schemaVersion: 3
 ```
 
-This pattern only fits problems whose root cause is a host. On a validation tenant over seven days (10/02/2026), 16 resource-contention problems had a host as root cause, 45 a process group, and 1,477 no root-cause entity at all; for anything but a host the query returns no records, and `records[0].avg_cpu` would be undefined. The trigger's custom filter keeps the workflow to host-rooted problems, and the `length > 0` guard skips the scale call when the query comes back empty.
+This pattern only fits problems whose root cause is a host. On a validation tenant over seven days (10/02/2026), 16 resource-contention problems had a host as root cause, 45 a process group, and 1,477 no root-cause entity at all; for anything but a host the query returns no records, and `records[0].avg_cpu` would be undefined. The trigger deliberately has no root-cause filter — *"A root-cause condition silently drops those problems."* — so the query does the narrowing: it filters on the root-cause host, returns no records for any other root cause or none, and the `length > 0` guard then skips the scale call. A `PROCESS` root cause in the restart pattern carries a Smartscape ID (`PROCESS-…`), not the classic `PROCESS_GROUP_INSTANCE-…`, so point the runbook at that ID. ([Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification))
 
-> A bare `timeseries avg(dt.host.cpu.usage) | filter dt.entity.host == …` fails with `FIELD_DOES_NOT_EXIST`: without `by:{dt.entity.host}` the series carries no host dimension to filter on. Filter inside `timeseries` (as above) or add the `by:` clause.
+> A bare `timeseries avg(dt.host.cpu.usage) | filter dt.entity.host == …` fails with `FIELD_DOES_NOT_EXIST`: without `by:{dt.entity.host}` the series carries no host dimension to filter on. Filter inside `timeseries` (as above) or add the `by:` clause. Compare `dt.smartscape.host` through `toSmartscapeId(…)`: a `smartscape_id` never equals a plain string.
 
 ---
 
@@ -388,7 +385,7 @@ workflow:
           Problem: {{ event()['display_id'] }}
           Name: {{ event()['event.name'] }}
           Category: {{ event()['event.category'] }}
-          Root Cause: {{ event()['root_cause_entity_name'] }}
+          Root Cause: {{ (event().get('root_cause.smartscape_entity') or {}).get('name', 'not yet determined') }}
         urgency: "2"
         impact: "2"
         correlationId: DT_{{ event()['event.id'] }}

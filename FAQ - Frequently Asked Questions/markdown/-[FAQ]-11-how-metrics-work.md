@@ -1,6 +1,6 @@
 # FAQ-11: How Do Metrics Work in Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 11/09/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -348,6 +348,8 @@ The docs call out the classic trap directly — **volatile dimensions**: *"short
 
 **Watch it before it bites:** Dynatrace ships self-monitoring metrics for dimension-tuple usage, charted on the **"Metric dimension usage and rejection self-monitoring"** preset dashboard (dimensions below 10% of a limit are omitted from the detail view).
 
+> **Breaking (SaaS 1.349 — staged tenant rollout from 10/27/2026): the built-in alerts on these limits are off.** Verbatim: *"The four built-in metric limits alert rules under builtin:internal.metric.limits-alerts have been deactivated for all SaaS environments."* They watched `dsfm:server.metrics.builtin_dimensions_usage`, `dsfm:server.metrics.custom_dimensions_usage`, `dsfm:server.metrics.custom_metrics_usage` and `dsfm:server.metrics.metric_dimensions_usage`. The release note's action plan, for tenants still on Dynatrace Classic: use standard Metric events (`builtin:anomaly-detection.metric-events`) *"to create equivalent rules"*; or *"upgrade to Latest Dynatrace and take advantage of Metrics on Grail, which is not subject to fixed platform limits."* Until 1.349 reaches your tenant, the built-in rules behave as before.
+
 ### 7.2 Grail posture
 
 Metrics powered by Grail advertises *"limitless dimensions (excluding highly volatile dimensions)"* — the storage engine no longer needs a per-metric tuple cap, but the exclusion in parentheses is doing real work: highly volatile dimensions remain outside the design intent, and *"Dynatrace therefore may restrict or reject metric configurations that don't follow best practices."* The custom-metric-key ceiling (100,000 distinct keys) applies to both backends.
@@ -356,7 +358,7 @@ Metrics powered by Grail advertises *"limitless dimensions (excluding highly vol
 
 Dimensions do not bill directly — per the DPS docs, *"Adding additional metric dimensions does not inherently generate consumption. Consumption is generated only when additional metric data points are stored in Dynatrace."* The catch is the second sentence: every new tuple is a new series, and every series emits data points per interval. Splitting one metric into 1,000 series multiplies ingested data points by up to 1,000. Cardinality discipline is therefore simultaneously a reliability practice (Classic limits) and a cost practice (DPS ingest) — OPIPE-04 and FINOPS-03 §9 cover remediation patterns.
 
-> <sub>**Sources:** [Metrics API best practices (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/best-practices) — limits, sliding window, rejection behavior, volatile-dimension math, self-monitoring dashboard, [Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits) — Grail limitless-dimensions posture, 100,000 custom keys, [Metrics consumption (DPS) (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/telemetry/dps-metrics#dimensions-consumption) — dimensions-vs-data-points billing rule.</sub>
+> <sub>**Sources:** [Metrics API best practices (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/best-practices) — limits, sliding window, rejection behavior, volatile-dimension math, self-monitoring dashboard, [Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits) — Grail limitless-dimensions posture, 100,000 custom keys, [Metrics consumption (DPS) (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/telemetry/dps-metrics#dimensions-consumption) — dimensions-vs-data-points billing rule, [What's new in Dynatrace SaaS 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-349) — *"Rollout start on Oct 27, 2026"*; the `builtin:internal.metric.limits-alerts` deactivation and action plan quoted above.</sub>
 
 <a id="querying"></a>
 ## 8. Querying Metrics

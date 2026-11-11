@@ -1,6 +1,6 @@
 # BIZEV-03: Funnel Analysis
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 10/25/2026
 
 ## Overview
 
@@ -177,10 +177,10 @@ fetch bizevents, from:-24h
 ```
 
 ```dql
-// Funnel by category — compare product categories or business lines
+// Funnel by business line — group on a payload field such as product_category
 fetch bizevents, from:-24h
 | summarize {views = countIf(event.type == "com.myapp.product.viewed"),
-           purchases = countIf(event.type == "com.myapp.order.completed")}, by:{event.category}
+           purchases = countIf(event.type == "com.myapp.order.completed")}, by:{product_category}
 | filter views > 0
 | fieldsAdd conversion_pct = round(toDouble(purchases) / toDouble(views) * 100, decimals: 1)
 | sort conversion_pct desc

@@ -1,6 +1,6 @@
 # NR2DT-03: Step 3 — Design
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 3 of 10 | **Created:** April 2026 | **Last Updated:** 10/31/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 3 of 10 | **Created:** April 2026 | **Last Updated:** 11/03/2026
 
 ## Overview
 
@@ -127,7 +127,7 @@ Routing rules in priority order (first match wins):
 **Enrichment rules** for any NR workload identifier (replaces NR's tag/workload model):
 
 ```yaml
-matcher: matchesValue(k8s.namespace.name, "*prod*")
+matcher: matchesValue(k8s.namespace.name, "prod-*")   # *prod* would also match nonprod-* and preprod-*
 field: environment
 value: prod
 ```

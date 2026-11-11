@@ -1,6 +1,6 @@
 # WFLOW-02: Triggers & Event Types
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 10/15/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 11/11/2026
 
 ## Event-Driven Workflow Triggers
 Triggers determine when workflows execute. This notebook covers all trigger types, detected problem events, Davis events, schedules, and custom event triggers.
@@ -391,7 +391,7 @@ There is no `trigger()` expression. Field names contain dots, so use bracket acc
 {{ event()["event.name"] }}           # Problem title
 {{ event()["event.category"] }}       # AVAILABILITY, ERROR, SLOWDOWN, RESOURCE_CONTENTION, CUSTOM_ALERT, ...
 {{ event()["event.status"] }}         # ACTIVE or CLOSED
-{{ event()["event.severity"] }}       # 1-5 (1 = most severe); experimental, may be absent
+{{ event()["event.severity"] }}       # 1-5 (1 = most severe); stable, may be absent
 {{ event()["event.start"] }}          # When the problem opened
 {{ event()["affected_entity_ids"] }}  # Array of entity IDs
 {{ (event().get("root_cause.smartscape_entity") or {}).get("name", "n/a") }}  # Root cause; often absent or null
@@ -414,7 +414,7 @@ Templates written for Dynatrace Classic, and earlier revisions of this series, r
 | `event()["start_time"]`, `event()["end_time"]` | `event()["event.start"]`, `event()["event.end"]` | `{startTime}`, `{endTime}` |
 | `event()["problem_url"]` | `{{ problem_link() }}` | `{ProblemURL}`; Problem trigger only |
 | `event()["problem_id"]` | `event()["event.id"]` | `{PID}` |
-| `event()["severity"] == "CRITICAL"` | `event()["event.category"] == "AVAILABILITY"` (kind of problem), or `(event().get("event.severity") \| int(5)) <= 2` (1–5 scale) | `event.severity` is `experimental`; see WFLOW-04 §3 |
+| `event()["severity"] == "CRITICAL"` | `event()["event.category"] == "AVAILABILITY"` (kind of problem), or `(event().get("event.severity") \| int(5)) <= 2` (1–5 scale) | `event.severity` is `stable` (semantic dictionary, read 11/11/2026); see WFLOW-04 §3 |
 
 > <sub>**Sources:** [Jinja expressions for Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference) — the expression list (`event()`, `execution()`, `input()`, `problem_link()`). [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — the placeholder-to-field mapping; `{ProblemURL}` → `{{ problem_link() }}`: *"Evaluates only in workflows with a Davis problem trigger"*. **Dictionary:** `event.name`, `event.status`, `event.category` (`stable`), `event.severity` (`experimental`), read 09/24/2026.</sub>
 
@@ -436,13 +436,13 @@ Workflows on a Detected Problem trigger receive one `event` object: the `dt.davi
 | `event.category` | string | Always | `AVAILABILITY`, `ERROR`, `SLOWDOWN`, `RESOURCE_CONTENTION`, `CUSTOM_ALERT`, `MONITORING_UNAVAILABLE`, `INFO`. `{ProblemSeverity}` maps here. |
 | `event.status` | string | Always | `ACTIVE` or `CLOSED`. The documented open/close discriminator. |
 | `event.status_transition` | string | Always | `CREATED`, `UPDATED`, `REFRESHED`, `RESOLVED`, `CLOSED`. `experimental` in the dictionary. |
-| `event.severity` | long, 1–5 | Usually | 1 = most severe, 5 = least. `experimental`. Typed `long` in Grail (validation tenant, 10/06/2026); keep `\| int(5)` in templates, which also covers a missing value. No longer defaulted from SaaS 1.348 (WFLOW-04 §3). |
+| `event.severity` | long, 1–5 | Usually | 1 = most severe, 5 = least. `stable` (dictionary, read 11/11/2026). Typed `long` in Grail (validation tenant, 10/06/2026); keep `\| int(5)` in templates, which also covers a missing value. No longer defaulted from SaaS 1.348 (WFLOW-04 §3). |
 | `event.start` | timestamp | Always | When the problem opened (`{startTime}`). |
 | `event.end` | timestamp | Closed only | When the problem closed (`{endTime}`). |
 | `event.description` | string | Usually | Markdown problem details (`{ProblemDetailsText}`). |
 | `affected_entity_ids` | string[] | Always | Classic entity IDs. Deprecated in favor of `smartscape.affected_entities`. |
 | `smartscape.affected_entities` | record[] | Usually | Each element has `id`, `type`, `name` — the entity *name* without an extra lookup. |
-| `affected_entity_types` | string[] | Always | Entity types touched by this problem. Useful for routing without enumerating IDs. |
+| `affected_entity_types` | string[] | Always | **Deprecated** in the semantic dictionary (read 11/11/2026). Entity types touched by this problem. Useful for routing without enumerating IDs. |
 | `root_cause_entity_id` | string | When determined | Deprecated in favor of `root_cause.smartscape_entity`. Absent on most problems (102 of 540 carried it over 24 h on a validation tenant, 10/06/2026) — never bracket-read it. |
 | `root_cause.smartscape_entity` | record | When determined | Root-cause node: `id`, `type`, `name`. The replacement field; absent just as often (127 of 540 over the same 24 h). Read with `.get()`. |
 | `entity_tags` | string[] | When tagged | `key:value` strings (`"team:checkout"`), not objects. Deprecated in favor of `primary_tags.*`. |

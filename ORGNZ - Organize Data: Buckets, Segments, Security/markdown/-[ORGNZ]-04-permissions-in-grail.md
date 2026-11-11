@@ -1,12 +1,12 @@
 # ORGNZ-04: Permissions in Grail Overview
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 10/12/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 11/07/2026
 
 ## Overview
 
 Dynatrace provides a comprehensive permission model for Grail that applies to all telemetry data including metrics, logs, spans, and events. Permissions can be assigned at the **bucket**, **table**, **record**, and **field** level. Without permissions, users cannot query data from Grail.
 
-> **Canonical pattern (for production guidance):** This notebook is a conceptual overview — the policy examples below illustrate how permissions work, not what to ship in production. For the canonical production pattern (parameterized policies on `dt.security_context` as the boundary spine, with bucket-match as a scenario-driven overlay), see **IAM-10: Templated Policy-Group Assignments** (parameterized policies and binding parameters) and **IAM-05: Boundary Design Patterns**. The default for general team-scoped data access is `dt.security_context` parameterization; bucket boundaries layer in only when there's a specific reason (compliance separation, retention isolation, hard cost attribution).
+> **Canonical pattern (for production guidance):** This notebook is a conceptual overview — the policy examples below illustrate how permissions work, not what to ship in production. For the canonical production pattern (parameterized policies on `dt.security_context` as the boundary spine, with bucket-match as a scenario-driven overlay), see **IAM-10: Templated Policy-Group Assignments** (parameterized policies and binding parameters) and **IAM-05: Boundary Design Patterns**. The default for general team-scoped data access is `dt.security_context` parameterization; bucket boundaries layer in only when there's a specific reason (compliance separation, retention isolation, retention-cost allocation).
 
 ## Prerequisites
 
@@ -213,7 +213,7 @@ This allows multiple teams to share buckets while seeing only authorized data.
 <a id="choosing-your-permission-strategy"></a>
 ## Choosing Your Permission Strategy
 
-> **Default for general team-scoped data access:** `dt.security_context` + record-level permissions (the second row below). Bucket-level boundaries fit in specific scenarios (compliance separation, retention isolation, hard cost attribution) but aren't a general substitute for `dt.security_context`. See **IAM-04: Policy Authoring and Management** § 5 *Choosing Between Patterns* (Patterns 3 and 9 cover the bucket-based scenarios) for the scenario gating.
+> **Default for general team-scoped data access:** `dt.security_context` + record-level permissions (the second row below). Bucket-level boundaries fit in specific scenarios (compliance separation, retention isolation, retention-cost allocation) but aren't a general substitute for `dt.security_context`. See **IAM-04: Policy Authoring and Management** § 5 *Choosing Between Patterns* (Patterns 3 and 9 cover the bucket-based scenarios) for the scenario gating.
 
 | Scenario | Recommended Approach |
 |----------|---------------------|

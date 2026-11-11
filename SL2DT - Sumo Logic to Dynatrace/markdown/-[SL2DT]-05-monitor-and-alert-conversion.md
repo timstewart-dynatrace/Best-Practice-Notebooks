@@ -1,6 +1,6 @@
 # SL2DT-05: Monitor & Alert Conversion
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 5 of 11 | **Created:** April 2026 | **Last Updated:** 11/04/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 5 of 11 | **Created:** April 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -473,13 +473,15 @@ fetch dt.davis.problems, from:-7d
 
 ### Silence during load tests
 
-Configure a maintenance window before load tests, CI/CD deployments, or controlled outages. In Latest Dynatrace the Settings schema is `builtin:maintenance-windows`, and a window is scoped with DQL matcher expressions on Grail primary fields and tags. Latest Dynatrace always detects problems during a window — there is no option to disable detection — so muting is done in the notification path: problems raised during a window carry `maintenance.is_under_maintenance = true`, and a problem-triggered Workflow skips them when its trigger's additional custom filter query is `maintenance.is_under_maintenance != true`.
+Configure a maintenance window before load tests, CI/CD deployments, or controlled outages. In Latest Dynatrace the Settings schema is `builtin:maintenance-windows`, and a window is scoped with DQL matcher expressions on Grail primary fields and tags. Until SaaS 1.350 reaches your tenant, Latest Dynatrace always detects problems during a window — there is no option to disable detection — so muting is done in the notification path: problems raised during a window carry `maintenance.is_under_maintenance = true`, and a problem-triggered Workflow skips them when its trigger's additional custom filter query is `maintenance.is_under_maintenance != true`.
+
+> **Rolling out — SaaS 1.350 (staged tenant rollout from 11/04/2026):** *"You can now suppress problems for a specific maintenance window. During an active window, Dynatrace skips problem creation for the entities in the window's scope"*. *"Suppression is a per-window choice."* It is turned on *"under Scope > Data scope"*, when the window is created or while it is still scheduled. Verify it has reached your tenant before relying on it; until then, the workflow filter above is the working path.
 
 On a classic tenant, maintenance windows use the classic schema `builtin:alerting.maintenance-window`, whose `suppression` option chooses between *Detect problems and alert*, *Detect problems but don't alert*, and *Disable problem detection during maintenance*. Classic windows are not migrated automatically when you upgrade; recreate them as Latest Dynatrace windows.
 
 A scheduled DQL workflow (§5, §7) is not a problem trigger, and the maintenance-window pages do not say it consults the window. In community practice, disable those workflows for the window, or move the alert to a custom alert plus a problem-triggered workflow so the filter above applies.
 
-> <sub>**Sources:** [Upgrade from classic maintenance windows (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/upgrade-from-classic-maintenance-windows) — *"Latest Dynatrace always detects problems."*, *"There is no equivalent to disabling problem detection entirely."*, *"Window scope uses DQL matcher filter criteria on Grail primary fields and tags."*, *"Classic maintenance windows are not migrated automatically"*; [builtin:maintenance-windows schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-maintenance-windows); [builtin:alerting.maintenance-window schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-alerting-maintenance-window); [Use maintenance window data in Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications/maintenance-windows/use-maintenance-window-data-grail) — *"maintenance.is_under_maintenance != true"*.</sub>
+> <sub>**Sources:** [Upgrade from classic maintenance windows (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/upgrade-from-classic-maintenance-windows) — *"Latest Dynatrace always detects problems."*, *"There is no equivalent to disabling problem detection entirely."*, *"Window scope uses DQL matcher filter criteria on Grail primary fields and tags."*, *"Classic maintenance windows are not migrated automatically"*; [builtin:maintenance-windows schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-maintenance-windows); [builtin:alerting.maintenance-window schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-alerting-maintenance-window); [Use maintenance window data in Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications/maintenance-windows/use-maintenance-window-data-grail) — *"maintenance.is_under_maintenance != true"*; [SaaS 1.350 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-350).</sub>
 
 ### Severity mapping
 

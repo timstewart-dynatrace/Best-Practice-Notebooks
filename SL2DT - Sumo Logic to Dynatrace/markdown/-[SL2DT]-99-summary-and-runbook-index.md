@@ -241,7 +241,7 @@ Scaled to a 6-month mid-size migration. Adjust for your scope.
 | 3 | Wave 2 Core Monitors | Translation pass | Top-10 rebuild, noise tuning |
 | 4 | Wave 3 Dashboards | 5 demo dashboards (core team) | Wave 3 high-usage rebuilds |
 | 5 | Wave 4 App Teams | Train-the-trainer delivery | App-team PRs + core reviews |
-| 6 | Wave 5 Cutover | Final validation, team signoffs | Cutover, decommission, retro |
+| 6 | Wave 5 Cutover | Final validation, team signoffs | Cutover, 7-day stability window, retro (Sumo decommission at T+30, after month 6 — SL2DT-09) |
 For environments where SVG doesn't render
 -->
 

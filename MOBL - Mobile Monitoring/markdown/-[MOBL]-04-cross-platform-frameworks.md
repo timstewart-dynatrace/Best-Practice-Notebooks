@@ -1,6 +1,6 @@
 # MOBL-04: Cross-Platform Frameworks
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 4 of 12 | **Created:** February 2026 | **Last Updated:** 10/29/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 4 of 12 | **Created:** February 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -260,14 +260,25 @@ Upload one source map per platform for every release you ship — a release with
 
 ### Event Volume by Application
 
-Check the volume of mobile events flowing into Dynatrace, grouped by application (`frontend.name`) and event type (`characteristics.classifier`) in the Grail `user.events` store. This helps confirm that your cross-platform instrumentation is actively reporting data:
+Check the volume of mobile events flowing into Dynatrace, grouped by application (`frontend.name`) in the Grail `user.events` store, with one count per event type taken from the `characteristics.has_*` flags. This helps confirm that your cross-platform instrumentation is actively reporting data. The flags can overlap (a failed request is both a request and an error), so the columns need not add up to the total.
+
+> **Correction (11/11/2026).** Earlier revisions grouped by `characteristics.classifier`, which the User events dictionary page describes as *"Used for internal optimization when storing the data and not intended for query usage."* **Semantic Dictionary 1.349** removes it from the user-event models; a tenant that has not reached the change still returns it, so a classifier query works until the change arrives and then silently matches nothing.
+
+> <sub>**Sources:** [User events (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events) — *"Used for internal optimization when storing the data and not intended for query usage."*; [Semantic Dictionary changelog 1.349 (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-349). **Dictionary:** `characteristics.classifier` (`experimental`), `characteristics.has_*` (`stable`), read 11/11/2026.</sub>
 
 ```dql
-// Event volume by application and event type
+// Event volume by application, one count per event characteristic
+// (has_* flags, not characteristics.classifier -- corrected 11/11/2026)
 fetch user.events, from:-1h
 | filter dt.rum.application.type == "mobile"
-| summarize event_count = count(), by:{frontend.name, characteristics.classifier}
-| sort event_count desc
+| summarize {total_events = count(),
+    user_actions = countIf(characteristics.has_user_action == true),
+    requests = countIf(characteristics.has_request == true),
+    errors = countIf(characteristics.has_error == true),
+    crashes = countIf(characteristics.has_crash == true),
+    app_starts = countIf(characteristics.has_app_start == true)},
+    by:{frontend.name}
+| sort total_events desc
 | limit 20
 ```
 
@@ -296,6 +307,7 @@ Dynatrace **deprecated** its Xamarin NuGet package (`Dynatrace.OneAgent.Xamarin`
 1. Create a mobile app in Dynatrace, open **Instrumentation wizard > .NET MAUI**, and download `dynatrace.config.json`.
 2. Add the `Dynatrace.OneAgent.MAUI` NuGet package (from nuget.org) to the native projects of your app.
 3. Add `dynatrace.config.json` to your project as described on the MAUI page.
+4. Start OneAgent: add `using Dynatrace.MAUI;` and call `Agent.Instance.Start();` on Android and iOS — *"The start method is required for OneAgent to start."* To instrument web requests, pass `Agent.Instance.GetHttpMessageHandler()` to your `HttpClient`.
 
 ```bash
 dotnet add package Dynatrace.OneAgent.MAUI

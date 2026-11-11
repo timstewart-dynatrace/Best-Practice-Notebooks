@@ -28,7 +28,7 @@ Mobile Session Replay gives a video-like reconstruction of user sessions for deb
 | **Mobile SDK** | OneAgent for Android 8.303+ / OneAgent for iOS 8.323+ (Dynatrace version 1.303+) |
 | **Session Replay License** | DEM units with Session Replay entitlement |
 | **Permissions** | `storage:user.sessions:read`, `storage:user.events:read` (replay playback additionally needs `storage:user.replays:read`) |
-| **Platform** | iOS 15+ (Swift 5+, Xcode 16+) or Android 6.0+ (API 23+); native apps only -- not available for cross-platform frameworks |
+| **Platform** | iOS 15+ (Swift 5+, Xcode 16+) or Android 6.0+ (API 23+); native apps; Flutter and React Native as a preview on Latest Dynatrace with DPS licensing; not available for Cordova, Xamarin or .NET MAUI |
 | **Data** | At least 24 hours of mobile user action data |
 
 <a id="what-is-session-replay"></a>
@@ -52,7 +52,9 @@ Two capture modes exist:
 | **Conversion optimization** | Trace drop-off points in checkout or onboarding funnels |
 | **Support escalation** | Attach session replays to support tickets for faster resolution |
 
-> **Note:** Session Replay is available only for native iOS and Android apps. It is not available for cross-platform frameworks such as Cordova, React Native, Flutter or Xamarin; for hybrid apps, only the native part is replayed.
+> **Note:** Session Replay Classic is available only for native iOS and Android apps. On Latest Dynatrace with DPS licensing, Session Replay for **Flutter** and **React Native** is available as a preview (pages published 09/30/2026 and 09/28/2026; register for the preview program; not available for RUM Classic or Dynatrace Managed). The older Session Replay overview still says it *"is not supported on Cordova, React Native, Flutter, Xamarin, and .NET MAUI"* — the newer preview pages are the current statement. Cordova, Xamarin and .NET MAUI are not supported; for hybrid apps, only the native part is replayed.
+
+> <sub>**Sources:** [Session Replay for Flutter (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay-latest/configure-session-replay-mobile/latest-session-replay-flutter) — *"Session Replay for Flutter is available as a preview."*, *"The preview is available to customers with Latest Dynatrace and DPS licensing."*; [Session Replay for React Native (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay-latest/configure-session-replay-mobile/latest-session-replay-react-native) — *"Session Replay for React Native is available as a preview."*</sub>
 
 > **Correction (09/28/2026).** Earlier revisions said Session Replay "is **not** a video recording", captures "UI state rather than pixels", and typically adds "< 50 KB per session". None of this is supported by the Session Replay documentation, which describes screenshots and a video-like reconstruction.
 
@@ -249,9 +251,9 @@ Enablement and the capture percentage live in the app settings (Section 2), and 
 
 | Framework | Session Replay Support | Notes |
 |-----------|----------------------|-------|
-| **React Native** | Not available | Session Replay is not available for cross-platform frameworks |
-| **Flutter** | Not available | Session Replay is not available for cross-platform frameworks |
-| **Xamarin / .NET MAUI** | Not available (Xamarin named explicitly) | Check the MAUI page before planning on replay |
+| **React Native** | Preview (Latest Dynatrace + DPS) | `@dynatrace/react-native-plugin` 2.349.1+ with `@dynatrace/react-native-session-replay`; register for the preview program |
+| **Flutter** | Preview (Latest Dynatrace + DPS) | `dynatrace_flutter_plugin` 3.349.1+ with `dynatrace_flutter_plugin_replay`; register for the preview program |
+| **Xamarin / .NET MAUI** | Not available | Both named as unsupported on the Session Replay overview |
 | **Cordova / Ionic** | Not available | For hybrid apps, only the native part is replayed |
 
 <a id="querying-session-data"></a>
@@ -315,7 +317,7 @@ This notebook covered the key aspects of Mobile Session Replay:
 
 | Topic | Key Takeaway |
 |-------|-------------|
-| **What is Session Replay** | Video-like reconstruction from captured events and screenshots; native iOS/Android only |
+| **What is Session Replay** | Video-like reconstruction from captured events and screenshots; native iOS/Android; Flutter / React Native in preview (Latest Dynatrace + DPS) |
 | **Enabling** | App settings > General > Enablement and cost control; no client-side keys |
 | **Privacy masking** | Three levels (Safest default, Safe, Custom), set in code via `MaskingConfiguration` |
 | **Capture percentage** | Full Session Replay percentage; start at 5--10% for production, 100% for staging/QA |

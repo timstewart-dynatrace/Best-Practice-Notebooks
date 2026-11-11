@@ -1,6 +1,6 @@
 # OTEL-07: Dynatrace OTLP Integration
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 7 of 8 | **Created:** January 2026 | **Last Updated:** 11/09/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 7 of 8 | **Created:** January 2026 | **Last Updated:** 11/11/2026
 
 ## Complete Setup for OpenTelemetry with Dynatrace
 This notebook provides end-to-end configuration for sending OpenTelemetry data to Dynatrace, including authentication, endpoints, and verification.
@@ -432,7 +432,7 @@ Dynatrace Operator (v1.8+) supports **automatic OTLP exporter configuration** fo
 
 For more details, see [Configure OTLP Metrics Ingestion](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/configure-otlp-metrics).
 
-> **ActiveGate 1.349 (rollout from 11/09/2026) — breaking change:** the [ActiveGate 1.349 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-349) say *"We have updated OTLP metric ingestion so that dimension values represented as String for Long and Boolean retain their original type. Exact comparisons that rely on the previous behavior might break and need adjustment."* Check the version of the ActiveGates that receive your OTLP metrics before changing comparisons; until 1.349 reaches them, current behavior applies.
+> **SaaS 1.348 and ActiveGate 1.349 — breaking change:** the [SaaS 1.348 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) list it as a platform breaking change, *"OTLP metric dimensions now retain their original String types"* (SaaS 1.348 rollout start 10/12/2026, staged tenant rollout), and the [ActiveGate 1.349 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-349) (rollout from 11/09/2026) carry the same text: *"We have updated OTLP metric ingestion so that dimension values represented as String for Long and Boolean retain their original type. Exact comparisons that rely on the previous behavior might break and need adjustment."* Both give the same remediation: *"Use DQL's toString on Boolean or Integer comparison values used in OTLP metric queries, or set up OpenPipeline rules to convert selected dimensions back to Long or Boolean on ingest."* Check your tenant version as well as the version of the ActiveGates that receive your OTLP metrics before changing comparisons; until the change reaches them, current behavior applies.
 
 ```dql
 // Verify OTel traces are arriving over OTLP

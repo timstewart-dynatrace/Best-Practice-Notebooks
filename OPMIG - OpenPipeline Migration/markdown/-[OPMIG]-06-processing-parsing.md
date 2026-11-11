@@ -502,7 +502,7 @@ fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A
 | fieldsAdd content = replacePattern(content, "[a-zA-Z0-9._%+-]+ '@' [a-zA-Z0-9.-]+", replacement: "***@***.***")
 
 // SSN (123-45-6789 → ***-**-****)
-| fieldsAdd content = replacePattern(content, "[0-9]{3} '-' [0-9]{2} '-' [0-9]{4}", replacement: "***-**-****")
+| fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z-] [0-9]{3} '-' [0-9]{2} '-' [0-9]{4} !>>[0-9A-Za-z-]", replacement: "***-**-****")
 ```
 
 **Partial masking ("keep the last 4 digits")** needs a lookahead, not a back-reference. `replacePattern` has no back-references, so the old `$4` example cannot be expressed, but a `>>` lookahead checks the last four digits without consuming them, so they survive the replacement. Bound both ends so the pattern cannot fire inside a longer number or an ID:

@@ -1,6 +1,6 @@
 # OPIPE-05: Business & Security Event Pipelines
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 10/26/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Processing Business Transactions and Security Events at Ingestion
 
@@ -145,7 +145,7 @@ Security events include threat detections, vulnerability findings, compliance fi
 
 | Category | `event.type` | Description |
 |----------|--------------|-------------|
-| Vulnerabilities | `VULNERABILITY_FINDING`, `VULNERABILITY_SCAN`, `VULNERABILITY_STATE_REPORT_EVENT`, `VULNERABILITY_STATUS_CHANGE_EVENT`, … | Vulnerability findings and state from Dynatrace and third-party tools |
+| Vulnerabilities | `VULNERABILITY_FINDING`, `VULNERABILITY_SCAN`, `VULNERABILITY_STATE_REPORT_EVENT`, `VULNERABILITY_STATUS_CHANGE_EVENT`, … | Vulnerability findings and state from Dynatrace and third-party tools. `VULNERABILITY_STATE_REPORT_EVENT` and `VULNERABILITY_STATUS_CHANGE_EVENT` are two of the four types that stay non-configurable in OpenPipeline from SaaS 1.353 (§5) |
 | Detections | `DETECTION_FINDING` | Alerts from security tools; Runtime Application Protection attacks carry `product.name == "Runtime Application Protection"` |
 | Compliance | `COMPLIANCE_FINDING`, `COMPLIANCE_SCAN_COMPLETED` | Security Posture Management scan results |
 
@@ -174,6 +174,10 @@ Security events should always be routed to **dedicated buckets** with extended r
 | `compliance-events` | `matchesValue(event.type, "COMPLIANCE_*")` | `compliance_events` | 2555 days (7 years) | `"compliance-team"` |
 
 Platform audit events (`AUDIT_EVENT`) are not in this scope — they live in `dt.system.events` (§4). Which security event types pass through your pipelines depends on how they are ingested, so check the routing preview against real records before relying on a route.
+
+> **Forthcoming — SaaS 1.353 (planned December 2026), announced in the SaaS 1.350 release notes:** *"With Dynatrace SaaS version 1.353, planned for December 2026, security events become fully configurable in OpenPipeline, and security event storage consolidates into a single Grail bucket with a new default retention period."* *"All events will flow into the new default_security bucket automatically."* Four vulnerability types are excepted: *"VULNERABILITY_STATE_REPORT_EVENT, VULNERABILITY_ASSESSMENT_CHANGE_EVENT, VULNERABILITY_TRACKING_LINK_CHANGE_EVENT, and VULNERABILITY_STATUS_CHANGE_EVENT remain non-configurable, because a future release will deprecate them in favor of native concepts."* A `VULNERABILITY_*` route such as `vulnerability-events` above therefore does not cover those four once 1.353 lands; their retention is set on `default_security`. Act before it reaches your tenant if you query security events by bucket name — *"Notebooks, dashboards, and workflows filtering on default_securityevents or default_securityevents_builtin need updating."* — or if *"You rely on retention beyond 35 days."* — *"Either extend the retention of default_security, or add an OpenPipeline routing rule sending the data you need to keep to a longer-retention bucket."* Until SaaS 1.353 reaches your tenant, the routing above remains the working path.
+>
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.350 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-350) — *"Rollout start on Nov 4, 2026"*. **Derived:** the four excepted types cannot be routed to a custom bucket, so `default_security` retention is the only lever the note leaves for them.</sub>
 
 ### Compliance Framework Requirements
 

@@ -115,7 +115,7 @@ OneAgent on x86-64 requires a minimum CPU level: *"Minimum Supported Microarchit
 
 The docs name the first generations that qualify: *"Intel Nehalem was the first Intel architecture to fully support the x86-64-v2 baseline."* and *"AMD Bulldozer and its successors support the x86-64-v2 baseline."* For virtual machines: *"Virtualized environments should ensure CPU feature passthrough is enabled to meet the microarchitecture requirements."*
 
-**Best practice:** find hosts and VM templates below x86-64-v2 now, before OneAgent 1.357 reaches them. On-premises estates that run Managed are more likely than cloud estates to have old hardware or VMs with restricted CPU features.
+**Best practice:** find hosts and VM templates below x86-64-v2 now, before OneAgent 1.357 reaches them. On-premises estates that run Managed are more likely than cloud estates to have old hardware or VMs with restricted CPU features. For a host you cannot move in time, the page's own advice: *"If a host's CPU doesn't support the x86-64-v2 microarchitecture level, prevent OneAgent from updating to OneAgent version 1.357+ so monitoring continues."*
 
 > <sub>**Sources:** [OneAgent requirements (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/oa-requirements) — *"x86-64-v2 is a baseline that includes support for SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, and CMPXCHG16B instructions."*. **Derived:** "more likely to have old hardware" is the notebook's reasoning about on-premises estates, not a documented statement.</sub>
 

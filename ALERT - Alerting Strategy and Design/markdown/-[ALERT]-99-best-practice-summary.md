@@ -1,6 +1,6 @@
 # ALERT-99: Best-Practice Summary and Setup Checklist
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 99 | **Created:** June 2026 | **Last Updated:** 10/23/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 99 | **Created:** June 2026 | **Last Updated:** 11/09/2026
 
 ## Overview
 
@@ -147,6 +147,10 @@ Two of the signals above are worth turning into standing trend queries rather th
 // problems opened by excluded categories (custom alerts, for instance) in the denominator
 // with no events behind them, and the ratio would read low. Validated 10/06/2026:
 // 31 daily rows, ratio 1.69-3.65, no notifications.
+//
+// Count completed days only: the current UTC day is a part-filled bucket and reads
+// high (5.48 on 11/09/2026). Re-validated 11/09/2026 with that filter: 30 daily rows,
+// ratio 1.14-3.20, no notifications.
 fetch dt.davis.events, from:-30d
 | filter in(event.category, {"AVAILABILITY","ERROR","RESOURCE_CONTENTION","SLOWDOWN","CUSTOM_ALERT"})
 | fieldsAdd kind = "event", day = bin(timestamp, 24h)
@@ -159,6 +163,7 @@ fetch dt.davis.events, from:-30d
   ]
 | summarize {event_count = countIf(kind == "event"), problem_count = countIf(kind == "problem")}, by:{day}
 | filter problem_count > 0 and event_count > 0
+| filter day < bin(now(), 24h)
 | fieldsAdd denoising_ratio = round(toDouble(event_count) / problem_count, decimals: 2)
 | sort day asc
 ```

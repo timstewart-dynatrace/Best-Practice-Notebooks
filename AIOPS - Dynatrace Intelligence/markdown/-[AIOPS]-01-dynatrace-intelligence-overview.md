@@ -1,6 +1,6 @@
 # AIOPS-01: Dynatrace Intelligence Overview
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 1 of 8 | **Created:** May 2026 | **Last Updated:** 10/12/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 1 of 8 | **Created:** May 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -73,7 +73,7 @@ Dynatrace Intelligence does not pile every AI buzzword into one model. It separa
 | **Databases app** | Generative AI | Execution plan clarification |
 | **Workflow tasks** | All three categories | Schedule analyzer runs; summarize problems; notify |
 | **Notebooks (DQL cells)** | All three categories | Davis CoPilot side panel; DQL2NL on selected query |
-| **AI Observability** | *Your* GenAI app, not Dynatrace's AI | GenAI / LLM span analysis, token cost, prompt evaluations — plus a dedicated Smartscape view and a dedicated Evaluations screen (SaaS 1.344) |
+| **AI Observability** | *Your* GenAI app, not Dynatrace's AI | GenAI / LLM span analysis, token cost — plus a dedicated Smartscape view (SaaS 1.344). Evaluations now run in Arize AX; the Evaluations screen is being retired |
 
 Most surfaces compose categories. The Problems app is the clearest example — Causal AI groups the events into a problem, and a Generative AI summary explains it in English.
 
@@ -81,9 +81,11 @@ Most surfaces compose categories. The Problems app is the clearest example — C
 
 > **SaaS 1.344 (rollout from 07/29/2026)** added the dedicated Smartscape view and the standalone Evaluations screen. On a tenant still below 1.344, prompt evaluations surface inside the general app views.
 
+> **`dt-evals` and the Evaluations tab are being retired (AI Observability docs, updated 10/30/2026).** *"dt-evals and the Evaluations tab in the AI Observability app are being retired."* Evaluation results already written to Dynatrace remain available as business events (`event.type == "gen_ai.evaluation.result"`) for as long as your bucket retention keeps them. To run and analyze new evaluations, the page points to **Arize AX**.
+
 > **Custom alerts move to Settings (SaaS 1.344).** *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the **Anomaly Detection** app is where custom alerts are created, and the *Anomaly Detection app* row above describes that path.
 
-> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*</sub>
+> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*, [AI Observability (DT docs)](https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability) — *"dt-evals and the Evaluations tab in the AI Observability app are being retired."*; *"To run and analyze evaluations of your LLM applications and agents, use Arize AX"* (read 11/11/2026)</sub>
 
 <a id="foundation"></a>
 ## 3. The Data Foundation: Smartscape + Grail

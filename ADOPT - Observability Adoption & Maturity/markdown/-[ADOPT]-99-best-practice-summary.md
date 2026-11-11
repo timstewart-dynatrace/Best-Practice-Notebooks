@@ -47,7 +47,7 @@ This notebook consolidates every actionable best practice from the ADOPT series 
 | 1.4 | **Agent version currency** | Every host on a OneAgent release still inside its support window (9 months Standard, 12 months Enterprise, from release); keep the number of distinct releases small | Critical | ADOPT-02, ADOPT-05 |
 | 1.5 | **Auto-update for non-production** | Enable OneAgent auto-update on all non-production hosts | Recommended | ADOPT-05 |
 | 1.6 | **Automated agent deployment** | Use cloud-init, Ansible, or equivalent to deploy OneAgent on every new host automatically | Recommended | ADOPT-05 |
-| 1.7 | **Host CPU/memory health check** | Run a weekly health query confirming all hosts report CPU and memory metrics; any host with no data = agent issue | Recommended | ADOPT-02 |
+| 1.7 | **Host CPU/memory health check** | Run a weekly health query confirming that every host without a `paasVendorType` reports CPU and memory metrics; a missing series there is an agent issue. PaaS hosts (Kubernetes application-only, Fargate) report no host metrics, so check them through their workloads instead | Recommended | ADOPT-02 |
 | 1.8 | **Read monitoring mode from billing** | Use the billing usage events, not the classic `monitoringMode` property, which is empty for many hosts | Recommended | ADOPT-02, ADOPT-06 |
 
 <a id="data-ingestion"></a>

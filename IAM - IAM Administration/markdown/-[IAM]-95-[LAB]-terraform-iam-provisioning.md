@@ -1,6 +1,6 @@
 # IAM-95 LAB: Terraform IAM Provisioning — Groups, Policies, Boundaries, Bindings
 
-> **Series:** IAM — IAM Administration | **Reference:** 95 — Terraform IAM Provisioning LAB | **Created:** July 2026 | **Last Updated:** 11/08/2026
+> **Series:** IAM — IAM Administration | **Reference:** 95 — Terraform IAM Provisioning LAB | **Created:** July 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -203,7 +203,7 @@ locals {
     ALLOW storage:logs:read WHERE storage:dt.security_context IN ("$${bindParam:team}");
     ALLOW storage:spans:read WHERE storage:dt.security_context IN ("$${bindParam:team}");
     ALLOW storage:metrics:read WHERE storage:dt.security_context IN ("$${bindParam:team}");
-    ALLOW storage:events:read WHERE storage:dt.security_context IN ("$${bindParam:team}");
+    ALLOW storage:events:read WHERE storage:dt.security_context MATCH ("$${bindParam:team}");
     ALLOW storage:bizevents:read WHERE storage:dt.security_context IN ("$${bindParam:team}");
     ALLOW storage:buckets:read;
     ALLOW settings:objects:read WHERE settings:dt.security_context IN ("$${bindParam:team}");
@@ -277,6 +277,10 @@ output "boundary_query_examples" {
 }
 EOF
 ```
+
+> **`mz_scoped_config_template` and `gen2_mz_boundary_query_example` stop working in Latest Dynatrace.** Both scope on `environment:management-zone`. Dynatrace's scoped-settings upgrade guide: *"Because management zones no longer exist, these conditions never match."* — and for grants, *"ALLOW statements stop granting access."* Keep them only while the environment is still on Dynatrace Classic. The same guide shows scoping by schema instead (`WHERE settings:schemaId = "builtin:alerting.profile"`), and a `settings:dt.security_context` condition, which matches only where *"security context must be set at the edge"*.
+>
+> <sub>**Sources:** [Upgrade your security policies for scoped settings access (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-scoped-settings-objects) — *"Because management zones no longer exist, these conditions never match."*, *"ALLOW statements stop granting access. Users who previously had access through a management zone or entity scope condition lose that access."*</sub>
 
 **`modules/iam_groups/main.tf`** — `dynatrace_iam_group` — persona and team groups.
 

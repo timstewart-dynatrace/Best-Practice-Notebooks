@@ -1,6 +1,6 @@
 # MZ2POL-16: Migrating the Rest of Zone-Scoped Alerting
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 17 of 17 | **Created:** October 2026 | **Last Updated:** 11/05/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 17 of 17 | **Created:** October 2026 | **Last Updated:** 11/11/2026
 
 > **Purpose:** MZ2POL-09 moves zone-scoped alerting profiles and problem notifications onto problem-triggered workflows. A zone also scopes metric events, maintenance windows and classic SLOs, and notification payloads may have printed it. Each of these has its own successor, its own upgrade guide and its own trap. This notebook migrates them, then proves the result per problem before anything classic is switched off.
 
@@ -64,7 +64,7 @@ MZ2POL-15 §3 searches five zone-aware schemas. MZ2POL-09 handles two of them, a
 | Classic artifact | Successor — where the zone goes | Does not carry over |
 |---|---|---|
 | Metric event (managementZone, MANAGEMENT_ZONE filter) | Custom alert: scope with a segment or a filter in the query; in Settings from SaaS 1.344, the Anomaly Detection app before that | The zone itself — the transform drops it, and the new alert is active at once (§2) |
-| Maintenance window (filters[].managementZones, three suppression modes) | builtin:maintenance-windows (Preview): DQL filter on primary fields and tags; a workflow filter suppresses the page | No automatic migration; no "disable detection"; no retroactive windows; 100 upcoming, not 2,000 (§3) |
+| Maintenance window (filters[].managementZones, three suppression modes) | builtin:maintenance-windows (Preview): DQL filter on primary fields and tags; a workflow filter suppresses the page | No automatic migration; no "disable detection" before SaaS 1.350; no retroactive windows; 100 upcoming, not 2,000 (§3) |
 | SLO Classic (mzName / mzId in the filter; burn-rate alert = metric event) | SLO with a DQL SLI: "management zones become segments"; run both for one evaluation period | Manual rewrite — no automated upgrade; the alert on it is a second zone hop (§4) |
 | Notification payload ({Placeholders}, {ProblemDetailsJSONv2}) | Jinja on the problem record: print the routing field itself, every value | Zone names; the classic JSON "can't be reproduced" (§5) |
 | Alerting profiles and problem notifications | MZ2POL-09 | |
@@ -173,11 +173,11 @@ Filter on `dt.settings.schema_id`, not on `event.provider` — ALERT-02 §4 show
 <a id="maintenance-windows"></a>
 ## 3. Maintenance Windows
 
-A dedicated upgrade guide for maintenance windows was published on 09/09/2026. Its summary: *"Latest Dynatrace scopes windows with DQL matcher expressions on Grail data instead of management zones, and suppresses notifications through a workflow Problem trigger filter instead of built-in detection modes."* MZ2POL-15 §10 predates it and lists maintenance windows as having no documented replacement; read this section instead.
+A dedicated upgrade guide for maintenance windows was published on 09/09/2026. Its summary: *"Latest Dynatrace scopes windows with DQL matcher expressions on Grail data instead of management zones, and suppresses notifications through a workflow Problem trigger filter instead of built-in detection modes."*
 
-> **New maintenance windows are in Early Access and labelled Preview.** SaaS 1.341 (rollout started 06/16/2026) introduced them: *"Maintenance windows are available in Early Access."* Every page describing the new model carries a *Preview* label. Confirm that *Settings > General > Maintenance windows* exists on your tenant before planning around it. Until it does, classic maintenance windows remain the working path, and nothing below replaces them.
+> **New maintenance windows are in Early Access and labelled Preview.** SaaS 1.341 (rollout started 06/16/2026) introduced them: *"Maintenance windows are available in Early Access."* The four *Maintenance windows* pages (overview, create, lifecycle, use data) carry a *Preview* label; the upgrade guide does not. Confirm that *Settings > General > Maintenance windows* exists on your tenant before planning around it. Until it does, classic maintenance windows remain the working path, and nothing below replaces them.
 
-> **Forthcoming — SaaS 1.350 (staged tenant rollout from 11/04/2026):** *"You can now suppress problems for a specific maintenance window. During an active window, Dynatrace skips problem creation for the entities in the window's scope"*. *"Suppression is a per-window choice."* *"When you create a maintenance window, or while it is still scheduled for the future, turn on problem suppression under Scope > Data scope."* Until SaaS 1.350 reaches your tenant, the upgrade guide's *"Dynatrace always detects problems"* in the table below stands, and suppression stays in the workflow trigger filter. Source: [What's new in Dynatrace SaaS 1.350 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-350).
+> **Rolling out — SaaS 1.350 (staged tenant rollout from 11/04/2026):** *"You can now suppress problems for a specific maintenance window. During an active window, Dynatrace skips problem creation for the entities in the window's scope"*. *"Suppression is a per-window choice."* *"When you create a maintenance window, or while it is still scheduled for the future, turn on problem suppression under Scope > Data scope."* Until SaaS 1.350 reaches your tenant, the upgrade guide's *"Dynatrace always detects problems"* in the table below stands, and suppression stays in the workflow trigger filter. Source: [What's new in Dynatrace SaaS 1.350 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-350).
 
 ### What changes
 
@@ -596,7 +596,7 @@ The guide's last step for the profile pair is *"Delete it once you're confident 
 | Finding | What to do |
 |---|---|
 | Transforming a zone-scoped metric event drops the zone and activates the successor at once | Segment first; set the scope straight after the transform; compare breadth (§2) |
-| Maintenance windows have an upgrade guide, a Preview model and no automatic migration | Recreate them with DQL filters; suppress in the workflow; nothing replaces disabling detection (§3) |
+| Maintenance windows have an upgrade guide, a Preview model and no automatic migration | Recreate them with DQL filters; suppress in the workflow; before SaaS 1.350, nothing replaces disabling detection (§3) |
 | The maintenance flag can be absent on Davis events | Prefer the Davis event trigger's *Maintenance window* option; test the matcher (§3) |
 | SLOs move zone → segment by hand and need one evaluation period side by side | Plan the date; rebuild the SLO alert on the new SLO (§4) |
 | No problem field carries the zone, and the classic JSON cannot be reproduced | Print the routing field; accept several values (§5) |

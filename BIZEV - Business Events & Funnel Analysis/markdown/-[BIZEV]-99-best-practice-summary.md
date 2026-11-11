@@ -40,7 +40,7 @@ This notebook consolidates every actionable best practice from the BIZEV series 
 | 1 | Use `bizevents` for business transactions | `fetch bizevents` — never use `events` or `logs` for business analytics | Critical | Data Source |
 | 2 | Always populate `event.type` | Set to a reverse-domain string (e.g., `com.myapp.order.completed`) on every event | Critical | Schema |
 | 3 | Always populate `event.provider` | Set to the source application or system name | Critical | Schema |
-| 4 | Populate `event.category` on every event | Set to a logical grouping value (e.g., `ecommerce`, `auth`, `payments`) | Recommended | Schema |
+| 4 | Carry the business line in a custom field | Add a payload field such as `product_category` (e.g., `ecommerce`, `payments`); `event.category` is an ITIL significance category | Recommended | Schema |
 | 5 | Include a `user_id` or `session_id` field | Required for funnel analysis and distinct-user conversion rates | Critical | Schema |
 | 6 | Include a numeric `amount` field on transaction events | Store as a number, never as a string — enables `sum()`, `avg()` without casting | Critical | Schema |
 | 7 | Use consistent field types across all events | Always send `amount` as double, `quantity` as long — never vary types | Recommended | Schema |
@@ -93,7 +93,7 @@ This notebook consolidates every actionable best practice from the BIZEV series 
 | 33 | Identify checkout abandonment with per-user aggregation | `summarize by:{user_id}` then `filter started_checkout > 0 AND completed_payment == 0` | Recommended | Analysis |
 | 34 | Measure time between funnel steps | Convert timestamps to millis, subtract, divide by 1000 for seconds: `(unixMillisFromTimestamp(step2_time) - unixMillisFromTimestamp(step1_time)) / 1000.0` | Recommended | Analysis |
 | 35 | Report `avg`, `median`, and `p95` for inter-step timing | All three are needed to understand the distribution of user behavior | Recommended | Analysis |
-| 36 | Segment funnels by `event.provider` and `event.category` | Reveals which channels and business lines convert best | Recommended | Segmentation |
+| 36 | Segment funnels by `event.provider` and a business-line field (e.g., `product_category`) | Reveals which channels and business lines convert best | Recommended | Segmentation |
 | 37 | Track daily conversion rate trends over 7+ days | Use `bin(timestamp, 24h)` with `summarize by:{day}` to measure campaign/release impact (`1d` is rewritten to `24h` with a notification; days are UTC-aligned) | Recommended | Trending |
 
 <a id="revenue-and-impact-analysis"></a>

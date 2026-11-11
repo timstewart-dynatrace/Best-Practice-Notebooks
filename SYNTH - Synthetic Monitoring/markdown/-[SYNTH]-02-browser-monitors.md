@@ -1,6 +1,6 @@
 # SYNTH-02: Browser Monitors
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 2 of 6 | **Created:** December 2025 | **Last Updated:** 10/25/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 2 of 6 | **Created:** December 2025 | **Last Updated:** 11/11/2026
 
 ## Creating and Optimizing Browser-Based Synthetic Tests
 This notebook covers browser monitors in Dynatrace, including single-URL monitors, browser clickpaths, and performance analysis using the latest Dynatrace platform capabilities.
@@ -26,7 +26,7 @@ This notebook covers browser monitors in Dynatrace, including single-URL monitor
 - ✅ Completed SYNTH-01 Fundamentals
 - ✅ Web application URL to monitor
 
-> **How browser data is queried:** Browser monitors are analyzed primarily through the **`dt.synthetic.browser.*` metrics** (`timeseries`) — availability, total duration, and per-step duration. Execution-level browser records appear as `browser_monitor_execution` / `browser_monitor_step_execution` events in `fetch dt.synthetic.events` **when the classic browser experience is in use**; with the *new browser monitor experience* activated, detailed actions surface in RUM instead. **Dynatrace environments created after January 26, 2026 do not have a classic/new toggle at all** — they run the new experience by default, so this discovery step matters mainly for pre-2026-01-26 tenants. Confirm which path your tenant populates with a discovery query (`fetch dt.synthetic.events, from:-24h | filter startsWith(event.type, "browser") | limit 5`).
+> **How browser data is queried:** Browser monitors are analyzed primarily through the **`dt.synthetic.browser.*` metrics** (`timeseries`) — availability, total duration, and per-step duration. Execution-level browser records appear as `browser_monitor_execution` / `browser_monitor_step_execution` events in `fetch dt.synthetic.events` under both experiences: with the *new browser monitor experience* activated, *"metrics and events generated with both new and classic RUM JavaScript are ingested into Dynatrace"* ([Activate new browser monitor experience (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/new-browser-monitoring-experience)). **Dynatrace environments created after January 26, 2026 do not have a classic/new toggle at all** — they run the new experience by default. Confirm which event types your tenant populates with a discovery query (`fetch dt.synthetic.events, from:-24h | filter startsWith(event.type, "browser") | limit 5`).
 
 <a id="browser-monitor-types"></a>
 ## 1. Browser Monitor Types
@@ -357,6 +357,8 @@ Browser monitors capture full-page render timing. In Grail this is exposed as **
 
 > **New-experience metric family:** the `user_events.*`, `user_actions.*`, and `classic.total_duration` metrics only appear once a monitor is executing under the **new browser monitor experience** (environment- or monitor-level setting, or by default on tenants created after January 26, 2026). Both classic and new-experience metrics are ingested simultaneously during the transition, at no additional cost — so it's safe to query the new-experience families speculatively and fall back to plain `duration` if they return nothing.
 
+> **Which RUM JavaScript feeds `duration` — SaaS 1.349 (staged tenant rollout from 10/27/2026):** for Group 3 (Enhanced) environments, `dt.synthetic.browser.duration` and `dt.synthetic.browser.step.duration` *"metrics are now calculated using data from RUM JavaScript."* For Group 1 and Group 2 (Standard and New environment baseline) environments, they *"continue to be calculated using data from RUM Classic JavaScript."* Verify the release has reached your tenant before relying on the new source.
+
 ![Navigation Timing](images/02-navigation-timing.png)
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Phase | Description |
@@ -380,7 +382,7 @@ Browser monitors capture full-page render timing. In Grail this is exposed as **
 
 > **Important:** Core Web Vitals (LCP, FCP, CLS) are **Real User Monitoring** measurements, not synthetic browser metric keys. The Synthetic on Grail browser metrics expose **availability**, **total duration** (classic and new-experience variants), and **per-step duration** — not the individual W3C navigation-timing phases or Web Vitals. For Web Vitals analysis, see the WEBRUM series. Targets above are Google's thresholds; set your own baselines from observed data.
 
-> <sub>**Sources:** [Browser monitor metrics in Synthetic on Grail (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-metrics/browser-monitor-metrics), [Activate new browser monitor experience (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/new-browser-monitoring-experience). Metric table and dual-ingestion/no-extra-cost claim confirmed at source; table re-verified and split by level 08/03/2026, adding the `user_actions.*` family (monitor- and step-level) and correcting two `user_events.*` descriptions that read a step-level **span** as a sum. All 15 keys confirmed present on a live tenant the same day (`metrics | filter startsWith(metric.key, "dt.synthetic.browser")`). Re-read 09/28/2026: step-level `user_events.duration` is *"measured from the start of the first user event of the step to the end of the last user event of the step"*, step-level `user_events.total_duration` is *"measured as a sum of durations of all user events in the step"*, and the new-experience page lists *"Duration (recommended as the best representation of user experience)"*. **Derived:** the § 5 span-vs-sum callout combines those step-level definitions with the monitor-level definitions (each a sum of the corresponding step-level values).</sub>
+> <sub>**Sources:** [Browser monitor metrics in Synthetic on Grail (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-metrics/browser-monitor-metrics), [Activate new browser monitor experience (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/new-browser-monitoring-experience), [SaaS 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-349). Metric table and dual-ingestion/no-extra-cost claim confirmed at source; table re-verified and split by level 08/03/2026, adding the `user_actions.*` family (monitor- and step-level) and correcting two `user_events.*` descriptions that read a step-level **span** as a sum. All 15 keys confirmed present on a live tenant the same day (`metrics | filter startsWith(metric.key, "dt.synthetic.browser")`). Re-read 09/28/2026: step-level `user_events.duration` is *"measured from the start of the first user event of the step to the end of the last user event of the step"*, step-level `user_events.total_duration` is *"measured as a sum of durations of all user events in the step"*, and the new-experience page lists *"Duration (recommended as the best representation of user experience)"*. **Derived:** the § 5 span-vs-sum callout combines those step-level definitions with the monitor-level definitions (each a sum of the corresponding step-level values).</sub>
 
 ```dql
 // Browser duration — average and worst-case per monitor (metrics path)
@@ -428,9 +430,8 @@ Pixel-diff or layout comparison is not a documented browser-monitor validation; 
 // Failed browser executions with detail — events path
 // Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
 // deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
-// Requires classic browser execution events (browser_monitor_execution) in dt.synthetic.events.
-// If your tenant uses the new browser experience, this returns no rows — analyze failures via
-// the dt.synthetic.browser.availability metric (dips below 100) instead.
+// Reads browser_monitor_execution events in dt.synthetic.events (written under both the classic
+// and the new browser experience).
 fetch dt.synthetic.events, from: now() - 24h
 | filter event.type == "browser_monitor_execution"
 | filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
@@ -471,7 +472,7 @@ timeseries {
 // Slowest browser executions (outliers) — events path
 // Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
 // deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
-// Classic browser execution events only; see the note on cell above.
+// browser_monitor_execution events (classic and new browser experience).
 fetch dt.synthetic.events, from: now() - 24h
 | filter event.type == "browser_monitor_execution"
 | filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run

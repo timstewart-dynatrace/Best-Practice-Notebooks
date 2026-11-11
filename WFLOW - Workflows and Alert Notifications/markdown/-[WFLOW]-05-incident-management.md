@@ -1,6 +1,6 @@
 # WFLOW-05: PagerDuty & ServiceNow Integration
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 5 of 10 | **Created:** January 2026 | **Last Updated:** 11/09/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 5 of 10 | **Created:** January 2026 | **Last Updated:** 11/11/2026
 
 ## Incident Management Automation
 Integrate Dynatrace workflows with enterprise incident management platforms. This notebook covers PagerDuty and ServiceNow integration patterns, bi-directional sync, and incident lifecycle management.
@@ -226,6 +226,13 @@ The native ServiceNow connector exposes these operations, selected **by name** i
 | **Search incidents** | Look up an existing incident (e.g., by correlation ID) |
 | **Get Groups** | Resolve assignment-group sys_ids |
 | **Create a vulnerability item** | Open a VR item (security workflows) |
+| **Create Comment** | Create a comment on an entry in any table |
+| **Create Record** | Create a new record in a specified table |
+| **Search** | Generic search of any table |
+
+> **SaaS 1.350 (rollout start 11/04/2026, staged tenant rollout): Send ITOM Event.** *"ServiceNow Connector now includes the Send ITOM Event workflow action. Use it to send Dynatrace problems to ServiceNow IT Operations Management (ITOM) as events. A ready-made workflow template, Send problem as ITOM event to ServiceNow, helps you get started."* The action *"Send an event to ServiceNow Event Management using the ITOM inbound web service. Requires an ITOM events connection."* Verify the action has reached your tenant; until it does, the incident operations above and the ALERT-04 ladder remain the working path.
+>
+> <sub>**Sources:** [ServiceNow Connector actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now/automation-workflows-service-now-actions), [What's new in Dynatrace SaaS 1.350 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-350) — *"The template creates a ServiceNow alert when a problem opens and closes that alert when the problem closes."*</sub>
 
 > **Required fields for Create Incident:** `Category`, `Subcategory`, `Impact`, `Urgency`, and `Assignment Group` are **required** — a create call missing any of them fails. `Correlation ID` is optional but strongly recommended: set it to the Dynatrace problem ID so a **Search incidents** task can find the incident again. Create Incident does not check for an existing incident (it is a plain `POST /api/now/v2/table/incident`), so the deduplication is yours: search first, and create only when nothing is found.
 
@@ -298,7 +305,7 @@ input:
 | 4 (Warning) — events only, never on a problem | 3 (Low) |
 | 5 (Informational) | skip — usually no incident |
 
-> **What `event()` actually carries.** The problem record has `event.severity` on the 1–5 scale, not `"CRITICAL"`-style labels. Grail stores it as a number; in the `event()` payload it may arrive as a string, which is why the mappings above convert it with `| int`. It is `experimental` in the semantic dictionary, and from SaaS 1.348 it is no longer defaulted (WFLOW-04 §3), so `int(5)` sends an unset severity to the lowest tier. The same applies to the PagerDuty severity mapping in §3.
+> **What `event()` actually carries.** The problem record has `event.severity` on the 1–5 scale, not `"CRITICAL"`-style labels. Grail stores it as a number; in the `event()` payload it may arrive as a string, which is why the mappings above convert it with `| int`. It is `stable` in the semantic dictionary (read 11/11/2026), and from SaaS 1.348 it is no longer defaulted (WFLOW-04 §3), so `int(5)` sends an unset severity to the lowest tier. The same applies to the PagerDuty severity mapping in §3.
 
 ### Comment on an Incident
 
@@ -366,8 +373,10 @@ const SNOW_URL = 'https://your-instance.service-now.com';   // add to Settings >
 
 export default async function () {
   // A JavaScript task does not receive a connection object; keep the credential in the Credential Vault.
-  // The credential needs: the AppEngine scope selected, "Allow access without app context" turned on,
-  // and access for the workflow actor - otherwise this call is denied.
+  // Required: the workflow actor has the credential-vault:entries:read permission (for an actor that is
+  // not a service user, also turned on under Secondary permissions in the Workflows authorization settings),
+  // the AppEngine scope selected, "Allow access without app context" turned on, and access for the
+  // workflow actor - otherwise this call is denied.
   const cred = await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' });
   // Query ServiceNow for Dynatrace-related incidents. Encoded queries join field, operator
   // and value with no spaces: correlation_idSTARTSWITHDT-
@@ -396,7 +405,7 @@ export default async function () {
 }
 ```
 
-> <sub>**Sources:** [Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action) — *"The AppEngine scope is selected for the credential. Allow access without app context is turned on for the credential. The workflow actor has access to the credential."*</sub>
+> <sub>**Sources:** [Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action) — *"The workflow actor has the credential-vault:entries:read permission. If the actor isn't a service user, credential-vault:entries:read is also turned on under Secondary permissions in the Workflows authorization settings"* and *"The AppEngine scope is selected for the credential. Allow access without app context is turned on for the credential. The workflow actor has access to the credential."*</sub>
 
 ### Write the Incident Number onto the Problem (link-back)
 

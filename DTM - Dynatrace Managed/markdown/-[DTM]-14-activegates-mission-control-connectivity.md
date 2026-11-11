@@ -1,6 +1,6 @@
 # DTM-14: Cluster ActiveGates and Mission Control Connectivity
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 14 — Cluster ActiveGates and Mission Control Connectivity | **Created:** September 2026 | **Last Updated:** 11/10/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 14 — Cluster ActiveGates and Mission Control Connectivity | **Created:** September 2026 | **Last Updated:** 11/11/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -269,8 +269,9 @@ Release changes that affect Cluster ActiveGates and the agents behind them:
 - **Managed 1.344:** *"ActiveGate download links now require a token with the UnattendedInstall or ServiceApiProvider scope."* *"Existing UI workflows are not affected."*, but scripted downloads need such a token from 1.344. The same release adds *"Configurable update windows and target versions for Environment ActiveGate"* — update control is covered in DTM-16.
 - **Managed 1.342:** *"Dynatrace rejects connections from OneAgent versions 1.141 and earlier."*
 - **Managed 1.346:** *"Dynatrace now rejects connections from OneAgent version 1.215 and earlier."*
+- **Managed 1.348:** *"Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier."*
 
-The release-notes page (read 11/10/2026) lists 1.346, 1.348 and 1.350 as currently supported, 1.344 as supported *"Only with Enterprise Success and Support"*, and 1.342 as out of support, so these cutoffs already apply on any cluster in standard support. An agent that stops connecting right after a cluster update may simply be too old.
+The release-notes page (read 11/10/2026) lists 1.346, 1.348 and 1.350 as currently supported, 1.344 as supported *"Only with Enterprise Success and Support"*, and 1.342 as out of support. Each cutoff applies once the cluster reaches that release: every cluster in standard support (1.346 or later) already rejects OneAgent 1.215 and earlier, while the 1.241 cutoff applies only from Managed 1.348 — a cluster still on 1.346 does not yet apply it. An agent that stops connecting right after a cluster update may simply be too old.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Cluster Management Console (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console), [Update Cluster ActiveGate (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/update-dynatrace-managed-activegate)</sub>
@@ -278,7 +279,7 @@ The release-notes page (read 11/10/2026) lists 1.346, 1.348 and 1.350 as current
 > - <sub>[ActiveGate self-monitoring metrics (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/activegate-sfm-metrics)</sub>
 > - <sub>[ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements)</sub>
 > - <sub>[Managed 1.332 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-332), [Managed 1.344 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-344) release notes, [Install a Cluster ActiveGate (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/install-cluster-activegate)</sub>
-> - <sub>[Managed 1.342 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-342), [Managed 1.346 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-346) release notes, [Dynatrace Managed release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed) (read 11/10/2026)</sub>
+> - <sub>[Managed 1.342 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-342), [Managed 1.346 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-346), [Managed 1.348 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-348) release notes, [Dynatrace Managed release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed) (read 11/10/2026)</sub>
 
 <a id="doc-gaps"></a>
 ## 10. What the Documentation Does Not Say

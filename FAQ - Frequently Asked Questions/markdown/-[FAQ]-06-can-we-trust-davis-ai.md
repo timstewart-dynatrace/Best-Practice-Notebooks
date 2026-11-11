@@ -1,6 +1,6 @@
 # FAQ-06: Can We Trust Davis AI? A Risk and Controls Walkthrough
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 06 — Can We Trust Davis AI? A Risk and Controls Walkthrough | **Created:** May 2026 | **Last Updated:** 10/23/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 06 — Can We Trust Davis AI? A Risk and Controls Walkthrough | **Created:** May 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -53,7 +53,7 @@ Dynatrace Intelligence is **not one AI** — for a risk review, it is best read 
 | **Causal AI** | Deterministic problem detection and RCA over tenant topology | LOW | No foundation model involved; fully on-tenant; explainable by construction. |
 | **Predictive AI** | Statistical analyzers — forecasts, anomaly detection, baselines | LOW–MEDIUM | Tenant-scoped models; outputs are bounded numerics with confidence; operator decides what to act on. |
 | **Generative AI (Dynatrace Assist)** | LLM-backed Q&A, DQL generation, workflow assistance | MEDIUM | RAG-grounded; customer data not used to train foundation models; write actions run only when approved or customer-configured; IAM-scoped; auditable. |
-| **AI Observability** | Monitoring of the *customer's own* LLM/GenAI applications | REDUCES customer AI risk | This is a *risk-mitigation tool* for the customer's GenAI stack — it surfaces cost, latency, and errors, and — with LLM-as-a-judge evaluations — hallucination, prompt-injection, and quality-drift scores for your own AI apps. |
+| **AI Observability** | Monitoring of the *customer's own* LLM/GenAI applications | REDUCES customer AI risk | This is a *risk-mitigation tool* for the customer's GenAI stack — it surfaces cost, latency, and errors for your own AI apps, and — with evaluations run in Arize AX — the quality, safety, and relevance of their responses (§10). |
 
 **The headline:** the surfaces customers worry about most (data residency, model training, hallucination, runaway autonomy) all map primarily to the Generative AI surface — and that is also the surface where Dynatrace has applied the most explicit controls. The other three surfaces inherit the general platform posture (tenant isolation, IAM, audit) and add little incremental AI-specific risk.
 
@@ -70,7 +70,7 @@ Dynatrace Intelligence is **not one AI** — for a risk review, it is best read 
 | Causal AI | Tenant topology → on-tenant graph correlation → problem card | No | Determinism, explainability, no external call |
 | Predictive AI | Tenant metrics → on-tenant statistical model → forecast/anomaly | No | Confidence bands, operator decides |
 | Generative AI (Dynatrace Assist) | User prompt + tenant context (+ agentic tool-call results) → foundation model (hosted by an enterprise vendor — e.g. Microsoft Azure AI, AWS Bedrock) → grounded response | Yes (vendor-hosted, reached through Dynatrace) | RAG, no-training boundary, HITL, IAM, audit |
-| AI Observability | Customer's LLM app telemetry → Dynatrace ingest | (monitors customer's models; optional LLM-as-a-judge evaluations) | Standard ingest controls; OpenTelemetry GenAI semconv |
+| AI Observability | Customer's LLM app telemetry → Dynatrace ingest | (monitors customer's models; optional LLM-as-a-judge evaluations, now run in Arize AX) | Standard ingest controls; OpenTelemetry GenAI semconv |
 For environments where SVG doesn't render
 -->
 
@@ -81,7 +81,7 @@ In community practice, a blanket "we use AI" statement collapses very different 
 - **Causal AI** has the lowest incremental risk of anything Dynatrace ships — it is deterministic graph analysis over data that's already in the tenant, with no foundation-model call and no external data flow. The "AI" label is technically correct but historically loaded.
 - **Predictive AI** runs statistical models (forecasting, anomaly detection, baselining) on tenant data. The outputs are bounded numeric predictions with confidence intervals. The risk is *acting on a forecast* — which is an operator decision, not the model's.
 - **Generative AI** is the surface that triggers most concerns: a foundation model is involved, the model is large, its outputs are unbounded text, and intuitively it "could say anything." This is where the controls below apply most heavily.
-- **AI Observability** is on the other side of the table entirely — it is Dynatrace observing the customer's GenAI apps, not Dynatrace using AI. For a customer running their own LLM applications, this surface *reduces* their AI risk by giving them visibility into hallucinations, prompt injection, cost, and drift.
+- **AI Observability** is on the other side of the table entirely — it is Dynatrace observing the customer's GenAI apps, not Dynatrace using AI. For a customer running their own LLM applications, this surface *reduces* their AI risk by giving them visibility into cost, latency, errors and drift, and — through evaluations run in Arize AX — response quality and safety.
 
 In community practice, the most productive framing in a security review is to walk the four surfaces explicitly and let the reviewer apply different scrutiny to each. Treating "Davis AI" as one thing usually leads to over-broad concerns about the low-risk surfaces and under-precise questions about the high-risk one.
 
@@ -191,6 +191,8 @@ The fourth concern in most security reviews: *can the AI take destructive action
 | Agentic root cause analysis (SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout)) | When a problem is detected, investigate contributing factors across metrics, logs, and traces and surface findings on the problem. Verify it has reached your tenant; until then, Causal AI's root-cause attribution above is the unattended surface |
 | Agentic workflows and built-in agents (Preview) | Propose actions and run them once *approved*, under policy guardrails. Preview — verify availability on your tenant before relying on it |
 
+> **Run agent workflow action — licensing, permission and limits (Dynatrace 1.347+).** *"Starting with Dynatrace version 1.347+, using Dynatrace Intelligence AI outside the Assist UI, Dashboards, and Notebooks is subject to license consumption according to your existing licensing agreement and requires a DPS license that includes AI Units capabilities."* On a non-DPS licensing model, or without that capability, you are *"no longer able to use agentic AI workflow actions."* The action needs `ai:operator:execute` alongside `mcp-gateway:servers:invoke`, `mcp-gateway:servers:read` and `document:documents:read`, and the standard agentic and generative AI limits apply: 25 requests per 15 minutes per user, 60 per 15 minutes across the environment, and 120 seconds per request. A frequently scheduled agent workflow can throttle every other agentic and generative AI use in the environment.
+
 None of the generally available surfaces above write to your infrastructure or change tenant configuration; the Preview agentic-workflow row runs only approved actions. They read data and produce findings and suggestions inside the Dynatrace tenant — so the review question for Generative AI is *what data can the asking user read*, not *whether a human clicks Run*.
 
 ### What requires human-in-the-loop
@@ -207,7 +209,7 @@ In community practice, the platform's autonomy posture is summarized as: **AI su
 
 In community practice, the agentic-workflow conversation often comes up here: *can Davis act autonomously through Workflows?* The honest answer is *yes, if the customer configures it that way, and within the scopes the customer grants*. Dynatrace Assist suggesting a workflow that, when executed, takes an automatic remediation is the same as any other workflow in the platform — governed by the workflow's own credentials, IAM scope, and configured triggers. The autonomy lives in the *customer's workflow configuration*, not in the AI.
 
-> <sub>**Sources:** [Agentic and generative AI (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai) — *"is capable of auto-executing generated DQL queries."*, [Agentic and generative AI FAQ (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-faq) — the licensing and generate-only quotes, [Dynatrace Intelligence (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence) — *"Dynatrace Intelligence can propose and run approved actions through agentic workflows and built-in agents operating under policy guardrails"* (Preview), [SaaS 1.348 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"Dynatrace Intelligence can now run agentic workflows for problem root cause analysis."* (GA, rollout start 10/12/2026; re-read 10/23/2026), [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows).</sub>
+> <sub>**Sources:** [Agentic and generative AI (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai) — *"is capable of auto-executing generated DQL queries."*, [Agentic and generative AI FAQ (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-faq) — the licensing and generate-only quotes, [Dynatrace Intelligence (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence) — *"Dynatrace Intelligence can propose and run approved actions through agentic workflows and built-in agents operating under policy guardrails"* (Preview), [SaaS 1.348 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"Dynatrace Intelligence can now run agentic workflows for problem root cause analysis."* (GA, rollout start 10/12/2026; re-read 10/23/2026), [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows), [Run agents in Workflows (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-intelligence-integrations/dynatrace-intelligence-run-agent-workflows) — *"Starting with Dynatrace version 1.347+, using Dynatrace Intelligence AI outside the Assist UI, Dashboards, and Notebooks is subject to license consumption"*; *"no longer able to use agentic AI workflow actions"*; *"all other Dynatrace Intelligence agentic and generative AI functionality might be throttled due to reaching the request limit"* (read 11/11/2026).</sub>
 
 <a id="audit"></a>
 ## 7. Audit Trail and Explainability
@@ -278,15 +280,17 @@ ALLOW document:documents:delete;
 ALLOW hub:catalog:read;
 ALLOW mcp-gateway:servers:invoke;
 ALLOW mcp-gateway:servers:read;
+// Run agent workflow action (Dynatrace Intelligence in Workflows) additionally needs:
+ALLOW ai:operator:execute;
 ```
 
-Combined with the user's existing data-access scopes (storage, settings, entities), this composes into the user's effective Assist capability. The IAM model is the same as any other Dynatrace service. Without the agentic block, a user gets an Assist that cannot call its tools. The statement names above were re-read against the IAM policy reference and the agentic getting-started page on 10/02/2026 — re-verify when authoring policies, since new Assist skills and tools add new statements over time.
+Combined with the user's existing data-access scopes (storage, settings, entities), this composes into the user's effective Assist capability. The IAM model is the same as any other Dynatrace service. Without the agentic block, a user gets an Assist that cannot call its tools. The statement names above were re-read against the IAM policy reference and the agentic getting-started page on 10/02/2026, and `ai:operator:execute` against the Run agents in Workflows page on 11/11/2026 — re-verify when authoring policies, since new Assist skills and tools add new statements over time.
 
 ### Practical implication
 
 A security reviewer asking "can a junior engineer use Assist to ask about sensitive production data?" gets a precise answer: *only if that junior engineer can already see sensitive production data through normal IAM*. Assist is not a side channel.
 
-> <sub>**Sources:** [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — re-read 10/02/2026, enumerates `davis-copilot:conversations:execute`, `davis-copilot:nl2dql:execute`, `davis-copilot:dql2nl:execute`, `davis-copilot:document-search:execute`, `davis:analyzers:read`, `davis:analyzers:execute`, `mcp-gateway:servers:invoke` and `mcp-gateway:servers:read`. Also: [Agentic and generative AI (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai). [Get started with agentic and generative AI (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-getting-started) — the agentic permission list (*"To get access to the full functionality of Dynatrace Intelligence agentic AI, including the tools, you'll need the following permissions"*) and the user-scope quote above.</sub>
+> <sub>**Sources:** [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — re-read 10/02/2026, enumerates `davis-copilot:conversations:execute`, `davis-copilot:nl2dql:execute`, `davis-copilot:dql2nl:execute`, `davis-copilot:document-search:execute`, `davis:analyzers:read`, `davis:analyzers:execute`, `mcp-gateway:servers:invoke` and `mcp-gateway:servers:read`. Also: [Agentic and generative AI (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai). [Get started with agentic and generative AI (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-getting-started) — the agentic permission list (*"To get access to the full functionality of Dynatrace Intelligence agentic AI, including the tools, you'll need the following permissions"*) and the user-scope quote above. [Run agents in Workflows (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-intelligence-integrations/dynatrace-intelligence-run-agent-workflows) — *"To use the Dynatrace Intelligence agentic AI workflow action, ensure that you have the following permissions"*, listing `ai:operator:execute`, `mcp-gateway:servers:invoke`, `mcp-gateway:servers:read` and `document:documents:read`.</sub>
 
 <a id="compliance"></a>
 ## 9. Compliance Posture
@@ -327,9 +331,11 @@ This surface is on the *other side of the question*. It is not Dynatrace using A
 |--------|----------------|
 | **Token cost per app/model/user** | LLM spend can explode silently; this is the single most-cited operational pain in production GenAI. |
 | **End-to-end latency** | LLM-call latency dominates user-perceived latency in most GenAI apps. Trace-level visibility into the model call vs the retrieval vs the embedding step is load-bearing for SLO. |
-| **Response-quality evaluations** | Online LLM-as-a-judge evaluations, run with the open-source `dt-evals` CLI, score production traces for hallucinations, faithfulness to retrieved context, PII leakage, prompt injection, and harmful bias. Each score is written back as a business event linked to its trace. |
-| **Quality drift** | `dt-evals` compares recent evaluation scores against a rolling baseline of earlier results to surface regressions. |
+| **Response-quality evaluations** | Score the quality, safety, and relevance of GenAI and agent responses with **Arize AX**, which supports LLM-as-a-judge, agent-as-a-judge, and code evaluators. |
+| **Model and data drift** | Changes in model accuracy due to shifting input data, and input-data stationarity monitored to anticipate them. |
 | **Vector DB and semantic-cache performance** | Vector databases and semantic caches (for example Milvus, Weaviate, Qdrant) are monitored to identify performance bottlenecks and usage anomalies in the retrieval step. |
+
+> **`dt-evals` and the Evaluations tab are being retired (AI Observability docs, updated 10/30/2026).** *"dt-evals and the Evaluations tab in the AI Observability app are being retired."* Evaluation results already written to Dynatrace remain available as business events (`event.type == "gen_ai.evaluation.result"`) for as long as your bucket retention keeps them. To run and analyze new evaluations, the page points to **Arize AX**.
 
 ### OpenTelemetry GenAI semantic conventions
 
@@ -337,9 +343,9 @@ Dynatrace's AI Observability is compatible with the OpenTelemetry GenAI semantic
 
 ### Why this is a risk *reducer*
 
-In community practice, the framing that lands is AI Observability as a risk *reducer*. A common board-level concern: *we're shipping a customer-facing LLM app — what could go wrong?* The honest answer is: cost, latency, hallucination, prompt injection, drift. AI Observability turns each of those from an unknown into a metric you can SLO against. For a security review that asks "are you taking AI risk in production?", the response is *yes, and here is the instrumentation that gives us the same posture for the AI workload that we have for the rest of the stack.*
+In community practice, the framing that lands is AI Observability as a risk *reducer*. A common board-level concern: *we're shipping a customer-facing LLM app — what could go wrong?* The honest answer is: cost, latency, hallucination, prompt injection, drift. AI Observability — with evaluations in Arize AX for response quality — turns each of those from an unknown into a metric you can SLO against. For a security review that asks "are you taking AI risk in production?", the response is *yes, and here is the instrumentation that gives us the same posture for the AI workload that we have for the rest of the stack.*
 
-> <sub>**Sources:** [Dynatrace AI Observability (DT docs)](https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability) — *"Run online, LLM-as-a-judge evaluations against production AI and agent traces and prompts already available in Dynatrace"*; *"dt-evals includes more than 10 built-in LLM judge evaluators"*; vector DBs and semantic caches monitored *"to help identify performance bottlenecks and usage anomalies"* (read 10/02/2026), [OpenTelemetry GenAI semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/).</sub>
+> <sub>**Sources:** [Dynatrace AI Observability (DT docs)](https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability) — *"dt-evals and the Evaluations tab in the AI Observability app are being retired."*; *"To run and analyze evaluations of your LLM applications and agents, use Arize AX"*; *"Arize AX supports LLM-as-a-judge, agent-as-a-judge, and code evaluators."*; *"Model drift: Changes in model accuracy due to shifting input data."*; vector DBs and semantic caches monitored *"to help identify performance bottlenecks and usage anomalies"* (read 11/11/2026), [OpenTelemetry GenAI semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/).</sub>
 
 <a id="decision-framework"></a>
 ## 11. Decision Framework — When to Lean In vs Hold Back
@@ -399,7 +405,7 @@ EU AI Act applicability for the Generative surface is *Limited Risk* in the comm
 The Causal AI and Predictive AI surfaces are core platform features and broadly always-on. The Generative AI surface (Assist) has an explicit environment switch — **Settings → Dynatrace Intelligence → Generative and agentic AI → Enable generative AI** — which is on by default for tenants created from Dynatrace 1.335 onwards. Turn it off to opt out for the whole environment; independently, you can choose not to grant the `davis-copilot:*` capability to any user.
 
 **"AI Observability — does that mean Dynatrace AI is looking at our AI apps?"**
-No. AI Observability is *your team* observing *your own* GenAI apps using Dynatrace as the observability platform — same as you would use Dynatrace to observe any other application stack. By default no Dynatrace AI operates on your app's outputs; it's standard OpenTelemetry-based instrumentation surfaced in Dynatrace. The exception is one you choose to run: LLM-as-a-judge evaluations (`dt-evals`), where an LLM judge scores production traces and writes the scores back to Dynatrace (§10).
+No. AI Observability is *your team* observing *your own* GenAI apps using Dynatrace as the observability platform — same as you would use Dynatrace to observe any other application stack. By default no Dynatrace AI operates on your app's outputs; it's standard OpenTelemetry-based instrumentation surfaced in Dynatrace. The exception is one you choose to run: response-quality evaluations, where an LLM judge scores your app's outputs. The AI Observability docs now point to Arize AX for these — `dt-evals` and the app's Evaluations tab are being retired, and results already written to Dynatrace stay available as business events (§10).
 
 > <sub>**Sources:** [Get started with agentic and generative AI (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-getting-started) — *"You can see and change the setting in Settings > Dynatrace Intelligence > Generative and agentic AI > Enable generative AI if you'd like to opt out."* The other claims map back to the Sources blocks in §§3–10 above. **Softened** throughout — these are summary responses; the load-bearing verifications happen in the cited sections.</sub>
 
