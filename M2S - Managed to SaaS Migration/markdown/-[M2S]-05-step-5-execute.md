@@ -1,6 +1,6 @@
 # M2S-05: Step 5 — Execute: Migrate Configuration and Agents
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 5 of 9 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 5 of 9 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 11/10/2026
 
 With your SaaS environment prepared, it is time to execute the migration. This step covers deploying configurations via the SaaS Upgrade Assistant in dependency-ordered waves, redirecting OneAgents from Managed to SaaS, and validating data flow after each wave. By the end of this step, all hosts and services will be reporting to your SaaS tenant.
 
@@ -340,12 +340,12 @@ The `oneagentctl` reconfigure method above applies to **host-based OneAgents** (
 |---------|--------------------|--------------------|
 | **Host VM** (GCE / EC2 / on-prem) | `oneagentctl --set-server` + `--set-tenant` + `--set-tenant-token` (+ `--set-network-zone`) + `--restart-service`, as above | Restart the OneAgent service **and** restart app processes to re-inject deep monitoring |
 | **Kubernetes / GKE** (Dynatrace Operator / DynaKube) | `spec.apiUrl` is **immutable** (Operator 1.3.0+): delete the DynaKube custom resource and its token secret, recreate both against the new `apiUrl`, then roll the workloads | Rolling pod restart adopts the new tenant; no node restart |
-| **Cloud Run — Java / Node.js** (OneAgent) | OneAgent tenant credentials are baked in as **build-time image arguments** (`DT_API_URL`, `DT_API_TOKEN`): rebuild the image against the new tenant and deploy a new revision | The new revision *is* both the redirect and the re-injection |
+| **Cloud Run — Java / Node.js / Python** (OneAgent) | OneAgent connection parameters (`DT_TENANT`, `DT_TENANTTOKEN`, `DT_CONNECTION_POINT`) are stored in **Secret Manager**: update the secrets for the new tenant and deploy a new revision | The new revision *is* both the redirect and the re-injection |
 | **Cloud Run — other runtimes / OTLP apps** | Repoint the OTLP exporter endpoint and API token, then deploy a new revision | New revision |
 
 > **Key difference from VMs:** On containerized and serverless surfaces the redirect and the deep-code re-injection are the **same action** — the rolled pods or the new revision. There is no separate "now also restart your applications" step the way there is on a VM, because the workload is recreated from scratch on every deploy.
 
-**Cloud Run runtime caveat:** OneAgent monitoring of Cloud Run managed is currently limited to **Java and Node.js**; other runtimes (Go, Python, .NET) report via **OTLP** rather than OneAgent — verify current runtime support before planning the redirect. Cloud Run instances appear on the **Hosts** page, and first-generation execution environments do not expose CPU/memory metrics.
+**Cloud Run runtime caveat:** the Cloud Run setup page gives OneAgent build steps for **Java, Node.js and Python** (Python added 10/28/2026); other runtimes report via **OTLP** rather than OneAgent — verify current runtime support before planning the redirect. If your images were built with the earlier setup, which passed tenant values as build arguments, rebuild them with the current steps. Cloud Run instances appear on the **Hosts** page, and first-generation execution environments do not expose CPU/memory metrics.
 
 <a id="migration-wave-execution"></a>
 

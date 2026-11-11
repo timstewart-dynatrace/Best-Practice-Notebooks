@@ -1,6 +1,6 @@
 # ONBRD-04: Cloud & SaaS Integrations
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 10/27/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 11/10/2026
 
 ## Extending Visibility Beyond OneAgent
 While OneAgent provides deep application and infrastructure monitoring, many organizations need visibility into cloud services and SaaS platforms that can't run an agent. This notebook covers how to integrate AWS, Azure, GCP, and third-party SaaS tools into Dynatrace.
@@ -37,7 +37,7 @@ Dynatrace offers multiple integration methods depending on the data source:
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Method | When to Use | Requires AG? |
 |--------|-------------|--------------|
-| Clouds App | AWS (GA) / Azure (SaaS 1.337+) — direct connection; GCP in Preview (SaaS 1.348) | No |
+| Clouds App | AWS (GA) / Azure (SaaS 1.337+) — direct connection; GCP GA (announced SaaS 1.348) | No |
 | AG-Polling (Classic) | AWS/Azure without Clouds app; restricted networks | Yes |
 | Extensions 2.0 | Custom data sources, SaaS APIs, SNMP, on-host integrations | Remote: AG group; local: OneAgent |
 | OTel Direct | OTel-instrumented apps and collectors | No (OTLP) |
@@ -46,8 +46,8 @@ For environments where SVG doesn't render
 
 | Method | Use Case | Requires ActiveGate? |
 |--------|----------|---------------------|
-| **Clouds App (recommended where supported)** | AWS (GA), Azure (SaaS 1.337+); GCP listed as **Preview** and announced in SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout) — verify it has reached your tenant | No (direct connection) |
-| **Cloud Integrations (Classic)** | AWS / Azure where the Clouds app is not used (ActiveGate polling); GCP through the `dynatrace-gcp-monitor` collector on GKE or Cloud Functions | AWS / Azure: Yes — on SaaS hosted on AWS, Dynatrace provides one for the built-in AWS services · GCP: No on SaaS |
+| **Clouds App (recommended where supported)** | AWS (GA), Azure (SaaS 1.337+); GCP generally available (docs, 10/29/2026), announced in SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout) — verify it has reached your tenant | No (direct connection) |
+| **Cloud Integrations (Classic)** | AWS / Azure where the Clouds app is not used (ActiveGate polling); GCP through the `dynatrace-gcp-monitor` collector on GKE | AWS / Azure: Yes — on SaaS hosted on AWS, Dynatrace provides one for the built-in AWS services · GCP: No on SaaS |
 | **Extensions 2.0** *(current framework)* | Custom data sources, SaaS APIs, on-host integrations | Remote extensions: an ActiveGate group · local (on-host) extensions: OneAgent |
 | **OpenTelemetry** | OTel-instrumented apps | No (direct OTLP ingest) |
 | **Log Ingest** | External log sources | Optional (AG can route) |
@@ -59,7 +59,7 @@ For environments where SVG doesn't render
 |--------|--------------------------|
 | **AWS** | Clouds app (GA) — direct connection |
 | **Azure** | Clouds app — direct connection (SaaS 1.337+); *"no need to deploy ActiveGate compute resources for metric polling"* ([Azure Cloud Platform Monitoring (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-onboarding)) |
-| **GCP** | Classic `dynatrace-gcp-monitor` (GKE or Cloud Function, no AG on SaaS) until the Clouds connection reaches your tenant; then evaluate it |
+| **GCP** | Classic `dynatrace-gcp-monitor` (on GKE, no AG on SaaS) until the Clouds connection reaches your tenant; then evaluate it |
 | **AWS Lambda** | Clouds app for CloudWatch metrics; OneAgent Lambda layer for traces and logs, with `DT_TAGS` primary fields (OneAgent 1.337+) |
 | **Custom DB / SaaS / SNMP** | Extensions 2.0 — remote extensions on an AG group |
 | **OTel-instrumented app** | OTLP ingest direct to Dynatrace |
@@ -187,7 +187,7 @@ Use only where the Clouds app is not used:
 
 The GCP integration uses Cloud Monitoring (formerly Stackdriver) APIs.
 
-> **Status note (10/2026):** Dynatrace's GCP setup page lists **GCP Cloud Platform Monitoring (Preview)**: *"Connect your Google Cloud accounts to Dynatrace and manage the newly created GCP connections entirely from Clouds."* SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout) announces the new Clouds experience for Google Cloud: *"There’s no need to deploy ActiveGate compute resources for metric polling within your Google Cloud environment."* Verify it has reached your tenant before planning around it. Until it does, the classic integration below is the working path. Review the **CLOUD series** for per-provider detail.
+> **Status note (11/2026):** Dynatrace's GCP pages record *"GCP Cloud Platform Monitoring is now generally available."* (10/29/2026). The setup page: *"Connect your Google Cloud accounts to Dynatrace and manage your GCP environment with full observability."* SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout) announces the new Clouds experience for Google Cloud: *"There’s no need to deploy ActiveGate compute resources for metric polling within your Google Cloud environment."* Verify it has reached your tenant before planning around it. Until it does, the classic integration below is the working path. Review the **CLOUD series** for per-provider detail.
 
 ### Supported Services
 
@@ -203,14 +203,14 @@ The GCP integration uses Cloud Monitoring (formerly Stackdriver) APIs.
 
 The classic integration is a collector you deploy inside Google Cloud. On SaaS it sends straight to your environment, so it needs **no ActiveGate**:
 
-1. Deploy `dynatrace-gcp-monitor` with Helm on a GKE cluster — a new GKE Autopilot cluster is the recommended option — or deploy the metric integration as a Google Cloud Function.
+1. Deploy `dynatrace-gcp-monitor` with Helm on a GKE cluster — a new GKE Autopilot cluster is the recommended option. The Cloud Function deployment is no longer an option: *"Dynatrace Google Cloud metric integration in Google Cloud Functions is not supported anymore."*
 2. Create the custom GCP role the setup page defines for the deployment (it covers GKE, Pub/Sub and related permissions, not just a read-only monitoring role).
 3. Create a Dynatrace token from the **GCP Services Monitoring** template (the setup page creates it in **Access Tokens**).
 4. Set `dynatraceUrl` to your environment: *"For SaaS log/metric ingestion, it's your environment URL ( https://<your-environment-id>.live.dynatrace.com )."*
 
 An ActiveGate appears in the classic setup only as a Managed option: *"For Managed deployments: You can use an existing ActiveGate for log ingestion."*
 
-> <sub>**Sources:** [Set up Dynatrace on Google Cloud (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform), [SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348), [Google Cloud monitoring guide (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-integrations/gcp-guide), [Set up the Dynatrace GCP integration on GKE (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-integrations/gcp-guide/deploy-k8) — *"Under Template , select GCP Services Monitoring ."*</sub>
+> <sub>**Sources:** [Set up Dynatrace on Google Cloud (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform), [SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348), [Google Cloud monitoring guide (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform-classic/gcp-integrations/gcp-guide), [Set up the Dynatrace GCP integration on GKE (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform-classic/gcp-integrations/gcp-guide/deploy-k8) — *"Under Template , select GCP Services Monitoring ."*, [Deploy the Google Cloud metric integration in Cloud Functions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform-classic/gcp-integrations/gcp-guide/deploy-with-google-cloud-function)</sub>
 
 <a id="extensions-20-framework"></a>
 ## 5. Extensions Framework
@@ -476,7 +476,7 @@ With cloud and SaaS integrations configured:
 In this notebook, you learned:
 
 - The integration method matrix (Clouds app / AG polling / Extensions / OTel / Ingest APIs)
-- Per-provider status (AWS GA, Azure direct connection since SaaS 1.337, GCP Clouds connection in Preview; classic GCP needs no AG on SaaS)
+- Per-provider status (AWS GA, Azure direct connection since SaaS 1.337, GCP Clouds connection GA (10/29/2026); classic GCP needs no AG on SaaS)
 - AWS, Azure, and GCP setup paths
 - Extensions 2.0 as the current extensions framework
 - Dynatrace Hub for discovery
@@ -494,7 +494,7 @@ In this notebook, you learned:
 - [Azure Cloud Platform Monitoring (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-onboarding) — the no-ActiveGate quote above
 - [What's new in Dynatrace SaaS 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337)
 - [Set up Dynatrace on Google Cloud (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform)
-- [Set up the Dynatrace GCP integration on GKE (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-integrations/gcp-guide/deploy-k8)
+- [Set up the Dynatrace GCP integration on GKE (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform-classic/gcp-integrations/gcp-guide/deploy-k8)
 - [AWS CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/cloudwatch-metrics)
 - [Extensions Framework](https://docs.dynatrace.com/docs/ingest-from/extensions)
 - [Dynatrace Hub](https://docs.dynatrace.com/docs/manage/hub)

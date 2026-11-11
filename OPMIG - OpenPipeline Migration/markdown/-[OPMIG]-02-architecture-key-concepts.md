@@ -1,6 +1,6 @@
 # OPMIG-02: OpenPipeline Migration Guide: Part 2
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 10/30/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 11/06/2026
 
 ## Architecture & Key Concepts
 ---
@@ -326,7 +326,7 @@ This comprehensive reference contains ALL OpenPipeline limits you need to know f
 
 | Data Type | Earliest accepted timestamp (older → **dropped** before processing) | Timestamp more than 10 min in the future |
 |-----------|---------------|----------------------|
-| **Logs** | Ingest time minus 24 hours. From **SaaS 1.348** (rollout start 10/12/2026, staged tenant rollout): 72 hours — verify the new window has reached your tenant; 24 hours remains the working value until then | **Adjusted** to ingest time + 10 min |
+| **Logs** | Ingest time minus the log age limit: 72 hours for environments created after **SaaS 1.348**; 24 hours for older environments unless Dynatrace Support raises it to 72 on request | **Adjusted** to ingest time + 10 min |
 | **Spans** | 60 minutes past (end time) † | Not adjusted (the adjustment doesn't apply to spans) |
 | **Events** | Ingest time minus 24 hours | **Adjusted** to ingest time + 10 min |
 | **Business Events** | Ingest time minus 24 hours | **Adjusted** to ingest time + 10 min |
@@ -447,6 +447,7 @@ The limits page does not publish a general ban on creating `dt.*` fields, but th
 > - <sub>[OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits) — *"If the timestamp is more than 10 minutes in the future, it's adjusted to the ingest server time plus 10 minutes."*; *"The request payload size maximum limit is 10 MB per configuration scope."*; *"Once the available processing memory is exhausted, the record is dropped."*</sub>
 > - <sub>[Log Management and Analytics default limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-limits) — *Nested objects*: 5 levels; *Number of log attributes*: 500.</sub>
 > - <sub>[What's new in SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"The log ingestion pipeline now accepts log records with timestamps up to 72 hours in the past, extended from the previous 24-hour limit."*</sub>
+> - <sub>[Log Management and Analytics default limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits) — *"For environments created after Dynatrace version 1.348 was released, the default log age limit is 72 hours."* *"For environments created before Dynatrace version 1.348 was released, the default log age limit is 24 hours. The limit can be increased to 72 hours on request."*</sub>
 
 ---
 

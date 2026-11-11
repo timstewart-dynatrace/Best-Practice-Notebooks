@@ -1,6 +1,6 @@
 # ONBRD-03: Deploying ActiveGate
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 3 of 10 | **Created:** December 2025 | **Last Updated:** 11/03/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 3 of 10 | **Created:** December 2025 | **Last Updated:** 11/10/2026
 
 ## Your Network Gateway to Dynatrace
 ActiveGate is a lightweight component that routes traffic between your infrastructure and Dynatrace. This notebook covers when you need ActiveGate, how many to deploy, where to place them, and installation steps - including comprehensive Kubernetes deployment options.
@@ -109,11 +109,11 @@ Dynatrace defines two support levels for third-party technologies:
 > |-------|-------------------|--------------|
 > | **AWS** | GA — direct connection supported | No (when using Clouds app) |
 > | **Azure** | Direct connection (SaaS 1.337+) — *"no need to deploy ActiveGate compute resources for metric polling"* | No (when using Clouds app) |
-> | **GCP** | Clouds connection listed as **Preview** on the setup page; SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout) announces it with *"no need to deploy ActiveGate compute resources for metric polling within your Google Cloud environment"* — verify it has reached your tenant | **No.** The classic integration (`dynatrace-gcp-monitor`, deployed on GKE or as a Cloud Function) sends straight to your environment URL on SaaS and remains the working path until the Clouds connection reaches you |
+> | **GCP** | Clouds connection generally available (docs, 10/29/2026); SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout) announces it with *"no need to deploy ActiveGate compute resources for metric polling within your Google Cloud environment"* — verify it has reached your tenant | **No.** The classic integration (`dynatrace-gcp-monitor`, deployed on GKE) sends straight to your environment URL on SaaS and remains the working path until the Clouds connection reaches you |
 >
 > ActiveGate is still required for **remote extensions**, **private synthetic locations**, and classic AWS / Azure polling where the Clouds app is not used. On SaaS, the GCP collector's *"dynatraceUrl"* is *"your environment URL"*; an ActiveGate appears there only as a Managed log-ingest option. See [Clouds app documentation](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring), [Azure Cloud Platform Monitoring (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-onboarding), [Set up Dynatrace on Google Cloud (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform) and the **CLOUD series** for per-provider deep dives.
 >
-> <sub>**Sources:** [Set up the Dynatrace GCP integration on GKE (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-integrations/gcp-guide/deploy-k8) — *"For Managed deployments: You can use an existing ActiveGate for log ingestion."*, [SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348), [AWS CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/cloudwatch-metrics) — *"An ActiveGate capable of monitoring your AWS account for classic (built-in) supported services is already provided and available within the Dynatrace AWS account (only for SaaS environments hosted on AWS)."*, [Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions) — *"Run extensions locally on the monitored host to collect data from local data sources with the Extension Execution Controller."*</sub>
+> <sub>**Sources:** [Set up the Dynatrace GCP integration on GKE (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform-classic/gcp-integrations/gcp-guide/deploy-k8) — *"For Managed deployments: You can use an existing ActiveGate for log ingestion."*, [SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348), [AWS CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/cloudwatch-metrics) — *"An ActiveGate capable of monitoring your AWS account for classic (built-in) supported services is already provided and available within the Dynatrace AWS account (only for SaaS environments hosted on AWS)."*, [Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions) — *"Run extensions locally on the monitored host to collect data from local data sources with the Extension Execution Controller."*</sub>
 
 > **Superseded modules.** *"For ActiveGates connected to Dynatrace tenants in Group 3 (Enhanced), the superseded modules are blocked from loading and will not execute."* That covers classic AWS, Azure, Cloud Foundry, Oracle database insights, VMware and memory dumps. The replacements are AWS and Azure Cloud Platform Monitoring, the Cloud Foundry extension, Databases, and the VMware (remote monitoring) extension. Memory dumps have *"No successor solution"*. Check which group your tenant is in before you plan an ActiveGate for one of these.
 >
@@ -185,7 +185,7 @@ On SaaS, the connectivity scheme says OneAgent connects to the SaaS cluster *"di
 | Using remote extensions (DB / SNMP / API)? | AG required (local extensions run on OneAgent) | Continue |
 | Monitoring AWS (Clouds app GA)? | AG optional | AG required |
 | Monitoring Azure (Clouds app, SaaS 1.337+)? | AG optional | AG required |
-| Monitoring GCP? | No AG on SaaS — the classic collector runs on GKE or Cloud Functions; the Clouds connection (Preview) needs none | Continue |
+| Monitoring GCP? | No AG on SaaS — the classic collector runs on GKE; the Clouds connection (GA) needs none | Continue |
 | Many hosts behind one shared NAT / firewall egress? | Route via AG (see the egress note above) | Continue |
 | Want OneAgent egress through a few ActiveGates instead of every host? | Route via AG (see the trade-offs above) | Direct is fine |
 -->

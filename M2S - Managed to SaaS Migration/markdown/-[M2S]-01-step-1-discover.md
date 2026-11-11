@@ -1,6 +1,6 @@
 # M2S-01: Step 1 — Discover: Understand SaaS Differences
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 10/24/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 11/10/2026
 
 The first step in any Managed-to-SaaS migration is understanding what you are moving to and why. This notebook helps you document the benefits of Dynatrace SaaS for your organization, take inventory of your current Managed environment, and confirm your use cases and goals for the upgrade.
 
@@ -128,7 +128,7 @@ Migrating to SaaS eliminates operational overhead associated with running Manage
 
 > <sub>**Sources:**</sub>
 > - <sub>[Pre-upgrade information (DT docs)](https://docs.dynatrace.com/managed/upgrade/up-information) — Managed: *"Automatic upgrades every 4 weeks; OS Patches by Customer"*; SaaS: *"Automatic upgrades every 2 weeks; OS Security patches by Dynatrace ACE team."*</sub>
-> - <sub>[Update a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/update-cluster) — *"If your cluster consists of less than 3 nodes, Dynatrace Managed won't be accessible during the update process."*</sub>
+> - <sub>[Update a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/update-cluster) — *"If your Managed Cluster consists of fewer than three nodes, Dynatrace Managed will not be accessible during the update process."*</sub>
 > - <sub>[Dynatrace SaaS SLA (Dynatrace)](https://www.dynatrace.com/company/trust-center/sla/saas/)</sub>
 
 <a id="review-your-current-environment"></a>

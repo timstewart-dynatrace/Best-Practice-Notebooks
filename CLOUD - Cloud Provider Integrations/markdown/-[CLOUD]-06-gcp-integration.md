@@ -1,6 +1,6 @@
 # CLOUD-06: GCP Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 6 of 8 | **Created:** March 2026 | **Last Updated:** 10/19/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 6 of 8 | **Created:** March 2026 | **Last Updated:** 11/10/2026
 
 ## Overview
 
@@ -30,7 +30,7 @@ This notebook covers Dynatrace's integration with Google Cloud (GCP): the two co
 | **Dynatrace Environment** | SaaS with Grail (the DQL cells do not run on Dynatrace Managed) |
 | **Permissions** | `storage:metrics:read`, `storage:smartscape:read`, `storage:entities:read`, `storage:logs:read`, `storage:events:read`, `storage:spans:read`, `storage:buckets:read` to run the queries; `settings:objects:read` / `settings:objects:write` to manage connections |
 | **GCP** | A project (or folder / organization) where you can create a service account and grant IAM roles |
-| **Connection** | A GCP connection in the Clouds app (Preview) or the `dynatrace-gcp-monitor` deployment on GKE |
+| **Connection** | A GCP connection in the Clouds app (GA) or the `dynatrace-gcp-monitor` deployment on GKE |
 | **Prior Knowledge** | CLOUD-01 fundamentals; CLOUD-03 for the Kubernetes material in §7 |
 
 <a id="gcp-architecture"></a>
@@ -43,11 +43,11 @@ Dynatrace reads Google Cloud through two different integration models, and they 
 
 | Method | Lifecycle | Mechanism | Best For |
 |---|---|---|---|
-| **GCP connection in the Clouds app** | **Preview** | Dynatrace SaaS impersonates a service account in your project — no keys, nothing to deploy. Topology from Cloud Asset Inventory, plus metrics and logs | New GCP onboarding where Preview is acceptable |
+| **GCP connection in the Clouds app** | **GA** (10/29/2026) | Dynatrace SaaS impersonates a service account in your project — no keys, nothing to deploy. Topology from Cloud Asset Inventory, plus metrics and logs | New GCP onboarding |
 | **`dynatrace-gcp-monitor` on GKE** | Maintenance mode | A container you run on GKE (Helm). It **polls** the Cloud Monitoring API for metrics and **pulls** logs from a Pub/Sub subscription | Production estates today; the working path until the Clouds-app connection reaches your tenant as a supported feature |
-| **OneAgent / OpenTelemetry** | Current | OneAgent on GCE and GKE; OneAgent (Java, Node.js) or OTLP on Cloud Run | Code-level traces and process metrics — a different signal from the two rows above |
+| **OneAgent / OpenTelemetry** | Current | OneAgent on GCE and GKE; OneAgent (Java, Node.js, Python) or OTLP on Cloud Run | Code-level traces and process metrics — a different signal from the two rows above |
 
-> **Lifecycle, stated plainly.** The `dynatrace-gcp-monitor` README says: *"This integration is in maintenance mode. A new GCP poller is under active development."* The Clouds-app GCP connection is labelled Preview in Dynatrace's onboarding docs. Neither is a reason to wait: run the GKE monitor where you need a supported path now, and trial the Clouds-app connection on a non-production project. The older **Cloud Function** deployment of the monitor is gone — the README: *"It is now deprecated and has no support."* There is no ActiveGate-based GCP polling integration.
+> **Lifecycle, stated plainly.** The `dynatrace-gcp-monitor` README says: *"This integration is in maintenance mode. A new GCP poller is under active development."* The Clouds-app GCP connection is generally available: Dynatrace's GCP pages record *"GCP Cloud Platform Monitoring is now generally available."* (10/29/2026). Start new onboarding with the Clouds-app connection once it has reached your tenant; existing `dynatrace-gcp-monitor` deployments keep working while you move. The older **Cloud Function** deployment of the monitor is gone — the README: *"It is now deprecated and has no support."* There is no ActiveGate-based GCP polling integration.
 
 ### Data Flow
 
@@ -56,8 +56,8 @@ Dynatrace reads Google Cloud through two different integration models, and they 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Model | Flow | Signal |
 |-------|------|--------|
-| Clouds-app connection (Preview) | Cloud Asset Inventory → Dynatrace SaaS | Topology (hourly scan + change feed) |
-| Clouds-app connection (Preview) | Cloud Monitoring API → Dynatrace SaaS | Metrics |
+| Clouds-app connection (GA) | Cloud Asset Inventory → Dynatrace SaaS | Topology (hourly scan + change feed) |
+| Clouds-app connection (GA) | Cloud Monitoring API → Dynatrace SaaS | Metrics |
 | dynatrace-gcp-monitor on GKE | Cloud Monitoring API → (polled every 1–10 min, default 3) → monitor → Dynatrace metrics API | Metrics |
 | dynatrace-gcp-monitor on GKE | Cloud Logging → Log Router sink → Pub/Sub topic → subscription → (pulled) → monitor → Logs Ingest API | Logs |
 For environments where SVG doesn't render
@@ -74,7 +74,7 @@ Pub/Sub carries **logs only**. Metrics are polled, never pushed through Pub/Sub 
 
 > <sub>**Sources:**</sub>
 > - <sub>[Google Cloud integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform)</sub>
-> - <sub>[GCP Cloud Platform Monitoring (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-onboarding) — page title *"GCP Cloud Platform Monitoring (Preview)"*</sub>
+> - <sub>[GCP Cloud Platform Monitoring (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-onboarding) — changelog 10/29/2026: *"GCP Cloud Platform Monitoring is now generally available."*</sub>
 > - <sub>[dynatrace-gcp-monitor README (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-gcp-monitor) — *"This integration is in maintenance mode. A new GCP poller is under active development."*</sub>
 > - <sub>[dynatrace-gcp-monitor Helm values (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-gcp-monitor/blob/master/k8s/helm-chart/dynatrace-gcp-monitor/values.yaml) — *"Metrics polling interval in minutes. Allowed values: 1 - 10"*</sub>
 
@@ -109,7 +109,7 @@ The monitor's deployment script creates **custom IAM roles** holding only what i
 > <sub>**Sources:**</sub>
 > - <sub>[Create your first GCP connection (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/create-a-gcp-connection) — *"Grant `roles/viewer` on each listed project"*; *"Grant the Dynatrace principal `roles/iam.serviceAccountTokenCreator` on the new service account (impersonation trust)."*</sub>
 > - <sub>[dynatrace_gcp_connection (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/gcp_connection.md) — *"This resource uses service account impersonation, which requires the Dynatrace GCP Principal to be granted the `roles/iam.serviceAccountTokenCreator` role on the impersonated service account."*</sub>
-> - <sub>[dynatrace-gcp-monitor on GKE (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-integrations/gcp-guide/deploy-k8)</sub>
+> - <sub>[dynatrace-gcp-monitor on GKE (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform-classic/gcp-integrations/gcp-guide/deploy-k8)</sub>
 > - <sub>[dynatrace-gcp-monitor Helm values (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-gcp-monitor/blob/master/k8s/helm-chart/dynatrace-gcp-monitor/values.yaml)</sub>
 
 <a id="supported-services"></a>
@@ -222,7 +222,7 @@ fetch dt.entity.cloud_application, from:-7d
 
 Cloud Monitoring metrics land in Grail under `cloud.gcp.*`. For `dynatrace-gcp-monitor`, the key is built from the Google metric type: `compute.googleapis.com/instance/cpu/utilization` becomes `cloud.gcp.compute_googleapis_com.instance.cpu.utilization` (dots in the service domain become underscores; `/` becomes `.`). Discover what your tenant actually holds before building on a key — a `timeseries` against a key that does not exist returns an empty result, not an error.
 
-> <sub>**Sources:** [dynatrace-gcp-monitor HACKING.md (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-gcp-monitor/blob/master/HACKING.md) — *"timeseries avg(cloud.gcp.compute_googleapis_com.instance.cpu.utilization)"*; [Compute Engine monitoring (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-integrations/google-compute-engine/compute-engine-monitoring) lists the source metric `compute.googleapis.com/instance/cpu/utilization`. **Derived:** the naming rule follows from the two forms side by side.</sub>
+> <sub>**Sources:** [dynatrace-gcp-monitor HACKING.md (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-gcp-monitor/blob/master/HACKING.md) — *"timeseries avg(cloud.gcp.compute_googleapis_com.instance.cpu.utilization)"*; [Compute Engine monitoring (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform-classic/gcp-integrations/google-compute-engine/compute-engine-monitoring) lists the source metric `compute.googleapis.com/instance/cpu/utilization`. **Derived:** the naming rule follows from the two forms side by side.</sub>
 
 ```dql
 // Discover the GCP metric keys present in this tenant (note: no comma before from:)
@@ -306,7 +306,7 @@ If these return nothing, check in order: the sink's writer identity has `roles/p
 
 > <sub>**Sources:**</sub>
 > - <sub>[dynatrace-gcp-monitor architecture (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-gcp-monitor/blob/master/docs/k8s.md) — *"Pub/Sub messages with log entries are polled by containerized `dynatrace-gcp-monitor`, processed, batched and sent to Dynatrace Log Ingest API."*</sub>
-> - <sub>[Set up GCP log integration — logs only (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-integrations/gcp-guide/set-up-gcp-integration-logs-only) — *"Autoscaling is recommended only when you have a minimum of 450 MB/min throughput and can provide a 4vCPU 4Gi RAM machine."* The sizing table above is reproduced from this page.</sub>
+> - <sub>[Set up GCP log integration — logs only (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform-classic/gcp-integrations/gcp-guide/set-up-gcp-integration-logs-only) — *"Autoscaling is recommended only when you have a minimum of 450 MB/min throughput and can provide a 4vCPU 4Gi RAM machine."* The sizing table above is reproduced from this page.</sub>
 > - <sub>[Cloud Audit Logs overview (Google Cloud)](https://docs.cloud.google.com/logging/docs/audit) — *"Except for BigQuery, Data Access audit logs are disabled by default because they can generate large volumes of data."*</sub>
 > - <sub>[LogSink REST reference (Google Cloud)](https://docs.cloud.google.com/logging/docs/reference/v2/rest/v2/projects.sinks) — *"Until you grant this identity write-access to the destination, log entry exports from this sink will fail."*</sub>
 > - <sub>[Pub/Sub pricing (Google Cloud)](https://cloud.google.com/pubsub/pricing) — *"Pub/Sub service charges are based on usage (the number of published, delivered, or stored bytes)."*</sub>
@@ -425,19 +425,19 @@ Cloud Run is GCP's serverless container platform. It shares some monitoring patt
 
 ### Cloud Run Monitoring: OneAgent Coverage and Caveats
 
-OneAgent monitoring of Cloud Run managed is **limited to Java and Node.js**. Cloud Run itself runs any container image, but OneAgent auto-injection does not cover every runtime — other runtimes (Go, Python, .NET) send telemetry via **OTLP** instead.
+The Cloud Run setup page gives OneAgent build steps for **Java, Node.js and Python** (Python added 10/28/2026). Cloud Run itself runs any container image; for a runtime without a build tab there (for example Go), send telemetry via **OTLP**. *"The runtime base image must be glibc-based. Alpine (musl libc) is not supported by the Dynatrace code module for any technology."* If you build with Cloud Build, mirror the codemodule image to a private registry: *"If you use Cloud Build, you may encounter toomanyrequests rate limit errors when pulling codemodule images directly from public ECR, because Cloud Build workers share IP address pools."*
 
 | Aspect | Detail |
 |---|---|
-| **Supported runtimes (OneAgent)** | Java and Node.js only — other runtimes use OTLP-direct |
-| **Credentials** | Baked in as **build-time image arguments** (`DT_API_URL`, `DT_API_TOKEN`) — repointing to a new tenant requires an image rebuild and a new revision |
+| **Runtimes with setup steps (OneAgent)** | Java, Node.js, Python — other runtimes use OTLP-direct |
+| **Credentials** | Runtime connection parameters (`DT_TENANT`, `DT_TENANTTOKEN`, `DT_CONNECTION_POINT`) stored in **Secret Manager**; the OneAgent binaries are copied into the image from a public codemodule image with `COPY --from` |
 | **Execution environments** | Gen1 vs Gen2 — **Gen1 does not expose CPU/memory metrics** (intentional security limits); Gen2 has no such restriction |
 | **Where instances appear** | On the **Hosts** page (with GCP properties and each instance's memory limit), not the Container groups page |
 | **Cold-start overhead** | Agent injection adds startup overhead; because each revision autoscales from zero, cold starts appear more often than on always-on hosts |
 
-> **Migration note:** because Cloud Run credentials are build-time image args, redirecting a Cloud Run workload to a new Dynatrace tenant means rebuilding the image and deploying a new revision — see **M2S-05: Step 5 — Execute** for the full serverless/container redirect matrix.
+> **Migration note:** because the connection parameters live in Secret Manager, redirecting a Cloud Run workload to a new Dynatrace tenant means updating those secrets and deploying a new revision — see **M2S-05: Step 5 — Execute** for the full serverless/container redirect matrix.
 
-> <sub>**Source:** [Monitor Google Cloud Run managed (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-integrations/cloudrun)</sub>
+> <sub>**Source:** [Monitor Google Cloud Run managed (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform-classic/gcp-integrations/cloudrun) — *"Retrieve and store connection credentials in Secret Manager."*</sub>
 
 ```dql
 // Cloud Run service spans in the last hour
@@ -505,12 +505,12 @@ Google Cloud has labels and tags, and *"Both can be promoted to primary Grail fi
 
 ### Key Takeaways
 
-- **Two models, two lifecycles:** the Clouds-app GCP connection (Preview; keyless service account impersonation, Cloud Asset Inventory topology) and `dynatrace-gcp-monitor` on GKE (maintenance mode; the working production path today). The Cloud Function deployment is unsupported
+- **Two models, two lifecycles:** the Clouds-app GCP connection (GA; keyless service account impersonation, Cloud Asset Inventory topology) and `dynatrace-gcp-monitor` on GKE (maintenance mode; keeps working until you move). The Cloud Function deployment is unsupported
 - **No keys in either model** — impersonation via `roles/iam.serviceAccountTokenCreator`, or Workload Identity Federation for GKE
 - **Pub/Sub carries logs only**; metrics are polled from Cloud Monitoring and land under `cloud.gcp.*`
 - **Query by model:** `smartscapeNodes "GCP_*"` for the Clouds-app connection, `` fetch `dt.entity.cloud:gcp:*` `` for the monitor
 - **Logs start at a Log Router sink** — aggregate at folder/organization with `includeChildren`, cut volume with exclusions before Pub/Sub bills it, and grant the writer identity `roles/pubsub.publisher`
-- **GKE Autopilot** admits the Operator's CSI driver through an allowlist the Helm chart creates for you; **Cloud Run** is OneAgent for Java/Node.js, OTLP (optionally via a Collector sidecar) for everything else
+- **GKE Autopilot** admits the Operator's CSI driver through an allowlist the Helm chart creates for you; **Cloud Run** is OneAgent for Java/Node.js/Python, OTLP (optionally via a Collector sidecar) for everything else
 - **Govern on `gcp.project.id` and labels**; IAM for access, segments for views
 
 ### Next Steps

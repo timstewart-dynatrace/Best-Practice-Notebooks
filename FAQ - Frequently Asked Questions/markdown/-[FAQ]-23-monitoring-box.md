@@ -1,6 +1,6 @@
 # FAQ-23: How Do I Monitor Box With Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 23 — Monitoring Box With Dynatrace | **Created:** August 2026 | **Last Updated:** 10/29/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 23 — Monitoring Box With Dynatrace | **Created:** August 2026 | **Last Updated:** 11/10/2026
 
 ## Overview
 
@@ -779,7 +779,7 @@ Whatever runs it needs monitoring of its own — see § 13.
 > - <sub>[Client Credentials Grant (Box Dev Docs)](https://developer.box.com/guides/authentication/client-credentials)</sub>
 > - <sub>[POST ingest logs (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/log-monitoring-v2/post-ingest-logs) — *"Platform Token / OAuth: One of the following scopes is required: openpipeline:logs:ingest storage:logs:write (legacy)"*</sub>
 > - <sub>[Upgrade from classic access tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Classic access tokens don't exist in latest environments, and v2/apiTokens isn't available."*</sub>
-> - <sub>[Log ingestion limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits) — *"200 - in case some of the events in the payload have timestamps earlier than the current time minus 24 hours."*</sub>
+> - <sub>[Log ingestion limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits) — *"200 - in case some of the events in the payload have timestamps earlier than the log age limit."*</sub>
 > - <sub>[List user and enterprise events (Box Dev Docs)](https://developer.box.com/reference/get-events) — *"`now` will return an empty list events and the latest stream position for initialization"*; *"Sometimes, the events less than the limit requested can be returned even when there may be more events remaining."*</sub>
 > - <sub>**Derived:** § 8.1's current-vs-deprecated verdict comes from PyPI release dates (re-checked 10/02/2026) against Box's deprecation notice</sub>
 
@@ -810,7 +810,7 @@ Whatever runs it needs monitoring of its own — see § 13.
 | Post-processing expansion | Rejected above **16 MB** | A batch inside 10 MB can still fail after processing. Halve on 413 |
 | Attributes per record | 500 | Ample for Box events |
 | Attribute value length | 32 kB | A large `additional_details` can approach this |
-| Log age | **24 h** — 72 h from SaaS 1.348 (staged tenant rollout) | A record timestamped earlier is **dropped**; a mixed batch returns **200** with a "not ingested" message, not an error. Backfill must not stamp old events with their event time (§ 7.3, § 8.2) |
+| Log age | **72 h** for environments created after SaaS 1.348; **24 h** for older ones (raised to 72 h on request) | A record timestamped earlier is **dropped**; a mixed batch returns **200** with a "not ingested" message, not an error. Backfill must not stamp old events with their event time (§ 7.3, § 8.2). If you cannot confirm your environment's limit, plan for 24 h |
 
 ### 9.2 Extract, then discard — in that order
 
@@ -842,7 +842,7 @@ Put Box events in a **dedicated bucket**. Two independent reasons, either suffic
 - **Access differs.** This feed names individuals and the documents they touched. It should be readable by security and compliance, not by everyone who can read application logs. A bucket is the boundary that makes that enforceable — see **ORGNZ**.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Log ingestion limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits) — *"The event is dropped if the log event contains a timestamp before the current time minus 24 hours."*</sub>
+> - <sub>[Log ingestion limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits) — *"The event is dropped if it contains a timestamp older than the configured log age limit."* *"For environments created after Dynatrace version 1.348 was released, the default log age limit is 72 hours."* *"For environments created before Dynatrace version 1.348 was released, the default log age limit is 24 hours. The limit can be increased to 72 hours on request."*</sub>
 > - <sub>[What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"Log ingestion now accepts log data up to 72 hours old"*; GA, rollout start 10/12/2026; re-read 10/23/2026</sub>
 > - <sub>[Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)</sub>
 > - <sub>[Configure data storage and retention for logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment) — *"This means you can extract metrics and generate alerts from records that you won't store."*</sub>

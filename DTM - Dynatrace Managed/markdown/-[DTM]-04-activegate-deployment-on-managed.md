@@ -1,6 +1,6 @@
 # DTM-04: ActiveGate Deployment on Managed
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 04 — ActiveGate Deployment on Managed | **Created:** October 2026 | **Last Updated:** 10/21/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 04 — ActiveGate Deployment on Managed | **Created:** October 2026 | **Last Updated:** 11/10/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -74,13 +74,13 @@ Both installable types matter: *"Dynatrace Managed deployments typically require
 
 **Decide how each Environment ActiveGate reaches the cluster.** By default it connects straight to the cluster nodes: *"Environment ActiveGates, by default, connect directly to the Dynatrace Cluster (unless custom network zones are used—see below)."* Route it through a Cluster ActiveGate only where that's needed: *"Connecting through the Cluster ActiveGate needs to be arranged, if the Dynatrace Cluster is not directly reachable. For example, if the Environment ActiveGate is in a different network or different data center."*
 
-**Install the ActiveGate before the OneAgents behind it.** For a segment with no other route, order matters: *"first install the ActiveGate and then download the OneAgent installer."* An installer downloaded earlier doesn't know about the ActiveGate, and the OneAgents have to be installed again.
+**Install the ActiveGate before the OneAgents behind it.** For a segment with no other route, order matters. For a Cluster ActiveGate the docs say: *"If OneAgent can reach Dynatrace only through this Cluster ActiveGate, such as in a network segment without internet access, install the Cluster ActiveGate before you install OneAgent."* Done the other way round, the OneAgents have to be installed again: *"If you installed OneAgent before this Cluster ActiveGate, and OneAgent can reach Dynatrace only through it, reinstall OneAgent."*
 
 **Keep ActiveGates on dedicated hosts.** *"For optimal performance and enhanced security, we recommend installing and running ActiveGate on a dedicated system."*
 
 > <sub>**Sources:**</sub>
 > - <sub>[Route OneAgent traffic (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/capabilities/routing-monitoring-purpose)</sub>
-> - <sub>[OneAgent connectivity in network zones (DT docs)](https://docs.dynatrace.com/managed/manage/network-zones/oneagent-connectivity)</sub>
+> - <sub>[OneAgent connectivity in network zones (DT docs)](https://docs.dynatrace.com/managed/manage/network-zones-classic/oneagent-connectivity)</sub>
 > - <sub>[Supported connectivity schemes for ActiveGates (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/supported-connectivity-schemes-for-activegates)</sub>
 > - <sub>[Install a Cluster ActiveGate (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/install-cluster-activegate) — *"In some cases, however, the installation order matters, because the OneAgent installer needs to know about your ActiveGate installation before the OneAgent can be installed."*</sub>
 > - <sub>[Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements)</sub>
@@ -108,8 +108,8 @@ Both installable types matter: *"Dynatrace Managed deployments typically require
 **Tell the ActiveGate about a load balancer in front of it.** Components discover each other's addresses automatically, *"unless there are networking devices (proxies, load balancers) in your environment, which should be taken into account, and of which Dynatrace is not aware."* For a load balancer between OneAgents and an ActiveGate, *"you should specify the load balancer's address as the dnsEntryPoint property in the ActiveGate configuration."* OneAgents need nothing: *"There is no need to configure OneAgent to use a reverse proxy."* For a load balancer between an ActiveGate and its next hop, the docs name `seedServerUrl` and `ignoreClusterRuntimeInfo`.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Get started with network zones (DT docs)](https://docs.dynatrace.com/managed/manage/network-zones/network-zones-basic-info)</sub>
-> - <sub>[ActiveGate connectivity in network zones (DT docs)](https://docs.dynatrace.com/managed/manage/network-zones/activegate-connectivity) — *"The preferable ActiveGate is the one with lowest possible index."*</sub>
+> - <sub>[Get started with network zones (DT docs)](https://docs.dynatrace.com/managed/manage/network-zones-classic/network-zones-basic-info)</sub>
+> - <sub>[ActiveGate connectivity in network zones (DT docs)](https://docs.dynatrace.com/managed/manage/network-zones-classic/activegate-connectivity) — *"The preferable ActiveGate is the one with lowest possible index."*</sub>
 > - <sub>[Multi-data center high availability (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/multi-data-centers)</sub>
 > - <sub>[Supported connectivity schemes for ActiveGates (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/supported-connectivity-schemes-for-activegates), [Reverse proxy or load balancer for OneAgent (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/configuration/set-up-reverse-proxy-for-oneagent)</sub>
 
@@ -164,7 +164,7 @@ Update windows are shared with OneAgent: *"The same update windows govern both O
 | Sizing figures for Cluster ActiveGates specifically | Use the routing table and the 50% CPU / 80% memory rule (§4); DTM-14 §9.4 has more |
 | Whether Cluster ActiveGates follow the Environment ActiveGate update modes and target version | Treat them separately: the toggle in Deployment Status (§7) |
 
-**Pages of different ages.** The Cluster ActiveGate update page was published 06/03/2020 and describes a single *Automatic updates* toggle. The ActiveGate update page, updated 07/14/2026, describes update modes, target versions and windows for Environment ActiveGates. This notebook follows each page for its own ActiveGate type.
+**Pages of different ages.** The Cluster ActiveGate update page was updated 10/22/2026 and still describes a single *Automatic updates* toggle. The ActiveGate update page, updated 07/14/2026, describes update modes, target versions and windows for Environment ActiveGates. This notebook follows each page for its own ActiveGate type.
 
 **A port that two pages state differently** — 9999 or 443 for the Cluster ActiveGate's inbound hop — is recorded in DTM-14 §10.
 

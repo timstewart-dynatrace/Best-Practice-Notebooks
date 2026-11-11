@@ -1,6 +1,6 @@
 # DTM-03: Environment Best Practices
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 03 — Environment Best Practices | **Created:** October 2026 | **Last Updated:** 10/21/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 03 — Environment Best Practices | **Created:** October 2026 | **Last Updated:** 11/10/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -81,7 +81,7 @@ They are hard limits: *"Once any one of these limits is consumed, the respective
 
 **Two related decisions:**
 
-- **Synthetic monitors** can be switched off when the environment is created: *"You can disable synthetic monitors by setting the Enable synthetic monitors switch to the off position."*
+- **Synthetic monitors** can be switched off when the environment is created: *"To disable synthetic monitors, turn off Enable synthetic monitors ."*
 - **Overload prevention and the ingest limit** are on the same page and are covered in DTM-15 §6. Revisit them after every hardware change.
 
 > <sub>**Sources:** [Manage your monitoring environments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/manage-your-monitoring-environments) — *"On the configuration page, you can set the total as well as the monthly and annual quotas for your environment."*</sub>
@@ -168,7 +168,7 @@ ALLOW environment:roles:viewer WHERE environment:management-zone IN ("prod");
 | How the administrator account signs in when the login page is set to *SSO* and the identity provider is down | Confirm the recovery path before choosing *SSO* (§5) |
 | Default values for an environment's quotas and retention | Set every one deliberately (§3) |
 
-**Old pages.** The environment, user-group, LDAP, SAML and OpenID pages carry publication dates from 2017 and 2018 and no later update date. The IAM policy page was updated 10/08/2026. Check the CMC itself where a page and the console disagree.
+**Old pages.** The user-group, LDAP, SAML and OpenID pages carry publication dates from 2017 and 2018 and no later update date. The environment page was updated 10/22/2026 and the IAM policy page 10/28/2026. Check the CMC itself where a page and the console disagree.
 
 > <sub>**Sources:** [Manage your monitoring environments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/manage-your-monitoring-environments), [User groups, permissions, and policies (DT docs)](https://docs.dynatrace.com/managed/manage/identity-access-management/user-and-group-management/user-groups-and-permissions), [Upgrade role-based permissions to Dynatrace IAM policies (Dynatrace Classic) (DT docs)](https://docs.dynatrace.com/managed/manage/identity-access-management-classic/permission-management/manage-user-permissions-policies/advanced/migrate-roles-classic).</sub>
 

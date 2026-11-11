@@ -1,6 +1,6 @@
 # DTM-15: Capacity and Scaling
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 15 — Capacity and Scaling | **Created:** September 2026 | **Last Updated:** 10/29/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 15 — Capacity and Scaling | **Created:** September 2026 | **Last Updated:** 11/10/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -52,7 +52,7 @@ A Managed cluster can have every node up, every store healthy and every link ope
 - **Adaptive load reduction is the headline signal.** Occasional episodes are fine; *"consistent use for intervals of 15 minutes or longer"* costs data accuracy. It can email you; cluster traffic control and heap-memory pressure can't.
 - **Every hardware change needs a configuration change.** *"Update the Managed Cluster ingest limit via Cluster Management Console or REST API whenever hardware changes."*
 
-> <sub>**Sources:** [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements), [Single-cluster high availability (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability), [Adaptive traffic management for Managed (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/adaptive-traffic-management-managed), [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications).</sub>
+> <sub>**Sources:** [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements), [Single-cluster high availability (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability), [Adaptive traffic management for Managed (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/adaptive-traffic-management-managed), [Event notification reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference).</sub>
 
 <a id="sizing-model"></a>
 ## 2. The Sizing Model
@@ -69,17 +69,17 @@ A Managed cluster can have every node up, every store healthy and every link ope
 
 **Two limits, not one.** *"Both columns are limits, so check which one your environment reaches first. Hosts with a lot of memory usually reach the host units limit first, while many small hosts usually reach the OneAgent limit first."*
 
-Storage per node size is in DTM-12 §3 (metrics) and DTM-13 §3 (Elasticsearch). The docs give three worked examples: *"To monitor up to 7,500 host units and up to 2,400 Full-Stack OneAgents with a peak load of 300,000 user actions per minute, you need 3 XLarge nodes"*; *"To monitor 500 host units and up to 300 Full-Stack OneAgents with a peak load of 25,000 user actions per minute, you need 3 Small nodes"*; and, for many small hosts, 900 hosts of 8 GiB need 4 Medium nodes, because *"Based on host units alone, 3 Small nodes would be enough, but they serve only 300 Full-Stack OneAgents."*
+Storage per node size is in DTM-12 §3 (metrics) and DTM-13 §3 (Elasticsearch). The docs give three worked examples: *"To monitor up to 7,500 host units and up to 2,400 Full-Stack OneAgents with a peak load of 300,000 user actions per minute, you need three XLarge nodes"*; *"To monitor 500 host units and up to 300 Full-Stack OneAgents with a peak load of 25,000 user actions per minute, you need three Small nodes"*; and, for many small hosts, 900 hosts of 8 GiB need 4 Medium nodes, because *"Based on host units alone, three Small nodes would be enough, but they serve only 300 Full-Stack OneAgents."*
 
-**What a host unit is.** Host units are sized by memory, not by what runs on the host: *"We use the amount of RAM on a monitored server as a measuring stick to determine the size of a host"* For full-stack monitoring, *"a host with 16 GB of RAM (or any portion thereof) equates to 1 host unit."*
+**What a host unit is.** Host units are sized by memory, not by what runs on the host: *"We use the amount of RAM on a monitored server as a measuring stick to determine the size of a host"* For full-stack monitoring, *"a host with 16 GB of RAM (or any portion thereof) equates to one host unit."*
 
-**Premium HA sizes differently.** The Premium High Availability table gives a Large node 600 host units, 350 Full-Stack OneAgents and 25,000 user actions per minute (standard: 1,250, 500 and 50,000), and an XLarge node 1,250, 700 and 50,000 (standard: 2,500, 800 and 100,000), so roughly half for host units and user actions. Its worked example needs twice the nodes for the same load: *"you need 6 XLarge nodes. Place 3 nodes in one data center and 3 nodes in a second data center"*.
+**Premium HA sizes differently.** The Premium High Availability table gives a Large node 600 host units, 350 Full-Stack OneAgents and 25,000 user actions per minute (standard: 1,250, 500 and 50,000), and an XLarge node 1,250, 700 and 50,000 (standard: 2,500, 800 and 100,000), so roughly half for host units and user actions. Its worked example needs twice the nodes for the same load: *"you need six XLarge nodes. Place three nodes in one data center and three nodes in a second data center"*.
 
 **Bigger isn't better.** *"Dynatrace Managed runs resiliently on instances with 1 TB+ RAM/128 cores (2XLarge) and lets you monitor more entities, but this setup doesn't use the hardware optimally. Instead, consider using smaller instances (Large or XLarge)."*
 
-**In the cloud,** the docs list an instance family per provider: AWS `r6i`, Azure `E…as v6`, Google Cloud `n4-highmem`. The guidance is *"Maintain a vCPU to RAM (random access memory) ratio of 1:8 to optimize performance."*
+**In the cloud,** the docs list an instance family per provider: AWS `r6i`, Azure `E…as v6`, Google Cloud `n4-highmem`. The guidance is *"Maintain a vCPU to random access memory ratio of 1:8 to optimize performance."*
 
-> <sub>**Sources:** [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements), [Manage your monitoring environments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/manage-your-monitoring-environments), [Cloud requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-cloud-requirements), [Application and Infrastructure Monitoring (Host Units) (DT docs)](https://docs.dynatrace.com/managed/license/monitoring-consumption-classic/application-and-infrastructure-monitoring). **Derived:** "roughly half" compares the standard and Premium HA rows for the Large and XLarge node sizes on the same page.</sub>
+> <sub>**Sources:** [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements), [Manage your monitoring environments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/manage-your-monitoring-environments), [Cloud requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-cloud-requirements), [Application and Infrastructure Monitoring (Host Units) (DT docs)](https://docs.dynatrace.com/managed/license/classic-licensing/application-and-infrastructure-monitoring). **Derived:** "roughly half" compares the standard and Premium HA rows for the Large and XLarge node sizes on the same page.</sub>
 
 <a id="scaling"></a>
 ## 3. Three Ways to Scale
@@ -88,11 +88,11 @@ The hardware guide names three dimensions:
 
 | Dimension | From the docs | What to watch |
 |-----------|---------------|---------------|
-| **Out** | *"Dynatrace Managed supports up to 42 Managed Cluster nodes."* | Every node must *"Have the same hardware configuration"* |
-| **Up** | *"Vertical scaling: Add more RAM or CPU per node."* | *"When adding CPUs or RAM, keep all nodes equally sized."* |
-| **Storage** | *"Storage scaling: Use resizable disk volumes."* | *"Use resizable disk partitions, for example with Logical Volume Manager (LVM)."* and *"Use the same partition size on all Managed Cluster nodes."* |
+| **Out** | *"Dynatrace Managed supports up to 42 Cluster nodes."* | Every node must *"Have the same hardware configuration"* |
+| **Up** | *"Vertical scaling : Add more random access memory (RAM) or central processing unit (CPU) capacity per node."* | *"When adding CPUs or RAM, keep all nodes equally sized."* |
+| **Storage** | *"Storage scaling: Use resizable disk volumes."* | *"Use resizable disk partitions, for example with Logical Volume Manager (LVM)."* and *"Use the same partition size on all Cluster nodes."* |
 
-**Which one?** The docs state a preference in one case. For Log Monitoring: *"Add more Managed Cluster nodes rather than increasing hardware per node for a more resilient configuration."* Scaling out also spreads the three replicas (DTM-12 §2) and the Elasticsearch store across more machines. Storage growth alone suits a cluster whose stores are filling while CPU and memory are comfortable.
+**Which one?** The docs state a preference in one case. For Log Monitoring: *"Add more Cluster nodes rather than increasing hardware per node for a more resilient configuration."* Scaling out also spreads the three replicas (DTM-12 §2) and the Elasticsearch store across more machines. Storage growth alone suits a cluster whose stores are filling while CPU and memory are comfortable.
 
 Two storage rules make later growth possible: *"Store Dynatrace binaries and the data store on separate mount points so you can resize the data store independently."* and *"Don't store Dynatrace data on the root volume to avoid complexity when resizing later."*
 
@@ -161,14 +161,14 @@ Don't assume a *Configurable* event emails. The events page contradicts itself o
 
 ### 5.3 The dashboard and the metrics
 
-- **Capacity indicator.** The *Cluster health self-monitoring* dashboard *"shows aggregated data for all environments in your Managed Cluster, including current utilization and an indicator of whether your Managed Cluster has sufficient capacity for the current load."* It lives in the local self-monitoring environment. Whether every cluster has one is contradicted between two pages (§8).
+- **Capacity indicator.** The *Cluster health self-monitoring* dashboard *"shows aggregated data for all environments in your Managed Cluster. It includes current utilization and an indicator of whether the Managed Cluster has sufficient capacity for the current load."* It lives in the local self-monitoring environment. Whether every cluster has one is contradicted between two pages (§8).
 - **Reading the indicator.** A Dynatrace blog on Managed self-monitoring (Managed 1.230) explains the scale: *"a cluster utilization of 50% should allow you to roughly double the currently processed load before the cluster reaches its maximum capacity."* At the top end, *"Red status: When utilization reaches the red area, the cluster is at maximum capacity."* It adds a caution: *"cluster utilization might show healthy operation (green status) when only 80% of the service calls are captured"*. Read utilization together with the capture rate and adaptive load reduction (§5.1).
 - **As a Hub extension.** The *Dynatrace Self-Monitoring (Managed)* extension packages the same intent: *"Check if Dynatrace cluster is properly sized to handle current load."*
 - **Throughput.** The self-monitoring metrics `dsfm:server.service_calls.received`, `dsfm:server.spans.received`, `dsfm:server.rum.action_count` and `dsfm:cluster.oneagent.agent_modules` track what reaches the cluster. *"A steady number of monitored hosts and modules, service calls received, and user sessions/actions per minute together indicate a healthy Dynatrace environment. A significant drop in these metrics might indicate a problem"*.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Adaptive traffic management for Managed (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/adaptive-traffic-management-managed)</sub>
-> - <sub>[Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications)</sub>
+> - <sub>[Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications), [Event notification reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference)</sub>
 > - <sub>[Proactive self-monitoring for Dynatrace Managed (Dynatrace blog)](https://www.dynatrace.com/news/blog/proactive-self-monitoring-ensures-seamless-operations-for-dynatrace-managed-at-scale/), [Dynatrace Self-Monitoring (Managed) (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/dynatrace-self-monitoring-managed/)</sub>
 > - <sub>[Local self-monitoring (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/local-self-monitoring), [Self-monitoring metrics (DT docs)](https://docs.dynatrace.com/managed/analyze-explore-automate/metrics-classic/self-monitoring-metrics)</sub>
 
@@ -194,12 +194,12 @@ DTM-11 §5 covers the operations and DTM-12 §7 what they do to Cassandra. From 
 
 **Give the new node enough disk.** The docs show the arithmetic: in a two-node cluster whose disks are 9 TB full, *"a third node needs a minimum of 6 TB: (9 TB + 9 TB) / 3 = 6 TB. Anything below the calculated minimum is a misconfiguration."*
 
-**Expect it to take time.** *"Full data synchronization can take a couple of hours."* *"You can't add additional cluster nodes until synchronization completes."* So scaling by several nodes takes several windows, and in a capacity emergency relief arrives node by node.
+**Expect it to take time.** *"Full data synchronization can take a couple of hours."* *"You can't add more Cluster nodes until synchronization completes."* So scaling by several nodes takes several windows, and in a capacity emergency relief arrives node by node.
 
 **Then finish the change:**
 
 - From the 13th node (or the 7th node in a data center, on Premium HA), *"web UI traffic is by default turned off"* (DTM-14 §4).
-- Update any load balancer: its target list *"has to be updated after node join or removal."*
+- Update any load balancer: its target list: *"This list needs to be updated after node join or removal."*
 - Update the ingest limit (§6).
 
 **Removing a node** puts its load on the survivors. Check the one-third headroom against the smaller cluster first, and remember *"Remove no more than one node at a time."* (DTM-11 §5).
@@ -217,7 +217,7 @@ DTM-11 §5 covers the operations and DTM-12 §7 what they do to Cassandra. From 
 | How the one-third headroom is measured (CPU, memory, host units, or service calls) | Keep typical load at no more than three-quarters of total capacity on every dimension you can see (§4) |
 | Whether the hardware page's *"ingest limit"* is the same setting as the entry-point-traces quota in Cluster overload prevention | Review every setting in that section after a hardware change (§6) |
 
-**One conflict.** Whether every cluster has a local self-monitoring environment. The hosted self-monitoring page says *"All Managed Clusters have a local self-monitoring environment with internal metrics."*; the local self-monitoring page says *"The self-monitoring environment is available only for Dynatrace Managed customers using DDU licensing."* A Dynatrace blog (2022, updated 2024) sides with the hosted page: *"A dedicated self-monitoring Dynatrace environment called Local self-monitoring is now enabled by default on all Dynatrace Managed Clusters."* DTM-10 §6.3 records both. Check your own CMC before planning around the capacity dashboard.
+**One conflict.** Whether every cluster has a local self-monitoring environment. The hosted self-monitoring page says *"All Managed Clusters have a local self-monitoring environment with internal metrics."*; the local self-monitoring page says *"The environment is available only for Dynatrace Managed customers using Davis data units (DDUs) licensing."* A Dynatrace blog (2022, updated 2024) sides with the hosted page: *"A dedicated self-monitoring Dynatrace environment called Local self-monitoring is now enabled by default on all Dynatrace Managed Clusters."* DTM-10 §6.3 records both. Check your own CMC before planning around the capacity dashboard.
 
 > <sub>**Sources:** [Hosted self-monitoring (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/hosted-self-monitoring), [Local self-monitoring (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/local-self-monitoring), [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements), [Proactive self-monitoring for Dynatrace Managed (Dynatrace blog)](https://www.dynatrace.com/news/blog/proactive-self-monitoring-ensures-seamless-operations-for-dynatrace-managed-at-scale/), [Adaptive traffic management for Managed (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/adaptive-traffic-management-managed). **Observed 09/29/2026:** the three gaps were searched for across the Managed cluster, self-monitoring and adaptive-traffic-management pages; none is filled.</sub>
 

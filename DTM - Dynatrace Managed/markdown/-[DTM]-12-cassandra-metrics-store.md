@@ -1,6 +1,6 @@
 # DTM-12: Cassandra Metrics Store Health
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 12 — Cassandra Metrics Store Health | **Created:** September 2026 | **Last Updated:** 10/22/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 12 — Cassandra Metrics Store Health | **Created:** September 2026 | **Last Updated:** 11/10/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -59,7 +59,7 @@ This notebook is layer 2 of the DTM-10 health model, for Cassandra. It covers wh
 - **Adding a node doesn't shrink the others.** Run `cleanup` on the existing nodes, and only after the last new node has joined.
 - **A daily backup is not a full copy.** It excludes 1-minute and 5-minute data and the most frequently changing column families (~80% of storage). Plan restores around that.
 
-> <sub>**Sources:** [Data retention periods (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods), [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements), [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications), [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster).</sub>
+> <sub>**Sources:** [Data retention periods (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods), [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements), [Event notification reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference), [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster).</sub>
 
 <a id="what-it-holds"></a>
 ## 2. What Cassandra Holds and How It Is Replicated
@@ -105,11 +105,11 @@ By the time an email arrives, the store is already past the supported limit. Wat
 
 **What to do about it.** The docs give two remedies. The hardware guide: *"If you need more storage, add another node to reduce the per-node requirement."* The event description: *"you need to review your monitoring settings or add additional nodes to the Managed Cluster."* Adding a node works because the three replicas are spread over more nodes. With more than three nodes, each owns `(3 / number_of_nodes) × 100%` of the data (§5). Add nodes before the store crosses the ceiling, not after: growth *"causes issues when adding nodes"*.
 
-**Fewer metrics (Managed 1.344+).** *"You can now stop specific metric dimensions from being ingested using the new Metric dimension block list in Settings > Metrics"*. Managed 1.344 is a currently supported release; on an older cluster this setting is not there. The release note doesn't say how much it reduces the metrics store, so measure the store before and after (§6).
+**Fewer metrics (Managed 1.344+).** *"You can now stop specific metric dimensions from being ingested using the new Metric dimension block list in Settings > Metrics"*. The release-notes page (read 11/10/2026) lists 1.344 as supported *"Only with Enterprise Success and Support"* and 1.346, 1.348 and 1.350 as currently supported; on a cluster older than 1.344 this setting is not there. The release note doesn't say how much it reduces the metrics store, so measure the store before and after (§6).
 
 **Compression (Managed 1.314+).** Managed 1.314 changed how Cassandra compresses metrics: *"the used compression format of timeseries data in Cassandra will be switched from LZ4 to ZSTD"*. The saving builds up slowly: *"reduction in disk usage will not be instant, but rather will happen gradually over the course of one month"*. Any cluster on 1.314 or later already has it, so it is not a lever left to pull.
 
-> <sub>**Sources:** [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements), [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications), [Add a cluster node (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/add-cluster-node), [Managed 1.314 release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-314), [Managed 1.344 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-344). **Derived:** "add nodes before the ceiling" combines the growth warning with the add-node remedy.</sub>
+> <sub>**Sources:** [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements), [Event notification reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference), [Add a cluster node (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/add-cluster-node), [Managed 1.314 release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-314), [Managed 1.344 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-344), [Dynatrace Managed release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed) (read 11/10/2026). **Derived:** "add nodes before the ceiling" combines the growth warning with the add-node remedy.</sub>
 
 <a id="retention"></a>
 ## 4. Retention and Resolution
@@ -165,8 +165,8 @@ How to read it:
 | Column | Healthy looks like |
 |--------|--------------------|
 | First two letters | `UN`: Up and Normal. *"Make sure that all nodes display UN before proceeding to the next step."* `UJ` means joining: *"Where UJ marks the node as joining."* |
-| `Load` | Roughly even across nodes. *"The Load value should not differ significantly between the nodes and Status should display UN on all nodes."* |
-| `Owns (effective)` | `100.0%` on clusters of up to three nodes. Above that, *"the percentage is calculated as follows: (3/number_of_nodes)*100%"*. On rack-aware clusters, *"In a multi-rack setup, the formula for the Owns (effective) column changes to (100 / number_of_nodes)%."* Small differences are expected: unequal values *"such as 75.1% instead of 75.0%"* are *"normal"*. *"While a node is joining, the Owns (effective) column shows a question mark (?)."* |
+| `Load` | Roughly even across nodes. *"The Load value shouldn't differ significantly between the nodes, and Status should display UN on all nodes."* |
+| `Owns (effective)` | `100.0%` on clusters of up to three nodes. Above that, *"the percentage is calculated as follows: (3/number_of_nodes)*100%"*. On rack-aware clusters, *"In a multi-rack setup, the formula for the Owns (effective) column changes to (100 / number_of_nodes)%."* Small differences are expected: unequal values *"such as 75.1% instead of 75.0%"* are *"normal"*. *"While a node joins, the Owns (effective) column shows a question mark ( ? )."* |
 
 Anything other than `UN` on a node that isn't deliberately joining or leaving is a problem. So is one node carrying far more `Load` than the rest — unless a node was added recently and `cleanup` hasn't run yet: after a node joins, `Load` *"isn't automatically reduced"* on the existing nodes (§7.1).
 
@@ -182,7 +182,7 @@ None of these email you. They appear in CMC Events and Mission Control only:
 
 The Cassandra *process* is covered by DTM-11: `dynatrace-cassandra.service` in `dynatrace.sh status`, port `9042` in `dynatrace.sh check`, and the generic *"<component name> is down."* event. Mission Control also receives Cassandra details in the cluster heartbeat, including *"Cassandra version, Cassandra data files, Cassandra partitions"*.
 
-> <sub>**Sources:** [Add a cluster node (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/add-cluster-node), [Start/stop/restart a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/start-stop-restart-cluster), [Migrate a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/migrate-a-cluster), [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications), [Mission Control data exchange (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-data-exchange).</sub>
+> <sub>**Sources:** [Add a cluster node (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/add-cluster-node), [Start/stop/restart a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/start-stop-restart-cluster), [Migrate a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/migrate-a-cluster), [Event notification reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference), [Mission Control data exchange (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-data-exchange).</sub>
 
 <a id="disk"></a>
 ## 6. Disk and Storage Location
@@ -197,47 +197,47 @@ du -sh /var/opt/dynatrace-managed/cassandra/
 
 Run it on each node and compare against the 2 TB line. That catches growth before the non-emailed 2 TB event does.
 
-**Leave room for compaction.** A Dynatrace community KB article explains why the disk needs headroom beyond the store itself: the metrics store can undergo compaction phases, during which it can grow to twice its size, and when free space runs short transaction storage is deleted first to make room ([reserve disk space consumed (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/Why-is-my-reserve-disk-space-in-managed-node-is-getting-consumed/ta-p/204801), 2023). In community practice, that is the reason to keep well clear of a full disk even when the store is under its ceiling — verify the margin against your own compaction peaks.
+**Leave room for compaction.** A Dynatrace community KB article explains why the disk needs headroom beyond the store itself: the metrics store can undergo compaction phases, during which it can grow to twice its size, and when free space runs short transaction storage is deleted first to make room ([reserve disk space consumed (Dynatrace community)](https://community.dynatrace.com/t/why-is-my-reserve-disk-space-in-managed-node-is-getting-consumed-although-there-is-enough-cassandra-storage/38445), 2023). In community practice, that is the reason to keep well clear of a full disk even when the store is under its ceiling — verify the margin against your own compaction peaks.
 
 **Layout rules:**
 
-- Keep partitions equal: *"Use the same partition size on all Managed Cluster nodes."* An undersized node is shut down (DTM-10 §3).
+- Keep partitions equal: *"Use the same partition size on all Cluster nodes."* An undersized node is shut down (DTM-10 §3).
 
 - Give Cassandra its own volume. The rack-awareness guide says so directly: *"Keep Cassandra data on a separate volume to avoid disk space issues caused by other data types."*
-- Don't nest stores: *"you can't nest datastores within each other. For example, Cassandra storage can't be a subdirectory of session storage."*
-- No network file systems for live data: *"High-latency remote volumes such as NFS or CIFS aren't supported for primary storage; NFS is sufficient for backups only."*
+- Don't nest stores: *"Keep in mind that you cannot nest datastores within each other. For example, Cassandra storage cannot be a subdirectory of session storage."*
+- No network file systems for live data: *"High-latency remote volumes such as NFS or CIFS are not supported for primary storage; NFS is sufficient for backups only."*
 
 **Growing it in place first.** The storage-location page also documents *"Extend the size of the storage volume"*. If the volume can grow, that is less risky than moving the store.
 
 **Moving it.** The documented procedure, per node. The page doesn't say to do one node at a time; do so anyway (DTM-11 §5):
 
-0. Back up first: *"Back up your data. An error in this procedure can result in data loss. We advise you to back up all of the storage files to a safe location before proceeding. If possible, execute this procedure first on a test deployment."*
+0. Back up first: *"Back up your data. An error in this procedure can result in data loss. Back up all the storage files to a safe location before you proceed and, if possible, run this procedure on a test deployment first."*
 1. Stop the node: `sudo /opt/dynatrace-managed/launcher/dynatrace.sh stop`
 2. Copy the data, keeping permissions: `cp -pR /old_location/cassandra/* /new_location/cassandra`
 3. Fix ownership: `chown -R dynatrace:dynatrace /new_location`
-4. Point `CASSANDRA_DATASTORE_PATH` at the new location in `/etc/dynatrace.conf`. The new path *"must be a directory, and it can't be a symlink"*
+4. Point `CASSANDRA_DATASTORE_PATH` at the new location in `/etc/dynatrace.conf`. The new path *"It must be a directory, and it cannot be a symlink."*
 5. Apply it: `nohup <PRODUCT_PATH>/installer/reconfigure.sh --no-start &`
 6. Start the node: `sudo /opt/dynatrace-managed/launcher/dynatrace.sh start`
 7. *"Check the logs to make sure all services started without issues."*
 
 Stopping one node with `dynatrace.sh` matches the documented single-node maintenance pattern (DTM-11 §5.1). Confirm every other node is `UN` before you start.
 
-> <sub>**Sources:** [Change storage location (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/change-storage-location), [Customize Managed Cluster installation (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/customize-managed-cluster-install), [Estimating cluster backup size (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/estimating-cluster-backup-size), [Rack awareness — replication (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/rack-aware-replication), [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements).</sub>
+> <sub>**Sources:** [Change storage location (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/change-storage-location), [Managed Cluster installation parameters (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-cluster-installation-parameters), [Estimating cluster backup size (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/estimating-cluster-backup-size), [Rack awareness — replication (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/rack-aware-replication), [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements).</sub>
 
 <a id="add-remove"></a>
 ## 7. Adding and Removing Nodes
 
 ### 7.1 Adding a node
 
-A new node streams its share of the data from the others. *"Full data synchronization can take a couple of hours."* During that time it shows as `UJ`, and *"You can't add additional cluster nodes until synchronization completes."*
+A new node streams its share of the data from the others. *"Full data synchronization can take a couple of hours."* During that time it shows as `UJ`, and *"You can't add more Cluster nodes until synchronization completes."*
 
-The existing nodes don't shrink by themselves. *"Cassandra doesn't automatically balance the data on disk in the entire cluster after a node is added."* And *"Relatedly, data on disk (Load) isn't automatically reduced on all cluster nodes."* To reclaim that space, run `cleanup` on each existing node. It's a node-local operation, and it's slow: *"This command can run for several hours"*.
+The existing nodes don't shrink by themselves. *"Cassandra doesn't automatically balance the data on disk in the entire cluster after a node is added."* And *"Data on disk ( Load ) isn't automatically reduced on the Cluster nodes."* To reclaim that space, run `cleanup` on each existing node. It's a node-local operation, and it's slow: *"The cleanup can run for several hours, because Cassandra needs to rewrite all data on the local disk."*.
 
 ```bash
 sudo /opt/dynatrace-managed/utils/cassandra-nodetool.sh cleanup
 ```
 
-Time it right. The docs say *"run the cleanup only after you add all desired nodes"*. For a scale-out from three to six nodes, that means running it once the sixth node has joined, on the five nodes that were there before it.
+Time it right. The docs say *"To avoid rewriting the data several times, run the cleanup only after you add all the nodes you plan to add."* For a scale-out from three to six nodes, that means running it once the sixth node has joined, on the five nodes that were there before it.
 
 **Why this matters for health.** If the store is near its ceiling, adding a node relieves nothing until `cleanup` has run. Budget the hours for it as part of the scale-out.
 
@@ -258,9 +258,9 @@ A repair makes the replicas consistent with each other again, for example after 
 sudo /opt/dynatrace-managed/utils/repair-cassandra-data.sh
 ```
 
-*"This is for ensuring data consistency between the nodes. This step may take several hours to complete."* Since Managed 1.318, a manual repair is gentler on the cluster: *"When a Cassandra repair operation is executed manually for some reason, we now run it table by table in order to avoid causing too much overhead on the overall cluster."*
+*"The repair ensures data consistency between the nodes. This step might take several hours to complete."* Since Managed 1.318, a manual repair is gentler on the cluster: *"When a Cassandra repair operation is executed manually for some reason, we now run it table by table in order to avoid causing too much overhead on the overall cluster."*
 
-**Automatic repair — multi-data-center clusters only.** On Premium High Availability clusters, *"If Cassandra was down for 3 hours or more, Nodekeepers also run Cassandra repairs, one by one, on all nodes in the unhealthy DC."* The same page's FAQ narrows that: *"Dynatrace repairs only the nodes that were down."* (a conflict, recorded in §11). It gets one attempt: *"The repair process runs only once, even if it fails. You should manually run the repair process on nodes where it automatically triggered repair failure."* The logs to check are `nodekeeper.0.0.log`, `nodekeeper-healthcheck.0.log` and `repair-cassandra-data.log`. Automatic recovery covers *"outages longer than 15 minutes and shorter than 72 hours"*; after that, the cluster *"will be marked in Mission Control as not repaired in 72 hours from the failover"* and has to be replicated from a healthy data center (DTM-16 §7.3).
+**Automatic repair — multi-data-center clusters only.** On Premium High Availability clusters, *"If Cassandra was down for three hours or more, Nodekeepers also run Cassandra repairs, one by one, on all nodes in the unhealthy DC."* The same page's FAQ narrows that: *"Dynatrace repairs only the nodes that were down."* (a conflict, recorded in §11). It gets one attempt: *"The repair process runs only once, even if it fails. You should manually run the repair process on nodes where it automatically triggered repair failure."* The logs to check are `nodekeeper.0.0.log`, `nodekeeper-healthcheck.0.log` and `repair-cassandra-data.log`. Automatic recovery covers *"outages longer than 15 minutes and shorter than 72 hours"*; after that, the cluster *"will be marked in Mission Control as not repaired in 72 hours from the failover"* and has to be replicated from a healthy data center (DTM-16 §7.3).
 
 **Single data center.** No automatic repair is documented for a single data center (observed 09/28/2026). In community practice, a manual repair is planned once a node that has been down for an extended period is back and `UN` — confirm with Dynatrace support first.
 
@@ -271,9 +271,9 @@ sudo /opt/dynatrace-managed/utils/repair-cassandra-data.sh
 
 DTM-16 covers backup and disaster recovery as a whole. This section covers what matters specifically about the metrics store.
 
-**What's in it.** *"The snapshot is performed daily."* It is not a full copy: *"Dynatrace excludes the most frequently changing column families (excluded column families comprise about 80% of total storage) in addition to 1-minute and 5-minute resolution data."* It also stores every replica: *"Any data that's replicated between nodes is also stored in the backup (there is no deduplication)."* So the 1-minute and 5-minute history (up to 28 days, §4) is not restored, and neither is the excluded ~80% of storage — the docs don't name which data those column families hold. What comes back is configuration and part of the longer-term metrics, from up to a day ago: *"potentially setting your data back by up to 24 hours."*
+**What's in it.** *"The snapshot is performed daily."* It is not a full copy: *"Dynatrace excludes the most frequently changing column families (excluded column families comprise about 80% of total storage) in addition to 1-minute and 5-minute resolution data."* It also stores every replica: *"Any data that's replicated between nodes is also stored in the backup (there is no deduplication)."* So the 1-minute and 5-minute history (up to 28 days, §4) is not restored, and neither is the excluded ~80% of storage — the docs don't name which data those column families hold. What comes back is configuration and part of the longer-term metrics, from up to a day ago: *"your Managed Cluster restore point is the most recently performed backup, which can set your data back by up to 24 hours."*
 
-**How much space.** Size the metrics backup from the store itself: *"Typically, it's 20% of the sum of the metrics storage on all nodes."* The previous backup is kept until the next one finishes (*"Dynatrace keeps the previous backup until a new one is completed."*), so *"we recommend that you double the estimated space you need for metrics storage backup."* A configuration-only backup (*"Exclude timeseries metric data from the backup if your historical data isn't relevant and you only want to retain configuration data."*) *"Takes up to 10% of metrics storage instead of 20%"*.
+**How much space.** Size the metrics backup from the store itself: *"Typically, it's 20% of the sum of the metrics storage on all nodes."* The previous backup is kept until the next one finishes (*"Dynatrace keeps the previous backup until a new one is completed."*), so *"Double the estimated space you need for metrics storage backup."* A configuration-only backup (*"Exclude time series metric data from the backup if your historical data isn't relevant and you only want to retain configuration data."*) *"Takes up to 10% of metrics storage instead of 20%"*.
 
 **Where it goes.** Backups need a shared file system, and *"the shared file system needs to be mounted at the same shared directory on each node."* A missing mount is a node-health problem: *"If the shared file system mount point isn't available on system boot, Dynatrace won't start on that node."*
 
@@ -289,7 +289,7 @@ Then wait for every node to show *Status = Up / State = Normal* in `cassandra-no
 
 > <sub>**Sources:**</sub>
 > - <sub>[Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Estimating cluster backup size (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/estimating-cluster-backup-size)</sub>
-> - <sub>[Migrate a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/migrate-a-cluster), [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications)</sub>
+> - <sub>[Migrate a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/migrate-a-cluster), [Event notification reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference)</sub>
 > - <sub>**Derived:** "the 1-/5-minute history is not restored" applies the backup exclusion to the resolution tiers in §4</sub>
 
 <a id="racks-versions"></a>
@@ -330,7 +330,7 @@ Searched for in the Managed documentation on 09/28/2026 and **not found**:
 | A setting for metric retention | Retention is not a size lever (§4) |
 | Which data the excluded column families (~80% of storage) hold | Assume part of the longer-term metrics is not restored (§9) |
 | A procedure for recovering Cassandra on a single failed node | Replace the node, then run a manual repair (§8) |
-| An explicit statement in the docs that configuration lives in Cassandra | Inferred from the backup docs' *Metrics and configuration storage* section (§2); a Dynatrace product manager's 2019 forum answer says the same ([what are the different type of data (Dynatrace community)](https://community.dynatrace.com/t5/Alerting/what-are-the-different-type-of-data/td-p/122675)) |
+| An explicit statement in the docs that configuration lives in Cassandra | Inferred from the backup docs' *Metrics and configuration storage* section (§2); a Dynatrace product manager's 2019 forum answer says the same ([what are the different type of data (Dynatrace community)](https://community.dynatrace.com/t/what-are-the-different-type-of-data/21768)) |
 
 **A conflict on one page.** The multi-data-center failover page says automatic repair runs *"on all nodes in the unhealthy DC"*, and in its FAQ that *"Dynatrace repairs only the nodes that were down."* Check the repair logs on every node of the failed data center.
 

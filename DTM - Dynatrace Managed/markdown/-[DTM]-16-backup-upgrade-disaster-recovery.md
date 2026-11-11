@@ -1,6 +1,6 @@
 # DTM-16: Backup, Upgrade, and Disaster Recovery
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 16 — Backup, Upgrade, and Disaster Recovery | **Created:** September 2026 | **Last Updated:** 10/29/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 16 — Backup, Upgrade, and Disaster Recovery | **Created:** September 2026 | **Last Updated:** 11/10/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -51,7 +51,7 @@ This notebook covers what a backup protects and what it doesn't, how to set back
 ## 1. Short Answer
 
 - **A backup is not a full copy.** It restores configuration, longer-term metrics and (unless excluded) user sessions. It never restores transaction storage, never restores recent 1-minute and 5-minute metrics, and restores log events only if you opted in.
-- **A missing backup mount can stop a node from starting.** *"If the shared file system mount point isn't available on system boot, Dynatrace won't start on that node."* Make the mount persistent.
+- **A missing backup mount can stop a node from starting.** *"If the shared file system mount point is not available on system boot, Dynatrace services will not start on that node"*. Make the mount persistent.
 - **Prepare the restore before you need it.** It needs the exact installer version from the backup, the same number of nodes (*"In exceptional cases"* up to two fewer), matching user IDs, and the old cluster stopped. Afterwards, backups are **off** until you turn them back on.
 - **Upgrades have built-in waits:** 24 hours after a download, and 24 hours between updates. Clusters under three nodes are unavailable while they update.
 - **Three releases are supported**, plus a fourth with Enterprise Success and Support. A new release arrives roughly every four weeks, so falling behind happens quickly.
@@ -66,13 +66,13 @@ This notebook covers what a backup protects and what it doesn't, how to set back
 
 | Data | In the backup? | Details |
 |------|----------------|---------|
-| Configuration | **Yes** | Daily, with the metrics snapshot. A configuration-only backup is an option: *"Exclude timeseries metric data from the backup"* |
+| Configuration | **Yes** | Daily, with the metrics snapshot. A configuration-only backup is an option: *"Exclude time series metric data from the backup"* |
 | Metrics | **Partly** | Daily; excludes the most frequently changing column families (about 80% of storage) and 1-minute and 5-minute data (DTM-12 §9) |
-| User sessions | **Yes, unless excluded** | *"Exclude user sessions from the backup to remain compliant with GDPR."* (DTM-13 §8) |
+| User sessions | **Yes, unless excluded** | *"Exclude user sessions from the backup to remain compliant with the General Data Protection Regulation."* (DTM-13 §8) |
 | Log Monitoring events | **Only if included** | *"Include backup of Log Monitoring events."* |
-| Transaction storage (traces, code-level data) | **No** | *"Transaction storage data isn't backed up, so when you restore backups you may see gaps in deep monitoring data (for example, distributed traces and code-level traces)."* |
+| Transaction storage (traces, code-level data) | **No** | *"Transaction storage data is not backed up, so after a restore you might see gaps in deep monitoring data (for example, distributed traces and code-level traces)."* |
 
-The docs' reasoning for leaving transaction storage out: *"By default, transaction storage data is only retained for 10 days. From a long-term perspective, it's not necessary to include transaction storage data in backups."* The consequence is that after a restore, trace history starts again from the restore point.
+The docs' reasoning for leaving transaction storage out: *"By default, Dynatrace retains transaction storage data for only 10 days, so including it in backups is not necessary for long-term retention."* The consequence is that after a restore, trace history starts again from the restore point.
 
 **Recovery objectives.** The *Pre-upgrade information* page's Managed-vs-SaaS comparison gives Managed backup an *RPO = 24h; RTO = 24h*: up to a day of data lost, and up to a day to restore.
 
@@ -83,7 +83,7 @@ The docs' reasoning for leaving transaction storage out: *"By default, transacti
 
 **Where.** In the CMC: *"Go to Settings > Backup."* Enable the backup, choose the scope (§2), give *"a full path to the mounted network file storage where backup archives are stored"*, and set a start time. Then keep a copy elsewhere: *"To maximize resilience, save your backup files to an off-site location."*
 
-**The shared file system.** Every node writes to the same place: *"the shared file system needs to be mounted at the same shared directory on each node."* The docs' preference: *"We recommend NFSv4. Due to low performance and resilience, we don't recommend CIFS."* Test that the Dynatrace user can write there, on each node:
+**The shared file system.** Every node writes to the same place: *"the shared file system needs to be mounted at the same shared directory on each node."* The docs' preference: *"NFSv4 is the recommended protocol. CIFS is not recommended, due to its low performance and resilience."* Test that the Dynatrace user can write there, on each node:
 
 ```bash
 su - dynatrace -s /bin/bash -c "touch /nfs/dynatrace/backup/$(uname -n)"
@@ -91,7 +91,7 @@ su - dynatrace -s /bin/bash -c "touch /nfs/dynatrace/backup/$(uname -n)"
 
 **The mount that can stop a node.** This is the backup setting most likely to cause an outage:
 
-> *"If the shared file system mount point isn't available on system boot, Dynatrace won't start on that node. This may lead to the cluster becoming unavailable. You must disable backups manually to allow Dynatrace to start."*
+> *"If the shared file system mount point is not available on system boot, Dynatrace services will not start on that node, which might make the Managed Cluster unavailable. You must disable backups manually to allow Dynatrace to start."*
 
 So *"The shared file system mount must be available at system restart."* Make it persistent, for example in `fstab`. Then a reboot during an NFS outage won't take Dynatrace down with it.
 
@@ -101,7 +101,7 @@ If it happens anyway, the docs give the way out: *"Edit the <install-dir>/elasti
 
 **Watching it.** Neither *"Cassandra backup problem."* nor *"ElasticSearch backup problem."* is emailed (DTM-10 §7). CMC **Home** has a *Last backup* field, which *"Displays the date and storage location of the last backup."* Check it on a schedule. One backup event does email: *"Backup has been disabled because the configuration is no longer supported."*
 
-> <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Estimating cluster backup size (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/estimating-cluster-backup-size), [Cluster Management Console (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console), [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications).</sub>
+> <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Estimating cluster backup size (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/estimating-cluster-backup-size), [Cluster Management Console (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console), [Event notification reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference).</sub>
 
 <a id="restore"></a>
 ## 4. Restore Readiness
@@ -112,10 +112,10 @@ A restore is a reinstall from backup onto prepared machines. Most of what can ma
 
 | Precondition | From the docs |
 |--------------|---------------|
-| Clean target hosts | *"To restore a cluster on the same host as the source cluster, make sure to uninstall it first."* |
-| Comparable hardware | *"Make sure the machines prepared for the cluster restore have a similar hardware and disk layout as the original cluster and sufficient capacity to handle the load after the restore."* |
-| Node count | *"We recommend that you restore the cluster to the same number of nodes as the backed up cluster."* At most two fewer: *"You risk losing the cluster configuration if you attempt to restore to a cluster that is more than two nodes short of the original backed up cluster."* |
-| Old cluster stopped | *"Make sure the existing cluster is stopped to prevent two clusters with the same ID connecting to Dynatrace Mission Control."* |
+| Clean target hosts | *"To restore a Managed Cluster on the same host as the source Managed Cluster, make sure to uninstall it first."* |
+| Comparable hardware | *"Make sure the machines prepared for the Managed Cluster restore have a similar hardware and disk layout as the original Managed Cluster and sufficient capacity to handle the load after the restore."* |
+| Node count | *"Restore the Managed Cluster to the same number of nodes as the backed-up Managed Cluster whenever possible."* At most two fewer: *"In exceptional cases, you can restore to up to two nodes fewer, but a larger shortfall risks losing the Managed Cluster configuration."* |
+| Old cluster stopped | *"Make sure the existing Managed Cluster is stopped to prevent two Managed Clusters with the same ID from connecting to Dynatrace Mission Control."* |
 | Matching identities | *"Make sure that system users created for Dynatrace Managed have the same UID:GID identifiers on all nodes."* |
 | The same installer | *"To restore the cluster, you need to use the exact same installer version as in the original one."* It is in the backup itself, under each node's `files/<backup-version-number>/` directory |
 
@@ -143,7 +143,7 @@ The docs don't prescribe a restore test. In community practice, a restore that h
 
 | Path | How it works |
 |------|--------------|
-| **Automatic** (the docs' recommendation) | *"By default, installation packages are downloaded automatically from Mission Control as soon as they are available to your cluster."* The update runs in the maintenance window set under **Settings > Automatic update** |
+| **Automatic** (the docs' recommendation) | *"By default, installation packages are downloaded automatically from Mission Control as soon as they're available to your Managed Cluster."* The update runs in the maintenance window set under **Settings > Automatic update** |
 | **Semi-automatic** | Without automatic downloads or a Mission Control connection, you get an email for each new package, download it, and upload it in the CMC |
 | **Manual** | Run the update script on each node: *"it's crucial that you manually update one node at a time."* |
 
@@ -152,31 +152,32 @@ The docs don't prescribe a restore test. In community practice, a restore that h
 - **A day after download.** *"After an installation package is downloaded, a 24-hour waiting period is required before an automatic update can run."* An update downloaded today won't run in tonight's window.
 - **A day between updates.** *"You wait 24 hours between cluster updates to ensure that all post-processing steps are completed before initiating another update."*
 - **Disk.** *"You have at least 5 GB of available disk space on the partition where Dynatrace Managed is installed."*
-- **Downtime below three nodes.** *"If your cluster consists of less than 3 nodes, Dynatrace Managed won't be accessible during the update process."*
-- **Kubernetes workloads.** *"keep the Docker OneAgent installation package for every OneAgent version that's still in use. If you remove it, the cluster cannot build the OneAgent image and your pods fail to pull it."*
+- **Downtime below three nodes.** *"If your Managed Cluster consists of fewer than three nodes, Dynatrace Managed will not be accessible during the update process."*
+- **Kubernetes workloads.** *"keep the Docker OneAgent installation package for every OneAgent version that's still in use, because without it the Managed Cluster fails to build the OneAgent image and your pods fail to pull it."*
 
 ### 5.3 Skipping versions
 
-*"You can skip a Managed version only if its installed version is divisible by 4."* A cluster on 1.300 can skip 1.302 once 1.304 is released; a cluster on 1.302 can't skip. And skipping can become the only option: *"once version 1.304 is released, version 1.302 will no longer be available for download"* — which matters most for offline and semi-automatic clusters. If you would rather never skip, since Managed 1.324 there's a switch for that: *"Turn on Run Dynatrace cluster updates sequentially without skipping a version."* For clusters that can skip, the docs advise *"waiting until the target version is released if you cannot complete the update process within one month."*
+*"You can skip a Managed version only if its installed version is divisible by 4."* A cluster on 1.300 can skip 1.302 once 1.304 is released; a cluster on 1.302 can't skip. And skipping can become the only option. In the docs' own example, a cluster on 1.340 must update to 1.342 before 1.344 is released, *"because once version 1.344 is released, version 1.342 is no longer available for download"* — which matters most for offline and semi-automatic clusters. If you would rather never skip, since Managed 1.324 there's a switch for that: *"Turn on Run Dynatrace cluster updates sequentially without skipping a version."* For clusters that can skip, the docs advise: *"it's recommended to wait until the target version is released if you are unable to complete the update process within one month."*
 
 ### 5.4 Cadence
 
 *"These software updates are mandatory and are typically released every four weeks."* With the 24-hour rules, a weekly maintenance window, and only some versions skippable, a cluster can only catch up so fast.
 
-> <sub>**Sources:** [Update a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/update-cluster), [Mission Control proactive support (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-proactive-support). **Derived:** "can only catch up so fast" combines the four-week cadence with the 24-hour rules and the skip rule.</sub>
+> <sub>**Sources:** [Update a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/update-cluster), [Managed version update logic (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/managed-version-update-logic), [Mission Control proactive support (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-proactive-support). **Derived:** "can only catch up so fast" combines the four-week cadence with the 24-hour rules and the skip rule.</sub>
 
 <a id="version-support"></a>
 ## 6. Version Support
 
-*"New versions are rolled out within configurable maintenance windows."* The release-notes page lists which versions are currently supported. As it stood on 10/01/2026:
+*"New versions are rolled out within configurable maintenance windows."* The release-notes page lists which versions are currently supported. As it stood when read on 11/10/2026 (page updated Nov 06, 2026):
 
 | Version | Rollout start | Currently supported |
 |---------|---------------|---------------------|
-| 1.348 | Sep 28, 2026 (planned) | (planned) |
+| 1.350 | Nov 05, 2026 | Yes |
+| 1.348 | Oct 27, 2026 | Yes |
 | 1.346 | Aug 31, 2026 | Yes |
-| 1.344 | Aug 03, 2026 | Yes |
-| 1.342 | Jul 06, 2026 | Yes |
-| 1.340 | Jun 08, 2026 | Only with Enterprise Success and Support |
+| 1.344 | Aug 03, 2026 | Only with Enterprise Success and Support |
+
+1.342 (rolled out Jul 06, 2026) is in the previous-versions table: standard support ended Oct 27, 2026, and Enterprise Success and Support ended Nov 05, 2026.
 
 The table of earlier versions shows the pattern. Standard support for a version ends when the release three versions later rolls out, and Enterprise Success and Support covers it for one more release. For example, 1.338 rolled out May 11, 2026; its standard support ended Aug 03, 2026 (when 1.344 rolled out), and Enterprise Success and Support ended Aug 31, 2026.
 
@@ -201,7 +202,7 @@ The table of earlier versions shows the pattern. Standard support for a version 
 
 ### 7.2 How failover works
 
-Mission Control drives it — and nothing else can: *"There is no manual or local failover option that bypasses MC."* *"Without access to MC, the secondary DC doesn't autonomously detect that it needs to take over."* *"If Mission Control (MC) detects that two or more Elasticsearch or Cassandra nodes in a data center (DC) are down for 15 minutes, it automatically stops the server processes in that DC. MC then marks the DC as unhealthy."* The healthy data center takes over, and a healthy server sends an event and an email. When you start the failed processes again (*"After you start the Elasticsearch processes on the nodes that were down"* …), the servers come back. If Mission Control is unreachable, shut down any nodes still running in the failed data center yourself (§7.3). Where Cassandra was down for three hours or more, Cassandra repairs also run, and responsibility moves back only after they finish: *"Thirty minutes after all Cassandra nodes are repaired, Mission Control requests the Nodekeepers to change the responsibility override"* (DTM-12 §8).
+Mission Control drives it — and nothing else can: *"There is no manual or local failover option that bypasses MC."* *"Without access to MC, the secondary DC doesn't autonomously detect that it needs to take over."* *"If Mission Control (MC) detects that two or more Elasticsearch or Cassandra nodes in a data center (DC) are down for 15 minutes, MC automatically stops the server processes in that DC. MC then marks the DC as unhealthy."* The healthy data center takes over, and a healthy server sends an event and an email. When you start the failed processes again (*"After you start the Elasticsearch processes on the nodes that were down"* …), the servers come back. If Mission Control is unreachable, shut down any nodes still running in the failed data center yourself (§7.3). Where Cassandra was down for three hours or more, Cassandra repairs also run, and responsibility moves back only after they finish: *"Thirty minutes after all Cassandra nodes are repaired, Mission Control requests the Nodekeepers to change the responsibility override"* (DTM-12 §8).
 
 Two conditions apply. *"To transfer responsibility to another DC, it must be healthy at the time of failover."* And the mechanism handles a window: *"PHA automatically repairs network disconnections of up to 72 hours between DCs."*
 
@@ -258,9 +259,9 @@ The second cluster also has its own backups, versions and certificates, so the r
 | A replacement procedure for a single failed node in a single-DC cluster | Remove the node and add a new one (DTM-12 §7) |
 | A standby arrangement between two independent clusters, or a way to keep their configuration in step | Treat the second cluster as a cluster in its own right and check it as in §8.1 |
 
-**One conflict.** The Elasticsearch snapshot interval: the backup page says *"every 2 hours"*, while the *Pre-upgrade information* comparison table says *"Elasticsearch snapshots every 2 days"*. This series follows the backup page (DTM-13 §10). Confirm in CMC **Settings > Backup**.
+**One conflict.** The Elasticsearch snapshot interval: the backup page says *"every two hours"*, while the *Pre-upgrade information* comparison table says *"Elasticsearch snapshots every 2 days"*. This series follows the backup page (DTM-13 §10). Confirm in CMC **Settings > Backup**.
 
-**One caution.** The backup-and-restore page shows *Published Mar 22, 2018* and no later update date, although its content refers to current features. Read its procedure against your installed version.
+**One caution.** The backup-and-restore page was reworded on Oct 22, 2026 (*Updated on Oct 22, 2026*, read 11/10/2026). Read its procedure against your installed version.
 
 > <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Pre-upgrade information (DT docs)](https://docs.dynatrace.com/managed/upgrade/up-information). **Observed 10/01/2026:** the first three gaps were searched for across the Managed cluster operation and high-availability pages; none is filled. The standby row was added 10/29/2026 after the same pages and the [Cluster Management Console (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console) page were re-read.</sub>
 

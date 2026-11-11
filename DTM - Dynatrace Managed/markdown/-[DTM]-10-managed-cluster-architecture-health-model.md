@@ -1,6 +1,6 @@
 # DTM-10: Managed Cluster Architecture and Health Model
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 10 — Managed Cluster Architecture and Health Model | **Created:** September 2026 | **Last Updated:** 10/29/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 10 — Managed Cluster Architecture and Health Model | **Created:** September 2026 | **Last Updated:** 11/10/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -85,9 +85,9 @@ For environments where SVG doesn't render
 | **Embedded ActiveGate** | `dynatrace-security-gateway` | The node's built-in ActiveGate |
 | Nodekeeper, firewall | `dynatrace-nodekeeper`, `dynatrace-firewall` | Node housekeeping and the node's `iptables` rules |
 
-Every node also carries a **self-monitoring OneAgent**: *"Dynatrace Managed deployment includes Dynatrace OneAgent at each Managed Cluster node, which provides self-monitoring of Managed Cluster health."*
+Every node also carries a **self-monitoring OneAgent**: *"Dynatrace Managed deployment includes Dynatrace OneAgent at each Cluster node, which provides self-monitoring of Managed Cluster health."*
 
-The node-level health check is a single command — the `check` action of the node control script *"Checks the status of iptable rules and the processes for Nodekeeper, Cassandra, Elasticsearch, ActiveGate, Watcher, and NGINX."* DTM-11 covers it in detail.
+The node-level health check is a single command — the `check` action of the node control script *"Checks the status of iptables rules and the processes for Nodekeeper, Cassandra, Elasticsearch, ActiveGate, Watcher, and NGINX."* DTM-11 covers it in detail.
 
 > <sub>**Sources:** [Managed components (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/managed-components), [Start/stop/restart a node (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/start-stop-restart-node), [Hosted self-monitoring (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/hosted-self-monitoring).</sub>
 
@@ -105,9 +105,9 @@ Four data stores sit on each node's disk, each under its own path. Their health,
 
 Five layout rules come straight from the docs, and each one is a health rule in disguise:
 
-1. **Separate the stores.** *"SERVER_DATASTORE_PATH, CASSANDRA_DATASTORE_PATH, ELASTICSEARCH_DATASTORE_PATH should be placed in separate directories and they should not be a sub-directory of the other."* The hardware guide goes further: *"Mount different types of data storage on separate disk volumes for maximum flexibility and performance."* Separate volumes mean one store filling up cannot starve the others.
-2. **Keep nodes symmetric.** *"Use the same partition size on all Managed Cluster nodes."* Data is spread evenly, so the smallest node's disk is effectively the cluster's disk — and an undersized node can be stopped outright: *"All Managed Cluster nodes must have the same partition size for dynatrace-storage."* It then raises *"The node with id %s is not properly configured."* (SEVERE, not emailed).
-3. **No network file systems for live data.** *"High-latency remote volumes such as NFS or CIFS aren't supported for primary storage; NFS is sufficient for backups only."*
+1. **Separate the stores.** Docs: *"place SERVER_DATASTORE_PATH , CASSANDRA_DATASTORE_PATH , and ELASTICSEARCH_DATASTORE_PATH in separate directories, and make none of them a subdirectory of another."* The hardware guide goes further: *"Mount different types of data storage on separate disk volumes for maximum flexibility and performance."* Separate volumes mean one store filling up cannot starve the others.
+2. **Keep nodes symmetric.** *"Use the same partition size on all Cluster nodes."* Data is spread evenly, so the smallest node's disk is effectively the cluster's disk — and an undersized node can be stopped outright: *"All Managed Cluster nodes must have the same partition size for dynatrace-storage."* It then raises *"The node with id %s is not properly configured."* (SEVERE, not emailed).
+3. **No network file systems for live data.** *"High-latency remote volumes such as NFS or CIFS are not supported for primary storage; NFS is sufficient for backups only."*
 4. **Keep data off the root volume.** *"Don't store Dynatrace data on the root volume"* — resizing it later is harder.
 5. **Exclude the data paths from antivirus.** *"Exclude data storage paths from antivirus scanning to prevent data consistency issues"*.
 
@@ -115,12 +115,12 @@ The metrics backup is narrower than "daily snapshot" suggests: *"Dynatrace exclu
 
 The size ceiling that matters most: *"Keep the Long-term Metrics Store data below 2 TB per node."* and *"Dynatrace Managed raises a warning cluster event when the data on a node exceeds 2 TB, and a severe cluster event when it exceeds 4 TB."* Both thresholds have their own cluster event (§7).
 
-> <sub>**Sources:** [Change storage location (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/change-storage-location), [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements), [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Single-cluster high availability (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability), [Adaptive data retention (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/adaptive-data-retention), [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications).</sub>
+> <sub>**Sources:** [Change storage location (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/change-storage-location), [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements), [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Single-cluster high availability (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability), [Adaptive data retention (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/adaptive-data-retention), [Event notification reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference), [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications).</sub>
 
 <a id="redundancy"></a>
 ## 4. The Redundancy Model — What a Node Failure Costs
 
-**Three nodes is the floor for production.** *"Production environments require a minimum 3-node Managed Cluster for reliability and data redundancy."* The reason is the copy count: *"The Managed Cluster maintains three copies of this data, so Dynatrace Managed continues to operate after the loss of one node. The loss of two or more nodes might affect Managed Cluster performance and availability"* — depending on data distribution and required consistency.
+**Three nodes is the floor for production.** *"Production environments require a minimum three-node Managed Cluster for reliability and data redundancy."* The reason is the copy count: *"The Managed Cluster maintains three copies of this data, so Dynatrace Managed continues to operate after the loss of one node. The loss of two or more nodes might affect Managed Cluster performance and availability"* — depending on data distribution and required consistency.
 
 What survives a node loss depends on the data class:
 
@@ -130,7 +130,7 @@ What survives a node loss depends on the data class:
 | Log Monitoring events | 2 | No data loss | *"the failure of two nodes makes some log events unavailable"* |
 | Transaction storage (traces, call stacks, code-level data) | 1 — distributed | **That node's share is gone** — though *"Dynatrace Managed can estimate the missing data"* from the representative set the other nodes keep | More of it is gone |
 
-The transaction-storage row is the one teams miss: *"Dynatrace Managed does not replicate raw transaction data, such as call stacks, database statements, and code-level visibility, across nodes. Instead, it distributes this data evenly across all nodes."* Combined with the backup scope — *"Transaction storage data isn't backed up"* — a node that dies with its disk takes its share of trace history with it, and no restore brings it back.
+The transaction-storage row is the one teams miss: *"Dynatrace Managed does not replicate raw transaction data, such as call stacks, database statements, and code-level visibility, across nodes. Instead, it distributes this data evenly across all nodes."* Combined with the backup scope — *"Transaction storage data is not backed up"* — a node that dies with its disk takes its share of trace history with it, and no restore brings it back.
 
 **Headroom is part of redundancy.** Surviving a failure only helps if the remaining nodes can absorb the load. The docs are specific: *"Plan for a processing capacity one-third higher than typical utilization."* A three-node cluster running each node near capacity is one failure away from overload, even though no data is at risk.
 
@@ -157,7 +157,7 @@ This series groups the documented health signals into five layers and checks the
 | Layer | Question | Signals | Deep dive |
 |-------|----------|---------|-----------|
 | 1 Node and process | Are all nodes up and all services running? | CMC Deployment status, Node is down, onpremise/cluster API | DTM-11 |
-| 2 Storage | Is every store healthy, within size, with free disk? | Insufficient disk space, metrics > 2 TB (warning) / 4 TiB (supported limit), retention truncation | DTM-12 / 04 |
+| 2 Storage | Is every store healthy, within size, with free disk? | Insufficient disk space, metrics > 2 TB (warning) / 4 TiB (supported limit), retention truncation | DTM-12 / 13 |
 | 3 Capacity | Can the cluster keep up, with one node gone? | Adaptive Load Reduction, memory emergency, Cluster health dashboard | DTM-15 |
 | 4 Connectivity | Can agents reach nodes and nodes reach Mission Control? | Lack of connection to Mission Control, node can't receive traffic | DTM-14 |
 | 5 Lifecycle | Are backups succeeding and the version supported? | Backup problem events, last backup, release table | DTM-16 |
@@ -174,7 +174,7 @@ For environments where SVG doesn't render
 
 Two further signals are cross-cutting, not layer-specific. **Clock drift** (*"Server time of server %d is out of sync. … Please enable NTP on all cluster nodes."*) corrupts ordering across every store. **Adaptive data retention** silently shortens how far back you can look when disk runs short (§7).
 
-> <sub>**Sources:** [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications), [Cluster Management Console (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console), [Local self-monitoring (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/local-self-monitoring).</sub>
+> <sub>**Sources:** [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications), [Event notification reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference), [Cluster Management Console (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console), [Local self-monitoring (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/local-self-monitoring).</sub>
 
 <a id="health-surfaces"></a>
 ## 6. Where Health Is Surfaced
@@ -189,17 +189,17 @@ The first stop for a human. *"Home displays the Dynatrace Managed deployment ove
 
 The built-in alarm system (§7). Recipients are set in CMC under **Settings > Emails > Email notifications**; delivery needs an SMTP server under **Settings > Emails > SMTP server**. The same page holds the **emergency contacts**, who *"receive notifications from Dynatrace product experts in the event of catastrophic Managed Cluster states"*.
 
-Each cluster event has two delivery columns in the docs: **Email notification** and **MC notification** (Mission Control). They differ event by event — some always email, some never do, and some are *Configurable*, which *"means that you can configure the notifications via Settings API"* through the `builtin:cluster-events-notification-settings` schema at `/api/cluster/v2/settings/objects`. When no settings object exists, *"all notifications trigger an email to configured recipients"* — that default applies to the configurable events, not to events whose email column is *No*. **The page contradicts itself, though.** Its own example under *"If the items list is empty, the default value is used"* sets `transactionStorageTruncation` and `adaptiveLoadReductionActivated` to `sendEmail: false`. Don't rely on either reading: create the settings object explicitly (§9, step 3).
+Each cluster event has two delivery columns in the docs: **Email notification** and **MC notification** (Mission Control). They differ event by event — some always email, some never do, and some are *Configurable*, which *"means that you can turn the email notification for that event on or off through the Settings API"* through the `builtin:cluster-events-notification-settings` schema at `/api/cluster/v2/settings/objects`. When no settings object exists, *"all notifications trigger an email to configured recipients"* — that default applies to the configurable events, not to events whose email column is *No*. **The page contradicts itself, though.** Its own example under *"If the items list is empty, the default value is used"* sets `transactionStorageTruncation` and `adaptiveLoadReductionActivated` to `sendEmail: false`. Don't rely on either reading: create the settings object explicitly (§9, step 3).
 
 ### 6.3 Self-monitoring — which one you have depends on licensing
 
-*"Depending on your configuration, it stores data locally, sends it to Mission Control (MC), or forwards it to a dedicated self-monitoring environment."* The three options aren't interchangeable:
+*"Depending on your configuration, it stores data locally, sends it to Mission Control, or forwards it to a dedicated self-monitoring environment."* The three options aren't interchangeable:
 
 | Option | What you get | The catch |
 |--------|--------------|-----------|
-| **Local self-monitoring** | An environment named `Local-Self-Monitoring` with `dsfm:` metrics and a **Cluster health self-monitoring** dashboard that shows *"an indicator of whether your Managed Cluster has sufficient capacity for the current load"*; it *"doesn't count toward license consumption"* | *"available only for Dynatrace Managed customers using DDU licensing"*. A Dynatrace blog says otherwise: *"A dedicated self-monitoring Dynatrace environment called Local self-monitoring is now enabled by default on all Dynatrace Managed Clusters."* Check your CMC |
+| **Local self-monitoring** | An environment named `Local-Self-Monitoring` with `dsfm:` metrics and a **Cluster health self-monitoring** dashboard that shows *"an indicator of whether the Managed Cluster has sufficient capacity for the current load"*; it *"does not count toward license consumption"* | *"available only for Dynatrace Managed customers using Davis data units (DDUs) licensing"*. A Dynatrace blog says otherwise: *"A dedicated self-monitoring Dynatrace environment called Local self-monitoring is now enabled by default on all Dynatrace Managed Clusters."* Check your CMC |
 | **Hosted (premium) self-monitoring** | Data from the per-node Full-Stack OneAgents in a Dynatrace-hosted environment | *"only available and included in Enterprise Success and Support subscriptions"* |
-| **Private self-monitoring** | Your own environment monitoring the cluster, including cross-cluster setups (*"have a pre-production Managed Cluster monitor a production Managed Cluster, and vice versa"*) | *"requires installing OneAgent on your Managed Cluster nodes, which consumes Dynatrace licenses"* |
+| **Private self-monitoring** | Your own environment monitoring the cluster, including cross-cluster setups (*"have a pre-production Managed Cluster monitor a production Managed Cluster, and vice versa"*) | *"requires installing OneAgent on your Cluster nodes, which consumes Dynatrace licenses"* |
 
 Check which option applies to you **before** an incident. The dashboard you plan to open may not exist on your licensing model.
 
@@ -232,6 +232,7 @@ In community practice, the external check is a poll of the first call that alert
 > <sub>**Sources:**</sub>
 > - <sub>[Cluster Management Console (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console)</sub>
 > - <sub>[Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications)</sub>
+> - <sub>[Event notification reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference)</sub>
 > - <sub>[Proactive self-monitoring for Dynatrace Managed (Dynatrace blog)](https://www.dynatrace.com/news/blog/proactive-self-monitoring-ensures-seamless-operations-for-dynatrace-managed-at-scale/)</sub>
 > - <sub>[Self-monitoring (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/self-monitoring), [Local](https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/local-self-monitoring), [Hosted](https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/hosted-self-monitoring), [Private](https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/private-self-monitoring) (DT docs)</sub>
 > - <sub>[Get cluster information about known cluster nodes (DT docs)](https://docs.dynatrace.com/managed/dynatrace-api/cluster-api/cluster-api-v1/cluster-v1/get-cluster-info-known-servers), [Get cluster nodes configuration (DT docs)](https://docs.dynatrace.com/managed/dynatrace-api/cluster-api/cluster-api-v1/cluster-v1/get-cluster-nodes-configuration), [Cluster API authentication (DT docs)](https://docs.dynatrace.com/managed/dynatrace-api/cluster-api/cluster-api-authentication)</sub>
@@ -245,7 +246,7 @@ Cluster event notifications are free and already built. They fail in two ways: n
 | Event (as the docs name it) | Layer | Emailed | Why it can't wait |
 |------------------------------|-------|---------|-------------------|
 | *"Node is down - %s."* | 1 | Yes, *"if happened outside of the upgrade procedure"* | You are now running without redundancy |
-| *Insufficient disk space on a Managed Cluster node* | 2 | Configurable | *"Ignoring that message may cause data loss."* |
+| *Insufficient disk space on a Managed Cluster node* | 2 | Configurable | *"Ignoring that message might cause data loss."* |
 | *Transaction storage retention period truncation* | 2 | Configurable | Adaptive data retention is already deleting trace history early |
 | *"Long-term Metrics Store size exceeds recommended 2 TB on %s."* | 2 | **No** | The recommended per-node ceiling — the first warning, and it never emails |
 | *Metrics storage exceeds supported size (4 TiB)* | 2 | Configurable | You are past the supported ceiling (the recommended ceiling is 2 TB per node) |
@@ -263,10 +264,11 @@ Two behaviors behind these events are worth knowing before they fire:
 
 > <sub>**Sources:**</sub>
 > - <sub>[Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications)</sub>
+> - <sub>[Event notification reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference)</sub>
 > - <sub>[Change storage location (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/change-storage-location)</sub>
 > - <sub>[Adaptive data retention (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/adaptive-data-retention)</sub>
 > - <sub>[Adaptive traffic management for Managed (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/adaptive-traffic-management-managed)</sub>
-> - <sub>[Mission Control proactive support (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-proactive-support) — *"If a connection outage to Mission Control lasts longer than 14 days (7 days for free trial accounts), the Managed Cluster disallows the ability to exceed the license limit (overages)."* (classic licensing); under DPS *"the Managed Cluster collects usage data and sends it to Mission Control as soon as the connection is restored"*</sub>
+> - <sub>[Mission Control proactive support (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-proactive-support) — *"If a connection outage to Mission Control lasts longer than 14 days (seven days for free trial accounts), the Managed Cluster disallows the ability to exceed the license limit (overages)."* (classic licensing); under DPS *"the Managed Cluster collects usage data and sends it to Mission Control as soon as the connection is restored"*</sub>
 
 <a id="doc-gaps"></a>
 ## 8. What the Documentation Does Not Say
@@ -275,10 +277,10 @@ A health model is only as good as its thresholds. These were searched for in the
 
 | Gap | What the docs *do* give you |
 |-----|-----------------------------|
-| **A defined list of CMC node states** | Passing mentions only — nodes *"marked as Offline in the Cluster Management Console"* (backup and restore) and a Deployment status page listing *"all nodes healthy"* (recover from a backup) — plus the Cluster API's `operationState` field, with `"RUNNING"` as the documented example value. A Dynatrace product manager posted the full list of 12 values in 2020 ([state of nodes (Dynatrace community)](https://community.dynatrace.com/t5/Alerting/state-of-nodes/m-p/113564); DTM-11 §2) |
+| **A defined list of CMC node states** | Passing mentions only — nodes *"marked as Offline in the Cluster Management Console"* (backup and restore) and a Deployment status page listing *"all nodes healthy"* (recover from a backup) — plus the Cluster API's `operationState` field, with `"RUNNING"` as the documented example value. A Dynatrace product manager posted the full list of 12 values in 2020 ([state of nodes (Dynatrace community)](https://community.dynatrace.com/t/state-of-nodes/19542); DTM-11 §2) |
 | **A Cluster API v2 endpoint for node health** | Nothing — v2 covers environments, tokens, users, remote access, license, Log Monitoring and Synthetic nodes. Node status is v1 only |
 | **Disk-usage percentage thresholds** for Cassandra or Elasticsearch | The *Insufficient disk space* event and the 2 TB / 4 TB metrics-store ceilings. Community KB articles add Elasticsearch's upstream watermarks and Cassandra's compaction headroom (DTM-12 §6, DTM-13 §5) |
-| **Which store holds Davis problems and events** | Nothing in the docs. A Dynatrace product manager's 2019 forum answer puts them in Elasticsearch ([what are the different type of data (Dynatrace community)](https://community.dynatrace.com/t5/Alerting/what-are-the-different-type-of-data/td-p/122675)). By contrast, RUM Classic user sessions and Log Monitoring data are documented: *"Data is stored in Elasticsearch store at DATASTORE_PATH/elasticsearch."* The backup-sizing page agrees: *"user sessions might take up to 99% of total Elasticsearch storage"* (DTM-13) |
+| **Which store holds Davis problems and events** | Nothing in the docs. A Dynatrace product manager's 2019 forum answer puts them in Elasticsearch ([what are the different type of data (Dynatrace community)](https://community.dynatrace.com/t/what-are-the-different-type-of-data/21768)). By contrast, RUM Classic user sessions and Log Monitoring data are documented: *"Data is stored in Elasticsearch store at DATASTORE_PATH/elasticsearch."* The backup-sizing page agrees: *"user sessions might take up to 99% of total Elasticsearch storage"* (DTM-13) |
 
 One inconsistency to watch: the multi-data-center page says in one section that the cluster *"maintains two copies of this data"* and in another that *"PHA stores three copies of all configuration data, metrics, and user sessions in each DC."* Confirm your replication posture with Dynatrace support before relying on a copy count across sites.
 

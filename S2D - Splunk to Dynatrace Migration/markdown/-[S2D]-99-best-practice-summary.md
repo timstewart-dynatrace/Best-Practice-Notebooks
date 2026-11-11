@@ -1,6 +1,6 @@
 # S2D-99: Best Practice Summary
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 11/02/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 11/06/2026
 
 ## Overview
 
@@ -43,7 +43,7 @@ This notebook consolidates every actionable best practice from the S2D (Splunk t
 | 4 | Map Splunk indexes to Dynatrace buckets | Each Splunk index maps to a Grail bucket; document the mapping before translation | Critical | Process |
 | 5 | Validate log availability before query translation | Run DQL validation queries (S2D-02) before attempting SPL-to-DQL conversion | Critical | Process |
 | 6 | Compare log volumes between platforms | Run equivalent time-bounded queries in both Splunk and Dynatrace to confirm counts match | Recommended | Validation |
-| 91 | Do not plan to migrate historical Splunk data | Log ingest drops records stamped more than 24 hours in the past (72 hours from SaaS 1.348, staged rollout — verify on your tenant). Keep Splunk or an archive readable for the required retention period, and run both platforms until Dynatrace holds the look-back your dashboards and alerts need (S2D-01) | Critical | Process |
+| 91 | Do not plan to migrate historical Splunk data | Log ingest drops records older than the log age limit — 72 hours for environments created after SaaS 1.348, 24 hours for older ones unless raised on request. Keep Splunk or an archive readable for the required retention period, and run both platforms until Dynatrace holds the look-back your dashboards and alerts need (S2D-01) | Critical | Process |
 
 <a id="log-discovery-and-validation"></a>
 ## 2. Log Discovery and Validation
