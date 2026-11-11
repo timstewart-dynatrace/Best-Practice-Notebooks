@@ -1,6 +1,6 @@
 # ONBRD-00: Architect's Sequence & Dependency Runbook
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 00 — Architect's Sequence & Dependency Runbook | **Created:** May 2026 | **Last Updated:** 10/21/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 00 — Architect's Sequence & Dependency Runbook | **Created:** May 2026 | **Last Updated:** 11/10/2026
 
 ## Overview
 
@@ -83,7 +83,7 @@ For environments where SVG doesn't render
 
 - **Decision:** Which clouds (AWS / Azure / GCP) and integration mechanism per cloud.
 - **Depends on:** Step 02 (Platform Token); optionally Step 03 (AG for legacy paths).
-- **2026 specifics:** Clouds app for AWS (GA) and Azure (direct connection since SaaS 1.337 — no ActiveGate for metric polling); the GCP Clouds-app connection is in **Preview** — verify it has reached your tenant; until then the classic GCP integration (`dynatrace-gcp-monitor` on GKE or as a Cloud Function) remains the working path. It sends straight to your environment URL and needs no ActiveGate on SaaS. AWS Lambda primary-field propagation to logs and spans via the `DT_TAGS` env var (OneAgent 1.337). IAM Role pattern for production multi-account.
+- **2026 specifics:** Clouds app for AWS (GA) and Azure (direct connection since SaaS 1.337 — no ActiveGate for metric polling); the GCP Clouds-app connection is generally available (10/29/2026) — verify it has reached your tenant; until then the classic GCP integration (`dynatrace-gcp-monitor` on GKE) remains the working path. It sends straight to your environment URL and needs no ActiveGate on SaaS. AWS Lambda primary-field propagation to logs and spans via the `DT_TAGS` env var (OneAgent 1.337). IAM Role pattern for production multi-account.
 - **Output:** cloud entities visible in Smartscape, with cloud tags on the nodes (for example the `tags:aws` record on AWS nodes); on signals, cloud tags appear as `aws.tags.<key>` / `azure.tags.<key>` / `gcp.labels.<key>` only for keys you add to the tag-enrichment configuration.
 - **Deep dive:** CLOUD series for per-provider depth; **FAQ-02: Tagging — Sources, Standards, and Strategy** for cross-cloud tag normalization.
 

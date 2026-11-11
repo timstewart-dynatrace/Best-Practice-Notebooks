@@ -1,6 +1,6 @@
 # OPMIG-01: OpenPipeline Migration Guide: Part 1
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 10/30/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 11/06/2026
 
 ## Introduction & Why Migrate from Classic to OpenPipeline v2.0
 
@@ -502,7 +502,7 @@ Before migrating, understand these key limits:
 
 | Data Type | Earliest accepted timestamp | Timestamp more than 10 min in the future |
 |-----------|----------------|----------------------|
-| **Logs** | Ingest time minus 24 hours — **older records are dropped** before processing. From **SaaS 1.348** (rollout start 10/12/2026, staged tenant rollout) logs are accepted up to 72 hours in the past — verify the new window has reached your tenant before relying on it | **Adjusted** to ingest time + 10 min |
+| **Logs** | Ingest time minus the log age limit — **older records are dropped** before processing. The limit is 72 hours for environments created after **SaaS 1.348**, and 24 hours for older environments unless Dynatrace Support raises it to 72 on request | **Adjusted** to ingest time + 10 min |
 | **Spans** | 60 minutes past (end time) † | Not adjusted (the adjustment doesn't apply to spans) |
 | **Events** | Ingest time minus 24 hours — older records are dropped | **Adjusted** to ingest time + 10 min |
 
@@ -542,6 +542,7 @@ OPMIG-02 carries the full list. `dt.entity.host` and `dt.entity.process_group` a
 > <sub>**Sources:**</sub>
 > - <sub>[OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits) — *"The following fields are added after the Processing stage when Dynatrace runs its entity detection."*; *Metric configuration scope*: *"Fields excluded from dynamic route matching conditions and in the Processing stage"* — `dt.entity.*`; *"If the timestamp is more than 10 minutes in the future, it's adjusted to the ingest server time plus 10 minutes."*; *"The maximum size of a record after processing is 16 MB."*; *"You can extract data on a single record in a maximum of five different pipelines"*</sub>
 > - <sub>[What's new in SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"The log ingestion pipeline now accepts log records with timestamps up to 72 hours in the past, extended from the previous 24-hour limit."*</sub>
+> - <sub>[Log Management and Analytics default limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits) — *"For environments created after Dynatrace version 1.348 was released, the default log age limit is 72 hours."* *"For environments created before Dynatrace version 1.348 was released, the default log age limit is 24 hours. The limit can be increased to 72 hours on request."*</sub>
 
 ---
 

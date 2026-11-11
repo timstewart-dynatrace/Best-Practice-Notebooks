@@ -1,6 +1,6 @@
 # DTM-02: Cluster Configuration Best Practices
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 02 — Cluster Configuration Best Practices | **Created:** October 2026 | **Last Updated:** 10/21/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 02 — Cluster Configuration Best Practices | **Created:** October 2026 | **Last Updated:** 11/10/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -59,7 +59,7 @@ The documented way is a `custom.settings` file in `/opt/dynatrace-managed/instal
 
 **Best practice:** keep the same `custom.settings` on every node, and keep a copy under change control. A new node or a restored cluster needs it too, and the file is easy to forget.
 
-> <sub>**Sources:** [Configure Cluster properties (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-properties) — *"Place this custom.settings file on all Managed Cluster nodes in the /opt/dynatrace-managed/installer directory."*</sub>
+> <sub>**Sources:** [Configure Cluster properties (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-properties) — *"Place this custom.settings file on all Cluster nodes in the /opt/dynatrace-managed/installer directory."*</sub>
 
 <a id="email"></a>
 ## 3. Make Cluster Email Reliable
@@ -72,18 +72,18 @@ Cluster event notifications are only as good as the mail path. Three delivery me
 | **SMTP server** | *"If your SMTP server becomes unavailable, your email won't be sent."* | When mail must never leave through Mission Control |
 | **Mission Control** | Mission Control sends all email | Clusters with no internal mail server |
 
-**Encrypt the connection.** The default is unencrypted: *"The default is No encryption on port 25."* Two options are labelled *Secure*: **SSL/TLS required** and **STARTTLS required**. **STARTTLS optional** is labelled *Not secure*: *"If a STARTTLS connection can't be established, send email without encryption."*
+**Encrypt the connection.** The default is unencrypted: *"The default is No encryption on port 25."* Two options are labelled *Secure*: **SSL/TLS required** and **STARTTLS required**. **STARTTLS optional** is labelled *Not secure*: *"If a STARTTLS connection cannot be established, send email without encryption."*
 
 **Prove it works.** Send the test message and check the inbox; the page describes what to expect: *"Check the inbox of the Email test address account to make sure it received a "Dynatrace Managed: Mail server setup" message with the expected sender email address."*
 
-**Fill in both recipient lists.** Under **Settings > Emails > Email notifications**, set the notification recipients to a monitored, shared mailbox, and set the **emergency contacts**, who *"receive notifications from Dynatrace product experts in the event of catastrophic Managed Cluster states or critical security vulnerabilities that must be addressed."* Which cluster events to route, and which never email, is in DTM-10 §6–§7.
+**Fill in both recipient lists.** Under **Settings > Emails > Email notifications**, set the notification recipients to a monitored, shared mailbox, and set the **emergency contacts**, who *"receive notifications from Dynatrace product experts in the event of catastrophic Managed Cluster states or critical security vulnerabilities that you must address."* Which cluster events to route, and which never email, is in DTM-10 §6–§7.
 
 > <sub>**Sources:** [Configure SMTP server connection (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-smtp-server-connection), [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications) — *"Optional: Turn on Also notify all active users with cluster admin rights ."*</sub>
 
 <a id="mission-control"></a>
 ## 4. The Mission Control Relationship
 
-**What always goes to Mission Control.** Two reports can't be switched off. Usage and billing data *"can't be changed to ensure proper billing and license verification of your deployment."* Cluster health reporting *"can't be changed to ensure Dynatrace support of your deployment."*
+**What always goes to Mission Control.** Two reports can't be switched off. Usage and billing data *"cannot be changed to ensure proper billing and license verification of your deployment."* Cluster health reporting *"cannot be changed to ensure Dynatrace support of your deployment."*
 
 **What is your choice, and what it costs.**
 
@@ -94,18 +94,18 @@ Cluster event notifications are only as good as the mail path. Three delivery me
 
 **Remote access: choose the scope and the role.** The scopes are described in DTM-14 §8. The trade-off in one line each:
 
-- **All** gives *"the full power of proactive support"*.
-- **Read-only access to all** *"significantly limits the level of proactive support"*, and *"only the Viewer role is available for a remote-access user."*
-- **Approved** *"gives you maximum control over who can access your Managed Cluster, but it significantly impacts the Dynatrace product expert team's ability to provide you with proactive support."*
+- **All** is the scope *"for full proactive support and Managed Cluster settings optimization"*.
+- **Read-only access to all**: *"only the Viewer role is available; significantly limits proactive support"*.
+- **Approved** *"gives you maximum control over who can access the Managed Cluster but significantly limits proactive support"*.
 
-Each remote-access user gets the **Admin**, **User** or **Viewer** role. Review what the role allows before granting it: the permissions include *"Run diagnostic operations"*, which *"Allows the user to run diagnostic operations such as service restarts, run diagnostic scripts on Managed Cluster node hosts, and access the database."*
+Each remote-access user gets the **Admin**, **User** or **Viewer** role. Review what the role allows before granting it: the permissions include *"Run diagnostic operations"*, which *"Allows the user to run diagnostic operations such as service restarts, run diagnostic scripts on Cluster node hosts, and access the database."*
 
-> <sub>**Sources:** [Configure Cluster preferences (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-preferences) — *"All cluster preferences settings are turned on by default."*, [Configure Cluster remote access (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-remote-access) — *"Your cluster administrators receive email notifications about pending remote access requests."*</sub>
+> <sub>**Sources:** [Configure Cluster preferences (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-preferences) — *"All Managed Cluster preference settings are turned on by default."*, [Configure Cluster remote access (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-remote-access) — *"Your cluster administrators receive email notifications about pending remote access requests."*, [Remote access reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-remote-access-reference)</sub>
 
 <a id="internet-proxy"></a>
 ## 5. The Internet Proxy
 
-The proxy carries more than Mission Control traffic. It is configured *"to allow Mission Control (MC) proactive support , receive MC updates, and use external problem notifications via tools such as ServiceNow, Jira, and webhooks."* What the proxy itself must support (WebSockets, SNI) is in DTM-14 §6.
+The proxy carries more than Mission Control traffic. The page describes it as *"an internet connection that allows Mission Control (MC) proactive support , MC updates, and external problem notifications via tools such as ServiceNow, Jira, and webhooks"*. What the proxy itself must support (WebSockets, SNI) is in DTM-14 §6.
 
 Three settings decide whether it keeps working:
 
@@ -118,7 +118,7 @@ Three settings decide whether it keeps working:
 <a id="sign-in"></a>
 ## 6. Sign-in and Session Security
 
-**Use a central directory where you can.** The password page's own advice: *"If possible, use your organization’s central user repository service (LDAP or SSO)."* The password policy only covers local accounts: *"The password complexity rules apply only to the embedded administrator account and internal user accounts"*.
+**Use a central directory where you can.** The password policy only covers local accounts: password complexity rules *"which apply only to the embedded administrator account and internal user accounts"*.
 
 **Check the minimum length on older clusters.** The default depends on when the cluster was installed: 8 characters *"for existing Managed Clusters installed before 1.206"*, 12 for newer ones, and 12 is the recommended value. A cluster that has been upgraded for years may still be on 8. A policy change takes effect at the next sign-in: *"When the password policy changes, Dynatrace prompts all users to update their passwords the next time they sign in."*
 
@@ -131,7 +131,7 @@ Three settings decide whether it keeps working:
 <a id="elevated-permissions"></a>
 ## 7. Elevated Operating System Permissions
 
-Maintenance needs root. The Dynatrace service user needs elevated permissions to *"Run the installation or reconfiguration script"*, *"Add or remove a Managed Cluster node"*, and *"Start, stop, restart, or check the status of services"*. It gets them through the `dtrun` wrapper, which uses `sudo` by default or the alternative chosen at installation (for example `pbrun`). `dtrun` can only run what `/opt/dtrun/dtrun.conf` lists, and *"The root user owns the /opt/dtrun directory and all files inside it for security reasons."*
+Maintenance needs root. The Dynatrace service user needs elevated permissions to *"Run the installation or reconfiguration script"*, *"Add or remove a cluster node"*, and *"Start, stop, restart, or check the status of services"*. It gets them through the `dtrun` wrapper, which uses `sudo` by default or the alternative chosen at installation (for example `pbrun`). `dtrun` can only run what `/opt/dtrun/dtrun.conf` lists, and *"The root user owns the /opt/dtrun directory and all files inside it for security reasons."*
 
 **Best practices:**
 
@@ -144,7 +144,7 @@ Maintenance needs root. The Dynatrace service user needs elevated permissions to
 <a id="node-roles"></a>
 ## 8. Node Traffic Roles
 
-Each node can serve web UI traffic, OneAgent traffic, or both. Splitting them is a documented option for larger clusters: *"By configuring one or the other of these options, you can achieve higher stability, better cache behavior, and faster UI response times."* Large clusters already split by default: *"starting with Dynatrace Managed 1.214, web UI traffic is by default turned off when installing the 13th and subsequent nodes (or 7th and subsequent nodes in a data center for Premium HA)."*
+Each node can serve web UI traffic, OneAgent traffic, or both. Splitting them is a documented option for larger clusters: *"By configuring one or the other of these options, you can achieve higher stability, better cache behavior, and faster UI response times."* Large clusters already split by default: *"starting with Dynatrace Managed 1.214, web UI traffic is by default turned off when installing the thirteenth and subsequent nodes (or the seventh and subsequent nodes in a data center for Premium High Availability)."*
 
 For a small cluster, leave every node serving both: a three-node cluster that dedicates a node to the UI has fewer nodes left to absorb a failure. In community practice, splitting roles starts to pay off only on larger clusters — verify against your own UI and ingest load. Disabling OneAgent traffic is also the first step before removing a node (DTM-11 §5).
 
@@ -155,8 +155,8 @@ For a small cluster, leave every node serving both: a three-node cluster that de
 
 Backups are configured in the CMC (**Settings > Backup**), and they are not something to add after the first incident. The decisions to make at configuration time:
 
-- **Scope.** *"User sessions may contain sensitive information. Exclude user sessions from the backup to remain compliant with GDPR ."* Log Monitoring events are included only if you choose them.
-- **Location.** *"To maximize resilience, save your backup files to an off-site location."* Use NFSv4; *"Due to low performance and resilience, we don't recommend CIFS."*
+- **Scope.** *"User sessions might contain sensitive information. Exclude user sessions from the backup to remain compliant with the General Data Protection Regulation."* Log Monitoring events are included only if you choose them.
+- **Location.** *"To maximize resilience, save your backup files to an off-site location."* Use NFSv4; *"CIFS is not recommended, due to its low performance and resilience."*
 - **The boot-time mount.** *"If the shared file system mount point isn't available on system boot, Dynatrace won't start on that node."* Make the mount persistent.
 
 What a backup does and doesn't protect, sizing, and restore are in DTM-16 §2–§4.
@@ -172,8 +172,6 @@ What a backup does and doesn't protect, sizing, and restore are in DTM-16 §2–
 |-----|-------------------------------------|
 | A recommended automatic sign-out value | Set one that matches your organization's session policy (§6) |
 | When to start splitting node traffic roles below the 13-node default | Keep both roles on every node in small clusters (§8) |
-
-**A path that doesn't match the UI it names.** The preferences page says remote-access settings are under *"Settings > Remote access permissions > SMTP server"*. The remote-access page gives **Settings > Remote access permissions**. This notebook follows the remote-access page.
 
 > <sub>**Sources:** [Configure Cluster preferences (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-preferences), [Configure Cluster remote access (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-remote-access).</sub>
 

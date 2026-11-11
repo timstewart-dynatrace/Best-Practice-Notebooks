@@ -1,6 +1,6 @@
 # S2D-01: Splunk to Dynatrace Migration - Getting Started
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 11/02/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 11/10/2026
 
 ## Overview
 
@@ -131,9 +131,9 @@ A successful migration follows this general sequence:
 
 ### Historical Splunk Data
 
-Data already stored in Splunk indexes is **not migrated** into Dynatrace log storage. The migration moves configuration — queries, alerts, dashboards — and Dynatrace holds log data only from the point ingest starts. Replaying a bulk export of Splunk history through log ingest does not work either: *"The event is dropped if the log event contains a timestamp before the current time minus 24 hours."*
+Data already stored in Splunk indexes is **not migrated** into Dynatrace log storage. The migration moves configuration — queries, alerts, dashboards — and Dynatrace holds log data only from the point ingest starts. Replaying a bulk export of Splunk history through log ingest does not work either: *"The event is dropped if it contains a timestamp older than the configured log age limit."*
 
-SaaS 1.348 widens that window — *"The log ingestion pipeline now accepts log records with timestamps up to 72 hours in the past"* — with a **staged tenant rollout** (from 10/12/2026); verify it has reached your tenant before relying on it. Until it does, 24 hours remains the working limit. Either way the window covers days, not the months or years a Splunk index holds.
+That limit depends on when the environment was created: *"For environments created after Dynatrace version 1.348 was released, the default log age limit is 72 hours."* Older environments default to 24 hours, which Dynatrace Support can raise to 72 hours on request. Either way the window covers days, not the months or years a Splunk index holds. If you replay recent days to close a gap and cannot confirm your environment's limit, plan for 24 hours.
 
 Plan for history instead:
 

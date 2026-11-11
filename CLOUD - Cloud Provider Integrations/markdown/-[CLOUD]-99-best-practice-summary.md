@@ -1,6 +1,6 @@
 # CLOUD-99: Best Practice Summary
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/27/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 11/10/2026
 
 ## Overview
 
@@ -39,7 +39,7 @@ This notebook distills every actionable best practice from the CLOUD series (CLO
 | 8 | Azure: Use a federated identity credential (non-native) | Use a federated identity credential for Clouds-app Azure connections; client secret only where federation is unavailable (keep expiry < 12 months) | Recommended | CLOUD-05 |
 | 9 | GCP: No service account keys | Clouds-app connection: impersonation — grant the Dynatrace principal `roles/iam.serviceAccountTokenCreator` on a read-only service account; `dynatrace-gcp-monitor`: Workload Identity Federation for GKE with its generated custom roles | Critical | CLOUD-06 |
 | 10 | GCP: Use dedicated project for monitoring resources | Isolate Dynatrace service accounts, Pub/Sub topics, and billing in a separate GCP project | Recommended | CLOUD-06 |
-| 11 | GCP: Choose the connection model deliberately | Clouds-app GCP connection is Preview; `dynatrace-gcp-monitor` on GKE is in maintenance mode but is the working production path. It polls metrics and pulls logs from Pub/Sub (Pub/Sub carries logs only) | Recommended | CLOUD-06 |
+| 11 | GCP: Choose the connection model deliberately | Clouds-app GCP connection is generally available (10/29/2026); `dynatrace-gcp-monitor` on GKE is in maintenance mode and keeps working until you move. It polls metrics and pulls logs from Pub/Sub (Pub/Sub carries logs only) | Recommended | CLOUD-06 |
 
 <a id="aws-integration"></a>
 

@@ -1,6 +1,6 @@
 # IAM-11: Policy Persona Workshop
 
-> **Series:** IAM — IAM Administration | **Notebook:** Bonus Workshop | **Created:** February 2026 | **Last Updated:** 10/19/2026
+> **Series:** IAM — IAM Administration | **Notebook:** Bonus Workshop | **Created:** February 2026 | **Last Updated:** 11/10/2026
 
 ## Overview
 
@@ -619,7 +619,7 @@ After binding your policies to groups, validate that the implementation matches 
 | Data boundaries working | Run the same DQL query as different personas and compare results | **IAM-05** boundary testing |
 | SCIM sync functioning | Monitor SCIM provisioning events for errors | **IAM-06** lifecycle events |
 
-Group, policy and binding changes are account-level and are recorded in the account audit log, not in environment audit events. The DQL query below shows IAM API calls made through this environment — useful for spotting provisioning automation, not a change log:
+Account-level group and policy changes are recorded in the account audit log. Environment-level binding changes made through this environment's IAM API can also appear in environment audit events. The DQL query below shows IAM API calls made through this environment — useful for spotting provisioning automation, not a change log:
 
 ```dql
 // IAM API activity in this environment (last 7 days)

@@ -1,6 +1,6 @@
 # ONBRD-99: Best Practice Summary
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 99 — Best Practice Summary | **Created:** March 2026 | **Last Updated:** 10/22/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 99 — Best Practice Summary | **Created:** March 2026 | **Last Updated:** 11/10/2026
 
 ## Overview
 
@@ -62,7 +62,7 @@ Decisions an architect makes during onboarding, with default and when to deviate
 |---|---|---|
 | ActiveGate yes/no | Recommended if >500 hosts (ONBRD-03); needed for hybrid/on-prem or cloud-API polling at scale | Pure SaaS-only with no on-prem footprint can defer until cloud-API polling demands it |
 | ActiveGate sizing | At least 8 GB **disk** per ActiveGate, about 12.5 GB with extensions (ONBRD-03); CPU and memory per FAQ-10; 2–3 AGs per network zone | Larger only when load testing shows it is needed |
-| Per-cloud integration | **Clouds app** for AWS (GA) and Azure (SaaS 1.337+, no AG for metric polling); GCP Clouds-app connection in **Preview** — verify it has reached your tenant; the classic AG-based GCP integration remains the working path until then | If existing CloudWatch / Azure Monitor pipelines exist, evaluate migration effort vs leaving in place |
+| Per-cloud integration | **Clouds app** for AWS (GA) and Azure (SaaS 1.337+, no AG for metric polling); GCP Clouds-app connection generally available (10/29/2026) — verify it has reached your tenant; the classic GCP integration (`dynatrace-gcp-monitor` on GKE, no ActiveGate on SaaS) remains the working path until then | If existing CloudWatch / Azure Monitor pipelines exist, evaluate migration effort vs leaving in place |
 | OneAgent rollout sequence | Pilot 2–5 non-critical hosts (ONBRD-05) → expand by host group → full | Skip pilot if you have onboarded the same workload class on another tenant |
 | Tag taxonomy | env / team / app / `dt.security_context` / `dt.cost.costcenter` | Add compliance dimensions (`*-pci`, `*-pii`) only if a hard audit boundary exists |
 | Host group naming | `<env>-<app>` or `<env>-<workload-type>` per FAQ-01 | Customer-specific patterns acceptable; avoid `all-hosts` / `default` / hardware-trait names |

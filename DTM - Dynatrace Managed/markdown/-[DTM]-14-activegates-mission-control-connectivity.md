@@ -1,6 +1,6 @@
 # DTM-14: Cluster ActiveGates and Mission Control Connectivity
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 14 — Cluster ActiveGates and Mission Control Connectivity | **Created:** September 2026 | **Last Updated:** 10/21/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 14 — Cluster ActiveGates and Mission Control Connectivity | **Created:** September 2026 | **Last Updated:** 11/10/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -55,7 +55,7 @@ A Managed cluster can be healthy inside and still be failing, if data can't get 
 - **The Mission Control link is outbound only**, over 443. When it drops, monitoring continues, but after 14 days a cluster on classic licensing can no longer exceed its license limit. That drop *is* emailed.
 - **Watch Cluster ActiveGate status in the CMC.** An ActiveGate losing its connection is not emailed; running an unsupported ActiveGate version is.
 
-> <sub>**Sources:** [Managed deployments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/managed-deployments), [Supported connectivity schemes for ActiveGates (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/supported-connectivity-schemes-for-activegates), [Set up load balancer (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/set-up-load-balancer), [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications), [Mission Control proactive support (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-proactive-support).</sub>
+> <sub>**Sources:** [Managed deployments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/managed-deployments), [Supported connectivity schemes for ActiveGates (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/supported-connectivity-schemes-for-activegates), [Set up load balancer (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/set-up-load-balancer), [Event notification reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference), [Mission Control proactive support (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-proactive-support).</sub>
 
 <a id="traffic-path"></a>
 ## 2. The Agent Traffic Path
@@ -80,7 +80,7 @@ The routes are discovered automatically: *"All Dynatrace components (OneAgents, 
 
 ### 2.2 Keep the cluster internal
 
-A basic deployment is one where the *"Managed Cluster is only accessible internally and exposes port 443 for the REST API, OneAgent traffic, and web UI access"*. Reaching it from outside should go through Cluster ActiveGates: *"Exposing the Managed Cluster directly to external networks isn't recommended for security reasons. Instead, use one or more Cluster ActiveGates as mediating proxies for pre-processing of OneAgent and DEM traffic."*
+A basic deployment is one where the *"Managed Cluster is only accessible internally and exposes port 443 for the REST API, OneAgent traffic, and web UI access"*. Reaching it from outside should go through Cluster ActiveGates: *"Exposing the Managed Cluster directly to external networks is not recommended for security reasons. Instead, use one or more Cluster ActiveGates as mediating proxies for pre-processing of OneAgent and DEM traffic."*
 
 ### 2.3 What a Cluster ActiveGate needs
 
@@ -88,17 +88,17 @@ A basic deployment is one where the *"Managed Cluster is only accessible interna
 |-------------|---------------|
 | A public address | *"A publicly available IP address"* |
 | Its own domain and certificate | *"A domain name with a valid SSL certificate"*. *"The domain must differ from the Dynatrace web UI domain."* |
-| Scope | *"Cluster ActiveGates don't support proxying of web UI traffic."* |
+| Scope | *"Cluster ActiveGates do not support proxying of web UI traffic."* |
 | Scale | *"For high-load installations with many external hosts, applications, sessions, and synthetic monitors, set up multiple load-balanced Cluster ActiveGates sharing the same domain name and certificate."* |
 
-A Cluster ActiveGate installed with the *Route traffic* purpose *"routes OneAgent, public synthetic, mobile, Real User Monitoring, and REST API traffic"*. Once it's in place, *"Dynatrace reconfigures OneAgent to send monitoring data through the Cluster ActiveGate."*
+A Cluster ActiveGate installed with the *Route traffic* purpose *"routes OneAgent, public synthetic, mobile, Real User Monitoring, and REST API traffic"*. Once it's in place, it is added as an endpoint: *"After the Cluster ActiveGate connects to Dynatrace, installation is complete, and every OneAgent that can reach Dynatrace receives the Cluster ActiveGate as an endpoint."*
 
 > <sub>**Sources:** [Supported connectivity schemes for ActiveGates (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/supported-connectivity-schemes-for-activegates), [Managed deployments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/managed-deployments), [Install a Cluster ActiveGate (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/install-cluster-activegate).</sub>
 
 <a id="load-balancers"></a>
 ## 3. NGINX and Load Balancers
 
-**Inside the cluster, NGINX already balances.** *"NGINX, which is installed on each Managed Cluster node, performs load balancing and routing of traffic between nodes."* It routes around failed nodes: *"If a node is unreachable, that node is marked as unhealthy, and traffic is forwarded only to healthy nodes."*
+**Inside the cluster, NGINX already balances.** *"NGINX, which is installed on each Cluster node, performs load balancing and routing of traffic between nodes."* It routes around failed nodes: *"If a node is unreachable, that node is marked as unhealthy, and traffic is forwarded only to healthy nodes."*
 
 **For OneAgent traffic, an external load balancer is optional.** *"Load balancing is less needed for OneAgent traffic because OneAgent is capable of switching between endpoints and performing client-side load balancing."* It pays off for beacon traffic: *"offloading TLS termination to a load balancer is beneficial, particularly if the load balancer has hardware-accelerated TLS handling or autoscaling capabilities"*, and it *"can shield the Managed Cluster from overload and separate the access path between beacon traffic and web UI/OneAgent traffic."*
 
@@ -106,35 +106,35 @@ A Cluster ActiveGate installed with the *Route traffic* purpose *"routes OneAgen
 
 | Rule | From the docs |
 |------|---------------|
-| Forward to NGINX on 443, unaltered | *"Traffic must be forwarded to HTTPS port 443 of NGINX. The request path/parameters must not be altered in any way"* |
+| Forward to NGINX on 443, unaltered | *"Forward traffic to HTTPS port 443 of NGINX. Do not alter the request path or parameters in any way; custom path suffixes are not supported."* |
 | Allow long responses | Timeout *"no less than what's configured in NGINX by default (120 seconds)."* |
-| Health-check every node | *"Use the /rest/health URL for the health check with an expected response code of HTTP 200"* |
+| Health-check every node | *"Use the /rest/health endpoint for the health check, with an expected response code of HTTP 200."* |
 | Leave sessions to the cluster | *"Session persistence and affinity are configured and realized by the Dynatrace Managed Cluster. No configuration is required."* |
-| Track node changes | The target list *"has to be updated after node join or removal."* |
+| Track node changes | *"This list needs to be updated after node join or removal."* |
 
 The last rule is the one most easily forgotten: adding or removing a node (DTM-11 §5, DTM-15) is also a load-balancer change.
 
-> <sub>**Sources:** [Set up load balancer (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/set-up-load-balancer).</sub>
+> <sub>**Sources:** [Load balancing in Dynatrace Managed (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/managed-load-balancing-explained), [Set up load balancer (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/set-up-load-balancer).</sub>
 
 <a id="endpoints"></a>
 ## 4. Endpoints, DNS and Node Roles
 
 **Public endpoints.** The cluster advertises itself through the address you enter under **Settings > Public endpoints**. Get it wrong and the whole cluster suffers: *"Invalid configuration of DNS might result in data mismatch or lead to a Managed Cluster outage."* The docs' pattern is one name resolving to every node, plus a name per node, for example `dynatrace.mycompany.com A 10.176.0.1, 10.176.0.2, 10.176.0.3` and `n01.dynatrace.mycompany.com A 10.176.0.1`.
 
-**Node roles.** Each node can take web UI traffic, OneAgent traffic, or both (DTM-11 §2.2). Large clusters change the default: *"starting with Dynatrace Managed 1.214, web UI traffic is by default turned off when installing the 13th and subsequent nodes (or 7th and subsequent nodes in a data center for Premium HA)."* A load balancer or DNS name for the web UI should therefore list only nodes that actually serve it.
+**Node roles.** Each node can take web UI traffic, OneAgent traffic, or both (DTM-11 §2.2). Large clusters change the default: *"web UI traffic is by default turned off when installing the thirteenth and subsequent nodes (or the seventh and subsequent nodes in a data center for Premium High Availability)."* A load balancer or DNS name for the web UI should therefore list only nodes that actually serve it.
 
 > <sub>**Sources:** [Configure cluster DNS entries (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-dns-entries), [Configure cluster capabilities (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-capabilities), [Set up load balancer (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/set-up-load-balancer). **Derived:** "list only nodes that serve the web UI" combines the web UI default with the load-balancer rule that its target list must track the cluster's nodes.</sub>
 
 <a id="certificates"></a>
 ## 5. Certificates
 
-**The cluster's certificate.** By default, *"each Managed Cluster receives a dedicated subdomain of dynatrace-managed.com with a trusted SSL certificate."* If you turn that management off, *"Without automatic certificate management, Dynatrace falls back to a self-signed certificate."* To use your own certificate, upload it in PEM format. *"Encrypted private keys aren't supported."* Decrypt the key first:
+**The cluster's certificate.** By default, *"each Managed Cluster receives a dedicated subdomain of dynatrace-managed.com with a trusted SSL certificate."* If you turn that management off, *"Without automatic certificate management, Dynatrace falls back to a self-signed certificate."* To use your own certificate, upload it in PEM format. *"Encrypted private keys are not supported."* Decrypt the key first:
 
 ```bash
 openssl rsa -in encrypted.ssl.key -out decrypted.ssl.key
 ```
 
-**Cluster ActiveGate certificates are managed centrally.** *"After installation, a Cluster ActiveGate uses a self-signed certificate generated by Dynatrace."* Don't change them on the ActiveGate host itself: *"Don't configure SSL certificates directly on the Cluster ActiveGate device. Any certificate uploaded this way will be overwritten by Dynatrace's automatic management."*
+**Cluster ActiveGate certificates are managed centrally.** *"After installation, a Cluster ActiveGate uses a self-signed certificate generated by Dynatrace."* Don't change them on the ActiveGate host itself: *"Do not configure SSL certificates directly on the Cluster ActiveGate device, because automatic certificate management overwrites any certificate uploaded this way."*
 
 **Certificate events never email you.** Every one of them goes only to Mission Control and the CMC Events list:
 
@@ -145,11 +145,11 @@ openssl rsa -in encrypted.ssl.key -out decrypted.ssl.key
 | *"Let's Encrypt SSL certificate fetching failure."* | WARNING | **No** |
 | *"SSL certificate ( %s ) refresh failed."* | WARNING | **No** |
 
-The docs don't say what stops working when the certificate expires (§10). Two Dynatrace community threads fill some of it. In 2019 a Dynatrace product manager wrote that an expired certificate shows as a browser warning on the web UI and that monitoring should not be affected, and that the automatically managed certificate is refreshed 14 days before it expires ([SSL certificate of the cluster hosts (Dynatrace community)](https://community.dynatrace.com/t5/Open-Q-A/We-are-seeing-that-the-SSL-certificate-of-the-cluster-hosts/td-p/122772)). In 2021, OneAgent and ActiveGate downloads from Managed clusters failed with *certificate has expired* errors during Let's Encrypt's certificate-chain change ([download fails — certificate expired (Dynatrace community)](https://community.dynatrace.com/t5/Dynatrace-Managed-Q-A/Dynatrace-Managed-OneAgent-and-ActiveGate-download-fails-cannot/td-p/173678)). Both are community sources; treat them as community practice.
+The docs don't say what stops working when the certificate expires (§10). Two Dynatrace community threads fill some of it. In 2019 a Dynatrace product manager wrote that an expired certificate shows as a browser warning on the web UI and that monitoring should not be affected, and that the automatically managed certificate is refreshed 14 days before it expires ([SSL certificate of the cluster hosts (Dynatrace community)](https://community.dynatrace.com/t/we-are-seeing-that-the-ssl-certificate-of-the-cluster-hosts-expire-in-a-few-days/21799)). In 2021, OneAgent and ActiveGate downloads from Managed clusters failed with *certificate has expired* errors during Let's Encrypt's certificate-chain change ([download fails — certificate expired (Dynatrace community)](https://community.dynatrace.com/t/dynatrace-managed-oneagent-and-activegate-download-fails-cannot-verify-certificate-expired/32954)). Both are community sources; treat them as community practice.
 
 The docs don't settle it either way. Beacon traffic needs a valid certificate on the Cluster ActiveGate (§2.3), so in community practice certificate expiry dates are tracked outside the cluster, in whatever system already watches your other certificates — verify the expiry dates your cluster presents against that system.
 
-> <sub>**Sources:** [SSL certificate for the Managed Cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/ssl-certificate-managed-cluster), [SSL certificate for a Cluster ActiveGate (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/ssl-certificate-cluster-activegate), [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications), [Managed deployments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/managed-deployments).</sub>
+> <sub>**Sources:** [SSL certificate for the Managed Cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/ssl-certificate-managed-cluster), [SSL certificate for a Cluster ActiveGate (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/ssl-certificate-cluster-activegate), [Event notification reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference), [Managed deployments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/managed-deployments).</sub>
 
 <a id="mission-control"></a>
 ## 6. The Mission Control Link
@@ -172,12 +172,12 @@ The health check includes Cluster ActiveGates: *"Per Cluster ActiveGate: ActiveG
 
 **Ciphers (Managed 1.318+).** From 1.318, *"The Mission Control ciphers have been reduced"*. *"Ensure that all connections you establish to Mission Control support these ciphers. If they don't support the listed ciphers, no connection to Mission Control can be established."* In community practice, a TLS-inspecting proxy or firewall in the path is the first thing to check when the link fails after an upgrade — verify its cipher list against the release note.
 
-**Checking it.** *"To verify your connection to Mission Control, select > Check Mission Control connection in the upper-right corner."* The link is also watched for you: *"There is lack of connection to Dynatrace Mission Control."* is a WARNING that **is emailed**, and *"Connection to Dynatrace Mission Control is back again."* follows when it recovers.
+**Checking it.** *"To verify your connection to Mission Control , select > Check Mission Control connection ."* The link is also watched for you: *"There is lack of connection to Dynatrace Mission Control."* is a WARNING that **is emailed**, and *"Connection to Dynatrace Mission Control is back again."* follows when it recovers.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Mission Control data exchange (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-data-exchange), [Cluster node ports (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/cluster-node-ports)</sub>
 > - <sub>[Configure internet proxy (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-internet-proxy), [Cluster Management Console (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console)</sub>
-> - <sub>[Managed 1.318 release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-318), [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications)</sub>
+> - <sub>[Managed 1.318 release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-318), [Event notification reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference)</sub>
 
 <a id="mc-unreachable"></a>
 ## 7. When Mission Control Is Unreachable — and Offline Clusters
@@ -187,9 +187,9 @@ The health check includes Cluster ActiveGates: *"Per Cluster ActiveGate: ActiveG
 | Area | What the docs say |
 |------|-------------------|
 | Monitoring | Under DPS, *"Monitoring of your applications isn't affected by a connection outage."* |
-| Licensing — classic | *"If a connection outage to Mission Control lasts longer than 14 days (7 days for free trial accounts), the Managed Cluster disallows the ability to exceed the license limit (overages)."* |
+| Licensing — classic | *"If a connection outage to Mission Control lasts longer than 14 days (seven days for free trial accounts), the Managed Cluster disallows the ability to exceed the license limit (overages)."* |
 | Licensing — DPS | *"the Managed Cluster collects usage data and sends it to Mission Control as soon as the connection is restored."* |
-| Retries | *"critical communication requests (such as billing requests or license checks) will be automatically resent once the connection is restored."* |
+| Retries | *"critical communication requests (such as billing requests or license checks) are automatically resent once the connection is restored."* |
 | Updates | *"If you have turned off the automatic download of installation packages or there is no connection to Mission Control, you will receive an email notification whenever a new installation package is available."* |
 | Premium High Availability | *"PHA is available only for online Managed Clusters."* |
 
@@ -197,7 +197,7 @@ The 14-day overage limit is the one with a deadline. Count from the first *lack 
 
 ### 7.2 Offline clusters
 
-An offline cluster makes the outage permanent by design. It *"uses an offline license that disables all features requiring an internet connection—such as connecting to Mission Control for license reporting and health checks, or receiving automatic cluster updates."* Its certificates are self-signed by default, and license and update changes become manual work.
+An offline cluster makes the outage permanent by design. It uses an offline license: *"The offline license turns off all features that need an internet connection, such as license reporting and health checks through Mission Control and automatic Managed Cluster updates."* Its certificates are self-signed by default, and license and update changes become manual work.
 
 **Converting to online (Managed 1.338+).** The conversion requires *"Dynatrace Managed version 1.338+"* and *"Cluster connectivity to Mission Control (the conversion script verifies this)"*:
 
@@ -215,7 +215,7 @@ The Mission Control link also carries remote access for Dynatrace product expert
 What it can and can't do:
 
 - **Logged.** *"All Dynatrace Managed configuration changes are fully audit-logged and each remote access is logged as a separate event"*, in the CMC Events list.
-- **Bounded.** *"The Mission Control team can't access certificates or user credentials. The Mission Control team also can't gain root access to any servers."*
+- **Bounded.** *"The Mission Control team cannot access certificates or user credentials, and it cannot gain root access to any servers."*
 
 Decide the scope deliberately rather than inheriting the default. The docs don't spell out a revoke procedure (§10); the settings page is where the scope is changed.
 
@@ -270,15 +270,15 @@ Release changes that affect Cluster ActiveGates and the agents behind them:
 - **Managed 1.342:** *"Dynatrace rejects connections from OneAgent versions 1.141 and earlier."*
 - **Managed 1.346:** *"Dynatrace now rejects connections from OneAgent version 1.215 and earlier."*
 
-All three are currently supported releases, so these cutoffs already apply on a supported cluster. An agent that stops connecting right after a cluster update may simply be too old.
+The release-notes page (read 11/10/2026) lists 1.346, 1.348 and 1.350 as currently supported, 1.344 as supported *"Only with Enterprise Success and Support"*, and 1.342 as out of support, so these cutoffs already apply on any cluster in standard support. An agent that stops connecting right after a cluster update may simply be too old.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Cluster Management Console (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console), [Update Cluster ActiveGate (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/update-dynatrace-managed-activegate)</sub>
-> - <sub>[Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications)</sub>
+> - <sub>[Event notification reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference)</sub>
 > - <sub>[ActiveGate self-monitoring metrics (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/activegate-sfm-metrics)</sub>
 > - <sub>[ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements)</sub>
 > - <sub>[Managed 1.332 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-332), [Managed 1.344 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-344) release notes, [Install a Cluster ActiveGate (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/install-cluster-activegate)</sub>
-> - <sub>[Managed 1.342 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-342), [Managed 1.346 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-346) release notes</sub>
+> - <sub>[Managed 1.342 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-342), [Managed 1.346 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-346) release notes, [Dynatrace Managed release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed) (read 11/10/2026)</sub>
 
 <a id="doc-gaps"></a>
 ## 10. What the Documentation Does Not Say
@@ -294,10 +294,10 @@ All three are currently supported releases, so these cutoffs already apply on a 
 **Conflicts between pages:**
 
 - **Cluster ActiveGate port.** The connectivity-schemes page says *"Cluster ActiveGate receives connections on port 9999."*; the deployments page says *"External communication is only supported over HTTPS (port 443)."* This notebook states neither for the Cluster ActiveGate's inbound hop. Confirm in your firewall rules.
-- **Health-check interval.** The data-exchange table says *"Once every 2 minutes"*; the offline comparison table says *"Health-check is updated every 5 minutes"*. This notebook follows the data-exchange page.
+- **Health-check interval.** The data-exchange table says *"Once every 2 minutes"*; the offline-vs-online comparison table says *"Health-check is updated every 5 minutes"*. This notebook follows the data-exchange page.
 - **Where the certificate toggle lives.** The cluster certificate page puts it under **Settings > Preferences**; the Cluster ActiveGate certificate page under **Settings > Public endpoints**.
 
-> <sub>**Sources:** [Self-monitoring metrics (DT docs)](https://docs.dynatrace.com/managed/analyze-explore-automate/metrics-classic/self-monitoring-metrics), [Supported connectivity schemes for ActiveGates (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/supported-connectivity-schemes-for-activegates), [Managed deployments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/managed-deployments), [Mission Control data exchange (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-data-exchange), [Dynatrace Managed offline (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/dynatrace-managed-offline), [SSL certificate for the Managed Cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/ssl-certificate-managed-cluster), [SSL certificate for a Cluster ActiveGate (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/ssl-certificate-cluster-activegate). **Observed 09/29/2026:** the four gaps then listed were searched for across the Managed cluster, ActiveGate and release-note pages (115 pages crawled); none was filled at the time. One (the `dsfm:` gap) was filled on 10/02/2026, so three remain.</sub>
+> <sub>**Sources:** [Self-monitoring metrics (DT docs)](https://docs.dynatrace.com/managed/analyze-explore-automate/metrics-classic/self-monitoring-metrics), [Supported connectivity schemes for ActiveGates (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/supported-connectivity-schemes-for-activegates), [Managed deployments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/managed-deployments), [Mission Control data exchange (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-data-exchange), [Offline and online mode differences (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/offline-and-online-mode-differences), [SSL certificate for the Managed Cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/ssl-certificate-managed-cluster), [SSL certificate for a Cluster ActiveGate (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/ssl-certificate-cluster-activegate). **Observed 09/29/2026:** the four gaps then listed were searched for across the Managed cluster, ActiveGate and release-note pages (115 pages crawled); none was filled at the time. One (the `dsfm:` gap) was filled on 10/02/2026, so three remain.</sub>
 
 <a id="recommendation"></a>
 ## 11. Recommended Approach

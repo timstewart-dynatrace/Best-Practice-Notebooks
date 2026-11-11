@@ -1,6 +1,6 @@
 # DTM-13: Elasticsearch Store Health
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 13 — Elasticsearch Store Health | **Created:** September 2026 | **Last Updated:** 10/29/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 13 — Elasticsearch Store Health | **Created:** September 2026 | **Last Updated:** 11/10/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -57,7 +57,7 @@ This notebook is layer 2 of the DTM-10 health model, for Elasticsearch. It cover
 - **None of the Elasticsearch-specific events email you.** Overload, log-queue and backup problems appear only in CMC Events and Mission Control.
 - **The backup is incremental, every two hours.** Never delete its files. Log events are backed up only if you opt in.
 
-> <sub>**Sources:** [Data retention periods (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods), [Single-cluster high availability (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability), [Estimating cluster backup size (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/estimating-cluster-backup-size), [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications).</sub>
+> <sub>**Sources:** [Data retention periods (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods), [Single-cluster high availability (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability), [Estimating cluster backup size (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/estimating-cluster-backup-size), [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Event notification reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference).</sub>
 
 <a id="what-it-holds"></a>
 ## 2. What the Store Holds
@@ -104,16 +104,16 @@ The hardware guide sizes the store per node for **35 days of retention**, which 
 
 The table assumes that 35-day default. If you raise retention, size from your own measured growth instead (§5.2).
 
-**RUM volume drives it.** *"In highly intensive RUM environments (50k user sessions per minute), user sessions might take up to 99% of total Elasticsearch storage."* In those clusters, user-session retention and user-session volume *are* the store's size.
+**RUM volume drives it.** *"In highly intensive real user monitoring environments (50,000 user sessions per minute), user sessions might take up to 99 percent of total Elasticsearch storage."* In those clusters, user-session retention and user-session volume *are* the store's size.
 
 **Log Monitoring raises the bar:**
 
-- *"All Managed Cluster nodes must have at least 64 GB total RAM."*
-- *"Add more Managed Cluster nodes rather than increasing hardware per node for a more resilient configuration."*
-- *"Distribute additional Elasticsearch storage equally across all Managed Cluster nodes."*
+- *"All Cluster nodes must have at least 64 GB total RAM."*
+- *"Add more Cluster nodes rather than increasing hardware per node for a more resilient configuration."*
+- *"Distribute additional Elasticsearch storage equally across all Cluster nodes."*
 - *"Plan custom log retention for environments according to the available hardware."*
 
-**Two storage types are ruled out.** *"High-latency remote volumes such as NFS or CIFS aren't supported for primary storage"*, and specifically for this store, *"Amazon Elastic File System (EFS) isn't supported as primary storage for Elasticsearch, because it may lead to index corruption."*
+**Two storage types are ruled out.** *"High-latency remote volumes such as NFS or CIFS are not supported for primary storage"*, and specifically for this store, *"Amazon Elastic File System (EFS) is not supported as primary storage for Elasticsearch, because it might lead to index corruption."*
 
 > <sub>**Sources:** [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements), [Estimating cluster backup size (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/estimating-cluster-backup-size).</sub>
 
@@ -147,7 +147,7 @@ On any node:
 curl -s -N -XGET 'http://localhost:9200/_cluster/health?pretty' | grep status
 ```
 
-The docs' expected answer is *"status" : "green"*, or *"status" : "yellow"* on a one-node setup. In community practice, `yellow` on a multi-node cluster is read as some replica copies not being allocated — the docs don't say what it means here, so treat anything but `green` as a question for Dynatrace support. During a cluster start (DTM-11 §4), the gate is stricter: *"Make sure active_shards_percent_as_number is 100% and number_of_nodes is equal to the number of nodes in the cluster."*
+The docs' expected answer is *"status" : "green"*, or *"status" : "yellow"* on a one-node setup. In community practice, `yellow` on a multi-node cluster is read as some replica copies not being allocated — the docs don't say what it means here, so treat anything but `green` as a question for Dynatrace support. During a cluster start (DTM-11 §4), the gate is stricter: *"Verify that active_shards_percent_as_number is 100 percent and number_of_nodes equals the number of nodes in the Managed Cluster."*
 
 ### 5.2 Size, per node
 
@@ -157,7 +157,7 @@ du -sh /var/opt/dynatrace-managed/elasticsearch/
 
 The backup-sizing guide expects *"The size should vary only slightly between nodes."* In community practice, a node that is much larger than its peers is raised with support before it fills — verify against your own trend. Trend the numbers weekly against the size table in §3.
 
-A Dynatrace community KB article explains uneven sizes and gives the thresholds behind them: Elasticsearch does not rebalance data until its own disk watermarks are crossed, with the low, high and flood-stage watermarks at 85%, 90% and 95% ([Elasticsearch store usage differences (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/Why-there-is-difference-in-Elasticsearch-store-usage-between/ta-p/200631), 2023). Those are Elasticsearch's upstream defaults; the article doesn't say whether Dynatrace changes them. In community practice, the 85% line is the one to alert on — verify against your own cluster.
+A Dynatrace community KB article explains uneven sizes and gives the thresholds behind them: Elasticsearch does not rebalance data until its own disk watermarks are crossed, with the low, high and flood-stage watermarks at 85%, 90% and 95% ([Elasticsearch store usage differences (Dynatrace community)](https://community.dynatrace.com/t/why-there-is-difference-in-elasticsearch-store-usage-between-managed-cluster-nodes/37719), 2023). Those are Elasticsearch's upstream defaults; the article doesn't say whether Dynatrace changes them. In community practice, the 85% line is the one to alert on — verify against your own cluster.
 
 ### 5.3 Events
 
@@ -171,7 +171,7 @@ None of these email you. They appear only in CMC Events and Mission Control:
 
 The **process** itself is covered by DTM-11: `dynatrace-elasticsearch.service` in `dynatrace.sh status`, and ports `9200` and `9300` in `dynatrace.sh check` and between nodes.
 
-> <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Start/stop/restart a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/start-stop-restart-cluster), [Estimating cluster backup size (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/estimating-cluster-backup-size), [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications), [Cluster node ports (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/cluster-node-ports).</sub>
+> <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Start/stop/restart a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/start-stop-restart-cluster), [Estimating cluster backup size (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/estimating-cluster-backup-size), [Event notification reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference), [Cluster node ports (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/cluster-node-ports).</sub>
 
 <a id="log-pressure"></a>
 ## 6. Log Ingest Pressure
@@ -196,14 +196,14 @@ The Log Monitoring troubleshooting index has an article for each of the first th
 
 In community practice, a rising incoming count is watched as the early warning for the pressure events above. A non-zero rejected count points at an environment's ingest limit rather than at the store.
 
-> <sub>**Sources:** [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications), [Log Monitoring troubleshooting (DT docs)](https://docs.dynatrace.com/managed/analyze-explore-automate/log-monitoring/lmc-troubleshooting), [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements), [Self-monitoring metrics (DT docs)](https://docs.dynatrace.com/managed/analyze-explore-automate/metrics-classic/self-monitoring-metrics).</sub>
+> <sub>**Sources:** [Event notification reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference), [Log Monitoring troubleshooting (DT docs)](https://docs.dynatrace.com/managed/analyze-explore-automate/log-monitoring-classic/lmc-troubleshooting), [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements), [Self-monitoring metrics (DT docs)](https://docs.dynatrace.com/managed/analyze-explore-automate/metrics-classic/self-monitoring-metrics).</sub>
 
 <a id="disk"></a>
 ## 7. Disk and Storage Location
 
 **Where it lives.** `ELASTICSEARCH_DATASTORE_PATH` defaults to `DATASTORE_PATH/elasticsearch`, which is `/var/opt/dynatrace-managed/elasticsearch`. The storage-location table asks for **3 GB** free to install and **1 GB** to upgrade. Those are only install minimums; plan capacity from §3.
 
-**Layout rules** (same as DTM-12 §6): give the store its own local volume, keep partition sizes equal on every node (*"Use the same partition size on all Managed Cluster nodes."*), don't nest it inside another store (*"you can't nest datastores within each other"*), and never put it on NFS, CIFS or EFS.
+**Layout rules** (same as DTM-12 §6): give the store its own local volume, keep partition sizes equal on every node (*"Use the same partition size on all Cluster nodes."*), don't nest it inside another store (*"you cannot nest datastores within each other"*), and never put it on NFS, CIFS or EFS.
 
 **Grow it in place first.** The storage-location page documents *"Extend the size of the storage volume"*; that is less risky than moving the store.
 
@@ -213,7 +213,7 @@ In community practice, a rising incoming count is watched as the early warning f
 1. Stop the node: `sudo /opt/dynatrace-managed/launcher/dynatrace.sh stop`
 2. Copy the data, keeping permissions: `cp -pR /old_location/elasticsearch/* /new_location/elasticsearch`
 3. Fix ownership: `chown -R dynatrace:dynatrace /new_location`
-4. Point `ELASTICSEARCH_DATASTORE_PATH` at the new location in `/etc/dynatrace.conf`. The new path *"must be a directory, and it can't be a symlink"*
+4. Point `ELASTICSEARCH_DATASTORE_PATH` at the new location in `/etc/dynatrace.conf`. The new path *"It must be a directory, and it cannot be a symlink."*
 5. Apply it: `nohup <PRODUCT_PATH>/installer/reconfigure.sh --no-start &`
 6. Start the node: `sudo /opt/dynatrace-managed/launcher/dynatrace.sh start`
 7. *"Check the logs to make sure all services started without issues."*
@@ -227,9 +227,9 @@ In community practice, the move is done one node at a time, with `_cluster/healt
 
 DTM-16 covers backup and disaster recovery as a whole. This section covers what's specific to this store.
 
-**How it works.** *"The snapshot is performed, by default, every 2 hours and it is incremental. Initially, Dynatrace copies the entire data set and then creates snapshots of the differences. Older snapshots are removed gradually once they are five (5) days old."* Replicas are not duplicated: *"the backup excludes the replicated data."*
+**How it works.** *"The snapshot is performed, by default, every two hours, and it's incremental. Initially, Dynatrace copies the entire data set and then creates snapshots of the differences. Older snapshots are removed gradually once they're five days old."* Replicas are not duplicated: *"the backup excludes the replicated data."*
 
-**Never delete its files.** *"Elasticsearch backs up incrementally, so it needs to be able to append recent changes to the previous backup. Don't remove Elasticsearch backup files."* A cleanup job on the backup share that prunes old files will break the chain.
+**Never delete its files.** *"Elasticsearch backs up incrementally, so it needs to be able to append recent changes to the previous backup. Do not remove Elasticsearch backup files."* A cleanup job on the backup share that prunes old files will break the chain.
 
 **It grows on its own schedule.** *"Since Dynatrace keeps some of the older snapshots, backup size grows regardless of the current size on disk."* Also, *"Elasticsearch merges data segments over time, which results in certain duplicates in the backup."* Lowering retention (§4) shrinks the store before it shrinks the backup.
 
@@ -237,11 +237,11 @@ DTM-16 covers backup and disaster recovery as a whole. This section covers what'
 
 | Setting | Effect on this store |
 |---------|----------------------|
-| *"Exclude user sessions from the backup to remain compliant with GDPR."* | User sessions are backed up unless you tick this |
+| *"Exclude user sessions from the backup to remain compliant with the General Data Protection Regulation."* | User sessions are backed up unless you tick this |
 | *"Include backup of Log Monitoring events."* | Log events are backed up **only if** you tick this |
 | Exclude timeseries metric data | No effect here (Cassandra) |
 
-**How much space.** *"While Elasticsearch backup doesn't contain data replicas, because of incremental snapshots, we use total storage for the estimation."* Plan for the full on-disk size of the store across all nodes. In heavy-RUM clusters, excluding user sessions *"might eliminate Elasticsearch backup estimation from the overall formula."*
+**How much space.** *"Although the Elasticsearch backup doesn't contain data replicas, you use the total storage for the estimation because of incremental snapshots."* Plan for the full on-disk size of the store across all nodes. In heavy-RUM clusters, excluding user sessions *"might remove Elasticsearch backup estimation from the overall formula."*
 
 **When it fails.** *"ElasticSearch backup problem."* is **not emailed** (§5.3). Check CMC **Home** (last backup) and CMC Events.
 
@@ -251,12 +251,12 @@ DTM-16 covers backup and disaster recovery as a whole. This section covers what'
 sudo /opt/dynatrace-managed/utils/restore-elasticsearch-data.sh <path-to-backup>/<UUID>
 ```
 
-> <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Estimating cluster backup size (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/estimating-cluster-backup-size), [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications). **Derived:** "log events only if you opt in" and "user sessions unless excluded" read the option wording; the page doesn't state the defaults separately.</sub>
+> <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Estimating cluster backup size (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/estimating-cluster-backup-size), [Event notification reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference). **Derived:** "log events only if you opt in" and "user sessions unless excluded" read the option wording; the page doesn't state the defaults separately.</sub>
 
 <a id="failover-versions"></a>
 ## 9. Failover and Versions
 
-**Multi-data-center clusters.** Premium High Availability watches this store as closely as Cassandra: *"If Mission Control (MC) detects that two or more Elasticsearch or Cassandra nodes in a data center (DC) are down for 15 minutes, it automatically stops the server processes in that DC."* Elasticsearch logs for that investigation are under `/var/opt/dynatrace-managed/log/elasticsearch/`. Two limits matter for health checks. A *red* `_cluster/health` does not trigger failover: *"Does Elasticsearch in RED status trigger the PHA failover mechanism? No. Dynatrace reacts only to Elasticsearch down status."* — a red store needs manual action. And automatic recovery covers *"outages longer than 15 minutes and shorter than 72 hours"* (DTM-16 §7.3).
+**Multi-data-center clusters.** Premium High Availability watches this store as closely as Cassandra: *"If Mission Control (MC) detects that two or more Elasticsearch or Cassandra nodes in a data center (DC) are down for 15 minutes, MC automatically stops the server processes in that DC. MC then marks the DC as unhealthy."* Elasticsearch logs for that investigation are under `/var/opt/dynatrace-managed/log/elasticsearch/`. Two limits matter for health checks. A *red* `_cluster/health` does not trigger failover: *"Does Elasticsearch in RED status trigger the PHA failover mechanism? No. Dynatrace reacts only to Elasticsearch down status."* — a red store needs manual action. And automatic recovery covers *"outages longer than 15 minutes and shorter than 72 hours"* (DTM-16 §7.3).
 
 **Which Elasticsearch you're running (Managed 1.340+).** Elasticsearch is upgraded with Managed itself: *"The Elasticsearch nodes are upgraded to version 8.19 to provide bug and security fixes and leverage performance improvements introduced by this update."* There's nothing to do by hand: *"No manual user intervention or downtime is required"*. As with Cassandra, staying within the supported Managed releases is how the store stays patched.
 
@@ -271,16 +271,16 @@ Checked against the Managed documentation on 09/28/2026 and **not found**:
 |-----|-------------------------------------|
 | Disk watermarks set by Dynatrace for the store | A community KB article cites Elasticsearch's upstream 85/90/95% watermarks (§5.2); rely on the *Insufficient disk space* event and your own trend |
 | What *"might be overloaded"* means, or what to do about it | Treat it like the log-pressure events (§6) |
-| Where Davis problems and events are stored | Not in the docs. A Dynatrace product manager's 2019 forum answer puts *events* and *problems* in Elasticsearch ([what are the different type of data (Dynatrace community)](https://community.dynatrace.com/t5/Alerting/what-are-the-different-type-of-data/td-p/122675)) |
+| Where Davis problems and events are stored | Not in the docs. A Dynatrace product manager's 2019 forum answer puts *events* and *problems* in Elasticsearch ([what are the different type of data (Dynatrace community)](https://community.dynatrace.com/t/what-are-the-different-type-of-data/21768)) |
 | A `dsfm:` self-monitoring metric for the store's own disk or health | Measure on the node (§5). Only log-*ingest* metrics are documented (§6) |
 | Where an environment's log ingest limit is set, and its value | Watch the rejected-events metric (§6). The Log Monitoring troubleshooting page answers *"Who can increase the ingestion limit per tenant?"* by referring readers to a Dynatrace product expert |
 
 **Two conflicts in the docs:**
 
-- **Snapshot interval.** *Backup and restore a cluster* says *"every 2 hours"*. The *Pre-upgrade information* page's Managed-vs-SaaS comparison table says *"Elasticsearch snapshots every 2 days"*. This notebook follows the operational backup page. Confirm the interval your cluster actually runs in CMC **Settings > Backup**.
+- **Snapshot interval.** *Backup and restore a cluster* says *"every two hours"*. The *Pre-upgrade information* page's Managed-vs-SaaS comparison table says *"Elasticsearch snapshots every 2 days"*. This notebook follows the operational backup page. Confirm the interval your cluster actually runs in CMC **Settings > Backup**.
 - **Copy counts.** The backup page says *"there are two replicas in addition to the primary shard"*, which fits user sessions (three copies) but not log events (two). The retention and HA pages are the more specific source per data type (§2).
 
-> <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Pre-upgrade information (DT docs)](https://docs.dynatrace.com/managed/upgrade/up-information), [Data retention periods (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods), [Log Monitoring troubleshooting (DT docs)](https://docs.dynatrace.com/managed/analyze-explore-automate/log-monitoring/lmc-troubleshooting), [Manage your monitoring environments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/manage-your-monitoring-environments). **Observed 10/29/2026:** the environments page lists log quotas and Log Monitoring storage, but no per-minute ingest limit. **Observed 09/28/2026:** none of the four gaps is filled anywhere in the 2,681 pages under `/managed/` (crawled and searched for Elasticsearch disk thresholds and watermarks, the overload event, event-store statements, and `dsfm:` metric names — the only Elasticsearch-related `dsfm:` metrics found are the two log-ingest counters in §6).</sub>
+> <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Pre-upgrade information (DT docs)](https://docs.dynatrace.com/managed/upgrade/up-information), [Data retention periods (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods), [Log Monitoring troubleshooting (DT docs)](https://docs.dynatrace.com/managed/analyze-explore-automate/log-monitoring-classic/lmc-troubleshooting), [Manage your monitoring environments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/manage-your-monitoring-environments). **Observed 10/29/2026:** the environments page lists log quotas and Log Monitoring storage, but no per-minute ingest limit. **Observed 09/28/2026:** none of the four gaps is filled anywhere in the 2,681 pages under `/managed/` (crawled and searched for Elasticsearch disk thresholds and watermarks, the overload event, event-store statements, and `dsfm:` metric names — the only Elasticsearch-related `dsfm:` metrics found are the two log-ingest counters in §6).</sub>
 
 <a id="recommendation"></a>
 ## 11. Recommended Approach

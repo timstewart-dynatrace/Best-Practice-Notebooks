@@ -1,6 +1,6 @@
 # CLOUD-01: Cloud Integration Fundamentals
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 1 of 8 | **Created:** March 2026 | **Last Updated:** 10/22/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 1 of 8 | **Created:** March 2026 | **Last Updated:** 11/10/2026
 
 ## Overview
 
@@ -48,7 +48,7 @@ Dynatrace supports multiple approaches for cloud integration, with **direct conn
 2. Select the cloud provider (AWS, Azure, or GCP) and follow the guided onboarding flow.
 3. For **AWS**: Dynatrace deploys a CloudFormation stack in your account that creates IAM roles, Secrets Manager entries, and optional log forwarding resources.
 4. For **Azure**: Create an Azure connection in the Clouds app (Entra ID app registration with a federated identity credential and the Monitoring Reader role), or use the Azure Native Dynatrace Service from the Azure Marketplace.
-5. For **GCP**: Create a GCP connection in the Clouds app (Preview — keyless service account impersonation), or deploy `dynatrace-gcp-monitor` on GKE (maintenance mode, the working production path), which polls Cloud Monitoring for metrics and pulls logs from Pub/Sub.
+5. For **GCP**: Create a GCP connection in the Clouds app (generally available — verify it has reached your tenant; keyless service account impersonation), or deploy `dynatrace-gcp-monitor` on GKE (maintenance mode; keeps working until you move), which polls Cloud Monitoring for metrics and pulls logs from Pub/Sub.
 6. Dynatrace connects directly to cloud APIs — **no ActiveGate required** for SaaS deployments.
 7. Discovered resources are mapped to the Dynatrace entity model, enriched with cloud-native metadata (tags, account IDs, regions).
 
@@ -78,7 +78,7 @@ The **Clouds app** provides a streamlined, fully managed experience for connecti
 |---|---|---|
 | **AWS** | Available | CloudFormation template via Clouds app |
 | **Azure** | Available | Azure Native Dynatrace Service or Entra ID app |
-| **GCP** | Preview | GCP connection (service account impersonation); `dynatrace-gcp-monitor` on GKE remains the working path |
+| **GCP** | Available (GA 10/29/2026) | GCP connection (service account impersonation); `dynatrace-gcp-monitor` on GKE keeps working until you move |
 
 ### Classic ActiveGate-Based Polling (Legacy)
 

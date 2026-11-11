@@ -1,6 +1,6 @@
 # FAQ-17: How Do I Plan a Migration Cutover?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 17 — Planning a Migration Cutover | **Created:** July 2026 | **Last Updated:** 10/29/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 17 — Planning a Migration Cutover | **Created:** July 2026 | **Last Updated:** 11/06/2026
 
 ## Overview
 
@@ -219,12 +219,12 @@ Three things to settle before the old system goes away:
 | Who else consumes the old system's output? | Reports, exports, and integrations outlive the team that built them |
 | What is still licensed? | Cost savings are the business case, and they do not land until decommission does |
 
-**Retention is met by keeping the old system readable, or by an archive outside Dynatrace — not by re-ingesting history.** Dynatrace log ingest drops records older than its log age limit, which is measured in hours: 24 by default, and 72 from SaaS 1.348, released with a staged tenant rollout from 10/12/2026 — verify it has reached your tenant. Either way it is far short of a multi-year obligation. Replaying an archive through a Collector does not get round it, because replay keeps each record's original timestamp.
+**Retention is met by keeping the old system readable, or by an archive outside Dynatrace — not by re-ingesting history.** Dynatrace log ingest drops records older than its log age limit, which is measured in hours: 72 by default for environments created after SaaS 1.348, and 24 for older environments unless Dynatrace Support raises it to 72 on request. Either way it is far short of a multi-year obligation. Replaying an archive through a Collector does not get round it, because replay keeps each record's original timestamp.
 
 SL2DT-09 breaks the stabilization window into weeks — stabilize, tune, hand off, retro — with metrics to track through it. That structure generalizes; the metrics will not.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Log Management and Analytics default limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits) — *"The event is dropped if the log event contains a timestamp before the current time minus 24 hours."*</sub>
+> - <sub>[Log Management and Analytics default limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits) — *"The event is dropped if it contains a timestamp older than the configured log age limit."* *"For environments created after Dynatrace version 1.348 was released, the default log age limit is 72 hours."* *"For environments created before Dynatrace version 1.348 was released, the default log age limit is 24 hours. The limit can be increased to 72 hours on request."*</sub>
 > - <sub>[What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"The log ingestion pipeline now accepts log records with timestamps up to 72 hours in the past,"* and *"Rollout start on Oct 12, 2026"*</sub>
 > - <sub>**Code read (10/29/2026):** [`internal/blobconsume/consumer.go`](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/internal/blobconsume/consumer.go) at tag `v1.2.0`, used by the S3, Azure Blob and Google Cloud Storage rehydration receivers, unmarshals each stored OTLP payload and passes it on unchanged (lines 105–114), so replayed records keep their original timestamps</sub>
 

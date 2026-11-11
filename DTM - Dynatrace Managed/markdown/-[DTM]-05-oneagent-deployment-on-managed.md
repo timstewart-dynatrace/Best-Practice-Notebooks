@@ -1,6 +1,6 @@
 # DTM-05: OneAgent Deployment on Managed
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 05 — OneAgent Deployment on Managed | **Created:** October 2026 | **Last Updated:** 10/21/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 05 — OneAgent Deployment on Managed | **Created:** October 2026 | **Last Updated:** 11/10/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -57,7 +57,7 @@ Give OneAgents an **Environment ActiveGate** in every segment, so they never fal
 
 **Open the firewall to the addresses the cluster gives you.** *"The remote Dynatrace addresses to add to the allow list are given on the installation page for OneAgent."* And *"All hosts that are to be monitored need to be able to send data to the Dynatrace cluster."*, either directly or through an ActiveGate.
 
-> <sub>**Sources:** [Reverse proxy or load balancer for OneAgent (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/configuration/set-up-reverse-proxy-for-oneagent), [OneAgent connectivity in network zones (DT docs)](https://docs.dynatrace.com/managed/manage/network-zones/oneagent-connectivity), [Install OneAgent on Linux (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/installation-and-operation/linux/installation/install-oneagent-on-linux).</sub>
+> <sub>**Sources:** [Reverse proxy or load balancer for OneAgent (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/configuration/set-up-reverse-proxy-for-oneagent), [OneAgent connectivity in network zones (DT docs)](https://docs.dynatrace.com/managed/manage/network-zones-classic/oneagent-connectivity), [Install OneAgent on Linux (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/installation-and-operation/linux/installation/install-oneagent-on-linux).</sub>
 
 <a id="install-decisions"></a>
 ## 3. Decide Before the First Installation
@@ -89,7 +89,7 @@ The docs map them to the priority groups: *"Any ActiveGate (default) corresponds
 
 A multi-environment ActiveGate has one zone for all its environments: *"Multi-environment ActiveGate can have only one zone that is valid across all connected environments."*
 
-> <sub>**Sources:** [OneAgent connectivity in network zones (DT docs)](https://docs.dynatrace.com/managed/manage/network-zones/oneagent-connectivity) — *"Only DefaultZone corresponds to priority groups 1, 2, and 3."*</sub>
+> <sub>**Sources:** [OneAgent connectivity in network zones (DT docs)](https://docs.dynatrace.com/managed/manage/network-zones-classic/oneagent-connectivity) — *"Only DefaultZone corresponds to priority groups 1, 2, and 3."*</sub>
 
 <a id="update-policy"></a>
 ## 5. Update Policy
@@ -111,11 +111,11 @@ Points that shape the policy:
 <a id="cpu-baseline"></a>
 ## 6. Check the CPU Baseline
 
-OneAgent on x86-64 is moving to a minimum CPU level: *"Minimum Supported Microarchitecture Level: x86-64-v2"*. The enforcing version isn't set yet: *"The Dynatrace OneAgent version where this is enforced is will be announced in a future release."* When it arrives, *"Systems not meeting the x86-64-v2 baseline will not be able to run the Dynatrace OneAgent."*
+OneAgent on x86-64 requires a minimum CPU level: *"Minimum Supported Microarchitecture Level: x86-64-v2"*. Enforcement starts with OneAgent 1.357: *"With OneAgent version 1.357+ , OneAgent checks your CPU at startup. If the CPU doesn't support x86-64-v2, OneAgent stops and doesn't monitor the host or the applications running on it."* *"Systems not meeting the x86-64-v2 baseline will not be able to run the Dynatrace OneAgent."* New OneAgent versions reach a Managed cluster and its hosts in stages and through your update policy, so verify which OneAgent version each host runs before you rely on either behavior.
 
 The docs name the first generations that qualify: *"Intel Nehalem was the first Intel architecture to fully support the x86-64-v2 baseline."* and *"AMD Bulldozer and its successors support the x86-64-v2 baseline."* For virtual machines: *"Virtualized environments should ensure CPU feature passthrough is enabled to meet the microarchitecture requirements."*
 
-**Best practice:** find hosts and VM templates below x86-64-v2 now, while the enforcing release is still unannounced. On-premises estates that run Managed are more likely than cloud estates to have old hardware or VMs with restricted CPU features.
+**Best practice:** find hosts and VM templates below x86-64-v2 now, before OneAgent 1.357 reaches them. On-premises estates that run Managed are more likely than cloud estates to have old hardware or VMs with restricted CPU features.
 
 > <sub>**Sources:** [OneAgent requirements (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/oa-requirements) — *"x86-64-v2 is a baseline that includes support for SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, and CMPXCHG16B instructions."*. **Derived:** "more likely to have old hardware" is the notebook's reasoning about on-premises estates, not a documented statement.</sub>
 
@@ -128,7 +128,6 @@ The docs name the first generations that qualify: *"Intel Nehalem was the first 
 |-----|-------------------------------------|
 | How a OneAgent's version relates to the cluster's version (whether a OneAgent can be newer than the cluster) | Update OneAgents from what the cluster offers in **OneAgent updates**; the ActiveGate update page describes its target versions as versions *"available on the cluster"* |
 | A recommended gap between update rings | Set it from your own change process (§5) |
-| The OneAgent version that will enforce x86-64-v2 | Not yet announced (§6) |
 
 **An old host-group page.** The host-group page was last updated 08/21/2023; its install example uses OneAgent 1.177. The mechanics it describes are what this notebook relies on; check the installer options on your cluster's own installation page.
 

@@ -1,6 +1,6 @@
 # CLOUD-07: CloudWatch Log Ingestion
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 7 of 8 | **Created:** March 2026 | **Last Updated:** 10/26/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 7 of 8 | **Created:** March 2026 | **Last Updated:** 11/10/2026
 
 ## Overview
 
@@ -56,7 +56,7 @@ This notebook covers strategies for forwarding cloud provider logs into Dynatrac
 |---|---|---|
 | **AWS** | Amazon Data Firehose (CloudWatch logs) | S3 direct ingestion (SaaS 1.344), Lambda Layer log collection |
 | **Azure** | Azure Event Hub / Diagnostic Settings | Azure Functions forwarder |
-| **GCP** | Log Router sink → Pub/Sub → `dynatrace-gcp-monitor` (CLOUD-06 §6) | GCP connection in the Clouds app (Preview); the Cloud Function deployment is deprecated and unsupported |
+| **GCP** | Log Router sink → Pub/Sub → `dynatrace-gcp-monitor` (CLOUD-06 §6) | GCP connection in the Clouds app (GA — verify it has reached your tenant); the Cloud Function deployment is deprecated and unsupported |
 
 ### Architecture Overview
 

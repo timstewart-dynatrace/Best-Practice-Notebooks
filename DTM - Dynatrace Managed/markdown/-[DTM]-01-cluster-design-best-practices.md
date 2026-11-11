@@ -1,6 +1,6 @@
 # DTM-01: Cluster Design Best Practices
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 01 — Cluster Design Best Practices | **Created:** October 2026 | **Last Updated:** 11/02/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 01 — Cluster Design Best Practices | **Created:** October 2026 | **Last Updated:** 11/10/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -52,7 +52,7 @@ The docs are blunt about up-front sizing: *"Exact sizing of a Managed Cluster is
 
 | Dimension | What it means | Limit or condition |
 |-----------|---------------|--------------------|
-| **Horizontal** | Add nodes | *"Dynatrace Managed supports up to 42 Managed Cluster nodes."* |
+| **Horizontal** | Add nodes | *"Dynatrace Managed supports up to 42 Cluster nodes."* |
 | **Vertical** | More RAM or CPU per node | *"When adding CPUs or RAM, keep all nodes equally sized."* |
 | **Storage** | Larger disks | *"Use resizable disk volumes."* (§5) |
 
@@ -66,7 +66,7 @@ Two design consequences:
 <a id="node-placement"></a>
 ## 3. Node Count and Placement
 
-**Three nodes is the floor for production.** *"Production environments require a minimum 3-node Managed Cluster for reliability and data redundancy."* With three nodes, configuration, events, user sessions and metrics are held three times, so *"Dynatrace Managed continues to operate after the loss of one node."* What a lost node does cost (transaction storage is not replicated) is in DTM-10 §4.
+**Three nodes is the floor for production.** *"Production environments require a minimum three-node Managed Cluster for reliability and data redundancy."* With three nodes, configuration, events, user sessions and metrics are held three times, so *"Dynatrace Managed continues to operate after the loss of one node."* What a lost node does cost (transaction storage is not replicated) is in DTM-10 §4.
 
 **The rules every node follows.** The docs list them for multi-node clusters. All nodes must:
 
@@ -80,7 +80,7 @@ Two design consequences:
 
 **One node per host.** *"To prevent loss of configuration, metrics, and log data, deploy each node on a separate host."* On virtualization platforms this also means keeping nodes off the same physical host. In community practice, that is enforced with anti-affinity rules — confirm what your platform offers.
 
-**Dedicated hosts.** *"Dynatrace Managed requires a dedicated host."* The host *"must not run other services that are central processing unit (CPU)- or memory-intensive, or that use ports required by Dynatrace Managed."* The resources are reserved too: *"CPU and RAM must be exclusively available for Dynatrace."*
+**Dedicated hosts.** *"Dynatrace Managed requires a dedicated host."* The host *"must not run other services that consume significant central processing unit or memory resources, or that use ports required by Dynatrace Managed."* The resources are reserved too: *"CPU and RAM must be exclusively available for Dynatrace."*
 
 > <sub>**Sources:**</sub>
 > - <sub>[Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements) — *"Turn off CPU power-saving mode."*</sub>
@@ -122,10 +122,10 @@ Storage is the part of the design that is hardest to fix after data arrives. The
 2. **Keep data off the root volume.** *"Don't store Dynatrace data on the root volume to avoid complexity when resizing later."*
 3. **One volume per data type.** *"Mount different types of data storage on separate disk volumes for maximum flexibility and performance."* (The stores are described in DTM-12 and DTM-13.)
 4. **Make volumes resizable.** *"Use resizable disk partitions, for example with Logical Volume Manager (LVM)."*
-5. **Keep partitions identical.** *"Use the same partition size on all Managed Cluster nodes."* A node whose partition is smaller than the others' is stopped (DTM-10 §5).
+5. **Keep partitions identical.** *"Use the same partition size on all Cluster nodes."* A node whose partition is smaller than the others' is stopped (DTM-10 §5).
 6. **Exclude data paths from antivirus.** *"Exclude data storage paths from antivirus scanning to prevent data consistency issues."*
 
-**What kind of storage.** *"Use fast local storage suitable for database workloads."* Encryption is fine when it is transparent: *"Dynatrace Managed also supports encrypted file systems when disk IOPS meet the requirements and encryption is transparent at the operating system level."* Network file systems are not: *"High-latency remote volumes such as NFS or CIFS aren't supported for primary storage; NFS is sufficient for backups only."* And on AWS: *"Amazon Elastic File System (EFS) isn't supported as primary storage for Elasticsearch, because it may lead to index corruption."*
+**What kind of storage.** *"Use fast local storage suitable for database workloads."* Encryption is fine when it is transparent: *"Dynatrace Managed also supports encrypted file systems when disk IOPS meet the requirements and encryption is transparent at the operating system level."* Network file systems are not: *"High-latency remote volumes such as NFS or CIFS are not supported for primary storage; NFS is sufficient for backups only."* And on AWS: *"Amazon Elastic File System (EFS) is not supported as primary storage for Elasticsearch, because it might lead to index corruption."*
 
 **Grow with nodes, not ever-larger disks.** *"Keep the Long-term Metrics Store data below 2 TB per node."* When more storage is needed, *"add another node to reduce the per-node requirement."* The 2 TB and 4 TB events are covered in DTM-12 §3.
 
@@ -147,7 +147,7 @@ Storage is the part of the design that is hardest to fix after data arrives. The
 
 The list moves with every release, so read the page when you provision, not this table. A cluster of identical nodes (§3) also means **one operating system version across all nodes**; in community practice, mixing versions makes later upgrades harder to plan.
 
-**In the cloud,** use the memory-optimized families the docs list (AWS `r6i`, Azure `E…as v6`, Google Cloud `n4-highmem`) and keep the documented ratio: *"Maintain a vCPU to RAM (random access memory) ratio of 1:8 to optimize performance."* The node minimum still applies: *"Hosts must have at least 32 GB RAM."*
+**In the cloud,** use the memory-optimized families the docs list (AWS `r6i`, Azure `E…as v6`, Google Cloud `n4-highmem`) and keep the documented ratio: *"Maintain a vCPU to random access memory ratio of 1:8 to optimize performance."* The node minimum still applies: *"Hosts must have at least 32 GB RAM."*
 
 > <sub>**Sources:** [Operating system requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/operating-system-requirements) — *"The following operating systems are no longer supported since 01 November 2026"*, *"The following operating systems will no longer be supported starting 01 January 2027"*, *"will no longer be supported starting 01 July 2027"*, [Hardware requirements for cloud deployments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-cloud-requirements), [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements).</sub>
 

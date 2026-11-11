@@ -1,6 +1,6 @@
 # DTM-99: Best Practice Summary and Health-Check Checklist
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 99 — Best Practice Summary and Health-Check Checklist | **Created:** September 2026 | **Last Updated:** 11/01/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 99 — Best Practice Summary and Health-Check Checklist | **Created:** September 2026 | **Last Updated:** 11/10/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -66,7 +66,7 @@ Across all five, the most important habit is reading CMC **Events**. Many of the
 
 | Check | How | Healthy |
 |-------|-----|---------|
-| Cassandra ring | `cassandra-nodetool.sh status` | *"Make sure that all nodes display UN"*; `Load` roughly even |
+| Cassandra ring | `cassandra-nodetool.sh status` | *"Verify that all nodes display UN before proceeding to the next step."*; `Load` roughly even |
 | Metrics store size | `du -sh` on each node | *"Keep the Long-term Metrics Store below 2 TB per node."* |
 | Elasticsearch | `_cluster/health` | `"status" : "green"` (`yellow` only on a one-node cluster) |
 | Retention settings | CMC → Environments → Storage settings | Each environment above the 35-day user-session default is a deliberate choice |
@@ -83,7 +83,7 @@ Across all five, the most important habit is reading CMC **Events**. Many of the
 
 | Check | How | Healthy |
 |-------|-----|---------|
-| Mission Control link | CMC → *Check Mission Control connection* | Connected. Under classic licensing a lost link starts the clock: *"If a connection outage to Mission Control lasts longer than 14 days (7 days for free trial accounts), the Managed Cluster disallows the ability to exceed the license limit (overages)."* Under DPS, usage is sent once the connection returns |
+| Mission Control link | CMC → *Check Mission Control connection* | Connected. Under classic licensing a lost link starts the clock: *"If a connection outage to Mission Control lasts longer than 14 days (seven days for free trial accounts), the Managed Cluster disallows the ability to exceed the license limit (overages)."* Under DPS, usage is sent once the connection returns |
 | Load balancer | Its health checks | Every node checked at `/rest/health`; targets match the current nodes |
 | Cluster ActiveGates | CMC → Deployment Status → ActiveGates | None *Unknown*; none flagged as behind by more than five versions |
 | Certificates | Your certificate inventory | Expiry tracked outside the cluster |
@@ -153,9 +153,9 @@ Cluster events appear in the CMC **Events** list, and the docs' event table give
 | 5 | *"Cassandra backup problem."* / *"ElasticSearch backup problem."* | SEVERE / WARNING or SEVERE |
 | 5 | *"Dynatrace update %s download failed."* / *"Post-Update data migration failed"* … / the cluster *update failed* event | SEVERE / SEVERE / WARNING or SEVERE |
 
-For contrast, these **do** email: *"Node is down - %s."* (*"if happened outside of the upgrade procedure"*), *"Host is down."*, and *"There is lack of connection to Dynatrace Mission Control."*. So does *"Your Dynatrace Managed cluster should be scaled-out!"*, and *"Backup has been disabled because the configuration is no longer supported."* The *Configurable* ones are insufficient disk space, the 4 TB metrics ceiling, retention truncation and adaptive load reduction. Whether they email by default is contradicted on the events page itself: its default example sets truncation and adaptive load reduction to `sendEmail: false`. Set all of them explicitly (DTM-10 §6.2).
+For contrast, these **do** email: *"Node is down - %s."* (*"if happened outside of the upgrade procedure"*), *"Host is down."*, and *"There is lack of connection to Dynatrace Mission Control."*. So does *"Your Dynatrace Managed cluster should be scaled-out!"*, and *"Backup has been disabled because the configuration is no longer supported."* The *Configurable* ones are insufficient disk space, an undersized node (*"Your Dynatrace Managed cluster node {0} is undersized!"*), the 4 TB metrics ceiling, retention truncation and adaptive load reduction. Whether they email by default is contradicted on the events page itself: its default example sets truncation and adaptive load reduction to `sendEmail: false`. Set all of them explicitly (DTM-10 §6.2).
 
-> <sub>**Sources:** [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications) — Email notification column, read 10/01/2026.</sub>
+> <sub>**Sources:** [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications), [Event notification reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference) — Email notification column, read 11/10/2026.</sub>
 
 <a id="cadence"></a>
 ## 5. A Review Cadence
@@ -183,15 +183,15 @@ The "after every change" column is the one teams most often skip. Each item in i
 
 | Number | What it is | From the docs |
 |--------|------------|---------------|
-| **3** | Production minimum | *"Production environments require a minimum 3-node Managed Cluster for reliability and data redundancy."* |
-| **42** | Maximum nodes | *"Dynatrace Managed supports up to 42 Managed Cluster nodes."* |
+| **3** | Production minimum | *"Production environments require a minimum three-node Managed Cluster for reliability and data redundancy."* |
+| **42** | Maximum nodes | *"Dynatrace Managed supports up to 42 Cluster nodes."* |
 | **3 / 2** | Copies: metrics, user sessions / log events | *"Replication factor is set to three."* (user sessions); *"Replication factor is set to two."* (logs) |
 | **2 TB / 4 TB** | Metrics store per node: recommended ceiling / severe cluster event | *"Keep the Long-term Metrics Store data below 2 TB per node."*; *"a severe cluster event when it exceeds 4 TB."* |
 | **⅓** | Headroom | *"Plan for a processing capacity one-third higher than typical utilization."* |
 | **10 ms / 100 ms** | Latency between nodes / between Premium HA data centers | *"Have a network latency between nodes of 10 ms or less"*; *"Keep round-trip network latency at 100 ms or less."* |
 | **15 min** | Sustained load reduction that costs accuracy; Premium HA failover trigger | *"consistent use for intervals of 15 minutes or longer"*; nodes *"down for 15 minutes"* |
 | **24 h** | Between node removals; after a download; between updates | *"allow 24 hours before removing any subsequent nodes"*; *"a 24-hour waiting period is required before an automatic update can run"* |
-| **14 days** | Mission Control outage before overages stop (classic) | *"lasts longer than 14 days (7 days for free trial accounts)"* |
+| **14 days** | Mission Control outage before overages stop (classic) | *"lasts longer than 14 days (seven days for free trial accounts)"* |
 | **72 h** | Premium HA automatic repair window | *"PHA automatically repairs network disconnections of up to 72 hours between DCs."* |
 | **5 GB** | Free space needed to update | *"You have at least 5 GB of available disk space on the partition where Dynatrace Managed is installed."* |
 | **4 weeks** | Release cadence | *"typically released every four weeks"* |
@@ -208,14 +208,14 @@ The "after every change" column is the one teams most often skip. Each item in i
 |--------------|---------------------------|
 | **Trusting the mailbox alone** | Backup failures, certificate expiry, traffic control and heap emergencies never email (§4) |
 | **Nodes of different sizes** | Every node must *"Have the same hardware configuration"*; *"When adding CPUs or RAM, keep all nodes equally sized."* |
-| **Network file systems for live data** | *"High-latency remote volumes such as NFS or CIFS aren't supported for primary storage; NFS is sufficient for backups only."* |
+| **Network file systems for live data** | *"High-latency remote volumes such as NFS or CIFS are not supported for primary storage; NFS is sufficient for backups only."* |
 | **A backup mount that isn't persistent** | *"If the shared file system mount point isn't available on system boot, Dynatrace won't start on that node."* |
-| **Restarting a 3+ node cluster with `dynatrace.sh`** | *"For Dynatrace Managed deployments containing three (3) or more nodes, use the cluster procedure"* |
+| **Restarting a 3+ node cluster with `dynatrace.sh`** | *"For Managed Clusters with three or more nodes, go to Start/stop/restart a Managed Cluster."* |
 | **More than one node out at once** | *"The loss of two or more nodes might affect Managed Cluster performance and availability"* |
 | **Running at capacity** | With no headroom, a node failure moves its traffic onto nodes that can't absorb it: *"If a node fails, the NGINX load balancer automatically redirects all OneAgent traffic to the remaining working nodes."* |
-| **Exposing the cluster directly** | *"Exposing the Managed Cluster directly to external networks isn't recommended for security reasons."* |
-| **Forgetting the change follow-ups** | *"Update the Managed Cluster ingest limit via Cluster Management Console or REST API whenever hardware changes."*; a load balancer's target list *"has to be updated after node join or removal."* |
-| **Assuming a backup is a full copy** | *"Transaction storage data isn't backed up, so when you restore backups you may see gaps in deep monitoring data"* |
+| **Exposing the cluster directly** | *"Exposing the Managed Cluster directly to external networks is not recommended for security reasons."* |
+| **Forgetting the change follow-ups** | *"Update the Managed Cluster ingest limit via Cluster Management Console or REST API whenever hardware changes."*; for a load balancer, *"This list needs to be updated after node join or removal."* |
+| **Assuming a backup is a full copy** | *"Transaction storage data is not backed up, so after a restore you might see gaps in deep monitoring data"* |
 
 > <sub>**Sources:**</sub>
 > - <sub>[Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications), [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements)</sub>
@@ -265,13 +265,13 @@ The Managed documentation is the primary source for this series. These are the m
 | [Premium High Availability and turnkey disaster recovery](https://www.dynatrace.com/news/blog/premium-high-availability-and-turnkey-disaster-recovery-for-dynatrace-managed-early-adopter/) | Dynatrace blog | Node-loss tolerance by cluster size (DTM-10) |
 | [Dynatrace Self-Monitoring (Managed)](https://www.dynatrace.com/hub/detail/dynatrace-self-monitoring-managed/) | Dynatrace Hub | A packaged capacity view (DTM-15) |
 | [dtmgd](https://github.com/dynatrace-oss/dtmgd) and [dynatrace-managed-mcp](https://github.com/dynatrace-oss/dynatrace-managed-mcp) | Dynatrace open source (Apache-2.0) | A CLI and an MCP server for Managed environments and the cluster API. The MCP server's documented token scopes are read scopes. `dtmgd` v0.5.0 and later also writes Settings 2.0 objects where a context's write level allows it; *"every context is `readonly` until you raise it"* (dtmgd README) |
-| [state of nodes](https://community.dynatrace.com/t5/Alerting/state-of-nodes/m-p/113564) | Dynatrace community | All 12 `operationState` values (DTM-11) |
-| [How to restart Dynatrace nodes on the cluster](https://community.dynatrace.com/t5/Dynatrace-Managed-Q-A/How-to-restart-Dynatrace-nodes-on-the-cluster/td-p/117644) | Dynatrace community | The CMC per-node Restart (DTM-11, a recorded conflict) |
-| [Elasticsearch store usage differences](https://community.dynatrace.com/t5/Troubleshooting/Why-there-is-difference-in-Elasticsearch-store-usage-between/ta-p/200631) | Dynatrace community KB | Elasticsearch watermarks (DTM-13) |
-| [Reserve disk space consumed](https://community.dynatrace.com/t5/Troubleshooting/Why-is-my-reserve-disk-space-in-managed-node-is-getting-consumed/ta-p/204801) | Dynatrace community KB | Cassandra compaction headroom (DTM-12) |
-| [Elasticsearch won't start](https://community.dynatrace.com/t5/Troubleshooting/Why-does-my-ElasticSearch-in-Dynatrace-managed-cluster-node-will/ta-p/199324) | Dynatrace community KB | A missing backup mount stopping Elasticsearch (DTM-13, DTM-16) |
-| [Elasticsearch log queue is full](https://community.dynatrace.com/t5/Troubleshooting/Troubleshoot-Elasticsearch-log-queue-is-full-and-Elasticsearch/ta-p/240404) | Dynatrace community KB | Log-ingest pressure (DTM-13) |
-| [Is Cassandra corrupted?](https://community.dynatrace.com/t5/Troubleshooting/How-to-check-if-cassandra-is-corrupted-on-Managed-node/ta-p/199438) | Dynatrace community KB | Spotting corrupt Cassandra tables (DTM-12) |
+| [state of nodes](https://community.dynatrace.com/t/state-of-nodes/19542) | Dynatrace community | All 12 `operationState` values (DTM-11) |
+| [How to restart Dynatrace nodes on the cluster](https://community.dynatrace.com/t/how-to-restart-dynatrace-nodes-on-the-cluster/20505) | Dynatrace community | The CMC per-node Restart (DTM-11, a recorded conflict) |
+| [Elasticsearch store usage differences](https://community.dynatrace.com/t/why-there-is-difference-in-elasticsearch-store-usage-between-managed-cluster-nodes/37719) | Dynatrace community KB | Elasticsearch watermarks (DTM-13) |
+| [Reserve disk space consumed](https://community.dynatrace.com/t/why-is-my-reserve-disk-space-in-managed-node-is-getting-consumed-although-there-is-enough-cassandra-storage/38445) | Dynatrace community KB | Cassandra compaction headroom (DTM-12) |
+| [Elasticsearch won't start](https://community.dynatrace.com/t/why-does-my-elasticsearch-in-dynatrace-managed-cluster-node-will-not-start/37489) | Dynatrace community KB | A missing backup mount stopping Elasticsearch (DTM-13, DTM-16) |
+| [Elasticsearch log queue is full](https://community.dynatrace.com/t/troubleshoot-elasticsearch-log-queue-is-full-and-elasticsearch-log-storing-failed-in-managed-cluster/44745) | Dynatrace community KB | Log-ingest pressure (DTM-13) |
+| [Is Cassandra corrupted?](https://community.dynatrace.com/t/how-to-check-if-cassandra-is-corrupted-on-managed-node/37503) | Dynatrace community KB | Spotting corrupt Cassandra tables (DTM-12) |
 
 The community pages block scripted fetches; open them in a browser.
 
