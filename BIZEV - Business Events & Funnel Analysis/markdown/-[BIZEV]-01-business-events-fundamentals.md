@@ -59,7 +59,7 @@ Business events are stored in the `bizevents` data object in Dynatrace Grail. Th
 |-------|-------------|----------|
 | `event.type` | The business event type identifier | `com.myapp.purchase.completed` |
 | `event.provider` | The source system or application | `www.easytravel.com` |
-| `event.category` | Optional grouping category | `ecommerce` |
+| `event.category` | Optional significance category (ITIL event management) | `Availability` |
 | `timestamp` | When the event occurred | `2026-03-12T10:30:00Z` |
 
 > **Note:** Business events can also carry arbitrary custom attributes as part of their payload — product IDs, order amounts, user segments, geographic data, and more.
@@ -118,12 +118,12 @@ Every business event in Grail follows a standard schema with required and option
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `event.category` | string | Logical grouping (e.g., `ecommerce`, `auth`) |
+| `event.category` | string | Significance of the event per the ITIL event management standard (e.g., `Availability`) |
 | `event.group` | string | Sub-grouping within a category |
 | `dt.entity.service` | entity ID | Associated service entity — `deprecated`; use `dt.smartscape.service` |
 | `dt.source_entity` | entity ID | Entity that generated the event — `deprecated`; use `dt.smartscape_source.id` |
 
-> <sub>**Dictionary:** `dt.entity.service` (`deprecated`), `dt.smartscape.service` (`stable`), `dt.source_entity` (`deprecated`), `dt.smartscape_source.id` (`stable`), read 10/25/2026.</sub>
+> <sub>**Dictionary:** `dt.entity.service` (`deprecated`), `dt.smartscape.service` (`stable`), `dt.source_entity` (`deprecated`), `dt.smartscape_source.id` (`stable`), `event.category` (`stable`), read 10/25/2026.</sub>
 
 ### Custom Payload Fields
 

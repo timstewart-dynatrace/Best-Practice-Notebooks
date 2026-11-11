@@ -115,7 +115,7 @@ Masking patterns are DPL, not regex (FAQ-15 §3) — regex syntax such as `\b`, 
 | Bucket-level IAM policies | `ALLOW storage:buckets:read WHERE storage:bucket-name="audit_logs"; ALLOW storage:logs:read WHERE storage:bucket-name="audit_logs";` | Critical |
 | Default bucket: all-authenticated read | Grant `storage:logs:read` on `default_logs` to all authenticated users | Recommended |
 | Audit bucket: restricted access | `storage:logs:read` on `audit_logs` exclusively to audit team group | Critical |
-| Classify IPs as internal vs external | Extract with `parseAll(content, "IPADDR:ip")`, classify with `ipIn(ip, {"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"})` | Recommended |
+| Classify IPs as internal vs external | Extract IPv4 with `parseAll(content, "!<<[A-Za-z0-9.] IPV4ADDR:ip !>>[A-Za-z0-9.]")` — bare `IPADDR` also matches IPv6 fragments (`::0000`) and version strings (`rv:1.9.2.20`), which then read as external — classify with `ipIn(ip, {"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"})`, and list the top EXTERNAL values before trusting that count (OPLOGS-08 §3) | Recommended |
 | Monitor failed auth attempts | `(contains(content, "failed") OR contains(content, "denied")) AND (contains(content, "login") OR contains(content, "auth"))` at 30-min intervals | Critical |
 
 <a id="monitoring-alerting"></a>

@@ -102,7 +102,7 @@ Beyond simple counts, we need to verify that monitored hosts are actively report
 
 ### 2.1 Host CPU Utilization Overview
 
-This query provides a quick health check — if hosts are reporting CPU metrics, the agent is functional.
+This query provides a quick health check — if hosts are reporting CPU metrics, the agent is functional. PaaS hosts (`paasVendorType` set — Kubernetes application-only, Fargate) do not report `dt.host.*` metrics, so they are absent from these two queries (16 of 23 hosts on the validation tenant, 10/23/2026).
 
 ```dql
 // Top 10 hosts by average CPU usage over last 1 hour

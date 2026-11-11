@@ -1,6 +1,6 @@
 # MOBL-03: Android SDK Setup (Kotlin & Jetpack Compose)
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 3 of 12 | **Created:** February 2026 | **Last Updated:** 10/29/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 3 of 12 | **Created:** February 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -25,12 +25,14 @@ This notebook walks through setting up Dynatrace Mobile RUM (Real User Monitorin
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Grail, with a mobile frontend created in Experience Vitals (RUM Classic frontends: RUM turned on for the frontend; Section 1) |
-| **Minimum versions** | Android API level 23, Gradle 8.0, Android Gradle Plugin 8.1.1, Java 17, Kotlin 2.1.0 (an Android Studio release that supports AGP 8.1.1+) |
-| **Jetpack Compose** | 1.4 – 1.10 |
+| **Minimum versions** | Android API level 23, Gradle 8.0, Android Gradle Plugin 8.1.1, Java 17, Kotlin 2.1.0 (an Android Studio release that supports AGP 8.1.1+); Kotlin Gradle plugin 2.2 from OneAgent for Mobile 8.351 (note below) |
+| **Jetpack Compose** | 1.4 – 1.10; OneAgent for Mobile 8.351 adds 1.12 (note below) |
 | **Permissions** | Dynatrace admin access to create mobile applications; `storage:user.events:read` and `storage:smartscape:read` for the verification queries |
 | **Prior Knowledge** | MOBL-01 and MOBL-02 recommended |
 
-> <sub>**Sources:** [Support and limitations — Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/android/id-02-support-and-limitations) — *"Android API level 23 Gradle 8.0 Android Gradle Plugin 8.1.1 Java 17 Kotlin 2.1.0 Jetpack Compose 1.4 - 1.10"* (minimum versions, read 10/02/2026).</sub>
+> **OneAgent for Mobile 8.351 (published 10/27/2026, staged rollout from 11/03/2026 — check which agent version your build pulls in).** Breaking change: *"OneAgent for Android requires the Kotlin Gradle plugin minimum version 2.2. Projects using older Kotlin compiler versions must update their Kotlin Gradle plugin to 2.2 or higher."* The same release adds that the Dynatrace Android Gradle plugin *"now supports auto-instrumentation for Jetpack Compose version 1.12"*. The support page still lists Kotlin 2.1.0 and Compose 1.4 – 1.10 (read 11/11/2026); until you move to 8.351, those remain the minimums for the agent version you build with.
+
+> <sub>**Sources:** [Support and limitations — Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/android/id-02-support-and-limitations) — *"Android API level 23 Gradle 8.0 Android Gradle Plugin 8.1.1 Java 17 Kotlin 2.1.0 Jetpack Compose 1.4 - 1.10"* (minimum versions, read 11/11/2026); [What's new in OneAgent for Mobile 8.351 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-351) — *"OneAgent for Android requires the Kotlin Gradle plugin minimum version 2.2."*, *"The Dynatrace Android Gradle plugin now supports auto-instrumentation for Jetpack Compose version 1.12."*, read 11/11/2026.</sub>
 
 <a id="creating-mobile-app"></a>
 ## 1. Creating a Mobile App in Dynatrace
@@ -386,17 +388,29 @@ This query shows the most frequent user actions reported from Android devices in
 Finally, verify the full range of event types being captured:
 
 ```dql
-// Android app event-type inventory
-// characteristics.classifier names the event type of each user.events record
+// Android app event-type inventory -- one count per event characteristic.
+// Select event types with the stable characteristics.has_* flags, not characteristics.classifier
+// (corrected 11/11/2026): the dictionary calls classifier "not intended for query usage" and
+// Semantic Dictionary 1.349 removes it from the user-event models. The flags can overlap
+// (a failed request is both a request and an error), so the columns need not add up to total_events.
 fetch user.events, from:-1h
 | filter dt.rum.application.type == "mobile" and os.name == "Android"
-| summarize event_count = count(), by:{characteristics.classifier}
-| sort event_count desc
+| summarize {total_events = count(),
+    user_actions = countIf(characteristics.has_user_action == true),
+    requests = countIf(characteristics.has_request == true),
+    errors = countIf(characteristics.has_error == true),
+    crashes = countIf(characteristics.has_crash == true),
+    anrs = countIf(characteristics.has_anr == true),
+    app_starts = countIf(characteristics.has_app_start == true)}
 ```
 
 ### What the Data Looks Like
 
-Mobile RUM data is stored in the Grail `user.events` and `user.sessions` stores, not in `bizevents`. Each `user.events` record carries `characteristics.*` flags and a `characteristics.classifier` value that name its event type -- for example `characteristics.has_user_action`, `has_request`, `has_crash`, `has_anr`, `has_app_start`, and `has_error` (with `characteristics.is_api_reported` for errors reported through the SDK). The inventory query above groups by `characteristics.classifier`.
+Mobile RUM data is stored in the Grail `user.events` and `user.sessions` stores, not in `bizevents`. Each `user.events` record carries `characteristics.*` flags that name its event type -- for example `characteristics.has_user_action`, `has_request`, `has_crash`, `has_anr`, `has_app_start`, and `has_error` (with `characteristics.is_api_reported` for errors reported through the SDK). The inventory query above counts each flag. The flags can overlap -- a failed request carries both `has_request` and `has_error` -- so the counts need not add up to the total.
+
+> **Correction (11/11/2026).** Earlier revisions grouped by `characteristics.classifier`. The User events dictionary page describes it as *"Used for internal optimization when storing the data and not intended for query usage."*, and **Semantic Dictionary 1.349** removes it from the user-event models. A tenant that has not reached the change still returns the field (on the validation tenant on 11/11/2026 it was populated on every user event), so a classifier query keeps working there and then silently matches nothing once the change arrives. Semantic Dictionary 1.350 re-lists it under the Basic user-event model; the User events page still calls it not intended for query usage, so select with the `has_*` flags.
+
+> <sub>**Sources:** [User events (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events) — *"Used for internal optimization when storing the data and not intended for query usage."*; [Semantic Dictionary changelog 1.349 (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-349); [Semantic Dictionary changelog 1.350 (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-350). **Dictionary:** `characteristics.classifier` (`experimental`), `characteristics.has_user_action`, `has_request`, `has_error`, `has_crash`, `has_anr`, `has_app_start` (`stable`), read 11/11/2026.</sub>
 
 > **Correction (09/28/2026).** Earlier revisions listed `com.dynatrace.mobile.*` event types. Those do not exist; mobile events are typed by the `characteristics.*` flags above (semantic dictionary models `rum_mobile_user_action`, `rum_request`, `rum_crash`, `rum_anr`, `rum_app_start`, `rum_api_reported_error`, read 09/28/2026).
 

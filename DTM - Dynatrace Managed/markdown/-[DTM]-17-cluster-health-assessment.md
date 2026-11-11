@@ -1,6 +1,6 @@
 # DTM-17: Running a Cluster Health Assessment
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 17 — Running a Cluster Health Assessment | **Created:** October 2026 | **Last Updated:** 10/29/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 17 — Running a Cluster Health Assessment | **Created:** October 2026 | **Last Updated:** 11/11/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -145,7 +145,7 @@ Each area maps to one or more of the five layers from DTM-10 (1 node and process
 
 | ID | Check | Evidence | Healthy | Detail |
 |----|-------|----------|---------|--------|
-| T1 | Node count and hardware | CMC *Deployment status*; `onpremise/cluster` | At least three nodes, at most 42, every node the same hardware configuration | DTM-01 §3, DTM-15 §3 |
+| T1 | Node count and hardware | CMC *Deployment status*; `onpremise/cluster` | At least three nodes, at most 42 (Managed 1.348 and later; 30 before), every node the same hardware configuration | DTM-01 §3, DTM-15 §3 |
 | T2 | Node size against its class | CMC node detail; the sizing table | Each node meets its class minimum; at least 64 GB RAM on every node if Log Monitoring is on | DTM-15 §2, DTM-13 §3 |
 | T3 | Availability model **(owner)** | `onpremise/cluster/configuration` (data centers); the owner | Chosen and written down: single cluster, rack awareness, Premium HA, or a second cluster, each with the failure it covers | DTM-01 §4 |
 | T4 | Premium HA prerequisites (if used) | CMC; the owner | Three or more nodes per data center, both sized the same, round trip at most 100 ms, online | DTM-16 §7.1 |

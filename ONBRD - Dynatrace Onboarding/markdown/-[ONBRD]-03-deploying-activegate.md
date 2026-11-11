@@ -1,6 +1,6 @@
 # ONBRD-03: Deploying ActiveGate
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 3 of 10 | **Created:** December 2025 | **Last Updated:** 11/10/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 3 of 10 | **Created:** December 2025 | **Last Updated:** 11/11/2026
 
 ## Your Network Gateway to Dynatrace
 ActiveGate is a lightweight component that routes traffic between your infrastructure and Dynatrace. This notebook covers when you need ActiveGate, how many to deploy, where to place them, and installation steps - including comprehensive Kubernetes deployment options.
@@ -73,7 +73,7 @@ ActiveGate is a proxy and routing component that connects your environment to Dy
 | **ActiveGate** | 9 months | 12 months |
 | **Dynatrace Operator** | Independent release cycle — check [release notes](https://docs.dynatrace.com/docs/whats-new) |
 
-> **Version floor (1.347 release notes).** The OneAgent 1.347 and ActiveGate 1.347 release notes (published 10/01/2026; staged rollout from 09/30/2026) list the oldest supported version as **1.329** (Standard Support) and **1.323** (Enterprise Success and Support) — the floor moves with every release, so re-read it from the current release notes rather than from this table. Separately, **SaaS 1.347** (staged tenant rollout) *rejects* connections from **OneAgent 1.241 and earlier** once it reaches your tenant — those hosts stop reporting rather than merely falling out of support. See **FAQ-04: Managing OneAgent updates on Dynatrace SaaS**. Sources: [OneAgent 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-347), [ActiveGate 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347), [SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — *"Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier."*
+> **Version floor (1.349 release notes).** The OneAgent 1.349 and ActiveGate 1.349 release notes (published 11/05/2026; staged rollout from 11/09/2026) list the oldest supported version as **1.331** (Standard Support) and **1.325** (Enterprise Success and Support) — the floor moves with every release, so re-read it from the current release notes rather than from this table. Separately, **SaaS 1.347** (staged tenant rollout) *rejects* connections from **OneAgent 1.241 and earlier** once it reaches your tenant — those hosts stop reporting rather than merely falling out of support. See **FAQ-04: Managing OneAgent updates on Dynatrace SaaS**. Sources: [OneAgent 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349), [ActiveGate 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-349) — *"With this release, the following are the oldest supported ActiveGate versions."*, [SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — *"Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier."*
 
 ### Technology Support Levels
 
@@ -250,14 +250,14 @@ Don't skip the extension buffer. For the persistence directory the page warns th
 
 The routing/monitoring ActiveGate matrix changes every few sprints, so **the official requirements pages are the authority** — re-check them before you provision, not just when something breaks: [Linux ActiveGate hardware and system requirements](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements) and [Windows ActiveGate hardware and system requirements](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/windows/windows-activegate-hardware-and-system-requirements).
 
-Currently listed for routing/monitoring ActiveGates (verified 10/21/2026 against the Linux page, updated 07/07/2026, and the Windows page, updated 07/15/2026). Architectures vary by distribution: ARM64 and x86-64 throughout, s390 on RHEL, SUSE and Ubuntu 20.04+. Only x86-64 supports every function (see above).
+Currently listed for routing/monitoring ActiveGates (verified 11/11/2026 against the Linux page, updated 07/07/2026, and 10/21/2026 against the Windows page, updated 07/15/2026). Red Hat Enterprise Linux 9.4 and Ubuntu 16.04 have left the matrix: ActiveGate 1.349 lists them under *"The following operating systems are no longer supported since 01 November 2026"*. Architectures vary by distribution: ARM64 and x86-64 throughout, s390 on RHEL, SUSE and Ubuntu 20.04+. Only x86-64 supports every function (see above).
 
 | OS | Supported Versions |
 |----|-------------------|
-| **Red Hat Enterprise Linux** | 8.10, 9.4, 9.6, 9.7, 9.8, 10.0, 10.1, 10.2 |
+| **Red Hat Enterprise Linux** | 8.10, 9.6, 9.7, 9.8, 10.0, 10.1, 10.2 |
 | **Oracle Linux** | 8.10, 9.7, 9.8, 10.1, 10.2 |
 | **Rocky Linux** | 8.10, 9.7, 9.8, 10.1, 10.2 |
-| **Ubuntu** | 16.04, 18.04, 20.04, 22.04, 24.04, 26.04 (x86-64); 20.04, 22.04, 24.04, 26.04 (ARM64 / s390) |
+| **Ubuntu** | 18.04, 20.04, 22.04, 24.04, 26.04 (x86-64); 20.04, 22.04, 24.04, 26.04 (ARM64 / s390) |
 | **Amazon Linux** | 2, 2023 |
 | **SUSE Linux Enterprise Server** | 15.7 |
 | **Windows Server** | 2016, 2019, 2022, 2025 (x86-64 only) |
@@ -272,19 +272,19 @@ Dynatrace de-supports an OS version *"at least 6 months after its end of life (E
 
 | OS version | ActiveGate support ends |
 |------------|------------------------|
-| Red Hat Enterprise Linux 9.4 | **11/01/2026** |
-| Ubuntu 16.04 | **11/01/2026** |
 | Red Hat Enterprise Linux 9.7, 10.1 | **12/01/2026** |
-| Oracle Linux 9.7, 10.1 | **12/01/2026** |
-| Rocky Linux 9.7, 10.1 | **12/01/2026** |
-| Amazon Linux 2 | **01/01/2027** |
+| Oracle Linux 9.7, 10.1 x86-64 | **12/01/2026** |
+| Rocky Linux 9.7, 10.1 x86-64 | **12/01/2026** |
+| Amazon Linux 2 x86-64, ARM64 (AArch64) | **01/01/2027** |
+
+**Already ended (11/01/2026):** Red Hat Enterprise Linux 9.4 and Ubuntu 16.04 — no longer supported for ActiveGate since that date.
 
 **Existing ActiveGates on these versions keep working right up to the date** — nothing stops the moment the announcement lands. What ends is Dynatrace's commitment to fix issues and ship new ActiveGate versions for that OS. Two practical consequences for an onboarding plan:
 
-- **Do not provision new ActiveGates on any version in this table.** Amazon Linux 2 and RHEL 9.4 were the obvious defaults a year ago and are now the wrong starting point — pick Amazon Linux 2023, RHEL 9.8/10.2, Oracle Linux 9.8/10.2, or Rocky Linux 9.8/10.2 instead. Oracle Linux and Rocky Linux 9.8 and 10.2 are themselves already announced for de-support from **06/01/2027** (ActiveGate 1.347 release notes: *"The following operating systems will no longer be supported starting 01 June 2027"*), so on those distributions plan the move to the next listed minor version. On Windows, *"The following operating systems will no longer be supported starting 01 August 2027 Windows: Windows Server 2016"* — start new Windows ActiveGates on 2019 or later.
+- **Do not provision new ActiveGates on any version in this table.** Amazon Linux 2 and RHEL 9.4 were the obvious defaults a year ago; RHEL 9.4 is already out of support and Amazon Linux 2 is next — pick Amazon Linux 2023, RHEL 9.8/10.2, Oracle Linux 9.8/10.2, or Rocky Linux 9.8/10.2 instead. Oracle Linux and Rocky Linux 9.8 and 10.2 are themselves already announced for de-support from **06/01/2027** (ActiveGate 1.349 release notes: *"The following operating systems will no longer be supported starting 01 June 2027"*), so on those distributions plan the move to the next listed minor version. On Windows, *"The following operating systems will no longer be supported starting 01 August 2027 Windows: Windows Server 2016"* — start new Windows ActiveGates on 2019 or later.
 - **Fold the OS upgrade into the next ActiveGate update window** rather than scheduling it as separate work. The update mechanics, auto-update behavior, and how to schedule those windows are covered in *FAQ-05: Managing ActiveGate updates on Dynatrace SaaS*.
 
-> **Reference:** [End-of-support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — the dates and the 6-month policy statement above are quoted from this page, verified 07/30/2026; the dates also match [ActiveGate 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347), read 10/02/2026.
+> **Reference:** [End-of-support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — the dates and the 6-month policy statement above are quoted from this page, verified 07/30/2026; the dates also match [ActiveGate 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-349), read 11/11/2026 — *"The following operating systems are no longer supported since 01 November 2026"*. The Windows Server 2016 date is from [ActiveGate 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347), read 10/02/2026.
 
 #### Disk Space per Directory (Linux defaults)
 
@@ -577,7 +577,12 @@ spec:
 
 > **Operator 1.11.0+:** the sizing guide shows a single DynaKube instead, with platform monitoring under `spec.kubernetesMonitoring` — *".spec.kubernetesMonitoring is mutually exclusive with the kubernetes-monitoring capability in .spec.activeGate"*. The `dynatrace-api` capability is left out here: the DynaKube reference marks it *"A custom certificate is required for this capability"* (`tlsSecretName`). `spec.networkZone` *"Sets a network zone for the OneAgent and ActiveGate Pods."*
 >
-> <sub>**Sources:** [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters), [Size Dynatrace ActiveGates in Kubernetes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits).</sub>
+> **Moving the two-DynaKube layout above to the single form:** three things do not carry over on their own.
+> - **Registration.** *"With spec.kubernetesMonitoring, cluster registration is not configured automatically. Add registration: {} to keep your cluster registered in Dynatrace."*
+> - **Custom cluster name.** A name set with the `automatic-kubernetes-api-monitoring-cluster-name` feature-flag annotation must be moved *"to kubernetesMonitoring.registration.clusterName. Dynatrace Operator does not migrate annotation values automatically."*
+> - **Order.** Add `spec.kubernetesMonitoring` to the routing DynaKube first, and delete the old Kubernetes-monitoring DynaKube only after the `KubernetesMonitoringAvailable` condition returns `True` — *"Deleting the old DynaKube early causes a monitoring gap."*
+>
+> <sub>**Sources:** [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters), [Size Dynatrace ActiveGates in Kubernetes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits), [Consolidate Kubernetes monitoring into a single DynaKube (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/double-dynakube-to-single) — *"The condition returns True when all Kubernetes monitoring resources are ready."*</sub>
 
 **Install with Operator:**
 

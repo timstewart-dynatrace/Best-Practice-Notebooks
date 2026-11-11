@@ -1,6 +1,6 @@
 # K8S-13: Kafka Monitoring with Kpow
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 13 of 14 | **Created:** February 2026 | **Last Updated:** 10/15/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 13 of 14 | **Created:** February 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -449,6 +449,10 @@ For AI-assisted triage on top of these problems, see the AIOPS series.
 
 Dynatrace provides native Kafka monitoring through OneAgent, which automatically detects Kafka broker processes and collects JMX-based metrics.
 
+> **The JMX Kafka metrics come from an Extension Framework 1.0 extension that is reaching end of support.** The JMX monitoring toggle for Kafka under **Settings Classic > Monitored technologies > Supported technologies** is the EF1 extension `dynatrace.jmx.kafka`. Dynatrace: *"As of July 1, 2027, all Extension Framework 1.0 JMX and PMI extensions will be out of support for SaaS Environments."* Its EF2 replacement is **Apache Kafka** (`com.dynatrace.extension.jmx-kafka`) — the Hub extension below. The migration guide: deploy the EF2 extension, then *"disable JMX monitoring for the technology with Monitor the environment toggle."*
+>
+> <sub>**Sources:** [EF1 JMX and PMI extensions end of support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/end-of-support/jmx-pmi-ef1-deprecation) — *"As of July 1, 2027, all Extension Framework 1.0 JMX and PMI extensions will be out of support for SaaS Environments."*; mapping row `dynatrace.jmx.kafka` → *"Apache Kafka ( com.dynatrace.extension.jmx-kafka )"*</sub>
+
 The split below is community practice, not a Dynatrace comparison — check the Kafka extension's Hub page and your OneAgent version for what each covers today.
 
 | Capability | OneAgent (Native) | Kpow |
@@ -476,7 +480,7 @@ Use both together for comprehensive Kafka observability:
 
 ### Dynatrace Apache Kafka Extension
 
-For environments where Kpow is not available, Dynatrace also offers the **Apache Kafka extension** on Dynatrace Hub. This extension provides:
+For environments where Kpow is not available, Dynatrace also offers the **Apache Kafka extension** (`com.dynatrace.extension.jmx-kafka`, Extension Framework 2.0) on Dynatrace Hub. This extension provides:
 
 - Broker-level metrics via JMX
 - Topic and partition statistics

@@ -176,7 +176,7 @@ IPV6ADDR
 **Masking Processor (DQL):**
 ```dql
 // Name: Mask IP Addresses · Matching condition: true
-fieldsAdd content = replacePattern(content, "IPADDR", replacement: "[IP_REDACTED]")
+fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z:.-] IPADDR !>>[0-9A-Za-z-]", replacement: "[IP_REDACTED]")
 | fieldsAdd client_ip = replacePattern(client_ip, "IPADDR", replacement: "[IP_REDACTED]")
 | fieldsAdd remote_addr = replacePattern(remote_addr, "IPADDR", replacement: "[IP_REDACTED]")
 ```
@@ -213,7 +213,7 @@ fieldsAdd content = replacePattern(content, "PATTERN", replacement: "REPLACEMENT
 **Pattern:** SSN format `123-45-6789`
 
 ```dql
-fieldsAdd content = replacePattern(content, "[0-9]{3} '-' [0-9]{2} '-' [0-9]{4}", replacement: "[SSN_REDACTED]")
+fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z-] [0-9]{3} '-' [0-9]{2} '-' [0-9]{4} !>>[0-9A-Za-z-]", replacement: "[SSN_REDACTED]")
 ```
 
 ### Example: Mask API Keys
@@ -252,7 +252,7 @@ fieldsAdd content = replacePattern(content, "'password=' [^&\\s]+", replacement:
 // Apply multiple masks in sequence
 fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]", replacement: "[CC_REDACTED]")
 | fieldsAdd content = replacePattern(content, "[a-zA-Z0-9._%+-]+ '@' [a-zA-Z0-9.-]+", replacement: "[EMAIL_REDACTED]")
-| fieldsAdd content = replacePattern(content, "IPADDR", replacement: "[IP_REDACTED]")
+| fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z:.-] IPADDR !>>[0-9A-Za-z-]", replacement: "[IP_REDACTED]")
 ```
 
 ---
@@ -290,7 +290,7 @@ fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A
 // Mask emails
 fieldsAdd content = replacePattern(content, "[a-zA-Z0-9._%+-]+ '@' [a-zA-Z0-9.-]+", replacement: "[PII_REDACTED]")
 // Mask IP addresses
-| fieldsAdd content = replacePattern(content, "IPADDR", replacement: "[IP_REDACTED]")
+| fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z:.-] IPADDR !>>[0-9A-Za-z-]", replacement: "[IP_REDACTED]")
 // Mask user IDs
 | fieldsAdd content = replacePattern(content, "'userId=' NSPACE", replacement: "userId=[USER_REDACTED]")
 ```
@@ -310,7 +310,7 @@ fieldsAdd content = replacePattern(content, "'patientId=' NSPACE", replacement: 
 // Mask MRNs
 | fieldsAdd content = replacePattern(content, "'mrn=' NSPACE", replacement: "mrn=[PHI_REDACTED]")
 // Mask SSNs
-| fieldsAdd content = replacePattern(content, "[0-9]{3} '-' [0-9]{2} '-' [0-9]{4}", replacement: "[SSN_REDACTED]")
+| fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z-] [0-9]{3} '-' [0-9]{2} '-' [0-9]{4} !>>[0-9A-Za-z-]", replacement: "[SSN_REDACTED]")
 ```
 
 ### SOC 2 Compliance
@@ -433,7 +433,7 @@ fetch logs, from: now() - 24h
 ```dql
 // Check for SSN-shaped values (###-##-####) that masking missed — should return 0 rows
 fetch logs, from: now() - 24h
-| filter replacePattern(content, "[0-9]{3} '-' [0-9]{2} '-' [0-9]{4}", replacement: "") != content
+| filter replacePattern(content, "!<<[0-9A-Za-z-] [0-9]{3} '-' [0-9]{2} '-' [0-9]{4} !>>[0-9A-Za-z-]", replacement: "") != content
 | fields timestamp, log.source, dt.openpipeline.pipelines
 | limit 50
 ```
@@ -524,7 +524,7 @@ fieldsAdd content = replacePattern(content, "[a-zA-Z0-9._%+-]+ '@' [a-zA-Z0-9.-]
 
 **Masking Processor 4: IP Addresses** (DQL processor, matching condition `true`)
 ```dql
-fieldsAdd content = replacePattern(content, "IPADDR", replacement: "[IP_REDACTED]")
+fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z:.-] IPADDR !>>[0-9A-Za-z-]", replacement: "[IP_REDACTED]")
 | fieldsAdd client_ip = replacePattern(client_ip, "IPADDR", replacement: "[IP_REDACTED]")
 | fieldsAdd remote_addr = replacePattern(remote_addr, "IPADDR", replacement: "[IP_REDACTED]")
 ```

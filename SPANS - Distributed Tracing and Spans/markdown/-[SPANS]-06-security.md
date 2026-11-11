@@ -243,6 +243,7 @@ Monitor authentication endpoints for potential brute force or credential stuffin
 ```dql
 // Find 401 Unauthorized responses (failed authentication)
 fetch spans, from:-1h
+| filter span.kind == "server"  // requests your service answered; a 401 on a client span is a dependency refusing your call
 | filter http.response.status_code == 401
 | fields start_time,
          dt.service.name,
@@ -257,6 +258,7 @@ fetch spans, from:-1h
 ```dql
 // Count authentication failures by endpoint
 fetch spans, from:-1h
+| filter span.kind == "server"  // requests your service answered; a 401 on a client span is a dependency refusing your call
 | filter http.response.status_code == 401
 | summarize {
     failure_count = count(),
@@ -401,7 +403,7 @@ fetch spans, from:-1h
 // Identify services that might handle regulated data
 // contains() is case-sensitive by default, so match case-insensitively
 fetch spans, from:-1h
-| filter contains(span.name, "health", caseSensitive: false) or
+| filter (contains(span.name, "health", caseSensitive: false) and not(contains(span.name, "grpc.health"))) or  // not gRPC liveness probes
         contains(span.name, "patient", caseSensitive: false) or
         contains(span.name, "payment", caseSensitive: false) or
         contains(span.name, "card", caseSensitive: false) or

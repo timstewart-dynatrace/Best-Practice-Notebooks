@@ -1,6 +1,6 @@
 # MZ2POL-15: Finding Every Zone Consumer
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 16 of 17 | **Created:** October 2026 | **Last Updated:** 10/23/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 16 of 17 | **Created:** October 2026 | **Last Updated:** 11/11/2026
 
 > **Purpose:** Before a zone can be deleted, everything that still uses it has to be found. A zone has no "used by" view, consumers store it in three different identifier formats, and some consumers reach it only through another object. This notebook finds them — in tenant settings, in classic configuration, in the account, and in code outside Dynatrace — and turns the result into the dependency matrix that gates deletion.
 
@@ -204,6 +204,8 @@ Two schema pages add the same advice next to the zone property: *"It is recommen
 
 `builtin:monitoredentities.grail.security.context` does not name a zone — it consumes all of them. Where an entity type's destination property is `managementZones`, the entity's `dt.security_context` is a copy of its zone names, and *"managementZones is the default value for the majority of entity types."* Every entity-access policy or boundary that matches on such a value is a hidden consumer of that zone's **name** (§6). The cell reports these mappings as `(every zone)` rows. MZ2POL-00 §5 Check C measures how many entities carry such copies.
 
+The schema itself is on Dynatrace's list of Settings 2.0 schemas removed in Latest Dynatrace — `builtin:monitoredentities.grail.security.context`, *Grail security context for monitored entities*, status **Removed** — and the list states: *"None of the schemas on this page are visible in Latest Dynatrace."* The cell reads this schema by ID, and the same page says: *"If you use configuration-as-code or other automations that reference these schemas by ID, you need to update these automations before the schemas are removed from your environment."*
+
 ### How the cell matches
 
 The cell reads every object of the five schemas plus the mapping schema, walks each object's value, and checks every string against all three identifiers of every zone:
@@ -226,6 +228,7 @@ The cell reads every object of the five schemas plus the mapping schema, walks e
 > - <sub>[Metric events settings schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-anomaly-detection-metric-events) — `managementZone`; entity filter type `MANAGEMENT_ZONE`</sub>
 > - <sub>[SLO settings schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-monitoring-slo) — `filter`: *"Entity selector"*</sub>
 > - <sub>[Grant access to entities with security context (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context) — *"managementZones is the default value for the majority of entity types."*</sub>
+> - <sub>[Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas) — `builtin:monitoredentities.grail.security.context` listed as *Removed*; *"None of the schemas on this page are visible in Latest Dynatrace."*</sub>
 > - <sub>[Settings API - GET objects (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/objects/get-objects) — *"Accessible objects returned."*; `adminAccess`: *"act as if the user is the owner of all objects"*; on later pages *"you must omit all other query parameters"*</sub>
 
 ```python

@@ -260,7 +260,7 @@ fetch logs, from:-1h
 | 49 | Use consistent segment naming prefixes | Prefixes: `team-`, `env-`, `app-`, `region-` (e.g., `team-platform-infra`, `env-production`) | Recommended | Naming |
 | 50 | Test segment filter conditions with DQL before creating the segment | Run the equivalent `filter` clause as a DQL query; verify record counts match expectations | Critical | Operations |
 | 51 | Limit segment variable dropdowns to 15,000 values | 15,000 values in the variable dropdown (5 MB byte cap also applies); 100 selected values per segment | Recommended | Architecture |
-| 52 | Use entity relationship traversal for comprehensive segments | Top-down: host → process group → service; bottom-up: service → process group → host. Caveat: Dynatrace says entity relationships in segments *"are only supported for backward compatibility with classic entities"* (see ORGNZ-08) | Recommended | Architecture |
+| 52 | Filter signals on primary Grail fields; keep entity relationships only for existing classic-entity segments | Entity relationships in segments *"are only supported for backward compatibility with classic entities"*; build new segments on a `Data (all types)` include (ORGNZ-08) | Recommended | Architecture |
 | 53 | Segments reduce scanned bytes | Applying a segment injects filters at query time, reducing data scanned and improving performance on high-volume buckets | Recommended | Performance |
 
 > <sub>**Sources:** [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits) — row 51: *"15,000 values in the variable dropdown (5 MB byte cap also applies)"*. [Include data in segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-includes) — row 52, as quoted.</sub>
@@ -379,7 +379,7 @@ smartscapeNodes "K8S_NAMESPACE"
 | 64 | Minimize segment filter expressions | Fewer conditions = better query performance; maximum 10 expressions per filter | Recommended | Performance |
 | 65 | Use OpenPipeline pre-processing for complex segment logic | If segment conditions would be complex, pre-enrich a simple field (e.g., `dt.security_context`) and filter on that | Recommended | Performance |
 | 66 | Know the default result limits: 1,000 records and 1 MB | Dynatrace lists *"1,000 records returned per result"* and *"1 MB result payload"* among its default query limits; aggregate (`summarize`, `makeTimeseries`) or raise `maxResultRecords` / `maxResultBytes` on a Query API request | Recommended | Performance |
-| 67 | Maximum 10 segments per query | Do not stack more than 10 segments; design broader segments instead of many narrow ones | Recommended | Architecture |
+| 67 | Prefer a few broad segments over many narrow ones | In community practice, a small set of broad segments is easier to govern than many narrow ones; the Segment limits page sets no per-query segment count | Recommended | Architecture |
 
 > <sub>**Sources:** [Best practices for a logs bucket strategy (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy) — row 66 as quoted, [Grail storage query SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-query/) — `maxResultRecords` and `maxResultBytes` request parameters.</sub>
 

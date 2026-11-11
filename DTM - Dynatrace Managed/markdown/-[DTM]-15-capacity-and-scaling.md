@@ -1,6 +1,6 @@
 # DTM-15: Capacity and Scaling
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 15 — Capacity and Scaling | **Created:** September 2026 | **Last Updated:** 11/10/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 15 — Capacity and Scaling | **Created:** September 2026 | **Last Updated:** 11/11/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -88,7 +88,7 @@ The hardware guide names three dimensions:
 
 | Dimension | From the docs | What to watch |
 |-----------|---------------|---------------|
-| **Out** | *"Dynatrace Managed supports up to 42 Cluster nodes."* | Every node must *"Have the same hardware configuration"* |
+| **Out** | *"Dynatrace Managed supports up to 42 Cluster nodes."* (from Managed 1.348; 30 before, and 21 / 15 per data center with Premium HA) | Every node must *"Have the same hardware configuration"* |
 | **Up** | *"Vertical scaling : Add more random access memory (RAM) or central processing unit (CPU) capacity per node."* | *"When adding CPUs or RAM, keep all nodes equally sized."* |
 | **Storage** | *"Storage scaling: Use resizable disk volumes."* | *"Use resizable disk partitions, for example with Logical Volume Manager (LVM)."* and *"Use the same partition size on all Cluster nodes."* |
 
@@ -96,7 +96,7 @@ The hardware guide names three dimensions:
 
 Two storage rules make later growth possible: *"Store Dynatrace binaries and the data store on separate mount points so you can resize the data store independently."* and *"Don't store Dynatrace data on the root volume to avoid complexity when resizing later."*
 
-> <sub>**Sources:** [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements). **Derived:** "scaling out spreads the replicas" combines the scale-out dimension with replication across nodes (DTM-12 §2, DTM-13 §2).</sub>
+> <sub>**Sources:** [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements), [Managed 1.348 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-348) — *"Previously, a Managed Cluster was limited to 30 nodes (15 nodes per data center with Premium High Availability)."* **Derived:** "scaling out spreads the replicas" combines the scale-out dimension with replication across nodes (DTM-12 §2, DTM-13 §2).</sub>
 
 <a id="headroom"></a>
 ## 4. Headroom for a Node Failure
@@ -130,7 +130,7 @@ The same arithmetic applies to planning for two lost nodes on five or more (DTM-
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Signal | Emailed | Lever |
 |--------|---------|-------|
-| Adaptive load reduction activated | Configurable | Scale out — add nodes, up to 42, same hardware |
+| Adaptive load reduction activated | Configurable | Scale out — add nodes, up to 42 from Managed 1.348 (30 before), same hardware |
 | Cluster traffic control | No | Scale up — more CPU / RAM, keep nodes equal |
 | Cluster node undersized / cluster should be scaled out | Configurable / Yes | Grow storage — resizable volumes, separate mounts |
 | Heap memory emergency / cleanup | No | Update the ingest limit after every hardware change |
@@ -163,13 +163,13 @@ Don't assume a *Configurable* event emails. The events page contradicts itself o
 
 - **Capacity indicator.** The *Cluster health self-monitoring* dashboard *"shows aggregated data for all environments in your Managed Cluster. It includes current utilization and an indicator of whether the Managed Cluster has sufficient capacity for the current load."* It lives in the local self-monitoring environment. Whether every cluster has one is contradicted between two pages (§8).
 - **Reading the indicator.** A Dynatrace blog on Managed self-monitoring (Managed 1.230) explains the scale: *"a cluster utilization of 50% should allow you to roughly double the currently processed load before the cluster reaches its maximum capacity."* At the top end, *"Red status: When utilization reaches the red area, the cluster is at maximum capacity."* It adds a caution: *"cluster utilization might show healthy operation (green status) when only 80% of the service calls are captured"*. Read utilization together with the capture rate and adaptive load reduction (§5.1).
-- **As a Hub extension.** The *Dynatrace Self-Monitoring (Managed)* extension packages the same intent: *"Check if Dynatrace cluster is properly sized to handle current load."*
+- **As a Hub extension.** The *Dynatrace Self-Monitoring (Managed)* extension packages the same intent: *"Check if Dynatrace cluster is properly sized to handle current load."* From **Managed 1.348** it is replaced: *"This dashboard replaces the Dynatrace Self-Monitoring (Managed) extension, which is now end-of-life"*, and the notes advise: *"Disable the Dynatrace Self-Monitoring (Managed) extension in your local self-monitoring environment."* Until 1.348 reaches your cluster, the extension remains the working path.
 - **Throughput.** The self-monitoring metrics `dsfm:server.service_calls.received`, `dsfm:server.spans.received`, `dsfm:server.rum.action_count` and `dsfm:cluster.oneagent.agent_modules` track what reaches the cluster. *"A steady number of monitored hosts and modules, service calls received, and user sessions/actions per minute together indicate a healthy Dynatrace environment. A significant drop in these metrics might indicate a problem"*.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Adaptive traffic management for Managed (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/adaptive-traffic-management-managed)</sub>
 > - <sub>[Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications), [Event notification reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference)</sub>
-> - <sub>[Proactive self-monitoring for Dynatrace Managed (Dynatrace blog)](https://www.dynatrace.com/news/blog/proactive-self-monitoring-ensures-seamless-operations-for-dynatrace-managed-at-scale/), [Dynatrace Self-Monitoring (Managed) (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/dynatrace-self-monitoring-managed/)</sub>
+> - <sub>[Proactive self-monitoring for Dynatrace Managed (Dynatrace blog)](https://www.dynatrace.com/news/blog/proactive-self-monitoring-ensures-seamless-operations-for-dynatrace-managed-at-scale/), [Dynatrace Self-Monitoring (Managed) (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/dynatrace-self-monitoring-managed/), [Managed 1.348 release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-348)</sub>
 > - <sub>[Local self-monitoring (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/local-self-monitoring), [Self-monitoring metrics (DT docs)](https://docs.dynatrace.com/managed/analyze-explore-automate/metrics-classic/self-monitoring-metrics)</sub>
 
 <a id="controls"></a>

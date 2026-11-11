@@ -1,6 +1,6 @@
 # AIOPS-06: AI Integrations and Agentic Workflows
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 6 of 8 | **Created:** May 2026 | **Last Updated:** 10/31/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 6 of 8 | **Created:** May 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -59,9 +59,9 @@ For environments where SVG doesn't render
 
 These three are complementary, not exclusive. A mature observability practice uses all three for different jobs.
 
-> **Adjacent capability — AI Observability (monitoring *your own* GenAI apps).** Distinct from the three Dynatrace-Intelligence integration surfaces above: **AI Observability** ingests GenAI / LLM telemetry from your *own* applications as OpenTelemetry spans. It reads Dynatrace's native `gen_ai.*` attributes — so native OTel, **OpenLLMetry**, and OneAgent's Python GenAI auto-instrumentation (Bedrock / OpenAI / Azure OpenAI / LangChain, OneAgent 1.339+) flow straight in. **OpenInference** (the Arize AI standard) uses its own `llm.*` attributes and **must be normalized to `gen_ai.*` first** — either with an OTel Collector `transform` processor or via Dynatrace OpenPipeline (see the OPIPE series). Prerequisites: a DPS license with Traces powered by Grail, OTLP ingestion enabled, and a platform token with the `openpipeline:traces:ingest` scope, or a Classic access token with the Ingest OpenTelemetry traces (`openTelemetryTrace.ingest`) scope.
+> **Adjacent capability — AI Observability (monitoring *your own* GenAI apps).** Distinct from the three Dynatrace-Intelligence integration surfaces above: **AI Observability** ingests GenAI / LLM telemetry from your *own* applications as OpenTelemetry spans. It reads Dynatrace's native `gen_ai.*` attributes — so OpenTelemetry instrumentation that follows the GenAI semantic conventions and OneAgent's Python GenAI auto-instrumentation (Bedrock / OpenAI / Azure OpenAI / LangChain, OneAgent 1.339+) flow straight in. For OpenTelemetry-based ingestion the AI Observability page now recommends **OpenInference** (the Arize AI standard), and **OpenLLMetry reaches end of support on January 31, 2027** (corrected 11/11/2026 — this paragraph previously listed OpenLLMetry as a native path). OpenInference uses its own `llm.*` attributes: enable native `gen_ai.*` emission where the instrumentor supports it (`OPENINFERENCE_ENABLE_GENAI_SEMCONV=true`), and normalize the remaining attributes with an OTel Collector that bundles the `genainormalizer` processor. Prerequisites: a DPS license with Traces powered by Grail, OTLP ingestion enabled, and a platform token with the `openpipeline:traces:ingest` scope, or a Classic access token with the Ingest OpenTelemetry traces (`openTelemetryTrace.ingest`) scope.
 
-> <sub>**Sources:** [Get started with OpenInference and AI Observability (DT docs)](https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability/get-started/openinference), [AI Observability (DT docs)](https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability).</sub>
+> <sub>**Sources:** [Get started with OpenInference and AI Observability (DT docs)](https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability/get-started/openinference) — *"Enable native GenAI semantic-convention emission when the instrumentor supports it. Otherwise, normalize the OpenInference attributes with an OTel Collector."*, [AI Observability (DT docs)](https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability) — *"For OpenTelemetry-based ingestion, use OpenInference."*, *"OpenLLMetry reaches end of support on January 31, 2027."* (read 11/11/2026).</sub>
 
 <a id="ai-observability"></a>
 ### 1a. AI Observability: monitoring your own GenAI applications
@@ -69,6 +69,10 @@ These three are complementary, not exclusive. A mature observability practice us
 #### Where it surfaces
 
 **SaaS 1.344 (rollout from 07/29/2026)** added two dedicated surfaces: a **Smartscape view** for GenAI topology, and a standalone **Evaluations** screen for prompt evaluations. On a tenant still below 1.344, prompt evaluations surface inside the general app views — the underlying span data is identical either way.
+
+> **`dt-evals` and the Evaluations tab are being retired (AI Observability docs, updated 10/30/2026).** *"dt-evals and the Evaluations tab in the AI Observability app are being retired."* Evaluation results already written to Dynatrace remain available as business events (`event.type == "gen_ai.evaluation.result"`) for as long as your bucket retention keeps them. To run and analyze new evaluations, the page points to **Arize AX**.
+>
+> <sub>**Sources:** [AI Observability (DT docs)](https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability) — *"dt-evals and the Evaluations tab in the AI Observability app are being retired."*; *"To run and analyze evaluations of your LLM applications and agents, use Arize AX"* (read 11/11/2026)</sub>
 
 #### The conversation-reconstruction problem
 
@@ -283,6 +287,10 @@ Agentic workflows are an emerging area in 2026. The intent: detect a problem (Ca
 > **Two platform moves in this space (SaaS 1.344 and 1.346).** An **SRE Agent workflow template** ships with 1.344 (rollout from 07/29/2026): production problems trigger automated root-cause analysis and impact annotations. It is a worked instance of exactly the pattern below — detect, analyse, annotate — and lands on the *suggest* side of the line, annotating rather than acting, which is why it is a reasonable first agentic workflow to adopt. Separately, **Dynatrace Assist gains an agentic mode** in 1.346 (rollout from 08/25/2026), where embedded conversation starters perform live environment analysis rather than answering from documentation; 1.344 added role, expertise-level, language, and tone personalisation. Assist moving from answering to analysing puts it inside the guardrail model below — the Scope, Policy and Audit questions now apply to it, not just to workflows you author. The suggest-mode posture below is unchanged by either.
 >
 > <sub>Sources: [What's new in Dynatrace SaaS 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344), [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346)</sub>
+
+> **Run agent workflow action — licensing, permission and limits (Dynatrace 1.347+).** *"Starting with Dynatrace version 1.347+, using Dynatrace Intelligence AI outside the Assist UI, Dashboards, and Notebooks is subject to license consumption according to your existing licensing agreement and requires a DPS license that includes AI Units capabilities."* On a non-DPS licensing model, or without that capability, you are *"no longer able to use agentic AI workflow actions."* The action needs `ai:operator:execute` alongside `mcp-gateway:servers:invoke`, `mcp-gateway:servers:read` and `document:documents:read`, and the standard agentic and generative AI limits apply: 25 requests per 15 minutes per user, 60 per 15 minutes across the environment, and 120 seconds per request. A frequently scheduled agent workflow can throttle every other agentic and generative AI use in the environment.
+>
+> <sub>**Sources:** [Run agents in Workflows (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-intelligence-integrations/dynatrace-intelligence-run-agent-workflows) — *"Starting with Dynatrace version 1.347+, using Dynatrace Intelligence AI outside the Assist UI, Dashboards, and Notebooks is subject to license consumption"*; *"no longer able to use agentic AI workflow actions"*; *"all other Dynatrace Intelligence agentic and generative AI functionality might be throttled due to reaching the request limit"* (read 11/11/2026)</sub>
 
 **Three guardrails to enforce:**
 

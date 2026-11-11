@@ -529,7 +529,6 @@ The segment docs say segments filter data *"across apps"*. They do not document 
 | **1 include per data type** | Cannot have two `logs` include blocks | Combine conditions with `OR` within a single include |
 | **Max 20 includes per segment** | Hard limit on rule count | Consolidate rules; use variables for flexibility |
 | **Max 10 expressions per filter** | Limits filter complexity | Use OpenPipeline to pre-enrich data with simpler filter fields |
-| **Max 10 segments per query** | Cannot stack unlimited segments | Design broader segments instead of many narrow ones |
 | **Variable dropdown empty** | Users without entity read permissions see empty dropdown | Ensure variable DQL targets entities the user can read |
 
 <a id="troubleshooting-and-performance"></a>

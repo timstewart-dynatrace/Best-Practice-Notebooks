@@ -50,7 +50,7 @@ By the end of this step you will have these artifacts checked into your migratio
 
 | Artifact | Format | Purpose |
 |----------|--------|---------|
-| `inventory/exports/newrelic_export.json` | JSON | Full enumeration of all NR entity classes |
+| `inventory/exports/newrelic_export.json` | JSON | Export of the components named in `--components` (default: dashboards, alerts, synthetics, SLOs, workloads) |
 | `nrql-conversion-report.csv` | CSV | Every NRQL query with HIGH/MEDIUM/LOW confidence + DQL output |
 | `effort-estimate.md` | Markdown | Hours/days/weeks per component class |
 | `gap-analysis.md` | Markdown | Entities flagged for manual work (APM conditions, scripted browsers) |
@@ -133,7 +133,7 @@ cp .env.example .env  # populate NEW_RELIC_* and DYNATRACE_* vars
 python3 migrate.py migrate --export-only --output ./inventory
 ```
 
-This runs the NerdGraph enumeration for every entity class and writes per-component JSON files plus the consolidated `inventory/exports/newrelic_export.json`.
+This runs the NerdGraph enumeration for the five default components — dashboards, alerts (exported as `alert_policies`), synthetics, SLOs and workloads — and writes one consolidated file, `inventory/exports/newrelic_export.json`. Add `--components dashboards,alerts,synthetics,slos,workloads,notification_channels` to include notification channels. At tool v3.0.0 (commit `78cbfce`) the export has no branch for drop rules, log-parsing rules or tag rules; count those in New Relic directly and record them by hand.
 
 **Check the output:**
 
@@ -150,7 +150,7 @@ cat inventory/exports/newrelic_export.json | jq '{dashboards: (.dashboards|lengt
 - SLOs
 - Workloads
 - Notification channels by type
-- Drop rules + log parsing rules + tag rules
+- Drop rules + log parsing rules + tag rules (not in the export — counted in New Relic by hand)
 
 
 ### Extract NRQL for the translation pass
@@ -289,7 +289,7 @@ Estimating heuristic per component class:
 
 Pass criteria — all five must be true:
 
-- [ ] `inventory/exports/newrelic_export.json` complete; every entity class enumerated without error (an empty array is acceptable when the NR account has none of that class); no enumeration errors in log
+- [ ] `inventory/exports/newrelic_export.json` contains every component you exported, with no `✗ Failed to export` line in the run output (an empty array is acceptable when the NR account has none of that class); drop-, parsing- and tag-rule counts recorded by hand
 - [ ] Per-component counts captured and documented
 - [ ] `nrql-conversion-report.csv` generated; LOW count <= 15% of total
 - [ ] `effort-estimate.md` reviewed by lead

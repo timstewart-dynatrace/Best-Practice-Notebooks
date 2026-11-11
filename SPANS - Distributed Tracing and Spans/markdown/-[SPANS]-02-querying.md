@@ -192,7 +192,7 @@ fetch spans, from:-1h
 
 **Services not affected:** external services, background activity, queue listeners, key-value stores — Enhanced Endpoints does not create endpoints for these.
 
-> <sub>**Dictionary:** `endpoint.name` (`stable`), read 10/02/2026. **Sources:** [Enhanced endpoints for SDv1 (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1), [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — the derived `http.route` change quoted above.</sub>
+> <sub>**Dictionary:** `endpoint.name` (`stable`), read 10/02/2026. **Sources:** [Enhanced endpoints for SDv1 (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1), [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — the derived `http.route` change quoted above; [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — *"URL path pattern matching conditions now also consider calculated HTTP.route values, correcting a previous inconsistency where these values were ignored."*</sub>
 
 ---
 

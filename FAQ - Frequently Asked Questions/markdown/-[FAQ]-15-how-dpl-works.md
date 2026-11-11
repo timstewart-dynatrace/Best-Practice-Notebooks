@@ -1,6 +1,6 @@
 # FAQ-15: How Does DPL Work?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 15 — How Does DPL Work? | **Created:** July 2026 | **Last Updated:** 10/29/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 15 — How Does DPL Work? | **Created:** July 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -758,7 +758,7 @@ Two asymmetries matter more than the table suggests:
 - **Ingest-time parsing is forward-only.** Deploy a pattern today and yesterday's records stay unparsed forever. Anything you might want historically must be parseable at query time regardless.
 - **Ingest-time parsing is where the mistakes are expensive.** A query-time typo costs one re-run. A pipeline typo silently mis-populates every record until someone notices — and § 5 established that DPL failures don't announce themselves.
 
-> **Rolling out (SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout)):** a third place — DQL gains the ability to use DPL *"to parse file contents and shape the data at read time"* on files referenced through External Data Stores. Verify it has reached your tenant. Until then, ingest and query time above are the two places DPL runs.
+> **Preview (SaaS 1.348, rollout start 10/12/2026):** a third place — DQL gains the ability to use DPL *"to parse file contents and shape the data at read time"* on files referenced through External Data Stores. The release note titles it *"Query external cloud data with DQL (Preview)"*, and the Preview program page lists it with a *Request access* link and the limit *"The preview is limited to Amazon S3 only, with text-based data formats."* Without preview access, ingest and query time above are the two places DPL runs.
 
 **The practical sequence: develop at query time, promote to ingest time.** Iterate in DPL Architect against real records until the pattern is right, confirm it at query scale, and only then move the settled pattern into a pipeline processor.
 
@@ -773,7 +773,7 @@ Two asymmetries matter more than the table suggests:
 
 The Dynatrace documentation states **no** DPL-specific performance or DPS-consumption cost for pattern complexity. In community practice, teams treat pattern count and pipeline depth as the thing to keep an eye on rather than individual pattern complexity — verify against your own pipeline metrics before optimizing on assumption.
 
-> <sub>**Sources:** [OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits) — the four limits in the table; [What's new in SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"use the Dynatrace Pattern Language (DPL) to parse file contents and shape the data at read time"* (GA, rollout start 10/12/2026; re-read 10/23/2026). **Derived:** the ingest-vs-query decision rule extends FAQ-09's read-frequency heuristic to parsing; the forward-only asymmetry follows from OpenPipeline processing records at ingest, which the docs describe but do not frame as a parsing-design constraint.</sub>
+> <sub>**Sources:** [OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits) — the four limits in the table; [What's new in SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"use the Dynatrace Pattern Language (DPL) to parse file contents and shape the data at read time"* (item titled *"Query external cloud data with DQL (Preview)"*, rollout start 10/12/2026; re-read 11/11/2026); [Preview program (DT docs)](https://docs.dynatrace.com/docs/whats-new/preview-releases) — lists *"Query and import archived data with DQL"* with *Request access*; *"The preview is limited to Amazon S3 only, with text-based data formats."* **Derived:** the ingest-vs-query decision rule extends FAQ-09's read-frequency heuristic to parsing; the forward-only asymmetry follows from OpenPipeline processing records at ingest, which the docs describe but do not frame as a parsing-design constraint.</sub>
 
 ---
 

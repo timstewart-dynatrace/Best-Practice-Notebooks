@@ -1,6 +1,6 @@
 # APPSEC-08: Workflows, Notifications and Remediation
 
-> **Series:** APPSEC — Application Security | **Notebook:** 8 of 10 | **Created:** June 2026 | **Last Updated:** 10/02/2026
+> **Series:** APPSEC — Application Security | **Notebook:** 8 of 10 | **Created:** June 2026 | **Last Updated:** 10/28/2026
 
 ## Overview
 
@@ -49,7 +49,7 @@ Security routing uses the workflow **Event trigger** with event type `security.e
 
 | Trigger | Filter (DQL matcher) | Use for |
 |---------|----------------------|---------|
-| Event trigger on `security.events` | `event.type == "VULNERABILITY_STATUS_CHANGE_EVENT" and event.level == "VULNERABILITY" and in(event.status_transition, {"NEW_OPEN", "REOPEN"}) and vulnerability.mute.status != "MUTED"` | New or reopened vulnerabilities — SOC triage (add a `CLOSE` row if you want closures too) |
+| Event trigger on `security.events` | `event.type == "VULNERABILITY_STATUS_CHANGE_EVENT" and event.level == "VULNERABILITY" and (event.status_transition == "NEW_OPEN" or event.status_transition == "REOPEN") and vulnerability.mute.status != "MUTED"` | New or reopened vulnerabilities — SOC triage (add a `CLOSE` row if you want closures too) |
 | Event trigger on `security.events` | `event.type == "DETECTION_FINDING" and product.name == "Runtime Application Protection"` | RAP attack alerting |
 | Schedule | — | Digests and SLA sweeps |
 

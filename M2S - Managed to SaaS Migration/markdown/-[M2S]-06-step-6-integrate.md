@@ -1,6 +1,6 @@
 # M2S-06: Step 6 — Integrate: Reconnect Integrations
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 6 of 9 | **Phase:** Upgrade | **Step:** Integrate | **Created:** March 2026 | **Last Updated:** 10/23/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 6 of 9 | **Phase:** Upgrade | **Step:** Integrate | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 With OneAgents reporting to SaaS and configurations migrated, the next challenge is ensuring every external system that depends on Dynatrace is reconnected. Dashboards need updated links, alerting channels need validation, CI/CD pipelines need new API endpoints, and ITSM integrations need reconfiguration. This notebook provides a systematic approach to reconnecting every integration point.
 
@@ -318,7 +318,7 @@ Extensions provide monitoring for technologies not covered by OneAgent auto-inst
 
 | Framework | Managed | SaaS | Action |
 |-----------|---------|------|--------|
-| **Extensions 1.0 (EF1)** | Reached end of support 2025-03-31 (JMX/PMI: July 1, 2027) | Same dates | Rebuild as Extensions 2.0 |
+| **Extensions 1.0 (EF1)** | Reached end of support 2025-03-31; the JMX/PMI EF1 deprecation notice no longer applies to Managed (Managed 1.348) | Reached end of support 2025-03-31 (JMX/PMI: July 1, 2027) | Rebuild as Extensions 2.0 |
 | **Extensions 2.0 (EF2)** | Supported | Fully supported | Migrate configuration; may need re-signing |
 | **ActiveGate extensions** | Supported | Supported — plan host-based ActiveGates; SQL extensions can also run on Kubernetes through the Dynatrace Operator | Deploy on host-based ActiveGates in SaaS |
 | **Custom plugins** (OneAgent / ActiveGate plugins on EF1) | End of support with EF1 | Not supported | Rebuild as Extensions 2.0 |
@@ -332,7 +332,7 @@ Extensions provide monitoring for technologies not covered by OneAgent auto-inst
 | **Credential Vault** | Extension credentials must be re-entered in SaaS Credentials Vault |
 | **Monitoring configuration** | Extension monitoring configurations need recreation in SaaS |
 
-> <sub>**Sources:** [End of support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — *"EF1 JMX and PMI extensions reach end of support on July 1, 2027."*; [Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions) — *"Run SQL monitoring extensions on Kubernetes using Dynatrace Operator."*</sub>
+> <sub>**Sources:** [End of support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — *"EF1 JMX and PMI extensions reach end of support on July 1, 2027. After this date, they will no longer be supported in SaaS environments."*; [Managed 1.348 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-348) — *"The deprecation notice for JMX/PMI EF1 no longer applies to Dynatrace Managed and has been removed."*; [Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions) — *"Run SQL monitoring extensions on Kubernetes using Dynatrace Operator."*</sub>
 
 ### Cloud Integration Verification
 

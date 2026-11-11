@@ -1,6 +1,6 @@
 # DTM-99: Best Practice Summary and Health-Check Checklist
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 99 — Best Practice Summary and Health-Check Checklist | **Created:** September 2026 | **Last Updated:** 11/10/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 99 — Best Practice Summary and Health-Check Checklist | **Created:** September 2026 | **Last Updated:** 11/11/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -184,7 +184,7 @@ The "after every change" column is the one teams most often skip. Each item in i
 | Number | What it is | From the docs |
 |--------|------------|---------------|
 | **3** | Production minimum | *"Production environments require a minimum three-node Managed Cluster for reliability and data redundancy."* |
-| **42** | Maximum nodes | *"Dynatrace Managed supports up to 42 Cluster nodes."* |
+| **42** | Maximum nodes, from Managed 1.348 (30 before; 21 / 15 per data center with Premium HA) | *"Dynatrace Managed supports up to 42 Cluster nodes."* |
 | **3 / 2** | Copies: metrics, user sessions / log events | *"Replication factor is set to three."* (user sessions); *"Replication factor is set to two."* (logs) |
 | **2 TB / 4 TB** | Metrics store per node: recommended ceiling / severe cluster event | *"Keep the Long-term Metrics Store data below 2 TB per node."*; *"a severe cluster event when it exceeds 4 TB."* |
 | **⅓** | Headroom | *"Plan for a processing capacity one-third higher than typical utilization."* |
@@ -199,6 +199,7 @@ The "after every change" column is the one teams most often skip. Each item in i
 > <sub>**Sources:**</sub>
 > - <sub>[Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements), [Data retention periods (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods), [Single-cluster high availability (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability)</sub>
 > - <sub>[Multi-data center high availability (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/multi-data-centers), [Multi-data center failover (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/failover), [Adaptive traffic management for Managed (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/adaptive-traffic-management-managed)</sub>
+> - <sub>[Managed 1.348 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-348) — *"Existing Managed Clusters receive the higher limits automatically after you upgrade."*</sub>
 > - <sub>[Remove a cluster node (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/remove-a-cluster-node), [Update a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/update-cluster), [Mission Control proactive support (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-proactive-support)</sub>
 
 <a id="anti-patterns"></a>

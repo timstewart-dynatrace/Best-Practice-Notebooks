@@ -1,6 +1,6 @@
 # SL2DT-03: Log Ingest Architecture
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 3 of 11 | **Created:** April 2026 | **Last Updated:** 11/04/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 3 of 11 | **Created:** April 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -76,18 +76,24 @@ Bucket-scoped IAM policies are **not** in this list: a platform token does not m
 ALLOW settings:objects:write WHERE settings:schemaId IN ("builtin:openpipeline.logs.pipelines", "builtin:openpipeline.logs.ingest-sources", "builtin:openpipeline.logs.routing");
 ```
 
-> Older guides list `openpipeline:configurations:read` / `openpipeline:configurations:write`. Those scopes belonged to the OpenPipeline Configurations API (`/platform/openpipeline/v1/configurations`), which reached end of life on June 29, 2026. Don't request them for pipeline or routing changes. The read scope remains valid only for the OpenPipeline Preview, Matcher, Processor and Technology APIs.
+> Older guides list `openpipeline:configurations:read` / `openpipeline:configurations:write`. Those scopes belonged to the OpenPipeline Configurations API (`GET` / `POST /platform/openpipeline/v1/configurations/{id}`, deprecated in SaaS 1.327), which reached end of life on June 29, 2026. Don't request them for pipeline or routing changes. The read scope is still the one every endpoint on the current OpenPipeline API reference requires — Preview, Matcher, DQL processor, Technology and **List configurations** (`GET /platform/openpipeline/v1/configurations`, which lists configuration identifiers).
 >
-> <sub>**Sources:** [Owner-based access control in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/access-control), [OpenPipeline API (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/openpipeline-api) — *"The Configurations API is deprecated and reached its end of life on June 29, 2026."*</sub>
+> <sub>**Sources:** [Owner-based access control in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/access-control), [SaaS 1.342 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-342) — *"On June 29, 2026, we will deactivate the legacy Configurations API and migrate all environments to the new configuration based on the Settings API."*, [List configurations (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-openpipeline-v1/configurations-get) — *"you need a platform token or OAuth access token with openpipeline:configurations:read scope"*</sub>
 
 **Critical:** Platform Token uses `Authorization: Bearer <token>`, not `Api-Token`.
 
 ```bash
 export DT_TENANT="https://<env-id>.apps.dynatrace.com"
 export DT_TOKEN="dt0s16.XXXXX..."
-curl -H "Authorization: Bearer $DT_TOKEN" "$DT_TENANT/platform/classic/environment-api/v2/tokens/lookup" \
-  -H "Content-Type: application/json" -d "{\"token\": \"$DT_TOKEN\"}"
+# Smoke test: a one-row Grail query exercises storage:buckets:read + storage:logs:read.
+curl -s -X POST "$DT_TENANT/platform/storage/query/v1/query:execute" \
+  -H "Authorization: Bearer $DT_TOKEN" -H "Content-Type: application/json" \
+  -d '{"query": "fetch logs, from:-5m | limit 1"}'
 ```
+
+Don't verify a platform token with the token lookup endpoint. `/api/v2/apiTokens/lookup` takes a classic access token (`dt0c01.`, `Api-Token` auth); platform tokens have no lookup by secret.
+
+> <sub>**Sources:** [Upgrade to platform tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/upgrade-to-platform-tokens) — *"Platform tokens don't support lookup by secret value"*.</sub>
 
 ### OAuth client — Terraform-managed bucket definitions
 

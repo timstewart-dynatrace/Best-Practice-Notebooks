@@ -1,10 +1,10 @@
 # WFLOW-99: Best Practice Summary
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/27/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
-This notebook consolidates every actionable best practice from the WFLOW series (notebooks 01-09 and the WFLOW-94 LAB) into definitive tables organized by category. Each best practice includes the exact setting or value to use, a priority rating, and the source notebook.
+This notebook consolidates every actionable best practice from the WFLOW series (notebooks 01-09 and the WFLOW-94 and WFLOW-95 LABs) into definitive tables organized by category. Each best practice includes the exact setting or value to use, a priority rating, and the source notebook.
 
 ---
 
@@ -37,7 +37,7 @@ This notebook consolidates every actionable best practice from the WFLOW series 
 | 4 | Deploy before you wait for a trigger | Triggers only start live workflows; a draft runs only from the **Run** button. Select **Deploy** | Critical | WFLOW-01, WFLOW-02 |
 | 5 | Run production workflows as a service user | Every task runs with the actor's permissions; set a service user as the actor of production workflows that several people work on | Critical | WFLOW-01, WFLOW-09 |
 | 6 | Keep workflows small and focused | One trigger → one outcome. In community practice, stay under ~20 tasks and split larger flows; no per-workflow task cap is published | Recommended | WFLOW-01 |
-| 7 | Set explicit task timeouts | Default 60 minutes, max 7 days: `timeout: <seconds>` per task. Distinct from the 120 s runtime budget per action (DQL query, JavaScript/HTTP call), which cannot be raised | Critical | WFLOW-01, WFLOW-08 |
+| 7 | Set explicit task timeouts | Default 60 minutes, max 7 days: `timeout: <seconds>` per task. Distinct from the documented 120 s runtime limit per action (DQL query, JavaScript/HTTP call) | Critical | WFLOW-01, WFLOW-08 |
 | 8 | Design within the documented limits | 1,000 event-triggered executions per hour per workflow (beyond that, HTTP 429 throttling); 1,000-character trigger filter; 10 MB input and result; 10,000 workflows per environment. Concurrent executions run *within system capacity*, with no fixed cap published | Recommended | WFLOW-01, WFLOW-09 |
 | 9 | Start with simple notifications | Basic notifications first, then layer in complexity | Recommended | WFLOW-09 |
 | 10 | Run independent notification tasks in parallel | Tasks with no predecessor start in parallel when the trigger fires (Slack + Teams + Email) | Recommended | WFLOW-03 |
@@ -173,7 +173,7 @@ This notebook consolidates every actionable best practice from the WFLOW series 
 | 7 | Use `Promise.all()` for parallel entity lookups | Execute all independent API calls concurrently | Recommended | WFLOW-08 |
 | 8 | Always use HTTPS for external calls | Never use `http://` in HTTP request URLs | Critical | WFLOW-09 |
 | 9 | Allow-list every outbound host | Add each host a Run JavaScript or HTTP Request task calls under **Settings > General > External requests**; a call to an unlisted host fails with `Blocked request to '…' (host not in allowlist)`. Hosts on a private network, and targets that admit only allow-listed source IPs, are reached through EdgeConnect (WFLOW-94) | Critical | WFLOW-08, WFLOW-94 |
-| 10 | Read secrets from the Credential Vault | `credentialVaultClient.getCredentialsDetails({ id })` in JavaScript (credential scoped to AppEngine, *Allow access without app context* on, actor granted access); the Authentication field in HTTP tasks. Never hardcode, log or return a secret | Critical | WFLOW-08, WFLOW-09 |
+| 10 | Read secrets from the Credential Vault | `credentialVaultClient.getCredentialsDetails({ id })` in JavaScript (actor has `credential-vault:entries:read`, credential scoped to AppEngine, *Allow access without app context* on, actor granted access); the Authentication field in HTTP tasks. Never hardcode, log or return a secret | Critical | WFLOW-08, WFLOW-09 |
 | 11 | Give each step its own failure task | A task waits for all of its predecessors, so one failure task chained after several steps never fires. Give each step a failure task with a single predecessor set to `NOK` and `else: SKIP` | Recommended | WFLOW-08 |
 | 12 | Add problem comments after remediation | `problemsClient.createComment()` with the problem ID `event.id`, not `display_id`. Deprecated in Dynatrace API 1.349 (staged rollout from 10/27/2026): *"POST /problems/{problemId}/comments Deprecated"*, no successor named | Recommended | WFLOW-08 |
 | 13 | Validate secret existence before use | `if (!apiToken) throw new Error('Missing required secret: ...')` | Recommended | WFLOW-09 |

@@ -1,6 +1,6 @@
 # CLOUD-04: AWS Lambda & Serverless Monitoring
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 4 of 8 | **Created:** March 2026 | **Last Updated:** 10/19/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 4 of 8 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -81,16 +81,19 @@ Dynatrace monitors Lambda functions through two complementary approaches:
 
 ### Key Lambda Metrics — the key name depends on how the metrics arrive
 
-**Check which ingestion path your environment uses before copying any key from this section.** AWS metrics
-reach Grail by two routes and they use *different key schemes*. A key from the wrong scheme returns an empty
-result, not an error, so it reads as "this function has no traffic".
+**Check which AWS connection your environment uses before copying any key from this section.** A classic
+AWS connection and a new AWS connection (Clouds app) write *different key schemes*. A key from the wrong scheme
+returns an empty result, not an error, so it reads as "this function has no traffic".
 
-| Ingestion path | Key scheme | Example |
+| Connection | Key scheme | Example |
 |---|---|---|
-| **AWS integration (polling)** | lowercase, `dt.`-prefixed | `dt.cloud.aws.lambda.invocations` |
-| **CloudWatch Metric Streams** | CamelCase, no `dt.` prefix, `.By.<Dimension>` suffix | `cloud.aws.lambda.Invocations.By.FunctionName` |
+| **Classic AWS connection (built-in service)** | lowercase, `dt.`-prefixed on Grail (`builtin:cloud.aws.*` in Metrics Classic) | `dt.cloud.aws.lambda.invocations` |
+| **New AWS connection (Clouds app)** | `cloud.aws.<Service>.<Metric>.By.<Dimension>`, with dimension `dt.da.source == "aws-metric-poller"` | `cloud.aws.lambda.Invocations.By.FunctionName` |
 
-| Measure | Polling key | Metric Streams key | Healthy range |
+Classic CloudWatch Metric Streams is a third, classic path with its own `cloud.aws.<service>` prefix. Filter on
+`dt.da.source == "aws-metric-poller"` when you need only the new connection's series.
+
+| Measure | Classic connection key | New AWS connection key | Healthy range |
 |---|---|---|---|
 | Invocations | `dt.cloud.aws.lambda.invocations` | `cloud.aws.lambda.Invocations.By.FunctionName` | Application-dependent |
 | Duration (ms) | `dt.cloud.aws.lambda.duration` | `cloud.aws.lambda.Duration.By.FunctionName` | < function timeout |
@@ -98,9 +101,10 @@ result, not an error, so it reads as "this function has no traffic".
 | Throttles | `dt.cloud.aws.lambda.throttlers` | `cloud.aws.lambda.Throttles.By.FunctionName` | 0 |
 | Concurrent executions | `dt.cloud.aws.lambda.conc_executions` | `cloud.aws.lambda.ConcurrentExecutions.By.FunctionName` | < reserved concurrency |
 
-**The DQL cells in this notebook use the Metric Streams scheme**, which is what the validation tenant ingests
-(09/24/2026: 5 distinct `cloud.aws.lambda.*` keys, **0** `dt.cloud.aws.lambda.*`). If your environment polls
-instead, substitute the left-hand column throughout. Settle it in one query rather than guessing:
+**The DQL cells in this notebook use the new AWS connection scheme**, which is what the validation tenant ingests
+(09/24/2026: 5 distinct `cloud.aws.lambda.*` keys, **0** `dt.cloud.aws.lambda.*`; 11/11/2026: every
+`cloud.aws.lambda.Invocations.By.FunctionName` series carries `dt.da.source == "aws-metric-poller"`). If your
+environment still uses a classic AWS connection, substitute the left-hand column throughout. Settle it in one query rather than guessing:
 
 ```dql
 metrics from:now()-9d
@@ -116,7 +120,7 @@ picking the wrong scheme, and worth separating before you debug either.
 
 ### List Monitored Lambda Functions
 
-> <sub>**Sources:** [Built-in metrics on Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail) — the `builtin:` → `dt.` transformation behind the polling key scheme, [CloudWatch Metric Streams (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-metrics-ingest/cloudwatch-metric-streams) — the streaming path that produces the CamelCase `.By.<Dimension>` keys, [AWS metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-metrics-ingest) — the two ingestion routes. Key presence measured on the validation tenant 09/24/2026: 5 distinct Metric Streams keys, 0 polling keys. **Derived:** the side-by-side key mapping is this entry's reconciliation of the two schemes — no page tabulates them together.</sub>
+> <sub>**Sources:** [Built-in metrics on Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail) — the `builtin:` → `dt.` transformation behind the classic key scheme, [Upgrade from classic to new cloud connections (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections) — *"Metric keys are unified to cloud.aws.<Service>.<Metric>.By.<Dimension> with a metric dimension dt.da.source == "aws-metric-poller" when using the new AWS connection."*, [AWS metric and entity mapping (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections/metric-and-entity-mapping-aws) — classic `builtin:cloud.aws.lambda.invocations` → new `cloud.aws.lambda.Invocations.By.FunctionName`, [CloudWatch Metric Streams (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-metrics-ingest/cloudwatch-metric-streams) — the classic streaming path's `cloud.aws.<service>` prefix. Key presence measured on the validation tenant 09/24/2026: 5 distinct new-connection keys, 0 classic keys; `dt.da.source` re-checked 11/11/2026.</sub>
 
 ```dql
 // List all monitored Lambda functions with runtime and code size
@@ -140,11 +144,11 @@ fetch dt.entity.aws_lambda_function, from:-7d
 ```dql
 // Lambda average execution duration over the last 6 hours
 //
-// Metric keys: these are the CloudWatch Metric Streams keys, named
+// Metric keys: these are the new AWS connection (Clouds app) keys, named
 // cloud.aws.lambda.<CloudWatchName>.By.FunctionName — Invocations / Errors / Duration /
-// Throttles / ConcurrentExecutions / IteratorAge. The AWS polling integration produces
-// dt.cloud.aws.lambda.* instead (see §1's table); a key from the other scheme returns an empty
-// result, not an error. The split dimension is FunctionName — dt.entity.aws_lambda_function is
+// Throttles / ConcurrentExecutions / IteratorAge — carrying dt.da.source == "aws-metric-poller".
+// A classic AWS connection produces dt.cloud.aws.lambda.* instead (see §1's table); a key from
+// the other scheme returns an empty result, not an error. The split dimension is FunctionName — dt.entity.aws_lambda_function is
 // null on these metrics. Enumerate what your tenant has, one row per key, with:
 //   metrics from:now()-9d | filter startsWith(metric.key, "cloud.aws.lambda") or startsWith(metric.key, "dt.cloud.aws.lambda") | summarize n = count(), by:{metric.key} | sort metric.key asc
 timeseries avgDuration = avg(cloud.aws.lambda.Duration.By.FunctionName), from:-6h, by:{FunctionName}
@@ -261,11 +265,11 @@ Lambda errors fall into two categories:
 ```dql
 // Lambda error count by function over the last 24 hours
 //
-// Metric keys: these are the CloudWatch Metric Streams keys, named
+// Metric keys: these are the new AWS connection (Clouds app) keys, named
 // cloud.aws.lambda.<CloudWatchName>.By.FunctionName — Invocations / Errors / Duration /
-// Throttles / ConcurrentExecutions / IteratorAge. The AWS polling integration produces
-// dt.cloud.aws.lambda.* instead (see §1's table); a key from the other scheme returns an empty
-// result, not an error. The split dimension is FunctionName — dt.entity.aws_lambda_function is
+// Throttles / ConcurrentExecutions / IteratorAge — carrying dt.da.source == "aws-metric-poller".
+// A classic AWS connection produces dt.cloud.aws.lambda.* instead (see §1's table); a key from
+// the other scheme returns an empty result, not an error. The split dimension is FunctionName — dt.entity.aws_lambda_function is
 // null on these metrics. Enumerate what your tenant has, one row per key, with:
 //   metrics from:now()-9d | filter startsWith(metric.key, "cloud.aws.lambda") or startsWith(metric.key, "dt.cloud.aws.lambda") | summarize n = count(), by:{metric.key} | sort metric.key asc
 timeseries errors = sum(cloud.aws.lambda.Errors.By.FunctionName), from:-24h, by:{FunctionName}
@@ -286,11 +290,11 @@ timeseries errors = sum(cloud.aws.lambda.Errors.By.FunctionName), from:-24h, by:
 // null for every row even with valid keys. Request both series inside ONE timeseries block, which
 // is what actually aligns them on a shared timeline and grouping.
 //
-// Metric keys: these are the CloudWatch Metric Streams keys, named
+// Metric keys: these are the new AWS connection (Clouds app) keys, named
 // cloud.aws.lambda.<CloudWatchName>.By.FunctionName — Invocations / Errors / Duration /
-// Throttles / ConcurrentExecutions / IteratorAge. The AWS polling integration produces
-// dt.cloud.aws.lambda.* instead (see §1's table); a key from the other scheme returns an empty
-// result, not an error. The split dimension is FunctionName — dt.entity.aws_lambda_function is
+// Throttles / ConcurrentExecutions / IteratorAge — carrying dt.da.source == "aws-metric-poller".
+// A classic AWS connection produces dt.cloud.aws.lambda.* instead (see §1's table); a key from
+// the other scheme returns an empty result, not an error. The split dimension is FunctionName — dt.entity.aws_lambda_function is
 // null on these metrics. Enumerate what your tenant has, one row per key, with:
 //   metrics from:now()-9d | filter startsWith(metric.key, "cloud.aws.lambda") or startsWith(metric.key, "dt.cloud.aws.lambda") | summarize n = count(), by:{metric.key} | sort metric.key asc
 timeseries {
@@ -322,11 +326,11 @@ Throttling occurs when Lambda cannot allocate an execution environment, typicall
 // throttles zero times, so the guard emptied the table and made a correct result look like a
 // broken query. Seeing the zeros is the point.
 //
-// Metric keys: these are the CloudWatch Metric Streams keys, named
+// Metric keys: these are the new AWS connection (Clouds app) keys, named
 // cloud.aws.lambda.<CloudWatchName>.By.FunctionName — Invocations / Errors / Duration /
-// Throttles / ConcurrentExecutions / IteratorAge. The AWS polling integration produces
-// dt.cloud.aws.lambda.* instead (see §1's table); a key from the other scheme returns an empty
-// result, not an error. The split dimension is FunctionName — dt.entity.aws_lambda_function is
+// Throttles / ConcurrentExecutions / IteratorAge — carrying dt.da.source == "aws-metric-poller".
+// A classic AWS connection produces dt.cloud.aws.lambda.* instead (see §1's table); a key from
+// the other scheme returns an empty result, not an error. The split dimension is FunctionName — dt.entity.aws_lambda_function is
 // null on these metrics. Enumerate what your tenant has, one row per key, with:
 //   metrics from:now()-9d | filter startsWith(metric.key, "cloud.aws.lambda") or startsWith(metric.key, "dt.cloud.aws.lambda") | summarize n = count(), by:{metric.key} | sort metric.key asc
 timeseries throttles = sum(cloud.aws.lambda.Throttles.By.FunctionName), from:-24h, by:{FunctionName}
@@ -341,11 +345,11 @@ timeseries throttles = sum(cloud.aws.lambda.Throttles.By.FunctionName), from:-24
 ```dql
 // Concurrent Lambda executions over the last 6 hours
 //
-// Metric keys: these are the CloudWatch Metric Streams keys, named
+// Metric keys: these are the new AWS connection (Clouds app) keys, named
 // cloud.aws.lambda.<CloudWatchName>.By.FunctionName — Invocations / Errors / Duration /
-// Throttles / ConcurrentExecutions / IteratorAge. The AWS polling integration produces
-// dt.cloud.aws.lambda.* instead (see §1's table); a key from the other scheme returns an empty
-// result, not an error. The split dimension is FunctionName — dt.entity.aws_lambda_function is
+// Throttles / ConcurrentExecutions / IteratorAge — carrying dt.da.source == "aws-metric-poller".
+// A classic AWS connection produces dt.cloud.aws.lambda.* instead (see §1's table); a key from
+// the other scheme returns an empty result, not an error. The split dimension is FunctionName — dt.entity.aws_lambda_function is
 // null on these metrics. Enumerate what your tenant has, one row per key, with:
 //   metrics from:now()-9d | filter startsWith(metric.key, "cloud.aws.lambda") or startsWith(metric.key, "dt.cloud.aws.lambda") | summarize n = count(), by:{metric.key} | sort metric.key asc
 timeseries concurrency = max(cloud.aws.lambda.ConcurrentExecutions.By.FunctionName), from:-6h, by:{FunctionName}

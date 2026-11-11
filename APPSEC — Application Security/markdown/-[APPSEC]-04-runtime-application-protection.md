@@ -1,6 +1,6 @@
 # APPSEC-04: Runtime Application Protection
 
-> **Series:** APPSEC — Application Security | **Notebook:** 4 of 10 | **Created:** June 2026 | **Last Updated:** 10/02/2026
+> **Series:** APPSEC — Application Security | **Notebook:** 4 of 10 | **Created:** June 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -73,6 +73,10 @@ Other runtime attack classes — path traversal, for example — are **not** in 
 | Java 8+ (Windows x86 and Linux x86 only) | 1.241 | ✓ | ✓ | ✓ | ✓ |
 | .NET (Framework 4.5, Core 3.0+, 64-bit) | 1.289 | ✓ | ✓ | — | — |
 | Go | 1.311 | ✓ | ✓ | — | — |
+
+> **The Java floor is below what SaaS accepts.** From SaaS 1.347 (rollout start 09/16/2026): *"Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier."* The 1.241 in the table is the documented RAP minimum, not a version a tenant on 1.347 or later still accepts. Run a supported OneAgent version.
+>
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — *"Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier."*</sub>
 
 A .NET or Go service therefore has no JNDI or SSRF protection from RAP. The catalog evolves per OneAgent release; re-check the docs rather than inferring it from a static document.
 

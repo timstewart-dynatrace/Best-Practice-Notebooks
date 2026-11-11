@@ -1,6 +1,6 @@
 # FAQ-27: How Do I Get Microsoft 365 Audit Logs Into Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 27 — Microsoft 365 Audit Logs Into Dynatrace | **Created:** October 2026 | **Last Updated:** 11/10/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 27 — Microsoft 365 Audit Logs Into Dynatrace | **Created:** October 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 

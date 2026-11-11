@@ -1,6 +1,6 @@
 # FAQ-04: How to manage OneAgent updates on Dynatrace SaaS
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 04 — Managing OneAgent Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 10/27/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 04 — Managing OneAgent Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -45,7 +45,7 @@ The intent is not to talk anyone out of auto-update. For most fleets, **auto-upd
 
 > **Breaking (SaaS 1.347 — staged tenant rollout from 09/16/2026): very old agents are disconnected, not merely unsupported.** Verbatim: *"Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier."*
 >
-> This is a different kind of floor from the support window. Dynatrace supports a OneAgent version for 9 months after rollout under Standard Support and 12 months under Enterprise Success and Support; as of OneAgent 1.347 the oldest supported versions are 1.329 and 1.323 respectively. **Falling outside that support window means you stop receiving fixes; being at or below 1.241 means the host stops reporting.** A fleet on "Auto-update disabled" (§4) is the population this reaches first, because it is the one that can sit still for years — and the symptom is a monitoring gap, not an error a reader would attribute to a version policy.
+> This is a different kind of floor from the support window. Dynatrace supports a OneAgent version for 9 months after rollout under Standard Support and 12 months under Enterprise Success and Support; as of OneAgent 1.349 (staged rollout from 11/09/2026) the oldest supported versions are 1.331 and 1.325 respectively (1.329 and 1.323 as of 1.347). **Falling outside that support window means you stop receiving fixes; being at or below 1.241 means the host stops reporting.** A fleet on "Auto-update disabled" (§4) is the population this reaches first, because it is the one that can sit still for years — and the symptom is a monitoring gap, not an error a reader would attribute to a version policy.
 >
 > **Inventory before the rollout reaches you**, not after. Give the query an explicit window longer than any host's expected downtime — `fetch dt.entity.host` without `from:` sees only the default two hours, so a host that is offline, or has already been rejected and gone silent, is not returned at all and the check reads clean. Compare the minor version as a number, because `installerVersion` is a string and sorts lexically:
 >
@@ -78,7 +78,7 @@ OneAgent is the data-collection layer of the platform. Update cadence directly a
 
 In community practice, the most consistent benefit teams report from leaving auto-update on is "we stopped having a OneAgent-version inventory problem." Verify against your own change-control framework.
 
-> <sub>**Sources:** [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — the OneAgent 1.241 connection-rejection quoted above, [What's new in Dynatrace OneAgent 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-347) — *"Rollout start on Sep 30, 2026"*; oldest supported versions *"Standard Support 1.329 Enterprise Success and Support 1.323"*; the Java 23 and `composefs` changes quoted above, [What's new hub (DT docs)](https://docs.dynatrace.com/docs/whats-new) — the 9-month / 12-month OneAgent support windows (*"How long are versions supported following rollout?"*), [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"With auto-update enabled, you don't have to worry about manually updating the OneAgents running in your environment."* Both inventory queries executed against a live tenant 10/02/2026 (the 30-day window returned 126 hosts where the default window returned 15).</sub>
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — the OneAgent 1.241 connection-rejection quoted above, [What's new in Dynatrace OneAgent 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-347) — *"Rollout start on Sep 30, 2026"*; oldest supported versions *"Standard Support 1.329 Enterprise Success and Support 1.323"*; the Java 23 and `composefs` changes quoted above, [What's new in Dynatrace OneAgent 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349) — *"Rollout start on Nov 09, 2026"*; oldest supported versions *"Standard Support 1.331 Enterprise Success and Support 1.325"*, [What's new hub (DT docs)](https://docs.dynatrace.com/docs/whats-new) — the 9-month / 12-month OneAgent support windows (*"How long are versions supported following rollout?"*), [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"With auto-update enabled, you don't have to worry about manually updating the OneAgents running in your environment."* Both inventory queries executed against a live tenant 10/02/2026 (the 30-day window returned 126 hosts where the default window returned 15).</sub>
 
 <a id="mechanism"></a>
 ## 2. How OneAgent Updates Work on SaaS

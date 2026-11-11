@@ -1,6 +1,6 @@
 # WFLOW-95 LAB: CMDB-Driven Host Tag Enrichment
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Reference:** 95 — CMDB-Driven Host Tag Enrichment LAB | **Created:** June 2026 | **Last Updated:** 10/06/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Reference:** 95 — CMDB-Driven Host Tag Enrichment LAB | **Created:** June 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -104,7 +104,7 @@ The workflow defaults to **safe**: a first run changes nothing. Read the dry-run
 
 > **`RESTART_ONEAGENT = false` means "accepted", not "applied".** The API reference states that *"By default OneAgents will be restarted when network zone, host group, host tags or host properties are reconfigured - the restart is required to apply the changes."* The LAB defaults to no restart so that a first live run cannot bounce agents unexpectedly — but with it off, a successful job (HTTP 2xx, a `jobId`) does not mean the tags are on the data yet; they apply when each host's OneAgent next restarts. Either schedule a restart window and set `RESTART_ONEAGENT = true`, or verify on data ingested after the hosts' next restart. Removals are slower still: *"Removing host properties and tags may require up to seven hours to take effect."*
 
-> <sub>**Sources:** [POST a configuration job (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/remote-configuration/oneagent/post-config-job) — *"409 - Other remote configuration management job is currently being executed"* and *"The response is not sent to the client until all OneAgents defined in the payload are processed."*; [Remote configuration management (DT docs)](https://docs.dynatrace.com/docs/ingest-from/bulk-configuration) — *"You can't start another bulk action until the current one is finished."*</sub>
+> <sub>**Sources:** [POST a configuration job (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/remote-configuration/oneagent/post-config-job) — *"409 - Other remote configuration management job is currently being executed"* and *"The response is not sent to the client until all OneAgents defined in the payload are processed."*; [Remote configuration management (DT docs)](https://docs.dynatrace.com/docs/ingest-from/bulk-configuration-classic) — *"You can't start another bulk action until the current one is finished."*</sub>
 
 <a id="build-steps"></a>
 ## 4. Build It in the Workflows Editor (Step by Step)
@@ -148,9 +148,9 @@ Two *Run JavaScript* tasks wired with a loop. **All configuration lives in workf
 import { queryExecutionClient } from '@dynatrace-sdk/client-query';
 import { execution } from '@dynatrace-sdk/automation-utils';
 
-export default async function ({ execution_id }) {
+export default async function ({ executionId }) {
   // ---- Runtime inputs (workflow `input` block; override per run) ----
-  const ex = await execution(execution_id);
+  const ex = await execution(executionId);
   const inp = ex.input || {};
   const MAX_HOSTS = Number(inp.MAX_HOSTS ?? 50);
   const DRY_RUN = (inp.DRY_RUN === false || inp.DRY_RUN === 'false') ? false : true; // default true
@@ -312,8 +312,8 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 15000; // 15s between retries on 409
 const API_PATH = '/api/v2/oneagents/remoteConfigurationManagement';
 
-export default async function ({ action_execution_id }) {
-  const actionExe = await actionExecution(action_execution_id);
+export default async function ({ actionExecutionId }) {
+  const actionExe = await actionExecution(actionExecutionId);
   const host = actionExe.loopItem.host;
   const ENVIRONMENT_URL = host.environmentUrl;   // from task 1 (workflow input) — classic alternative only
   const CREDENTIAL_ID = host.credentialId;       // from task 1 (workflow input) — classic alternative only
@@ -444,7 +444,7 @@ workflow:
 - **Schedule it** with a cron trigger (WFLOW-02) so newly onboarded hosts get tagged automatically; skip-existing keeps repeat runs cheap.
 - **Authentication** — platform authentication as the workflow actor (relative URL, `fleet-management:oneagents:write`) is the default; the classic `Api-Token` from the Credential Vault is kept only for classic or hybrid environments.
 
-> <sub>**Sources:** [OneAgent configuration via command-line interface (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface) — *"A property value must not contain = (unless used as a key-value delimiter) or whitespace characters. The maximum length is 256 characters, including the key-value delimiter."*; [Remote configuration management (DT docs)](https://docs.dynatrace.com/docs/ingest-from/bulk-configuration) — *"Remote configuration management does NOT work with: OneAgent deployed with Dynatrace Operator Application-only OneAgents OneAgents on Solaris"*.</sub>
+> <sub>**Sources:** [OneAgent configuration via command-line interface (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface) — *"A property value must not contain = (unless used as a key-value delimiter) or whitespace characters. The maximum length is 256 characters, including the key-value delimiter."*; [Remote configuration management (DT docs)](https://docs.dynatrace.com/docs/ingest-from/bulk-configuration-classic) — *"Remote configuration management does NOT work with: OneAgent deployed with Dynatrace Operator Application-only OneAgents OneAgents on Solaris"*.</sub>
 
 <a id="next-steps"></a>
 ## 7. Next Steps
@@ -458,7 +458,7 @@ workflow:
 ## References
 
 - [OneAgent remote configuration management API — POST a configuration job (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/remote-configuration/oneagent/post-config-job)
-- [Remote configuration management of OneAgents and ActiveGates (DT docs)](https://docs.dynatrace.com/docs/ingest-from/bulk-configuration)
+- [Remote configuration management of OneAgents and ActiveGates (DT docs)](https://docs.dynatrace.com/docs/ingest-from/bulk-configuration-classic)
 - [Lookup data in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/lookup-data)
 - [Build workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build)
 - [Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action)

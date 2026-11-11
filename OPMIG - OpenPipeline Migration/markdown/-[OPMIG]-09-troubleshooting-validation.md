@@ -1065,7 +1065,7 @@ If issues are detected, here's how to rollback.
 
 | Level | Action |
 |-------|--------|
-| **Pipeline** | Disable specific pipeline, use default |
+| **Pipeline** | Disable the route to it; records then take the Default route |
 | **Processor** | Disable individual processor |
 | **Routing** | Reset dynamic routing to defaults |
 | **Full** | Disable the routes to your custom pipelines so records leave through the Default route. Whether a Classic pipeline still exists behind it depends on the environment — it is not available for accounts created from September 2026 |
@@ -1073,9 +1073,9 @@ If issues are detected, here's how to rollback.
 ### Quick Disable Steps
 
 1. Navigate to **Settings → OpenPipeline → Logs**
-2. Select the problematic pipeline
-3. Toggle the pipeline off
-4. Logs will route to default pipeline
+2. Open the dynamic routing table
+3. Disable the route that targets the pipeline (a pipeline object has no single on/off switch)
+4. Records take the Default route, without this pipeline's masking or parsing
 
 ### Version History
 
