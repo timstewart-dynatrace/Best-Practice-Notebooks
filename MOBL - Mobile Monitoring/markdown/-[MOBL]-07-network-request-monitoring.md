@@ -1,6 +1,6 @@
 # MOBL-07: Network Request Monitoring
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 7 of 12 | **Created:** February 2026 | **Last Updated:** 10/29/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 7 of 12 | **Created:** February 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -197,7 +197,7 @@ Retrieve the most recent network requests from mobile applications, showing the 
 ```dql
 // Recent network requests from mobile apps
 fetch user.events, from:-1h
-| filter dt.rum.application.type == "mobile" and characteristics.has_request
+| filter in(dt.rum.agent.type, {"android", "ios"}) and characteristics.has_request
 | fields start_time, frontend.name, url.full, http.request.method, http.response.status_code, duration, network.connection.type
 | sort start_time desc
 | limit 50
@@ -210,7 +210,7 @@ Understand which mobile applications are generating the most network traffic. Th
 ```dql
 // Network request volume by application
 fetch user.events, from:-1h
-| filter dt.rum.application.type == "mobile" and characteristics.has_request
+| filter in(dt.rum.agent.type, {"android", "ios"}) and characteristics.has_request
 | summarize request_count = count(), by:{frontend.name}
 | sort request_count desc
 | limit 20
@@ -225,7 +225,7 @@ Measure how many mobile requests were linked to a backend distributed trace: a r
 // A request that carries trace.id was linked to backend distributed tracing
 // (OneAgent for Mobile 8.333+ injects W3C traceparent / tracestate headers).
 fetch user.events, from:-2h
-| filter dt.rum.application.type == "mobile" and characteristics.has_request
+| filter in(dt.rum.agent.type, {"android", "ios"}) and characteristics.has_request
 | summarize {total_requests = count(), traced_requests = countIf(isNotNull(trace.id))}, by:{frontend.name}
 | fieldsAdd trace_rate = 100.0 * traced_requests / total_requests
 | sort trace_rate asc
@@ -244,7 +244,7 @@ Track how network request volume changes throughout the day for each mobile appl
 ```dql
 // Network request volume timeseries by application
 fetch user.events, from:-24h
-| filter dt.rum.application.type == "mobile" and characteristics.has_request
+| filter in(dt.rum.agent.type, {"android", "ios"}) and characteristics.has_request
 | makeTimeseries request_count = count(), by:{frontend.name}, interval:1h
 ```
 
@@ -255,7 +255,7 @@ Categorize network requests by HTTP status code group (2xx, 3xx, 4xx, 5xx) to vi
 ```dql
 // Network request volume over time by status code group
 fetch user.events, from:-24h
-| filter dt.rum.application.type == "mobile" and characteristics.has_request
+| filter in(dt.rum.agent.type, {"android", "ios"}) and characteristics.has_request
 | filter isNotNull(http.response.status_code)
 | fieldsAdd status_group = if(http.response.status_code < 300, then:"2xx Success", else:if(http.response.status_code < 400, then:"3xx Redirect", else:if(http.response.status_code < 500, then:"4xx Client Error", else:"5xx Server Error")))
 | makeTimeseries request_count = count(), by:{status_group}, interval:1h

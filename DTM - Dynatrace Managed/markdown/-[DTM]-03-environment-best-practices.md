@@ -1,6 +1,6 @@
 # DTM-03: Environment Best Practices
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 03 — Environment Best Practices | **Created:** October 2026 | **Last Updated:** 11/10/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 03 — Environment Best Practices | **Created:** October 2026 | **Last Updated:** 11/11/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -64,7 +64,9 @@ The two are different kinds of boundary.
 
 **On SaaS**, management zones are replaced by segments and IAM policies; the MZ2POL series covers that migration. On Managed, management zones remain the access mechanism inside an environment.
 
-> <sub>**Sources:** [Management zones (Dynatrace Classic) (DT docs)](https://docs.dynatrace.com/managed/manage/identity-access-management-classic/permission-management/management-zones) — *"Management zones may overlap, just as team responsibilities might overlap."*, [Manage your monitoring environments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/manage-your-monitoring-environments).</sub>
+**Resource attributes in rules (Managed 1.350).** Managed 1.350 makes *"Resource attributes available as part of the topology model, management zones, and auto-tagging rules"*: *"You can define Monitored Entities rules and Auto-Tagging rules based on resource attributes."* They are *"available for hosts, processes, process groups, containers, and container groups"*, and you set your own *"on monitored hosts and in Kubernetes Clusters via the dt_metadata.properties custom property file."* Once the cluster reaches 1.350, zone and tag rules can key on metadata set where the workload is deployed, instead of on host or process names.
+
+> <sub>**Sources:** [Management zones (Dynatrace Classic) (DT docs)](https://docs.dynatrace.com/managed/manage/identity-access-management-classic/permission-management/management-zones) — *"Management zones may overlap, just as team responsibilities might overlap."*, [Manage your monitoring environments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/manage-your-monitoring-environments), [Managed 1.350 release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-350).</sub>
 
 <a id="environment-limits"></a>
 ## 3. Set Each Environment's Limits Deliberately

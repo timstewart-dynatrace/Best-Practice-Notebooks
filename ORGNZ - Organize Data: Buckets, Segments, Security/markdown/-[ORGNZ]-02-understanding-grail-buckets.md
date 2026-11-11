@@ -1,6 +1,6 @@
 # ORGNZ-02: Understanding Grail Buckets
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 11/07/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -125,7 +125,7 @@ The built-in set varies by tenant and grows as Dynatrace adds capabilities — t
 
 Each bucket is associated with exactly **one data type**. You cannot mix data types in the same bucket.
 
-**Custom buckets can be created for:** logs, events, security events, bizevents, spans, user events and user sessions — not for metrics.
+**Custom buckets can be created for:** logs, events, security events, bizevents, spans, user events and user sessions — and, from SaaS 1.349, metrics (see below).
 
 > <sub>**Sources:** [Use Grail buckets to partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data) — *"Buckets are always associated with a specific record type, such as logs, events, spans, user events, or user sessions"*.</sub>
 
@@ -140,9 +140,7 @@ Each bucket is associated with exactly **one data type**. You cannot mix data ty
 | Custom | logs_delivery, logs_delivery_90d | Short-term delivery diagnostics |
 | Custom | logs_accounting, logs_infra | Team- or retention-specific logs and infra signals |
 -->
-> **Important:** Metrics do not support custom buckets — all metric data routes to `default_metrics`.
->
-> **SaaS 1.349 (staged tenant rollout from 10/27/2026):** *"Metrics now supports custom buckets."* The notes add: *"You can optionally route subsets of metrics into custom buckets using configuration rules"* ([What's new in Dynatrace SaaS 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-349)). Verify it has reached your tenant; until then the current guidance remains the working path.
+> **Metrics and custom buckets (SaaS 1.349+).** *"Metrics now supports custom buckets."* Metrics still land in `default_metrics` by default; *"You can optionally route subsets of metrics into custom buckets using configuration rules"*, each bucket with its own retention ([What's new in Dynatrace SaaS 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-349)). SaaS 1.349 began its tenant rollout on 10/27/2026; on a tenant that has not reached it, all metric data routes to `default_metrics`.
 
 <a id="system-tables"></a>
 ## System Tables

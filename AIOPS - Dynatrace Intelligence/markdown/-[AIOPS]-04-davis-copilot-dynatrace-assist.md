@@ -1,6 +1,6 @@
 # AIOPS-04: Davis CoPilot — Dynatrace Assist for Investigation
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 4 of 8 | **Created:** May 2026 | **Last Updated:** 10/14/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 4 of 8 | **Created:** May 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -47,7 +47,10 @@ For environments where SVG doesn't render
 | **Dynatrace Environment** | SaaS Gen3 with Dynatrace Assist enabled |
 | **Apps** | Notebooks app (chat panel); Problems / K8s / Databases apps for in-context surfaces |
 | **Permissions** | Standard read permissions for the data being queried |
+| **Network** | From SaaS 1.348 (rollout start 10/12/2026), Dynatrace Assist talks to the server over WebSocket. Browsers, proxies and firewalls must allow WebSocket connections to `wss://*.apps.dynatrace.com`, or Assist fails. A stricter rule can allow only the `/platform-reserved/ai/v0.1/operator:chat` path on that host. |
 | **Optional** | MCP server installed in your IDE for `ask-dynatrace-docs` and `find-troubleshooting-guides` (covered in AIOPS-06) |
+
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"With this change, Dynatrace Assist now relies on WebSocket for communication with the server."*, *"Some users may have network policies blocking WebSocket access. Assist will fail for those."* and *"You can impose a stricter rule for the connection by allowing the /platform-reserved/ai/v0.1/operator:chat path on that host."*</sub>
 
 <a id="capabilities"></a>
 ## 1. What Davis CoPilot Does

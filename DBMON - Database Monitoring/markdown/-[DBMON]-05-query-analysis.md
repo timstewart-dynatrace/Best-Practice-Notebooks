@@ -1,6 +1,6 @@
 # DBMON-05: Query Analysis
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -246,6 +246,10 @@ fetch spans, from:-24h
 ## 5. Connection Pool Analysis
 
 Connection pool exhaustion causes application threads to wait for available connections, leading to increased response times and timeouts. Spans do not carry pool counters, so the queries below look for its symptoms: call volume per service, connection errors, and error-rate spikes. Pool metrics themselves come from runtime metrics (for example JMX or .NET connection-pool counters), not from spans.
+
+> **Measure the pool directly on Java (updated 11/11/2026).** For Java application servers and pool libraries, the Dynatrace Hub has **Connection Pools** extensions built on Extensions 2.0, with pages for JBoss, WebLogic, WebSphere, WebSphere Liberty, Apache Commons and C3P0. Each one reads pool counters over JMX through OneAgent. You activate the OneAgent feature *Java Metric Extensions 2.0 (JMX)* and add the extension, and it ships an overview dashboard. The C3P0 extension, for example, reports `c3p0.connectionPool.maxPoolSize`, `c3p0.connectionPool.numConnections` and `c3p0.connectionPool.numBusyConnections`. With busy connections close to the maximum, the symptom queries below become a confirmed diagnosis. The extensions are free to use, but the metrics they ingest are billed (Metrics powered by Grail on DPS, DDUs on a classic license). Each page gives a per-pool data-point formula, so size the cost before you enable every feature set.
+
+> <sub>**Sources:** [Connection Pools C3P0 extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/connection-pools-c3p0) — *"Several built-in OneAgent extensions provide an insight into the connection pool performance and issues such as connection leaks."*, *"Activate the OneAgent feature Java Metric Extensions 2.0 (JMX)."*; [Connection Pools WebLogic extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/connection-pools-weblogic) — *"There is no charge to use the extension. You are only charged for the data that the extension ingests."*; [Connection Pools JBoss extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/connection-pools) — *"This extension is built on top of the new Extension 2.0 Framework."*; re-read 11/11/2026. **Derived:** reading busy against maximum connections to confirm exhaustion combines the C3P0 metric list with this section's symptom queries.</sub>
 
 ```dql
 // dt.service.name: dt.entity.service is deprecated in the semantic dictionary (dt.service.name is stable).

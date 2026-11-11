@@ -251,7 +251,9 @@ Cloud Logging does not push to Dynatrace directly. Every GCP log path starts at 
 3. **Grant the sink's writer identity `roles/pubsub.publisher` on the topic.** Until you do, nothing arrives: *"Until you grant this identity write-access to the destination, log entry exports from this sink will fail."*
 4. **Deploy the monitor in logs mode** with a Dynatrace token holding `logs.ingest`. It pulls the subscription, batches, and sends to the Logs Ingest API.
 
-For the Clouds-app connection (Preview), follow the log setup in the connection's onboarding flow.
+For the Clouds-app connection, follow the log setup in the connection's onboarding flow.
+
+> **Forthcoming — SaaS 1.351 (pre-release; rollout planned from 11/11/2026, staged — verify it has reached your tenant):** Dynatrace-provided OpenPipeline log parsers for three Google Cloud log types — **Cloud Audit Logs**, **GKE logs** and **Cloud Run**. The release note does not yet say which ingest path's records they apply to or which fields they write. Until the release is final and documented, the field list in *Find GCP Logs in Grail* below — the fields `dynatrace-gcp-monitor` writes — stays the working reference. Inspect one parsed record before you build queries on new field names.
 
 ### Sink Design Rules
 
@@ -310,6 +312,7 @@ If these return nothing, check in order: the sink's writer identity has `roles/p
 > - <sub>[Cloud Audit Logs overview (Google Cloud)](https://docs.cloud.google.com/logging/docs/audit) — *"Except for BigQuery, Data Access audit logs are disabled by default because they can generate large volumes of data."*</sub>
 > - <sub>[LogSink REST reference (Google Cloud)](https://docs.cloud.google.com/logging/docs/reference/v2/rest/v2/projects.sinks) — *"Until you grant this identity write-access to the destination, log entry exports from this sink will fail."*</sub>
 > - <sub>[Pub/Sub pricing (Google Cloud)](https://cloud.google.com/pubsub/pricing) — *"Pub/Sub service charges are based on usage (the number of published, delivered, or stored bytes)."*</sub>
+> - <sub>[SaaS 1.351 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-351) — pre-release, *"Rollout start on Nov 11, 2026 (planned)"*; *"Dynatrace now provides log parsers for the following Google Cloud logs:"* Google Cloud Audit Logs, Google Kubernetes Engine (GKE) logs, Cloud Run</sub>
 > - <sub>**Derived:** the log-field list and the audit attributes come from the monitor's log-processing configuration (`src/config_logs`) in the repository above.</sub>
 
 <a id="gke-monitoring"></a>

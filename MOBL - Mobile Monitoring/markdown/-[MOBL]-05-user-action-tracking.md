@@ -1,6 +1,6 @@
 # MOBL-05: User Action Tracking
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 5 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 5 of 12 | **Created:** February 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -210,7 +210,7 @@ action.leaveAction();
 <a id="querying-actions"></a>
 ## 6. Querying Actions with DQL
 
-Mobile user-action data is stored in the Grail **`user.events`** store, one record per event, with `characteristics.has_user_action` marking user actions and `dt.rum.application.type == "mobile"` separating mobile from web frontends. Session-level data (one record per session) is in **`user.sessions`**. The useful action fields are `frontend.name` (the app), `ui_element.detected_name` (the control), `interaction.type`, and `duration` (a duration value, so compare it with `duration > 2s`, not a number).
+Mobile user-action data is stored in the Grail **`user.events`** store, one record per event, with `characteristics.has_user_action` marking user actions and `in(dt.rum.agent.type, {"android", "ios"})` separating mobile from web events (MOBL-10 §1). Session-level data (one record per session) is in **`user.sessions`**. The useful action fields are `frontend.name` (the app), `ui_element.detected_name` (the control), `interaction.type`, and `duration` (a duration value, so compare it with `duration > 2s`, not a number).
 
 > **Correction (09/28/2026).** Earlier revisions queried mobile actions from `bizevents` with `event.provider == "www.dynatrace.com/mobile"` and `useraction.*` fields. That data model does not exist: every such query ran without error and returned zero rows. All queries in this notebook now read `user.events`. `sendBizEvent()` payloads (MOBL-12 §2) are the one mobile data type that does land in `bizevents`.
 
@@ -221,7 +221,7 @@ Retrieve the most recent user actions across all monitored mobile applications t
 ```dql
 // Recent user actions across all mobile apps
 fetch user.events, from:-1h
-| filter dt.rum.application.type == "mobile" and characteristics.has_user_action
+| filter in(dt.rum.agent.type, {"android", "ios"}) and characteristics.has_user_action
 | fields start_time, frontend.name, ui_element.detected_name, interaction.type, duration
 | sort start_time desc
 | limit 50
@@ -234,7 +234,7 @@ Understand the distribution of interaction types to see which interaction patter
 ```dql
 // Action volume by interaction type across all apps
 fetch user.events, from:-1h
-| filter dt.rum.application.type == "mobile" and characteristics.has_user_action
+| filter in(dt.rum.agent.type, {"android", "ios"}) and characteristics.has_user_action
 | summarize action_count = count(), by:{interaction.type}
 | sort action_count desc
 ```
@@ -248,7 +248,7 @@ Find sessions in which a user tapped the same element five or more times in 24 h
 // This is a query-side heuristic, NOT Dynatrace's rage-tap detection: the semantic
 // dictionary (read 09/28/2026) has no rage-tap field on user.events.
 fetch user.events, from:-24h
-| filter dt.rum.application.type == "mobile" and characteristics.has_user_interaction
+| filter in(dt.rum.agent.type, {"android", "ios"}) and characteristics.has_user_interaction
 | summarize taps = count(), by:{dt.rum.session.id, frontend.name, ui_element.detected_name}
 | filter taps >= 5
 | sort taps desc
@@ -262,7 +262,7 @@ Visualize user action trends on an hourly basis, split by interaction type. This
 ```dql
 // User action trends over time (hourly)
 fetch user.events, from:-24h
-| filter dt.rum.application.type == "mobile" and characteristics.has_user_action
+| filter in(dt.rum.agent.type, {"android", "ios"}) and characteristics.has_user_action
 | makeTimeseries action_count = count(), by:{interaction.type}, interval:1h
 ```
 
@@ -273,7 +273,7 @@ Rank your mobile applications by the total number of user actions to identify th
 ```dql
 // Top apps by action volume
 fetch user.events, from:-1h
-| filter dt.rum.application.type == "mobile" and characteristics.has_user_action
+| filter in(dt.rum.agent.type, {"android", "ios"}) and characteristics.has_user_action
 | summarize action_count = count(), by:{frontend.name}
 | sort action_count desc
 | limit 10

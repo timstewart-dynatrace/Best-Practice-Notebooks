@@ -1,6 +1,6 @@
 # MOBL-01: Mobile Monitoring Fundamentals
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 1 of 12 | **Created:** February 2026 | **Last Updated:** 10/29/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 1 of 12 | **Created:** February 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -34,6 +34,19 @@ Sprint 8.337 of OneAgent for Mobile lands platform updates and developer-tooling
 | **iOS fixes (build 8.345.1)** | User-action navigation and web-request detection improved; Session Replay stack overflow prevented; Initial Loading Action tracking corrected; iOS 27 tab-switch Session Replay fixed; a configuration-handling race condition eliminated | Several affect *measured values*, not just stability — Initial Loading Action in particular, so expect a step in that metric after adoption |
 
 Released 08/03/2026 with rollout from 08/11/2026. No Flutter, React Native, or Cordova changes in this sprint. As always with mobile, the agent version that matters is the one **compiled into shipped app builds** — these land as users update, not when the tenant updates.
+
+### OneAgent for Mobile 8.347 – 8.351 (August – November 2026)
+
+| Version | Item | Impact |
+|---|---|---|
+| **8.347** (published 08/28/2026, rollout from 09/08/2026) | An **app start user action** on every launch, and **capped cold-start durations** | Action counts rise and startup percentiles fall once instrumented builds ship; both are measurement changes, not app changes (MOBL-05 §2) |
+| **8.349** (published 10/15/2026, rollout from 10/06/2026) | Xcode 27 / iOS 27 / tvOS 27, Gradle 9.8 and Android Gradle Plugin 9.4.0 support; **breaking:** the debug-only certificate-validation option is removed from the Android Gradle plugin and SDK | Builds that still set it fail to compile (MOBL-03 Prerequisites) |
+| **8.349.2** | Fix for apps built with **R8 full mode**, which AGP 9.0+ turns on automatically: the Room library prevented OneAgent for Android from recording events | If an AGP 9 app sends no events, move to 8.349.2 or later (MOBL-03 §6) |
+| **8.351** (published 10/27/2026, rollout from 11/03/2026) | **New session rules** for RUM on Latest Dynatrace (below); Jetpack Compose 1.12 support; **breaking:** Kotlin Gradle plugin 2.2 minimum | Session counts and per-session ratios change for apps on 8.351 (below); Kotlin upgrade before adopting (MOBL-03 Prerequisites) |
+
+**The 8.351 session rules.** Verbatim: *"Only user actions and navigations keep a session active, a session ends after 30 minutes of inactivity, and a session still active after 8 hours ends and a new one starts. There's no longer an event limit per session; each event is assigned to the session that was active when the event started."* Session counts, session duration, actions per session, crash-free-session rates and bounce rate are all computed over sessions, so expect them to shift as users move to app builds on 8.351. Compare app versions before and after the agent upgrade rather than reading the change as user behaviour, and re-baseline session-based alerts. Older app builds keep the old rules until users update.
+
+> <sub>**Sources:** [What's new in OneAgent for Mobile 8.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-347), [What's new in OneAgent for Mobile 8.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-349) — *"R8 full mode is enabled automatically with Android Gradle Plugin 9.0 or higher."*, [What's new in OneAgent for Mobile 8.351 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-351) — the session rules quoted above, all re-read 11/11/2026. **Derived:** the list of affected session metrics follows from the new start and end rules.</sub>
 
 ---
 
@@ -148,7 +161,7 @@ Dynatrace models mobile monitoring data using specific entity types and data obj
 | Network Request | `user.events` with `characteristics.has_request` | HTTP request initiated by the mobile app |
 | Crash | `user.events` with `characteristics.has_crash` (ANR: `characteristics.has_anr`) | Native crash, ANR, or unhandled exception |
 
-> **Note:** Mobile user actions, requests, crashes and ANRs are stored as events in the Grail `user.events` store, and sessions in `user.sessions` -- not as traditional entities, and **not** as business events. `dt.rum.application.type == "mobile"` separates mobile from web frontends in both. The mobile application entity represents the configured app itself.
+> **Note:** Mobile user actions, requests, crashes and ANRs are stored as events in the Grail `user.events` store, and sessions in `user.sessions` -- not as traditional entities, and **not** as business events. On `user.events`, `in(dt.rum.agent.type, {"android", "ios"})` separates mobile from web events; `user.sessions` still needs the legacy `dt.rum.application.type == "mobile"` (MOBL-10 §1 explains why, and what to check first). The mobile application entity represents the configured app itself.
 
 > **Correction (09/28/2026).** Earlier revisions of this table said actions, sessions and requests are business events (`bizevents`). That data model does not exist; see MOBL-10 §1 for the mapping and the semantic-dictionary evidence.
 

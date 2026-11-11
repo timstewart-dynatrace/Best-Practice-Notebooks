@@ -1,6 +1,6 @@
 # DBMON-01: Database Monitoring Fundamentals
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 10/23/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -272,7 +272,9 @@ While OneAgent captures database calls from the application side (client spans),
 >
 > This sits **adjacent to** the database monitoring in this series rather than inside it. The extensions above monitor a *database* — connections, queries, locks, replication. Definity monitors the *pipelines that move data into and around a lakehouse*, and adds **cost** as a first-class signal, which none of the database extensions do. If your estate runs Spark or a lakehouse alongside the databases covered here, it fills a gap this series does not otherwise address; if it does not, there is nothing to do. Check the Hub for availability on your tenant.
 
-> <sub>**Sources:** [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — the definity extension entry quoted above, read 08/28/2026.</sub>
+> **Since then (updated 11/11/2026):** SaaS 1.348 (rollout from 10/12/2026) makes pipeline failures and degradations that definity detects create Dynatrace Problems automatically. SaaS 1.350 (**staged rollout from 11/04/2026**) adds a definity Pipeline Events dashboard, and lets you set problem categories and severities per event type in the extension configuration. Pipeline incidents can therefore follow the same problem-triggered workflow routing as your database and application alerts (DBMON-06). Check that each release has reached your tenant before you build on it.
+
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — the definity extension entry quoted above; [What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"bringing pipeline incidents into the unified Dynatrace incident feed alongside application and infrastructure alerts."*; [What's new in Dynatrace SaaS 1.350 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-350) — *"Problem categories and severities can be customized per event type in the extension configuration settings"*; all re-read 11/11/2026. **Derived:** routing through DBMON-06's workflows follows from definity events becoming Davis Problems.</sub>
 
 ### Where Extension Logs Land in Grail
 

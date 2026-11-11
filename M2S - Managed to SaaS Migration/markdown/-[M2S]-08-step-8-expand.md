@@ -1,6 +1,6 @@
 # M2S-08: Step 8 — Expand: Adopt New SaaS Capabilities
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 8 of 9 | **Phase:** Run | **Step:** Expand | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 8 of 9 | **Phase:** Run | **Step:** Expand | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 With the migration complete and integrations reconnected, the real value of moving to SaaS begins. Dynatrace SaaS includes an entire generation of capabilities that were never available in Managed — Grail, Notebooks, OpenPipeline, Dynatrace Assist, AppEngine, and AutomationEngine. This notebook provides a structured approach to adopting each capability, with a recommended timeline that avoids overwhelming teams while ensuring steady progress.
 
@@ -113,10 +113,15 @@ fetch logs, from:-24h
 
 ```dql
 // Correlate detected problems with affected entities — unified in Grail
+// smartscape.affected_entities replaces the deprecated affected_entity_ids. The classic field still
+// works, but it names only ENVIRONMENT-0000000000000001 for entities that exist only in Smartscape,
+// so that ID tops a classic ranking (3,370 of 7 days' closed problems on the validation tenant,
+// 11/11/2026). Problems with no Smartscape node at all (environment-level alerts) drop out here.
 fetch dt.davis.problems, from:-7d
 | filter event.status == "CLOSED"
-| expand affected_entity_ids
-| summarize problemCount = count(), by:{affected_entity_ids}
+| expand entity = smartscape.affected_entities
+| filter isNotNull(entity)
+| summarize problemCount = count(), by:{entity_id = entity[id], entity_type = entity[type], entity_name = entity[name]}
 | sort problemCount desc
 | limit 10
 ```

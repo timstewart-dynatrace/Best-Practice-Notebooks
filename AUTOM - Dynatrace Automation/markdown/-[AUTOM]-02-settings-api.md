@@ -116,6 +116,14 @@ curl "https://{tenant}.live.dynatrace.com/api/v2/settings/schemas" \
 > - <sub>[Dynatrace API authentication (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/basics/dynatrace-api-authentication) — *"Platform tokens use the Bearer realm in the Authorization HTTP header."*</sub>
 > - <sub>[Upgrade from classic access tokens to platform tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Platform tokens are also available alongside classic access tokens."* (hybrid); *"Classic access tokens don't exist in latest environments, and v2/apiTokens isn't available."*</sub>
 
+### The Platform Settings API
+
+Dynatrace also documents a Settings API on the platform API surface, at `https://{your-environment-id}.apps.dynatrace.com/platform/settings/v1/…` (published 10/13/2026). It covers the same object life cycle — *"create, update, list, and delete objects, and check effective values, history, and permissions"* — and adds endpoints for an object's ownership and per-user and per-group permissions. It takes only platform tokens and OAuth clients: *"Platform API endpoints use Platform token and OAuth client authentication."* Creating an object needs `settings:objects:write`.
+
+It is not a drop-in replacement for the `/api/v2/settings` calls in this notebook. `POST /platform/settings/v1/objects` takes **one** object per request, not a list, and its dry-run parameter is spelled `validate-only=true` rather than `validateOnly=true`. The examples here stay on the environment API v2 paths: their reference pages carry no deprecation notice (checked 11/11/2026), so moving existing automation is a choice rather than a deadline. A Dynatrace app should call the `@dynatrace-sdk/client-settings` SDK client rather than either REST API; the platform reference says *"This REST reference is for external and automation use."*
+
+> <sub>**Sources:** [Settings API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-settings-v1), [Create a settings object (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-settings-v1/objects-post) — *"To execute this request, you need a platform token or OAuth access token with settings:objects:write scope."*</sub>
+
 ### Core Endpoints
 
 | Endpoint | Method | Purpose |

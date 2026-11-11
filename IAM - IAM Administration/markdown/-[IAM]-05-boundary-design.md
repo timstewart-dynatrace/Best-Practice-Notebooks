@@ -1,6 +1,6 @@
 # IAM-05: Boundary Design Patterns
 
-> **Series:** IAM — IAM Administration | **Notebook:** 5 of 12 | **Created:** January 2026 | **Last Updated:** 11/09/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 5 of 12 | **Created:** January 2026 | **Last Updated:** 11/11/2026
 
 ## Controlling Data Visibility with Boundaries
 Boundaries determine **what data** users can see. While policies control actions, boundaries filter visibility. This notebook covers boundary syntax, patterns, and implementation strategies, including how to scope access to lookup files in Grail.
@@ -428,7 +428,7 @@ These tags become first-class Grail attributes available for:
 Dynatrace says to *"Set the dt.security_context field as early as possible in the data pipeline, ideally at the source"*, and lists three patterns in order of preference:
 
 1. **At the source (preferred)** — where the telemetry is generated:
-   - **OneAgent host tag** `dt.security_context=<value>`, set at installation or via Deployment Status; it applies to all telemetry from that host.
+   - **OneAgent host tag** `dt.security_context=<value>`, set at installation or via Deployment Status; it applies to all telemetry from that host. From OneAgent 1.349 a host or process can carry several values — see *Multi-Value Security Context* in Section 5 before you use that.
    - **`DT_TAGS` environment variable** — *"For process-level granularity on shared infrastructure, add DT_TAGS:"dt.security_context=<value>" as an environment variable on the process."*
    - **Kubernetes namespace labels or annotations**, through Kubernetes metadata enrichment; applies to all telemetry from that namespace.
    - **OpenTelemetry resource attribute** `dt.security_context`, in `OTEL_RESOURCE_ATTRIBUTES` or the OpenTelemetry Collector.
@@ -624,6 +624,8 @@ This grants access to all data matching:
 
 `dt.security_context` can already hold an array, and on classic entities it commonly does — on the validation tenant (10/13/2026) 55 of 56 hosts held an array, and 52 of them carried two or more values. Grail record permissions evaluate arrays only with `MATCH` (`=`, `IN` and `startsWith` return false); for `storage:entities:read`, use `startsWith`, which evaluates any matching value.
 
+**Several values set at the source (OneAgent 1.349).** OneAgent 1.349 (rollout start 11/09/2026 — verify the version has reached your hosts) lets you *"assign multiple dt.security_context values to a single host or process, set during installation or with oneagentctl for hosts, and with environment variables for processes."* Enrichment happens on OneAgent itself, which the release says removes *"the need for OpenPipeline workarounds"*, and existing single-value settings keep *"working without changes."* The records, however, do not stay the same: once a host or process carries a second value, the records it produces hold an array, and every `=`, `IN` or `startsWith` condition on a Grail record permission stops matching them, silently. Move those conditions to `MATCH` **before** you roll out the second value, then re-run the array check in Section 3.
+
 The single-string model above requires choosing one leading dimension. Storing each dimension as its own array value removes that choice:
 
 ```
@@ -640,7 +642,7 @@ This removes the dimension-ordering trade-off and simplifies all three team type
 
 Whichever model you choose, check what your data actually holds before writing conditions (the array check in Section 3).
 
-> <sub>**Sources:** [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"// will match both "crn-70400-alpha" and ["crn-70131", "crn-70400-beta", "crn-70500"]"*.</sub>
+> <sub>**Sources:** [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"// will match both "crn-70400-alpha" and ["crn-70131", "crn-70400-beta", "crn-70500"]"*; [OneAgent 1.349 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349) — *"You can now assign multiple dt.security_context values to a single host or process."* **Derived:** the "move to `MATCH` first" step combines the two.</sub>
 
 ### Pattern 8: Path-Scoped Lookup Files
 
@@ -842,6 +844,10 @@ You can also set the context on the OneAgent at deployment. The June-2026 [tags 
 ## 7. Boundary Testing
 Verify boundaries work as expected before production use.
 
+> **Classic and Smartscape service coverage are not the same number.** A Smartscape `SERVICE` node holds `dt.security_context` as an array (`[]` when unset), and its value *"comes from the resource level, so from each deployed instance"*; one service can aggregate instances with different contexts, so the value can change between observations. Run the Smartscape form given in the query comments next to the classic query, and look into any difference before you rely on either.
+>
+> <sub>**Sources:** [Set up Grail permissions for Services (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/services-security-context) — *"A single service entity can aggregate instances with different dt.security_context values, which is why the value on the service entity can change between observations"*.</sub>
+
 ```dql
 // Check security context distribution on services
 fetch dt.entity.service
@@ -870,7 +876,12 @@ fetch dt.entity.service, from:-7d
 // Smartscape note (dt.entity.* is deprecated but still functional): dt.security_context exists
 // on Smartscape nodes but as an ARRAY (empty [] when unset, not null), so isNull / isNotNull
 // and by:{dt.security_context} do not carry over — a Smartscape rewrite would miscount coverage.
-// Keep the classic query above.
+// Keep the classic query above, and also run the documented Smartscape form, which tests the array:
+//   smartscapeNodes "SERVICE", from:-7d | filter dt.security_context == array() | fields name
+// The two can disagree: on the validation tenant (11/11/2026) the classic query found a context on
+// 58 of 58 services, Smartscape on 7 of 58. A Smartscape service takes its value from its deployed
+// instances ("from the resource level"), so they measure different things — explain the gap before
+// trusting either number.
 // (entity tags are also not a flat "tags" field on Smartscape — resolve via getNodeField.)
 ```
 

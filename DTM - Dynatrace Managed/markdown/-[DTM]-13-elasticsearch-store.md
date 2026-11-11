@@ -1,6 +1,6 @@
 # DTM-13: Elasticsearch Store Health
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 13 — Elasticsearch Store Health | **Created:** September 2026 | **Last Updated:** 11/10/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 13 — Elasticsearch Store Health | **Created:** September 2026 | **Last Updated:** 11/11/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -130,11 +130,13 @@ DTM-12 showed that Cassandra's five-year metric retention has no documented sett
 
 Custom log retention is rationed by capacity: *"Depending on the number and size of Managed Cluster nodes and the selected log retention times, only a certain number of environments can use custom log retention. The system reports when no more custom log retention settings are possible based on the predicted current usage."* User sessions are rationed the same way: *"only a certain number of environments can use custom User Session and Session Replay retention."*
 
+**Managed 1.348 and Session Replay.** The 1.348 release note puts both settings in one place: *"You can now configure retention periods of up to 90 days for RUM user sessions and Session Replay directly in Cluster Management Console > Environments."* *"You can also manage these settings via the Cluster API v2 environments endpoints (api/cluster/v2/environments)."* Two rules come with it: *"Default retention periods remain unchanged."* and *"Retention changes apply to new records going forward and do not affect existing data."* The note doesn't say what a cluster before 1.348 allows, so on an older cluster check the CMC rather than assuming 90 days. Session Replay recordings are not in this store — *"The Session Replay data storage directory is a dedicated file store at DATASTORE_PATH/server/replayData"* — but they still pull on it: *"Cluster Management Console (CMC) enforces that user sessions are retained at least as long as Session Replay recordings."* Raising replay retention can therefore force user-session retention, and Elasticsearch disk on every node, up with it.
+
 **Adaptive retention treats the two differently.** Adaptive data retention shortens retention automatically when *"The disk is full"* or *"The environment uses more disk space than its quota allows"*, and it covers *"transaction storage, Session Replay storage, and Log Monitoring data"*. Logs are covered; **user sessions are not**. When the disk fills or an environment outgrows its quota, log history is trimmed automatically, while user sessions only shrink if someone lowers their retention. The per-environment storage quotas in CMC **Environments** are therefore a second lever.
 
 **The practical rule.** Every environment that raises user-session retention above 35 days, or sets custom log retention, is spending Elasticsearch disk on every node. Review those settings before adding hardware. Note that lowering log retention may not free space at once: *"Retention changes apply to new log records going forward."*
 
-> <sub>**Sources:** [Data retention periods (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods), [Adaptive data retention (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/adaptive-data-retention), [Managed 1.340 release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-340). **Derived:** "logs trimmed automatically, sessions only by hand" combines the adaptive-retention scope with the per-environment session setting.</sub>
+> <sub>**Sources:** [Data retention periods (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods), [Adaptive data retention (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/adaptive-data-retention), [Managed 1.340 release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-340), [Managed 1.348 release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-348). **Derived:** "logs trimmed automatically, sessions only by hand" combines the adaptive-retention scope with the per-environment session setting; "can force user-session retention up" combines the 1.348 enforcement rule with user sessions being held in this store.</sub>
 
 <a id="health-checks"></a>
 ## 5. Health Checks

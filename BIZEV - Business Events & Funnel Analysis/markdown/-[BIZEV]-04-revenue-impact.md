@@ -1,6 +1,6 @@
 # BIZEV-04: Revenue Impact Analysis
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -233,14 +233,21 @@ fetch dt.davis.problems, from:-7d
 // if your SLA counts maintenance time
 | filter maintenance.is_under_maintenance == false
 | fieldsAdd duration_hours = resolved_problem_duration / 1h
-// affected_entity_ids is an array: countDistinctExact on it counts distinct ARRAYS, not
+// affected_entity_ids is deprecated in favor of smartscape.affected_entities. Neither covers every
+// problem: the classic field names only ENVIRONMENT-0000000000000001 for entities that exist only in
+// Smartscape (AWS EC2 instances, for example), and the Smartscape field is empty on many process
+// group instance problems. Take Smartscape node IDs where a problem has them, classic IDs where not.
+| fieldsAdd ss_ids = toString(smartscape.affected_entities[][id]),
+            classic_ids = if(isNull(smartscape.affected_entities), affected_entity_ids)
+// The ID fields are arrays: countDistinctExact on them counts distinct ARRAYS, not
 // entities — flatten the collected arrays first, then count distinct entity IDs.
 | summarize {impact_hours = sum(duration_hours),
            problem_count = count(),
-           entity_arrays = collectArray(affected_entity_ids),
+           ss_arrays = collectArray(ss_ids),
+           classic_arrays = collectArray(classic_ids),
            avg_problem_hours = avg(duration_hours)}
-| fieldsAdd affected_entities = arraySize(arrayDistinct(arrayFlatten(entity_arrays)))
-| fieldsRemove entity_arrays
+| fieldsAdd affected_entities = arraySize(arrayRemoveNulls(arrayDistinct(arrayConcat(arrayFlatten(ss_arrays), arrayFlatten(classic_arrays)))))
+| fieldsRemove ss_arrays, classic_arrays
 
 ```
 

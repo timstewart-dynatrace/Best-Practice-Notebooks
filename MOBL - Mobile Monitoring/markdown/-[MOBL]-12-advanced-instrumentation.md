@@ -1,6 +1,6 @@
 # MOBL-12: Advanced Instrumentation & Optimization
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 12 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 12 of 12 | **Created:** February 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -213,7 +213,7 @@ Use the following query to retrieve errors that were explicitly reported from yo
 ```dql
 // Reported errors from mobile apps (API-reported errors)
 fetch user.events, from:-24h
-| filter dt.rum.application.type == "mobile"
+| filter in(dt.rum.agent.type, {"android", "ios"})
 | filter characteristics.has_error and characteristics.is_api_reported
 | fields start_time, frontend.name, error.name, error.code, os.name, app.short_version
 | sort start_time desc
@@ -435,7 +435,7 @@ Use this query to compare daily session volumes (distinct `dt.rum.session.id` pe
 ```dql
 // Session volume comparison across all mobile apps
 fetch user.events, from:-7d
-| filter dt.rum.application.type == "mobile"
+| filter in(dt.rum.agent.type, {"android", "ios"})
 | makeTimeseries session_count = countDistinct(dt.rum.session.id), by:{frontend.name}, interval:24h
 ```
 

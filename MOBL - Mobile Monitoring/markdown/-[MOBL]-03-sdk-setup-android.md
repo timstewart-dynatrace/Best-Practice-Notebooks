@@ -321,6 +321,8 @@ fun onSearchClicked(query: String) {
 
 A blanket `-keep class com.dynatrace.** { *; }` is not required with R8; add it only if a third-party tool cannot read the shipped rules.
 
+> **R8 full mode needs OneAgent for Mobile 8.349.2 or later.** Build 8.349.2 *"Resolved an issue with the Room library (androidx.room:room-runtime) that prevents OneAgent for Android from recording events when apps are built with R8 full mode (android.enableR8.fullMode=true). R8 full mode is enabled automatically with Android Gradle Plugin 9.0 or higher."* An app moved to AGP 9 on an older agent can therefore build cleanly and send nothing. Check the agent version before you upgrade AGP; on AGP 8 with full mode off, earlier agents are unaffected.
+
 ### Mapping Files for Crash Deobfuscation
 
 Readable Android stack traces need the build's `mapping.txt` in Dynatrace. Upload it for **every released version** — through the UI, or from CI with the Mobile Symbolication API:
@@ -333,9 +335,21 @@ curl -X PUT "https://{your-environment-id}.live.dynatrace.com/api/config/v1/symf
   --data-binary @app/build/outputs/mapping/release/mapping.txt
 ```
 
-The upload limit is 100 MiB per file (500 MiB uncompressed). A crash from a version with no mapping file stays obfuscated, so make the upload part of the release pipeline rather than a manual step. MOBL-06 covers crash analysis.
+**On the latest Dynatrace RUM, use the Deobfuscation API instead.** The Mobile Symbolication API page now says *"To manage symbol and mapping files for the new RUM experience, see the Deobfuscation API."* That platform API takes a platform token or OAuth token with `deobfuscation:symbol-files:write`, and puts the platform first in the path:
 
-> <sub>**Sources:** [Support and limitations — Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/android/id-02-support-and-limitations) — *"OneAgent for Android and its transitive dependencies provide ProGuard rules designed for R8. If you use third-party obfuscation tools instead of R8, you are responsible for configuring them to honor the required keep rules."*; [Mobile Symbolication API — PUT upload file (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/mobile-symbolication-api/put-files-app-version) — *"Uploads a symbol file (Android mapping file and iOS/tvOS symbol extract file) for the specified version of a mobile app."*, *"you need an access token with DssFileManagement scope"*.</sub>
+```bash
+# platform token scope: deobfuscation:symbol-files:write
+curl -X PUT "https://{your-environment-id}.apps.dynatrace.com/platform/rum/deobfuscation/v1/symbol-files/mobile/ANDROID/{dtRumAppId}/{packageName}/{versionCode}/{versionName}" \
+  -H "Authorization: Bearer {platform-token}" \
+  -H "Content-Type: text/plain" \
+  --data-binary @app/build/outputs/mapping/release/mapping.txt
+```
+
+The same API lists, pins and deletes symbol files, reports the storage quota, and returns the deobfuscated stack trace of a stored event. The classic call above still serves RUM Classic frontends.
+
+The classic upload limit is 100 MiB per file (500 MiB uncompressed). A crash from a version with no mapping file stays obfuscated, so make the upload part of the release pipeline rather than a manual step. MOBL-06 covers crash analysis.
+
+> <sub>**Sources:** [Support and limitations — Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/android/id-02-support-and-limitations) — *"OneAgent for Android and its transitive dependencies provide ProGuard rules designed for R8. If you use third-party obfuscation tools instead of R8, you are responsible for configuring them to honor the required keep rules."*; [Mobile Symbolication API — PUT upload file (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/mobile-symbolication-api/put-files-app-version) — *"Uploads a symbol file (Android mapping file and iOS/tvOS symbol extract file) for the specified version of a mobile app."*, *"you need an access token with DssFileManagement scope"*; [Mobile Symbolication API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/mobile-symbolication-api) — the pointer quoted above; [Upload a mobile symbol file — Deobfuscation API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-rum-deobfuscation-v1/symbol-files-mobile-platform-dt-rum-app-id-package-name-version-5acf4e-put) — *"you need a platform token or OAuth access token with deobfuscation:symbol-files:write scope"*, *"For Android, this is a ProGuard/R8 mapping.txt or a zip archive containing it."*; [Deobfuscation API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-rum-deobfuscation-v1); [What's new in OneAgent for Mobile 8.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-349) — the R8 full mode fix quoted above; all re-read 11/11/2026.</sub>
 
 <a id="verifying-data"></a>
 ## 7. Verifying Data in Dynatrace
@@ -372,7 +386,7 @@ Next, check whether the app is sending user action data:
 ```dql
 // Recent Android user actions (last hour)
 fetch user.events, from:-1h
-| filter dt.rum.application.type == "mobile" and os.name == "Android"
+| filter in(dt.rum.agent.type, {"android", "ios"}) and os.name == "Android"
 | filter characteristics.has_user_action
 | summarize action_count = count(), by:{frontend.name, ui_element.detected_name, interaction.type}
 | sort action_count desc
@@ -394,7 +408,7 @@ Finally, verify the full range of event types being captured:
 // Semantic Dictionary 1.349 removes it from the user-event models. The flags can overlap
 // (a failed request is both a request and an error), so the columns need not add up to total_events.
 fetch user.events, from:-1h
-| filter dt.rum.application.type == "mobile" and os.name == "Android"
+| filter in(dt.rum.agent.type, {"android", "ios"}) and os.name == "Android"
 | summarize {total_events = count(),
     user_actions = countIf(characteristics.has_user_action == true),
     requests = countIf(characteristics.has_request == true),

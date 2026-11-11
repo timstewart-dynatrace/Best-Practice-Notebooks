@@ -355,6 +355,23 @@ resource = Resource.create({
 })
 ```
 
+### Organizational Context: `primary_tags.*` Resource Attributes
+
+Resource attributes can also carry **ownership, environment and cost context** as primary Grail tags. Name the attribute `primary_tags.<key>`, and Dynatrace reads it as a primary Grail tag on spans, metrics and logs directly — no entity tag or auto-tagging rule in between. The same convention covers the special fields `dt.security_context` (permissions), `dt.cost.costcenter` and `dt.cost.product` (Cost Allocation).
+
+```bash
+OTEL_RESOURCE_ATTRIBUTES="primary_tags.team=bravo,primary_tags.application=payment-processing"
+```
+
+- **Only the exact convention counts.** An attribute that does not follow `primary_tags.<key>=<value>` stays a regular attribute on the signal that emitted it and is not propagated across signal types or to Davis events and problems.
+- **Set it once, upstream.** With a Collector in front of your services, add or rename the attributes there with a processor instead of changing every service. Where the same key is set in several places, the last writer wins: an OpenPipeline-derived value beats a Collector attribute, which beats an SDK attribute.
+- **Classic OTel tagging does not carry over.** Auto-tagging rules and management zones built from resource-attribute entity tags are not evaluated for Grail data. There is no central primary-tag configuration for standalone OpenTelemetry resource attributes yet; Kubernetes workloads can use the Kubernetes-side configuration.
+- **Infrastructure context may already be there.** Telemetry that arrives through OneAgent injection or the Dynatrace Operator is enriched with primary Grail fields such as `dt.host_group.id`, `k8s.cluster.name` and `k8s.namespace.name` automatically.
+
+> <sub>**Sources:**</sub>
+> - <sub>[Upgrade classic OpenTelemetry tagging to primary Grail tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/migrate/upgrade-from-opentelemetry-tagging-classic) — *"Resource attributes that follow the primary_tags.* convention are recognized as primary Grail tags directly on spans, metrics, and logs, without needing an entity to carry the context first."*; *"Auto-tagging rules and management zones built from resource-attribute-derived entity tags are not evaluated for Grail data and are not used in any app."*; *"A central primary Grail tag configuration for standalone OpenTelemetry resource attributes isn't available yet."*; *"an OpenPipeline-derived value takes precedence over a Collector-level resource attribute, which takes precedence over an SDK-level resource attribute."*</sub>
+> - <sub>[Enrich OpenTelemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-otel) — *"Resource attributes that don't follow this convention remain regular attributes and are available on the emitting signal but aren't automatically propagated across signal types or to Davis events and problems."*</sub>
+
 <a id="span-attributes-for-dynatrace"></a>
 ## 6. Span Attributes for Dynatrace
 ### Dynatrace fields you should not set yourself

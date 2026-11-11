@@ -1,6 +1,6 @@
 # ONBRD-02: IAM and Authentication
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 11/11/2026
 
 ## Setting Up Secure Access
 Before inviting your team, configure authentication and permissions properly. This notebook covers SAML/SSO setup, API tokens, and the modern permission model.
@@ -294,10 +294,13 @@ Classic access tokens exist only on classic and hybrid environments — *"Classi
 ## 6. Verification Queries
 After configuring IAM, these queries confirm that people are signing in to this environment. They read environment audit events in `dt.system.events`.
 
+> **One sign-in can be two events.** From SaaS 1.349 (rollout start 10/27/2026), sign-in and sign-out audit events reach Grail, and *"signing in to a classic app can produce two audit events—one from the API gateway and one from the cluster"*. Dynatrace says *"You can differentiate them by their event provider"*, so both queries below show `event.provider` (on the validation tenant, 11/11/2026: `API_GATEWAY` and `CLASSIC_LOGIN`, 91 and 12 events over 7 days). Count one provider when you need a number of sign-ins rather than a number of events. ([SaaS 1.349 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-349))
+
 > **What they can't show:** SSO configuration, group and permission changes are recorded in the separate **Account Management audit log** (Account Management UI, or the Account Audits API with the `account-audit-logs-read` scope) — *"Neither v2/auditlogs nor dt.system.events captures it."* ([Upgrade from audit logs classic (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-audit-logs-classic)). Use the manual checklist below to confirm SSO itself.
 
 ```dql
 // Environment sign-ins (platform gateway audit events)
+// A classic-app sign-in can log twice (API_GATEWAY and CLASSIC_LOGIN) - read event.provider (SaaS 1.349).
 // Data object corrected 09/24/2026. The Dynatrace audit trail is NOT in `logs`: the former
 // `fetch logs | filter matchesPhrase(log.source, "audit")` matched nothing, or matched an
 // unrelated file-based audit log (a database .aud file on the validation tenant). Environment
@@ -305,17 +308,18 @@ After configuring IAM, these queries confirm that people are signing in to this 
 fetch dt.system.events, from:-24h
 | filter event.kind == "AUDIT_EVENT"
 | filter event.type == "LOGIN"
-| fields timestamp, user.id, event.outcome, authentication.type, origin.type
+| fields timestamp, user.id, event.provider, event.outcome, authentication.type, origin.type
 | sort timestamp desc
 | limit 50
 ```
 
 ```dql
 // Sign-in outcomes over the last 7 days (audit events, not application logs)
+// Split by event.provider: a classic-app sign-in can produce two events, one per provider (SaaS 1.349).
 fetch dt.system.events, from:-7d
 | filter event.kind == "AUDIT_EVENT"
 | filter event.type == "LOGIN"
-| summarize {events = count(), users = countDistinct(user.id)}, by:{event.type, event.outcome}
+| summarize {events = count(), users = countDistinct(user.id)}, by:{event.provider, event.outcome}
 | sort events desc
 ```
 

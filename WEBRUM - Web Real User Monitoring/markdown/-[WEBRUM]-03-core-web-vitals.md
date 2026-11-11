@@ -1,6 +1,6 @@
 # WEBRUM-03: Core Web Vitals
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 3 of 10 | **Created:** March 2026 | **Last Updated:** 10/31/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 3 of 10 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -152,6 +152,10 @@ INP measures the time from when a user interacts (click, tap, keypress) to when 
 | Long tasks on main thread | High input delay | Break up long JavaScript tasks |
 | Expensive event handlers | High processing time | Debounce, use web workers |
 | Forced layout/reflow | High presentation delay | Batch DOM reads/writes |
+
+> **Long Animation Frames (OneAgent 1.349, published 11/05/2026, staged rollout from 11/09/2026).** RUM JavaScript 1.349 captures Long Animation Frames (LoAF). Each one becomes its own event, flagged `characteristics.has_long_animation_frame`, and the frames are also aggregated on summaries. A long animation frame shows main-thread work that delays rendering, so it is the natural next step when INP is high but the slow handler is not obvious. On the validation tenant the semantic dictionary has no row for the flag yet (11/11/2026). Until 1.349 reaches your tenant and your RUM JavaScript, the bottleneck table above is the working path.
+>
+> <sub>**Sources:** [What's new in OneAgent 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349) — *"LoAFs are now sent as standalone events (characteristics.has_long_animation_frame) and aggregated on summaries."*; re-read 11/11/2026. **Dictionary:** no row for `characteristics.has_long_animation_frame`, read 11/11/2026 (control: `characteristics.has_user_action` returned `stable`).</sub>
 
 ### How INP Appears in New RUM
 

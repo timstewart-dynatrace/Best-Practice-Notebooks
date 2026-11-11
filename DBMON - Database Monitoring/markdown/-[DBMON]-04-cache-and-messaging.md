@@ -1,6 +1,6 @@
 # DBMON-04: Cache and Messaging Monitoring
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 10/23/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -203,6 +203,36 @@ fetch spans, from:-1h
     errors = countIf(span.status_code == "error")
 }, by:{messaging.consumer.group.name, messaging.destination.name}
 | sort msg_count desc
+```
+
+### Service Messaging Metrics (`dt.service.messaging.*`)
+
+The span queries above need messaging spans. The latest Dynatrace also records message processing as **metrics on each service**, split by `messaging.destination.name`. These metrics are collected automatically and count messages independently of trace completeness. They replace the Classic Queue entity, and the two models can run side by side while you rebuild views and alerts.
+
+| Metric | What it counts |
+|--------|----------------|
+| `dt.service.messaging.publish.count` | Messages a service published |
+| `dt.service.messaging.receive.count` | Messages a service received |
+| `dt.service.messaging.process.count` | Messages a service processed |
+| `dt.service.messaging.process.failure_count` | Messages whose processing failed |
+
+The query below gives per-topic throughput and failures. Alert on failures as a percentage of `process.count`. The upgrade guide also suggests an alert on the gap between `receive.count` and `process.count` as a processing-lag signal. That signal needs both counts on the consuming service: on the validation tenant (2 h, 11/11/2026) the Kafka topic `orders` reported 38 published and 38 processed messages but **no** received messages. A receive-minus-process lag check there would read negative rather than flag a backlog, so check that `receive.count` is populated for your consumers before you build the lag alert.
+
+> <sub>**Sources:** [Upgrade queue monitoring to service message processing (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/preserve-metrics-and-service-visibility/upgrade-queue-monitoring) — *"In the latest Dynatrace, message processing is measured directly on your services through the dt.service.messaging.* metrics."*, *"Both models can run side by side."*, *"An alert on failed messages becomes an alert on dt.service.messaging.process.failure_count, usually expressed as a percentage of dt.service.messaging.process.count."*; re-read 11/11/2026. Query executed 11/11/2026.</sub>
+
+```dql
+// Per-topic message throughput and failures from the service messaging metrics
+timeseries {
+  published = sum(dt.service.messaging.publish.count),
+  received  = sum(dt.service.messaging.receive.count),
+  processed = sum(dt.service.messaging.process.count),
+  failed    = sum(dt.service.messaging.process.failure_count)
+}, from:-2h, by:{messaging.destination.name}, nonempty:true, union:true
+| fieldsAdd published_total = arraySum(published), received_total = arraySum(received),
+    processed_total = arraySum(processed), failed_total = arraySum(failed)
+| fieldsAdd failure_pct = if(processed_total > 0, round(100.0 * failed_total / processed_total, decimals: 2))
+| fields messaging.destination.name, published_total, received_total, processed_total, failed_total, failure_pct
+| sort processed_total desc
 ```
 
 <a id="rabbitmq-monitoring"></a>

@@ -1,6 +1,6 @@
 # MOBL-11: Dashboards & Alerting
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 11 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 11 of 12 | **Created:** February 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -139,7 +139,7 @@ User action duration measures how long it takes for specific interactions to com
 ```dql
 // User action duration trend by interaction type
 fetch user.events, from:-24h
-| filter dt.rum.application.type == "mobile" and characteristics.has_user_action
+| filter in(dt.rum.agent.type, {"android", "ios"}) and characteristics.has_user_action
 | makeTimeseries avg_duration = avg(duration), by:{interaction.type}, interval:1h
 ```
 
@@ -226,10 +226,15 @@ When Dynatrace Intelligence detects an anomaly affecting a mobile application, i
 
 ```dql
 // detected problems affecting mobile applications
+// smartscape.affected_entities replaces the deprecated affected_entity_ids; it holds FRONTEND
+// nodes for web and mobile alike, so the lookup keeps only frontends with frontend.type == "mobile"
 fetch dt.davis.problems, from:-7d
-| expand affected_entity_ids
-| filter contains(toString(affected_entity_ids), "MOBILE_APPLICATION")
-| fields timestamp, display_id, event.name, event.status, affected_entity_ids
+| expand affected = smartscape.affected_entities
+| filter affected[type] == "FRONTEND"
+| fieldsAdd frontend_id = affected[id]
+| lookup [smartscapeNodes "FRONTEND" | filter frontend.type == "mobile" | fields id, name], sourceField:frontend_id, lookupField:id, prefix:"app."
+| filter isNotNull(app.id)
+| fields timestamp, display_id, event.name, event.status, mobile_app = app.name
 | sort timestamp desc
 | limit 20
 ```
@@ -251,7 +256,7 @@ Connect detected problems to your notification channels so the mobile team is al
 | Trigger | Problem trigger |
 | Problem state | `active` (starts when the problem opens) |
 | Affected entities | **Include entities with any defined tag below**: `app-type:mobile` (requires that tag on your mobile app entities, MOBL-99 §8 #10) |
-| *or* Additional custom filter query | `matchesValue(affected_entity_ids, "MOBILE_APPLICATION-*")` |
+| *or* Additional custom filter query | `matchesValue(affected_entity_ids, "MOBILE_APPLICATION-*")` (deprecated field — see the note below) |
 | Advanced options | Enable **Wait for root cause analysis** to avoid triggering on incomplete problem data |
 
 Then add a Slack **Send message** task. The message template below uses only fields of the problem record. The action ID is the one Dynatrace's workflow samples use; in an exported workflow, `connection` holds the Slack connection's ID rather than a name (see WFLOW-03 §1).
@@ -267,9 +272,13 @@ tasks:
         :rotating_light: Mobile Problem Detected
         Problem: {{ event()['display_id'] }} — {{ event()['event.name'] }}
         Category: {{ event()['event.category'] }}
-        Affected: {{ event()['affected_entity_names'] | join(', ') }}
+        Affected: {{ (event().get('smartscape.affected_entities') or []) | map(attribute='name') | join(', ') }}
         Link: {{ problem_link() }}
 ```
+
+> **Deprecated problem fields (updated 11/11/2026).** The alert-notification upgrade guide states: *"root_cause_entity_id and root_cause_entity_name are deprecated in favor of root_cause.smartscape_entity, and affected_entity_ids in favor of smartscape.affected_entities. Build new payloads against the Smartscape fields."* The query above and the template's *Affected* line read `smartscape.affected_entities`, a record array whose elements carry `id`, `type` and `name`. The custom-filter row still shows the classic `affected_entity_ids` matcher, which works while the deprecated field exists, but it has no one-line Smartscape equivalent: mobile and web apps are both `FRONTEND` nodes, and the problem record does not say which kind an affected frontend is. Prefer the tag filter for new triggers.
+>
+> <sub>**Sources:** [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — the quote above, and *"Record array; each element has id, type, name"*, re-read 11/11/2026. Query executed 11/11/2026: no problem on the validation tenant affected a `FRONTEND` node; the same shape on `SERVICE` nodes returned rows.</sub>
 
 > **Correction (09/28/2026).** Earlier revisions showed the trigger as a `trigger: type: davis-problem / entityTagsMatch` YAML block. No editor, export or API accepts that shape. The Problem trigger is configured through the settings above.
 
@@ -286,7 +295,7 @@ Executive stakeholders need a single table that answers: "How are our mobile app
 ```dql
 // Executive summary -- key metrics per mobile app
 fetch user.events, from:-24h
-| filter dt.rum.application.type == "mobile"
+| filter in(dt.rum.agent.type, {"android", "ios"})
 | summarize {total_actions = countIf(characteristics.has_user_action == true), unique_sessions = countDistinct(dt.rum.session.id), crash_count = countIf(characteristics.has_crash == true)}, by:{frontend.name}
 | fieldsAdd actions_per_session = toDouble(total_actions) / toDouble(unique_sessions)
 | sort total_actions desc

@@ -1,6 +1,6 @@
 # M2S-03: Step 3 — Design: Create Target Architecture
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 With discovery and strategy complete, it's time to design the target architecture for your Dynatrace SaaS environment. This step produces the technical blueprints that guide every subsequent migration activity—network connectivity, ActiveGate topology, security controls, and high availability.
 
@@ -472,6 +472,9 @@ Map your existing Managed roles to SaaS IAM policies:
 | Egress filtering | Restrict outbound to `*.dynatrace.com` on port 443 |
 | IP allowlisting | SaaS endpoint IPs published by Dynatrace (subject to change) |
 | DNS-based filtering | Preferred over IP-based (IPs may rotate) |
+| User browsers: WebSocket | From SaaS 1.348, Dynatrace Assist uses WebSocket. Allow `wss://*.apps.dynatrace.com` through user-side proxies and firewalls, or narrow it to the `/platform-reserved/ai/v0.1/operator:chat` path on that host. |
+
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"With this change, Dynatrace Assist now relies on WebSocket for communication with the server."*, *"Some users may have network policies blocking WebSocket access. Assist will fail for those."* and *"You can impose a stricter rule for the connection by allowing the /platform-reserved/ai/v0.1/operator:chat path on that host."*</sub>
 
 ### 4.7 API Token Strategy
 
@@ -573,6 +576,7 @@ Complete this checklist before proceeding to Step 4 (Prepare).
 | DNS resolution verified for `{tenant-id}.apps.dynatrace.com` | [ ] |
 | Connectivity tested from representative hosts | [ ] |
 | Proxy configuration documented (if required) | [ ] |
+| User proxies allow WebSocket to `wss://*.apps.dynatrace.com` (Dynatrace Assist) | [ ] |
 
 ### Network Zones
 

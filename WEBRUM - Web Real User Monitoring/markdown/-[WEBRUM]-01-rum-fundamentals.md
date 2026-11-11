@@ -1,6 +1,6 @@
 # WEBRUM-01: Web RUM Fundamentals
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 1 of 10 | **Created:** March 2026 | **Last Updated:** 10/31/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 1 of 10 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -240,6 +240,12 @@ User actions represent individual interactions within a session. In New RUM each
 | `api` | Custom | *"The user action was reported via the Dynatrace API."* |
 
 > <sub>**Sources:** [User actions — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events/user-actions) — *"The user action was triggered by a soft navigation that led to a view change."*</sub>
+
+> **How user actions changed in OneAgent 1.347 and 1.349 (RUM JavaScript, updated 11/11/2026).** OneAgent 1.347 (rollout from 09/30/2026) lists *Improved user actions* as a **breaking change**: user actions now always start from an interaction, and any soft navigations that follow are folded into that same action. The same release adds triggers beyond clicks (drop, input change, Enter) and records on a `hard_navigation` action the interaction, element and view that caused it. The `user_action.type` values in the table above are unchanged. What shifts is how many actions a session produces and the mix between types, on pages whose RUM JavaScript has picked up 1.347. Compare a period before the update with one after it before you read a change in action counts as a regression.
+>
+> OneAgent 1.349 (published 11/05/2026, **staged rollout from 11/09/2026**) adds `interaction.is_user_action_trigger` to the interaction event that created the action. On the validation tenant the semantic dictionary has no row for that field yet (11/11/2026), so check your own tenant before you filter on it.
+
+> <sub>**Sources:** [What's new in OneAgent 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-347) — *"User actions are always triggered by a user via an interaction, and if (soft) navigations occur, they are now part of the same user action, even when multiple navigations happen in quick succession."*, *"RUM JavaScript now creates user actions for drop events, input changes, and Enter keypresses, expanding user action generation beyond click interactions."*; [What's new in OneAgent 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349) — *"RUM JavaScript now sets a new field interaction.is_user_action_trigger on the interaction event that caused the user action to be created."*; re-read 11/11/2026. **Dictionary:** no row for `interaction.is_user_action_trigger`, read 11/11/2026 (control: `characteristics.has_user_action` returned `stable`). **Derived:** the shift in action counts and type mix follows from the 1.347 change to what one action contains.</sub>
 
 Let's explore the most common user actions:
 

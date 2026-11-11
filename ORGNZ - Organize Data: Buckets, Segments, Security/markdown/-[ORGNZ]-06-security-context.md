@@ -1,6 +1,6 @@
 # ORGNZ-06: Security Context
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 6 of 10 | **Created:** January 2026 | **Last Updated:** 10/14/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 6 of 10 | **Created:** January 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -85,6 +85,10 @@ Records can have multiple security context values:
 ```
 dt.security_context: ["team-a", "project-x", "compliance"]
 ```
+
+From OneAgent 1.349 (rollout start 11/09/2026 — verify the version has reached your hosts) you can *"assign multiple dt.security_context values to a single host or process, set during installation or with oneagentctl for hosts, and with environment variables for processes."* A second value on a host turns the field on its records into an array, so policies on that data need `MATCH` — see *Array Field Access with MATCH* below — before the second value is rolled out.
+
+> <sub>**Sources:** [OneAgent 1.349 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349) — *"You can now assign multiple dt.security_context values to a single host or process."*</sub>
 
 <a id="setting-security-context"></a>
 ## Setting Security Context
@@ -273,7 +277,7 @@ ALLOW storage:logs:read WHERE storage:dt.security_context startsWith "comp:db/bu
 ALLOW storage:logs:read WHERE storage:dt.security_context startsWith "comp:db"
 ```
 
-> **Dimension order matters for Classic entities.** Place the dimension used for transversal access *first* (typically `comp`). For the full two-domain comparison and multi-value context roadmap, see **IAM-04: Policy Authoring** and **IAM-05: Boundary Design**.
+> **Dimension order matters for Classic entities.** Place the dimension used for transversal access *first* (typically `comp`). For the full two-domain comparison and multi-value contexts (which OneAgent 1.349 can set on a host or process), see **IAM-04: Policy Authoring** and **IAM-05: Boundary Design**.
 
 <a id="security-context-best-practices"></a>
 ## Security Context Best Practices

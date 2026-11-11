@@ -1,6 +1,6 @@
 # ORGNZ-03: Bucket Strategy and Design
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 11/07/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -90,7 +90,7 @@ By the end of this notebook, you will:
 | Debug logs | 3-7 days | High volume, low long-term value |
 | Application logs | 35-90 days | Operational analysis |
 | Audit logs | 1-7 years | Compliance requirements |
-| Metrics | Fixed — `default_metrics`, ~15 months | Not configurable per bucket: metrics have no custom buckets |
+| Metrics | `default_metrics`, ~15 months | Custom metric buckets with their own retention from SaaS 1.349 (see *Cost Attribution Strategy*); before that, fixed |
 | Spans | 10-35 days | APM troubleshooting |
 | Security events | 90-365 days | Security investigations |
 
@@ -156,9 +156,9 @@ Cost allocation: dt.cost.costcenter set at the source (the bucket sets retention
 
 ### Cost Attribution Strategy
 
-Dynatrace cost allocation is field-based, not bucket-based: *"Tags applied at the OneAgent, Kubernetes, or telemetry-ingest layer flow through Grail as dt.cost.costcenter and dt.cost.product attributes"*, and enrichment *"is possible for all supported ingest methods, whether logs, traces, metrics, or events."* Metrics cannot go into custom buckets at all, so a bucket-per-cost-center scheme cannot cover them. Use buckets for retention and access; use the cost fields for attribution.
+Dynatrace cost allocation is field-based, not bucket-based: *"Tags applied at the OneAgent, Kubernetes, or telemetry-ingest layer flow through Grail as dt.cost.costcenter and dt.cost.product attributes"*, and enrichment *"is possible for all supported ingest methods, whether logs, traces, metrics, or events."* Before SaaS 1.349 metrics could not go into custom buckets at all; a cost field covers every signal on every tenant version. Use buckets for retention and access; use the cost fields for attribution.
 
-> **SaaS 1.349 (staged tenant rollout from 10/27/2026):** *"Metrics now supports custom buckets."* — *"You can optionally route subsets of metrics into custom buckets using configuration rules"* ([What's new in Dynatrace SaaS 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-349)). Verify it has reached your tenant; until then the current guidance remains the working path.
+> **SaaS 1.349+ (rollout start 10/27/2026):** *"Metrics now supports custom buckets."* — *"You can optionally route subsets of metrics into custom buckets using configuration rules"* ([What's new in Dynatrace SaaS 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-349)). The release lists cost control among the reasons; attribution still belongs on the cost fields, which work the same way for every signal.
 
 | Organization Level | Cost allocation | Bucket strategy |
 |-------------------|-----------------|-----------------|

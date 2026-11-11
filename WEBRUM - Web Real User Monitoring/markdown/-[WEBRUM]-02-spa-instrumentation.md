@@ -1,6 +1,6 @@
 # WEBRUM-02: SPA Instrumentation
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 2 of 10 | **Created:** March 2026 | **Last Updated:** 10/31/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 2 of 10 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -90,6 +90,10 @@ For environments where you cannot install OneAgent at all:
 4. Paste into your application's `index.html`
 
 > **Tip:** For SPAs built with modern bundlers (Webpack, Vite), you can inject the RUM tag via an HTML plugin to keep it out of source code.
+
+> **New RUM cookies (SaaS 1.348, rollout from 10/12/2026, staged).** Once your tenant has been upgraded, RUM sets additional cookies. Check anything that filters or allowlists cookies by name before the upgrade reaches you: CDN and WAF rules, consent managers, and cookie-size limits. Dynatrace provides a setting that upgrades only the RUM cookies first, so you can test this on its own. The current cookie list, all first-party, is on the RUM cookies and web storage page.
+>
+> <sub>**Sources:** [What's new in SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"To help you identify and resolve any compatibility issues with your infrastructure before upgrading the tenant, a setting is provided to upgrade only the RUM cookies."*; [Cookies and client-side storage for RUM and Session Replay (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/rum-cookies-and-web-storage) — *"These are all first-party cookies."*; re-read 11/11/2026. **Derived:** the list of infrastructure to check follows from cookies being added, not from either page.</sub>
 
 <a id="route-change-detection"></a>
 
@@ -247,6 +251,10 @@ dtrum.leaveAction(actionId);
 The `dtrum` calls above are the RUM Classic JavaScript API. In the New RUM model, a user action reported through the Dynatrace API carries `user_action.type == "api"` — *"The user action was reported via the Dynatrace API"* — and `characteristics.is_api_reported == true`. Filter on those rather than on the classic `Custom` action type, which never matches New RUM data.
 
 > <sub>**Sources:** [User actions — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events/user-actions) — *"The user action was reported via the Dynatrace API."*</sub>
+
+> **Naming on New RUM (SaaS 1.348, rollout from 10/12/2026, staged).** On the latest Dynatrace you can name and group RUM user actions, errors, pages and views with OpenPipeline rules, or report the names from your frontend. Events are grouped by name, so a naming rule decides which events are analysed and alerted on together. The naming rules above are the RUM Classic settings, and they remain the working path for RUM Classic applications.
+>
+> <sub>**Sources:** [What's new in SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"You can now customize how Dynatrace names RUM user actions, errors, pages, and views with OpenPipeline rules or by reporting names from your frontend."*, *"Because events are grouped by name, you can combine them into a single group or split them into finer ones"*; re-read 11/11/2026.</sub>
 
 <a id="xhr-fetch-monitoring"></a>
 
@@ -462,6 +470,10 @@ When hybrid monitoring is enabled, the Mobile OneAgent SDK sets a **`dtAdk` cook
 > **Important:** Only add your own domains to `domains` / `DTXSetCookiesForDomain`. Never instrument third-party WebViews (e.g., OAuth login pages, payment providers) — this can break functionality and violate privacy policies.
 
 > <sub>**Sources:** [Instrument hybrid apps (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-hybrid-app) — *"configuration keys to allow OneAgent to pass cookies to WKWebView and domains specified in your app's Info.plist file"*.</sub>
+
+> **RUM JavaScript joins mobile-controlled sessions (OneAgent 1.349, published 11/05/2026, staged rollout from 11/09/2026).** RUM JavaScript can now take part in a session that the mobile agent controls, so a WebView's web events and the app's native events can be correlated into one session on the latest Dynatrace. Check that 1.349 has reached both your tenant and the RUM JavaScript your WebView pages load. Until it has, the `dtAdk` correlation described above is the working path.
+>
+> <sub>**Sources:** [What's new in OneAgent 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349) — *"The RUM JavaScript now supports sessions controlled by the mobile agent, allowing you to correlate user sessions between your mobile and web app."*; re-read 11/11/2026.</sub>
 
 ### Step 5: Validate the Setup
 
