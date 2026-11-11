@@ -1,6 +1,6 @@
 # K8S-08: DQL Queries for Kubernetes
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 8 of 14 | **Created:** January 2026 | **Last Updated:** 10/15/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 8 of 14 | **Created:** January 2026 | **Last Updated:** 11/11/2026
 
 ## Advanced Query Patterns for Kubernetes Data
 This notebook provides a comprehensive reference of DQL queries for Kubernetes monitoring. From basic entity queries to complex performance analysis, these patterns help you extract insights from your Kubernetes data.
@@ -250,9 +250,11 @@ Getting this wrong is expensive in both directions:
 |---|---|
 | `fetch logs \| filter matchesPhrase(log.source, "kubernetes")` | **0 rows after scanning 46.5 GB.** Empty *and* billed. |
 | `fetch events \| filter event.kind == "K8S_EVENT"` | **0 rows.** `event.kind` never takes that value — over 24 h the only values present were `DAVIS_EVENT`, `SYNTHETIC_EVENT`, `FLEET_EVENT`, `DAVIS_PROBLEM`. Kubernetes events carry `DAVIS_EVENT`, so *kind* cannot discriminate them. |
-| `k8s.event.reason` | Field resolves, **null on every record**. |
+| `k8s.event.reason` | Field resolves, **null on every record**. Semantic Dictionary 1.350 (09/21/2026) adds `k8s.event.reason`, `k8s.event.type` and `k8s.event.involved_object.kind` to the global field reference, but on the validation tenant (11/11/2026) all three were still null on 6,351 of 6,351 Kubernetes event records over 24 h, while `dt.kubernetes.event.reason` was set on all of them. Keep querying `dt.kubernetes.event.*`, and compare the two families (K8S-04 § 5 has the query) before moving a query to the new names. |
 
 **The working pair is `event.provider == "KUBERNETES_EVENT"` plus `dt.kubernetes.event.reason`.** Companion fields: `dt.kubernetes.event.message`, `.count`, `.first_seen`, `.last_seen`, `.involved_object.kind`, `.involved_object.name`, alongside `k8s.cluster.name` / `k8s.namespace.name` / `k8s.pod.name` / `k8s.workload.name` / `k8s.node.name`.
+
+> <sub>**Sources:** [Semantic Dictionary changelog 1.350 (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-350) — *Global field reference*, change type *Added*: `k8s.event.involved_object.kind`, `k8s.event.reason`, `k8s.event.type`. Null-rate comparison executed on the validation tenant 11/11/2026.</sub>
 
 ### Log Query Patterns
 

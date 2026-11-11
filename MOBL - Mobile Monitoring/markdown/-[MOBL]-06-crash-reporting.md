@@ -1,6 +1,6 @@
 # MOBL-06: Crash Reporting & ANR Detection
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 6 of 12 | **Created:** February 2026 | **Last Updated:** 10/29/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 6 of 12 | **Created:** February 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -88,6 +88,10 @@ iOS dSYM files are **preprocessed with the DSSClient** (shipped with OneAgent fo
 | **Fastlane** | The Dynatrace Fastlane plugin automates processing and upload | Teams already using Fastlane |
 | **Web UI** | **Settings > Web and mobile monitoring > Source maps and symbol files** → **iOS** → **Upload files** | Ad-hoc builds, troubleshooting |
 
+> **Latest Dynatrace RUM (updated 11/11/2026).** The REST route above is the classic Mobile Symbolication API. For frontends on the new RUM experience, Dynatrace points to the platform **Deobfuscation API** (`PUT /platform/rum/deobfuscation/v1/symbol-files/mobile/{platform}/{dtRumAppId}/{packageName}/{versionCode}/{versionName}`, platform token or OAuth token with `deobfuscation:symbol-files:write`). MOBL-03 §6 shows the Android call.
+>
+> <sub>**Sources:** [Mobile Symbolication API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/mobile-symbolication-api) — *"To manage symbol and mapping files for the new RUM experience, see the Deobfuscation API."*; [Upload a mobile symbol file — Deobfuscation API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-rum-deobfuscation-v1/symbol-files-mobile-platform-dt-rum-app-id-package-name-version-5acf4e-put) — *"you need a platform token or OAuth access token with deobfuscation:symbol-files:write scope"*, *"For iOS/tvOS, this is a zip archive containing the dSYM bundle."*; re-read 11/11/2026.</sub>
+
 ### DSSClient Example
 
 1. Preprocess the dSYMs (from the `.xcarchive`, or a dSYM zip from App Store Connect):
@@ -155,7 +159,7 @@ When you enable code shrinking with ProGuard or R8 (the default for release buil
 
 **Upload mapping files** through any of the documented routes — none of them is automatic in the Gradle build:
 - **DSSClient** — `DTXDssClient -upload appid=… apitoken=… os=android bundleId=… versionStr=… version=… file=…/mapping.txt server=…`
-- **REST API** — Mobile Symbolication API `PUT /api/config/v1/symfiles/{applicationId}/{packageName}/ANDROID/{versionCode}/{versionName}` with a `DssFileManagement` token (MOBL-03 §6 has a `curl` example)
+- **REST API** — Mobile Symbolication API `PUT /api/config/v1/symfiles/{applicationId}/{packageName}/ANDROID/{versionCode}/{versionName}` with a `DssFileManagement` token (MOBL-03 §6 has a `curl` example). On the new RUM experience, use the platform Deobfuscation API instead — see the note in §2 and MOBL-03 §6
 - **Fastlane** — the Dynatrace Fastlane plugin
 - **Web UI** — **Settings > Web and mobile monitoring > Source maps and symbol files** → **Android** → **Upload files** (package name, version code, version name, mapping file)
 
@@ -273,7 +277,7 @@ In addition to unhandled crashes, developers can report caught exceptions using 
 ```dql
 // Reported errors (errors reported through the OneAgent SDK / Dynatrace API)
 fetch user.events, from:-24h
-| filter dt.rum.application.type == "mobile"
+| filter in(dt.rum.agent.type, {"android", "ios"})
 | filter characteristics.has_error and characteristics.is_api_reported
 | fields start_time, frontend.name, error.name, error.code, error.reason, os.name
 | sort start_time desc

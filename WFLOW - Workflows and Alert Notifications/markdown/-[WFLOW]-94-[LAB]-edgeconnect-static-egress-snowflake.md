@@ -1,6 +1,6 @@
 # WFLOW-94 LAB: Static Egress IP for Workflow Connectors — EdgeConnect on AWS ECS (Snowflake)
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Reference:** 94 — EdgeConnect Static Egress LAB | **Created:** July 2026 | **Last Updated:** 10/06/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Reference:** 94 — EdgeConnect Static Egress LAB | **Created:** July 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -42,9 +42,9 @@ The worked example is the **Snowflake for Workflows** connector against a Snowfl
 | **Snowflake Account** | `SECURITYADMIN`/`ACCOUNTADMIN` (or delegated roles) to create a service user, network rule, and network policy |
 | **Tooling** | Terraform ≥ 1.5 for the AWS samples; SnowSQL (or a worksheet) for the Snowflake SQL |
 
-> **Note on EdgeConnect version:** run the latest EdgeConnect release — **1.744.0** (07/27/2026) at the time of writing — and never older than **1.724.3**. The June 2026 release fixed a vulnerability where *"secrets could be leaked in HTTP error messages"* — relevant here because EdgeConnect carries authenticated Snowflake traffic.
+> **Note on EdgeConnect version:** run the latest EdgeConnect release — **1.811.4** (10/22/2026) at the time of writing — and never older than **1.724.3**. The June 2026 release fixed a vulnerability where *"secrets could be leaked in HTTP error messages"* — relevant here because EdgeConnect carries authenticated Snowflake traffic. 1.811.4 updates the CA root certificates EdgeConnect trusts. Each release is supported for 12 months, so a pinned version also has an end date.
 >
-> <sub>**Sources:** [EdgeConnect 1.724.3 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/edgeconnect/edgeconnect-release-notes-1-724-3) — *"Fixed an issue where secrets could be leaked in HTTP error messages."*; [EdgeConnect (DT docs)](https://docs.dynatrace.com/docs/ingest-from/edgeconnect) — *"We recommend that you always run (and regularly upgrade to) the latest available version of EdgeConnect."* and *"ALLOW app-engine:edge-connects:write, oauth2:clients:manage WHERE oauth2:scopes = "app-engine:edge-connects:connect";"*; [Set up Snowflake (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/snowflake/snowflake-workflows-setup) — *"To store bizevents, ensure that the actor has the storage:buckets:read and storage:events:write permissions."*</sub>
+> <sub>**Sources:** [EdgeConnect 1.811.4 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/edgeconnect/edgeconnect-release-notes-1-811-4) — *"EdgeConnect now includes updated CA root certificates to address the eMudhra certificate private key issue."*; [EdgeConnect release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/edgeconnect) — *"Support for each version of EdgeConnect ends 12 months after its release."*; [EdgeConnect 1.724.3 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/edgeconnect/edgeconnect-release-notes-1-724-3) — *"Fixed an issue where secrets could be leaked in HTTP error messages."*; [EdgeConnect (DT docs)](https://docs.dynatrace.com/docs/ingest-from/edgeconnect) — *"We recommend that you always run (and regularly upgrade to) the latest available version of EdgeConnect."* and *"ALLOW app-engine:edge-connects:write, oauth2:clients:manage WHERE oauth2:scopes = "app-engine:edge-connects:connect";"*; [Set up Snowflake (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/snowflake/snowflake-workflows-setup) — *"To store bizevents, ensure that the actor has the storage:buckets:read and storage:events:write permissions."*</sub>
 
 <a id="the-problem"></a>
 ## 2. The Problem: Shared Egress vs IP Allow-Lists
@@ -104,6 +104,10 @@ For environments where SVG doesn't render
 ## 5. Step 1 — Dynatrace: EdgeConnect Configuration
 
 In **Settings** > **General** > **External Requests** > **EdgeConnect** > **New EdgeConnect**, create a configuration named `snowflake-egress` with host pattern `*.snowflakecomputing.com` (or, tighter, the exact account host). Download `edgeConnect.yaml` — the OAuth client secret is shown **once**; store it in AWS Secrets Manager immediately.
+
+**Rotating the secret.** The EdgeConnect API can rotate this secret: `POST https://{your-environment-id}.apps.dynatrace.com/v1/edge-connects/{edgeConnectId}/oauthClient:rotate`, with the `oauth2:clients:manage` scope. It works only for the OAuth client that Dynatrace created with the EdgeConnect, as here; an OAuth client you created yourself returns `400`. The response carries the new `clientSecret`. Write it to the `ec-oauth` secret, then force a new deployment of the ECS service — ECS reads Secrets Manager only when a task starts. The page does not say whether the old secret stops working at once, so rotate in a change window.
+
+> <sub>**Sources:** [Rotate an EdgeConnect OAuth client secret (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-app-engine-edge-connect-v1/edge-connects-edge-connect-id-oauth-client-rotate-post) — *"To execute this request, you need a platform token or OAuth access token with oauth2:clients:manage scope."* and *"The configured OAuth client isn't supported to be rotated. (i.e. it wasn't autogenerated upon EdgeConnect creation)"*; [Pass Secrets Manager secrets through Amazon ECS environment variables (AWS docs)](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/secrets-envvar-secrets-manager.html) — *"If the secret is subsequently updated or rotated, the container will not receive the updated value automatically."*</sub>
 
 Separately, add the Snowflake domain (`*.snowflakecomputing.com`) to the outbound allowlist — **Settings > General > External requests** > **New host pattern**. The Snowflake connector setup page still names the classic location: *"Open the Settings Classic and go to Preferences > Limit Outbound Connections . Select Add item and add the domain of your publicly accessible Snowflake"*. No page says whether requests that EdgeConnect executes still pass through this allowlist, so configure both and let URL verification (§10) confirm the routing.
 
@@ -231,7 +235,7 @@ Notes:
 
 EdgeConnect is configured entirely through environment variables; the OAuth credentials are injected from Secrets Manager. `assign_public_ip` stays **false** — a public task IP would bypass the NAT and break the allow-list.
 
-**Pin the image version.** `dynatrace/edgeconnect:latest` makes rollbacks and change control impossible and can silently change behavior under you; pin the latest released version (1.744.0 here; never below 1.724.3, the June 2026 security fix), check the EdgeConnect release notes regularly, and bump it deliberately.
+**Pin the image version.** `dynatrace/edgeconnect:latest` makes rollbacks and change control impossible and can silently change behavior under you; pin the latest released version (1.811.4 here; never below 1.724.3, the June 2026 security fix), check the EdgeConnect release notes regularly, and bump it deliberately.
 
 ```json
 {
@@ -244,7 +248,7 @@ EdgeConnect is configured entirely through environment variables; the OAuth cred
   "containerDefinitions": [
     {
       "name": "edgeconnect",
-      "image": "dynatrace/edgeconnect:1.744.0",
+      "image": "dynatrace/edgeconnect:1.811.4",
       "essential": true,
       "environment": [
         { "name": "EDGE_CONNECT_NAME",

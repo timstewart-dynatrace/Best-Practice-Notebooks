@@ -1,6 +1,6 @@
 # M2S-01: Step 1 — Discover: Understand SaaS Differences
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 11/10/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 The first step in any Managed-to-SaaS migration is understanding what you are moving to and why. This notebook helps you document the benefits of Dynatrace SaaS for your organization, take inventory of your current Managed environment, and confirm your use cases and goals for the upgrade.
 
@@ -260,7 +260,9 @@ Understanding your OneAgent version spread is important because SaaS supports a 
 
 > **Breaking (SaaS 1.347 — staged tenant rollout from 09/16/2026):** *"Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier."* Falling outside the support window stops fixes; being at or below 1.241 stops **data** once 1.347 reaches your tenant — an agent that old, redirected to SaaS, reports nothing. Managed estates are where agents this old survive, so find them with the query below and upgrade them on Managed **before** redirecting them in Step 5. Until 1.347 reaches your tenant, such agents still connect but are outside support, so the support-window check above remains the working rule. See FAQ-04 for managing OneAgent updates on SaaS.
 >
-> <sub>**Sources:** [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — *"Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier."*</sub>
+> **The same cutoff on the source cluster (Managed 1.348):** the Managed 1.348 release notes carry the identical breaking change. It changes the inventory only if the source cluster is already on 1.348 or later. There, agents at or below 1.241 are rejected by Managed too, so they are not reporting and an inventory of the hosts the cluster monitors will not list them. Find them in your own deployment records, and upgrade them before Step 5. On a cluster still on 1.346, they connect to Managed and are rejected only after the redirect to SaaS. DTM-14 lists every Managed cutoff.
+>
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — *"Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier."*; [What's new in Dynatrace Managed 1.348 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-348) — *"Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier."* **Derived:** "will not list them" combines the Managed rejection with an inventory taken from monitored hosts.</sub>
 
 ```dql
 // OneAgent versions across hosts

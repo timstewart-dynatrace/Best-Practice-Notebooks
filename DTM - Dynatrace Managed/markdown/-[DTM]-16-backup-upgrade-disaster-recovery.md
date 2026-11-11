@@ -1,6 +1,6 @@
 # DTM-16: Backup, Upgrade, and Disaster Recovery
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 16 — Backup, Upgrade, and Disaster Recovery | **Created:** September 2026 | **Last Updated:** 11/10/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 16 — Backup, Upgrade, and Disaster Recovery | **Created:** September 2026 | **Last Updated:** 11/11/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -130,11 +130,13 @@ Before you start, also prepare an inventory: the node IDs (each backup sits in a
 5. **Optionally repair Cassandra** (DTM-12 §8), then **start Dynatrace** on each node, starting with the seed node.
 6. **Finish the restore.** Turn backups back on: *"the backup is automatically disabled after the restore. Once you have finished restoring, you should enable the backup again."* If you restored to fewer nodes, remove the nodes marked **Offline** in the CMC. If the cluster address changed, point OneAgents and Cluster ActiveGates at it (the page gives the `PUT /api/v1.0/onpremise/endpoint/publicIp/agents/<node-id>` call), or update DNS if they connect by name.
 
+**After the restore (Managed 1.350).** Managed 1.350 shortened the time a restored cluster is only partly usable: *"Key monitoring features, such as the Hosts page and filtering in Data Explorer, are now automatically restored after a backup-and-restore migration of a large environment."* Before that release, *"these features could remain unavailable for up to five days after a restore."* A restore runs on the backup's own installer version (§4.1), so a cluster backed up on 1.348 or earlier comes back on that version, and the gap applies to it. The release note doesn't say whether updating such a cluster to 1.350 afterwards starts the recovery, so plan the restore, and what you tell users, around up to five days for a large environment.
+
 ### 4.3 Rehearse it
 
 The docs don't prescribe a restore test. In community practice, a restore that has never been rehearsed is treated as unproven. Teams run it on spare hosts, with the production cluster left running and the rehearsal kept off the Mission Control network, so the two clusters never connect at once — verify the approach with Dynatrace support before relying on it.
 
-> <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster).</sub>
+> <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Managed 1.350 release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-350). **Derived:** "comes back on that version" combines the exact-installer precondition with the 1.350 note.</sub>
 
 <a id="upgrades"></a>
 ## 5. Upgrades
@@ -154,6 +156,7 @@ The docs don't prescribe a restore test. In community practice, a restore that h
 - **Disk.** *"You have at least 5 GB of available disk space on the partition where Dynatrace Managed is installed."*
 - **Downtime below three nodes.** *"If your Managed Cluster consists of fewer than three nodes, Dynatrace Managed will not be accessible during the update process."*
 - **Kubernetes workloads.** *"keep the Docker OneAgent installation package for every OneAgent version that's still in use, because without it the Managed Cluster fails to build the OneAgent image and your pods fail to pull it."*
+- **The built-in container registry is deprecated (Managed 1.346).** The Kubernetes deployment form now offers *"Amazon ECR (new default)"*, Docker Hub, a private container registry, or *"Built-in registry (deprecated)"*, and *"You must manually update the image locations in the generated dynakube.yaml before deployment."* The deadline: *"The built-in cluster container registry will be shut down on January 1, 2028, and will no longer function because it doesn't support ARM architectures."* The action plan is *"Migrate to Amazon ECR or Docker Hub."*
 
 ### 5.3 Skipping versions
 
@@ -163,7 +166,7 @@ The docs don't prescribe a restore test. In community practice, a restore that h
 
 *"These software updates are mandatory and are typically released every four weeks."* With the 24-hour rules, a weekly maintenance window, and only some versions skippable, a cluster can only catch up so fast.
 
-> <sub>**Sources:** [Update a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/update-cluster), [Managed version update logic (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/managed-version-update-logic), [Mission Control proactive support (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-proactive-support). **Derived:** "can only catch up so fast" combines the four-week cadence with the 24-hour rules and the skip rule.</sub>
+> <sub>**Sources:** [Update a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/update-cluster), [Managed version update logic (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/managed-version-update-logic), [Mission Control proactive support (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-proactive-support), [Managed 1.346 release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-346). **Derived:** "can only catch up so fast" combines the four-week cadence with the 24-hour rules and the skip rule.</sub>
 
 <a id="version-support"></a>
 ## 6. Version Support
@@ -181,11 +184,13 @@ The docs don't prescribe a restore test. In community practice, a restore that h
 
 The table of earlier versions shows the pattern. Standard support for a version ends when the release three versions later rolls out, and Enterprise Success and Support covers it for one more release. For example, 1.338 rolled out May 11, 2026; its standard support ended Aug 03, 2026 (when 1.344 rolled out), and Enterprise Success and Support ended Aug 31, 2026.
 
+**The cluster flags it too (Managed 1.346+).** *"When you're using an unsupported version of Dynatrace Managed, you will be informed with a notification and a special tag on the Licensing page."* A cluster older than 1.346 shows neither, and the note doesn't say whether the tag distinguishes Enterprise Success and Support coverage, so the release-notes table stays the check.
+
 **Managed's future.** No end-of-life has been announced. Dynatrace's annual report for fiscal 2026 still describes the offering: *"We also provide options to deploy our platform in customer-provisioned infrastructure, which we call Dynatrace Managed."* It also notes that *"The majority of our customers deploy Dynatrace as a Software-as-a-Service"*. For clusters planning that move, M2S is the series.
 
 **What falling behind costs** goes beyond support. Several changes in this series only reach you through updates: Cassandra and Elasticsearch fixes (DTM-12 §10, DTM-13 §9), and changes to ActiveGate compatibility and Mission Control ciphers (DTM-14).
 
-> <sub>**Sources:** [Dynatrace Managed release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed). [Dynatrace FY2026 Form 10-K (Dynatrace IR)](https://ir.dynatrace.com/sec-filings/all-sec-filings/content/0001773383-26-000019/dt-20260331.htm). **Derived:** the "three versions later" pattern reads the rollout and support-end dates in the page's previous-versions table.</sub>
+> <sub>**Sources:** [Dynatrace Managed release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed), [Managed 1.346 release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-346). [Dynatrace FY2026 Form 10-K (Dynatrace IR)](https://ir.dynatrace.com/sec-filings/all-sec-filings/content/0001773383-26-000019/dt-20260331.htm). **Derived:** the "three versions later" pattern reads the rollout and support-end dates in the page's previous-versions table.</sub>
 
 <a id="pha"></a>
 ## 7. Premium High Availability and Data-Center Failover

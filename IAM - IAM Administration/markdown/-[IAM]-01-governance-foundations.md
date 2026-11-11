@@ -1,6 +1,6 @@
 # IAM-01: IAM Governance Foundations
 
-> **Series:** IAM — IAM Administration | **Notebook:** 1 of 12 | **Created:** January 2026 | **Last Updated:** 10/13/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 1 of 12 | **Created:** January 2026 | **Last Updated:** 11/11/2026
 
 ## Building a Strong Foundation for Identity Management
 Effective IAM governance is the cornerstone of enterprise security. This notebook establishes the framework for managing identities, groups, policies, and access controls in Dynatrace's Gen3 IAM system.
@@ -322,6 +322,10 @@ See **AUTOM-03: Monaco** for configuration-as-code implementation.
 ## 7. Governance Assessment
 Use these queries to assess your current IAM governance posture.
 
+> **Classic and Smartscape service coverage are not the same number.** A Smartscape `SERVICE` node holds `dt.security_context` as an array (`[]` when unset), and its value *"comes from the resource level, so from each deployed instance"*; one service can aggregate instances with different contexts, so the value can change between observations. Run the Smartscape form given in the query comments next to the classic query, and look into any difference before you rely on either.
+>
+> <sub>**Sources:** [Set up Grail permissions for Services (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/services-security-context) — *"A single service entity can aggregate instances with different dt.security_context values, which is why the value on the service entity can change between observations"*.</sub>
+
 ```dql
 // Count entities by security context - see how data is partitioned
 fetch dt.entity.service
@@ -334,7 +338,12 @@ fetch dt.entity.service
 // Smartscape note (dt.entity.* is deprecated but still functional): dt.security_context exists
 // on Smartscape nodes but as an ARRAY (empty [] when unset, not null), so isNull / isNotNull
 // and by:{dt.security_context} do not carry over — a Smartscape rewrite would miscount coverage.
-// Keep the classic query above.
+// Keep the classic query above, and also run the documented Smartscape form, which tests the array:
+//   smartscapeNodes "SERVICE", from:-7d | summarize {total = count(), withContext = countIf(dt.security_context != array())}
+// The two can disagree: on the validation tenant (11/11/2026) the classic query found a context on
+// 58 of 58 services, Smartscape on 7 of 58. A Smartscape service takes its value from its deployed
+// instances ("from the resource level"), so they measure different things — explain the gap before
+// trusting either number.
 ```
 
 ```dql
@@ -352,7 +361,12 @@ fetch dt.entity.service, from:-7d
 // Smartscape note (dt.entity.* is deprecated but still functional): dt.security_context exists
 // on Smartscape nodes but as an ARRAY (empty [] when unset, not null), so isNull / isNotNull
 // and by:{dt.security_context} do not carry over — a Smartscape rewrite would miscount coverage.
-// Keep the classic query above.
+// Keep the classic query above, and also run the documented Smartscape form, which tests the array:
+//   smartscapeNodes "SERVICE", from:-7d | filter dt.security_context == array() | fields name
+// The two can disagree: on the validation tenant (11/11/2026) the classic query found a context on
+// 58 of 58 services, Smartscape on 7 of 58. A Smartscape service takes its value from its deployed
+// instances ("from the resource level"), so they measure different things — explain the gap before
+// trusting either number.
 // (entity tags are also not a flat "tags" field on Smartscape — resolve via getNodeField.)
 ```
 

@@ -1,6 +1,6 @@
 # ORGNZ-99: Best Practice Summary & DQL Reference
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 11/07/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -71,7 +71,7 @@ fetch dt.system.buckets
 |---|--------------|-----------------|----------|----------|
 | 11 | Set debug/development log retention to 3-7 days | Bucket retention: 7 days maximum for DEBUG-level logs | Critical | Cost |
 | 12 | Set standard operational log retention to 35 days | Bucket retention: 35 days for application and infrastructure logs | Recommended | Operations |
-| 13 | Set performance analysis retention to 60-90 days | Bucket retention: 90 days for logs/events used in quarterly trend analysis (metrics retention is fixed at ~15 months in `default_metrics`) | Recommended | Operations |
+| 13 | Set performance analysis retention to 60-90 days | Bucket retention: 90 days for logs/events used in quarterly trend analysis (metrics default to ~15 months in `default_metrics`; from SaaS 1.349 a custom metric bucket can set its own) | Recommended | Operations |
 | 14 | Set audit/compliance log retention to 365-3657 days | Bucket retention: match regulatory requirement (SOX: 7 years = 2,555 days; HIPAA: 6 years = 2,190 days) | Critical | Compliance |
 | 15 | Set span retention to 10-35 days | Bucket retention: 10 days for default APM; 35 days if long-running incident correlation needed | Recommended | Operations |
 | 16 | Set security event retention to 90-365 days | Bucket retention: 365 days for security investigation timelines | Recommended | Security |
@@ -451,6 +451,21 @@ fetch dt.system.events, from:-90d
 | filter event.kind == "AUDIT_EVENT" and event.category == "BUCKET_MANAGEMENT"
 | fields timestamp, event.type, resource, user.id, event.outcome
 | sort timestamp desc
+```
+
+**Audit segment changes** — who created, updated or deleted a segment and when. Run it first when a segment stops matching data: an `UPDATE` event carries the definition before and after the change, so you can tell a changed definition from changed data. Ready-made segments show `user.id` `system`.
+
+> <sub>**Sources:** [Audit logs for segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-audit-logs) — *"If the segment was updated, the event includes both the previous and the new configuration."*; [SaaS 1.348 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"the audit trail lives in the same dt.system.events as other audit logs."*</sub>
+
+```dql
+// Audit segment management actions — create, update, delete (SaaS 1.348+)
+// details.before / details.after hold the full definition; segment = its name
+fetch dt.system.events, from:-30d
+| filter event.kind == "AUDIT_EVENT" and event.category == "FILTER_SEGMENT_MANAGEMENT"
+| fieldsAdd segment = coalesce(details.after[name], details.before[name])
+| fields timestamp, event.type, event.outcome, user.id, resource, segment
+| sort timestamp desc
+| limit 50
 ```
 
 ---

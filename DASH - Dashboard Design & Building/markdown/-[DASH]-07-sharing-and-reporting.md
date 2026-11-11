@@ -61,7 +61,9 @@ Dynatrace provides granular control over who can view, edit, and manage dashboar
 
 > **Tip:** Limit editor access to prevent well-intentioned modifications from breaking dashboards. Encourage teams to clone and customize rather than editing shared originals.
 
-> <sub>**Sources:** [Share Dynatrace documents (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/get-started/dynatrace-ui/share) — sharing is the owner's by default; turning on editor sharing *"allows anyone with Can edit permission to share your document with others."*</sub>
+> **Is editor sharing on by default? Two Dynatrace pages disagree.** The *Share documents* page (updated 08/12/2026) says *"By default, only the document owner can share a document."* The Document Service API reference (published 10/13/2026) says *"By default, every user with write-access to a document is allowed to re-share it via direct-shares and environment-shares."* The API page is newer and names the property, so take it as the answer: an editor may be able to re-share a dashboard unless the owner has turned that off. For a dashboard that must not travel further, have the owner switch off **Allow editors to share**, or set `isReshareable` to `false` through the API, rather than relying on the default. Only the owner can change it.
+
+> <sub>**Sources:** [Share Dynatrace documents (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/get-started/dynatrace-ui/share) — *"By default, only the document owner can share a document."* and turning on editor sharing *"allows anyone with Can edit permission to share your document with others."*; [Document Service API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-document-v1) — *"The owner can disable this by setting the isReshareable property to false (via the updateDocument operation)."*; [Update a document (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-document-v1/documents-id-patch) — *"This can only be changed by the document owner."*</sub>
 
 <a id="sharing-with-teams"></a>
 

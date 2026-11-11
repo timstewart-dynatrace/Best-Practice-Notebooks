@@ -1,6 +1,6 @@
 # M2S-99: Best Practice Summary
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/25/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 A definitive, actionable reference of every best practice extracted from the M2S Managed-to-SaaS Migration series (notebooks 01–09). Each practice specifies the exact setting or action, its priority, and its step. No hedging—follow these and your migration succeeds.
 
@@ -107,7 +107,7 @@ Within the upgrade phase, follow this precise execution order:
 | Announce configuration freeze | Notify all teams that no configuration changes should be made to the Managed environment during the migration window. Document the freeze start and end dates. | Recommended |
 | Test rollback procedure | Document the Managed server URL, environment ID and tenant token. Rollback: `oneagentctl --set-server=<managed-url> --set-tenant=<managed-env-id> --set-tenant-token=<token> --restart-service`. Test on one host before bulk migration. | Critical |
 | Test connectivity before migration | Run `curl -v https://{tenant-id}.live.dynatrace.com/api/v1/time` from monitored hosts and ActiveGate servers before scheduling the migration window. | Critical |
-| Verify OneAgent versions are within support window | OneAgent support window is **9 months (Standard) / 12 months (Enterprise)**. Check oldest deployed versions before migration. Upgrade outdated agents first. SaaS 1.347 (staged tenant rollout) **rejects** OneAgent 1.241 and earlier — those hosts stop reporting, not just fall out of support (M2S-01). | Recommended |
+| Verify OneAgent versions are within support window | OneAgent support window is **9 months (Standard) / 12 months (Enterprise)**. Check oldest deployed versions before migration. Upgrade outdated agents first. SaaS 1.347 (staged tenant rollout) **rejects** OneAgent 1.241 and earlier — those hosts stop reporting, not just fall out of support. Managed 1.348 rejects the same versions, so on a source cluster at 1.348 or later find them from deployment records, not from the cluster (M2S-01). | Recommended |
 
 <a id="step-5-execute"></a>
 ## 5. Step 5: Execute — Migrate Configuration and Agents

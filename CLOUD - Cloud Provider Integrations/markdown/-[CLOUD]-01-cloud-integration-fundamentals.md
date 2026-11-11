@@ -1,6 +1,6 @@
 # CLOUD-01: Cloud Integration Fundamentals
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 1 of 8 | **Created:** March 2026 | **Last Updated:** 11/10/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 1 of 8 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -115,6 +115,44 @@ A cloud connection is *Dynatrace reading your cloud*: AWS role assumption, an Az
 It does not replace the tokens that push paths such as Firehose and CloudWatch Metric Streams authenticate with; those send a static key. The page does not list which ingest endpoints accept a federated token, so verify before designing around it.
 
 > <sub>**Sources:** [Workload identity federation (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/workload-identity-federation) — *"Workload identity federation (WIF) lets an external workload call the Dynatrace API with a token issued by its own identity provider."*</sub>
+
+### Upgrading from Classic to New Cloud Connections
+
+An environment that already runs classic connections — ActiveGate polling for AWS and Azure, the self-hosted `dynatrace-gcp-monitor` workload for GCP — does not move to Clouds-app connections by itself: *"Existing connections are not automatically upgraded or removed."* The new connection is created alongside the classic one, and everything built on classic data is re-pointed before the classic connection is switched off.
+
+Two things change for every dashboard, alert, SLO, workflow and notebook that reads classic cloud data:
+
+| What changes | Classic connection | New cloud connection |
+|---|---|---|
+| **Entities** | Classic types such as `EC2_INSTANCE` and `AZURE_VM`, or `CUSTOM_DEVICE` (every GCP resource, with a `cloud:gcp:*` sub-type) | Smartscape nodes such as `AWS_EC2_INSTANCE`, `AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES`, `GCP_COMPUTE_GOOGLEAPIS_COM_INSTANCE` — classic IDs do not carry over |
+| **AWS metric keys** | `dt.cloud.aws.*`, `cloud.aws.*` (Metric Streams), `builtin:cloud.aws.*` | `cloud.aws.<Service>.<Metric>.By.<Dimension>`, dimension `dt.da.source == "aws-metric-poller"` |
+| **Azure metric keys** | `builtin:cloud.azure.*`, `ext:cloud.azure.*` | `cloud.azure.<namespace>.<Metric>`, dimension `dt.da.source == "azure-metric-poller"` |
+| **GCP metric keys** | `ext:cloud.gcp.*` | `cloud.gcp.<service>.<Metric>`, dimension `dt.da.source == "gcp-cloud-monitoring"` |
+
+The guide's sequence, per account, subscription or project:
+
+1. **Create the new connection** next to the classic one — start with a non-production account.
+2. **Verify topology and telemetry** — inventory takes up to 15 minutes to reach Smartscape.
+3. **Upgrade dependent assets** — dashboards, alerts and anomaly detectors, SLOs, workflows, notebooks, API integrations, and classic auto-tagging / management zones. The AWS and Azure metric-and-entity mapping pages are the lookup for each rewrite; CLOUD-04 § 1 shows the Lambda keys side by side.
+4. **Switch over** — disable the classic connection and *"Keep it disabled (not deleted) for one to two weeks as a rollback buffer."*
+5. **Decommission** — delete the classic connection once nothing depends on it. Historical classic data stays queryable until it ages out under your retention settings.
+
+Plan the overlap deliberately. Classic and new connections can run side by side across *different* accounts, but the guide advises against running both against the *same* account, subscription or project for long: it risks *"Duplicated cost"* and *"Cloud API throttling"*. Keep the overlap short. One gap remains on AWS: CloudWatch Metric Streams is not yet supported by new AWS connections, so an account that depends on it keeps that classic path for now (CLOUD-02 § 7).
+
+To see which key scheme an environment is ingesting before you rewrite anything, group cloud metric keys by `dt.da.source`. Rows with a `dt.da.source` value come from new connections. Rows without one come from a classic path: `dt.cloud.*` keys from classic built-in services, or `cloud.*` keys from classic cloud services and classic Metric Streams.
+
+```dql
+metrics from:now()-9d
+| filter startsWith(metric.key, "cloud.") or startsWith(metric.key, "dt.cloud.")
+| fieldsAdd scheme = if(startsWith(metric.key, "dt.cloud."), "dt.cloud.* (classic)", else: "cloud.*")
+| summarize keys = countDistinctExact(metric.key), by:{scheme, dt.da.source}
+| sort scheme asc
+```
+
+> <sub>**Sources:**</sub>
+> - <sub>[Upgrade from classic to new cloud connections (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections) — *"Existing connections are not automatically upgraded or removed."*, *"Classic entity IDs and classic entity types do not carry over to new Smartscape nodes."*, *"Metric keys are unified to cloud.azure.<namespace>.<Metric> with a metric dimension dt.da.source == "azure-metric-poller" when using the new Azure connection."*, *"Keep it disabled (not deleted) for one to two weeks as a rollback buffer."*, *"Not yet supported by new AWS connections."*</sub>
+> - <sub>[AWS metric and entity mapping (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections/metric-and-entity-mapping-aws), [Azure metric and entity mapping (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections/metric-and-entity-mapping-azure)</sub>
+> - <sub>Key-scheme query executed on the validation tenant 11/11/2026: 93 `cloud.aws.*` keys with `aws-metric-poller`, 62 `cloud.azure.*` keys with `azure-metric-poller`, and, with no `dt.da.source`, 6 `dt.cloud.*` keys plus 2 lowercase classic cloud-service keys (`cloud.azure.microsoft_storage.storageaccounts.transactions`, `…usedcapacity`) over 9 days.</sub>
 
 <a id="cloud-entity-model"></a>
 

@@ -1,6 +1,6 @@
 # AIOPS-03: Davis AI — Problems and Root Cause Analysis
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 10/31/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -122,9 +122,13 @@ That last one is worth knowing before you conclude a detector has broken. A dete
 | `event.severity` | Unified severity as an integer 1–5 (1 = Critical, 2 = Major, 3 = Minor, 4 = Warning, 5 = Informational), aligned to the ITIL severity model. If an event source does not set it, the field is empty. Propagates from the constituent alerts up to the parent problem. Coexists with `event.category` — severity answers *how bad*, category answers *what kind*. |
 | `event.status` | `ACTIVE` or `CLOSED` |
 | `event.start` / `event.end` | Timestamps; `event.end` is null on active problems |
-| `root_cause_entity_id` / `root_cause_entity_name` | Davis-attributed root cause |
-| `affected_entity_ids` | Array of impacted entity IDs |
+| `root_cause.smartscape_entity` | Davis-attributed root cause: a record with the Smartscape node's `id`, `type` and `name` |
+| `smartscape.affected_entities` | Array of records (`id`, `type`, `name`), one per directly affected Smartscape node |
 | `dt.davis.event_ids` | Array of constituent signal IDs from `dt.davis.events` |
+
+> **Deprecated root-cause and affected-entity fields.** The alert-notification upgrade guide: *"root_cause_entity_id and root_cause_entity_name are deprecated in favor of root_cause.smartscape_entity, and affected_entity_ids in favor of smartscape.affected_entities. Build new payloads against the Smartscape fields."* The classic fields still exist and still work, but the two families do not cover the same problems. On the validation tenant over 7 days (11/11/2026), `smartscape.affected_entities` was set on 2,657 of 4,671 problems; the other 2,014 were environment-level alerts whose classic entity is `ENVIRONMENT-0000000000000001` (1,953) and process group instances (61). In the other direction, the classic field named only `ENVIRONMENT-0000000000000001` on 1,479 problems whose Smartscape field named the AWS EC2 instance. The root-cause fields were close over those 7 days (485 classic, 483 Smartscape), but over 30 days the classic field named a root cause on 163 non-duplicate problems where the Smartscape field was empty. The queries below therefore read the Smartscape field first and fall back to the classic one with `coalesce(...)`. Do not match one against the other: the ID spaces differ (one Kubernetes root cause read `CLOUD_APPLICATION-…` in the classic field and `K8S_DEPLOYMENT-…` in the Smartscape field).
+>
+> <sub>**Sources:** [Upgrade from Classic problem notification to simple workflows (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification). **Dictionary:** `root_cause.smartscape_entity` (`stable`), `smartscape.affected_entities` (`stable`), `root_cause_entity_id` (`deprecated`), `root_cause_entity_name` (`deprecated`), `affected_entity_ids` (`deprecated`), read 11/11/2026.</sub>
 
 Custom string-typed fields can be propagated onto problems via Settings — useful for team / alerting-profile / service-tier attribution. Numeric custom fields are not supported.
 
@@ -160,9 +164,11 @@ The most-used query in the series — what's broken right now, ranked by start t
 // Active problems right now — investigation feed
 fetch dt.davis.problems, from:-2h
 | filter event.status == "ACTIVE"
+// Smartscape fields first; the deprecated root_cause_entity_name / affected_entity_ids fill the gaps
+| fieldsAdd root_cause = coalesce(root_cause.smartscape_entity[name], root_cause_entity_name),
+            affected = coalesce(smartscape.affected_entities, affected_entity_ids)
 | sort event.start desc
-| fields display_id, event.name, event.category, event.start,
-         root_cause_entity_name, affected_entity_ids
+| fields display_id, event.name, event.category, event.start, root_cause, affected
 | limit 50
 ```
 
@@ -173,8 +179,9 @@ Filter by entity context to scope to a team or environment. Two common variants:
 fetch dt.davis.problems, from:-2h
 | filter event.status == "ACTIVE"
 | filter matchesValue(k8s.namespace.name, "production")
+| fieldsAdd root_cause = coalesce(root_cause.smartscape_entity[name], root_cause_entity_name)
 | sort event.start desc
-| fields display_id, event.name, event.category, root_cause_entity_name
+| fields display_id, event.name, event.category, root_cause
 | limit 50
 ```
 
@@ -189,8 +196,9 @@ fetch dt.davis.problems, from:-2h
     sourceField:host_id, lookupField:host_id, fields:{host_group}
 | filter host_group == "my-host-group"
 | dedup event.id
+| fieldsAdd root_cause = coalesce(root_cause.smartscape_entity[name], root_cause_entity_name)
 | sort event.start desc
-| fields display_id, event.name, event.category, root_cause_entity_name, host_group
+| fields display_id, event.name, event.category, root_cause, host_group
 | limit 50
 ```
 
@@ -263,9 +271,12 @@ Which entities are most often attributed as root cause? A heavy concentration on
 
 ```dql
 // Top 20 root cause entities — last 7 days
+// Smartscape field first; the deprecated root_cause_entity_* fields fill problems it does not cover
 fetch dt.davis.problems, from:-7d
-| filter isNotNull(root_cause_entity_name)
-| summarize problem_count = count(), by:{root_cause_entity_name, root_cause_entity_id}
+| fieldsAdd root_cause = coalesce(root_cause.smartscape_entity[name], root_cause_entity_name),
+            root_cause_type = coalesce(root_cause.smartscape_entity[type], "classic only")
+| filter isNotNull(root_cause)
+| summarize problem_count = count(), by:{root_cause, root_cause_type}
 | sort problem_count desc
 | limit 20
 ```
@@ -273,7 +284,7 @@ fetch dt.davis.problems, from:-7d
 <a id="no-root-cause-expected"></a>
 ## 8. When No Root Cause Is Expected
 
-`root_cause_entity_name` empty on a problem is not automatically a detection gap. §1 already establishes the mechanism: Causal AI is a deterministic graph walk over Smartscape topology — it explains one signal by finding another signal, on a *connected* entity, that a dependency edge plausibly links to it. When there's no second signal to reach, or no edge connecting the signals that did fire, the walk has nothing to traverse. An empty root cause is that walk terminating correctly, not failing.
+An empty root cause on a problem (`root_cause.smartscape_entity`, or the deprecated `root_cause_entity_name`) is not automatically a detection gap. §1 already establishes the mechanism: Causal AI is a deterministic graph walk over Smartscape topology — it explains one signal by finding another signal, on a *connected* entity, that a dependency edge plausibly links to it. When there's no second signal to reach, or no edge connecting the signals that did fire, the walk has nothing to traverse. An empty root cause is that walk terminating correctly, not failing.
 
 In community troubleshooting experience, three conditions account for most "expected empty" cases:
 
@@ -291,13 +302,13 @@ Setting this expectation with stakeholders matters as much as the mechanism itse
 
 > <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting) — *"alerts from different entities are merged when the entities are causally connected in the Smartscape topology"*, [Dynatrace Intelligence (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence) — *"deterministic, causation-based analysis"*. **Derived:** an empty root cause is expected when no second signal sits on a causally connected entity.</sub>
 
-**Track this as a trend, not a snapshot.** The bucketing query below characterizes a point in time; the same `root_cause_entity_id` field trended daily shows whether the expected-empty population is holding steady or whether something upstream — topology, tagging, correlation — is regressing.
+**Track this as a trend, not a snapshot.** The bucketing query below characterizes a point in time; the same root-cause fields trended daily show whether the expected-empty population is holding steady or whether something upstream — topology, tagging, correlation — is regressing.
 
 ```dql
 // Characterize your own null-root-cause problems: single-entity (expected) vs multi-entity (audit for topology gap)
 fetch dt.davis.problems, from:-30d
-| filter isNull(root_cause_entity_name)
-| fieldsAdd affected_count = arraySize(affected_entity_ids)
+| filter isNull(root_cause.smartscape_entity) and isNull(root_cause_entity_name)
+| fieldsAdd affected_count = arraySize(coalesce(smartscape.affected_entities, affected_entity_ids))
 | fieldsAdd bucket = if(affected_count <= 1, "single-entity (expected)", else: "multi-entity (audit for topology gap)")
 | summarize problem_count = count(), by:{bucket}
 | sort problem_count desc
@@ -307,7 +318,8 @@ fetch dt.davis.problems, from:-30d
 // RCA attachment rate — % of non-duplicate problems with a populated root cause, trended daily
 fetch dt.davis.problems, from:-30d
 | filter not(dt.davis.is_duplicate)
-| fieldsAdd rca_flag = if(isNotNull(root_cause_entity_id), 100.0, else: 0.0)
+// A root cause counts if the Smartscape field or the deprecated classic field carries one
+| fieldsAdd rca_flag = if(isNotNull(root_cause.smartscape_entity) or isNotNull(root_cause_entity_id), 100.0, else: 0.0)
 | makeTimeseries rca_attachment_pct = avg(rca_flag), interval:24h
 ```
 

@@ -1,6 +1,6 @@
 # MZ2POL-03: Assessment and Migration Planning
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 4 of 17 | **Created:** December 2025 | **Last Updated:** 10/27/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 4 of 17 | **Created:** December 2025 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -106,7 +106,7 @@ Group your MZs by their primary purpose:
 ## 3. Security Context and Bucket Planning
 ### Design Your Security Context Strategy
 
-Security context drives record-level access control. It is **one field**, read by every IAM record condition, so design **one value per owner** and write it onto every record that owner produces — not a different dimension per entity type. If services carried `team-*` and hosts `env-*`, a team boundary would miss the host's logs and an environment boundary would miss the service's spans.
+Security context drives record-level access control. It is **one field**, read by every IAM record condition, so design **one value per owner** and write it onto every record that owner produces — not a different dimension per entity type. If services carried `team-*` and hosts `env-*`, a team boundary would miss the host's logs and an environment boundary would miss the service's spans. Where a host or process is genuinely shared by several owners, OneAgent 1.349 (rollout start 11/09/2026) can write several values onto it; the field then holds an array, and its policy conditions must use `MATCH` (**MZ2POL-04 §4**).
 
 | Dimension | Where it is written | Example value |
 |-----------|---------------------|---------------|
@@ -114,6 +114,8 @@ Security context drives record-level access control. It is **one field**, read b
 | Filtering and routing | `primary_tags.*`, in the same enrichment step from the same source | `primary_tags.team = payments`, `primary_tags.stage = prod` |
 
 Write both together so they cannot drift apart — **MZ2POL-10 §4** (*One Value, Every Job*). Structured values such as `prod/payments` are covered in **MZ2POL-04 §4**.
+
+> <sub>**Sources:** [OneAgent 1.349 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349) — *"You can now assign multiple dt.security_context values to a single host or process."*</sub>
 
 ### Design Your Bucket Strategy
 

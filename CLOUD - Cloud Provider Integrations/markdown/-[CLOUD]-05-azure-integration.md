@@ -1,6 +1,6 @@
 # CLOUD-05: Azure Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 11/09/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -171,6 +171,24 @@ Forthcoming / rolling out with [**OneAgent 1.343**](https://docs.dynatrace.com/d
 | Flex Consumption Plan (Linux) | Python | HTTP/webhooks, Service Bus, Event Hubs, Timer, Blob Storage, Event Grid, Azure SQL |
 | Consumption / Premium / Dedicated (Windows) | Java, Node.js | HTTP/webhooks, Service Bus, Event Hubs, Timer |
 
+**Later OneAgent releases widen Azure Functions coverage further.** Each rolls out per agent fleet, so check the OneAgent version on the Function, not the tenant version:
+
+| OneAgent | Azure Functions coverage added |
+|---|---|
+| **1.345** (rollout from 08/25/2026) | Python triggers: Cosmos DB, Kafka, Queue storage, IoT Hub |
+| **1.347** (rollout from 09/30/2026) | Python on the **Premium Plan for Linux** |
+| **1.349** (rollout from 11/09/2026) | **.NET** on the **Windows Premium and Consumption** plans and the **Linux Premium and Flex Consumption** plans; an updated .NET implementation for the **Dedicated** plan. Java adds the Azure SQL, Cosmos DB and Redis triggers; Python adds the Model Context Protocol and IoT Hub triggers |
+
+Until the deployed agent reaches the version that covers a plan and runtime, OpenTelemetry remains the working path for that Function (FAQ-03 walks through the decision). On the Azure SDK side, the same releases add Java Blob Storage clients and Node.js `@azure/cosmos` (1.347), and .NET Event Hub and Service Bus send and receive (1.349).
+
+> **.NET in-process Functions are leaving support.** The end-of-support list names *"OneAgent Feature: Azure Functions .NET In-Process Model"* with last supported OneAgent 1.351. Plan the move to the isolated worker model before the Function's agent goes past 1.351.
+
+> <sub>**Sources:**</sub>
+> - <sub>[OneAgent 1.345 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-345) — *"Rollout start on Aug 25, 2026"*; *"We extend Python Azure Function support by adding new triggers: Cosmos DB, Kafka, Queue storage, and IoTHub."*</sub>
+> - <sub>[OneAgent 1.347 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-347) — *"Rollout start on Sep 30, 2026"*; *"Extended instrumentation for Azure Function (tracing, log correlation) for Premium Plan for Linux for Python."*; *"We now support automatic tracing of the Azure SDK Blob Storage Clients in Java applications."*; *"Node.js applications that access Azure CosmosDB via @azure/cosmos package are now traced."*</sub>
+> - <sub>[OneAgent 1.349 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349) — *"Rollout start on Nov 09, 2026"*; *"Windows Premium and Consumption plan."*, *"Linux Premium and Flex Consumption plan."*, *"The Dedicated plan has an updated implementation."*; *"We have extended Java Azure Functions support with the Azure SQL trigger."*; *"Java Azure Functions now has extended support with the following triggers: Cosmos DB, RedisPubSubTrigger, RedisListTrigger, and RedisStreamTrigger."*; *"We have extended Python Azure Function support with the following triggers: Model Context Protocol and IoT Hub."*; *"We now support automatic Event Hub and Service Bus tracing (sending and receiving messages) for the Azure SDK for .NET."*</sub>
+> - <sub>[End-of-support news (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — *"OneAgent Feature: Azure Functions .NET In-Process Model"*, under *2026-11-30 End of Support*, *"Last supported OneAgent version: 1.351"*</sub>
+
 > **Re-baseline Cosmos DB request charges across this upgrade.** OneAgent 1.343 corrected how `db.cosmosdb.request_charge` values are summarized on aggregated spans. Request-charge figures collected **before** 1.343 should be re-baselined rather than compared across the upgrade — a step change at the upgrade boundary is the correction landing, not a workload change.
 
 **On OneAgent 1.342 and earlier**, the Azure Monitor resource metrics in the table above remain the only coverage for these services — the code-level spans are simply not produced.
@@ -269,7 +287,36 @@ smartscapeNodes "AZURE_MICROSOFT_WEB_SITES"
 
 ## 5. Azure Metrics with DQL
 
-Azure Monitor metrics are ingested into Dynatrace under the `cloud.azure.*` namespace.
+Azure Monitor metrics are ingested into Dynatrace under the `cloud.azure.*` namespace. **Which key you get depends on the connection:**
+
+| Connection | Key family | Example |
+|---|---|---|
+| **New Azure connection (Clouds app)** | `cloud.azure.<namespace>.<MetricName>` — the namespace is the ARM resource type, lowercased with the provider prefix collapsed; the metric name keeps Azure Monitor's casing. Every series carries `dt.da.source == "azure-metric-poller"` | `cloud.azure.microsoft_storage.storageaccounts.Transactions` |
+| **Classic connection — built-in services** | `builtin:cloud.azure.*` in Metrics Classic (`dt.cloud.azure.*` on Grail) | `builtin:cloud.azure.apiMgmt.capacity` |
+| **Classic connection — cloud services** | `ext:cloud.azure.*`, all lowercase | `ext:cloud.azure.microsoft_storage.storageaccounts.transactions` |
+
+Three things follow when you write or migrate a query:
+
+- **A few keys collide.** A small number of new keys match their classic cloud-service equivalent apart from the `ext:` prefix, and the metric picker shows both under the same display name. Filter on `dt.da.source == "azure-metric-poller"` to isolate the new connection's series. On the validation tenant (11/11/2026) both forms of the Storage key arrived side by side — lowercase `…storageaccounts.transactions` with no `dt.da.source`, and `…storageaccounts.Transactions` from the poller.
+- **Dimensions are lowercase on the new connection.** The poller lowercases every dimension name, so query `shardid`, not `ShardId`.
+- **Look up each rewrite in the mapping table.** The Azure metric and entity mapping page lists, per resource type, the classic key and the new key for each metric.
+
+The cells below use the new connection's keys. To see which Azure namespaces a tenant is ingesting from the new connection:
+
+```dql
+metrics from:now()-9d
+| filter startsWith(metric.key, "cloud.azure.") and dt.da.source == "azure-metric-poller"
+| fieldsAdd namespace = concat(splitString(metric.key, ".")[2], ".", splitString(metric.key, ".")[3])
+| summarize keys = countDistinctExact(metric.key), by:{namespace}
+| sort keys desc
+```
+
+> <sub>**Sources:**</sub>
+> - <sub>[Azure metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/ingest-telemetry/azure-monitor-metrics) — *"Every metric ingested by this integration uses the same key shape and always carries dt.da.source == "azure-metric-poller""*; *"<MetricName> is the metric name exactly as Azure Monitor defines it, including its casing"*; *"The Azure metric poller lowercases every dimension name before it reaches Grail."*; *"a small number of metrics have a key identical to their classic cloud-service equivalent except for the ext: prefix that classic uses."*</sub>
+> - <sub>[Upgrade from classic to new cloud connections (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections) — *"Metric keys have two different classic flavours, builtin:cloud.azure.* and ext:cloud.azure.*."*</sub>
+> - <sub>[Built-in metrics on Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail) — the `builtin:` → `dt.` key renaming on Grail</sub>
+> - <sub>[Azure metric and entity mapping (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections/metric-and-entity-mapping-azure) — Microsoft.Storage/storageAccounts: classic `ext:cloud.azure.microsoft_storage.storageaccounts.transactions` → new `cloud.azure.microsoft_storage.storageaccounts.Transactions`; Microsoft.ApiManagement/service: classic `builtin:cloud.azure.apiMgmt.capacity` → new `cloud.azure.microsoft_apimanagement.service.Capacity`</sub>
+> - <sub>Namespace query executed on the validation tenant 11/11/2026: 8 namespaces from `azure-metric-poller` (`microsoft_compute.virtualmachines` 14 keys, down to `microsoft_network.loadbalancers` 4).</sub>
 
 ### Azure VM CPU Usage
 

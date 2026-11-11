@@ -270,7 +270,7 @@ Check the volume of mobile events flowing into Dynatrace, grouped by application
 // Event volume by application, one count per event characteristic
 // (has_* flags, not characteristics.classifier -- corrected 11/11/2026)
 fetch user.events, from:-1h
-| filter dt.rum.application.type == "mobile"
+| filter in(dt.rum.agent.type, {"android", "ios"})
 | summarize {total_events = count(),
     user_actions = countIf(characteristics.has_user_action == true),
     requests = countIf(characteristics.has_request == true),

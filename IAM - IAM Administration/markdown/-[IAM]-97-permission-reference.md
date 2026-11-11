@@ -1,6 +1,6 @@
 # IAM-97: IAM Permission Reference — What Each Permission Actually Does
 
-> **Series:** IAM — IAM Administration | **Reference:** 97 — IAM Permission Reference | **Created:** October 2026 | **Last Updated:** 10/19/2026
+> **Series:** IAM — IAM Administration | **Reference:** 97 — IAM Permission Reference | **Created:** October 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -81,11 +81,11 @@ A manifest entry shows that an app **may** call an API, not that every screen do
 <a id="generated-stamp-begin"></a>
 | Generated from | Retrieved | Page last modified | Contents |
 |---|---|---|---|
-| [IAM policy statements reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) | 10/19/2026 | 10/08/2026 | 43 services, 228 permissions |
-| [Default policies — Standard User (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies#DynatraceAccessStandardUser) | 10/19/2026 | 10/08/2026 | 65 permissions |
+| [IAM policy statements reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) | 11/11/2026 | 10/08/2026 | 43 services, 228 permissions |
+| [Default policies — Standard User (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies#DynatraceAccessStandardUser) | 11/11/2026 | 10/08/2026 | 65 permissions |
 | Built-in app manifests + platform API specs (validation tenant, via `dtctl`) | 10/19/2026 | — | 118 built-in apps, 34 of 37 published APIs |
 
-**This reference:** 103 permissions — 65 from the docs *Standard User* policy (✅) and 38 reader-persona or companion permissions that are not in it (➕). **Basis:** 71 Docs, 24 Tested, 5 Inference, 3 Unknown.
+**This reference:** 104 permissions — 65 from the docs *Standard User* policy (✅) and 39 reader-persona or companion permissions that are not in it (➕). **Basis:** 72 Docs, 24 Tested, 5 Inference, 3 Unknown.
 <a id="generated-stamp-end"></a>
 
 > <sub>**Sources:** [Add permission scopes (Dynatrace Developer)](https://developer.dynatrace.com/develop/guides/security/add-permission-scopes-to-use-dynatrace-apis/); [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements); [Default policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies).</sub>
@@ -334,7 +334,7 @@ These are **not** in the docs *Standard User* policy; a reader persona needs som
 | `storage:events:read` | Readers of this signal; scope with the boundary (`storage:dt.security_context` with `MATCH`). Events often store the security context as an array. | — | `dynatrace.appshell`, `dynatrace.automations`, `dynatrace.biz.explore`, `dynatrace.clouds`, `dynatrace.dashboards`, `dynatrace.database.overview`, +26 more | no published operation declares it |
 | `storage:bizevents:read` | Teams that use business events. | Users without a need — payloads can hold business data. | `dynatrace.appshell`, `dynatrace.automations`, `dynatrace.biz.explore`, `dynatrace.clouds`, `dynatrace.dashboards`, `dynatrace.davis.anomalydetection`, +21 more | no published operation declares it |
 | `storage:entities:read` | Readers; the security-context condition takes `=`, `IN`, `startsWith` only — not `MATCH`. | — | `dynatrace.appshell`, `dynatrace.automations`, `dynatrace.clouds`, `dynatrace.dashboards`, `dynatrace.database.overview`, `dynatrace.davis.anomalydetection`, +28 more | no published operation declares it |
-| `storage:smartscape:read` | Readers of this signal; scope with the boundary (`storage:dt.security_context` with `MATCH`). | — | `dynatrace.appshell`, `dynatrace.automations`, `dynatrace.biz.explore`, `dynatrace.clouds`, `dynatrace.dashboards`, `dynatrace.database.overview`, +31 more | no published operation declares it |
+| `storage:smartscape:read` | Readers of this signal; scope with the boundary (`storage:dt.security_context` with `MATCH`). From SaaS 1.350 (rollout start 11/04/2026 — verify it has reached your tenant) `storage:type` can also scope it by node type, e.g. `storage:type = "SYNTHETIC_LOCATION"`; the policy reference does not list that condition yet, so the generated Conditions column does not show it. | — | `dynatrace.appshell`, `dynatrace.automations`, `dynatrace.biz.explore`, `dynatrace.clouds`, `dynatrace.dashboards`, `dynatrace.database.overview`, +31 more | no published operation declares it |
 | `storage:system:read` | Admins and cost owners. | Readers — audit and consumption records are not team data. | `dynatrace.appshell`, `dynatrace.automations`, `dynatrace.clouds`, `dynatrace.dashboards`, `dynatrace.database.overview`, `dynatrace.davis.anomalydetection`, +17 more | no published operation declares it |
 | `storage:files:read` | Scope to your lookup folders plus `/dt/`, as Dynatrace's *All Grail data read access* policy does. | Unscoped grants. | `dynatrace.appshell`, `dynatrace.automations`, `dynatrace.clouds`, `dynatrace.dashboards`, `dynatrace.davis.anomalydetection`, `dynatrace.davis.copilot`, +19 more | no published operation declares it |
 | `storage:user.events:read` | Frontend teams; scope by `frontend.name` or security context. | Teams without RUM. | `dynatrace.appshell`, `dynatrace.automations`, `dynatrace.clouds`, `dynatrace.dashboards`, `dynatrace.davis.anomalydetection`, `dynatrace.davis.copilot`, +20 more | `GET /stacktraces/{eventId} (/platform/rum/deobfuscation/v1)` |
@@ -450,6 +450,7 @@ IAM has no condition on a workflow's owner. Who sees and edits which workflow co
 | `davis-copilot:nl2dql:execute` | ✅ | Grants permission to execute the Natural Language to DQL generative AI capability | none | Turn natural language into DQL. | Per user | Low | **Docs** — *"Grants permission to execute the Natural Language to DQL generative AI capability"* ([IAM policy reference](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements)) |
 | `davis-copilot:dql2nl:execute` | ✅ | Grants permission to execute the CoPilot skill 'Summarize DQL' | none | Explain a DQL query in plain language. | Per user | Low | **Docs** — *"Grants permission to execute the CoPilot skill 'Summarize DQL'"* ([IAM policy reference](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements)) |
 | `davis-copilot:document-search:execute` | ✅ | Grants permission to execute the CoPilot skill 'Document Search' | none | Search documents with Copilot. | Per user | Low | **Docs** — *"Grants permission to execute the CoPilot skill 'Document Search'"* ([IAM policy reference](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements)) |
+| `ai:operator:execute` | ➕ | Grants permission to interact with the AI conversational interface | none | Interact with the AI conversational interface as an operator — the Dynatrace Assist operator and the Dynatrace Intelligence agentic AI workflow action. | Per user; for the workflow action, the workflow's actor | Medium | **Docs** — *"To use the Dynatrace Intelligence agentic AI workflow action"* ([Run agents in Workflows](https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-intelligence-integrations/dynatrace-intelligence-run-agent-workflows)) |
 
 | Permission | Allow when | Avoid when | Built-in apps that request it *(generated)* | API operations that declare it *(generated)* |
 |---|---|---|---|---|
@@ -459,6 +460,7 @@ IAM has no condition on a workflow's owner. Who sees and edits which workflow co
 | `davis-copilot:nl2dql:execute` | When Copilot is enabled. | Where generative AI is not approved. | `dynatrace.appshell`, `dynatrace.dashboards`, `dynatrace.davis.copilot`, `dynatrace.davis.workflow.actions`, `dynatrace.notebooks` | `POST /skills/nl2dql:feedback (/platform/davis/copilot/v1)`<br>`POST /skills/nl2dql:generate (/platform/davis/copilot/v1)` |
 | `davis-copilot:dql2nl:execute` | When Copilot is enabled. | Where generative AI is not approved. | `dynatrace.appshell`, `dynatrace.dashboards`, `dynatrace.davis.copilot`, `dynatrace.davis.workflow.actions`, `dynatrace.notebooks` | `POST /skills/dql2nl:explain (/platform/davis/copilot/v1)`<br>`POST /skills/dql2nl:feedback (/platform/davis/copilot/v1)` |
 | `davis-copilot:document-search:execute` | When Copilot is enabled. | Where generative AI is not approved. | `dynatrace.davis.copilot`, `dynatrace.davis.problems`, `dynatrace.davis.workflow.actions` | `POST /skills/document-search:execute (/platform/davis/copilot/v1)` |
+| `ai:operator:execute` | Users and workflow actors that run Assist agents; the workflow action also needs `mcp-gateway:servers:invoke`, `mcp-gateway:servers:read` and `document:documents:read`. | Where generative or agentic AI is not approved; the DPS license must include AI Units. | `dynatrace.davis.copilot`, `dynatrace.davis.problems`, `dynatrace.davis.workflow.actions`, `dynatrace.kubernetes` | no published operation declares it |
 <a id="generated-group-davis-end"></a>
 
 > <sub>**Sources:** [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements).</sub>
@@ -598,6 +600,10 @@ Breakpoints capture runtime state, and the snapshots land in `application.snapsh
 <a id="other-services"></a>
 ## 18. Other services
 
+**External dashboard sharing has no generated row yet.** The *Share a dashboard externally* page names three permissions that the policy reference (modified 10/08/2026) does not list — it lists only `public-access:shares:admin` — so this appendix cannot generate rows for them: `public-access:shares:read` and `public-access:shares:write` to create external links, and `public-access:shares.ip-allowlist:write` to switch the environment IP allowlist off for a single link. None is assigned to users by default. Treat the IP-allowlist permission as high risk: a link with no passcode, embedding on and the allowlist off can be framed by anyone on the internet.
+
+> <sub>**Sources:** [Share a dashboard externally (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/share-dashboard-externally) — *"You need the public-access:shares:read and public-access:shares:write permissions to create external links."*; *"External link permissions aren't assigned to users by default."*; *"this makes the dashboard embeddable by anyone on the internet."*</sub>
+
 <a id="generated-group-other-begin"></a>
 | Permission | Std User | Reference says *(generated)* | Conditions *(generated)* | What it really grants | Scope | Risk | Basis |
 |---|---|---|---|---|---|---|---|
@@ -735,6 +741,7 @@ Five personas, as a starting point for **IAM-11**'s workshop — adjust them to 
 | `davis-copilot:nl2dql:execute` | ⚪ | ⚪ | ⚪ | ⚪ | ✅ |
 | `davis-copilot:dql2nl:execute` | ⚪ | ⚪ | ⚪ | ⚪ | ✅ |
 | `davis-copilot:document-search:execute` | ⚪ | ⚪ | ⚪ | ⚪ | ✅ |
+| `ai:operator:execute` | ⚪ | ⚪ | ⚪ | ⚪ | ✅ |
 | **OpenPipeline** | | | | | |
 | `openpipeline:configurations:read` | — | ⚪ | ⚪ | ⚪ | ✅ |
 | `openpipeline:events.davis:ingest` | ⚪ | ✅ | ⚪ | ✅ | ✅ |

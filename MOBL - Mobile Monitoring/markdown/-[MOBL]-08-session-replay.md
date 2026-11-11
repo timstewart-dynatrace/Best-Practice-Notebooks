@@ -1,6 +1,6 @@
 # MOBL-08: Session Replay for Mobile
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 8 of 12 | **Created:** February 2026 | **Last Updated:** 10/29/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 8 of 12 | **Created:** February 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -269,7 +269,7 @@ Count distinct sessions (`dt.rum.session.id` on `user.events`) per mobile applic
 ```dql
 // Session counts by mobile application
 fetch user.events, from:-24h
-| filter dt.rum.application.type == "mobile"
+| filter in(dt.rum.agent.type, {"android", "ios"})
 | summarize session_count = countDistinct(dt.rum.session.id), by:{frontend.name}
 | sort session_count desc
 ```

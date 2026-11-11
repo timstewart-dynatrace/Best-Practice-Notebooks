@@ -1,6 +1,6 @@
 # S2D-02: Locating Logs in Dynatrace
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 2 of 9 | **Created:** January 2026 | **Last Updated:** 11/02/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 2 of 9 | **Created:** January 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -213,7 +213,12 @@ If logs appear but counts differ or content seems incorrect, you may need [Times
 >
 > Log-module self-monitoring is enabled by default for Grail environments since SaaS 1.340 (*"Log module self-monitoring enabled by default for Grail"*), and it remains opt-in for Log Monitoring Classic. The built-in *Log ingest Overview* dashboard visualizes it. Verify the events are flowing in your tenant before relying on them. See **FAQ-08** (Recommended Approach) for the full file-status × ingest-status coverage matrix and the `fetch logs` fallback for tenants where the events are not available.
 >
-> <sub>**Sources:** [SaaS 1.340 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-340).</sub>
+> **Quiet a warning you have already accepted, and only that one.** A migration surfaces SFM warnings for sources you have investigated and decided to leave as they are. Suppression rules are set through the Settings API with the `builtin:logmonitoring.log-sfm-settings` schema, at tenant, host-group, Kubernetes-cluster or host scope. Keep each rule narrow, for example one event type on one log source, so the same warning still fires elsewhere. Forthcoming in **SaaS 1.351** (pre-release, planned rollout from 11/11/2026): a UI for the same rules under **Settings > Collect and capture > Log monitoring > Configure log module > Advanced settings > SFM Events**. Until it reaches your tenant, the Settings API is the working path.
+>
+> <sub>**Sources:**</sub>
+> - <sub>[SaaS 1.340 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-340)</sub>
+> - <sub>[Monitor log source health with SFM events (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-log-agent-sfm) — *"To customize this functionality, update your configuration via the Settings API. Use the builtin:logmonitoring.log-sfm-settings schema ID."*; *"Keep the suppression scope as narrow as needed."*</sub>
+> - <sub>[SaaS 1.351 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-351) — *"Rollout start on Nov 11, 2026 (planned)"*; *"You can configure self-monitoring event suppression without working directly with the configuration API."*</sub>
 
 ```dql
 // Log-source coverage from the OneAgent log-module self-monitoring events.

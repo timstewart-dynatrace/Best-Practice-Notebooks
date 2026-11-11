@@ -1,6 +1,6 @@
 # MOBL-10: DQL for Mobile Analytics
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 10 of 12 | **Created:** February 2026 | **Last Updated:** 10/29/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 10 of 12 | **Created:** February 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -64,9 +64,13 @@ The following table maps each mobile data type to its Grail location and the DQL
 | Network requests | `user.events` | `filter characteristics.has_request` (`url.full`, `http.request.method`, `http.response.status_code`) |
 | Custom business events (`sendBizEvent`) | `bizevents` | `fetch bizevents \| filter event.type == "<your type>"` |
 
-`dt.rum.application.type == "mobile"` separates mobile from web frontends in both stores; the crash, ANR and app-start characteristics are set only by OneAgent for Mobile.
+On `user.events`, `in(dt.rum.agent.type, {"android", "ios"})` selects mobile events: `dt.rum.agent.type` names the agent that sent the event (`android` and `ios` for OneAgent for Mobile, `javascript` for RUM JavaScript). The crash, ANR and app-start characteristics are set only by OneAgent for Mobile. The `user.sessions` queries still filter on `dt.rum.application.type == "mobile"`, because the session model documents no agent-type field (note below).
 
-> **Open question — the mobile filter (10/29/2026).** The queries in this series select mobile data with `dt.rum.application.type == "mobile"`. SaaS 1.344 recommends *"to stop using legacy fields like dt.entity.application , dt.rum.application.entity , dt.rum.application.entities , and dt.rum.application.type in queries, dashboards, segments, and integrations"*. The semantic dictionary lists the field only on the `user.sessions` model, and on the validation tenant it was empty on every `user.events` and `user.sessions` record over 30 days. Before you rely on these queries, check that `dt.rum.application.type` is populated in your environment: `fetch user.events, from:-1h | summarize n = count(), by:{dt.rum.application.type, dt.rum.agent.type}`.
+> **The mobile filter (updated 11/11/2026).** SaaS 1.344 recommends *"to stop using legacy fields like dt.entity.application , dt.rum.application.entity , dt.rum.application.entities , and dt.rum.application.type in queries, dashboards, segments, and integrations"*. The `user.events` queries in this series therefore filter on `dt.rum.agent.type`, the field the legacy one is derived from: the session model describes `dt.rum.application.type` as *"The application type determined based on dt.rum.agent.type."* The user-event model allows only `android`, `ios` and `javascript` as agent types, so events from Flutter and React Native apps, which add `dt.rum.event.source.type`, also carry `android` or `ios`.
+>
+> `user.sessions` has no replacement yet: its documented model lists `dt.rum.application.type` but no `dt.rum.agent.type` and no `frontend.*` field, so the session-level queries keep the legacy filter. On the validation tenant (11/11/2026) `dt.rum.agent.type` was set on every RUM JavaScript event, while `dt.rum.application.type` was empty on every `user.events` and `user.sessions` record. Before you rely on a session-level query, check that the field is populated in your environment: `fetch user.sessions, from:-24h | summarize n = count(), by:{dt.rum.application.type}`. If it is empty, count sessions from `user.events` with `countDistinct(dt.rum.session.id)` under the agent-type filter.
+
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344), [User events — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events) — *"dt.rum.agent.type MUST be one of the following:"* (`android`, `ios`, `javascript`), [User sessions — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-sessions) — *"The application type determined based on dt.rum.agent.type."*, re-read 11/11/2026. **Dictionary:** `dt.rum.agent.type` (`experimental`), `dt.rum.application.type` (`experimental`, on the `rum.user_session` model only), read 11/11/2026. **Derived:** that Flutter and React Native events carry `android` or `ios` follows from the closed list of agent values.</sub>
 
 > **Correction (09/28/2026).** Earlier revisions of this notebook said mobile data is ingested as business events, identified by `event.provider == "www.dynatrace.com/mobile"`, with `useraction.*` fields and `event.type == "com.dynatrace.crash"`. None of that exists: every such query ran and returned zero rows, silently. The semantic dictionary (read 09/28/2026) places the mobile models -- `rum_mobile_user_action`, `rum_crash`, `rum_anr`, `rum_app_start`, `rum_request`, `rum_api_reported_error` -- in `user.events`, and the session model `rum.user_session` in `user.sessions`.
 
@@ -123,7 +127,7 @@ The query below calculates **total actions**, **unique sessions**, and **actions
 ```dql
 // User engagement summary -- actions per session, per app
 fetch user.events, from:-24h
-| filter dt.rum.application.type == "mobile" and characteristics.has_user_action
+| filter in(dt.rum.agent.type, {"android", "ios"}) and characteristics.has_user_action
 | summarize {total_actions = count(), unique_sessions = countDistinct(dt.rum.session.id)}, by:{frontend.name}
 | fieldsAdd actions_per_session = toDouble(total_actions) / toDouble(unique_sessions)
 | sort total_actions desc
@@ -136,7 +140,7 @@ fetch user.events, from:-24h
 
 | Field | Description |
 |-------|-------------|
-| `dt.rum.application.type` | `"mobile"` for mobile frontends, `"web"` for web |
+| `dt.rum.agent.type` | `android` / `ios` for OneAgent for Mobile, `javascript` for RUM JavaScript |
 | `characteristics.has_user_action` | Marks user-action events in `user.events` |
 | `frontend.name` | Name of the mobile application |
 | `dt.rum.session.id` | Unique session identifier for counting distinct sessions |
@@ -284,7 +288,7 @@ This notebook provided 8 production-ready DQL queries covering the full spectrum
 | Reusable Templates | Release monitoring | Crash rate by app version for release gates |
 
 **Key patterns to remember:**
-- Filter `user.events` / `user.sessions` on `dt.rum.application.type == "mobile"`, and select event types with `characteristics.has_*`
+- Filter `user.events` on `in(dt.rum.agent.type, {"android", "ios"})` (and `user.sessions` on `dt.rum.application.type == "mobile"`, after checking it is populated), and select event types with `characteristics.has_*`
 - Count sessions with `count()` on `user.sessions` (one record per session), or `countDistinct(dt.rum.session.id)` on `user.events`
 - Use `countIf(error.has_crash == true)` on `user.sessions` for crashed sessions
 - Add `isNotNull()` filters before grouping on optional fields like `app.short_version` or `device.model.identifier`

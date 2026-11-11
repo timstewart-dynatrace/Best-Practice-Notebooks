@@ -246,6 +246,8 @@ The ActiveGate update page was published in 2020 and carries no later update dat
 
 The last two are what connectivity trouble looks like from the cluster's side. One node refusing agent traffic, or the cluster turning off monitoring on new hosts to protect itself, is the point where layer 4 meets layer 3 (capacity, DTM-15).
 
+**Tenant token rotation (Managed 1.346).** *"The tenant token is used by OneAgents and ActiveGates to report data to Dynatrace."* Rotating it means putting the new token on every ActiveGate and OneAgent, then finishing the rotation, which *"renders the old token invalid."* Until then, *"both old and new tokens are valid during the rotation process."* Managed 1.346 made an unfinished rotation visible: *"You can now query the current status of a tenant token rotation in your Dynatrace Managed environment using the new api/v2/tenantTokenRotation/status endpoint. While a rotation is in progress, a severe Cluster event is raised daily for the duration of the rotation"*. The reason it matters: *"An incomplete rotation persisted undetected and directly affected monitoring continuity."* The event reference (read 11/11/2026) doesn't list this event, so whether it emails is not documented; on a cluster before 1.346, track rotations yourself.
+
 ### 9.3 Self-monitoring metrics
 
 ActiveGates report self-monitoring metrics under `dsfm:active_gate.*`. The Managed docs list 70 of them, with descriptions. Four worth charting for Cluster ActiveGates:
@@ -276,6 +278,7 @@ The release-notes page (read 11/10/2026) lists 1.346, 1.348 and 1.350 as current
 > <sub>**Sources:**</sub>
 > - <sub>[Cluster Management Console (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console), [Update Cluster ActiveGate (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/update-dynatrace-managed-activegate)</sub>
 > - <sub>[Event notification reference (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference)</sub>
+> - <sub>[Tenant token (DT docs)](https://docs.dynatrace.com/managed/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens/rotate-tenant-token), [Managed 1.346 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-346) release notes</sub>
 > - <sub>[ActiveGate self-monitoring metrics (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/activegate-sfm-metrics)</sub>
 > - <sub>[ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements)</sub>
 > - <sub>[Managed 1.332 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-332), [Managed 1.344 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-344) release notes, [Install a Cluster ActiveGate (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/install-cluster-activegate)</sub>

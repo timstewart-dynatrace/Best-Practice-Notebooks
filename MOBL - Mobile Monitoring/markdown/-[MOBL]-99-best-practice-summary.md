@@ -1,6 +1,6 @@
 # MOBL-99: Best Practice Summary
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/29/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -227,7 +227,7 @@ Mandatory patterns and filters for querying mobile data in Grail.
 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|--------------|-----------------|----------|--------|
-| 1 | Query mobile RUM from `user.events` / `user.sessions` | `filter dt.rum.application.type == "mobile"` separates mobile from web; `characteristics.has_*` selects the event type. Mobile RUM is **not** in `bizevents` | **Critical** | MOBL-10 |
+| 1 | Query mobile RUM from `user.events` / `user.sessions` | On `user.events`, `filter in(dt.rum.agent.type, {"android", "ios"})` separates mobile from web (`user.sessions`: `dt.rum.application.type == "mobile"`, after checking it is populated); `characteristics.has_*` selects the event type. Mobile RUM is **not** in `bizevents` | **Critical** | MOBL-10 |
 | 2 | Count sessions on `user.sessions` | One record per session, so `count()` is a session count there; on `user.events` use `countDistinct(dt.rum.session.id)` | **Critical** | MOBL-10 |
 | 3 | Compute crash rate at session grain | `fetch user.sessions` then `countIf(error.has_crash == true)` over `count()` | **Recommended** | MOBL-10 |
 | 4 | Add `isNotNull()` filters before grouping on optional fields | Fields like `app.short_version`, `device.model.identifier`, `device.manufacturer` may be null; filter first to avoid noise | **Recommended** | MOBL-10 |

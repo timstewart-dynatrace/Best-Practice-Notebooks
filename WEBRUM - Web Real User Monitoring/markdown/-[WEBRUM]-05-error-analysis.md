@@ -1,6 +1,6 @@
 # WEBRUM-05: Error Analysis
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 5 of 10 | **Created:** March 2026 | **Last Updated:** 10/31/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 5 of 10 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -159,6 +159,10 @@ fetch user.events, from:-24h
 ## 3. Error Grouping and Top Errors
 
 Error messages often contain variable data (stack traces, URLs, IDs). Grouping by error message helps identify the most frequent issues.
+
+> **Error grouping changed in SaaS 1.348 (rollout from 10/12/2026, staged).** The grouping logic for RUM errors, pages, views and user actions now follows an updated specification. Existing error groups may be reorganized after the upgrade. `error.display_name` is no longer written for web or mobile, and for mobile events an `error.name` reported through the API now drives grouping. The queries below group by `error.reason` and `error.type`, so they are not affected. Review your own dashboards, alerts and queries that filter on specific error-group names or on `error.display_name`. If the new grouping does not fit, the same release adds OpenPipeline custom grouping processors for the error, page, view and user_action namespaces.
+>
+> <sub>**Sources:** [What's new in SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"Additionally error.display_name won’t be written for web and mobile anymore."*, *"Existing error groups may be reorganized after the upgrade, because volatile or previously restricted name fields are now processed differently."*; re-read 11/11/2026.</sub>
 
 ```dql
 // Top 15 errors by frequency — the most common error messages

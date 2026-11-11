@@ -1,6 +1,6 @@
 # S2D-01: Splunk to Dynatrace Migration - Getting Started
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 11/10/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -142,7 +142,13 @@ Plan for history instead:
 
 The `splunksearchapireceiver` Collector component, which ships in the Dynatrace Bindplane OTel Collector distribution, exports Splunk search results with each event's original `_time` as the record timestamp, so it is bound by the same age limit and cannot backfill history either.
 
-> <sub>**Sources:** [Log Management and Analytics default limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits), [SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348), [splunksearchapireceiver at v1.2.0 (Dynatrace GitHub)](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/tree/v1.2.0/receiver/splunksearchapireceiver). **Code read (10/29/2026):** `model.go` maps the search result's `_time` to `Time`; `receiver.go` parses it and passes it to `log.SetTimestamp`; `metadata.yaml` lists `distributions: [Dynatrace-Bindplane]`.</sub>
+**If your archive is text files in Amazon S3, a Preview can query it in place.** SaaS 1.348 (staged tenant rollout from 10/12/2026) introduces *Query external cloud data with DQL (Preview)*. Grail reads files you reference through an External Data Store and parses them at read time with DPL, while the files stay in your bucket. Access is by request. The preview covers Amazon S3 only and text formats only (JSON, NDJSON, CSV, XML and plain text), so check your archive's format against that list before counting on it. A second preview phase, with no start date yet, is described as importing archived S3 logs into Grail with their original timestamps preserved. Until either phase is available to you, the plan above stands: keep history readable where it is.
+
+> <sub>**Sources:**</sub>
+> - <sub>[Log Management and Analytics default limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits)</sub>
+> - <sub>[SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"Rollout start on Oct 12, 2026"*; *"You can now read and analyze data stored in the cloud directly with DQL, providing access to historical data and archives in common formats such as JSON, NDJSON, CSV, XML, or plain text."*</sub>
+> - <sub>[Preview program (DT docs)](https://docs.dynatrace.com/docs/whats-new/preview-releases) — *"The computation runs in Grail while the data stays in your S3 bucket, so archived data stays queryable without a rehydration step."*; *"The preview is limited to Amazon S3 only, with text-based data formats."*; *"Preview phase 2 (start date to be communicated): Import and process archived logs from S3 into Grail, with their original timestamps preserved"*</sub>
+> - <sub>[splunksearchapireceiver at v1.2.0 (Dynatrace GitHub)](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/tree/v1.2.0/receiver/splunksearchapireceiver). **Code read (10/29/2026):** `model.go` maps the search result's `_time` to `Time`; `receiver.go` parses it and passes it to `log.SetTimestamp`; `metadata.yaml` lists `distributions: [Dynatrace-Bindplane]`.</sub>
 
 <a id="series-roadmap"></a>
 ## Series Roadmap

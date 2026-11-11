@@ -169,6 +169,16 @@ Locators are **CSS** or **DOM**. The recorder may capture several per element, a
 
 > <sub>**Sources:** [Types of clickpath steps (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-configure-browser-monitors/browser-clickpath-steps) — *"Locators are evaluated sequentially; if the first locator isn't found, the second is evaluated, and so on until there's a match."*</sub>
 
+### Pages with Cross-Origin Frames
+
+Payment forms, identity-provider login widgets and third-party chat components usually load in a cross-origin iframe. Such a page can pass even when the embedded content fails or loads slowly.
+
+With **SaaS 1.348** (staged tenant rollout from 10/12/2026), browser monitors get a `monitorCrossOriginFrames` setting alongside the existing `monitorFrames` setting. It is on by default for every existing monitor that already monitors frames, and results then include timing and error data from the cross-origin frames. Verify the release has reached your tenant before relying on it. Until it has, a passing result does not prove the embedded frame loaded: add a clickpath step that interacts with the frame, such as the login in § 4.
+
+If frame monitoring gives unexpected results, or raises CPU on a private Synthetic location, set `monitorCrossOriginFrames` to `false` for that monitor only.
+
+> <sub>**Sources:** [SaaS 1.348 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"For all existing monitors that have frames monitoring enabled, the new setting is enabled by default as well."*; *"These pages can report a successful test result even when the iframe content fails to load or loads slowly."*; *"set monitorCrossOriginFrames to false in the monitor configuration to disable it for that monitor."*</sub>
+
 ```dql
 // Clickpath step performance — per-step duration (metrics path)
 // Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are

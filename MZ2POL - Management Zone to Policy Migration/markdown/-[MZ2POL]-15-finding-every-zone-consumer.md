@@ -204,7 +204,7 @@ Two schema pages add the same advice next to the zone property: *"It is recommen
 
 `builtin:monitoredentities.grail.security.context` does not name a zone — it consumes all of them. Where an entity type's destination property is `managementZones`, the entity's `dt.security_context` is a copy of its zone names, and *"managementZones is the default value for the majority of entity types."* Every entity-access policy or boundary that matches on such a value is a hidden consumer of that zone's **name** (§6). The cell reports these mappings as `(every zone)` rows. MZ2POL-00 §5 Check C measures how many entities carry such copies.
 
-The schema itself is on Dynatrace's list of Settings 2.0 schemas removed in Latest Dynatrace — `builtin:monitoredentities.grail.security.context`, *Grail security context for monitored entities*, status **Removed** — and the list states: *"None of the schemas on this page are visible in Latest Dynatrace."* The cell reads this schema by ID, and the same page says: *"If you use configuration-as-code or other automations that reference these schemas by ID, you need to update these automations before the schemas are removed from your environment."*
+The schema itself is on Dynatrace's list of Settings 2.0 schemas removed in Latest Dynatrace — `builtin:monitoredentities.grail.security.context`, *Grail security context for monitored entities*, status **Removed** — and the list states: *"None of the schemas on this page are visible in Latest Dynatrace."* The cell reads this schema by ID, so it first checks that the environment still offers it: where it does not, the cell returns a single `(not checked)` row for the schema instead of reading it, because the docs do not say what a read returns once the schema is gone. The same page says: *"If you use configuration-as-code or other automations that reference these schemas by ID, you need to update these automations before the schemas are removed from your environment."*
 
 ### How the cell matches
 
@@ -218,7 +218,7 @@ The cell reads every object of the five schemas plus the mapping schema, walks e
 
 > **Read the result as a floor, not a total.** The Settings API answers *"Accessible objects returned."* — an identity that cannot see an object gets no row for it, not an error. Run the cell as a user with read access to every object. If your identity also holds `settings:objects:admin`, `adminAccess: true` on the request makes it *"act as if the user is the owner of all objects"*.
 
-> **Execution status:** executed on the validation tenant (10/19/2026): 27 rows across the five schemas — 15 alerting profiles (matched by objectId), 8 problem notifications reached through their alerting profile, 2 maintenance windows (objectId) and 2 metric events (numeric ID). 4 of them point at zones that no longer exist. Every settings object the §8 audit-log query found is in this output, and every match is on a zone-typed property, so objects that only mention a zone in free text add no rows. The security-context mapping added one `(every zone)` row for each of the 323 entity types it copies zone names to.
+> **Execution status:** executed on the validation tenant (10/19/2026): 27 rows across the five schemas — 15 alerting profiles (matched by objectId), 8 problem notifications reached through their alerting profile, 2 maintenance windows (objectId) and 2 metric events (numeric ID). 4 of them point at zones that no longer exist. Every settings object the §8 audit-log query found is in this output, and every match is on a zone-typed property, so objects that only mention a zone in free text add no rows. The security-context mapping added one `(every zone)` row for each of the 323 entity types it copies zone names to. Re-run 11/11/2026 with the schema check: the schema was still offered, and the result was unchanged — the same 27 rows and 323 `(every zone)` rows. With the schema ID replaced by one that does not exist, the cell returned a single `(not checked)` row in place of the mapping rows.
 
 > <sub>**Sources:**</sub>
 > - <sub>[IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — *"or settings objects of the schemas builtin:alerting.maintenance-window, builtin:alerting.profile,"* *"builtin:anomaly-detection.metric-events, builtin:monitoring.slo and builtin:problem.notifications."*</sub>
@@ -232,7 +232,7 @@ The cell reads every object of the five schemas plus the mapping schema, walks e
 > - <sub>[Settings API - GET objects (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/objects/get-objects) — *"Accessible objects returned."*; `adminAccess`: *"act as if the user is the owner of all objects"*; on later pages *"you must omit all other query parameters"*</sub>
 
 ```python
-import { settingsObjectsClient, settingsManagementZonesClient } from "@dynatrace-sdk/client-classic-environment-v2";
+import { settingsObjectsClient, settingsManagementZonesClient, settingsSchemasClient } from "@dynatrace-sdk/client-classic-environment-v2";
 
 // The five schemas the IAM policy reference lists as zone-aware, plus the Grail security-context mapping.
 const SCHEMAS = [
@@ -343,14 +343,22 @@ export default async function () {
   });
 
   // Zone-wide consumer: entity types whose Grail security context is copied from zone names.
-  const scMappings = await getObjects(SECURITY_CONTEXT_SCHEMA);
-  scMappings.forEach((o) => {
-    // The schema has two text properties: entityType and destinationProperty.
-    const v = (o.value ?? {}) as { entityType?: string; destinationProperty?: string };
-    if (v.destinationProperty === "managementZones") {
-      hits.push({ zone: "(every zone)", matchedBy: "zone names copied to dt.security_context", hop: 1, schema: SECURITY_CONTEXT_SCHEMA, objectId: o.objectId ?? "", summary: `entity type: ${v.entityType ?? ""}`, path: "value.destinationProperty", via: "" });
-    }
-  });
+  // This schema is on the list of schemas removed in Latest Dynatrace, and the docs do not say what reading it
+  // returns once it is gone. Check that the environment still offers it, and say so in a row if it does not,
+  // so a removed schema is never mistaken for "no mappings".
+  const schemas = await settingsSchemasClient.getAvailableSchemaDefinitions();
+  if (!schemas.items.some((s) => s.schemaId === SECURITY_CONTEXT_SCHEMA)) {
+    hits.push({ zone: "(not checked)", matchedBy: "schema not offered on this environment", hop: 1, schema: SECURITY_CONTEXT_SCHEMA, objectId: "", summary: "", path: "", via: "" });
+  } else {
+    const scMappings = await getObjects(SECURITY_CONTEXT_SCHEMA);
+    scMappings.forEach((o) => {
+      // The schema has two text properties: entityType and destinationProperty.
+      const v = (o.value ?? {}) as { entityType?: string; destinationProperty?: string };
+      if (v.destinationProperty === "managementZones") {
+        hits.push({ zone: "(every zone)", matchedBy: "zone names copied to dt.security_context", hop: 1, schema: SECURITY_CONTEXT_SCHEMA, objectId: o.objectId ?? "", summary: `entity type: ${v.entityType ?? ""}`, path: "value.destinationProperty", via: "" });
+      }
+    });
+  }
 
   return hits.sort((a, b) => a.zone.localeCompare(b.zone) || a.hop - b.hop || a.schema.localeCompare(b.schema));
 }
@@ -546,6 +554,7 @@ Access is configured in the **account**, not the tenant, so a tenant identity ca
 What each condition means:
 
 - `environment:management-zone` on the **environment** service scopes the classic roles — `environment:roles:viewer`, `manage-settings`, `logviewer` and the rest — to a zone. The role-migration guide shows the form: `ALLOW environment:roles:viewer WHERE environment:management-zone=…` (MZ2POL-12 §8 maps each role).
+- **Request naming access follows zones until you opt in to IAM (SaaS 1.349, rollout start 10/27/2026).** SaaS 1.349 moves request naming permissions to IAM policies *"instead of management zones"*, with the security context setting which services each policy covers. It is an opt-in switch in Settings, and *"Users without a matching policy lose access."* Until the switch is on, zone scoping still decides who may change request naming rules — so write the policies before you turn it on, and before you delete the zones.
 - `environment:management-zone` on the **settings** service scopes `settings:objects:read` / `write`. This is the condition the scoped-settings upgrade says will *"never match"* after the transition (MZ2POL-12 §5).
 - `extensions:management-zone` — *"A string that uniquely identifies a single management zone for monitoring configuration assignment"* — scopes Extensions 2.0 monitoring-configuration permissions to a zone.
 - A `dt.security_context` value that is a zone name names no zone at all, yet it stops matching the moment the zone is renamed, deleted, or the mapping in §3 is changed. The upgrade guide lists *"Security context conditions that are derived from management zones."* among the affected conditions.
@@ -625,6 +634,7 @@ done
 > - <sub>[IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `extensions:management-zone`: *"A string that uniquely identifies a single management zone for monitoring configuration assignment"*</sub>
 > - <sub>[Upgrade role-based permissions to Dynatrace IAM policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles) — *"Classic RBAC roles can also be expressed in policies."*</sub>
 > - <sub>[Upgrade your security policies for scoped settings access (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-scoped-settings-objects) — *"Security context conditions that are derived from management zones."*</sub>
+> - <sub>[Dynatrace SaaS release notes 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-349) — *"Request naming permissions now follow your IAM policies, like the rest of the latest Dynatrace, instead of management zones."*, *"Users without a matching policy lose access."*</sub>
 
 ---
 
@@ -655,6 +665,8 @@ rg -n --hidden -g '!.git' \
 
 Then search for each zone's three identifiers from §2. That last step catches zone IDs hard-coded into dashboards-as-JSON, runbooks and alert templates that none of the patterns above describe.
 
+**The Problems API v2 is deprecated (API 1.349, rollout start 10/27/2026).** The API changelog tags `GET /problems`, `GET /problems/{problemId}` and the problem-comment endpoints *Deprecated*. Deprecated is not removed, so a caller the search finds is still live and still filters by zone. Treat it as code to move rather than re-point: the zone-free replacement for problem routing is the problem-triggered workflow in MZ2POL-09.
+
 Monaco's documentation marks zone-scoped group permissions as `# classic Dynatrace only`, and its classic-dashboard example binds a zone by ID: `"id": "{{ .managementZoneId }}"`, a dashboard filter that *"Sets a management zone filter on the entire dashboard"*.
 
 ### Which API callers to chase
@@ -665,6 +677,7 @@ The audit log cannot show the selector, but it can name the callers that use the
 > - <sub>[Metrics API - GET metric data points (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/get-data-points) — `mzSelector`: *"The management zone scope of the query."*, *"Only metrics data relating to the specified management zones are included to the response."*</sub>
 > - <sub>[Entity selector (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/entity-v2/entity-selector) — `mzId("123456789","987654321")`</sub>
 > - <sub>[Problems API v2 - GET problems list (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/problems-v2/problems/get-problems-list) — `managementZoneIds("mZId-1", "mzId-2")`</sub>
+> - <sub>[Dynatrace API changelog 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-349) — Environment API v2: *"GET /problems Deprecated"*, *"Rollout start on Oct 27, 2026"*</sub>
 > - <sub>[Monaco configuration YAML - type fields (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas-type-fields) — *"classic Dynatrace only"*</sub>
 > - <sub>[Monaco configuration YAML - special configuration types (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/special-configuration-types-saas) — *"Sets a management zone filter on the entire dashboard"*</sub>
 > - <sub>[dynatrace_management_zone_v2 (Dynatrace GitHub)](https://raw.githubusercontent.com/dynatrace-oss/terraform-provider-dynatrace/main/docs/resources/management_zone_v2.md) — *"The resource `dynatrace_management_zone_v2` covers configuration for management zones"*</sub>

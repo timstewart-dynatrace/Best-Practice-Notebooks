@@ -1,6 +1,6 @@
 # MZ2POL-11: Translating Management Zone Rules into Source Attributes
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 12 of 17 | **Created:** October 2026 | **Last Updated:** 11/09/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 12 of 17 | **Created:** October 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -138,6 +138,7 @@ The 198 property keys fall into a dozen families. For each family, the table nam
 | **Cloud tags** — `EC2_INSTANCE_TAGS`, `AZURE_ENTITY_TAGS`, `AWS_*_TAGS` | Central cloud-tag enrichment (new cloud connections, Dynatrace 1.348+; staged rollout) maps a tag to `dt.security_context` or a cost field, or forwards it as `aws.tags.<key>`; mapping straight to a primary tag is not yet available as a target, so promote the forwarded field with an OpenPipeline primary Grail tag rule (FAQ-26 §5.4). These rules tag only cloud-connection data. For OneAgent data on the same VM (the usual case for `EC2_INSTANCE_TAGS`), enable instance tags in instance metadata and map the `aws.tags.<key>` host properties with a Host/Process property rule (FAQ-26 §5.1) | `dt.security_context`, or `primary_tags.<key>` via OpenPipeline | Via `dt.security_context` only |
 | **Host name** — `HOST_NAME`, `HOST_DETECTED_NAME`, `HOST_ONEAGENT_CUSTOM_HOST_NAME` | Central enrichment rule on `host.name` (condition or DPL extraction) | `primary_tags.<key>` | `storage:host.name` is a documented condition, but the dictionary marks `host.name` `experimental` and names change — prefer `dt.security_context` |
 | **Host tags** — `HOST_TAGS` | Central enrichment rule on `host.tags.<key>`, or re-set with a `primary_tags.` prefix | `primary_tags.<key>` | Via `dt.security_context` only |
+| **Resource attributes** — `RESOURCE_ATTRIBUTES` (host), `GROUP_RESOURCE_ATTRIBUTES` (process group); Dynatrace Managed added resource-attribute conditions to zone and auto-tagging rules in 1.350 | Re-set the value at the source under a `primary_tags.` key (host tag, `DT_TAGS`, `OTEL_RESOURCE_ATTRIBUTES`). OneAgent adds primary fields and primary tags as top-level fields on every signal; promote any other attribute key to one | `primary_tags.<key>` (+ `dt.security_context`) | Via `dt.security_context` only |
 | **Host metadata** — `HOST_CUSTOM_METADATA` | Move to host tags, then promote (OneAgent 1.345 derives host `primary_tags` from host tags, not host properties) | `primary_tags.<key>` | Via `dt.security_context` only |
 | **Process group** — `PROCESS_GROUP_NAME`, `PROCESS_GROUP_DETECTED_NAME`, `PROCESS_GROUP_*_METADATA`, `DOCKER_*` | `DT_TAGS` on the process, or a central rule conditioned on the process group | `primary_tags.<key>` | Via `dt.security_context` only |
 | **Service** — `SERVICE_NAME`, `SERVICE_TAGS`, `SERVICE_TYPE`, `SERVICE_WEB_*`, `SERVICE_DATABASE_*` | Set on the **process** that provides the service (`DT_TAGS`); service metrics inherit from its spans | `primary_tags.<key>` | Via `dt.security_context` only |
@@ -164,6 +165,8 @@ The 198 property keys fall into a dozen families. For each family, the table nam
 > - <sub>[What's new in OneAgent 1.345 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-345) — *"Starting with OneAgent version 1.345, the OS Agent derives primary_tags from host tags (hostautotag.conf) rather than from host properties (hostcustomproperties.conf) at the host level."*</sub>
 > - <sub>[IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — record-level conditions on `storage:logs:read` and `storage:metrics:read` include `storage:dt.host_group.id`, `storage:k8s.namespace.name`, `storage:host.name`, `storage:aws.account.id` and `storage:dt.security_context`; no `primary_tags` condition is listed.</sub>
 > - <sub>**Dictionary:** `dt.host_group.id`, `k8s.cluster.name`, `k8s.namespace.name`, `aws.account.id`, `azure.subscription`, `gcp.project.id` (`stable`, tagged `permission`, `primary-field`); `frontend.name` (`stable`, `permission`); `host.name` (`experimental`, `permission`); `primary_tags.__key__` (`experimental`, no tags), read 10/13/2026.</sub>
+> - <sub>[What's new in Dynatrace Managed 1.350 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-350) — *"Resource attributes available as part of the topology model, management zones, and auto-tagging rules"*</sub>
+> - <sub>[What's new in OneAgent 1.331 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-331) — *"All primary fields and primary tags are added as top-level fields for metrics, spans, logs, business events, and Smartscape entities"*</sub>
 > - <sub>**Derived:** the family grouping and "where the value comes from now" column combine the schema keys with the per-producer enrichment paths in FAQ-26 §5.</sub>
 
 <a id="operator-translation"></a>

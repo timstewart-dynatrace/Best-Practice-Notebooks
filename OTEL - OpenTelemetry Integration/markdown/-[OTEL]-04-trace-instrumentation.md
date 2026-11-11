@@ -1,6 +1,6 @@
 # OTEL-04: Trace Instrumentation
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 4 of 8 | **Created:** January 2026 | **Last Updated:** 10/28/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 4 of 8 | **Created:** January 2026 | **Last Updated:** 11/11/2026
 
 ## Instrumenting Applications for Distributed Tracing
 Traces provide visibility into request flows across services. This notebook covers automatic and manual instrumentation techniques for popular languages with OpenTelemetry.
@@ -503,7 +503,7 @@ service:
 | Keep cardinality low | Query performance |
 | Don't include PII | Security |
 | Add business context | Debugging value |
-| Prefer platform-native feature-flag enrichment where available | OneAgent 1.343 adds OpenFeature SDK support for Java — verify the agent version on the hosts concerned; hand-set flag-variant attributes remain the portable fallback (SPANS-02 § 7a) |
+| Prefer platform-native feature-flag enrichment where available | OneAgent adds OpenFeature SDK support for Java (1.343) and Python (1.347, OpenFeature SDK 0.8.0+) — verify the agent version on the hosts concerned; hand-set flag-variant attributes remain the portable fallback (SPANS-02 § 7a) |
 
 ### Performance Tips
 

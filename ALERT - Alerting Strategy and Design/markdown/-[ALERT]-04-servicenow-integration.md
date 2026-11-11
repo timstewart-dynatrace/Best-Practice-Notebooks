@@ -1,6 +1,6 @@
 # ALERT-04: ITSM Integration: ServiceNow
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 04 of 05 | **Created:** June 2026 | **Last Updated:** 11/09/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 04 of 05 | **Created:** June 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -111,6 +111,10 @@ The connection authenticates with **Basic Authentication** or **OAuth Client Cre
 ## 4. Rung 3 — ServiceNow-Side Event Management
 
 For ITOM-centric organisations, the apps installed on the ServiceNow side are the richest option. Dynatrace names two that do the incident work: the **Dynatrace Incident Integration** application, which creates incidents from Dynatrace problems, and the **Event Management Connector**, which takes Dynatrace problem events into ITOM Event Management as alerts and incidents. Dynatrace's ServiceNow integration page describes what the integration fills: problems go to the `incident` table, the events correlated with a problem go to the ITOM event table (`em_event`), affected CIs go to `task_ci`, and, if enabled, discovered services go to the CMDB. When the problem closes in Dynatrace, the incident is marked *Resolved* in ServiceNow.
+
+> **SaaS 1.350 (rollout start 11/04/2026, staged tenant rollout): a workflow route into Event Management.** The ServiceNow Connector gains a **Send ITOM Event** action, which *"sends a single event to ServiceNow Event Management using the ITOM inbound web service"*, and a workflow template, *Send problem as ITOM event to ServiceNow*, that opens a ServiceNow alert when a problem opens and closes it when the problem closes. ServiceNow then correlates the events into alerts with its own rules, and deduplicates them on the Message Key. Setup has two sides: a Dynatrace Monitor push connector in ServiceNow, and an ITOM events connection in Dynatrace. An alert binds to a CMDB configuration item only when one matches. With the Service Graph Connector for Dynatrace SaaS it matches on the Dynatrace ID; without it, on entity name, ID and type, and unmatched alerts stay unbound. Verify the action has reached your tenant; until it does, the ServiceNow-side apps above remain the Rung 3 path. WFLOW-05 lists the action alongside the incident operations.
+>
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.350 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-350) — *"The template creates a ServiceNow alert when a problem opens and closes that alert when the problem closes."*; [ServiceNow Connector actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now/automation-workflows-service-now-actions) — *"ServiceNow uses the Message Key to deduplicate incoming events and correlate them into the same alert."* and *"Alerts that don't match any CI remain unbound."*; [Set up ServiceNow Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now/set-up-servicenow-connector) — *"ITOM integration: Dynatrace sends raw events to ServiceNow Event Management, which correlates them into alerts based on your own ServiceNow configuration."*</sub>
 
 Everything those pages describe flows from Dynatrace to ServiceNow. Neither describes incident state or work notes flowing back onto the Dynatrace problem. If you need that direction, check the documentation of the ServiceNow app version you install, or build it as a workflow that polls ServiceNow and comments on the problem (WFLOW-05 §6).
 

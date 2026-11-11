@@ -1,6 +1,6 @@
 # MOBL-02: iOS SDK Setup (Swift & SwiftUI)
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 2 of 12 | **Created:** February 2026 | **Last Updated:** 10/29/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 2 of 12 | **Created:** February 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -335,7 +335,7 @@ This query checks for recent mobile user actions received from iOS devices in th
 // Mobile RUM is stored in user.events (one record per event, typed by the
 // characteristics.has_* flags) and user.sessions -- not in bizevents.
 fetch user.events, from:-1h
-| filter dt.rum.application.type == "mobile" and os.name == "iOS"
+| filter in(dt.rum.agent.type, {"android", "ios"}) and os.name == "iOS"
 | filter characteristics.has_user_action
 | summarize action_count = count(), by:{frontend.name, ui_element.detected_name, interaction.type}
 | sort action_count desc

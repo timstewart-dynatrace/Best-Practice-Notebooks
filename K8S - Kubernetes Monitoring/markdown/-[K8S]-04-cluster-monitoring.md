@@ -1,6 +1,6 @@
 # K8S-04: Cluster Health Monitoring
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 4 of 14 | **Created:** January 2026 | **Last Updated:** 10/15/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 4 of 14 | **Created:** January 2026 | **Last Updated:** 11/11/2026
 
 ## Deep-Dive into Kubernetes Cluster Metrics
 Cluster health monitoring provides visibility into the infrastructure layer of Kubernetes: nodes, control plane, and cluster-wide resources. This notebook covers key metrics, thresholds, and DQL queries for proactive cluster management.
@@ -323,9 +323,21 @@ Kubernetes events are ingested into the **`events`** object, not into `logs`. Tw
 |---|---|
 | `fetch events \| filter event.kind == "K8S_EVENT"` | **`event.kind` never takes that value.** Over 24 h on a live tenant (08/11/2026) the only values present were `DAVIS_EVENT`, `SYNTHETIC_EVENT`, `FLEET_EVENT` and `DAVIS_PROBLEM`. Kubernetes events carry `event.kind == "DAVIS_EVENT"`, so *kind* cannot discriminate them. Zero rows, no error. |
 | `fetch logs \| filter matchesPhrase(log.source, "kubernetes")` | Zero rows **after scanning 46.5 GB** (same tenant, same window). Expensive and empty — the worst combination. |
-| `k8s.event.reason` | The field resolves but is **null on every Kubernetes event record**. Another silent zero. |
+| `k8s.event.reason` | The field resolves but is **null on every Kubernetes event record**. Another silent zero. Semantic Dictionary 1.350 (09/21/2026) adds `k8s.event.reason`, `k8s.event.type` and `k8s.event.involved_object.kind` to the global field reference, but on the validation tenant (11/11/2026) all three were still null on 6,351 of 6,351 Kubernetes event records over 24 h, while `dt.kubernetes.event.reason` was set on all of them. Keep querying `dt.kubernetes.event.*`, and re-run the comparison below before moving a query to the new names. |
 
 **The correct discriminator is `event.provider == "KUBERNETES_EVENT"`**, and the reason field is **`dt.kubernetes.event.reason`**. Companion fields on the same records: `dt.kubernetes.event.message`, `.count`, `.first_seen`, `.last_seen`, `.involved_object.kind`, `.involved_object.name`, plus the standard `k8s.cluster.name` / `k8s.namespace.name` / `k8s.pod.name` / `k8s.workload.name` / `k8s.node.name` dimensions.
+
+To check which name family carries data in your environment:
+
+```dql
+fetch events, from:-24h
+| filter event.provider == "KUBERNETES_EVENT"
+| summarize total = count(),
+    k8s_event_reason = countIf(isNotNull(k8s.event.reason)),
+    dt_kubernetes_event_reason = countIf(isNotNull(dt.kubernetes.event.reason))
+```
+
+> <sub>**Sources:** [Semantic Dictionary changelog 1.350 (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-350) — *Global field reference*, change type *Added*: `k8s.event.involved_object.kind`, `k8s.event.reason`, `k8s.event.type`. **Dictionary:** no row for `k8s.event` or `dt.kubernetes.event` under `filter startsWith(name, …)` in `dt.semantic_dictionary.fields`, read 11/11/2026 (control: the same query on `"k8s."` returned rows such as `k8s.cluster.name`).</sub>
 
 ### Event Reasons to Monitor
 
@@ -504,11 +516,16 @@ The thresholds are common starting points from community practice; tune them to 
 
 Dynatrace ships Kubernetes anomaly detection as settings at four scopes — `builtin:anomaly-detection.kubernetes.cluster`, `.node`, `.namespace` and `.workload`. The node scope, for example, has *"Detect node readiness issues"* (*"Evaluates node condition 'Ready'"*), *"Detect problematic node conditions"* (MemoryPressure, DiskPressure and the others), and CPU-requests, memory-requests and pod saturation. Turn these on before writing your own.
 
+**Recommended defaults are opt-in for existing environments.** SaaS 1.348 (rollout from 10/12/2026) ships updated default values for these ready-made alerts. Environments created on 1.348 or later get them automatically; an existing environment keeps its current configuration until someone selects **Apply recommended values** under **Settings > Analyze and alert > Alerts > Kubernetes**. Review before applying: four alerts that are off today — stuck deployments, workloads without ready pods, pod backoff events and pod eviction events — switch on with Critical severity and *"will start opening problems."* Separately, and with no action needed, several Kubernetes alerts that used to raise a problem are now **warning signals**, which flag an issue without opening a problem. If a workflow routes on Kubernetes problems, check which alerts still open one.
+
 ### Custom alerts
 
 For conditions the built-in settings do not cover, create a custom alert on a DQL query such as the § 2 node-conditions query. From SaaS 1.344 custom alerts live in **Settings**; before that, in the Anomaly Detection app (see K8S-07 § 7).
 
-> <sub>**Sources:** [Kubernetes node anomaly detection schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-anomaly-detection-kubernetes-node) — *"Evaluates node condition 'Ready'"*.</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[Kubernetes node anomaly detection schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-anomaly-detection-kubernetes-node) — *"Evaluates node condition 'Ready'"*.</sub>
+> - <sub>[SaaS 1.348 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"Rollout start on Oct 12, 2026"*; *"New environments created in Dynatrace version 1.348+ get these defaults automatically. Existing environments adopt them in Anomaly detection settings for Kubernetes by selecting Apply recommended values."*</sub>
+> - <sub>[Kubernetes alerting (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/kubernetes-app/reference/kubernetes-alerting) — *"they are not applied automatically — your current configuration isn't affected until you explicitly apply them"*; *"The following alerts are currently disabled and become enabled with Critical severity when you apply the recommended defaults. Review them before applying, since they'll start opening problems."*; *"Kubernetes alerts that previously raised a problem have been reclassified as warning signals."*</sub>
 
 ## Next Steps
 

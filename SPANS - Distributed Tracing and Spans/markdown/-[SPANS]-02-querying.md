@@ -1,6 +1,6 @@
 # SPANS-02: Querying Spans with DQL
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 10/28/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 11/11/2026
 
 ## Mastering Span Queries in Dynatrace
 This notebook covers essential techniques for querying and filtering span data to find exactly what you need. You'll learn to filter by service, operation, and attributes to quickly locate relevant traces.
@@ -261,11 +261,20 @@ fetch spans, from:-1h
 ```
 
 ```dql
-// Find all spans for a specific trace ID
-// Replace YOUR_TRACE_ID with an actual trace.id from above
+// Find all spans of one trace. The subquery picks the trace of the most recent root server span,
+// so the cell runs as-is. To inspect a trace you chose from the cell above, use
+//   | filter trace.id == toUid("<trace.id>")
+// in place of the in [ ... ] filter. trace.id is a uid: keep the toUid() wrapper — a plain
+// string never matches. (Executed 11/11/2026; until then this cell shipped with the filter
+// commented out and returned 100 unrelated spans.)
 fetch spans, from:-1h
-// trace.id is a uid: keep the toUid() wrapper — a plain string never matches.
-// | filter trace.id == toUid("YOUR_TRACE_ID")
+| filter trace.id in [
+    fetch spans, from:-1h
+    | filter span.kind == "server" and isNull(span.parent_id)
+    | sort start_time desc
+    | limit 1
+    | fields trace.id
+  ]
 | fields start_time, span.id, span.parent_id, span.name, dt.service.name, duration
 | sort start_time asc
 | limit 100
@@ -412,6 +421,10 @@ fetch spans, from:-1h
 ### Feature-flag context on spans
 
 **OneAgent 1.343+.** OneAgent 1.343 also adds **OpenFeature SDK support for Java**, enriching traces with feature-flag evaluation data. The value is attribution rather than novelty: a latency or error difference can be tied to the flag *variant* that produced it, instead of inferred from deploy timing and a change log. As with gRPC status codes, this ships per agent fleet — **verify the OneAgent version on the Java hosts concerned.**
+
+**Python from OneAgent 1.347** (rollout from 09/30/2026): OneAgent adds OpenFeature flag monitoring for Python, for the OpenFeature SDK 0.8.0 and later. The same per-fleet rule applies — verify the OneAgent version on the Python hosts concerned.
+
+> <sub>**Sources:** [OneAgent 1.347 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-347) — *"Rollout start on Sep 30, 2026"*; *"Added reporting OpenFeature flag monitoring for Python."*, [Technology support news (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology) — under *1.347 OneAgent*: *"OpenFeature SDK 0.8.0+ (Python module)"*</sub>
 
 **The pre-1.343 working path is unchanged and stays valid:** set the flag variant yourself as a custom span attribute at instrumentation time (see **OTEL-04 § 5 — Span Attributes and Events**) and query it like any other business attribute. That approach is also the portable one — it works on any runtime and any agent version, and it is what you fall back to for languages the platform-native enrichment does not cover.
 

@@ -220,7 +220,11 @@ This is the section that most often invalidates a diagram drawn before the trans
 
 ### 4.1 ZPA LSS — the constraint to design around
 
-LSS is configured as a **log receiver** defined by a host, a port, and an optional TLS flag; App Connectors open a TCP connection to it and stream. There is no HTTPS output and no custom-header support, which means **LSS cannot authenticate to the Dynatrace log ingest API**. Something must terminate the TCP stream and forward it. Your options:
+LSS is configured as a **log receiver** defined by a host, a port, and an optional TLS flag; App Connectors open a TCP connection to it and stream. There is no HTTPS output and no custom-header support, which means **LSS cannot authenticate to the Dynatrace log ingest API**. Something must terminate the TCP stream and forward it.
+
+> **Two pages describe the direction differently.** Zscaler describes LSS as a service that *"initiates a log stream through a Public Service Edge for Private Access"*, and says the App Connector *"receives the log stream and then forwards it to a log receiver"*. On that reading, the connection your receiver accepts comes from an App Connector in your own network, which is how this section describes it. The Dynatrace ZPA extension page (published 10/09/2026) says, about testing the inbound path, that *"LSS connects from the Zscaler cloud and there is no host there to run a command on."* This entry follows Zscaler, which documents its own data path. If your receiver admits only known sources, check at the shipper which addresses actually connect before you finalize firewall rules.
+
+Your options:
 
 | Terminator | When it fits |
 |---|---|
@@ -250,7 +254,8 @@ Practical consequences:
 - **Credential expiry is a silent failure.** The bearer token lasts an hour, so the poller re-authenticates on every run; a revoked or expired API key stops it. Nothing in Dynatrace knows the ZDX poller stopped. Alert on the *absence* of the ZDX metrics you extract, not just on their values.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Log Streaming Service (LSS) (Zscaler)](https://help.zscaler.com/zpa/about-log-streaming-service) — *"With the exception of audit log data, the LSS does not transmit any log data generated during a connection loss between the App Connector and the SIEM."*</sub>
+> - <sub>[Log Streaming Service (LSS) (Zscaler)](https://help.zscaler.com/zpa/about-log-streaming-service) — *"initiates a log stream through a Public Service Edge for Private Access"*; *"With the exception of audit log data, the LSS does not transmit any log data generated during a connection loss between the App Connector and the SIEM."*</sub>
+> - <sub>[Zscaler Private Access (ZPA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zpa) — *"LSS connects from the Zscaler cloud"*, read 11/11/2026</sub>
 > - <sub>[Configuring a Log Receiver (Zscaler)](https://help.zscaler.com/zpa/configuring-log-receiver) — one Log Type, one TCP port and one Log Template (CSV, TSV or JSON) per receiver configuration</sub>
 > - <sub>[Understanding the ZDX API (Zscaler Legacy APIs)](https://help.zscaler.com/legacy-apis/understanding-zdx-api) — *"Most Report API endpoints require a 2-hour time range to provide 2 hours of data."*; *"This can cause a delay from collection to reporting, which is estimated to be 20 minutes."*; *"If you receive a ZDX Score of -1 on the ZDX API, then there is no data available."*</sub>
 > - <sub>[Getting Started with the ZDX API (Zscaler Legacy APIs)](https://help.zscaler.com/legacy-apis/getting-started-zdx-api) — *"Be a ZDX Advanced Plan User."*; *"Upon successful authentication, a bearer token will last 3,600 seconds or 60 minutes."*</sub>
@@ -424,7 +429,7 @@ The highest-leverage design decision in this integration, and the one that pays 
 
 | Node type | Examples | Defined by | Why it earns entity status |
 |---|---|---|---|
-| `CUSTOM_SECURE_ACCESS_APP` | Salesforce, ServiceNow, Microsoft 365, `payroll-app` | ZPA User Activity (ZIA web logs only if you run your own ZIA pipeline instead of the extension) | The join key across all three planes. Routes metrics and alerts to the right application owner |
+| `CUSTOM_SECURE_ACCESS_APP` | Salesforce, ServiceNow, Microsoft 365, `payroll-app` | ZPA User Activity (ZIA web logs only if you run your own ZIA pipeline instead of the extension) | The join key across the planes you model yourself. Routes metrics and alerts to the right application owner. With the ZPA extension in place, a ZDX record can meet the extension's `ZPA_APPLICATION` entity only on the application name: the extension page lists its node types but not how their IDs are built, so a hand-built edge to them cannot be specified |
 | `CUSTOM_APP_CONNECTOR` | `dc1-connector-01` | ZPA App Connector Metrics | Enables connector health and saturation alerting — the clearest infrastructure win in the whole integration |
 | `CUSTOM_CONNECTOR_GROUP` | `finance-app-connectors` | ZPA connector metadata | Regional and application-specific operations; the natural grouping for on-call ownership |
 | `CUSTOM_SERVICE_EDGE` | `iad3-zpa-edge` | ZPA User Activity (`ClientZEN`) | Isolates edge-specific degradation from application-specific degradation |
@@ -440,7 +445,7 @@ The highest-leverage design decision in this integration, and the one that pays 
 
 Verify the model exists before building on it — `smartscapeNodes` returns zero rows rather than an error for a type that was never extracted, so an empty result proves only that the query is valid:
 
-> <sub>**Sources:** [Zscaler Internet Access (ZIA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zia) — the extension's ZIA Location / User / Tunnel entities, [Zscaler Private Access (ZPA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zpa) — the extension's ZPA entities, [Smartscape node and edge extraction in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/smartscape-extraction) — `CUSTOM_*` node and edge extraction, ID components, and the requirement that both IDs be present on the record before an edge processor runs, [Define custom topology via OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-topology) — end-to-end worked example. **Derived:** the five-node Zscaler model is this entry's proposal, not a documented reference architecture.</sub>
+> <sub>**Sources:** [Zscaler Internet Access (ZIA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zia) — the extension's ZIA Location / User / Tunnel entities, [Zscaler Private Access (ZPA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zpa) — *"The extension creates ZPA_USER, ZPA_APPLICATION, ZPA_APP_GROUP"* (no ID components documented, checked 11/11/2026), [Smartscape node and edge extraction in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/smartscape-extraction) — `CUSTOM_*` node and edge extraction, ID components, and the requirement that both IDs be present on the record before an edge processor runs, [Define custom topology via OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-topology) — end-to-end worked example. **Derived:** the five-node Zscaler model is this entry's proposal, not a documented reference architecture.</sub>
 
 ```dql
 // Which self-built (CUSTOM_*) Zscaler node types has extraction produced?
@@ -496,7 +501,7 @@ A starting point, **not a specification.** Zscaler field names vary by product l
 
 | Source | Field class | Example source fields | Canonical Dynatrace dimension | Purpose |
 |---|---|---|---|---|
-| ZPA User Activity | Identity / app | `Username`, `Application`, `AppGroup` | `user` (hashed), `app`, `app_group` | Access analytics; `app` is the cross-plane join key |
+| ZPA User Activity | Identity / app | `Username`, `Application`, `AppGroup` | `user` (hashed), `app`, `app_group` | Access analytics; `app` is the cross-plane join key — by name only where an extension owns the entity (§ 7) |
 | ZPA User Activity | Path | `ClientZEN`, `Connector`, `ClientCity` | `service_edge`, `connector`, `location` | Root-cause isolation; feeds the § 7 ID components |
 | ZPA User Activity | Timing | `ConnectionSetupTime`, `CAProcessingTime`, `AppLearnTime` | `setup_time` (unit not documented — confirm from your feed), `ca_time_us`, `app_learn_time_us` (documented in microseconds) | Latency **proxies** — Zscaler-observed, not endpoint experience |
 | ZPA Connector Metrics | Capacity | `CPUUtilization`, `Memory`, `ActiveConnections` | `connector.cpu`, `connector.memory`, `connector.connections` | Connector saturation alerting |

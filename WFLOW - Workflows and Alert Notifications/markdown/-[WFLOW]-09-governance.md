@@ -1,6 +1,6 @@
 # WFLOW-09: Security, Governance & Monitoring
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 9 of 10 | **Created:** January 2026 | **Last Updated:** 11/09/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 9 of 10 | **Created:** January 2026 | **Last Updated:** 11/11/2026
 
 ## Production Best Practices
 This last core notebook covers workflow security, governance, observability, and operational best practices for running workflows in production.
@@ -813,6 +813,14 @@ Examples:
 4. Verify execution
 
 > <sub>**Sources:** [client-automation SDK reference (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-automation/) — `exportWorkflow`, and `restoreWorkflowHistoryRecord`: *"Restores the workflow to the specified history version which is deployed afterward."*</sub>
+
+### Deleted Workflows Go to the Trash
+
+Deleting a workflow moves it to the trash rather than removing it. A trashed workflow does not run — *"Its schedule or event trigger does not start it, and you cannot start it through the API."* — a workflow that calls it as a sub-workflow fails, and a standard workflow stops consuming workflow-hours. *"Trashed workflows are kept for 30 days."* Until then it can be restored from the **Trash** tab, either live or as a draft only so the trigger can be reviewed before it fires again, or deleted permanently. *"To delete or restore a workflow, you need write permission on it."*
+
+The workflow's ID stays reserved while it is in the trash: *"If you create a workflow with the same ID as a trashed workflow, Dynatrace rejects it."* Automation that recreates workflows under fixed IDs needs the trashed copy restored or permanently deleted first.
+
+> <sub>**Sources:** [Delete and restore workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/manage-workflows/workflows-delete) — *"Trashed workflows are kept for 30 days."*, *"You cannot reuse the ID of a workflow that is in the trash."*</sub>
 
 <a id="operational-runbook"></a>
 ## 8. Operational Runbook

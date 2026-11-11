@@ -1,6 +1,6 @@
 # OPMIG-04: OpenPipeline Migration Guide: Part 4
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 4 of 10 | **Created:** December 2025 | **Last Updated:** 10/30/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 4 of 10 | **Created:** December 2025 | **Last Updated:** 11/11/2026
 
 ## Pipeline Configuration Fundamentals
 ---
@@ -66,6 +66,27 @@ SaaS 1.337 deprecated certain Configuration API endpoints: *"Many Configuration 
 > So: if you are moving automation off the Configuration API *today*, Settings v2 is the correct target and this table is the mapping. If you are planning the Gen3 migration, do not stop here — retarget these four onto OpenPipeline rather than rebuilding them as Settings v2 objects you will migrate again. See AUTOM-02's catalog for status and OPMIG §5–§7 for the pipeline equivalents.
 
 If your migration tooling reaches into the Configuration API for any of these, switch to the Settings v2 endpoints in Environment API v2 (see **AUTOM-02 § Sprint 1.337** for general patterns and **AUTOM-04 (Terraform)** for `dynatrace_settings` resource usage).
+
+### Starting from Your Classic Rules: Translate a Classic Pipeline (Early Access)
+
+The OpenPipeline API has an **Early Access** endpoint that translates your classic processing rules into an OpenPipeline pipeline configuration. Call `GET /platform/openpipeline/v1/classic-pipelines/translate` with `configuration=logs` or `configuration=bizevents`. Optional flags skip disabled rules (`skipDisabledRules`), skip built-in processing rules (`skipBuiltinProcessingRules`) or include sample data (`includeSampleData`). The token needs the `settings:objects:read` scope.
+
+```bash
+curl -s -H "Authorization: Bearer $DT_PLATFORM_TOKEN" \
+  "https://<your-environment-id>.apps.dynatrace.com/platform/openpipeline/v1/classic-pipelines/translate?configuration=logs&skipDisabledRules=true&skipBuiltinProcessingRules=true"
+```
+
+Treat the result as a draft for the pipeline you build in the sections below, not as a finished pipeline:
+
+- `value` holds the pipeline in the `builtin:openpipeline.logs.pipelines` (or `bizevents`) settings structure, but it may not pass Settings API validation as returned.
+- `withWarning: true` means at least one rule could not be translated and needs manual review. Rebuild those rules by hand with the processors covered in OPMIG-06 to OPMIG-08.
+- Early Access operations can change in incompatible ways, so do not build long-lived automation on this endpoint yet.
+
+If the endpoint is not available in your environment, the manual rebuild described in this series remains the working path.
+
+> <sub>**Sources:**</sub>
+> - <sub>[Translate a classic pipeline (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-openpipeline-v1/classic-pipelines-translate-get) — *"You provide the configuration scope to translate, either logs or bizevents, and can optionally include sample data or skip disabled and built-in processing rules."*; *"Note: the raw result may not fully pass validation against the Settings API."*; `withWarning` — *"Indicates whether at least one processor couldn't be translated automatically and needs manual review."*</sub>
+> - <sub>[OpenPipeline API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-openpipeline-v1) — *"Operations marked as early adopter or preview may be changed in non-compatible ways, although we try to avoid this."*</sub>
 
 ---
 

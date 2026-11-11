@@ -1,6 +1,6 @@
 # ADOPT-03: Success Metrics
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 3 of 6 | **Created:** March 2026 | **Last Updated:** 10/23/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 3 of 6 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -238,9 +238,12 @@ A problem that keeps recurring on one component is a known issue being re-report
 // The component is the root-cause entity when Dynatrace identified one, otherwise the first
 // affected entity — many problems have no root cause, and grouping on the root cause alone
 // would lump every occurrence of a type together.
+// root_cause.smartscape_entity and smartscape.affected_entities replace the deprecated
+// root_cause_entity_name and affected_entity_ids. Read the Smartscape fields first; the classic
+// fields still work and fill problems the Smartscape fields leave empty.
 fetch dt.davis.problems, from:-30d
 | filter dt.davis.is_duplicate == false
-| fieldsAdd component = coalesce(root_cause_entity_name, root_cause_entity_id, affected_entity_ids[0])
+| fieldsAdd component = coalesce(root_cause.smartscape_entity[name], root_cause_entity_name, smartscape.affected_entities[0][name], affected_entity_ids[0])
 | summarize {occurrences = count()}, by:{event.name, component}
 | filter occurrences >= 5
 | sort occurrences desc
@@ -288,12 +291,12 @@ This query joins each deployment to problems on the same affected entity and cou
 // Change failure rate proxy: deployments followed within 1 hour by a problem on the same entity
 fetch events, from:-7d
 | filter event.type == "CUSTOM_DEPLOYMENT"
-| fields deploy_id = event.id, deploy_time = timestamp, entity = affected_entity_ids
+| fields deploy_id = event.id, deploy_time = timestamp, entity = smartscape.affected_entities[][id]
 | expand entity
 | join [
     fetch dt.davis.problems, from:-7d
     | filter dt.davis.is_duplicate == false
-    | fields problem_id = event.id, problem_start = event.start, entity = affected_entity_ids
+    | fields problem_id = event.id, problem_start = event.start, entity = smartscape.affected_entities[][id]
     | expand entity
   ], kind:leftOuter, on:{entity}, fields:{problem_id, problem_start}
 | fieldsAdd followed = isNotNull(problem_start) and problem_start >= deploy_time and problem_start <= deploy_time + 1h
@@ -306,6 +309,13 @@ fetch events, from:-7d
 // mechanics; with no deployment events it returns deployments = 0. The window (1h) and the entity match
 // are choices — widen the window for slow-burning failures, and expect a problem that merely
 // coincides with a deployment to count as a failure.
+//
+// Both sides join on Smartscape node IDs (smartscape.affected_entities replaces the deprecated
+// affected_entity_ids). The classic field still works but names ENVIRONMENT-0000000000000001 for
+// entities that exist only in Smartscape and for environment-level events, so a classic join
+// matches unrelated events through the environment: re-run 11/11/2026 with CUSTOM_INFO over 24 h,
+// the classic form matched 8 of 1,786 events to a problem, 7 of them only through the environment;
+// this form matched 1. Keep both sides on the same field — the ID spaces differ.
 
 ```
 

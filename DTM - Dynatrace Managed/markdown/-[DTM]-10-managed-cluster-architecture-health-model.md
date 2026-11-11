@@ -1,6 +1,6 @@
 # DTM-10: Managed Cluster Architecture and Health Model
 
-> **Series:** DTM — Dynatrace Managed | **Reference:** 10 — Managed Cluster Architecture and Health Model | **Created:** September 2026 | **Last Updated:** 11/10/2026
+> **Series:** DTM — Dynatrace Managed | **Reference:** 10 — Managed Cluster Architecture and Health Model | **Created:** September 2026 | **Last Updated:** 11/11/2026
 
 > **Dynatrace Classic only.** This series applies to **Dynatrace Managed**, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.
 
@@ -42,7 +42,7 @@ This notebook is the map for the cluster-health notebooks, DTM-11 to DTM-16. It 
 | **Dynatrace deployment** | A self-hosted **Dynatrace Managed** cluster. Nothing in this series applies to Dynatrace SaaS. |
 | **Access** | Cluster Management Console (CMC) administrator access; for the Cluster API, a cluster API token with the `ServiceProviderAPI` permission |
 | **Query language** | None. Managed has no Grail, so this series has **no DQL cells** — every check is a CMC view, a cluster event, or a Cluster API call |
-| **Version basis** | Written against the Managed documentation read 09/25/2026, when 1.342 – 1.346 were the generally supported releases |
+| **Version basis** | Written against the Managed documentation read 09/25/2026 and re-checked 11/10/2026, when the release-notes page listed 1.346, 1.348 and 1.350 as supported and 1.344 as supported only with Enterprise Success and Support |
 
 <a id="short-answer"></a>
 ## 1. Short Answer

@@ -1,6 +1,6 @@
 # WEBRUM-08: Dashboards and Alerting
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 8 of 10 | **Created:** March 2026 | **Last Updated:** 10/31/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 8 of 10 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -114,6 +114,10 @@ The threshold T is configurable per application. Common defaults:
 | Page load | 3 seconds |
 | XHR action | 2.5 seconds |
 | Route change | 2.5 seconds |
+
+> **Experience score on the latest Dynatrace (SaaS 1.348, rollout from 10/12/2026, staged).** SaaS 1.348 adds an Apdex-based score on Grail. Each scored `user.events` record gets an `experience.level` (satisfied, tolerating or frustrated) and an `experience.weight`. These combine into `experience.score`, from 0 to 1, per frontend and per session. By default the classification uses user-action duration, and you can change it in OpenPipeline. On the validation tenant (24 h, 11/11/2026) none of 3,271 synthetic sessions carried a score, and the semantic dictionary has no row for the field yet. Until the score reaches your tenant, the DQL Apdex below is the working path. WEBRUM-09 maps the classic `userExperienceScore` to it.
+>
+> <sub>**Sources:** [What's new in SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"Experience Score is a new 0-1 score that reflects how good the users' experience with your frontend and session was."*, *"By default, this classification applies to user actions based on their duration, but it can be changed, extended, or replaced through OpenPipeline."*; re-read 11/11/2026. **Dictionary:** no row for `experience.score` / `experience.level`, read 11/11/2026 (control: `characteristics.has_user_action` returned `stable`).</sub>
 
 **Classify page loads on navigation events.** The Apdex, SLA and page-load alert queries below read `performance.load_event_end` on events with `characteristics.has_w3c_navigation_timings == true` — the field and filter Dynatrace's own page-load query uses. A page summary's `duration` is how long the page was open, not how long it took to load: a page summary covers the page instance until *"the next document request starts or when the tab is closed"*. Apdex built on it scores reading time. On the synthetic-only validation tenant (24 h, 10/05/2026) the same T = 3 s Apdex read 0.99 on load time and 0.32 on page-summary duration.
 

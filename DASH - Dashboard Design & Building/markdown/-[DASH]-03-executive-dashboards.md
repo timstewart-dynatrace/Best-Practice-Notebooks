@@ -1,6 +1,6 @@
 # DASH-03: Executive Dashboards
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -80,6 +80,8 @@ This is the tile most often asked for and most often wrong. Detected problems te
 > (success-rate, which measures requests rather than problems) or an **SLO** — see the SLO series,
 > which exists for exactly this.
 
+> **Counting affected entities across the field change.** The alert-notification upgrade guide: *"root_cause_entity_id and root_cause_entity_name are deprecated in favor of root_cause.smartscape_entity, and affected_entity_ids in favor of smartscape.affected_entities."* The classic field still works, but neither field alone counts the right entities today. Over 30 days of closed AVAILABILITY problems on the validation tenant (11/11/2026), `affected_entity_ids` gave 230 distinct entities and `smartscape.affected_entities` gave 18, because availability problems on process group instances carried no Smartscape field. Over 7 days of all problems it went the other way: the classic field named only `ENVIRONMENT-0000000000000001` on 1,479 problems whose Smartscape field named an AWS EC2 instance. The queries below take the Smartscape IDs where a problem has them and the classic IDs only where it has none (224 distinct entities for the same 30 days). ([Upgrade from Classic problem notification to simple workflows (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification))
+
 ```dql
 // Problem impact over 7 days. NOTE: this is entity-hours of impact, NOT downtime —
 // problems overlap, so the sum exceeds wall-clock time. See the note above.
@@ -87,14 +89,19 @@ fetch dt.davis.problems, from:-7d
 | filter event.status == "CLOSED"
 | filter event.category == "AVAILABILITY"
 | filter dt.davis.is_duplicate == false
+// Affected entities: Smartscape node IDs where the problem has them, the deprecated
+// affected_entity_ids only where it has none (see the note above).
+| fieldsAdd ss_ids = toString(smartscape.affected_entities[][id]),
+            classic_ids = if(isNull(smartscape.affected_entities), affected_entity_ids)
 | summarize
     impact_hours = sum(resolved_problem_duration / 1h),
     problem_count = count(),
-    entity_arrays = collectArray(affected_entity_ids),
+    ss_arrays = collectArray(ss_ids),
+    classic_arrays = collectArray(classic_ids),
     longest_problem_hours = max(resolved_problem_duration / 1h)
-// affected_entity_ids is an array: countDistinctExact on it counts distinct ARRAYS, not entities.
-| fieldsAdd affected_entities = arraySize(arrayDistinct(arrayFlatten(entity_arrays)))
-| fieldsRemove entity_arrays
+// The ID fields are arrays: countDistinctExact on them counts distinct ARRAYS, not entities.
+| fieldsAdd affected_entities = arraySize(arrayRemoveNulls(arrayDistinct(arrayConcat(arrayFlatten(ss_arrays), arrayFlatten(classic_arrays)))))
+| fieldsRemove ss_arrays, classic_arrays
 ```
 
 ### Approach 2: Based on Service Success Rate
@@ -245,14 +252,19 @@ fetch dt.davis.problems, from:-30d
 | filter event.status == "CLOSED"
 | filter event.category == "AVAILABILITY"
 | filter dt.davis.is_duplicate == false
+// Affected entities: Smartscape node IDs where the problem has them, the deprecated
+// affected_entity_ids only where it has none (see §2).
+| fieldsAdd ss_ids = toString(smartscape.affected_entities[][id]),
+            classic_ids = if(isNull(smartscape.affected_entities), affected_entity_ids)
 | summarize
     impact_minutes = sum(resolved_problem_duration / 1m),
     problem_count = count(),
-    entity_arrays = collectArray(affected_entity_ids)
+    ss_arrays = collectArray(ss_ids),
+    classic_arrays = collectArray(classic_ids)
 | fieldsAdd budget_reference_min_999 = 43.2
-// affected_entity_ids is an array: countDistinctExact on it counts distinct ARRAYS, not entities.
-| fieldsAdd affected_entities = arraySize(arrayDistinct(arrayFlatten(entity_arrays)))
-| fieldsRemove entity_arrays
+// The ID fields are arrays: countDistinctExact on them counts distinct ARRAYS, not entities.
+| fieldsAdd affected_entities = arraySize(arrayRemoveNulls(arrayDistinct(arrayConcat(arrayFlatten(ss_arrays), arrayFlatten(classic_arrays)))))
+| fieldsRemove ss_arrays, classic_arrays
 ```
 
 <a id="storytelling"></a>

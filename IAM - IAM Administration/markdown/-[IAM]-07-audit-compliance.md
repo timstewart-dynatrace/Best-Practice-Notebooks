@@ -1,6 +1,6 @@
 # IAM-07: Audit Logging and Compliance
 
-> **Series:** IAM — IAM Administration | **Notebook:** 7 of 12 | **Created:** January 2026 | **Last Updated:** 11/10/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 7 of 12 | **Created:** January 2026 | **Last Updated:** 11/11/2026
 
 ## Meeting Regulatory and Security Requirements
 Audit logging is essential for compliance (SOC2, SOX, HIPAA, PCI-DSS) and security operations. This notebook covers querying audit logs, building compliance reports, and conducting access reviews.
@@ -129,6 +129,8 @@ fetch dt.system.events, from:-7d
 
 ```dql
 // Sign-in activity by hour (successful and failed interactive logins)
+// Split by event.provider (SaaS 1.349): signing in to a classic app can produce two audit events, one
+// from the API gateway (API_GATEWAY) and one from the cluster (CLASSIC_LOGIN). Summing both double-counts.
 // Corrected 10/12/2026: this cell counted isNotNull(authentication.type), which is every authenticated API
 // call: 31,712 events in 24 h on the validation tenant, of which 4 were sign-ins.
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
@@ -145,7 +147,7 @@ fetch dt.system.events, from:-7d
 fetch dt.system.events, from:-7d
 | filter event.kind == "AUDIT_EVENT"
 | filter event.type == "LOGIN"
-| makeTimeseries logins = count(), by:{event.outcome}, interval:1h
+| makeTimeseries logins = count(), by:{event.outcome, event.provider}, interval:1h
 ```
 
 ### Authentication Patterns to Monitor

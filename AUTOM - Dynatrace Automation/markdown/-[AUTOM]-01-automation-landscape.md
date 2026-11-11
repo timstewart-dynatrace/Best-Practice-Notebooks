@@ -1,6 +1,6 @@
 # AUTOM-01: Automation Landscape
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 11/11/2026
 
 Dynatrace provides multiple ways to automate configuration management and operational tasks. This series covers all major automation options, helping you choose the right approach for your needs.
 
@@ -130,7 +130,7 @@ The foundation for all configuration automation. Direct REST API access to Dynat
 | **Access** | HTTP calls with a platform token or OAuth bearer token (`settings:objects:read` / `settings:objects:write`), or a classic access token (`settings.read` / `settings.write`) where the environment still has them |
 | **Schema** | JSON with schema validation |
 | **Use Case** | Custom scripts, one-off operations |
-| **Documentation** | [Settings API Reference](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings) |
+| **Documentation** | [Settings API Reference](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings) (environment API v2, `/api/v2/settings`); the platform API also has a [Settings API](https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-settings-v1) (`/platform/settings/v1`, platform token or OAuth only) — AUTOM-02 §2 compares them |
 
 ### Monaco
 
@@ -180,10 +180,24 @@ Official client libraries for programmatic access to Dynatrace APIs.
 | **Use Case** | Custom applications, complex automation |
 | **Documentation** | [Dynatrace SDK](https://developer.dynatrace.com/develop/sdks/) |
 
+### dtctl
+
+The Dynatrace command-line tool, developed in the open at [dynatrace-oss/dtctl](https://github.com/dynatrace-oss/dtctl). Dynatrace describes it as *"for anybody who wants to use Dynatrace platform functionality via CLI, set up CI/CD pipelines that read or write Dynatrace data, or integrate Dynatrace with AI coding assistants."*
+
+| Aspect | Details |
+|--------|----------|
+| **Type** | CLI tool with kubectl-style verb-noun commands |
+| **Access** | OAuth browser login, or a platform token where OAuth isn't possible (headless runs); credentials can also come from `DTCTL_ENVIRONMENT` / `DTCTL_TOKEN` |
+| **Features** | Workflows, DQL queries, dashboards and notebooks, SLOs, Settings objects, buckets, segments and more; `--dry-run`; JSON/YAML output and an agent output mode (`--agent`) |
+| **Use Case** | Terminal and scripted operations, CI/CD steps, AI coding assistants |
+| **Scope** | Latest Dynatrace on SaaS only; Managed has a separate tool, `dtmgd` |
+| **Documentation** | [dtctl CLI](https://docs.dynatrace.com/docs/platform/dtctl) |
+
 > <sub>**Sources:**</sub>
 > - <sub>[Settings API - POST an object (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/objects/post-object) — *"Platform Token / OAuth: Required scope: settings:objects:write"*</sub>
 > - <sub>[Upgrade from classic access tokens to platform tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Classic access tokens don't exist in latest environments, and v2/apiTokens isn't available."*</sub>
 > - <sub>[Dynatrace Terraform provider (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md) — *"The Dynatrace Terraform provider is officially supported by Dynatrace."*; Partner tier per the [Terraform Registry entry](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest), checked 10/02/2026.</sub>
+> - <sub>[dtctl CLI (DT docs)](https://docs.dynatrace.com/docs/platform/dtctl) — *"dtctl is compatible with Dynatrace SaaS environments only."*, *"In cases where OAuth isn't possible, such as in headless environments, you can also use platform tokens."*</sub>
 
 ---
 
@@ -200,6 +214,7 @@ Official client libraries for programmatic access to Dynatrace APIs.
 | Custom application | SDK | Programmatic access — Monaco/Terraform are declarative-config tools, not application frameworks |
 | Tenant migration | Monaco (target = another Dynatrace tenant) **or** `terraform-provider-dynatrace -export` (target = a local Terraform repo) | `monaco download` and the Terraform provider's `-export` both pull every config in one command. `terraform import` (the Terraform CLI feature, distinct from the provider's `-export`) is per-resource and requires authoring matching HCL first |
 | GitOps pipeline | Monaco or Terraform | CI/CD integration |
+| Interactive or scripted operations from a terminal, a pipeline step or an AI coding assistant | dtctl | One CLI across workflows, DQL, dashboards, Settings objects and more, with structured output for scripts and agents. SaaS only |
 
 ### Team Skill Considerations
 
@@ -517,6 +532,7 @@ The [Dynatrace MCP Server](https://docs.dynatrace.com/docs/dynatrace-intelligenc
 - [Monaco GitHub Repository](https://github.com/dynatrace/dynatrace-configuration-as-code)
 - [Terraform Provider Documentation](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs)
 - [Dynatrace Developer Portal](https://developer.dynatrace.com/)
+- [dtctl CLI](https://docs.dynatrace.com/docs/platform/dtctl)
 
 ---
 

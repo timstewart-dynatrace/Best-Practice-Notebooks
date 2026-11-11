@@ -1,6 +1,6 @@
 # FAQ-02: Tagging — Sources, Standards, and Strategy
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 11/09/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -392,7 +392,7 @@ Cloud-provider tags are the source of record for cost-allocation, compliance, an
 | EC2 / RDS / Lambda / ECS / EKS resource tags | `tags[<TagKey>]` on the Smartscape node; `aws.tags.<key>` on signals when promoted, with the key **lowercased** | AWS tag keys are case-sensitive, so `CostCenter` and `costcenter` are different tags in AWS. An AWS tag rule transforms the key when it forwards it: lowercased, whitespace to underscores, other characters stripped (`My TEAM` → `aws.tags.my_team`). Both of those tags would therefore forward to `aws.tags.costcenter`. Values keep their case |
 | Account ID | `aws.account.id` | Primary Grail field and permission field |
 | Region | `aws.region` | Primary Grail field; programmatic region code (e.g., `us-east-1`) |
-| Resource ARN | `aws.arn` | Available on resources with discoverable ARNs |
+| Resource ARN | `aws.arn` | Available on resources with discoverable ARNs. From OneAgent 1.349 (staged rollout from 11/09/2026) OneAgent also writes it, by default, onto the logs, events, metrics, spans and Smartscape nodes from the resource it runs on. It identifies the resource; it is not a primary field and carries none of the resource's tags |
 
 **EC2 and other VMs running OneAgent:** cloud tag rules don't tag this data. *"Cloud rules apply only to data that arrives through the cloud connection, so OneAgent on a cloud VM doesn't evaluate them."* OneAgent 1.343+ reads the instance's tags itself, *"through the instance metadata service"*, and *"exposes them as host properties named aws.tags.<key>"*. Map each one with a Host/Process property rule at the host-group scope. *"Access to instance tags in instance metadata is off by default in AWS, so enable it on the instance first."* Azure VMs work the same way with `azure.tags.<key>`. To tag both the cloud node and the OneAgent data from one VM, you need both rules: the AWS tag rule for the cloud data and the Host/Process property rule for the OneAgent data.
 
@@ -410,6 +410,7 @@ Cloud-provider tags are the source of record for cost-allocation, compliance, an
 | Resource group | `azure.resource.group` | Primary Grail field and permission field — usable as a coarse boundary |
 | Subscription | `azure.subscription` | Primary Grail field and permission field |
 | Region | `azure.location` | Primary Grail field |
+| Resource ID | `azure.resource.id` | From OneAgent 1.349, written by default onto OneAgent data from the resource it runs on — the Azure counterpart of `aws.arn`. `experimental` in the semantic dictionary |
 
 **Azure integration path:** the Clouds app's new connection covers Azure; the classic Azure Monitor integration via ActiveGate is the other path.
 
@@ -420,6 +421,7 @@ Cloud-provider tags are the source of record for cost-allocation, compliance, an
 | Resource labels (Compute Engine, GKE, Cloud Run) | `gcp.labels.<label_key>` on signals when promoted (GCP resource tags: `gcp.tags.<key>`); the Smartscape-node shape was not checked — the validation tenant has no GCP resources | GCP restricts both keys and values to lowercase letters, digits, underscores and dashes |
 | Project | `gcp.project.id` | Primary Grail field and permission field |
 | Region / zone | `gcp.region`, `gcp.zone` | Programmatic codes |
+| Resource name | `gcp.resource.name` | From OneAgent 1.349, written by default onto OneAgent data from the resource it runs on — the Google Cloud counterpart of `aws.arn` |
 
 **GCP integration path:** the classic GCP integration for now — the Clouds app's new connection for GCP *"will follow soon"*.
 
@@ -444,7 +446,8 @@ The tag keys differ by provider (`CostCenter`, `costCenter`, `cost_center`). The
 > - <sub>[Enrich AWS telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-aws) — *"OneAgent reads those tags from the AWS instance metadata and enriches them as Security context, Cost center, or Cost product, or directly as a Primary tag on all telemetry."* and *"AWS tag key names are transformed when forwarded: lowercased, whitespace converted to underscores, and characters that aren't digits, ASCII letters, dots, or underscores stripped."*</sub>
 > - <sub>[Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"Cloud rules apply only to data that arrives through the cloud connection, so OneAgent on a cloud VM doesn't evaluate them."* and *"A Lambda function doesn't load the ingest enrichment configuration"*</sub>
 > - <sub>[OneAgent tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — the serverless `DT_TAGS` sentence quoted above</sub>
-> - <sub>**Dictionary:** `aws.account.id`, `azure.resource.group`, `azure.subscription`, `gcp.project.id` (`stable`, `permission`, `primary-field`); `aws.region`, `azure.location`, `gcp.region` (`stable`, `primary-field`); `aws.arn`, `gcp.zone` (`stable`); `aws.tags.__tag_key__`, `azure.tags.__tag_key__`, `gcp.labels.__label__`, `gcp.tags.__tag__` (`experimental`); no row for `aws.account.alias`, `azure.subscription_name`, `azure.region`, `gcp.project_id`, read 10/02/2026. Live check the same day: AWS and Azure Smartscape nodes carry their resource tags in the `tags` record.</sub>
+> - <sub>**Dictionary:** `aws.account.id`, `azure.resource.group`, `azure.subscription`, `gcp.project.id` (`stable`, `permission`, `primary-field`); `aws.region`, `azure.location`, `gcp.region` (`stable`, `primary-field`); `aws.arn`, `gcp.zone` (`stable`); `aws.tags.__tag_key__`, `azure.tags.__tag_key__`, `gcp.labels.__label__`, `gcp.tags.__tag__` (`experimental`); no row for `aws.account.alias`, `azure.subscription_name`, `azure.region`, `gcp.project_id`, read 10/02/2026. Live check the same day: AWS and Azure Smartscape nodes carry their resource tags in the `tags` record. Read 11/11/2026: `aws.arn`, `gcp.resource.name` (`stable`), `azure.resource.id` (`experimental`), none tagged `primary-field`.</sub>
+> - <sub>[OneAgent 1.349 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349) — *"Rollout start on Nov 09, 2026"*; *"OneAgent now enriches logs, events, metrics, spans and Smartscape nodes with the unique identifier of the cloud resource they run on: aws.arn on AWS, azure.resource.id on Azure and gcp.resource.name on GCP."*; *"Enrichment is on by default for supported platforms."*</sub>
 > - <sub>[OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/shortlink/openpipeline)</sub>
 > - <sub>[Tagging AWS resources (AWS general reference)](https://docs.aws.amazon.com/tag-editor/latest/userguide/tagging.html) — *"Tag values are case sensitive"* and *"tag keys are case sensitive"*; basis for the cross-cloud casing-drift problem</sub>
 > - <sub>[Tag resources (Azure docs)](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/tag-resources) — *"Tag names are case-insensitive for operations."*, while *"Tag values are case-sensitive."*; 50-tag limit</sub>

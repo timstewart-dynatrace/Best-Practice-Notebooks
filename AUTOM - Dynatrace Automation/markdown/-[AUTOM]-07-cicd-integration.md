@@ -1,6 +1,6 @@
 # AUTOM-07: CI/CD Integration
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 11/03/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 11/11/2026
 
 CI/CD integration brings software development practices to Dynatrace configuration management. By storing configs in Git and deploying via pipelines, teams gain version control, review processes, and automated deployments.
 
@@ -2685,6 +2685,7 @@ All samples ingest SDLC events via OpenPipeline and include pre-built dashboards
 
 | Repository | Description |
 |------------|-------------|
+| [dtctl](https://docs.dynatrace.com/docs/platform/dtctl) (source: [dynatrace-oss/dtctl](https://github.com/dynatrace-oss/dtctl)) | The Dynatrace command-line tool, for Latest Dynatrace on SaaS only — *"dtctl is compatible with Dynatrace SaaS environments only."* In a pipeline job, use a platform token (*"In cases where OAuth isn't possible, such as in headless environments, you can also use platform tokens."*) passed as `DTCTL_ENVIRONMENT` / `DTCTL_TOKEN`. Preview a declarative change with `dtctl apply -f <file> --dry-run`, and add `--check-scopes` to a command to see the scopes it requires without running it. |
 | [dynatrace-automation-tools](https://github.com/Dynatrace/dynatrace-automation-tools) | **Archived** — the README states *"This repository has been archived and is no longer maintained."* and points to [dtctl](https://github.com/dynatrace-oss/dtctl) for similar use cases. Previously: CLI for Site Reliability Guardian automation and deployment event ingestion in CI/CD |
 
 ### Platform Engineering References
