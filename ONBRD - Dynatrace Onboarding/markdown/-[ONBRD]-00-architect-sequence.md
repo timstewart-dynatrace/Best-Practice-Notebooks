@@ -199,7 +199,7 @@ For environments where SVG doesn't render
 | Migrating from another tool | Replacing New Relic / Splunk / Sumo Logic / managed Dynatrace | Run ONBRD foundation in parallel with the migration series (NR2DT, S2D, SL2DT, M2S, S2S). |
 | Multi-tenant org | Several Dynatrace tenants for different BUs / environments | Step 02 expands — see **IAM-08: Multi-Environment IAM** for cross-tenant patterns. |
 
-> <sub>**Sources:** [AWS Lambda integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-into-aws/aws-lambda-integration) — *"using auto-instrumentation without code changes"*; [OneAgent 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343) — Azure Functions: Python on the Flex Consumption Plan for Linux; Java and Node.js on Consumption, Premium, and Dedicated plans for Windows.</sub>
+> <sub>**Sources:** [AWS Lambda integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/aws-lambda-integration) — *"using auto-instrumentation without code changes"*; [OneAgent 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343) — Azure Functions: Python on the Flex Consumption Plan for Linux; Java and Node.js on Consumption, Premium, and Dedicated plans for Windows.</sub>
 
 <a id="after-onbrd"></a>
 ## 7. After ONBRD

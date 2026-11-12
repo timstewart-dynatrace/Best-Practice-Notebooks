@@ -83,8 +83,8 @@ The Azure connection covers **Azure public cloud** only. Its *Limitations* list 
 
 > <sub>**Sources:**</sub>
 > - <sub>[Create an Azure connection (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/create-an-azure-connection) — *"Azure Government and Azure China sovereign clouds are not supported."* and *"The new integration does not deploy or use ActiveGate compute resources inside your Azure subscription to poll telemetry"*</sub>
-> - <sub>[Azure Native Dynatrace Service (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-native-integration)</sub>
-> - <sub>[Azure monitoring guide — classic (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-integrations/azure-monitoring-guide) — *"At least one ActiveGate needs to be able to connect to Azure Monitor to perform the monitoring tasks."*</sub>
+> - <sub>[Azure Native Dynatrace Service (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services-classic/azure-native-integration)</sub>
+> - <sub>[Azure monitoring guide — classic (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services-classic/azure-integrations/azure-monitoring-guide) — *"At least one ActiveGate needs to be able to connect to Azure Monitor to perform the monitoring tasks."*</sub>
 > - <sub>[Manage the Azure Native Dynatrace Service (Microsoft Learn)](https://learn.microsoft.com/en-us/azure/partner-solutions/dynatrace/manage) — *"Diagnostics settings are automatically added to the subscription's resources that match the defined tag rules."*</sub>
 
 ### Release Radar (April 2026): the Clouds app extends to Microsoft Azure
@@ -236,7 +236,7 @@ The classic equivalent, for environments still on the classic integration. `dt.e
 ```dql
 // Classic: Azure VMs seen in the last 7 days
 fetch dt.entity.azure_vm, from:-7d
-| fieldsKeep id, entity.name, tags
+| fields id, entity.name, tags
 | sort entity.name asc
 | limit 20
 ```
@@ -442,7 +442,7 @@ AKS control-plane components (`kube-apiserver`, `kube-audit`, `kube-audit-admin`
 > <sub>**Sources:**</sub>
 > - <sub>[Azure logs and events (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/ingest-telemetry/azure-logs-and-events)</sub>
 > - <sub>[Forward Azure logs (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/ingest-telemetry/azure-logs-and-events/azure-logs) — *"Use the dt.da.source attribute to filter for logs ingested through the Azure logs ingest pipeline."*</sub>
-> - <sub>[Set up the Azure log forwarder (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-integrations/set-up-log-forwarder-azure) — *"If you already have multiple integrations, you can additionally use the values cloud.log_forwarder and dt.auth.origin to further refine your filters."*</sub>
+> - <sub>[Set up the Azure log forwarder (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services-classic/azure-integrations/set-up-log-forwarder-azure) — *"If you already have multiple integrations, you can additionally use the values cloud.log_forwarder and dt.auth.origin to further refine your filters."*</sub>
 > - <sub>[dynatrace-azure-log-forwarder (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-azure-log-forwarder)</sub>
 > - <sub>**Dictionary:** `dt.da.source` (`experimental`), `dt.openpipeline.source` (`experimental`), `log.source` (`stable`), `cloud.provider` (`stable`), `azure.resource.id` (`experimental`), read 09/25/2026.</sub>
 > - <sub>[Diagnostic settings in Azure Monitor (Microsoft Learn)](https://learn.microsoft.com/en-us/azure/azure-monitor/data-collection/diagnostic-settings) — *"Each resource can have up to five diagnostic settings."*</sub>
