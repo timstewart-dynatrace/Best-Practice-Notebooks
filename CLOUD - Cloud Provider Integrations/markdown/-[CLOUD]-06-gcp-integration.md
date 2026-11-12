@@ -63,7 +63,7 @@ Dynatrace reads Google Cloud through two different integration models, and they 
 For environments where SVG doesn't render
 -->
 
-Pub/Sub carries **logs only**. Metrics are polled, never pushed through Pub/Sub — the monitor's metrics role grants `monitoring.timeSeries.list`, and its Helm values set the polling interval (*"Allowed values: 1 - 10"*, default `queryInterval: 3`).
+Pub/Sub **never carries metrics**: it carries logs, and in the Clouds-app connection also the asset feed. Metrics are polled, never pushed through Pub/Sub — the monitor's metrics role grants `monitoring.timeSeries.list`, and its Helm values set the polling interval (*"Allowed values: 1 - 10"*, default `queryInterval: 3`).
 
 ### GCP-Specific Considerations
 
@@ -87,7 +87,7 @@ Both models avoid long-lived service account keys. Do not create or upload JSON 
 ### Clouds-app Connection — Service Account Impersonation
 
 1. **Create a service account** in the project that will host the connection.
-2. **Grant it read roles** on everything it should see. The Terraform path in *Create your first GCP connection* grants `roles/viewer` on each listed project, `roles/resourcemanager.folderViewer` on each listed folder and `roles/resourcemanager.organizationViewer` on each listed organization. In manual mode you *"Grant permissions to the service account at project, folder, or organization level"*; the page's manual onboarding reference lists the roles.
+2. **Grant it read roles** on everything it should see. The gcloud CLI path grants Monitoring Viewer (`roles/monitoring.viewer`), Cloud Asset Viewer (`roles/cloudasset.viewer`) and Browser (`roles/browser`), at project, folder or organization scope. *"`roles/browser` at folder scope lets the service account list all folders and projects within that folder."*
 3. **Allow Dynatrace to impersonate it.** Grant the Dynatrace principal for your environment (shown in the connection wizard) `roles/iam.serviceAccountTokenCreator` **on that service account** — not on the project.
 4. **Create the connection and its monitoring configuration** in the Clouds app, choosing locations and feature sets.
 
@@ -107,7 +107,8 @@ The monitor's deployment script creates **custom IAM roles** holding only what i
 > **Best Practice:** Host the service account, Pub/Sub topics and the monitor in a **dedicated monitoring project**, so monitoring IAM and cost are separate from workload projects.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Create your first GCP connection (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/create-a-gcp-connection) — *"Grant `roles/viewer` on each listed project"*; *"Grant the Dynatrace principal `roles/iam.serviceAccountTokenCreator` on the new service account (impersonation trust)."*</sub>
+> - <sub>[Create GCP connection via gcloud CLI and dtctl (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/create-your-first-connection/via-cli) — *"`roles/browser` at folder scope lets the service account list all folders and projects within that folder."*</sub>
+> - <sub>[Create a GCP connection via Settings app (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/create-your-first-connection/via-settings-app) — *"Grant the Dynatrace principal `roles/iam.serviceAccountTokenCreator` on the new service account (impersonation trust)."*</sub>
 > - <sub>[dynatrace_gcp_connection (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/gcp_connection.md) — *"This resource uses service account impersonation, which requires the Dynatrace GCP Principal to be granted the `roles/iam.serviceAccountTokenCreator` role on the impersonated service account."*</sub>
 > - <sub>[dynatrace-gcp-monitor on GKE (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform-classic/gcp-integrations/gcp-guide/deploy-k8)</sub>
 > - <sub>[dynatrace-gcp-monitor Helm values (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-gcp-monitor/blob/master/k8s/helm-chart/dynatrace-gcp-monitor/values.yaml)</sub>
@@ -194,7 +195,7 @@ smartscapeNodes "GCP_COMPUTE_GOOGLEAPIS_COM_INSTANCE"
 ```dql
 // List all Kubernetes clusters (GKE clusters appear here)
 fetch dt.entity.kubernetes_cluster, from:-7d
-| fieldsKeep id, entity.name, tags
+| fields id, entity.name, tags
 | sort entity.name asc
 
 // Smartscape equivalent (dt.entity.* is deprecated but still functional):
@@ -416,14 +417,14 @@ Cloud Run is GCP's serverless container platform. It shares some monitoring patt
 |---|---|---|
 | **Unit** | Container | Function |
 | **Runtime** | Any Docker image | Managed runtimes + custom |
-| **Max duration** | Services: request timeout up to 60 minutes. Jobs: task timeout up to 7 days (1 hour for tasks using GPUs) | 15 minutes |
+| **Max duration** | Services: request timeout up to 60 minutes. Jobs: task timeout up to 7 days (up to 12 hours for tasks using GPUs, in preview) | 15 minutes |
 | **Concurrency** | Multiple requests per instance (configurable, up to 1,000) | One per execution (default) |
 | **Monitoring** | OneAgent (Java, Node.js, Python — Python with OneAgent 1.349, staged rollout from 11/09/2026; verify it has reached your environment) or OTLP — an OpenTelemetry Collector can run as a sidecar container | Lambda Layer |
 | **Cold start** | Container pull + startup | Runtime initialization |
 
 > <sub>**Sources:**</sub>
 > - <sub>[Request timeout (Google Cloud)](https://docs.cloud.google.com/run/docs/configuring/request-timeout) — *"The timeout is set by default to 5 minutes (300 seconds) and can be extended up to 60 minutes (3600 seconds)."*</sub>
-> - <sub>[Task timeout (Google Cloud)](https://docs.cloud.google.com/run/docs/configuring/task-timeout) — *"For tasks using GPUs, the maximum available timeout is 1 hour."*</sub>
+> - <sub>[Task timeout (Google Cloud)](https://docs.cloud.google.com/run/docs/configuring/task-timeout) — *"For tasks using GPUs, the maximum available timeout is 12 hours (preview)."*</sub>
 > - <sub>[About concurrency (Google Cloud)](https://docs.cloud.google.com/run/docs/about-concurrency) — *"You can increase this to a maximum of 1,000."*</sub>
 > - <sub>[OneAgent 1.349 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349) — *"OneAgent now supports Python applications on Google Cloud Run."*</sub>
 
@@ -511,7 +512,7 @@ Google Cloud has labels and tags, and *"Both can be promoted to primary Grail fi
 
 - **Two models, two lifecycles:** the Clouds-app GCP connection (GA; keyless service account impersonation, Cloud Asset Inventory topology) and `dynatrace-gcp-monitor` on GKE (maintenance mode; keeps working until you move). The Cloud Function deployment is unsupported
 - **No keys in either model** — impersonation via `roles/iam.serviceAccountTokenCreator`, or Workload Identity Federation for GKE
-- **Pub/Sub carries logs only**; metrics are polled from Cloud Monitoring and land under `cloud.gcp.*`
+- **Pub/Sub never carries metrics**; metrics are polled from Cloud Monitoring and land under `cloud.gcp.*`
 - **Query by model:** `smartscapeNodes "GCP_*"` for the Clouds-app connection, `` fetch `dt.entity.cloud:gcp:*` `` for the monitor
 - **Logs start at a Log Router sink** — aggregate at folder/organization with `includeChildren`, cut volume with exclusions before Pub/Sub bills it, and grant the writer identity `roles/pubsub.publisher`
 - **GKE Autopilot** admits the Operator's CSI driver through an allowlist the Helm chart creates for you; **Cloud Run** is OneAgent for Java/Node.js/Python, OTLP (optionally via a Collector sidecar) for everything else

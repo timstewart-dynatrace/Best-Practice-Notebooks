@@ -120,7 +120,7 @@ picking the wrong scheme, and worth separating before you debug either.
 
 ### List Monitored Lambda Functions
 
-> <sub>**Sources:** [Built-in metrics on Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail) — the `builtin:` → `dt.` transformation behind the classic key scheme, [Upgrade from classic to new cloud connections (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections) — *"Metric keys are unified to cloud.aws.<Service>.<Metric>.By.<Dimension> with a metric dimension dt.da.source == "aws-metric-poller" when using the new AWS connection."*, [AWS metric and entity mapping (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections/metric-and-entity-mapping-aws) — classic `builtin:cloud.aws.lambda.invocations` → new `cloud.aws.lambda.Invocations.By.FunctionName`, [CloudWatch Metric Streams (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-metrics-ingest/cloudwatch-metric-streams) — the classic streaming path's `cloud.aws.<service>` prefix. Key presence measured on the validation tenant 09/24/2026: 5 distinct new-connection keys, 0 classic keys; `dt.da.source` re-checked 11/11/2026.</sub>
+> <sub>**Sources:** [Built-in metrics on Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail) — the `builtin:` → `dt.` transformation behind the classic key scheme, [Upgrade from classic to new cloud connections (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections) — *"Metric keys are unified to cloud.aws.<Service>.<Metric>.By.<Dimension> with a metric dimension dt.da.source == "aws-metric-poller" when using the new AWS connection."*, [AWS metric and entity mapping (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections/metric-and-entity-mapping-aws) — classic `builtin:cloud.aws.lambda.invocations` → new `cloud.aws.lambda.Invocations.By.FunctionName`, [CloudWatch Metric Streams (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/aws-metrics-ingest/cloudwatch-metric-streams) — the classic streaming path's `cloud.aws.<service>` prefix. Key presence measured on the validation tenant 09/24/2026: 5 distinct new-connection keys, 0 classic keys; `dt.da.source` re-checked 11/11/2026.</sub>
 
 ```dql
 // List all monitored Lambda functions with runtime and code size
@@ -129,7 +129,7 @@ picking the wrong scheme, and worth separating before you debug either.
 // latter does not exist and failed the whole cell with FIELD_DOES_NOT_EXIST. Time range added
 // because dt.entity.* returns only entities seen in the query window, not the standing inventory.
 fetch dt.entity.aws_lambda_function, from:-7d
-| fieldsKeep id, entity.name, awsRuntime, awsCodeSize, awsMemorySize, awsTimeout, tags
+| fields id, entity.name, awsRuntime, awsCodeSize, awsMemorySize, awsTimeout, tags
 | sort entity.name asc
 | limit 25
 
@@ -391,7 +391,7 @@ With the Dynatrace Lambda Layer, traces propagate through API Gateway into Lambd
 For environments where SVG doesn't render
 -->
 
-> <sub>**Sources:** [Trace Lambda functions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-into-aws/aws-lambda-integration/trace-lambda-functions).</sub>
+> <sub>**Sources:** [Trace Lambda functions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/aws-lambda-integration/trace-lambda-functions).</sub>
 
 ```dql
 // Trace spans from API Gateway and Lambda in the last hour

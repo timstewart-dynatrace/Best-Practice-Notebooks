@@ -1,6 +1,6 @@
 # CLOUD-03: AWS EKS Monitoring
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 3 of 8 | **Created:** March 2026 | **Last Updated:** 10/27/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 3 of 8 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -128,7 +128,7 @@ EKS node groups are collections of EC2 instances that serve as Kubernetes worker
 ```dql
 // List Kubernetes cluster entities
 fetch dt.entity.kubernetes_cluster, from:-7d
-| fieldsKeep id, entity.name, tags
+| fields id, entity.name, tags
 | sort entity.name asc
 
 // Smartscape equivalent (dt.entity.* is deprecated but still functional):
@@ -215,9 +215,11 @@ spec:
 > kubectl apply -f https://github.com/Dynatrace/dynatrace-operator/releases/download/v1.10.2/kubernetes.yaml
 > ```
 >
+> For a Helm install, the same guide sets `--set "csidriver.enabled=false"` on `helm install dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator`.
+>
 > The guide pinned `v1.10.2`, the current release on 09/24/2026; 1.11.0 followed on 10/01/2026 — substitute the Operator version you run.
 
-> <sub>**Sources:** [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters) — the per-version `applicationMonitoring` parameter tables, [Application observability setup (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/application-observability) — *"CSI driver is optional (see Step 2). If enabled, it gets deployed as DaemonSet and results in a CSI driver Pod on each node."*, [Fargate considerations (AWS docs)](https://docs.aws.amazon.com/eks/latest/userguide/fargate.html) — *"Daemonsets aren't supported on Fargate."*</sub>
+> <sub>**Sources:** [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters) — the per-version `applicationMonitoring` parameter tables, [Application observability setup (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/application-observability) — *"CSI driver is optional (see Step 2). If enabled, it gets deployed as DaemonSet and results in a CSI driver Pod on each node."*; Helm tab: *`--set "csidriver.enabled=false"`*, [Fargate considerations (AWS docs)](https://docs.aws.amazon.com/eks/latest/userguide/fargate.html) — *"Daemonsets aren't supported on Fargate."*</sub>
 
 <a id="eks-metrics"></a>
 

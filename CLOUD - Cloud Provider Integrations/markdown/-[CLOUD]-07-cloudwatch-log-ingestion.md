@@ -128,7 +128,7 @@ CloudWatch subscription filters support pattern matching to pre-filter logs befo
 | `{ $.level = "error" }` | JSON logs where level is error |
 | `[ip, id, user, timestamp, request, status_code >= 400]` | Space-delimited logs with status >= 400 |
 
-> <sub>**Sources:** [Stream logs via Amazon Data Firehose (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-logs-ingest/lma-stream-logs-with-firehose) — *"use the full URL: `https://<your_environment_ID>.live.dynatrace.com/api/v2/logs/ingest/aws_firehose`"*; the same page gives the **Ingest logs** token permission and the 1 MiB / 60 s buffer hints used in steps 3–4.</sub>
+> <sub>**Sources:** [Stream logs via Amazon Data Firehose (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/aws-logs-ingest/lma-stream-logs-with-firehose) — *"use the full URL: `https://<your_environment_ID>.live.dynatrace.com/api/v2/logs/ingest/aws_firehose`"*; the same page gives the **Ingest logs** token permission and the 1 MiB / 60 s buffer hints used in steps 3–4.</sub>
 
 <a id="alternative-methods"></a>
 

@@ -110,7 +110,7 @@ On SaaS hosted on AWS, the classic integration needs no ActiveGate of your own f
 2. Add trust relationship for Dynatrace's AWS account
 3. Configure in Dynatrace: Settings → Cloud and virtualization → AWS
 
-**IAM policy:** the first seven actions below are the ones the docs list as *"Permissions required for AWS monitoring integration"*. The rest are examples of service-specific permissions — take the complete per-service list from [AWS CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/cloudwatch-metrics) rather than this sample.
+**IAM policy:** the first seven actions below are the ones the docs list as *"Permissions required for AWS monitoring integration"*. The rest are examples of service-specific permissions — take the complete per-service list from [AWS CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/cloudwatch-metrics) rather than this sample.
 
 ```json
 {
@@ -149,7 +149,7 @@ On SaaS hosted on AWS, the classic integration needs no ActiveGate of your own f
 | **Regions** | Only regions where you have resources |
 | **Resource tags** | Use tags to filter monitored resources |
 
-> <sub>**Sources:** [AWS Cloud Platform Monitoring (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/aws-onboarding), [AWS CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/cloudwatch-metrics) — *"Key-based authorization is no longer available for new credentials."*; the seven required actions are listed under *"Permissions required for AWS monitoring integration"*.</sub>
+> <sub>**Sources:** [AWS Cloud Platform Monitoring (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/aws-onboarding), [AWS CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/cloudwatch-metrics) — *"Key-based authorization is no longer available for new credentials."*; the seven required actions are listed under *"Permissions required for AWS monitoring integration"*.</sub>
 
 <a id="azure-integration"></a>
 ## 3. Azure Integration
@@ -495,7 +495,7 @@ In this notebook, you learned:
 - [What's new in Dynatrace SaaS 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337)
 - [Set up Dynatrace on Google Cloud (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform)
 - [Set up the Dynatrace GCP integration on GKE (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform-classic/gcp-integrations/gcp-guide/deploy-k8)
-- [AWS CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/cloudwatch-metrics)
+- [AWS CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/cloudwatch-metrics)
 - [Extensions Framework](https://docs.dynatrace.com/docs/ingest-from/extensions)
 - [Dynatrace Hub](https://docs.dynatrace.com/docs/manage/hub)
 

@@ -69,7 +69,7 @@ The Dynatrace monitoring role uses a **scoped read-only policy** authored as par
 > **Practical note:** the role does not need write permissions for monitoring. If your security team requires a custom least-privilege policy in place of the Dynatrace-generated one, derive it from the nested template and pin it via your IaC pipeline. Re-verify after each Dynatrace release that adds new monitored services — additional services usually need new `Describe*` / `List*` permissions.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Monitor AWS with CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/cloudwatch-metrics) — *"From Dynatrace version 1.267+, only role-based access can be used. Key-based authorization is no longer available for new credentials. For existing key-based credentials, you can keep using keys indefinitely."* and *"Key-based authentication is allowed only for AWS GovCloud and China partitions."*</sub>
+> - <sub>[Monitor AWS with CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/cloudwatch-metrics) — *"From Dynatrace version 1.267+, only role-based access can be used. Key-based authorization is no longer available for new credentials. For existing key-based credentials, you can keep using keys indefinitely."* and *"Key-based authentication is allowed only for AWS GovCloud and China partitions."*</sub>
 > - <sub>[Create AWS connection via Settings (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/create-an-aws-connection/aws-connection-app-settings) — *"GovCloud and China partitions are not supported"*</sub>
 > - <sub>[Manage your AWS connections (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/manage-aws-connections)</sub>
 > - <sub>[Set up AWS Connector for Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/aws/aws-workflows-setup) — March 31 2026 legacy-schema deprecation</sub>
@@ -111,7 +111,7 @@ Two notation systems for AWS entities coexist in Dynatrace today:
 
 Both work today. The DQL examples in §4 and §5 show the classic form with the Smartscape 2.0 alternative commented out — pick the one that matches your tenant's preferred query style.
 
-> <sub>**Sources:** [All AWS cloud services (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-all-services), [AWS topology (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/ingest-telemetry/aws-topology) — verbatim: *"Smartscape node types for AWS follow the CloudFormation resource type notation, making all letters uppercase and substituting :: with _"*, [AWS supported services API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/aws-supported-services).</sub>
+> <sub>**Sources:** [All AWS cloud services (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/aws-all-services), [AWS topology (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/ingest-telemetry/aws-topology) — verbatim: *"Smartscape node types for AWS follow the CloudFormation resource type notation, making all letters uppercase and substituting :: with _"*, [AWS supported services API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/aws-supported-services).</sub>
 
 <a id="enabling-monitoring"></a>
 
@@ -207,7 +207,7 @@ The Clouds App's **EventBridge** option (Advanced path) registers an [EventBridg
 > **In community practice**, EventBridge ingestion is most valuable for **security and operational signals AWS already produces** (GuardDuty, Inspector, Health Dashboard, AutoScaling) rather than for application telemetry — application events are better generated directly by your code and pushed to OneAgent or the Business Events API.
 
 
-> <sub>**Sources:** [Create AWS connection via Settings (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/create-an-aws-connection/aws-connection-app-settings), [Monitor AWS with CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/cloudwatch-metrics), [Onboard AWS Organizations (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/aws-organizations), [AWS Cost Categories (AWS docs)](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/manage-cost-categories.html), [EventBridge API destinations (AWS docs)](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-api-destinations.html).</sub>
+> <sub>**Sources:** [Create AWS connection via Settings (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/create-an-aws-connection/aws-connection-app-settings), [Monitor AWS with CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/cloudwatch-metrics), [Onboard AWS Organizations (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/aws-organizations), [AWS Cost Categories (AWS docs)](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/manage-cost-categories.html), [EventBridge API destinations (AWS docs)](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-api-destinations.html).</sub>
 
 ### Tagging this producer — primary Grail tags
 
@@ -241,7 +241,7 @@ FAQ-26 § 5 has the producer-by-producer model, and MZ2POL-10 the enrichment lad
 
 ### List All EC2 Instances
 
-> <sub>**Sources:** [DQL fetch reference (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/data-source-commands#fetch), [Entity model (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/dt-entities). Entity types verified at [All AWS cloud services (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-all-services).</sub>
+> <sub>**Sources:** [DQL fetch reference (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/data-source-commands#fetch), [Entity model (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/dt-entities). Entity types verified at [All AWS cloud services (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/aws-all-services).</sub>
 
 ```dql
 // List all EC2 instances with their names and instance types
@@ -251,7 +251,7 @@ FAQ-26 § 5 has the producer-by-producer model, and MZ2POL-10 the enrichment lad
 // awsSecurityGroup / publicIp / localIp — there is no availability-zone attribute. Confirm with:
 //   fetch dt.semantic_dictionary.models | filter name == "dt.entity.ec2_instance" | fields fields
 fetch dt.entity.ec2_instance, from:-7d
-| fieldsKeep id, entity.name, tags, awsInstanceType, awsVpcName, awsInstanceId
+| fields id, entity.name, tags, awsInstanceType, awsVpcName, awsInstanceId
 | sort entity.name asc
 | limit 20
 
@@ -293,7 +293,7 @@ fetch dt.entity.ec2_instance, from:-7d
 // Corrected 08/12/2026: the runtime attribute is awsRuntime, not awsLambdaFunctionRuntime — the
 // latter does not exist and failed the cell with FIELD_DOES_NOT_EXIST.
 fetch dt.entity.aws_lambda_function, from:-7d
-| fieldsKeep id, entity.name, tags, awsRuntime, awsMemorySize, awsTimeout
+| fields id, entity.name, tags, awsRuntime, awsMemorySize, awsTimeout
 | sort entity.name asc
 | limit 20
 
@@ -322,7 +322,7 @@ smartscapeNodes "AWS_RDS_DBINSTANCE", from:-30d
 
 // Classic alternative (dt.entity.* is deprecated but still functional; may under-count):
 // fetch dt.entity.relational_database_service, from:-30d
-// | fieldsKeep id, entity.name, tags
+// | fields id, entity.name, tags
 // | sort entity.name asc
 // | limit 20
 ```
@@ -341,7 +341,7 @@ A common operational pattern: identify AWS resources that haven't been onboarded
 // 0 untagged instances while all 13 were in fact untagged.
 fetch dt.entity.ec2_instance, from:-7d
 | filter isNull(tags) or not iAny(startsWith(tags[], "dt.cost.product:"))
-| fieldsKeep id, entity.name, awsVpcName, tags
+| fields id, entity.name, awsVpcName, tags
 | sort entity.name asc
 | limit 50
 
@@ -455,7 +455,7 @@ In community practice, treat these minute ranges as planning estimates, not comm
 - **Use sliding windows** — evaluate over 15-30 minutes for cloud metrics
 - **Combine with OneAgent** — for sub-minute alerting, rely on OneAgent metrics rather than cloud metrics
 
-> <sub>**Sources:** [Monitor AWS with CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/cloudwatch-metrics) — polling latency framing, [Amazon CloudWatch Metric Streams (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-metrics-ingest/cloudwatch-metric-streams) — push latency and 60s buffer, [Amazon CloudWatch concepts (AWS docs)](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch_concepts.html) — standard vs detailed monitoring intervals.</sub>
+> <sub>**Sources:** [Monitor AWS with CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/cloudwatch-metrics) — polling latency framing, [Amazon CloudWatch Metric Streams (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/aws-metrics-ingest/cloudwatch-metric-streams) — push latency and 60s buffer, [Amazon CloudWatch concepts (AWS docs)](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch_concepts.html) — standard vs detailed monitoring intervals.</sub>
 
 <a id="metric-streams-firehose"></a>
 
@@ -643,7 +643,7 @@ This is an account-team conversation, not a self-service option — confirm what
 | No IaC allowed from external sources at all | **Path D** | Pure console; pair with a runbook for repeatability |
 | Procurement / compliance requires signed artifacts | **Path E** | The auditable supply-chain conversation |
 
-> <sub>**Sources:** [Amazon CloudWatch Metric Streams (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-metrics-ingest/cloudwatch-metric-streams), [aws_cloudwatch_metric_stream (Terraform AWS provider)](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_metric_stream), [aws_kinesis_firehose_delivery_stream (Terraform AWS provider)](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kinesis_firehose_delivery_stream), [AWS CloudShell User Guide](https://docs.aws.amazon.com/cloudshell/latest/userguide/welcome.html).</sub>
+> <sub>**Sources:** [Amazon CloudWatch Metric Streams (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/aws-metrics-ingest/cloudwatch-metric-streams), [aws_cloudwatch_metric_stream (Terraform AWS provider)](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_metric_stream), [aws_kinesis_firehose_delivery_stream (Terraform AWS provider)](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kinesis_firehose_delivery_stream), [AWS CloudShell User Guide](https://docs.aws.amazon.com/cloudshell/latest/userguide/welcome.html).</sub>
 
 ### 7.4 Option 2 — Manual Setup in AWS Console
 
@@ -678,7 +678,7 @@ In Dynatrace, open **Hub** and enable **AWS Entities for Metric Streaming**. Wit
 | **Per-region cost** | Each region adds Firehose ingestion + S3 backup storage. Plan regional scope deliberately. |
 | **No Terraform support for the Clouds App connection itself** | The CFN-based Clouds App onboarding has no Terraform-provider resource as of this writing. Metric Streams is a separate stack and remains scriptable via plain CloudFormation. |
 
-> <sub>**Sources:** [Amazon CloudWatch Metric Streams (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-metrics-ingest/cloudwatch-metric-streams), [Monitor AWS with CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/cloudwatch-metrics), [Create AWS connection via Settings (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/create-an-aws-connection/aws-connection-app-settings), [Upgrade from classic to new cloud connections (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections) — *"Not yet supported by new AWS connections. If you rely on Metric Streams today, keep that classic ingestion path until support ships."* and *"Classic entity IDs and classic entity types do not carry over to new Smartscape nodes."*, [AWS metric and entity mapping (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections/metric-and-entity-mapping-aws) — classic `EC2_INSTANCE` → `AWS_EC2_INSTANCE`, `AWS_LAMBDA_FUNCTION` → `AWS_LAMBDA_FUNCTION`. **Derived:** the §7.1 "polling + selective streaming" coexistence pattern synthesizes both pages — no single page recommends this composition by name.</sub>
+> <sub>**Sources:** [Amazon CloudWatch Metric Streams (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/aws-metrics-ingest/cloudwatch-metric-streams), [Monitor AWS with CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/cloudwatch-metrics), [Create AWS connection via Settings (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/create-an-aws-connection/aws-connection-app-settings), [Upgrade from classic to new cloud connections (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections) — *"Not yet supported by new AWS connections. If you rely on Metric Streams today, keep that classic ingestion path until support ships."* and *"Classic entity IDs and classic entity types do not carry over to new Smartscape nodes."*, [AWS metric and entity mapping (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections/metric-and-entity-mapping-aws) — classic `EC2_INSTANCE` → `AWS_EC2_INSTANCE`, `AWS_LAMBDA_FUNCTION` → `AWS_LAMBDA_FUNCTION`. **Derived:** the §7.1 "polling + selective streaming" coexistence pattern synthesizes both pages — no single page recommends this composition by name.</sub>
 
 <a id="cost-optimization"></a>
 
@@ -714,7 +714,7 @@ For example, with representative round numbers: 5 services x 10 metrics x 100 re
 
 > **Tip:** Review the CloudWatch billing dashboard monthly and correlate spikes with Dynatrace service additions.
 
-> <sub>**Sources:** [Amazon CloudWatch pricing (AWS docs)](https://aws.amazon.com/cloudwatch/pricing/) — `GetMetricData` request pricing tier and `$0.01 per 1,000 metrics requested` (verify current rate per region; the example formula assumes a US region rate), [Monitor AWS with CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/cloudwatch-metrics), [Tags and management zones for AWS (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/cloudwatch-metrics/tags-and-management-zones-aws).</sub>
+> <sub>**Sources:** [Amazon CloudWatch pricing (AWS docs)](https://aws.amazon.com/cloudwatch/pricing/) — `GetMetricData` request pricing tier and `$0.01 per 1,000 metrics requested` (verify current rate per region; the example formula assumes a US region rate), [Monitor AWS with CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/cloudwatch-metrics), [Tags and management zones for AWS (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/cloudwatch-metrics/tags-and-management-zones-aws).</sub>
 
 <a id="related-resources"></a>
 
@@ -728,7 +728,7 @@ Primary references for everything in this notebook.
 
 - [AWS Cloud Platform Monitoring](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/aws-onboarding) — the canonical onboarding entry point
 - [Manage your AWS connections](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/manage-aws-connections) — post-onboarding lifecycle
-- [All AWS cloud services](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-all-services) — current monitored-service catalog (changes per release)
+- [All AWS cloud services](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/aws-all-services) — current monitored-service catalog (changes per release)
 
 ### Official Dynatrace Open-Source (Secondary)
 
@@ -737,7 +737,7 @@ Maintained by Dynatrace on GitHub. Pin to a release before deploying to producti
 - [Dynatrace Operator (dynatrace-operator)](https://github.com/Dynatrace/dynatrace-operator) — DynaKube CRD + Kubernetes Operator (DT-published, last verified 06/05/2026). The route for EKS / AWS-hosted Kubernetes — see CLOUD-03.
 - [S3 Log Forwarder (dynatrace-aws-s3-log-forwarder)](https://github.com/dynatrace-oss/dynatrace-aws-s3-log-forwarder) — Serverless application pushing logs from Amazon S3 to Dynatrace (DT-published, last verified 06/05/2026). Use for log sources written to S3 by AWS services that don't write to CloudWatch Logs directly.
 
-> **Disclaimer — Lambda extension distribution:** Dynatrace's AWS Lambda monitoring is distributed via [AWS Lambda Layers and the AWS Serverless Application Repository (SAR)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-into-aws/aws-lambda-integration), not as a single open-source repo. The previously-archived `dt-awslayertool` (2021) is not a current artifact. Follow the canonical Lambda docs in CLOUD-04 rather than searching GitHub.
+> **Disclaimer — Lambda extension distribution:** Dynatrace's AWS Lambda monitoring is distributed via [AWS Lambda Layers and the AWS Serverless Application Repository (SAR)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/aws-lambda-integration), not as a single open-source repo. The previously-archived `dt-awslayertool` (2021) is not a current artifact. Follow the canonical Lambda docs in CLOUD-04 rather than searching GitHub.
 
 ### Community Examples (Tertiary — Adapt, Don't Adopt)
 

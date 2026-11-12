@@ -1,6 +1,6 @@
 # CLOUD-08: Multi-Cloud Observability Patterns
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 8 of 8 | **Created:** March 2026 | **Last Updated:** 10/05/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 8 of 8 | **Created:** March 2026 | **Last Updated:** 11/11/2026
 
 ## Overview
 
@@ -84,7 +84,7 @@ Some entities are provider-specific and require separate queries:
 | `dt.entity.aws_lambda_function` | `dt.entity.azure_web_app` | `dt.entity.cloud_application` |
 | `dt.entity.relational_database_service` | `dt.entity.azure_sql_database` | `dt.entity.cloud:gcp:cloudsql_database` |
 
-> <sub>**Sources:** [AWS integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services), [Azure Native Dynatrace Service (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-native-integration), [Google Cloud integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform) — the provider-specific entity coverage behind both tables. Every entity type in this section was confirmed present in `dt.semantic_dictionary.models` on 08/27/2026 (the two GCP compute/database types re-checked 09/24/2026). **Dictionary:** note the grain distinction — `dt.entity.kubernetes_node` (worker nodes, 30 on the validation tenant) is **not** interchangeable with `dt.entity.cloud_application_instance` (pods, 2,611 over the same window); substituting one for the other over-counts by roughly 87×.</sub>
+> <sub>**Sources:** [AWS integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services), [Azure Native Dynatrace Service (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services-classic/azure-native-integration), [Google Cloud integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform) — the provider-specific entity coverage behind both tables. Every entity type in this section was confirmed present in `dt.semantic_dictionary.models` on 08/27/2026 (the two GCP compute/database types re-checked 09/24/2026). **Dictionary:** note the grain distinction — `dt.entity.kubernetes_node` (worker nodes, 30 on the validation tenant) is **not** interchangeable with `dt.entity.cloud_application_instance` (pods, 2,611 over the same window); substituting one for the other over-counts by roughly 87×.</sub>
 
 <a id="cross-cloud-queries"></a>
 
@@ -125,7 +125,7 @@ timeseries avgCpu = avg(dt.host.cpu.usage), from:-1h, by:{dt.entity.host}
 ```dql
 // List all Kubernetes clusters (EKS, AKS, GKE)
 fetch dt.entity.kubernetes_cluster, from:-7d
-| fieldsKeep id, entity.name, tags
+| fields id, entity.name, tags
 | sort entity.name asc
 
 // Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
@@ -325,7 +325,7 @@ timeseries nsCpu = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-24
 // use iAny(), e.g. `filter not iAny(startsWith(tags[], "Team:"))`, and remember to pair it with
 // isNull(tags) because iAny() over a null array yields null, which `not` does not turn true.
 fetch dt.entity.host, from:-7d
-| fieldsKeep id, entity.name, tags
+| fields id, entity.name, tags
 | filter isNull(tags) or arraySize(tags) == 0
 | sort entity.name asc
 | limit 20
