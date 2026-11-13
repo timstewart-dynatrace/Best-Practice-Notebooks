@@ -1,6 +1,6 @@
 # WFLOW-95 LAB: CMDB-Driven Host Tag Enrichment
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Reference:** 95 — CMDB-Driven Host Tag Enrichment LAB | **Created:** June 2026 | **Last Updated:** 11/11/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Reference:** 95 — CMDB-Driven Host Tag Enrichment LAB | **Created:** June 2026 | **Last Updated:** 11/13/2026
 
 ## Overview
 
@@ -125,7 +125,7 @@ Two *Run JavaScript* tasks wired with a loop. **All configuration lives in workf
 > - <sub>[Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action) — *"Use relative paths, for example /api/v2/entities , to call Dynatrace APIs. The runtime automatically attaches the required authentication headers. Don't set a custom Authorization header on relative URL requests."* and *"The AppEngine scope is selected. Allow access without app context is turned on. The workflow actor has access to the credential."*</sub>
 > - <sub>[POST a configuration job (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/remote-configuration/oneagent/post-config-job) — *"Platform Token / OAuth: Required scope: fleet-management:oneagents:write"*</sub>
 > - <sub>[Sprint 343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343) — *"We recommend platform tokens over classic API tokens for new integrations."*</sub>
-> - <sub>[Upgrade from classic access tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Classic access tokens don't exist in latest environments, and v2/apiTokens isn't available."*</sub>
+> - <sub>[Upgrade from classic access tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — (latest environment) *"Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available."*</sub>
 > - <sub>[Workflow security (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security) — *"If the required permission for a workflow task is missing, an attempt to execute this task results in a 403 Forbidden error."*</sub>
 
 **Step 1 — Create the workflow and define its inputs.** New workflow (leave the on-demand trigger). Define these **workflow inputs** — they become the parameters you can override in the Run dialog (easiest to set via the YAML editor — see the [import skeleton](#import-skeleton)):

@@ -1,6 +1,6 @@
 # FAQ-18: How Do I Monitor Adobe Experience Manager as a Cloud Service?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 18 — Monitoring AEM as a Cloud Service | **Created:** July 2026 | **Last Updated:** 10/13/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 18 — Monitoring AEM as a Cloud Service | **Created:** July 2026 | **Last Updated:** 11/13/2026
 
 ## Overview
 
@@ -146,7 +146,7 @@ Two practices worth adding on your side:
 > <sub>**Sources:**</sub>
 > - <sub>[Dynatrace — AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace) — *"which the customer support ticket can reference, along with the password."*</sub>
 > - <sub>[Access tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/access-tokens-and-oauth-clients/access-tokens) — the PaaS scope *Download OneAgent and ActiveGate installers* (`InstallerDownload`): *"Allows download of installers via Deployment API."*</sub>
-> - <sub>[Upgrade from access tokens (classic) (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Classic access tokens don't exist in latest environments, and v2/apiTokens isn't available."*</sub>
+> - <sub>[Upgrade from access tokens (classic) (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — (latest environment) *"Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available."*</sub>
 > - <sub>[Get connectivity information for OneAgent (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/oneagent/get-connectivity-info) — platform-token scope *"fleet-management:oneagent.connection-info:read"*</sub>
 > - <sub>**Derived:** the separate-channel password, dedicated-token and least-scope practices apply standard credential hygiene to Adobe's stated transmission method; neither vendor states them for this integration.</sub>
 

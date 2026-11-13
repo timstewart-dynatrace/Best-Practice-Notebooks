@@ -1,6 +1,6 @@
 # ONBRD-00: Architect's Sequence & Dependency Runbook
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 00 — Architect's Sequence & Dependency Runbook | **Created:** May 2026 | **Last Updated:** 11/10/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 00 — Architect's Sequence & Dependency Runbook | **Created:** May 2026 | **Last Updated:** 11/13/2026
 
 ## Overview
 
@@ -96,7 +96,7 @@ For environments where SVG doesn't render
 - **Deep dive:** K8S series for DynaKube + Cloud Native FullStack; **FAQ-01: Why you need a good Host Group naming strategy** for host-group naming; **FAQ-02: Tagging — Sources, Standards, and Strategy** for primary-fields strategy; **FAQ-03: OneAgent and OpenTelemetry — Choosing Per Workload** for OneAgent and OTel decision.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Upgrade from access tokens classic (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Latest environment Platform tokens only. Classic access tokens don't exist in latest environments, and v2/apiTokens isn't available."*</sub>
+> - <sub>[Upgrade from access tokens classic (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — (latest environment) *"Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available."*</sub>
 > - <sub>[Download latest OneAgent installer (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/oneagent/download-oneagent-latest) — *"Platform Token / OAuth: Required scope: fleet-management:oneagents:download"*</sub>
 > - <sub>[Download latest ActiveGate installer (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/activegate/download-activegate-latest) — *"Platform Token / OAuth: Required scope: fleet-management:activegates:download"*</sub>
 > - <sub>[SaaS 1.337 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337) — *"Certain Configuration API endpoints are now deprecated"*</sub>

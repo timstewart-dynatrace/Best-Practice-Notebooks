@@ -191,7 +191,7 @@ Choose the mode deliberately: *Any ActiveGate* lets a zone failure land on Activ
 
 Zone membership is set per agent at install time (`--set-network-zone`) or afterwards with `oneagentctl --set-network-zone`. Drive it from the deployment automation you already use, keyed on the site, region or cloud account the host belongs to, so every new host lands in the right zone without a manual step.
 
-> <sub>**Sources:** [Get started with network zones (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones/network-zones-basic-info) — alternative zones and the three fallback modes; [Network zones - Settings API (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones/manage-via-settings-api) — *"Valid values: ANY_ACTIVE_GATE (default), ONLY_DEFAULT_ZONE, NONE"*.</sub>
+> <sub>**Sources:** [Get started with network zones (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones-classic/network-zones-basic-info) — alternative zones and the three fallback modes; [Network zones - Settings API (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones/manage-via-settings-api) — *"Valid values: ANY_ACTIVE_GATE (default), ONLY_DEFAULT_ZONE, NONE"*.</sub>
 
 <a id="network-zones"></a>
 ## 2. Network Zones

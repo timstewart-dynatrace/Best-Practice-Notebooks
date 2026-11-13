@@ -1,6 +1,6 @@
 # ONBRD-99: Best Practice Summary
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 99 — Best Practice Summary | **Created:** March 2026 | **Last Updated:** 11/10/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 99 — Best Practice Summary | **Created:** March 2026 | **Last Updated:** 11/13/2026
 
 ## Overview
 
@@ -34,7 +34,7 @@ A new 2026 tenant should default to these choices unless there is a specific rea
 
 | Area | Default | Why |
 |---|---|---|
-| API token | **Platform Token** (`dt0s16`) with `Authorization: Bearer` | Latest environments have platform tokens only: *"Classic access tokens don't exist in latest environments, and v2/apiTokens isn't available."* Classic access tokens (`dt0c01`, `Authorization: Api-Token`) exist only in Classic and hybrid environments. |
+| API token | **Platform Token** (`dt0s16`) with `Authorization: Bearer` | Latest environments have platform tokens only: (latest environment) *"Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available."* Classic access tokens (`dt0c01`, `Authorization: Api-Token`) exist only in Classic and hybrid environments. |
 | Configuration | **Settings v2** / Configuration as Code (Terraform `dynatrace_settings`, Monaco v2) | SaaS 1.337: *"Many Configuration API endpoints are now covered by the Settings endpoints in the Environment API v2."* The affected Configuration API endpoints are deprecated. Plan automation around Settings v2. |
 | Extensions | **Extensions 2.0** | Current extensions framework; EF1.0 end of support 2025-03-31. JMX and PMI EF1 extensions were kept past that date but are deprecated: *"As of July 1, 2027, all Extension Framework 1.0 JMX and PMI extensions will be out of support for SaaS Environments."* Migrate them during onboarding. |
 | Tagging at source | **Primary fields/tags at OneAgent install** via `oneagentctl --set-host-tag="primary_tags.<key>=<value>"` and `--set-host-tag="dt.security_context=<value>"` (single tags-hub form, June 2026; prefix written explicitly) | OneAgent attribute enrichment (OneAgent 1.333+) emits these on every signal at ingest. |

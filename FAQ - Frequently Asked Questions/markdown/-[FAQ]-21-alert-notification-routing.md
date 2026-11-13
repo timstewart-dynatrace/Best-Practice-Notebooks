@@ -1,6 +1,6 @@
 # FAQ-21: How Do I Get the Right Alerts to the Right People?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 21 — Alert Notification Routing | **Created:** August 2026 | **Last Updated:** 10/23/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 21 — Alert Notification Routing | **Created:** August 2026 | **Last Updated:** 11/13/2026
 
 ## Overview
 
@@ -128,7 +128,7 @@ If you are running a management-zone migration specifically, **MZ2POL-09** is th
 
 Routing a noisy stream more precisely just distributes the noise more precisely. Two moves come first.
 
-**Trigger on problems, not on individual alerts.** Dynatrace Intelligence ships *"built-in event correlation rules that combine individual alerts into a single problem based on shared topology fields"* — *"any two alerts that reference the same Smartscape entity and arrive within the established timeframe are merged into a single problem."* The problem record carries `dt.davis.event_ids`, *"an array of event IDs that represents all the events collected and merged during the root-cause analysis,"* and when that aggregation happens field values from the separate events are combined into arrays on the problem record. Triggering on the problem is what lets that correlation do its job; triggering on raw alerts bypasses it. The documented framing is blunt: *"One sustained open alert is easier to manage than 30 short-lived alerts that open and close every 2 minutes."*
+**Trigger on problems, not on individual alerts.** Dynatrace Intelligence ships *"built-in event correlation rules that combine individual alerts into a single problem based on shared topology fields"* — *"any two alerts that reference the same Smartscape entity and arrive within the established timeframe are merged into a single problem."* The problem record carries `dt.davis.event_ids`, *"an array of event IDs (dt.davis.event_ids) that represents all the events collected and merged during the root-cause analysis,"* and when that aggregation happens field values from the separate events are combined into arrays on the problem record. Triggering on the problem is what lets that correlation do its job; triggering on raw alerts bypasses it. The documented framing is blunt: *"One sustained open alert is easier to manage than 30 short-lived alerts that open and close every 2 minutes."*
 
 **Prune the alert library before you re-route it.** The guidance is not to minimize detector count but to fix or remove the badly configured ones — review on a schedule (the page suggests *"for example, once every quarter"*), treat high-frequency alerts as *"candidates for a threshold increase, a model change, or removal,"* and delete alerts bound to orphaned entities, which *"should be promptly deleted."* The reason: *"A smaller, well-maintained alert library with a high signal-to-noise ratio produces more accurate and effective results than a large alert library that contains noise-creating configurations and produces a significant number of false positives."*
 

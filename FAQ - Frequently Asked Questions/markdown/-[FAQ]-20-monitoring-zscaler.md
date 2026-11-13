@@ -1,6 +1,6 @@
 # FAQ-20: How Do I Monitor Zscaler With Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 20 — Monitoring Zscaler With Dynatrace | **Created:** July 2026 | **Last Updated:** 11/11/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 20 — Monitoring Zscaler With Dynatrace | **Created:** July 2026 | **Last Updated:** 11/13/2026
 
 ## Overview
 
@@ -451,7 +451,7 @@ Verify the model exists before building on it — `smartscapeNodes` returns zero
 // Which self-built (CUSTOM_*) Zscaler node types has extraction produced?
 // The ZPA extension's own node types are ZPA_* types, not CUSTOM_* (section 2.2).
 // Zero rows before the pipeline runs is expected, not an error.
-smartscapeNodes "CUSTOM_*"
+smartscapeNodes "CUSTOM_*", from:-7d
 | dedup type
 | fields type
 ```

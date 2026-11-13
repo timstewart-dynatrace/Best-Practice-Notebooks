@@ -1,6 +1,6 @@
 # FAQ-26: What Metadata Should We Set, Where, and Why?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 26 — Metadata Strategy | **Created:** October 2026 | **Last Updated:** 11/09/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 26 — Metadata Strategy | **Created:** October 2026 | **Last Updated:** 11/13/2026
 
 ## Overview
 
@@ -260,11 +260,11 @@ RUM is different from every other producer because nothing about it can be confi
 
 **Access.** `frontend.name` on its own handles per-application access for user events, sessions and RUM metrics. For anything finer, such as specific pages, Dynatrace says to write `dt.security_context` with DQL processors in the same scopes. The only fields you can mask from display are the four built-in sensitive fields (client IP, user tag, latitude, longitude). Nothing you add in OpenPipeline can be marked sensitive.
 
-**Two things the pages leave open.** Neither RUM page mentions cost fields on RUM data. The AWS end-to-end example writes `dt.cost.costcenter` in its RUM processor, but no page says what reads that field on RUM data, so test it with the §7 audit. The two pages also contradict each other on retention: the enrichment page lists *bucket assignment* by `primary_tags.*` as a use, and the access-controls page says *"You cannot currently modify these buckets or create custom RUM buckets."* Until that is settled, don't put RUM retention into your tag design.
+**Two things the pages leave open.** Neither RUM page mentions cost fields on RUM data. The AWS end-to-end example writes `dt.cost.costcenter` in its RUM processor, but no page says what reads that field on RUM data, so test it with the §7 audit. The two pages also contradict each other on retention: the enrichment page lists *bucket assignment* by `primary_tags.*` as a use, and the access-controls page says *"Grail stores RUM data across seven built-in buckets."* and *"All buckets have a 35-day retention period by default"*, and does not document custom RUM buckets. Until a page does, don't put RUM retention into your tag design.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Enrich RUM telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-rum) — *"To configure security context (dt.security_context) for RUM data, use DQL processors in the relevant OpenPipeline configuration scopes."*</sub>
-> - <sub>[Best practices for RUM data access controls (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-04-observability-data-settings/rum-data-access-controls) — *"You cannot currently modify these buckets or create custom RUM buckets."*</sub>
+> - <sub>[Best practices for RUM data access controls (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-04-observability-data-settings/rum-data-access-controls) — *"Grail stores RUM data across seven built-in buckets."*</sub>
 > - <sub>[Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"For User sessions, repeat the same steps with a different matching condition, because frontend.name is an array in that scope"*</sub>
 > - <sub>**Dictionary:** `frontend.name` (`stable`, tagged `permission`), read 10/06/2026.</sub>
 
