@@ -1,6 +1,6 @@
 # FAQ-11: How Do Metrics Work in Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 11/11/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 11/13/2026
 
 ## Overview
 
@@ -187,7 +187,7 @@ The migration state, per the docs: *"most but not all metrics are already suppor
 > - <sub>[Built-in metrics on Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail) — `builtin:` ↔ `dt.` key mapping tables</sub>
 > - <sub>[Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits)</sub>
 > - <sub>[Metric selector conversion (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/preserve-metrics-and-service-visibility/metrics/metric-selector-conversion)</sub>
-> - <sub>[Data Explorer (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/explorer)</sub>
+> - <sub>[Data Explorer (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/explorer-classic)</sub>
 > - <sub>[What's new in Dynatrace SaaS 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-349) — *"Metrics now supports custom buckets."* (rollout from 10/27/2026, read 10/27/2026)</sub>
 
 <a id="ingest-paths"></a>
@@ -318,7 +318,7 @@ Retention is *"5 years, not configurable."* The practical consequence: a Classic
 
 ### 6.3 Metrics powered by Grail: full resolution, configurable retention
 
-Grail metrics keep **"1 minute over entire history."** Included retention is *"15 months (462 days) of one-minute-granularity retention"*, and *"This retention can be increased to up to 10 years."* Retention beyond the included 15 months bills the Retain capability (§9). Retained data stays queryable until the end of the retention period. Note the current scoping: retention is set on the **default metrics bucket**; custom metric buckets are documented as *"planned for a future release"*, so per-metric retention splits are not yet available the way they are for logs.
+Grail metrics keep **"1 minute over entire history."** Included retention is *"15 months (462 days) of one-minute-granularity retention"*, and *"This retention can be increased to up to 10 years."* Retention beyond the included 15 months bills the Retain capability (§9). Retained data stays queryable until the end of the retention period. Note the scoping: retention is set on the **default metrics bucket**. SaaS 1.349 (staged tenant rollout from 10/27/2026) adds custom metric buckets — *"You can optionally route subsets of metrics into custom buckets using configuration rules"* and *"Configure custom retention per bucket"* — so verify it has reached your tenant; until it does, the metrics FAQ still lists custom buckets as *"planned for a future release"* and retention is set on the default bucket only.
 
 The Grail design also removed a classic artifact: Classic kept separate pre-aggregated and full-cardinality "detail" variants of some built-ins for performance; Grail *"is already optimized for such high cardinality queries"*, so only the detailed form exists.
 
@@ -477,7 +477,7 @@ For querying your *own* tenant's metric consumption, FINOPS-01 documents the `dt
 5. **For OTLP, settle temporality at the source**: `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=DELTA` in SDKs, or `cumulativetodelta` (with `max_staleness`) in the Collector — and confirm your histogram shape survives the type mapping (§4.4) before promising percentiles — explicit-bucket histograms stay histograms only with **Advanced OTLP metric dimensions** enabled.
 6. **Attach metadata at ingest** (unit, display name, description — §2.4) so every downstream chart and Davis analysis renders meaningfully without tribal knowledge.
 7. **Derive recurring aggregates from records early** via OpenPipeline extraction (§5) — it is forward-only, so every week of delay is a week of history the metric will never have. Keep the raw records for forensics per the FAQ-09 rule.
-8. **Decide retention deliberately.** The included 15 months at full 1-minute resolution covers most operational analysis; extend the default metrics bucket (up to 10 years) only for genuine long-horizon needs, and remember Classic comparisons older than 14 days are already downsampled.
+8. **Decide retention deliberately.** The included 15 months at full 1-minute resolution covers most operational analysis; extend retention (up to 10 years) only for genuine long-horizon needs — on the default metrics bucket or, once SaaS 1.349 reaches your tenant, on a custom bucket that holds only the metrics that need it — and remember Classic comparisons older than 14 days are already downsampled.
 9. **Put the "Metric dimension usage and rejection self-monitoring" dashboard on your platform team's rotation** — cardinality rejections are silent by design, so make them visible by habit.
 
 > <sub>**Sources:** the individual practices are grounded in the sections cited above (§2, §4, §5, §7, §8, §9). **Derived:** the ordering and emphasis are an authoring synthesis — the docs do not publish a consolidated metrics-design checklist.</sub>

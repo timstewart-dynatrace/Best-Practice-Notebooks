@@ -1,6 +1,6 @@
 # FAQ-06: Can We Trust Davis AI? A Risk and Controls Walkthrough
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 06 — Can We Trust Davis AI? A Risk and Controls Walkthrough | **Created:** May 2026 | **Last Updated:** 11/11/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 06 — Can We Trust Davis AI? A Risk and Controls Walkthrough | **Created:** May 2026 | **Last Updated:** 11/13/2026
 
 ## Overview
 
@@ -187,7 +187,7 @@ The fourth concern in most security reviews: *can the AI take destructive action
 |---------|-------------------|
 | Causal AI | Detect a problem, open a problem card, attribute root cause within tenant topology |
 | Predictive AI | Emit a forecast, raise an anomaly event, populate a baseline |
-| Generative AI (Dynatrace Assist) | Answer a question; generate a DQL query — and run it: the documentation says Assist *is capable of auto-executing generated DQL queries*. DQL reads data; it runs with the asking user's permissions. Those queries are billed — *"subject to licensing consumption according to your existing licensing agreement"* — and *"you can choose to generate DQL only, without executing it."* |
+| Generative AI (Dynatrace Assist) | Answer a question; generate a DQL query — and run it: the documentation says Assist *is capable of auto-executing generated DQL queries*. DQL reads data; it runs with the asking user's permissions. Those queries are billed — *"subject to licensing consumption according to your existing licensing agreement"* — and *"you can choose to generate DQL without executing it"* |
 | Agentic root cause analysis (SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout)) | When a problem is detected, investigate contributing factors across metrics, logs, and traces and surface findings on the problem. Verify it has reached your tenant; until then, Causal AI's root-cause attribution above is the unattended surface |
 | Agentic workflows and built-in agents (Preview) | Propose actions and run them once *approved*, under policy guardrails. Preview — verify availability on your tenant before relying on it |
 

@@ -1,6 +1,6 @@
 # ONBRD-05: Deploying OneAgent
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 11/03/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 11/13/2026
 
 ## Getting Data Into Dynatrace
 OneAgent is the foundation of Dynatrace monitoring. This notebook covers deployment strategies, installation methods, and verification steps to ensure your infrastructure is reporting data.
@@ -100,7 +100,7 @@ If direct access isn't possible, OneAgents connect through **ActiveGate** (see O
 
 <a id="generating-a-deployment-token"></a>
 ## 3. Generating a Deployment Token
-The installer download accepts two kinds of token. Which one you have depends on the state of your environment: *"Classic access tokens don't exist in latest environments"*, while environments migrating to Latest Dynatrace have both.
+The installer download accepts two kinds of token. Which one you have depends on the state of your environment: on a latest environment, *"Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available."*, while environments migrating to Latest Dynatrace have both.
 
 | Environment | Token | Required scope | Request header |
 |-------------|-------|----------------|----------------|

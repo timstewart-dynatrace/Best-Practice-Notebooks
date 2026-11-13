@@ -1,6 +1,6 @@
 # AUTOM-02: Settings API
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 2 of 9 | **Created:** January 2026 | **Last Updated:** 11/11/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 2 of 9 | **Created:** January 2026 | **Last Updated:** 11/13/2026
 
 The Settings API (also called Settings 2.0) is Dynatrace's modern REST API for configuration management. It provides a unified way to manage all Dynatrace settings through JSON objects with schema validation.
 
@@ -114,7 +114,7 @@ curl "https://{tenant}.live.dynatrace.com/api/v2/settings/schemas" \
 > - <sub>[Settings API - List objects (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/objects/get-objects) — *"Platform Token / OAuth: Required scope: settings:objects:read"*</sub>
 > - <sub>[Settings API - POST an object (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/objects/post-object) — *"Platform Token / OAuth: Required scope: settings:objects:write"*</sub>
 > - <sub>[Dynatrace API authentication (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/basics/dynatrace-api-authentication) — *"Platform tokens use the Bearer realm in the Authorization HTTP header."*</sub>
-> - <sub>[Upgrade from classic access tokens to platform tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Platform tokens are also available alongside classic access tokens."* (hybrid); *"Classic access tokens don't exist in latest environments, and v2/apiTokens isn't available."*</sub>
+> - <sub>[Upgrade from classic access tokens to platform tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"platform tokens are available alongside classic access tokens"* (hybrid); (latest environment) *"Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available."*</sub>
 
 ### The Platform Settings API
 

@@ -1,6 +1,6 @@
 # AUTOM-01: Automation Landscape
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 11/11/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 11/13/2026
 
 Dynatrace provides multiple ways to automate configuration management and operational tasks. This series covers all major automation options, helping you choose the right approach for your needs.
 
@@ -195,7 +195,7 @@ The Dynatrace command-line tool, developed in the open at [dynatrace-oss/dtctl](
 
 > <sub>**Sources:**</sub>
 > - <sub>[Settings API - POST an object (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/objects/post-object) — *"Platform Token / OAuth: Required scope: settings:objects:write"*</sub>
-> - <sub>[Upgrade from classic access tokens to platform tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Classic access tokens don't exist in latest environments, and v2/apiTokens isn't available."*</sub>
+> - <sub>[Upgrade from classic access tokens to platform tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — (latest environment) *"Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available."*</sub>
 > - <sub>[Dynatrace Terraform provider (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md) — *"The Dynatrace Terraform provider is officially supported by Dynatrace."*; Partner tier per the [Terraform Registry entry](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest), checked 10/02/2026.</sub>
 > - <sub>[dtctl CLI (DT docs)](https://docs.dynatrace.com/docs/platform/dtctl) — *"dtctl is compatible with Dynatrace SaaS environments only."*, *"In cases where OAuth isn't possible, such as in headless environments, you can also use platform tokens."*</sub>
 
@@ -359,7 +359,7 @@ Two paths, picked by target:
 **Don't use Monaco-download-as-Terraform-bootstrap.** Monaco's YAML and the Terraform provider's HCL don't share a converter (no Dynatrace-supplied tool, and no community OSS bridge found in GitHub searches as of September 2026). Hand-authoring HCL from Monaco YAML loses to running `-export` directly.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Dynatrace Terraform provider export utility (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/terraform-cli-commands) — *"./terraform-provider-dynatrace -export [-ref] [-migrate] [-import-state] [-id] [-flat] [-exclude] [-admin-access] [<resourcename>[=<id>]]"*; *"-admin-access : Export OpenPipeline resources of all owners, not just the current user's. Requires the settings:objects:admin permission."*; module-structure vs `-flat`; `.flawed` / `.requires_attention` triage dirs; default exclusions.</sub>
+> - <sub>[Dynatrace Terraform provider export utility (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/terraform-cli-commands) — *"./terraform-provider-dynatrace -export -ref -exclude dynatrace_platform_slo dynatrace_automation_workflow"*; *"-admin-access : Export OpenPipeline resources of all owners, not just the current user's. Requires the settings:objects:admin permission."*; module-structure vs `-flat`; `.flawed` / `.requires_attention` triage dirs; default exclusions.</sub>
 > - <sub>[`dynatrace_generic_setting` (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/generic_setting.md) — *"The resource `dynatrace_generic_setting` covers configuration for Schemas contributed by Custom Platform Apps"*</sub>
 > - <sub>[Monaco repo README (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code) — confirms Monaco and Terraform provider are separate tools; no built-in conversion. **Observed 09/28/2026:** GitHub repository searches for `monaco to terraform`, `monaco terraform dynatrace`, `dynatrace monaco convert` and `dynatrace monaco migration` returned no Monaco-to-Terraform converter (first checked 05/12/2026). An absence in search results is an observation, not a guarantee — re-check before relying on it.</sub>
 
@@ -411,7 +411,7 @@ Once you've picked Monaco or Terraform (per §3-§5), here's the sequenced path 
 > - <sub>[Dynatrace Terraform provider (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md) — *"Platform tokens can't be used for IAM (Account Management) or classic resources."*</sub>
 > - <sub>[Terraform provider v1.88.0 release notes (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases/tag/v1.88.0) — *"For these resources, an API token must be provided"*</sub>
 > - <sub>[Monaco manage resources (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources) — *"Access tokens and platform tokens are not interchangeable."*</sub>
-> - <sub>[Upgrade from classic access tokens to platform tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Classic access tokens don't exist in latest environments, and v2/apiTokens isn't available."*</sub>
+> - <sub>[Upgrade from classic access tokens to platform tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — (latest environment) *"Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available."*</sub>
 
 ---
 
@@ -455,7 +455,7 @@ Dynatrace supports three types of credentials for automation tools. Which you ne
 
 > <sub>**Sources:**</sub>
 > - <sub>[Settings API - POST an object (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/objects/post-object) — *"Platform Token / OAuth: Required scope: settings:objects:write"*</sub>
-> - <sub>[Upgrade from classic access tokens to platform tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Platform tokens are also available alongside classic access tokens."* (hybrid); *"Classic access tokens don't exist in latest environments, and v2/apiTokens isn't available."*</sub>
+> - <sub>[Upgrade from classic access tokens to platform tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"platform tokens are available alongside classic access tokens"* (hybrid); (latest environment) *"Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available."*</sub>
 > - <sub>[Monaco manage resources (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources) — access-token minimum includes *"Access problem and event feed, metrics, and topology ( DataExport )"*</sub>
 > - <sub>[OAuth clients (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients) — *"For Client credentials only: provide the Subject user email"*</sub>
 > - <sub>[Dynatrace MCP server (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-mcp) — *"the effective token permissions consist of the intersection of the permissions configured on the OAuth client and the permissions of the user who created the client."*</sub>

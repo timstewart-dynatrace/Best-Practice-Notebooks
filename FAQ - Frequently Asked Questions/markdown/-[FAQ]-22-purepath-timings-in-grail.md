@@ -1,6 +1,6 @@
 # FAQ-22: What Happened to My PurePath Timings in Grail?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 22 — PurePath Timings in the Grail Span Model | **Created:** August 2026 | **Last Updated:** 10/15/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 22 — PurePath Timings in the Grail Span Model | **Created:** August 2026 | **Last Updated:** 11/13/2026
 
 ## Overview
 
@@ -112,14 +112,14 @@ Two of those rows deserve care.
 
 **What to do about the gap.** There is no reconstruction of IO or lock time from the fields that do exist — `duration` minus `span.timing.cpu` is elapsed-minus-CPU, which lumps IO, lock, queueing, and downstream wait into one undifferentiated number. It can be a useful *triage* signal ("this span is not CPU-bound"), but do not present it as IO time. Where the distinction genuinely drives a decision, the durable path is the child spans themselves: a database call, an outbound HTTP call, and a queue wait each appear as their own span with their own `duration`.
 
-> <sub>**Sources:** [Distributed Tracing (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing), [Semantic Dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary). **Dictionary:** `span.timing.cpu` (`stable`), `span.timing.cpu_self` (`stable`); no row for IO time, disk IO time, lock/sync time or suspension under `filter contains(name, "timing") or contains(name, "io.time") or contains(name, "lock") or contains(name, "suspension") or contains(name, "wait")`, which returns exactly six fields — `compilation_timings.*` ×3, the two CPU fields, and `azure.storage.blob.block_id` (`experimental`; an unrelated substring hit on "lock") — so the query surface works and the absence is meaningful, not an empty result. Read 08/04/2026, re-verified 08/27/2026; the sixth field appeared by 09/28/2026. **Derived:** the `duration - span.timing.cpu` triage caveat follows from the two published CPU definitions plus the absence of any wait-time field — no source endorses it as a substitute.</sub>
+> <sub>**Sources:** [Distributed Tracing (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing), [Semantic Dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary). **Dictionary:** `span.timing.cpu` (`stable`), `span.timing.cpu_self` (`stable`); no row for IO time, disk IO time, lock/sync time or suspension under `filter contains(name, "timing") or contains(name, "io.time") or contains(name, "lock") or contains(name, "suspension") or contains(name, "wait")`, which returned 11 distinct fields on 11/13/2026 — `compilation_timings.*` ×3, the two CPU fields, and six unrelated substring hits (`azure.storage.blob.block_id`, `azure.x_PricingBlockSize`, `characteristics.has_w3c_*` ×2, `snowflake.user.is_locked`, `snowflake.user.locked_until_time`) — so the query surface works and the absence is meaningful, not an empty result. Read 08/04/2026, re-verified 08/27/2026; the sixth field appeared by 09/28/2026. **Derived:** the `duration - span.timing.cpu` triage caveat follows from the two published CPU definitions plus the absence of any wait-time field — no source endorses it as a substitute.</sub>
 
 **Confirm the timing inventory yourself.** This searches the entire dictionary — not just spans — so an empty result for lock/wait/suspension is a statement about the platform, not about your tenant's data:
 
 ```dql
 // Every timing-related field the semantic dictionary publishes, anywhere.
 // Expect: span.timing.cpu, span.timing.cpu_self, compilation_timings.*, and
-// azure.storage.blob.block_id (an unrelated "lock" substring hit) — nothing for IO,
+// unrelated substring hits (azure.*, characteristics.has_w3c_*, snowflake.*) — nothing for IO,
 // lock/sync time or suspension.
 fetch dt.semantic_dictionary.fields
 | filter contains(name, "timing")
@@ -136,7 +136,7 @@ The customer premise here is correct, and it follows from one sentence in the di
 
 `endpoint.name` is `stable`, and its definition reads: *"The endpoint name is derived from endpoint detection rules and uniquely identifies one endpoint of a particular service… Endpoints are **exclusively detected on request root spans**."*
 
-> **Breaking (SaaS 1.347 — staged rollout from 09/16/2026): endpoint names keep their volatile segments** — for customers using URL truncation, that is Service Detection v2, or Service Detection v1 with enhanced endpoint naming enabled. Verbatim: *"Volatile segments are no longer dropped. Instead, they're replaced with typed placeholders, and path processing continues for the full path."* This does not change *where* endpoints are detected — the root-span rule below still holds — but it changes the **shape of every name**. A path that previously truncated at its first volatile segment now runs its full length with `{id}` / `{token}` standing in for the volatile parts, so a filter written against a truncated name stops matching. Cardinality moves with it: two URLs that used to collapse to the same truncated endpoint can now resolve to two names. Re-check endpoint-scoped filters, dashboards and alerts once 1.347 reaches your tenant; until it does, the truncating behaviour is what you will observe.
+> **Breaking (SaaS 1.347 — staged rollout from 09/16/2026): endpoint names keep their volatile segments** — for customers using URL truncation, that is Service Detection v2, or Service Detection v1 with enhanced endpoint naming enabled. Verbatim: *"volatile segments are no longer dropped. Instead, they’re replaced with typed placeholders, and path processing continues for the full path"* This does not change *where* endpoints are detected — the root-span rule below still holds — but it changes the **shape of every name**. A path that previously truncated at its first volatile segment now runs its full length with `{id}` / `{token}` standing in for the volatile parts, so a filter written against a truncated name stops matching. Cardinality moves with it: two URLs that used to collapse to the same truncated endpoint can now resolve to two names. Re-check endpoint-scoped filters, dashboards and alerts once 1.347 reaches your tenant; until it does, the truncating behaviour is what you will observe.
 
 A client span — the caller's side of an outbound HTTP, gRPC, or database call — made **while serving an inbound request** is not a request root span. So:
 

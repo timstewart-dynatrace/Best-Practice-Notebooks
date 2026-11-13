@@ -1,6 +1,6 @@
 # FAQ-19: How Do I Bring a Third-Party SaaS Platform's Telemetry Into Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 19 — Integrating Third-Party SaaS Telemetry | **Created:** July 2026 | **Last Updated:** 11/06/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 19 — Integrating Third-Party SaaS Telemetry | **Created:** July 2026 | **Last Updated:** 11/13/2026
 
 ## Overview
 
@@ -111,7 +111,7 @@ For environments where SVG doesn't render
 > - <sub>[Cribl via OpenTelemetry (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-opentelemetry/)</sub>
 > - <sub>[Syslog via OpenTelemetry Collector (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/syslog-via-opentelemetry-collector/) — the listed collector-hop routes for feeds that cannot post directly. The two Cribl listings read *"Provided by Cribl"* and *"Support By the partner"*; the syslog collector listing reads *"Provided by Dynatrace"*</sub>
 > - <sub>[Ingest AWS logs from Amazon S3 (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/ingest-telemetry/aws-logs/amazon-s3-log-forwarder) — the forwarder runs as *"an event-driven AWS Lambda function that you deploy in your own AWS account"*; *"Additionally, you can forward and ingest generic text logs and JSON streams"*; *"Log records with timestamps older than 24 hours are dropped at ingest."*</sub>
-> - <sub>[Cloud provider log forwarding (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-cloud-provider-log-forwarding) — *"Azure log forwarding allows you to stream Azure logs from Azure Event Hubs into Dynatrace logs via an Azure Function App instance."*; for Google Cloud, *"During setup, a new Pub/Sub subscription will be created."*</sub>
+> - <sub>[Cloud provider log forwarding (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-cloud-provider-log-forwarding) — *"Dynatrace automatically discovers and connects to these Azure Event Hubs and starts to pull logs and events"*; for Google Cloud, *"During setup, a new Pub/Sub subscription will be created."*</sub>
 > - <sub>**Docs check (10/29/2026):** the cloud provider log forwarding page, the Azure log forwarder setup page and the S3 forwarder page were read for a route that ingests objects already stored in Azure Blob Storage or Google Cloud Storage. None was found (control: the same pages document the S3 route). The Azure forwarder deploys a storage account as part of its own resources, not as a log source</sub>
 
 ### 3.1 The multi-home pattern — usually the right enterprise answer

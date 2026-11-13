@@ -1,6 +1,6 @@
 # FAQ-23: How Do I Monitor Box With Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 23 — Monitoring Box With Dynatrace | **Created:** August 2026 | **Last Updated:** 11/10/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 23 — Monitoring Box With Dynatrace | **Created:** August 2026 | **Last Updated:** 11/13/2026
 
 ## Overview
 
@@ -778,7 +778,7 @@ Whatever runs it needs monitoring of its own — see § 13.
 > - <sub>[Deprecated Box Next Gen Python SDK (Box Dev Docs)](https://developer.box.com/guides/tooling/sdks/python-gen)</sub>
 > - <sub>[Client Credentials Grant (Box Dev Docs)](https://developer.box.com/guides/authentication/client-credentials)</sub>
 > - <sub>[POST ingest logs (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/log-monitoring-v2/post-ingest-logs) — *"Platform Token / OAuth: One of the following scopes is required: openpipeline:logs:ingest storage:logs:write (legacy)"*</sub>
-> - <sub>[Upgrade from classic access tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Classic access tokens don't exist in latest environments, and v2/apiTokens isn't available."*</sub>
+> - <sub>[Upgrade from classic access tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — (latest environment) *"Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available."*</sub>
 > - <sub>[Log ingestion limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits) — *"200 - in case some of the events in the payload have timestamps earlier than the log age limit."*</sub>
 > - <sub>[List user and enterprise events (Box Dev Docs)](https://developer.box.com/reference/get-events) — *"`now` will return an empty list events and the latest stream position for initialization"*; *"Sometimes, the events less than the limit requested can be returned even when there may be more events remaining."*</sub>
 > - <sub>**Derived:** § 8.1's current-vs-deprecated verdict comes from PyPI release dates (re-checked 10/02/2026) against Box's deprecation notice</sub>
@@ -900,7 +900,7 @@ Shield alerts follow the standard event schema with `event_type == "SHIELD_ALERT
 |---|---|
 | `rule_category`, `rule_name` | Classification — the primary dimension for routing |
 | `risk_score` | Numeric severity; good threshold for problem creation |
-| `priority` | Box's own severity label |
+| `severity` | Box's own severity label — *"One of Low, Medium, High, or Critical"*, derived from `risk_score`; the older `priority` field is no longer sent |
 | `alert_summary` | Context: IPs, affected files, timestamps |
 | `link` | Deep link back to the Shield console — **put this in the notification** |
 | `user` (`id`, `name`, `email`) | The affected account. The event's own `created_by` is Box's anonymous user (`id` 2, `name` "Unknown User", empty `login`), so route and correlate on this field instead |
@@ -924,19 +924,19 @@ Shield alerts are the one Box signal that should page someone. Route them per **
 // once your collector is running.
 // On SHIELD_ALERT, created_by is Box's anonymous user with an EMPTY login —
 // the affected account is additional_details.shield_alert.user.
-data record(content = "{\"event_id\":\"a1\",\"event_type\":\"SHIELD_ALERT\",\"created_at\":\"2026-08-25T10:15:02-07:00\",\"created_by\":{\"type\":\"user\",\"id\":\"2\",\"name\":\"Unknown User\",\"login\":\"\"},\"additional_details\":{\"shield_alert\":{\"rule_category\":\"Anomalous Download\",\"rule_name\":\"Bulk download\",\"risk_score\":78,\"priority\":\"high\",\"alert_id\":9911,\"user\":{\"id\":2320,\"name\":\"Jane Doe\",\"email\":\"jdoe@example.com\"},\"link\":\"https://app.box.com/master/shield/alerts/9911\"}}}")
+data record(content = "{\"event_id\":\"a1\",\"event_type\":\"SHIELD_ALERT\",\"created_at\":\"2026-08-25T10:15:02-07:00\",\"created_by\":{\"type\":\"user\",\"id\":\"2\",\"name\":\"Unknown User\",\"login\":\"\"},\"additional_details\":{\"shield_alert\":{\"rule_category\":\"Anomalous Download\",\"rule_name\":\"Bulk download\",\"risk_score\":78,\"severity\":\"High\",\"alert_id\":\"A3F9B2C1Y34T\",\"user\":{\"id\":2320,\"name\":\"Jane Doe\",\"email\":\"jdoe@example.com\"},\"link\":\"https://app.box.com/master/shield/alerts/A3F9B2C1Y34T\"}}}")
 | parse content, "JSON:evt"
 | filter evt[event_type] == "SHIELD_ALERT"
 | fieldsAdd box.alert.category   = evt[additional_details][shield_alert][rule_category],
             box.alert.risk_score = evt[additional_details][shield_alert][risk_score],
-            box.alert.priority   = evt[additional_details][shield_alert][priority],
+            box.alert.severity   = evt[additional_details][shield_alert][severity],
             box.alert.link       = evt[additional_details][shield_alert][link],
             box.user             = evt[additional_details][shield_alert][user][email],
             box.created_by_login = evt[created_by][login]
-| fields box.alert.category, box.alert.risk_score, box.alert.priority, box.user, box.alert.link, box.created_by_login
+| fields box.alert.category, box.alert.risk_score, box.alert.severity, box.user, box.alert.link, box.created_by_login
 ```
 
-> <sub>**Sources:** [Shield Alert Events (Box Dev Docs)](https://developer.box.com/guides/events/event-triggers/shield-alert-events) — the documented sample shows `created_by` as id 2, *"Unknown User"*, with an empty login, and the account under `shield_alert.user`; [Box Shield (Box)](https://www.box.com/shield). **Tenant observation (10/02/2026):** the query above returns `box.user` = `jdoe@example.com` and an empty `box.created_by_login`. **Derived:** § 11.3's routing sequence applies FAQ-21's four-axis model to the Shield payload; the recommendation to carry `link` into the notification is an operational inference, not a documented requirement.</sub>
+> <sub>**Sources:** [Shield Alert Events (Box Dev Docs)](https://developer.box.com/guides/events/event-triggers/shield-alert-events) — the documented sample shows `created_by` as id 2, *"Unknown User"*, with an empty login, and the account under `shield_alert.user`; *"The priority field is no longer included in Shield alert events. Use severity instead. Alert IDs are unique random alphanumeric strings."*; [Box Shield (Box)](https://www.box.com/shield). **Tenant observation (11/13/2026):** the query above returns `box.alert.severity` = `High`, `box.user` = `jdoe@example.com` and an empty `box.created_by_login`. **Derived:** § 11.3's routing sequence applies FAQ-21's four-axis model to the Shield payload; the recommendation to carry `link` into the notification is an operational inference, not a documented requirement.</sub>
 
 ---
 

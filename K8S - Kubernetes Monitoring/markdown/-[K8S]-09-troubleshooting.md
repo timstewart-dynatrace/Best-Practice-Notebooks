@@ -152,7 +152,7 @@ kubectl -n dynatrace get pod -l app.kubernetes.io/name=dynatrace-operator \
 >
 > A reader on 1.10.x who matches on symptom alone lands on the 1.5.1 fix, which does not cover them — they are already far past 1.5.1. Check your Operator version *and* your `spec.oneAgent` mode before acting.
 
-> **Tip:** The [Kubernetes/OpenShift troubleshooting map (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/Kubernetes-Openshift-troubleshooting-map/ta-p/264113) maintains this known-issues list as new Operator versions ship — check it alongside the [Operator releases (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/releases) when triaging a failure that appeared right after an upgrade.
+> **Tip:** The [Kubernetes/OpenShift troubleshooting map (Dynatrace community)](https://community.dynatrace.com/t/kubernetes-openshift-troubleshooting-map/49142) maintains this known-issues list as new Operator versions ship — check it alongside the [Operator releases (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/releases) when triaging a failure that appeared right after an upgrade.
 
 > **OpenShift `Init:0/1` on 1.10.1:** a fresh-install or operator-deleted-upgrade hang where the operator sits at `Init:0/1` and the webhook waits for its cert secret is the 1.10.1 manifest defect in the table above — **re-pull the OpenShift manifests before any deeper triage.** Details and the `certgen` workaround: [Heads-up: Unable to deploy Operator 1.10.1 on fresh clusters (Dynatrace community — requires sign-in)](https://community.dynatrace.com/t5/Heads-up-from-Dynatrace/Resolved-Unable-to-deploy-Operator-1-10-1-on-fresh-clusters-or/ta-p/302391).
 
@@ -587,7 +587,7 @@ timeseries hostCpu = avg(dt.host.cpu.usage), from:-6h, by:{dt.entity.host}
 <a id="symptom-resolution-index"></a>
 ## 10. Symptom-to-Resolution Index
 
-The Dynatrace community maintains a curated [Kubernetes/OpenShift troubleshooting map (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/Kubernetes-Openshift-troubleshooting-map/ta-p/264113) — a living index of exact error messages mapped to resolution articles, kept current by Dynatrace staff. The tables below index the most load-bearing entries by the error text you will actually see; use the map itself for the full, growing list. (A few entries live on the *Heads-up from Dynatrace* board, which requires community sign-in.)
+The Dynatrace community maintains a curated [Kubernetes/OpenShift troubleshooting map (Dynatrace community)](https://community.dynatrace.com/t/kubernetes-openshift-troubleshooting-map/49142) — a living index of exact error messages mapped to resolution articles, kept current by Dynatrace staff. The tables below index the most load-bearing entries by the error text you will actually see; use the map itself for the full, growing list. (A few entries live on the *Heads-up from Dynatrace* board, which requires community sign-in.)
 
 ### Deployment and Startup
 
@@ -668,7 +668,7 @@ In this notebook, you learned:
 - [How K8s monitoring works (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/how-it-works)
 - [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters)
 - [Davis Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
-- [Kubernetes/OpenShift troubleshooting map (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/Kubernetes-Openshift-troubleshooting-map/ta-p/264113)
+- [Kubernetes/OpenShift troubleshooting map (Dynatrace community)](https://community.dynatrace.com/t/kubernetes-openshift-troubleshooting-map/49142)
 - [Dynatrace Operator releases (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/releases)
 - [Operator 1.10.2 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-2)
 - [Kubernetes Operator CSI driver crashes frequently (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/Kubernetes-Operator-CSI-driver-crashes-frequently/ta-p/272021)

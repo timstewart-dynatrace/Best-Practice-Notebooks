@@ -1,6 +1,6 @@
 # ONBRD-02: IAM and Authentication
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 11/11/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 11/13/2026
 
 ## Setting Up Secure Access
 Before inviting your team, configure authentication and permissions properly. This notebook covers SAML/SSO setup, API tokens, and the modern permission model.
@@ -257,7 +257,7 @@ Use for **external system integrations** or **account-admin automation** that op
 
 ### Classic API Tokens (Legacy)
 
-Classic access tokens exist only on classic and hybrid environments — *"Classic access tokens don't exist in latest environments"* — so existing scripts that use them need a migration plan. Migrate to Platform Tokens during routine refresh cycles. Classic tokens use the `Api-Token` Authorization scheme (not `Bearer`).
+Classic access tokens exist only on classic and hybrid environments — on a latest environment, *"Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available."* — so existing scripts that use them need a migration plan. Migrate to Platform Tokens during routine refresh cycles. Classic tokens use the `Api-Token` Authorization scheme (not `Bearer`).
 
 **Location:** the **Access Tokens** app in your environment → **Generate new token** (not Account Management)
 
@@ -284,7 +284,7 @@ Classic access tokens exist only on classic and hybrid environments — *"Classi
 - **IAM series** — Token management, lifecycle, audit patterns
 
 > <sub>**Sources:**</sub>
-> - <sub>[Upgrade from access tokens classic (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"In Latest Dynatrace , this model is replaced with platform tokens"*</sub>
+> - <sub>[Upgrade from access tokens classic (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — (latest environment) *"Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available."*</sub>
 > - <sub>[Download latest OneAgent installer (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/oneagent/download-oneagent-latest) — *"Platform Token / OAuth: Required scope: fleet-management:oneagents:download"*</sub>
 > - <sub>[Download latest ActiveGate installer (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/activegate/download-activegate-latest) — *"Platform Token / OAuth: Required scope: fleet-management:activegates:download"*</sub>
 > - <sub>[Workflow security (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security) — *"By default, the actor is the creator of the workflow."*</sub>

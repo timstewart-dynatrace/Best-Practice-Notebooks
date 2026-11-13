@@ -1,6 +1,6 @@
 # FAQ-13: How Do Dynatrace Injection and OpenShift SCCs Interact? (seccomp, anyuid, and the Operator 1.9.0 Change)
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 13 — Dynatrace Injection and OpenShift SCCs: seccomp, anyuid, and the Operator 1.9.0 Change | **Created:** July 2026 | **Last Updated:** 10/27/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 13 — Dynatrace Injection and OpenShift SCCs: seccomp, anyuid, and the Operator 1.9.0 Change | **Created:** July 2026 | **Last Updated:** 11/13/2026
 
 ## Overview
 
@@ -156,7 +156,7 @@ For workloads receiving Dynatrace injection on Operator ≥1.9.0 (flag at its de
 
 *The built-in SCC field values have shifted across OpenShift 4.x releases, so confirm any row on your own cluster with `oc get scc <name> -o jsonpath='{.seccompProfiles}'`.*
 
-> <sub>**Sources:** [Additional OpenShift configurations (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/networking-security-compliance/security-configurations/openshift-configuration), [Red Hat KB 7064000](https://access.redhat.com/solutions/7064000), [Managing security context constraints, OCP 4.18 (Red Hat docs)](https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/authentication_and_authorization/managing-pod-security-policies) — required-scc rules quoted; [SCC reference, OCP 4.18 source (openshift-docs GitHub)](https://raw.githubusercontent.com/openshift/openshift-docs/enterprise-4.18/modules/security-context-constraints-about.adoc) — the v2 seccomp defaults, *"The highest priority SCCs are ordered first."* and *"If the priorities are equal, the SCCs are sorted from most restrictive to least restrictive."*; [anyuid SCC manifest (OpenShift GitHub)](https://raw.githubusercontent.com/openshift/cluster-kube-apiserver-operator/master/bindata/bootkube/scc-manifests/0000_20_kube-apiserver-operator_00_scc-anyuid.yaml) — `priority: 10`.</sub>
+> <sub>**Sources:** [Additional OpenShift configurations (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/networking-security-compliance/security-configurations/openshift-configuration), [Red Hat KB 7064000](https://access.redhat.com/solutions/7064000), [Managing security context constraints, OCP 4.18 (Red Hat docs)](https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/authentication_and_authorization/managing-pod-security-policies) — required-scc rules quoted; [SCC reference, OCP 4.18 source (openshift-docs GitHub)](https://raw.githubusercontent.com/openshift/openshift-docs/enterprise-4.18/modules/security-context-constraints-about.adoc) — the v2 seccomp defaults, *"The highest priority SCCs are ordered first."* and *"If the priorities are equal, the SCCs are sorted from most restrictive to least restrictive."*; [anyuid SCC manifest (OpenShift GitHub)](https://raw.githubusercontent.com/openshift/cluster-kube-apiserver-operator/master/bindata/bootkube/scc-manifests/0000_20_kube-apiserver-operator_00_scc-anyuid.yaml) — `priority: 10`. [Requiring an SCC, OCP 4.18 source (openshift-docs GitHub)](https://raw.githubusercontent.com/openshift/openshift-docs/enterprise-4.18/modules/security-context-constraints-requiring.adoc) — *"must exist in the cluster and must be applicable to the workload, otherwise pod admission fails"*.</sub>
 
 <a id="custom-scc"></a>
 ## 5. The Long-Term Fix — a Custom SCC
@@ -301,7 +301,7 @@ Operator 1.9.0's seccomp default is a sound hardening change that collides with 
 ## Next Steps
 
 - **K8S series** — DynaKube deployment modes, CSI driver architecture, and troubleshooting foundations this entry builds on.
-- **[Kubernetes/OpenShift troubleshooting map (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/Kubernetes-Openshift-troubleshooting-map/ta-p/264113)** — the maintained symptom-to-article index for injection and deployment failures beyond the SCC collision covered here (image pulls, tokens, TLS, Istio/Calico, CSI driver, Prometheus scraping), including a known-issues-by-Operator-version table.
+- **[Kubernetes/OpenShift troubleshooting map (Dynatrace community)](https://community.dynatrace.com/t/kubernetes-openshift-troubleshooting-map/49142)** — the maintained symptom-to-article index for injection and deployment failures beyond the SCC collision covered here (image pulls, tokens, TLS, Istio/Calico, CSI driver, Prometheus scraping), including a known-issues-by-Operator-version table.
 - **FAQ-04 / FAQ-05** — the same staged, assessed change-management discipline applied to OneAgent and ActiveGate updates.
 - **ONBRD-05 / K8S-02** — OneAgent and DynaKube deployment planning, where the SCC strategy should be decided, not discovered.
 
