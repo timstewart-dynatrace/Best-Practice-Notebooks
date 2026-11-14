@@ -1,6 +1,6 @@
 # MOBL-01: Mobile Monitoring Fundamentals
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 1 of 12 | **Created:** February 2026 | **Last Updated:** 11/11/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 1 of 12 | **Created:** February 2026 | **Last Updated:** 11/13/2026
 
 ## Overview
 
@@ -42,7 +42,7 @@ Released 08/03/2026 with rollout from 08/11/2026. No Flutter, React Native, or C
 | **8.347** (published 08/28/2026, rollout from 09/08/2026) | An **app start user action** on every launch, and **capped cold-start durations** | Action counts rise and startup percentiles fall once instrumented builds ship; both are measurement changes, not app changes (MOBL-05 §2) |
 | **8.349** (published 10/15/2026, rollout from 10/06/2026) | Xcode 27 / iOS 27 / tvOS 27, Gradle 9.8 and Android Gradle Plugin 9.4.0 support; **breaking:** the debug-only certificate-validation option is removed from the Android Gradle plugin and SDK | Builds that still set it fail to compile (MOBL-03 Prerequisites) |
 | **8.349.2** | Fix for apps built with **R8 full mode**, which AGP 9.0+ turns on automatically: the Room library prevented OneAgent for Android from recording events | If an AGP 9 app sends no events, move to 8.349.2 or later (MOBL-03 §6) |
-| **8.351** (published 10/27/2026, rollout from 11/03/2026) | **New session rules** for RUM on Latest Dynatrace (below); Jetpack Compose 1.12 support; **breaking:** Kotlin Gradle plugin 2.2 minimum | Session counts and per-session ratios change for apps on 8.351 (below); Kotlin upgrade before adopting (MOBL-03 Prerequisites) |
+| **8.351** (published 10/27/2026, rollout from 11/18/2026) | **New session rules** for RUM on Latest Dynatrace (below); Jetpack Compose 1.12 support; **breaking:** Kotlin Gradle plugin 2.2 minimum | Session counts and per-session ratios change for apps on 8.351 (below); Kotlin upgrade before adopting (MOBL-03 Prerequisites) |
 
 **The 8.351 session rules.** Verbatim: *"Only user actions and navigations keep a session active, a session ends after 30 minutes of inactivity, and a session still active after 8 hours ends and a new one starts. There's no longer an event limit per session; each event is assigned to the session that was active when the event started."* Session counts, session duration, actions per session, crash-free-session rates and bounce rate are all computed over sessions, so expect them to shift as users move to app builds on 8.351. Compare app versions before and after the agent upgrade rather than reading the change as user behaviour, and re-baseline session-based alerts. Older app builds keep the old rules until users update.
 

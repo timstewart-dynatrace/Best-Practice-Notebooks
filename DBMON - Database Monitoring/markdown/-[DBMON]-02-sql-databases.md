@@ -1,6 +1,6 @@
 # DBMON-02: SQL Database Monitoring
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 10/23/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 11/13/2026
 
 ## Overview
 
@@ -257,7 +257,7 @@ fetch spans, from:-1h
 
 ### MySQL / MariaDB
 
-MySQL monitoring focuses on query cache effectiveness, InnoDB buffer pool usage, and replication lag.
+MySQL monitoring focuses on InnoDB buffer pool usage and replication lag. Query cache effectiveness applies only before MySQL 8.0, which removed the query cache ([What Is New in MySQL 8.0 (MySQL docs)](https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html): *"The query cache was removed."*).
 
 ```dql
 // MySQL / MariaDB — response time trend over 6 hours
@@ -285,7 +285,7 @@ Everything above measures SQL Server from the **caller side** — spans emitted 
 
 Deployment notes that matter:
 
-- **Always On clusters need two monitoring configurations** — the Always On feature set pointed at **primary replicas only**, everything else at all instances. Mixing primaries and secondaries in one Always On config duplicates metrics (documented as discouraged).
+- **Always On clusters need two monitoring configurations** — the Always On feature set pointed at **primary replicas only**, everything else at all instances. Mixing primaries and secondaries in one Always On config duplicates metrics ([Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2): *"Don't enable the "Always On" feature set on both the primary and the secondary replica in the same cluster."*).
 - **Job outcomes arrive as log streams, not metrics** — alert with a DQL log alert or an OpenPipeline log-to-metric rule; the failure text is queryable in Grail.
 - Logs from official database extensions land in the dedicated `default_database_monitoring` Grail bucket (see DBMON-01 §6).
 - **Minimum ActiveGate version 1.303.** The extension docs are explicit: *"If you're not on ActiveGate 1.303 and newer, your monitoring configurations will error upon running."* This is a hard-failure prerequisite, not a recommendation — check the ActiveGate group's version before creating the monitoring configuration.

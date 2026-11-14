@@ -1,6 +1,6 @@
 # DBMON-01: Database Monitoring Fundamentals
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 11/11/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 11/13/2026
 
 ## Overview
 
@@ -215,7 +215,7 @@ Dynatrace supports a broad range of database technologies through OneAgent auto-
 
 > **Semantic Dictionary 1.340 (May 2026) — first-class Smartscape database models.** The Semantic Dictionary now defines dedicated Smartscape models for major database technologies: Oracle Database (ASM disk group, cluster, instance, database), SQL Server (availability database / group / replica, instance, database), SAP HANA (database, instance, service), IBM Db2 (database member, instance, tablespace), MySQL, MariaDB, and PostgreSQL (database + instance each) — **21 models** in total, each with `belongs_to` / `runs_on` / `is_part_of` / `same_as` / `uses` relationship properties. (Verified against the live Semantic Dictionary: `fetch dt.semantic_dictionary.models | filter startsWith(name, "dt.smartscape.db_")` returns 21.) As these roll out, expect database topology to surface as typed Smartscape nodes alongside the span-based view in §3. The span-level `db.system` analysis in this series is unaffected.
 
-> **OneAgent 1.339 (June 2026) — Db2 naming is now mixed case.** Db2 database naming switched to mixed case, so saved DQL or filters that match Db2 *entity or database names* case-sensitively may need updating. The `db.system == "db2"` span-attribute filters used throughout this series follow the OpenTelemetry semantic convention (lowercase value) and are unaffected.
+> **OneAgent 1.339 (June 2026) — Db2 naming is now mixed case.** Under *Improved consistency of database technology naming in filters*, the release note says: *"Db2 is now displayed using mixed case, aligning with IBM's official naming convention."* ([OneAgent 1.339 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-339)). Saved filters that match the Db2 technology name case-sensitively may need updating. The `db.system == "db2"` span-attribute filters used throughout this series follow the OpenTelemetry semantic convention (lowercase value) and are unaffected.
 
 > <sub>**Sources:** [Technology support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support) — .NET *Database framework* table: StackExchange.Redis *"2.0.0+"*, ServiceStack.Redis *"5.0.0+"*, [What's new in OneAgent 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-337) — StackExchange.Redis auto-instrumentation, [What's new in OneAgent 1.343 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343) — ServiceStack.Redis auto-instrumentation. **Derived:** the per-client-library-not-per-database framing generalizes the Redis pair; no single page states it as a rule. **Dictionary:** `db.system` (`experimental`) — `supported_values` include `mysql` and `mariadb` as separate values, and no `solr`, `kafka` or `rabbitmq`, read 10/23/2026.</sub>
 

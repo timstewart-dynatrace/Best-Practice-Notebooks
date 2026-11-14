@@ -1,6 +1,6 @@
 # MOBL-03: Android SDK Setup (Kotlin & Jetpack Compose)
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 3 of 12 | **Created:** February 2026 | **Last Updated:** 11/11/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 3 of 12 | **Created:** February 2026 | **Last Updated:** 11/13/2026
 
 ## Overview
 
@@ -30,7 +30,7 @@ This notebook walks through setting up Dynatrace Mobile RUM (Real User Monitorin
 | **Permissions** | Dynatrace admin access to create mobile applications; `storage:user.events:read` and `storage:smartscape:read` for the verification queries |
 | **Prior Knowledge** | MOBL-01 and MOBL-02 recommended |
 
-> **OneAgent for Mobile 8.351 (published 10/27/2026, staged rollout from 11/03/2026 — check which agent version your build pulls in).** Breaking change: *"OneAgent for Android requires the Kotlin Gradle plugin minimum version 2.2. Projects using older Kotlin compiler versions must update their Kotlin Gradle plugin to 2.2 or higher."* The same release adds that the Dynatrace Android Gradle plugin *"now supports auto-instrumentation for Jetpack Compose version 1.12"*. The support page still lists Kotlin 2.1.0 and Compose 1.4 – 1.10 (read 11/11/2026); until you move to 8.351, those remain the minimums for the agent version you build with.
+> **OneAgent for Mobile 8.351 (published 10/27/2026, staged rollout from 11/18/2026 — check which agent version your build pulls in).** Breaking change: *"OneAgent for Android requires the Kotlin Gradle plugin minimum version 2.2. Projects using older Kotlin compiler versions must update their Kotlin Gradle plugin to 2.2 or higher."* The same release adds that the Dynatrace Android Gradle plugin *"now supports auto-instrumentation for Jetpack Compose version 1.12"*. The support page still lists Kotlin 2.1.0 and Compose 1.4 – 1.10 (read 11/11/2026); until you move to 8.351, those remain the minimums for the agent version you build with.
 
 > <sub>**Sources:** [Support and limitations — Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/android/id-02-support-and-limitations) — *"Android API level 23 Gradle 8.0 Android Gradle Plugin 8.1.1 Java 17 Kotlin 2.1.0 Jetpack Compose 1.4 - 1.10"* (minimum versions, read 11/11/2026); [What's new in OneAgent for Mobile 8.351 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-351) — *"OneAgent for Android requires the Kotlin Gradle plugin minimum version 2.2."*, *"The Dynatrace Android Gradle plugin now supports auto-instrumentation for Jetpack Compose version 1.12."*, read 11/11/2026.</sub>
 

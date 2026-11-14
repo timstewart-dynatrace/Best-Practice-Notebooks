@@ -1,6 +1,6 @@
 # OPIPE-01: OpenPipeline as a Multi-Scope Platform
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 10/26/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 11/13/2026
 
 ## Beyond Logs: Processing Spans, Metrics, and Events at Ingestion
 
@@ -195,7 +195,7 @@ Not every processor is available in every scope. The following table shows key d
 | Drop record | Yes | Yes | Yes | Yes | Yes |
 | Bucket assignment / No storage assignment | Yes | Yes | — | Yes | Yes |
 | Set dt.security_context | Yes | Yes | Yes | Yes | Yes |
-| DPS Cost Allocation (Cost Center / Product) | Yes | Yes | Yes | — | — |
+| DPS Cost Allocation (Cost Center / Product) | Yes | Yes | Yes | — | Yes |
 
 ### OneAgent Attribute Enrichment (OneAgent 1.333+)
 
