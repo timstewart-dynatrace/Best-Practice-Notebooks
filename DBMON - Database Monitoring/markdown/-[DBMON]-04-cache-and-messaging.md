@@ -1,6 +1,6 @@
 # DBMON-04: Cache and Messaging Monitoring
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 11/11/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 11/13/2026
 
 ## Overview
 
@@ -334,7 +334,7 @@ In this notebook you learned:
 ### Where to Go Deeper
 
 - **OTEL series** (9 notebooks) — OTel-instrumented Kafka/RabbitMQ producers and consumers, semantic-convention reference
-- **OPIPE series** (7 notebooks) — OpenPipeline-derived metrics from messaging spans (e.g., per-topic throughput as a metric)
+- **OPIPE series** (8 notebooks) — OpenPipeline-derived metrics from messaging spans (e.g., per-topic throughput as a metric)
 - **OPLOGS series** — When Elasticsearch is used as a log destination upstream of Dynatrace
 - **AIOPS series** — Davis anomaly detection on consumer-lag and broker-health metrics
 

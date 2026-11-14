@@ -1,6 +1,6 @@
 # FAQ-14: Should I Replace My Custom SQL Server Monitoring Scripts with the Dynatrace Extension?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 14 — Custom SQL Server Scripts vs. the Dynatrace Extension | **Created:** July 2026 | **Last Updated:** 11/04/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 14 — Custom SQL Server Scripts vs. the Dynatrace Extension | **Created:** July 2026 | **Last Updated:** 11/13/2026
 
 ## Overview
 
@@ -136,7 +136,7 @@ The migration case survives honesty; hiding these helps no one:
 - **No tempdb / version-store metrics.** Nothing in any feature set covers `version_store_reserved_page_count` or the longest-running-transaction counter. If you run read-committed snapshot isolation at scale, this check matters and stays custom.
 - **No filegroup dimension.** File metrics are per-database and per-file. A filegroup %-of-maxsize rollup cannot be reconstructed from the documented dimensions.
 - **Jobs bill as log ingest,** not metrics (as do the largest-files and top-queries streams). Factor it into DPS planning — volumes are usually small (failed jobs and largest files are capped at 100 records per 5 minutes), but current jobs scale with your job count, and the *Locks and waits* `all_requests` stream emits every active request each minute — size it before enabling. It is also a different meter.
-- **Always On needs deliberate config.** Two monitoring configurations: Always On feature set → primary replicas only; everything else → all instances. Connecting primaries *and* secondaries with Always On enabled produces duplicate metrics — documented as discouraged.
+- **Always On needs deliberate config.** Two monitoring configurations: Always On feature set → primary replicas only; everything else → all instances. Connecting primaries *and* secondaries with Always On enabled produces duplicate metrics — [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2): *"Don't enable the "Always On" feature set on both the primary and the secondary replica in the same cluster."*
 - **Blocked-process semantics** differ from typical scripts (blocked vs blocking counts) — revalidate thresholds during the parallel run.
 - **The extension accepts no user-defined SQL.** Custom checks don't bolt onto it; they live in a separate small extension (next section).
 

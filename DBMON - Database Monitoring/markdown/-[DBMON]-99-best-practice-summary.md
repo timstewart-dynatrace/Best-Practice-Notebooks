@@ -1,6 +1,6 @@
 # DBMON-99: Best Practice Summary
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 10/23/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 11/13/2026
 
 ## Overview
 
@@ -281,12 +281,12 @@ DBMON covers database monitoring foundations. These topic series cover adjacent 
 |--------|--------------|-----------|
 | **Distributed tracing & spans** (DB spans live here) | SPANS | 9 |
 | **OpenPipeline log processing** | OPLOGS | 9 |
-| **OpenPipeline beyond logs (metrics from spans)** | OPIPE | 7 |
+| **OpenPipeline beyond logs (metrics from spans)** | OPIPE | 8 |
 | **Dynatrace Intelligence (Davis anomaly detection on DB metrics)** | AIOPS | 8 |
 | **Workflows & alert notifications** (DB alert routing) | WFLOW | 12 |
 | **Dashboard strategy & executive reporting** | DASH | 8 |
 | **Bucket strategy** (`default_database_monitoring` and custom DB buckets) | ORGNZ | 11 |
-| **IAM administration** (bucket-scoped policies for DB-team access) | IAM | 15 |
+| **IAM administration** (bucket-scoped policies for DB-team access) | IAM | 16 |
 | **Tagging strategy** (host-group + ownership tagging for DBs) | FAQ-01, FAQ-02 | 2+ |
 | **Configuration automation** (Monaco/Terraform for extension deployment) | AUTOM | 14 |
 | **OpenTelemetry integration** (OTel-instrumented DBs) | OTEL | 9 |
