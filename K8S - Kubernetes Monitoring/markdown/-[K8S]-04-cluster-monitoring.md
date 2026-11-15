@@ -1,6 +1,6 @@
 # K8S-04: Cluster Health Monitoring
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 4 of 14 | **Created:** January 2026 | **Last Updated:** 11/11/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 4 of 14 | **Created:** January 2026 | **Last Updated:** 11/15/2026
 
 ## Deep-Dive into Kubernetes Cluster Metrics
 Cluster health monitoring provides visibility into the infrastructure layer of Kubernetes: nodes, control plane, and cluster-wide resources. This notebook covers key metrics, thresholds, and DQL queries for proactive cluster management.
@@ -177,11 +177,13 @@ timeseries {
 ```
 
 ```dql
-// Node filesystem usage - disk pressure detection
-timeseries avgDiskUsage = avg(dt.host.disk.used.percent), from:-1h, by:{dt.entity.host}
-| fieldsAdd avgDiskUsageValue = arrayAvg(avgDiskUsage)
-| filter avgDiskUsageValue > 80
-| sort avgDiskUsageValue desc
+// Node filesystem usage per disk - disk pressure detection (averaging all of a host's disks hides a full one)
+timeseries diskUsed = avg(dt.host.disk.used.percent), from:-1h, by:{dt.entity.host, dt.entity.disk}
+| fieldsAdd diskUsedPct = arrayAvg(diskUsed)
+| filter diskUsedPct > 80
+| fieldsAdd host = entityName(dt.entity.host), disk = entityName(dt.entity.disk)
+| fields host, disk, diskUsedPct
+| sort diskUsedPct desc
 ```
 
 <a id="resource-capacity-planning"></a>

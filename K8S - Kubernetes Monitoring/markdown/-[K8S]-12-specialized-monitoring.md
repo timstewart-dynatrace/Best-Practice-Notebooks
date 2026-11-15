@@ -1,6 +1,6 @@
 # K8S-12: Specialized Monitoring Scenarios
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 12 of 14 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 12 of 14 | **Created:** January 2026 | **Last Updated:** 11/15/2026
 
 ## NGINX Ingress, Code-Module Delivery, Resource Tuning, and StatsD Ingestion
 This notebook covers specialized monitoring scenarios including NGINX Ingress Controller instrumentation, how code modules reach pods (image volumes, CSI driver, ephemeral volumes), resource sizing, and StatsD metric ingestion on Kubernetes.
@@ -386,9 +386,10 @@ timeseries r = sum(dt.kubernetes.container.restarts), from:-24h,
 
 ```dql
 // Spans that carry an OpenTelemetry instrumentation scope, by service
-// otel.scope.name is set by OpenTelemetry instrumentation; this shows which services send it.
+// otel.scope.name is the instrumentation scope; OneAgent spans also carry it (dt.agent.*), so exclude those to see OpenTelemetry-instrumented services
 fetch spans, from:-1h
 | filter isNotNull(otel.scope.name)
+| filter not(startsWith(otel.scope.name, "dt.agent")) and otel.scope.name != ""
 | summarize span_count = count(), by:{dt.service.name, otel.scope.name}
 | sort span_count desc
 | limit 15
@@ -552,9 +553,10 @@ env:
 |-------------|----------|
 | **API Token** | `metrics.ingest` scope |
 
-> <sub>**Sources:** [StatsD ingestion (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/statsd) — *"For Kubernetes environments, we recommend remote StatsD monitoring using an environment ActiveGate."*</sub>
 | **Environment URL** | `https://<env-id>.live.dynatrace.com` |
 | **Collector Image** | `otel/opentelemetry-collector-contrib` (includes StatsD receiver) |
+
+> <sub>**Sources:** [StatsD ingestion (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/statsd) — *"For Kubernetes environments, we recommend remote StatsD monitoring using an environment ActiveGate."*</sub>
 
 > **Tip:** You can also use the Dynatrace Collector image or build a custom collector with the OpenTelemetry Builder. The key requirement is the StatsD receiver component.
 
@@ -562,7 +564,7 @@ env:
 
 After deploying the collector and pointing StatsD clients at it, verify metrics are flowing:
 
-```python
+```dql
 // Verify StatsD metrics are being ingested
 // The StatsD receiver keeps the metric names your client sends, so look them up by your own
 // prefix. metrics takes from: with no leading comma.

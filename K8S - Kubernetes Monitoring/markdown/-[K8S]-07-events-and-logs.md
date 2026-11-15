@@ -1,6 +1,6 @@
 # K8S-07: Kubernetes Events and Log Ingestion
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 7 of 14 | **Created:** January 2026 | **Last Updated:** 10/30/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 7 of 14 | **Created:** January 2026 | **Last Updated:** 11/15/2026
 
 ## Capturing and Analyzing Kubernetes Events and Logs
 Kubernetes events and container logs provide crucial insights for debugging and operational awareness. This notebook covers event monitoring, log ingestion configuration, and analysis patterns in Dynatrace.
@@ -485,7 +485,7 @@ With event and log monitoring configured, proceed to:
 In this notebook, you learned:
 
 - Kubernetes event types and sources
-- Event ingestion configuration via DynaKube
+- Event ingestion: the ActiveGate `kubernetes-monitoring` capability in the DynaKube, and event filtering in the cluster's Kubernetes monitoring settings
 - Container log collection methods
 - OpenPipeline for log processing
 - Event analysis patterns for common issues

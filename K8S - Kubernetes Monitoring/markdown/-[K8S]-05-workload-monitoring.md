@@ -428,7 +428,7 @@ In this notebook, you learned:
 - [Full observability deployment (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/full-stack-observability)
 - [Application observability deployment (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/application-observability)
 - [Kubernetes app — workloads view (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/kubernetes-app)
-- [Container platform monitoring (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/container-platform-monitoring)
+- [Container platform monitoring — Classic (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability-classic/container-platform-monitoring-classic)
 - [Service monitoring (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services)
 - [smartscapeNodes command (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
 
