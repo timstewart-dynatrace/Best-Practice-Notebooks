@@ -1,6 +1,6 @@
 # K8S-01: Kubernetes Monitoring Fundamentals
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 1 of 14 | **Created:** January 2026 | **Last Updated:** 10/15/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 1 of 14 | **Created:** January 2026 | **Last Updated:** 11/15/2026
 
 ## Introduction to Kubernetes Observability with Dynatrace
 Kubernetes introduces unique observability challenges: ephemeral workloads, dynamic scaling, complex networking, and multi-layer abstractions. Dynatrace provides comprehensive Kubernetes monitoring through the DynaKube operator, which deploys and manages monitoring components automatically.
@@ -113,14 +113,14 @@ Smartscape also models objects the classic model never had — `K8S_INGRESS`, `K
 ![Kubernetes Entity Relationships](images/01-k8s-entity-relationships.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
-| Parent Entity | Relationship | Child Entity |
-|---------------|--------------|--------------|
-| KUBERNETES_CLUSTER | contains | KUBERNETES_NODE |
-| KUBERNETES_CLUSTER | contains | CLOUD_APPLICATION_NAMESPACE |
-| CLOUD_APPLICATION_NAMESPACE | contains | CLOUD_APPLICATION (workload) |
-| CLOUD_APPLICATION | runs as | PROCESS_GROUP_INSTANCE (one per pod) |
-| KUBERNETES_NODE | hosts | PROCESS_GROUP_INSTANCE |
-| PROCESS_GROUP_INSTANCE | provides | SERVICE |
+| Parent (Smartscape / classic) | Relationship | Child (Smartscape / classic) |
+|-------------------------------|--------------|------------------------------|
+| K8S_CLUSTER / `dt.entity.kubernetes_cluster` | contains | K8S_NODE / `dt.entity.kubernetes_node` |
+| K8S_CLUSTER / `dt.entity.kubernetes_cluster` | contains | K8S_NAMESPACE / `dt.entity.cloud_application_namespace` |
+| K8S_NAMESPACE / `dt.entity.cloud_application_namespace` | contains | K8S_DEPLOYMENT … / `dt.entity.cloud_application` |
+| K8S_DEPLOYMENT … / `dt.entity.cloud_application` | runs as | K8S_POD / `dt.entity.cloud_application_instance` |
+| K8S_NODE / `dt.entity.kubernetes_node` | hosts | K8S_POD / `dt.entity.cloud_application_instance` |
+| K8S_POD / `dt.entity.cloud_application_instance` | provides | SERVICE / `dt.entity.service` |
 For environments where SVG doesn't render
 -->
 

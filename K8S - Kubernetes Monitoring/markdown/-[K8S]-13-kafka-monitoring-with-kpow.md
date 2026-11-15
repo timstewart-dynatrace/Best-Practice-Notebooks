@@ -257,7 +257,7 @@ Ensure Prometheus scraping is enabled in the cluster's Kubernetes monitoring set
 
 > **Note:** Dynatrace ingests Prometheus Counter, Gauge, Histogram and Summary types. Kpow's glossary also lists *meter* types (for example `topic_urp_total`); check those arrive before building on them.
 
-> <sub>**Sources:** [Monitor Prometheus metrics on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/container-platform-monitoring/kubernetes-monitoring/monitor-prometheus-metrics) — *"For new deployments, and for any setup approaching these limits, we recommend scraping Prometheus with the OpenTelemetry Collector instead."*, [Kubernetes monitoring settings schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-cloud-kubernetes-monitoring) — *"Prometheus metrics in kubernetes environments are subject to licensing."*</sub>
+> <sub>**Sources:** [Monitor Prometheus metrics on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability-classic/container-platform-monitoring-classic/kubernetes-monitoring/monitor-prometheus-metrics) — *"For new deployments, and for any setup approaching these limits, we recommend scraping Prometheus with the OpenTelemetry Collector instead."*, [Kubernetes monitoring settings schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-cloud-kubernetes-monitoring) — *"Prometheus metrics in kubernetes environments are subject to licensing."*</sub>
 
 ```dql
 // Verify Kpow metrics are being ingested
@@ -566,7 +566,7 @@ In this notebook, you learned:
 - [Kpow Prometheus integration (Factor House)](https://docs.factorhouse.io/kpow/integration/prometheus/overview)
 - [Kpow metrics glossary (Factor House)](https://docs.factorhouse.io/kpow/integration/prometheus/metrics-glossary)
 - [Kpow Helm charts (Factor House)](https://charts.factorhouse.io)
-- [Monitor Prometheus metrics on K8s (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/container-platform-monitoring/kubernetes-monitoring/monitor-prometheus-metrics)
+- [Monitor Prometheus metrics on K8s (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability-classic/container-platform-monitoring-classic/kubernetes-monitoring/monitor-prometheus-metrics)
 - [Confluent Cloud (Kafka) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/confluent-cloud-kafka)
 - [ConsumerGroupState.java (Apache Kafka GitHub)](https://github.com/apache/kafka/blob/3.9/clients/src/main/java/org/apache/kafka/common/ConsumerGroupState.java)
 - [Apache Kafka extension (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/apache-kafka/)

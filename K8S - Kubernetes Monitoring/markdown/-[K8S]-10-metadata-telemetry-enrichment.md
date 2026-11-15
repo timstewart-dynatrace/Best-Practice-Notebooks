@@ -1,6 +1,6 @@
 # K8S-10: Metadata Telemetry Enrichment
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 10 of 14 | **Created:** January 2026 | **Last Updated:** 10/23/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 10 of 14 | **Created:** January 2026 | **Last Updated:** 11/15/2026
 
 ## Enriching All Telemetry with Kubernetes Metadata
 Kubernetes metadata enrichment automatically adds labels and annotations from your Kubernetes resources to all telemetry signals. This is the **recommended approach** for adding context to your observability data because it enriches everything: metrics, logs, traces, events, and entities.
@@ -152,7 +152,7 @@ Dynatrace offers multiple ways to add Kubernetes metadata. Choose based on your 
 |--------|-------|------------|---------|
 | Dedicated `metadata.dynatrace.com` annotations | Namespace, workload (Operator 1.11.0+, AG 1.347+) or pod | Highest; pod > workload > namespace | Per-object values kept in manifests |
 | DynaKube resource attributes | Everything the DynaKube instruments | Middle | Static, cluster-wide facts |
-| Central enrichment rules (Settings) | Existing namespace labels and annotations | Lowest | Promoting labels you already have, with no manifest change |
+| Central enrichment rules (Settings) | Namespace labels and annotations; workload and pod labels/annotations with Operator 1.11+ and ActiveGate 1.347+ | Lowest | Promoting labels you already have, with no manifest change |
 
 Coverage: annotations and central rules both reach traces, OneAgent/JMX/service metrics, Kubernetes platform metrics, Kubernetes events, Smartscape Kubernetes entities, Prometheus scraping, OneAgent and Fluent Bit logs, and OpenTelemetry Collector data. OneAgent-based paths need Cloud Native Full Stack or Application Monitoring.
 For environments where SVG doesn't render
@@ -509,7 +509,7 @@ The schema for Kubernetes telemetry enrichment is: `builtin:kubernetes.generic.m
 >
 > What to know before you opt in:
 >
-> - **Version floors.** The migration guide lists *"Dynatrace Operator version 1.10 or later"*, *"OneAgent version 1.333 or later"*, *"ActiveGate version 1.343 or later"*, and *"Dynatrace platform version 1.345 or later (required for the central configuration opt-in)"*. Primary Grail tags on edge additionally need *"Dynatrace platform version 1.348 or later and ActiveGate version 1.345 or later"*. SaaS 1.348 is a staged rollout, so check it has reached your tenant.
+> - **Version floors.** The migration guide lists *"Dynatrace Operator version 1.10 or later"*, *"OneAgent version 1.333 or later"*, *"ActiveGate version 1.343 or later"*, and *"Dynatrace version 1.345+ (required for the central configuration opt-in)"*. Primary Grail tags on edge additionally need *"Dynatrace version 1.348+ and ActiveGate version 1.345 or later (for primary Grail tags on edge)"*. SaaS 1.348 is a staged rollout, so check it has reached your tenant.
 > - **Automatic migration happens only once.** When you opt in, *"If none exist, your current enrichment setup is automatically migrated to the new central configuration setting in the background. If rules already exist, no automatic migration occurs and your existing setup remains unchanged."* If you create even one rule in the new schema by hand first, you migrate the rest yourself.
 > - **Inheritance flips from override to merge.** In the current schema, *"rules defined at the Kubernetes cluster level replace rules defined at the environment level."* In the new schema, *"The new settings merge rules from the environment level with rules from the cluster level, where cluster-level rules take precedence."* So an environment-level rule that a cluster-level rule set silently hid today starts applying to that cluster after migration. Review environment-level rules before you opt in, because tags and cost fields can appear where they never did.
 > - **Automation that writes this schema** (the `curl` examples below, Monaco, Terraform) must move to the new schema id. The new rules use a different shape as well: the guide maps a current `Label` rule to a `K8S_NAMESPACE_LABEL` rule with a `target`.
@@ -524,22 +524,17 @@ The central schema `builtin:ingest.enrichment.config` takes more than namespace 
 
 - **Version floors.** Workload and pod rule types need Dynatrace Operator 1.11+ and ActiveGate 1.347+. ActiveGate 1.347 is a staged rollout, so check it has reached your clusters.
 - **Restart after a label change.** *"Values resolved from Kubernetes metadata are applied when a pod starts, so restart the pods after changing a label."*
-- **The two pages disagree.** The Kubernetes enrichment page (updated Oct 05, 2026) still describes `metadata.dynatrace.com` annotations as the way to get granularity *"that central configuration can't provide"*. The schema (published Aug 10, 2026) and the end-to-end example (published Oct 06, 2026) both show workload and pod rule types. Treat the newer pages as current, and keep the annotations for values you want to set in the manifest rather than read from an existing label.
+- **The pages now agree.** The Kubernetes tag page says *"Each central configuration rule selects a source, for example, a namespace label, a workload annotation, a pod label, or a static literal value, and a target, such as a primary field or a primary tag."* and *"Workload and pod rule types require Dynatrace Operator version 1.11+ ActiveGate version 1.347+"*. Keep the `metadata.dynatrace.com` annotations for values you want to set in the manifest rather than read from an existing label.
 
 FAQ-26 § 5.2 compares all Kubernetes enrichment options; CLOUD-03 shows the EKS split between cluster rules and AWS-account rules.
 
-> <sub>**Sources:** [Ingest enrichment configuration schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-ingest-enrichment-config) — rule types `K8S_WORKLOAD_LABEL`, `K8S_WORKLOAD_ANNOTATION`, `K8S_POD_LABEL`, `K8S_POD_ANNOTATION`; [Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"Values resolved from Kubernetes metadata are applied when a pod starts, so restart the pods after changing a label."*; [Enrich Kubernetes telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) — *"if you need workload- or pod-level granularity that central configuration can't provide"*.</sub>
+> <sub>**Sources:** [Ingest enrichment configuration schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-ingest-enrichment-config) — rule types `K8S_WORKLOAD_LABEL`, `K8S_WORKLOAD_ANNOTATION`, `K8S_POD_LABEL`, `K8S_POD_ANNOTATION`; [Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"Values resolved from Kubernetes metadata are applied when a pod starts, so restart the pods after changing a label."*; [Enrich Kubernetes telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) — *"Each central configuration rule selects a source, for example, a namespace label, a workload annotation, a pod label, or a static literal value, and a target, such as a primary field or a primary tag."*, *"Workload and pod rule types require Dynatrace Operator version 1.11+ ActiveGate version 1.347+"*.</sub>
 
 ### List Current Rules
 
 ```bash
-curl -X GET "https://ENVIRONMENT_ID.live.dynatrace.com/api/v2/settings/objects" \
-  -H "Authorization: Api-Token YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "schemaIds": ["builtin:kubernetes.generic.metadata.enrichment"],
-    "scopes": ["environment"]
-  }'
+curl -X GET "https://ENVIRONMENT_ID.live.dynatrace.com/api/v2/settings/objects?schemaIds=builtin:kubernetes.generic.metadata.enrichment&scopes=environment" \
+  -H "Authorization: Api-Token YOUR_TOKEN"
 ```
 
 ### Create Rule via API
@@ -553,10 +548,14 @@ curl -X POST "https://ENVIRONMENT_ID.live.dynatrace.com/api/v2/settings/objects"
       "schemaId": "builtin:kubernetes.generic.metadata.enrichment",
       "scope": "environment",
       "value": {
-        "enabled": true,
-        "metadataType": "LABEL",
-        "key": "team",
-        "prefix": "k8s."
+        "rules": [
+          {
+            "type": "LABEL",
+            "source": "cost-center",
+            "target": "dt.cost.costcenter",
+            "primaryGrailTag": false
+          }
+        ]
       }
     }
   ]'
