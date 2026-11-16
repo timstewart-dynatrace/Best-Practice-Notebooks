@@ -1,6 +1,6 @@
 # MZ2POL-10: Tagging at Source — The Foundation Under Every MZ Replacement
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 11 of 17 | **Created:** October 2026 | **Last Updated:** 10/19/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 11 of 17 | **Created:** October 2026 | **Last Updated:** 11/15/2026
 
 ## Overview
 
@@ -374,8 +374,12 @@ Replace `primary_tags.team`, the classic tag key `Team:` and the zone name with 
 // Reads the semantic dictionary — zero bytes scanned.
 fetch dt.semantic_dictionary.fields
 | filter in("permission", tags) or startsWith(name, "primary_tags")
-| fields name, stability, usable_in_iam = in("permission", tags), tags
-| sort usable_in_iam desc, name asc
+// The dictionary holds one row per field per data object (thousands for dt.security_context alone),
+// so summarize per field name first, or the 1,000-record result limit cuts off the answer.
+| summarize {rows = count(), iam_rows = countIf(in("permission", tags)), stability = collectDistinct(stability)}, by:{name}
+| fieldsAdd usable_in_iam = iam_rows > 0
+| fields name, usable_in_iam, stability, rows
+| sort usable_in_iam asc, name asc
 ```
 
 **Step 2 — which classic tag keys does the MZ estate rely on?** Each key here is a candidate for a built-in field, a primary tag, a special field, or retirement (MZ2POL-11). Classic tags exist only on the classic entity model, so this step uses it deliberately.

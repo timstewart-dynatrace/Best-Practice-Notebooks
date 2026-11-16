@@ -1,6 +1,6 @@
 # MZ2POL-11: Translating Management Zone Rules into Source Attributes
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 12 of 17 | **Created:** October 2026 | **Last Updated:** 11/11/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 12 of 17 | **Created:** October 2026 | **Last Updated:** 11/15/2026
 
 ## Overview
 
@@ -58,7 +58,7 @@ The settings schema `builtin:management-zones` defines exactly what a zone can c
 | Rule type ME (monitored entity) | entityType + conditions + 8 propagation flags | Needs the most work: a value at the producer or a central rule |
 | Rule type DIMENSION (dimensional data) | appliesTo ANY / LOG / METRIC; condition types DIMENSION, LOG_FILE_NAME, METRIC_KEY | Nearly 1:1 — fields on the record already |
 | Rule type SELECTOR (entity selector) | one entitySelector string | Smartscape (entity lists) or an explicit membership tag (data) |
-| Condition key | 198 property keys | A field the producer sets, or a built-in primary Grail field |
+| Condition key | 200 property keys | A field the producer sets, or a built-in primary Grail field |
 | Condition operator | 24 operators incl. NOT_* | An enrichment-rule condition, a segment filter, or an IAM condition |
 | caseSensitive | true / false | Grail field filters compare values exactly — normalize values instead |
 | tag value format | [CONTEXT]key:value | — |
@@ -85,7 +85,7 @@ That maps cleanly onto segments — **conditions in one include are ANDed, inclu
 
 | Part | Range | Why it matters for translation |
 |---|---|---|
-| **Property key** | 198 keys in the schema, from `HOST_GROUP_NAME` to `QUEUE_TECHNOLOGY` | Each key is a question: does a field on the record answer it? (§3) |
+| **Property key** | 200 keys in the schema, from `HOST_GROUP_NAME` to `QUEUE_TECHNOLOGY` | Each key is a question: does a field on the record answer it? (§3) |
 | **Operator** | 24, including a `NOT_` form of most, `EXISTS`, numeric comparisons, `IS_IP_IN_RANGE`, `REGEX_MATCHES`, `TAG_KEY_EQUALS` | Several have no equivalent on any Grail surface (§4) |
 | **Case sensitive** | A flag per text condition | Grail filters compare values exactly; case-insensitive zones need normalized values |
 | **Tag** | Format `[CONTEXT]tagKey:tagValue` | The classic tag shape — MZ2POL-10 §6 |
@@ -95,7 +95,7 @@ That maps cleanly onto segments — **conditions in one include are ANDed, inclu
 
 Per environment the classic model allows 5,000 management zones by default, 300 UI-based entity rules, 300 dimensional-data rules, 300 entity-selector rules and 100,000 conditions across all rules, with any one entity in at most 200 zones. Estates near these limits are almost always encoding **values** as zones — the pattern MZ2POL-05 §2 replaces with one segment per **dimension**.
 
-> <sub>**Sources:** [Management zones settings schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-management-zones) — *"Management zone rules are executed periodically in the background, for a limited timeframe."*, [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/permission-management/management-zones/management-zone-rules) — *"Rules are applied using the OR logic—any rule must apply for an entity to be included in a management zone."* **Derived:** the property-key and operator counts were read from the schema's enum lists on 10/13/2026.</sub>
+> <sub>**Sources:** [Management zones settings schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-management-zones) — *"Management zone rules are executed periodically in the background, for a limited timeframe."*, [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/permission-management/management-zones/management-zone-rules) — *"Rules are applied using the OR logic—any rule must apply for an entity to be included in a management zone."* **Derived:** the property-key and operator counts were read from the schema's enum lists on 10/13/2026; the property-key count was re-read on 11/15/2026.</sub>
 
 <a id="decision-path"></a>
 ## 2. The Decision Path for One Rule
@@ -127,7 +127,7 @@ The explicit membership tag is the guide's own fallback for zones whose definiti
 <a id="property-catalog"></a>
 ## 3. Catalog by Property Family
 
-The 198 property keys fall into a dozen families. For each family, the table names where the value comes from now, the field a segment or boundary filters on, and whether that field can carry access control (*permission* = tagged `permission` in the semantic dictionary).
+The 200 property keys fall into a dozen families. For each family, the table names where the value comes from now, the field a segment or boundary filters on, and whether that field can carry access control (*permission* = tagged `permission` in the semantic dictionary).
 
 | MZ property family (schema keys) | Where the value comes from now | Field to filter on | Usable in IAM? |
 |---|---|---|---|

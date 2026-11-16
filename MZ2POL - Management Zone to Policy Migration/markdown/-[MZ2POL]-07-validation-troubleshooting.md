@@ -542,7 +542,7 @@ Congratulations on completing the MZ2POL migration series. You have:
 <a id="additional-resources"></a>
 ## Additional Resources
 - [Access Management Concepts](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/access-concepts)
-- [Dynatrace Community - Boundaries + Policies Best Practices](https://community.dynatrace.com/t5/Open-Q-A/Boundaries-Policies-Best-Practices-Advice/td-p/284808)
+- [Dynatrace Community - Boundaries + Policies Best Practices](https://community.dynatrace.com/t/boundaries-policies-best-practices-advice/53107)
 - [Segments Documentation](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-queries)
 - [IAM Policy Reference](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements)
 - [Policy Templating](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating)

@@ -1,6 +1,6 @@
 # MZ2POL-02: Understanding the New Access Control Model
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 3 of 17 | **Created:** December 2025 | **Last Updated:** 10/25/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 3 of 17 | **Created:** December 2025 | **Last Updated:** 11/15/2026
 
 ## Overview
 
@@ -172,7 +172,7 @@ environment:management-zone startsWith "mgmt_na"
 
 **Restrict by Security Context:**
 ```
-storage:dt.security_context = "team-frontend"
+storage:dt.security_context MATCH ("team-frontend")
 ```
 
 **Restrict by Bucket (compliance case only — §4):**
@@ -228,8 +228,10 @@ The partition-data page says buckets are *"best used for organizing data by rete
 | **One data type per bucket** | Logs, metrics, events, OR spans - not mixed |
 | **Names are immutable** | Bucket names CANNOT be changed after creation |
 | **No data migration** | Data CANNOT be moved between buckets |
-| **Naming rules** | 3-100 chars, lowercase alphanumeric, underscores, hyphens only |
+| **Naming rules** | 3-100 chars, lowercase alphanumeric, underscores, hyphens only; must start with a letter |
 | **Maximum buckets** | 250 custom buckets per environment by default from SaaS 1.346 (staged tenant rollout from 08/25/2026); 80 before it |
+
+> <sub>**Sources:** [How to organize your data stored in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data) — *"It has to be between 3-100 characters long and has to start with a letter."*</sub>
 | **Target ingest (logs)** | 1–3 TB/day per log bucket — *"Design your bucket strategy so that each bucket receives between 1 TB and 3 TB of log data per day."* |
 | **Split point (other tables)** | Above 2 TB/day — *"We recommend splitting up buckets that receive more than 2 TB of daily ingest."* |
 | **Maximum ingest** | No hard per-bucket cap is documented — Dynatrace describes ingesting *"well over 15 TB per day into a single bucket"* when queries stay within narrow timeframes. A larger bucket costs queryable window per scan, and Dynatrace pages give different split points ([Partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data), [Logs bucket strategy (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy)) |

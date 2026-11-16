@@ -1,6 +1,6 @@
 # MZ2POL-01: Introduction - Why Migrate from Management Zones
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 2 of 17 | **Created:** December 2025 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 2 of 17 | **Created:** December 2025 | **Last Updated:** 11/15/2026
 
 ## Overview
 
@@ -161,7 +161,7 @@ Before migrating, audit your current MZ implementation.
 
 You can query entity distribution across MZs using DQL:
 
-```python
+```dql
 // Count entities per Management Zone
 // Helps understand data distribution for Segment planning
 fetch dt.entity.service
