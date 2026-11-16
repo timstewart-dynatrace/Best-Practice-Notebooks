@@ -1,6 +1,6 @@
 # MZ2POL-03: Assessment and Migration Planning
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 4 of 17 | **Created:** December 2025 | **Last Updated:** 11/11/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 4 of 17 | **Created:** December 2025 | **Last Updated:** 11/15/2026
 
 ## Overview
 
@@ -53,7 +53,7 @@ By the end of this notebook, you will:
 
 The query below provides an approximation of entity distribution:
 
-```python
+```dql
 // Service distribution by Management Zone
 fetch dt.entity.service
 | expand mz = managementZones

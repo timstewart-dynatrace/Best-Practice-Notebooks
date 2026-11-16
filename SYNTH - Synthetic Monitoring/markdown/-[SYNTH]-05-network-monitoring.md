@@ -1,6 +1,6 @@
 # SYNTH-05: Synthetic Network Monitoring
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 5 of 6 | **Created:** December 2025 | **Last Updated:** 10/25/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 5 of 6 | **Created:** December 2025 | **Last Updated:** 11/15/2026
 
 ## Network Availability, DNS, and ICMP Monitoring
 This notebook covers Dynatrace Synthetic **Network Availability Monitors** (multi-protocol monitors), which test ICMP (ping), DNS, and TCP port reachability.
@@ -76,7 +76,7 @@ Network monitors complement application-level monitoring by testing at different
 
 > <sub>**Sources:** [Network availability monitoring (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/network-availability-monitors/network-availability-monitoring) — *"There are three types of network availability monitors."* and *"The maximum number of network activities executed per network availability monitor is 1,000."*, [Create a NAM monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/network-availability-monitors/create-a-nam-monitor) — *"All requests assigned to a particular step are executed in parallel."*</sub>
 
-```python
+```dql
 // DISCOVERY -- list your network availability (multi-protocol) monitors,
 // then inspect the fields a recent execution emits so you know the exact
 // protocol-specific result.statistics.* names available in YOUR tenant.
