@@ -292,7 +292,6 @@ In this notebook, you learned:
 - [Get Started with Dynatrace (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/get-started)
 - [QuickStart guide (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/get-started/quickstart-guide)
 - [Navigate the Dynatrace Platform (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/get-started/dynatrace-ui)
-- [Dynatrace Community - Start with Dynatrace](https://community.dynatrace.com/t5/Start-with-Dynatrace/bd-p/GetStarted)
 
 ---
 

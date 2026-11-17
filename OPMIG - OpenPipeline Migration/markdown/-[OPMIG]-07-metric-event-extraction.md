@@ -1,6 +1,6 @@
 # OPMIG-07: Metric & Event Extraction
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 10/30/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 11/16/2026
 
 ---
 
@@ -219,7 +219,7 @@ Davis events are extracted in the **Davis** stage with the **Davis event** proce
 | **Event name** | Title template — if the event opens a problem, this is the problem title |
 | **Event description** | Template for the description (placeholders allowed) |
 | **Matching condition** | When to generate the event |
-| **Event properties** | Key/value pairs. **`event.type` is required**; everything else is optional |
+| **Event properties** | Key/value pairs. The docs list `event.name` as required, and `event.type`, `dt.smartscape_source.id`, `dt.alert_group` and `event.severity` as recommended |
 
 ### Event Types
 
@@ -235,7 +235,7 @@ Davis events are extracted in the **Davis** stage with the **Davis event** proce
 
 On the validation tenant over 7 days (10/02/2026), `dt.davis.events` held `WARNING`, `CUSTOM_INFO`, `AVAILABILITY_EVENT`, `ERROR_EVENT`, `RESOURCE_CONTENTION_EVENT` and `CUSTOM_ALERT` among others.
 
-> <sub>**Sources:** [Davis stage in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/davis-stage) — *"event.type is required; all other properties are optional."*, example `event.type = CUSTOM_ALERT`; [Events API v2 - POST an event (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event) — `eventType` enumeration.</sub>
+> <sub>**Sources:** [Davis stage in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/davis-stage) — *"Add further properties to provide more context for problem correlation. Include the following properties:"* `event.name` Required; `event.type` Recommended; `dt.smartscape_source.id` Recommended; `dt.alert_group` and `event.severity` Recommended (page updated 11/06/2026); [Events API v2 - POST an event (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event) — `eventType` enumeration.</sub>
 
 ### Event Description Templates
 

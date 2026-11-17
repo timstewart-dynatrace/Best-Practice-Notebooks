@@ -1,6 +1,6 @@
 # ONBRD-03: Deploying ActiveGate
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 3 of 10 | **Created:** December 2025 | **Last Updated:** 11/13/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 3 of 10 | **Created:** December 2025 | **Last Updated:** 11/16/2026
 
 ## Your Network Gateway to Dynatrace
 ActiveGate is a lightweight component that routes traffic between your infrastructure and Dynatrace. This notebook covers when you need ActiveGate, how many to deploy, where to place them, and installation steps - including comprehensive Kubernetes deployment options.
@@ -284,7 +284,7 @@ Dynatrace de-supports an OS version *"at least 6 months after its end of life (E
 - **Do not provision new ActiveGates on any version in this table.** Amazon Linux 2 and RHEL 9.4 were the obvious defaults a year ago; RHEL 9.4 is already out of support and Amazon Linux 2 is next — pick Amazon Linux 2023, RHEL 9.8/10.2, Oracle Linux 9.8/10.2, or Rocky Linux 9.8/10.2 instead. Oracle Linux and Rocky Linux 9.8 and 10.2 are themselves already announced for de-support from **06/01/2027** (ActiveGate 1.349 release notes: *"The following operating systems will no longer be supported starting 01 June 2027"*), so on those distributions plan the move to the next listed minor version. On Windows, *"The following operating systems will no longer be supported starting 01 August 2027 Windows: Windows Server 2016"* — start new Windows ActiveGates on 2019 or later.
 - **Fold the OS upgrade into the next ActiveGate update window** rather than scheduling it as separate work. The update mechanics, auto-update behavior, and how to schedule those windows are covered in *FAQ-05: Managing ActiveGate updates on Dynatrace SaaS*.
 
-> **Reference:** [End-of-support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — the dates and the 6-month policy statement above are quoted from this page, verified 07/30/2026; the dates also match [ActiveGate 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-349), read 11/11/2026 — *"The following operating systems are no longer supported since 01 November 2026"*. The Windows Server 2016 date is from [ActiveGate 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347), read 10/02/2026.
+> **Reference:** [End-of-support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — the dates and the 6-month policy statement above are quoted from this page, verified 07/30/2026; the dates also match [ActiveGate 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-349), read 11/11/2026 — *"The following operating systems are no longer supported since 01 November 2026"*. The Windows Server 2016 date is from [End of support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news), read 11/16/2026.
 
 #### Disk Space per Directory (Linux defaults)
 
@@ -417,7 +417,7 @@ Invoke-WebRequest -Uri "https://{tenant-id}.live.dynatrace.com/api/v1/deployment
 .\Dynatrace-ActiveGate.exe
 ```
 
-> **Deprecation note (SaaS 1.343, July 2026):** the classic ActiveGate deployment API used above (`/api/v1/deployment/installer/gateway/...`) is **deprecated** in favor of the Latest Dynatrace deployment REST API, which supports **platform tokens** with fine-grained OAuth scopes and adds a REST endpoint for public component-image URIs. Its GA/enabled-by-default status arrives with the staged SaaS 1.343 tenant rollout (from mid-July 2026) — verify availability in your tenant. The classic endpoints continue to work during the deprecation period — plan new automation against the platform API and migrate existing scripts on your next maintenance touch.
+> **Latest Dynatrace deployment API (SaaS 1.343, rollout from 07/14/2026):** the ActiveGate deployment REST API is generally available — *"now enabled by default and available via the platform domain"* — and supports **platform tokens** with fine-grained OAuth scopes. The classic `/api/v1/deployment/installer/gateway/...` endpoints used above carry no deprecation notice on their reference page, and SaaS 1.343 says the gateway `latest` endpoints *"honor the configured target version too"*. Source: [What's new in Dynatrace SaaS 1.343 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343).
 
 ### Container Deployment
 

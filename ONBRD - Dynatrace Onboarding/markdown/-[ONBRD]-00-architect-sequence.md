@@ -1,6 +1,6 @@
 # ONBRD-00: Architect's Sequence & Dependency Runbook
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 00 — Architect's Sequence & Dependency Runbook | **Created:** May 2026 | **Last Updated:** 11/13/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 00 — Architect's Sequence & Dependency Runbook | **Created:** May 2026 | **Last Updated:** 11/16/2026
 
 ## Overview
 
@@ -59,7 +59,7 @@ For environments where SVG doesn't render
 
 - **Decision:** Confirm access; record tenant URL; plan token strategy for downstream automation.
 - **Depends on:** procurement complete, tenant provisioned.
-- **2026 specifics:** Plan for Platform Tokens (`dt0s16`, `Authorization: Bearer`) as the default for new automation — the access-token upgrade guide states that *"In Latest Dynatrace, this model is replaced with platform tokens"*. Settings v2 / Configuration as Code (Terraform / Monaco) over Configuration API for new work (SaaS 1.337 put deprecation notices on Configuration API endpoints now covered by Settings). **Extensions 2.0** for any custom integrations (Extensions Framework 1.0 reached end of support on 2025-03-31).
+- **2026 specifics:** Plan for Platform Tokens (`dt0s16`, `Authorization: Bearer`) as the default for new automation — the access-token upgrade guide states that Latest Dynatrace *"replaces them with platform tokens"*. Settings v2 / Configuration as Code (Terraform / Monaco) over Configuration API for new work (SaaS 1.337 put deprecation notices on Configuration API endpoints now covered by Settings). **Extensions 2.0** for any custom integrations (Extensions Framework 1.0 reached end of support on 2025-03-31).
 - **Output:** confirmed tenant access; first Platform Token decision recorded.
 - **Deep dive:** **ONBRD-99: Best Practice Summary** § 1 Recommended Defaults for the 2026 token / API / extension stack.
 
@@ -67,9 +67,9 @@ For environments where SVG doesn't render
 
 - **Decision:** SSO method (SAML, optionally with SCIM provisioning); initial group structure; first parameterized policies.
 - **Depends on:** Step 01 (access confirmed).
-- **2026 specifics:** Issue the first Platform Token (`dt0s16`, `Authorization: Bearer`). Installer downloads work with a platform token carrying `fleet-management:oneagents:download` (OneAgent) or `fleet-management:activegates:download` (ActiveGate); classic access tokens (`dt0c01`, `InstallerDownload` scope) exist only on classic and hybrid environments — *"Classic access tokens don't exist in latest environments"*. Use parameterized policies bound to groups via binding parameters; the `dt.security_context` field is the standardized boundary for Gen3 IAM scoping (configured fully in Step 06).
+- **2026 specifics:** Issue the first Platform Token (`dt0s16`, `Authorization: Bearer`). Installer downloads work with a platform token carrying `fleet-management:oneagents:download` (OneAgent) or `fleet-management:activegates:download` (ActiveGate); classic access tokens (`dt0c01`, `InstallerDownload` scope) exist only on classic and hybrid environments — on a latest environment, *"Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available."*. Use parameterized policies bound to groups via binding parameters; the `dt.security_context` field is the standardized boundary for Gen3 IAM scoping (configured fully in Step 06).
 - **Output:** SSO live; admin group + first parameterized policy in place; first Platform Token issued.
-- **Deep dive:** IAM series for full IAM administration (15 notebooks); **FAQ-02: Tagging — Sources, Standards, and Strategy** for `dt.security_context` strategy.
+- **Deep dive:** IAM series for full IAM administration (16 notebooks); **FAQ-02: Tagging — Sources, Standards, and Strategy** for `dt.security_context` strategy.
 
 ### Step 03 — ActiveGate (parallel-able with 04 + 05 after 02)
 
@@ -210,7 +210,7 @@ Reference points to keep open:
 
 - **ONBRD-99: Best Practice Summary** — the architect's reference card: recommended defaults, decision matrix, validation queries, anti-patterns, and the **cross-series reference map** for what to do after ONBRD.
 - **-START-HERE- › Foundation Module** — cross-series Foundation Module reading order (ONBRD + ORGNZ + IAM in parallel) with priorities and skip rules.
-- **-START-HERE- › Doorway 1 — Net New** — doorway selection for greenfield vs migration paths (Sub-Paths A–E).
+- **-START-HERE- › Doorway 1 — Net New** — doorway selection for greenfield vs migration paths (Sub-Paths A–F).
 - **ADOPT series** — overall maturity and adoption roadmap once ONBRD is complete.
 
 ---

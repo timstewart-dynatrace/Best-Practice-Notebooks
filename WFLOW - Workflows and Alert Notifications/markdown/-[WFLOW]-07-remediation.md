@@ -1,6 +1,6 @@
 # WFLOW-07: Problem-Triggered Remediation
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 7 of 10 | **Created:** January 2026 | **Last Updated:** 10/06/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 7 of 10 | **Created:** January 2026 | **Last Updated:** 11/16/2026
 
 ## Auto-Remediation with Workflows
 Move beyond notifications to automated problem resolution. This notebook covers remediation patterns, safety guardrails, runbook automation, and common remediation scenarios.
@@ -29,7 +29,7 @@ Move beyond notifications to automated problem resolution. This notebook covers 
 | **External Systems** | Credentials for the target system in the Credential Vault, or a connection for the Kubernetes or AWS Connector |
 | **Outbound access** | Every host a script or HTTP task calls added under **Settings > General > External requests**. Hosts on a private network (an internal automation API, a Kubernetes API server, an `.internal` endpoint) also need an EdgeConnect host pattern — see the **WFLOW-94 LAB** |
 
-> <sub>**Sources:** [Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action) — *"The external endpoint must be added to External requests."*; [Workflows security (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security) — *"If the required permission for a workflow task is missing, an attempt to execute this task results in a 403 Forbidden error."*; [EdgeConnect (DT docs)](https://docs.dynatrace.com/docs/ingest-from/edgeconnect) — *"Any HTTP request (from your app functions, workflows, or ad-hoc functions) that matches a defined host pattern is handled by an EdgeConnect instance"*.</sub>
+> <sub>**Sources:** [Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action) — *"The external endpoint must be added to External requests."*; [Workflows security (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security) — *"If the required permission for a workflow task is missing, an attempt to execute this task results in a 403 Forbidden error."*; [EdgeConnect (DT docs)](https://docs.dynatrace.com/docs/ingest-from/edgeconnect) — *"When an app function, ad hoc function, or workflow action targets a host that matches a configured host pattern, the Dynatrace runtime forwards the request to EdgeConnect."*.</sub>
 
 <a id="auto-remediation-principles"></a>
 ## 1. Auto-Remediation Principles
