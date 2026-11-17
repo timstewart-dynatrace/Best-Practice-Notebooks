@@ -1,6 +1,6 @@
 # ONBRD-02: IAM and Authentication
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 11/13/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 11/16/2026
 
 ## Setting Up Secure Access
 Before inviting your team, configure authentication and permissions properly. This notebook covers SAML/SSO setup, API tokens, and the modern permission model.
@@ -265,8 +265,8 @@ Classic access tokens exist only on classic and hybrid environments — on a lat
 |------------|---------------|----------------------|
 | **OneAgent Installer Download** | `InstallerDownload` | `fleet-management:oneagents:download` |
 | **ActiveGate Installer Download** | `InstallerDownload` | `fleet-management:activegates:download` |
-| **Metric Ingestion** | `metrics.ingest` | — |
-| **Log Ingestion** | `logs.ingest` | — |
+| **Metric Ingestion** | `metrics.ingest` | `openpipeline:metrics:ingest` |
+| **Log Ingestion** | `logs.ingest` | `openpipeline:logs:ingest` |
 
 ### Token Best Practices
 
@@ -358,7 +358,7 @@ With IAM configured, you're ready to:
 
 ### Where to Go Deeper
 
-- **IAM series** (15 notebooks) — full IAM administration depth
+- **IAM series** (16 notebooks) — full IAM administration depth
 - **FAQ-02** — Tagging sources, standards, and strategy
 - **ORGNZ series** — Bucket strategy, segments, security context
 

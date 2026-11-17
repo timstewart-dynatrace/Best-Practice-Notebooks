@@ -1,6 +1,6 @@
 # WFLOW-08: JavaScript & HTTP Actions
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 10/27/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 11/16/2026
 
 ## Custom Code and API Integration
 When built-in actions aren't enough, use JavaScript and HTTP requests for custom integrations. This notebook covers the JavaScript SDK, HTTP request patterns, and common integration scenarios.
@@ -196,9 +196,9 @@ export default async function () {
 ## 3. HTTP Request Patterns
 ### Allow the Host First
 
-Every host a task calls must be allow-listed. For a script, *"The external endpoint must be added to External requests."* For the HTTP Request action, *"All HTTP calls are validated against the global allowlist."* Add the host under **Settings > General > External requests**. The workflow runs in Dynatrace SaaS, so a host on your private network also needs an EdgeConnect host pattern: *"Any HTTP request (from your app functions, workflows, or ad-hoc functions) that matches a defined host pattern is handled by an EdgeConnect instance"*. The **WFLOW-94 LAB** sets one up.
+Every host a task calls must be allow-listed. For a script, *"The external endpoint must be added to External requests."* For the HTTP Request action, *"All HTTP calls are validated against the global allowlist."* Add the host under **Settings > General > External requests**. The workflow runs in Dynatrace SaaS, so a host on your private network also needs an EdgeConnect host pattern: *"When an app function, ad hoc function, or workflow action targets a host that matches a configured host pattern, the Dynatrace runtime forwards the request to EdgeConnect."*. The **WFLOW-94 LAB** sets one up.
 
-> <sub>**Sources:** [Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action), [HTTP request action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action), [EdgeConnect (DT docs)](https://docs.dynatrace.com/docs/ingest-from/edgeconnect) — *"Use EdgeConnect to make apps and workflows interact securely with your systems."*</sub>
+> <sub>**Sources:** [Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action), [HTTP request action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action), [EdgeConnect (DT docs)](https://docs.dynatrace.com/docs/ingest-from/edgeconnect) — *"EdgeConnect securely connects Dynatrace apps and workflows to internal systems by routing requests to configured hosts."*</sub>
 
 ### HTTP Request Action
 

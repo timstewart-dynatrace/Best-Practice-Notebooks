@@ -1,6 +1,6 @@
 # FAQ-26: What Metadata Should We Set, Where, and Why?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 26 — Metadata Strategy | **Created:** October 2026 | **Last Updated:** 11/13/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 26 — Metadata Strategy | **Created:** October 2026 | **Last Updated:** 11/16/2026
 
 ## Overview
 
@@ -214,7 +214,7 @@ Account and region fields are populated automatically on telemetry from a cloud 
 
 **Version gate.** These pages apply to **new cloud connections only** and to Dynatrace **1.348+**. SaaS releases reach tenants in a staged rollout, so check that your tenant has the release before you design around it. Classic cloud connections are not covered. FAQ-02 §4 covers naming drift between cloud providers, which is the main reason to normalize in one rule.
 
-> <sub>**Sources:** [Enrich AWS telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-aws) — *"This page applies to new cloud connections only."* and *"Primary Grail tags : This option is not yet directly available as Target ."* (page updated 11/03/2026), [Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"Primary tag isn't yet available as a Target for AWS tag rules, which is why this step needs the OpenPipeline rule."*</sub>
+> <sub>**Sources:** [Enrich AWS telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-aws) — *"This page applies to new cloud connections only."* and *"Primary Grail tags: This option isn't available as a Target."* (page updated 11/16/2026), [Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"Primary tag isn't yet available as a Target for AWS tag rules, which is why this step needs the OpenPipeline rule."*</sub>
 
 ### 5.5 Extensions (Extensions 2.0)
 

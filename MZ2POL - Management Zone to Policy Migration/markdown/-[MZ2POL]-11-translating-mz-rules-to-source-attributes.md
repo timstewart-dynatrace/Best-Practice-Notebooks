@@ -1,6 +1,6 @@
 # MZ2POL-11: Translating Management Zone Rules into Source Attributes
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 12 of 17 | **Created:** October 2026 | **Last Updated:** 11/15/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 12 of 17 | **Created:** October 2026 | **Last Updated:** 11/16/2026
 
 ## Overview
 
@@ -160,7 +160,7 @@ The 200 property keys fall into a dozen families. For each family, the table nam
 > <sub>**Sources:**</sub>
 > - <sub>[Management zones settings schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-management-zones) — property-key enum</sub>
 > - <sub>[Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — *"Enriching all data from a host based on a process or service property is not supported."* and *"Cloud tags are not yet available as input fields for OneAgent."*</sub>
-> - <sub>[Enrich AWS telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-aws) — *"This page applies to new cloud connections only."* and *"Primary Grail tags : This option is not yet directly available as Target ."* (page updated 11/03/2026)</sub>
+> - <sub>[Enrich AWS telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-aws) — *"This page applies to new cloud connections only."* and *"Primary Grail tags: This option isn't available as a Target."* (page updated 11/16/2026)</sub>
 > - <sub>[Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"Cloud rules apply only to data that arrives through the cloud connection, so OneAgent on a cloud VM doesn't evaluate them."* and *"OneAgent reads them through the instance metadata service and exposes them as host properties named aws.tags.<key>."*</sub>
 > - <sub>[What's new in OneAgent 1.345 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-345) — *"Starting with OneAgent version 1.345, the OS Agent derives primary_tags from host tags (hostautotag.conf) rather than from host properties (hostcustomproperties.conf) at the host level."*</sub>
 > - <sub>[IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — record-level conditions on `storage:logs:read` and `storage:metrics:read` include `storage:dt.host_group.id`, `storage:k8s.namespace.name`, `storage:host.name`, `storage:aws.account.id` and `storage:dt.security_context`; no `primary_tags` condition is listed.</sub>

@@ -1,6 +1,6 @@
 # ONBRD-04: Cloud & SaaS Integrations
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 11/10/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 11/16/2026
 
 ## Extending Visibility Beyond OneAgent
 While OneAgent provides deep application and infrastructure monitoring, many organizations need visibility into cloud services and SaaS platforms that can't run an agent. This notebook covers how to integrate AWS, Azure, GCP, and third-party SaaS tools into Dynatrace.
@@ -420,8 +420,9 @@ timeseries avgDuration = avg(cloud.aws.lambda.Duration.By.FunctionName), from:-2
 // Check Extensions 2.0 status - one row per extension, status and ActiveGate group.
 // dt.extension.status: OK = collecting; UNASSIGNED = the configuration is not bound to a
 // running ActiveGate group or host; DATASOURCE_UNSUPPORTED = the data source on that
-// host/endpoint is not supported. No dt.active_gate.group.name = a local extension
-// running on OneAgent. datapoints = minutes reported in the window.
+// host/endpoint is not supported. A dt.entity.host value marks a local extension running
+// on OneAgent; a missing group name alone does not. datapoints = data points in the
+// window, summed across hosts and configurations.
 timeseries s = count(dt.sfm.extension.status), from:-24h,
     by:{dt.extension.name, dt.extension.status, dt.active_gate.group.name}
 | fieldsAdd datapoints = arraySum(s)

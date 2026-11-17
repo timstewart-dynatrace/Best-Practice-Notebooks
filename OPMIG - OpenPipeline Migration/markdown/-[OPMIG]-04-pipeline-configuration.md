@@ -1,6 +1,6 @@
 # OPMIG-04: OpenPipeline Migration Guide: Part 4
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 4 of 10 | **Created:** December 2025 | **Last Updated:** 11/11/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 4 of 10 | **Created:** December 2025 | **Last Updated:** 11/16/2026
 
 ## Pipeline Configuration Fundamentals
 ---
@@ -379,7 +379,7 @@ fieldsAdd error_type = if(contains(message, "NullPointerException"), "NPE",
 **Event Extraction:**
 Davis stage → **Davis event** processor:
 - **Event name:** `Error in {class}: {error_type}`
-- **Event properties:** `event.type = CUSTOM_ALERT` (`event.type` is required)
+- **Event properties:** `event.type = CUSTOM_ALERT` (the Davis stage docs list `event.type` as recommended)
 - **Matching:** `level == "ERROR"`
 
 **Storage:** `default_logs` (35 days)

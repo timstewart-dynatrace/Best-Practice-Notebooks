@@ -1,6 +1,6 @@
 # ONBRD-07: Understanding Your Data
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 11/05/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 11/16/2026
 
 ## Exploring What Dynatrace Discovered
 With OneAgent deployed, Dynatrace has automatically discovered your infrastructure, processes, and services. This notebook helps you understand what's been found and how to explore your data.
@@ -94,7 +94,7 @@ The topology view shows the visual representation of your environment.
 | Layer | What It Is | Modern Query |
 |-------|------------|--------------|
 | Application / Frontend | RUM web and mobile frontends; user-facing entry point | smartscapeNodes "FRONTEND" (frontend.type == "web" / "mobile") |
-| Service | Auto-detected by OneAgent code instrumentation; service.name | smartscapeNodes "SERVICE" |
+| Service | Auto-detected by OneAgent code instrumentation; `dt.service.name` on every span | smartscapeNodes "SERVICE" |
 | Process Group / Process | Detected processes, grouped by command line + version | smartscapeNodes "PROCESS" (process instances — there is no process-group node) |
 | Host | OneAgent-monitored; grouped by host group | smartscapeNodes "HOST" |
 | Container / K8s Pod | k8s.namespace · k8s.deployment · pod labels | smartscapeNodes for K8s entity types |

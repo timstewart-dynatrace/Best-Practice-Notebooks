@@ -1,6 +1,6 @@
 # ONBRD-99: Best Practice Summary
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 99 — Best Practice Summary | **Created:** March 2026 | **Last Updated:** 11/13/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 99 — Best Practice Summary | **Created:** March 2026 | **Last Updated:** 11/16/2026
 
 ## Overview
 
@@ -163,12 +163,12 @@ ONBRD covers the foundation. These topic series cover each domain in depth:
 
 | Domain | Topic Series | Notebooks |
 |--------|--------------|-----------|
-| **IAM administration** | IAM | 15 |
+| **IAM administration** | IAM | 16 |
 | **Data organization (buckets, segments, security context)** | ORGNZ | 11 |
 | **Frequently asked questions** | FAQ | growing collection |
 | **OpenPipeline log processing** | OPLOGS | 9 |
 | **Classic Logs → OpenPipeline migration** | OPMIG | 10 |
-| **OpenPipeline beyond logs (spans, metrics, events, bizevents)** | OPIPE | 7 |
+| **OpenPipeline beyond logs (spans, metrics, events, bizevents)** | OPIPE | 8 |
 | **Distributed tracing & spans** | SPANS | 9 |
 | **Kubernetes monitoring & DynaKube** | K8S | 15 |
 | **Cloud integration deep dives (AWS, Azure, GCP)** | CLOUD | 9 |
@@ -179,7 +179,7 @@ ONBRD covers the foundation. These topic series cover each domain in depth:
 | **Dynatrace Intelligence (Causal/Predictive/Generative AI, Davis)** | AIOPS | 8 |
 | **Dashboard strategy & executive reporting** | DASH | 8 |
 | **Configuration automation & GitOps** | AUTOM | 14 |
-| **Management Zone → Policy migration** | MZ2POL | 11 |
+| **Management Zone migration (segments, policies, workflows)** | MZ2POL | 19 |
 | **Web Real User Monitoring** | WEBRUM | 10 |
 | **Native mobile monitoring** | MOBL | 13 |
 | **Synthetic monitoring** | SYNTH | 7 |
@@ -188,7 +188,7 @@ ONBRD covers the foundation. These topic series cover each domain in depth:
 | **Application security** | APPSEC | 10 |
 | **Cost management & FinOps** | FINOPS | 3 |
 | **Platform maturity & adoption roadmap** | ADOPT | 7 |
-| **Running Dynatrace Managed** | DTM | 14 |
+| **Running Dynatrace Managed** | DTM | 15 |
 | **Managed → SaaS migration** | M2S | 11 |
 | **SaaS → SaaS migration** | S2S | 12 |
 | **New Relic → Dynatrace (procedural runbook)** | NR2DT | 11 |

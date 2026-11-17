@@ -1,6 +1,6 @@
 # ONBRD-05: Deploying OneAgent
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 11/13/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 11/16/2026
 
 ## Getting Data Into Dynatrace
 OneAgent is the foundation of Dynatrace monitoring. This notebook covers deployment strategies, installation methods, and verification steps to ensure your infrastructure is reporting data.
@@ -186,11 +186,11 @@ Decide your primary-tag and host-group taxonomy *before* the first install — r
 
 ### Configuration Management
 
-For orchestrated rollout, Dynatrace provides an Ansible collection — *"Currently Dynatrace provides you with an Ansible collection."* See [Install OneAgent using Ansible (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/deployment-orchestration/ansible).
+For orchestrated rollout, Dynatrace provides an Ansible collection — *"Dynatrace provides an Ansible collection that you can use to orchestrate OneAgent deployment in your environment."* See [Install OneAgent using Ansible (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent-classic/deployment-orchestration/ansible).
 
 The Dynatrace Puppet module and Chef cookbook repositories are archived — Puppet: *"Official support for this project has been discontinued."* Treat them as unmaintained code; with Puppet, Chef, or any other tool, wrap the installer download and command line shown above.
 
-> <sub>**Sources:** [OneAgent deployment orchestration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/deployment-orchestration), [Dynatrace-OneAgent-Puppet (Dynatrace GitHub)](https://github.com/Dynatrace/Dynatrace-OneAgent-Puppet-DEPRECATED), [Dynatrace-OneAgent-Chef (Dynatrace GitHub)](https://github.com/Dynatrace/Dynatrace-OneAgent-Chef) — *"This repository has been archived and is no longer maintained."*</sub>
+> <sub>**Sources:** [OneAgent deployment orchestration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent-classic/deployment-orchestration), [Dynatrace-OneAgent-Puppet (Dynatrace GitHub)](https://github.com/Dynatrace/Dynatrace-OneAgent-Puppet-DEPRECATED), [Dynatrace-OneAgent-Chef (Dynatrace GitHub)](https://github.com/Dynatrace/Dynatrace-OneAgent-Chef) — *"This repository has been archived and is no longer maintained."*</sub>
 
 <a id="kubernetes-deployment"></a>
 ## 5. Kubernetes Deployment
@@ -614,7 +614,7 @@ Get-Service -Name "Dynatrace OneAgent"
 
 ### What You'll See on Modern Tenants
 
-Once OneAgent is reporting and services appear in the verification queries above, **Enhanced Endpoints for SDv1** (Dynatrace v1.329+) shapes what shows up under each service:
+Once OneAgent is reporting and services appear in the verification queries above, **Enhanced Endpoints for SDv1** (available from Dynatrace 1.330; from 1.333 on environments created in 1.329 or earlier) shapes what shows up under each service:
 
 | Tenant creation date | Default state | What you do |
 |---|---|---|
@@ -622,7 +622,7 @@ Once OneAgent is reporting and services appear in the verification queries above
 | v1.330 – v1.332 | On by default (toggleable) | Verify the toggle hasn't been disabled |
 | v1.329 or earlier | Off by default | Enable at *Settings → Process and contextualize → Services → Service detection v1* if you want per-endpoint metrics |
 
-**Why it matters during onboarding:** before Enhanced Endpoints, only manually marked "key requests" emitted individual metrics — everything else collapsed into a single `NON_KEY_REQUESTS` bucket. Now every detected endpoint is named and tracked automatically, which materially changes what's visible on day one.
+**Why it matters during onboarding:** before Enhanced Endpoints, only manually marked "key requests" emitted individual metrics — everything else collapsed into a single `NON_KEY_REQUEST` entry. Now every detected endpoint is named and tracked automatically, which materially changes what's visible on day one.
 
 **Services not affected:** external services, background activity, queue listeners, key-value stores — these never get per-endpoint metrics regardless of the setting.
 

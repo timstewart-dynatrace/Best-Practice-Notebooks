@@ -1,6 +1,6 @@
 # ONBRD-10: Building Dashboards
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 10 of 10 | **Created:** December 2025 | **Last Updated:** 10/27/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 10 of 10 | **Created:** December 2025 | **Last Updated:** 11/16/2026
 
 ## Visualizing Your Data
 Dashboards provide at-a-glance visibility into your environment's health and performance. This notebook covers dashboard creation, common visualization patterns, and sharing with your team.
@@ -101,15 +101,14 @@ This notebook uses **Dashboards**, the Latest Dynatrace app. Dashboards Classic 
 | **Single value** | Key metrics (request count, error rate) |
 | **Line / Area / Band chart** | Time series data |
 | **Bar / Categorical chart** | Comparisons and ranked top-N (sort and `limit` in the query) |
+| **Top list** (SaaS 1.349+) | Ranking entities by a metric |
 | **Table / Record list** | Lists and details, including active problems from `dt.davis.problems` |
 | **Pie / Donut** | Distribution |
 | **Honeycomb** | Entity health grid |
 | **Meter bar / Gauge** | Value against a range |
 | **Maps** (choropleth, dot, connection, bubble) | Geographic data |
 
-There is no "top list" visualization: a ranked list is a bar or categorical chart (or a table) over a query that ends in `sort … | limit N`.
-
-> **SaaS 1.349 (staged tenant rollout from 10/27/2026):** *"Top list visualizations are now integrated into Dashboards and Notebooks"* ([What's new in Dynatrace SaaS 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-349)). Verify it has reached your tenant; until then the current guidance remains the working path.
+> **SaaS 1.349 (staged tenant rollout from 10/27/2026):** *"Top list visualizations are now integrated into Dashboards and Notebooks"* ([What's new in Dynatrace SaaS 1.349 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-349)) — use it to *"Rank entities by a metric. For example, to identify the top 10 hosts by CPU usage or the bottom 5 services by availability."* ([Top list visualization (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/edit-visualizations/visualization-top-list)). Verify it has reached your tenant; until then a ranked list is a bar or categorical chart (or a table) over a query that ends in `sort … | limit N`.
 
 ### Visualization Types
 
@@ -121,7 +120,7 @@ There is no "top list" visualization: a ranked list is a bar or categorical char
 | Trend over time | Line/Area Chart |
 | Compare values | Bar Chart |
 | Distribution | Pie Chart |
-| Top N items | Bar chart, sorted and limited |
+| Top N items | Top list (1.349+), or bar chart sorted and limited |
 | Detailed list | Table |
 | Entity status | Honeycomb |
 | Geographic | Map |

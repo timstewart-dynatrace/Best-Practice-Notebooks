@@ -1,6 +1,6 @@
 # ONBRD-06: Organizing Your Environment
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 11/09/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 11/16/2026
 
 ## Tags, Segments, and Naming Conventions
 As your Dynatrace environment grows, organization becomes critical. This notebook covers how to structure your environment with tags, segments, and naming conventions for maintainability and access control.
@@ -66,7 +66,7 @@ DT_TAGS="primary_tags.team=platform primary_tags.environment=production"
 
 > **See:** [Primary Grail fields and tags enrichment through OneAgent](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment)
 
-> **Version Support Policy:** OneAgent and ActiveGate versions are supported for **9 months (Standard)** or **12 months (Enterprise)**. Third-party technologies are supported for 6 months beyond vendor EOL. See [Support Policy](https://www.dynatrace.com/company/trust-center/support-policy/).
+> **Version Support Policy:** OneAgent and ActiveGate versions are supported for **9 months (Standard)** or **12 months (Enterprise)**. See [Support Policy](https://www.dynatrace.com/company/trust-center/support-policy/). For third-party technologies, *"Dynatrace typically supports technologies and their versions six months longer than the vendor"* (see [End of support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news)).
 
 <a id="why-organization-matters"></a>
 ## 1. Why Organization Matters
@@ -106,8 +106,8 @@ The modern Dynatrace platform (Gen3/Grail) uses a "tag at source" approach rathe
 |--------|--------------|----------|
 | **Primary tags / primary fields** | Set at OneAgent install or with `oneagentctl --set-host-tag` (OneAgent 1.333+) | Environment, team, security context, cost allocation — on all signals |
 | **Host Properties** | Set with `--set-host-property`; stay on the host node unless an ingest enrichment rule promotes them | Host-level metadata |
-| **Cloud Provider Tags** | Promoted onto signals by ingest enrichment rules (OneAgent / ActiveGate 1.343+; cloud rule types rolling out) | Cloud resource organization |
-| **Kubernetes Labels** | Promoted onto signals by ingest enrichment rules (Dynatrace Operator 1.10+ with `metadataEnrichment`) | Container workload organization |
+| **Cloud Provider Tags** | Promoted onto signals by ingest enrichment rules (OneAgent / ActiveGate 1.343+) | Cloud resource organization |
+| **Kubernetes Labels** | Promoted onto signals by ingest enrichment rules (Dynatrace Operator 1.10+ with `metadataEnrichment`; workload and pod rule types: Operator 1.11+ and ActiveGate 1.347+) | Container workload organization |
 | **OpenTelemetry Attributes** | Set in instrumentation | Custom service attributes |
 
 ### The "Enrich at Source" Philosophy
@@ -173,7 +173,7 @@ The `hostcustomproperties.conf` file applies only to OneAgent 1.187 and earlier.
 
 ### Cloud Provider Tags
 
-Cloud tags reach your telemetry through **ingest enrichment rules**. Cloud tag rules need a new cloud connection and Dynatrace 1.348+; the OneAgent route below needs OneAgent 1.343+. Cloud rule types are rolling out and may not yet be visible in your tenant — until a rule exists, the raw provider tags are visible on the HOST node (for example a `tags:azure` record on an Azure VM) but are not fields on logs, spans, or metrics.
+Cloud tags reach your telemetry through **ingest enrichment rules**. The rule types are AWS tag, GCP label, GCP tag and Azure tag; the OneAgent route below needs OneAgent 1.343+. Until a rule exists, the raw provider tags are visible on the HOST node (for example a `tags:azure` record on an Azure VM) but are not fields on logs, spans, or metrics.
 
 | Cloud | Tag Source | Attribute Written to Telemetry by a Rule |
 |-------|-----------|-----------|
@@ -195,7 +195,7 @@ An EC2 instance is tagged `team=checkout`. An AWS tag rule for `team` adds `aws.
 
 ### Kubernetes Labels
 
-Namespace and workload names are set on Kubernetes telemetry. Labels reach signals only through ingest enrichment rules (Dynatrace Operator 1.10+ with `metadataEnrichment` enabled in the DynaKube). Namespace-label rules are available now; workload and pod rule types are rolling out.
+Namespace and workload names are set on Kubernetes telemetry. Labels reach signals only through ingest enrichment rules (Dynatrace Operator 1.10+ with `metadataEnrichment` enabled in the DynaKube). Namespace-label rules need Operator 1.10+ and ActiveGate 1.343+; workload and pod rule types need Operator 1.11+ and ActiveGate 1.347+ and are rolling out.
 
 | K8s Metadata | DQL Field |
 |--------------|-----------|
@@ -252,7 +252,7 @@ Segments are reusable filters built from per-data-type **includes** that:
 | **Access control** | Use Policies + `dt.security_context` instead | Built-in |
 | **Modern platform** | ✅ Recommended | ⚠️ Dynatrace Classic concept — e.g. API 1.337 deprecated the `managementZone` property on calculated service metrics |
 
-> **Where to go deeper:** the **ORGNZ series** (11 notebooks) covers segments, buckets, and `dt.security_context` design in depth. The **IAM series** (especially IAM-04, IAM-05, IAM-11 WORKSHOP) covers how policies use `dt.security_context` to scope access. **MZ2POL** (11 notebooks) covers Management Zone → Policy migration if you have legacy MZs to retire.
+> **Where to go deeper:** the **ORGNZ series** (11 notebooks) covers segments, buckets, and `dt.security_context` design in depth. The **IAM series** (especially IAM-04, IAM-05, IAM-11 WORKSHOP) covers how policies use `dt.security_context` to scope access. **MZ2POL** (19 notebooks) covers Management Zone migration (access → policies, filtering → segments, alerting → workflows) if you have legacy MZs to retire.
 
 ### Segment Best Practices
 
@@ -443,7 +443,7 @@ With organization in place:
 - **FAQ-01** — Host group naming strategy
 - **FAQ-02** — Tagging sources, standards, and strategy (primary tags vs cloud tags vs auto-tags)
 - **IAM series** (especially IAM-04, IAM-05, IAM-11 WORKSHOP) — Policy design that consumes `dt.security_context`
-- **MZ2POL series** (11 notebooks) — Management Zone → Policy migration for legacy MZ retirement
+- **MZ2POL series** (19 notebooks) — Management Zone migration (segments, policies, workflows) for legacy MZ retirement
 
 ### Organization Checklist
 
@@ -479,8 +479,8 @@ In this notebook, you learned:
 - [Kubernetes Labels](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s)
 - [DQL Reference](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
 - [OneAgent Attribute Enrichment](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment)
-- [Configure ingest enrichment rules (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-central-enrichment) — *"Cloud rule types are rolling out and may not yet be visible in your environment."*
-- [Define tags and metadata for hosts (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/hosts/configuration/define-tags-and-metadata-for-hosts)
+- [Configure ingest enrichment rules (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-central-enrichment) — *"Primary tag is not available as a target for cloud rules."*
+- [Define tags and metadata for hosts (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability-classic/hosts-classic/configuration/define-tags-and-metadata-for-hosts)
 - [OneAgent configuration via command-line interface (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface) — *"For versions earlier than 1.189, use a host metadata configuration file."*
 - [Include data in segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-includes) — *"Querying for data not explicitly referenced by any include of the selected segment, will lead to empty results."*
 - [Segments for Kubernetes clusters (DT docs)](https://docs.dynatrace.com/docs/manage/segments/use-cases/segments-use-cases-kubernetes-clusters)

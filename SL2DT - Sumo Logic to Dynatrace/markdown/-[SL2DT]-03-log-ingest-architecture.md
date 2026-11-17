@@ -93,7 +93,7 @@ curl -s -X POST "$DT_TENANT/platform/storage/query/v1/query:execute" \
 
 Don't verify a platform token with the token lookup endpoint. `/api/v2/apiTokens/lookup` takes a classic access token (`dt0c01.`, `Api-Token` auth); platform tokens have no lookup by secret.
 
-> <sub>**Sources:** [Upgrade to platform tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/upgrade-to-platform-tokens) — *"Platform tokens don't support lookup by secret value"*.</sub>
+> <sub>**Sources:** [Upgrade from Classic access tokens to platform tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Platform tokens don't support lookup by secret value"*.</sub>
 
 ### OAuth client — Terraform-managed bucket definitions
 
