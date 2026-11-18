@@ -191,7 +191,7 @@ Choose the mode deliberately: *Any ActiveGate* lets a zone failure land on Activ
 
 Zone membership is set per agent at install time (`--set-network-zone`) or afterwards with `oneagentctl --set-network-zone`. Drive it from the deployment automation you already use, keyed on the site, region or cloud account the host belongs to, so every new host lands in the right zone without a manual step.
 
-> <sub>**Sources:** [Get started with network zones (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones-classic/network-zones-basic-info) — alternative zones and the three fallback modes; [Network zones - Settings API (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones/manage-via-settings-api) — *"Valid values: ANY_ACTIVE_GATE (default), ONLY_DEFAULT_ZONE, NONE"*.</sub>
+> <sub>**Sources:** [Get started with network zones (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones-classic/network-zones-basic-info) — alternative zones and the three fallback modes; [Network zones - Settings API (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones-classic/manage-via-settings-api) — *"Valid values: ANY_ACTIVE_GATE (default), ONLY_DEFAULT_ZONE, NONE"*.</sub>
 
 <a id="network-zones"></a>
 ## 2. Network Zones
@@ -291,7 +291,7 @@ sudo /opt/dynatrace/oneagent/agent/tools/oneagentctl --set-network-zone=datacent
 
 > **Important:** Every zone your agents use must exist in the SaaS tenant, with SaaS ActiveGates assigned, before you migrate OneAgents. The SaaS Upgrade Assistant lists network zones among the types it migrates; confirm they arrived and create any missing ones as part of Step 4 (Prepare).
 
-> <sub>**Sources:** [Network zones - Settings API (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones/manage-via-settings-api) — `id`: *"Unique identifier of the network zone"*; [PUT a network zone (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/network-zones/put-network-zone) — *"This API is deprecated. Use the Settings API instead."*; [Configure ActiveGate (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/configuration/configure-activegate) — `[connectivity]` `networkZone`: *"Defines the network zone to which the ActiveGate belongs."*</sub>
+> <sub>**Sources:** [Network zones - Settings API (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones-classic/manage-via-settings-api) — `id`: *"Unique identifier of the network zone"*; [PUT a network zone (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/network-zones/put-network-zone) — *"This API is deprecated. Use the Settings API instead."*; [Configure ActiveGate (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/configuration/configure-activegate) — `[connectivity]` `networkZone`: *"Defines the network zone to which the ActiveGate belongs."*</sub>
 
 ---
 
@@ -631,7 +631,7 @@ Complete this checklist before proceeding to Step 4 (Prepare).
 ### Architecture Resources
 
 - [ActiveGate Documentation](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate)
-- [Network Zones](https://docs.dynatrace.com/docs/manage/network-zones)
+- [Network Zones](https://docs.dynatrace.com/docs/manage/network-zones-classic)
 - [OneAgent Network Requirements](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oa-requirements)
 - [IAM Documentation](https://docs.dynatrace.com/docs/manage/identity-access-management)
 - [Dynatrace Trust Center](https://www.dynatrace.com/company/trust-center/)

@@ -1,6 +1,6 @@
 # M2S-95 LAB: Terraform for Managed-to-SaaS Migration
 
-> **Series:** M2S — Managed to SaaS Migration | **Reference:** 95 — Terraform Migration LAB | **Created:** July 2026 | **Last Updated:** 10/24/2026
+> **Series:** M2S — Managed to SaaS Migration | **Reference:** 95 — Terraform Migration LAB | **Created:** July 2026 | **Last Updated:** 11/17/2026
 
 An appendix LAB for teams migrating Dynatrace Managed to SaaS with the Terraform provider instead of — or alongside — the SaaS Upgrade Assistant.
 
@@ -190,7 +190,7 @@ Dynatrace documents an explicit list of settings that cannot be migrated automat
 
 ### 3.4 No Managed source exists
 
-Grail buckets, segments, OpenPipeline pipelines, Workflows, and Gen3 documents (dashboards and notebooks as documents) have no counterpart on Managed. These are **net-new authorship** on the SaaS side, not migration. They belong to M2S-07 (Expand) and are the reason the M2S journey does not end at cutover.
+Grail buckets, segments, OpenPipeline pipelines, Workflows, and Gen3 documents (dashboards and notebooks as documents) have no counterpart on Managed. These are **net-new authorship** on the SaaS side, not migration. They belong to M2S-08 (Expand) and are the reason the M2S journey does not end at cutover.
 
 Bucket design in particular must be settled **before first ingest** (M2S-04 §5) — retention and routing decisions are difficult to unwind once data has landed. ORGNZ covers the design.
 
@@ -266,7 +266,7 @@ The utility does not fail silently on configuration it cannot cleanly translate.
 | Directory | Meaning | Action |
 |-----------|---------|--------|
 | `.flawed` | The configuration is invalid or could not be converted; each file carries an explanatory comment | Triage individually — often reveals config that was already broken on Managed |
-| `.requires_attention` | Converted, but needs a human decision before apply | Review every file; do not bulk-apply |
+| `.requires_attention` | Converted, but needs a human decision before apply; each file opens with an explanatory comment | Review every file; do not bulk-apply |
 
 > **Do not skip this.** These two directories are the export utility's inventory of everything the migration will not do for you. Reviewing them is a Step 1 (Discover) deliverable, not a Step 5 surprise. Their contents feed directly into the manual work catalogued in section 3.3.
 

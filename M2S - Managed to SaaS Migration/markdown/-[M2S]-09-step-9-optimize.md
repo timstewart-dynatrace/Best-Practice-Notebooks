@@ -1,6 +1,6 @@
 # M2S-09: Step 9 — Optimize: Validate, Optimize, and Decommission
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 9 of 9 | **Phase:** Run | **Step:** Optimize | **Created:** March 2026 | **Last Updated:** 10/05/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 9 of 9 | **Phase:** Run | **Step:** Optimize | **Created:** March 2026 | **Last Updated:** 11/17/2026
 
 The migration is functionally complete. Agents are reporting, configurations are applied, integrations are reconnected, SaaS-exclusive features are adopted, and users are trained. This final step closes the loop: validate that every success criterion is met, optimize the SaaS environment for long-term performance, obtain stakeholder sign-off, and decommission the Managed cluster.
 
@@ -58,7 +58,7 @@ Review and update operational procedures now that you're on SaaS:
 
 | Requirement | Details |
 |-------------|----------|
-| **Steps 1-8 Complete** | All migration phases finished — Discovery through Enable |
+| **Steps 1-8 Complete** | All migration phases finished — Discover through Expand |
 | **SaaS Tenant Active** | All agents reporting, configurations applied, integrations connected |
 | **Entity Inventory from Step 1** | Original Managed entity counts for comparison |
 | **Managed Environment Running** | Still accessible for comparison (not yet decommissioned) |
@@ -121,10 +121,9 @@ smartscapeNodes "FRONTEND"
 // filtered on frontend.type == "web" (mobile apps are the same node with frontend.type ==
 // "mobile"). This corrects an earlier note here that claimed no Smartscape equivalent existed.
 // FRONTEND also carries id_classic holding the APPLICATION-* id, for joining migrated and
-// unmigrated queries. Unlike ActiveGate, `fetch dt.entity.application` does still work and remains
-// a genuine fallback — but it reads the classic entity store, which can retain entities Smartscape
-// (live topology) no longer lists, so cross-check if the two counts disagree.
-// Classic fallback: fetch dt.entity.application | summarize appCount = count()
+// unmigrated queries. `fetch dt.entity.application` returned 0 rows over 30 days on the validation
+// tenant (11/17/2026) while FRONTEND returned the applications — use FRONTEND.
+// Classic form (returned 0 above): fetch dt.entity.application | summarize appCount = count()
 ```
 
 ```dql
@@ -516,7 +515,7 @@ The migration is complete, but the journey continues. Here are the key activitie
 - [Dynatrace Documentation](https://docs.dynatrace.com/docs)
 - [Dynatrace Community](https://community.dynatrace.com/)
 - [Dynatrace University](https://university.dynatrace.com/learn)
-- [Dynatrace Community: Upgrade to SaaS](https://community.dynatrace.com/t5/Upgrade-to-SaaS/bd-p/upgrade_to_saas)
+- [Dynatrace Community: Upgrade to SaaS](https://community.dynatrace.com/c/platform/upgrade-to-saas/92)
 
 ---
 

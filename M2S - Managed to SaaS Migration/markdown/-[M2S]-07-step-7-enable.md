@@ -1,6 +1,6 @@
 # M2S-07: Step 7 — Enable: User Enablement and Communication
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 10/24/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 11/17/2026
 
 A successful migration is measured not by the technical cutover but by whether every team in the organization can use the new platform effectively. Step 7 focuses on communication, training, documentation, and establishing the support structures that ensure adoption. Without deliberate enablement, teams will struggle with new URLs, unfamiliar interfaces, and unanswered questions — undermining the value of the migration.
 
@@ -183,7 +183,9 @@ Training must address the specific changes users will encounter:
 | **Alerting** | Notification rules + alerting profiles | Workflows (AutomationEngine) |
 | **Configuration** | Classic settings pages and Configuration API | Settings 2.0 (schema-based) and the Settings app |
 | **Data storage** | Elasticsearch + Cassandra | Grail data lakehouse |
-| **Updates** | Manual cluster updates (downtime) | Automatic, zero-downtime updates |
+| **Updates** | Automatic every 4 weeks, in your maintenance window (inaccessible during the update on clusters under 3 nodes) | Automatic every 2 weeks, operated by Dynatrace |
+
+> <sub>**Sources:** [Pre-upgrade information (DT docs)](https://docs.dynatrace.com/managed/upgrade/up-information) — Managed: *"Automatic upgrades every 4 weeks; OS Patches by Customer"*; SaaS: *"Automatic upgrades every 2 weeks; OS Security patches by Dynatrace ACE team."*; [Update a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/update-cluster) — *"If your Managed Cluster consists of fewer than three nodes, Dynatrace Managed will not be accessible during the update process."*</sub>
 
 ### DQL Transition Guide
 
