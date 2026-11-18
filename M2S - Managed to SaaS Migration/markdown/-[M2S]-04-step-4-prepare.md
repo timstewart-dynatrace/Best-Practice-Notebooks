@@ -1,6 +1,6 @@
 # M2S-04: Step 4 — Prepare: Readiness and Pre-Migration
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 11/17/2026
 
 With the target architecture designed, it is time to prepare everything needed for migration execution. This step ensures your SaaS tenant is provisioned, identity is configured, ActiveGates are deployed in parallel, and rollback procedures are tested—so that when you flip the switch in Step 5, there are no surprises.
 
@@ -224,8 +224,10 @@ Dynatrace requires domain validation for SSO:
 |------|--------|
 | 1 | Add your email domain in Dynatrace Account Management |
 | 2 | Add the provided TXT record to your DNS |
-| 3 | Wait for DNS propagation (up to 48 hours) |
+| 3 | Wait for DNS propagation (typically minutes, up to 24 hours) |
 | 4 | Verify domain in Dynatrace Account Management |
+
+> <sub>**Sources:** [SAML (DT docs)](https://docs.dynatrace.com/docs/shortlink/access-saml) — *"It typically takes a few minutes for a record to propagate through the DNS system and the value to become available for Dynatrace to verify. In some cases, it may take up to 24 hours."*</sub>
 
 ### 3.4 Test SSO Login
 
@@ -388,7 +390,7 @@ The [SaaS Upgrade Assistant](https://docs.dynatrace.com/managed/upgrade/saas-upg
 | 2 | Search for "SaaS Upgrade Assistant" |
 | 3 | Install the app |
 | 4 | Grant the required IAM policy to migration users |
-| 5 | Open the app and follow the connection wizard |
+| 5 | Open the app. It is ready to import a configuration archive (§ 5.3) |
 
 ### 5.3 Export the Managed Configuration and Upload It
 
@@ -487,7 +489,7 @@ curl -X PUT "https://{tenant-id}.live.dynatrace.com/api/v2/networkZones/datacent
   }'
 ```
 
-> <sub>**Sources:** [Network zones - Settings API (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones/manage-via-settings-api) — `fallbackMode` *"Valid values: ANY_ACTIVE_GATE (default), ONLY_DEFAULT_ZONE, NONE"*; [PUT a network zone (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/network-zones/put-network-zone) — *"This API is deprecated. Use the Settings API instead."*; [Configure ActiveGate (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/configuration/configure-activegate) — `networkZone` *"Defines the network zone to which the ActiveGate belongs."*</sub>
+> <sub>**Sources:** [Network zones - Settings API (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones-classic/manage-via-settings-api) — `fallbackMode` *"Valid values: ANY_ACTIVE_GATE (default), ONLY_DEFAULT_ZONE, NONE"*; [PUT a network zone (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/network-zones/put-network-zone) — *"This API is deprecated. Use the Settings API instead."*; [Configure ActiveGate (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/configuration/configure-activegate) — `networkZone` *"Defines the network zone to which the ActiveGate belongs."*</sub>
 
 ### 6.3 Assign ActiveGates to Zones
 
@@ -783,7 +785,7 @@ Complete every checkpoint before proceeding to Step 5 (Execute). Each item corre
 - [SaaS Upgrade Assistant Documentation](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant)
 - [SaaS Upgrade Assistant on Dynatrace Hub](https://www.dynatrace.com/hub/detail/saas-upgrade-assistant/)
 - [ActiveGate Installation](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation)
-- [Network Zones Configuration](https://docs.dynatrace.com/docs/manage/network-zones)
+- [Network Zones Configuration](https://docs.dynatrace.com/docs/manage/network-zones-classic)
 - [SAML SSO Setup](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml)
 - [IAM Documentation](https://docs.dynatrace.com/docs/manage/identity-access-management)
 - [OneAgent Communication](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oa-requirements)

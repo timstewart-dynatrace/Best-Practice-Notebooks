@@ -574,7 +574,7 @@ Do not proceed to Step 7 (Enable) until all items are confirmed.
 - [Automations (Workflows) Documentation](https://docs.dynatrace.com/docs/deliver)
 - [Extensions 2.0 Documentation](https://docs.dynatrace.com/docs/ingest-from/extensions)
 - [Cloud Integrations Overview](https://docs.dynatrace.com/docs/ingest-from)
-- [Synthetic Monitoring Documentation](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring)
+- [Synthetic Monitoring Documentation](https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic)
 - [Account Management API](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api)
 
 ---

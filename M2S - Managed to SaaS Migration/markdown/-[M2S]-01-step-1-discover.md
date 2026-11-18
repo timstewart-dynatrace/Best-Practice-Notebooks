@@ -1,6 +1,6 @@
 # M2S-01: Step 1 — Discover: Understand SaaS Differences
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 11/11/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 11/17/2026
 
 The first step in any Managed-to-SaaS migration is understanding what you are moving to and why. This notebook helps you document the benefits of Dynatrace SaaS for your organization, take inventory of your current Managed environment, and confirm your use cases and goals for the upgrade.
 
@@ -380,7 +380,7 @@ The **[SaaS Upgrade Assistant](https://docs.dynatrace.com/managed/upgrade/saas-u
 | **IAM policy** | `upgrade-assistant:environments:write` to operate the app, plus `app-engine:apps:install` to install it — both assigned in Account Management |
 | **Installation** | Install the SaaS Upgrade Assistant app on your target SaaS tenant |
 
-> **Tip:** Contact your Dynatrace account team for guided migration support. They can help plan waves and troubleshoot incompatible configurations.</cell id="m2s-01-cell-23">
+> **Tip:** Contact your Dynatrace account team for guided migration support. They can help plan waves and troubleshoot incompatible configurations.
 
 <a id="what-migrates-and-what-doesnt"></a>
 
@@ -463,11 +463,11 @@ Identity, notification, and data-control surfaces differ on SaaS. Confirm each d
 |------|---------|------|-------------|
 | **SSO federation** | SAML, LDAP | **SAML 2.0** federation (plus SCIM provisioning) is what Dynatrace documents for SaaS | Plan SAML 2.0 through your IdP; the IdP must sign the **entire SAML message** (M2S-04 § 3). |
 | **Outbound email (SMTP)** | Custom SMTP server (CMC) | Email is sent by Dynatrace; we found no documented custom-SMTP option for SaaS — verify for your contract | If you need your own mail path, route to an internal relay via a webhook or Workflow action. |
-| **Data-subject rights** | — | **Privacy Rights** app: export personal data and perform **record-level hard deletion in Grail** through an auditable, multi-reviewer workflow | Use this surface for GDPR/CCPA export and deletion requests. |
+| **Data-subject rights** | — | **Sensitive Data Center** app (formerly Privacy Rights): export and delete a specific end user's personal data through an auditable workflow with assignees and reviewers. It currently covers **Grail logs only** — other data types are not supported | Use this surface for GDPR/CCPA export and deletion requests. |
 | **Network access control** | — | **IP allow-list** (CIDR) for UI and API | Caveat: it protects the latest (Grail/Gen3) UI and API only — it does **not** block the classic `*.live.dynatrace.com` UI or the data-ingest APIs. |
 | **Dynatrace Support access** | Customer-grantable | Role-based and approved internally; *"restricted to the Dynatrace corporate network and requires multi-factor authentication when accessed remotely"*; *"every access and all changes are audit logged"*. The data-security page documents no customer grant/deny toggle | Governance shifts from a prospective switch to auditable, least-privilege access. |
 
-> <sub>**Sources:** [Adaptive Traffic Management — classic license (DT docs)](https://docs.dynatrace.com/docs/shortlink/adaptive-traffic-management-saas-classic), [Support for SQL bind variables (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing/support-for-sql-bind-variables), [SAML SSO (DT docs)](https://docs.dynatrace.com/docs/shortlink/access-saml), [Email workflow action (DT docs)](https://docs.dynatrace.com/docs/shortlink/email-integration), [Privacy Rights (DT docs)](https://docs.dynatrace.com/docs/shortlink/privacy-rights), [Record deletion in Grail (DT docs)](https://docs.dynatrace.com/docs/shortlink/record-deletion-in-grail), [IP allow-listing (DT docs)](https://docs.dynatrace.com/docs/shortlink/ip-allowlist), [Data security controls (DT docs)](https://docs.dynatrace.com/docs/shortlink/data-security-controls).</sub>
+> <sub>**Sources:** [Adaptive Traffic Management — classic license (DT docs)](https://docs.dynatrace.com/docs/shortlink/adaptive-traffic-management-saas-classic), [Support for SQL bind variables (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing/support-for-sql-bind-variables), [SAML SSO (DT docs)](https://docs.dynatrace.com/docs/shortlink/access-saml), [Email workflow action (DT docs)](https://docs.dynatrace.com/docs/shortlink/email-integration), [Sensitive Data Center (DT docs)](https://docs.dynatrace.com/docs/shortlink/privacy-rights) — *"Sensitive Data Center currently supports export, deletion, and cleanup of Grail logs. Other data types are not supported."*, [Record deletion in Grail (DT docs)](https://docs.dynatrace.com/docs/shortlink/record-deletion-in-grail), [IP allow-listing (DT docs)](https://docs.dynatrace.com/docs/shortlink/ip-allowlist), [Data security controls (DT docs)](https://docs.dynatrace.com/docs/shortlink/data-security-controls).</sub>
 
 <a id="step-completion-checklist"></a>
 
@@ -487,7 +487,7 @@ Before proceeding to Step 2, confirm that you have completed each item:
 | Historic data limitation communicated to stakeholders | [ ] |
 | Product safeguards and limits reviewed (ATM capture behavior, SQL bind-variable capture, API rate limits) | [ ] |
 | Overload-prevention settings inventoried for manual re-apply on SaaS | [ ] |
-| SaaS security review complete (SSO surface, custom SMTP, Privacy Rights, IP allow-list, support-access model) | [ ] |
+| SaaS security review complete (SSO surface, custom SMTP, Sensitive Data Center, IP allow-list, support-access model) | [ ] |
 
 ## Next Step
 

@@ -544,7 +544,7 @@ Before proceeding to Step 6, confirm that you have completed each item:
 - [OneAgent Configuration via Command Line](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface)
 - [Migrate Dynatrace Operator to a New Environment](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/migrate-dto-to-tenant)
 - [Monitor Google Cloud Run (Managed)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform-classic/gcp-integrations/cloudrun)
-- [Network Zones Configuration](https://docs.dynatrace.com/docs/manage/network-zones)
+- [Network Zones Configuration](https://docs.dynatrace.com/docs/manage/network-zones-classic)
 - [Extensions 2.0 Framework](https://docs.dynatrace.com/docs/ingest-from/extensions)
 
 ---

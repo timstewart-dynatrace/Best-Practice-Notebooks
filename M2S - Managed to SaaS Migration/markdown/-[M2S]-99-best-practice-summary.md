@@ -1,6 +1,6 @@
 # M2S-99: Best Practice Summary
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 11/11/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 11/17/2026
 
 A definitive, actionable reference of every best practice extracted from the M2S Managed-to-SaaS Migration series (notebooks 01–09). Each practice specifies the exact setting or action, its priority, and its step. No hedging—follow these and your migration succeeds.
 
@@ -88,12 +88,14 @@ Within the upgrade phase, follow this precise execution order:
 | Use ActiveGate routing for restricted networks | If hosts cannot reach the internet directly, deploy Environment ActiveGates. OneAgents connect to AG on port **9999**; AG connects outbound on **443**. | Critical |
 | Have every network zone in SaaS before migrating | The Upgrade Assistant can import network zones (its Hub listing names them); confirm they arrived, create missing ones via Settings or the Settings API (`builtin:networkzones.zones`), then assign the new ActiveGates. | Critical |
 | Deploy minimum 2 ActiveGates per network zone | Provides high availability within each zone. OneAgent auto-discovers available AGs. | Recommended |
-| Configure SAML SSO with full message signing | IdP must sign the **entire SAML message**, not just the assertion. Azure AD meets this requirement by default. Failure causes authentication errors. | Critical |
+| Configure SAML SSO with full message signing | IdP must sign the **entire SAML message**, not just the assertion. Microsoft Entra signs only the assertion by default — set **Sign SAML response and assertion** on the Dynatrace enterprise app. Failure causes authentication errors. | Critical |
 | Confirm data residency region at provisioning | Select the correct region (US, EU, APAC) during tenant provisioning. **Cannot be changed** after provisioning. | Critical |
 | Enforce TLS 1.2+ for all traffic | Dynatrace SaaS enforces TLS 1.2 minimum. Verify no legacy TLS 1.0/1.1 configurations on proxies or load balancers. | Critical |
 | Ensure DNS resolves SaaS domains | Verify DNS resolution for `{tenant-id}.live.dynatrace.com`, `{tenant-id}.apps.dynatrace.com`, and `*.dynatrace.com`. | Critical |
 | Match network zones to physical topology | Name zones by datacenter or region (e.g., `datacenter-east`, `aws-us-east-1`). Define alternative zones for failover. | Recommended |
 | Size ActiveGates by host count | Up to 500 hosts: **2 CPU / 4 GB RAM / 20 GB disk**. 500–1,500: **4 CPU / 8 GB / 40 GB**. 1,500–5,000: **8 CPU / 16 GB / 80 GB**. >5,000: scale horizontally with multiple AGs. | Recommended |
+
+> <sub>**Sources:** [Certificate signing options (Microsoft Learn)](https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/certificate-signing-options) — *"Sign SAML assertion. This default option is set for most of the gallery applications."*</sub>
 
 <a id="step-4-prepare"></a>
 ## 4. Step 4: Prepare — Readiness and Pre-Migration
