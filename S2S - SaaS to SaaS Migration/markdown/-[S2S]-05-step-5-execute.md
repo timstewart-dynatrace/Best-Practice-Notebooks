@@ -1,6 +1,6 @@
 # S2S-05: Step 5 — Execute: Configuration Import and Agent Cutover
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 5 of 9 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 10/13/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 5 of 9 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 11/18/2026
 
 ## Overview
 
@@ -291,7 +291,7 @@ OneAgent instances must be redirected from the source tenant to the target tenan
   --restart-service
 ```
 
-> **OneAgent and application restarts required.** `--set-tenant` and `--set-tenant-token` always go together — the environment ID changes with the tenant. The OneAgent CLI docs: *"These parameters require restart of OneAgent, as well as restart of all the applications monitored with deep code modules. Add --restart-service to the command to restart OneAgent automatically (version 1.189+) or stop and start OneAgent process manually."* `--restart-service` handles OneAgent; plan the application restarts as part of the wave execution.
+> **OneAgent and application restarts required.** `--set-tenant` and `--set-tenant-token` always go together — the environment ID changes with the tenant. The OneAgent CLI docs: *"These parameters require restart of OneAgent, as well as restart of all the applications monitored with deep code modules. Add --restart-service to the command to restart OneAgent automatically or stop and start OneAgent process manually."* `--restart-service` handles OneAgent; plan the application restarts as part of the wave execution.
 >
 > <sub>**Sources:** [OneAgent configuration via command-line interface (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface).</sub>
 
