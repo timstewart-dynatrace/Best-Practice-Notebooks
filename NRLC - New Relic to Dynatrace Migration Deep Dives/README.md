@@ -2,7 +2,7 @@
 
 Technical deep-dive companion to the NR2DT series — focused reference notebooks for query translation, dashboard migration, alerting, synthetics, SLOs, logs, and validation.
 
-> **Recommended:** Import the JSON files from notebooks/ into a Dynatrace tenant for the best experience. These notebooks contain interactive DQL queries that execute against your environment's data.
+> **Recommended:** For the best experience, import the notebooks into your Dynatrace tenant. Each one is available as a Dynatrace notebook (JSON) file, and its DQL queries run against your own environment's data.
 
 ## Structure
 - notebooks/ — Dynatrace notebook JSON files
