@@ -515,10 +515,7 @@ Automating workflows and configuring alert notifications in Dynatrace.
 ## How to Use
 
 1. Open a topic README for context and prerequisites.
-2. Choose your format:
-	- Import JSON from notebooks/ into Dynatrace Notebooks for interactive use.
-	- Read pdfs/ for printable versions.
-	- Use markdown/ for lightweight viewing or diffs.
+2. Open a notebook from its series lineup. Each one is also available as a Dynatrace notebook (JSON) to import into your tenant for interactive use, and as a PDF for print.
 3. Follow the numbered sequence to progress through each series.
 
 ---

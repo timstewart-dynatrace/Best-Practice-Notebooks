@@ -6,7 +6,7 @@ Management Zones do three different jobs, and they migrate to three different pl
 
 There is no automatic conversion in either direction: every policy and every segment is authored by hand. Notebook 00 inventories and classifies the estate so you know how much work each zone represents.
 
-> **Recommended:** Import the JSON files from notebooks/ into a Dynatrace tenant for the best experience. These notebooks contain interactive DQL queries that execute against your environment's data.
+> **Recommended:** For the best experience, import the notebooks into your Dynatrace tenant. Each one is available as a Dynatrace notebook (JSON) file, and its DQL queries run against your own environment's data.
 
 
 ## Reading Paths
