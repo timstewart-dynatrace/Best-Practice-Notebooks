@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>APPSEC-01: Fundamentals and the Three Pillars of Application Security</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">APPSEC — Application Security</a><span class="sep">/</span><span aria-current="page">APPSEC-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>APPSEC-01: Fundamentals and the Three Pillars of Application Security</h1>
+<blockquote>
+<p><strong>Series:</strong> APPSEC — Application Security | <strong>Notebook:</strong> 1 of 10 | <strong>Created:</strong> June 2026 | <strong>Last Updated:</strong> 10/28/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Dynatrace Application Security</strong> is the platform's security data plane in Gen3 SaaS. It rests on three product pillars — Runtime Vulnerability Analytics (RVA), Runtime Application Protection (RAP), and Security Posture Management (SPM) — and on the same Grail foundation that backs observability data. Findings are first-class entities that flow through workflows, dashboards, and Davis CoPilot like any other Dynatrace signal.</p>
+<p>This notebook orients you to the surface area: what each pillar does, what data plane backs it, what OneAgent deployment mode you need, and how the Dynatrace Security Score (DSS) ranks individual vulnerabilities.</p>
+<p><strong>Audience:</strong> Security engineer, platform owner, AppDev lead onboarding to Dynatrace AppSec.</p>
+<p><strong>Outcome:</strong> A mental map of Dynatrace AppSec — and a starting place for any AppSec initiative.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+RHluYXRyYWNlIEFwcGxpY2F0aW9uIFNlY3VyaXR5IOKAlCBUaHJlZSBQaWxsYXJzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPlJWQSAvIFJBUCAvIFNQTSBvdmVyIEdyYWlsIHNlY3VyaXR5LmV2ZW50czsgUlZBIGFuZCBSQVAgcnVuIGluIHRoZSBPbmVBZ2VudCBjb2RlIG1vZHVsZTwvdGV4dD4KCiAgPCEtLSBVc2VyIHN1cmZhY2VzIHJvdyAtLT4KICA8cmVjdCB4PSI0MCIgeT0iODgiIHdpZHRoPSI4NTAiIGhlaWdodD0iODAiIGZpbGw9IiNBODU1RjciIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0E4NTVGNyIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNjAiIHk9IjExMiIgZmlsbD0iI0U5RDVGRiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+Q29uc3VtcHRpb24gc3VyZmFjZXM8L3RleHQ+CgogIDxyZWN0IHg9IjYwIiB5PSIxMjQiIHdpZHRoPSIxODAiIGhlaWdodD0iMzYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E4NTVGNyIgcng9IjYiLz4KICA8dGV4dCB4PSIxNTAiIHk9IjE0NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+VnVsbmVyYWJpbGl0aWVzIGFwcDwvdGV4dD4KCiAgPHJlY3QgeD0iMjUwIiB5PSIxMjQiIHdpZHRoPSIxODAiIGhlaWdodD0iMzYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E4NTVGNyIgcng9IjYiLz4KICA8dGV4dCB4PSIzNDAiIHk9IjE0NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+VGhyZWF0cyAmYW1wOyBFeHBsb2l0cyBhcHA8L3RleHQ+CgogIDxyZWN0IHg9IjQ0MCIgeT0iMTI0IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjM2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBODU1RjciIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNTMwIiB5PSIxNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPkR5bmF0cmFjZSBBc3Npc3Q8L3RleHQ+CgogIDxyZWN0IHg9IjYzMCIgeT0iMTI0IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjM2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBODU1RjciIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzUwIiB5PSIxNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPldvcmtmbG93cyArIERhc2hib2FyZHMgKyBOb3RlYm9va3M8L3RleHQ+CgogIDwhLS0gVGhyZWUgcGlsbGFycyAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMTkwIiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjE2MCIgZmlsbD0iI0VGNDQ0NCIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjRUY0NDQ0IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIxNzUiIHk9IjIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+UlZBPC90ZXh0PgogIDx0ZXh0IHg9IjE3NSIgeT0iMjM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkVDQUNBIiBmb250LXNpemU9IjExIj5SdW50aW1lIFZ1bG5lcmFiaWxpdHkgQW5hbHl0aWNzPC90ZXh0PgoKICA8cmVjdCB4PSI2MCIgeT0iMjUwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjM0IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNFRjQ0NDQiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTc1IiB5PSIyNzEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPlRoaXJkLXBhcnR5ICsgY29kZS1sZXZlbCB2dWxuczwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjI5MCIgd2lkdGg9IjIzMCIgaGVpZ2h0PSIzNCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRUY0NDQ0IiByeD0iNiIvPgogIDx0ZXh0IHg9IjE3NSIgeT0iMzExIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5EeW5hdHJhY2UgU2VjdXJpdHkgU2NvcmUgKERTUyk8L3RleHQ+CgogIDxyZWN0IHg9IjMzMCIgeT0iMTkwIiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjE2MCIgZmlsbD0iI0Y1OUUwQiIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjRjU5RTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+UkFQPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkVGM0M3IiBmb250LXNpemU9IjExIj5SdW50aW1lIEFwcGxpY2F0aW9uIFByb3RlY3Rpb248L3RleHQ+CgogIDxyZWN0IHg9IjM1MCIgeT0iMjUwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjM0IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGNTlFMEIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIyNzEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPkRldGVjdCBhdHRhY2tzIGluIHJlYWwgdGltZTwvdGV4dD4KCiAgPHJlY3QgeD0iMzUwIiB5PSIyOTAiIHdpZHRoPSIyMzAiIGhlaWdodD0iMzQiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0Y1OUUwQiIgcng9IjYiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjMxMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+QmxvY2sgKHdoZW4gZW5hYmxlZCk8L3RleHQ+CgogIDxyZWN0IHg9IjYyMCIgeT0iMTkwIiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjE2MCIgZmlsbD0iIzEwQjk4MSIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjMTBCOTgxIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI3NTUiIHk9IjIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzZFRTdCNyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+U1BNPC90ZXh0PgogIDx0ZXh0IHg9Ijc1NSIgeT0iMjM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRDFGQUU1IiBmb250LXNpemU9IjExIj5TZWN1cml0eSBQb3N0dXJlIE1hbmFnZW1lbnQ8L3RleHQ+CgogIDxyZWN0IHg9IjY0MCIgeT0iMjUwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjM0IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxMEI5ODEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzU1IiB5PSIyNzEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPk1pc2NvbmZpZ3VyYXRpb25zPC90ZXh0PgoKICA8cmVjdCB4PSI2NDAiIHk9IjI5MCIgd2lkdGg9IjIzMCIgaGVpZ2h0PSIzNCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTBCOTgxIiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc1NSIgeT0iMzExIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5Db21wbGlhbmNlIHZpb2xhdGlvbnM8L3RleHQ+CgogIDwhLS0gRGF0YSBwbGFuZSAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMzcwIiB3aWR0aD0iODUwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjYwIiB5PSIzOTQiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkdyYWlsIGRhdGEgcGxhbmU8L3RleHQ+CgogIDxyZWN0IHg9IjYwIiB5PSI0MDIiIHdpZHRoPSIyNDAiIGhlaWdodD0iMjIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgcng9IjQiLz4KICA8dGV4dCB4PSIxODAiIHk9IjQxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+c2VjdXJpdHkuZXZlbnRzIHRhYmxlPC90ZXh0PgoKICA8cmVjdCB4PSIzMTAiIHk9IjQwMiIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIyMiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNCIvPgogIDx0ZXh0IHg9IjQ1MCIgeT0iNDE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj52dWxuZXJhYmlsaXR5LXNlcnZpY2UgKHZ1bG5lcmFiaWxpdGllcyk8L3RleHQ+CgogIDxyZWN0IHg9IjYwMCIgeT0iNDAyIiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjIyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNzM1IiB5PSI0MTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPlNtYXJ0c2NhcGUgdG9wb2xvZ3kgLyBlbnRpdHkgbW9kZWw8L3RleHQ+CgogIDwhLS0gRm91bmRhdGlvbiAtLT4KICA8cmVjdCB4PSI0MCIgeT0iNDQ4IiB3aWR0aD0iODUwIiBoZWlnaHQ9IjM2IiBmaWxsPSIjNDc1NTY5IiBvcGFjaXR5PSIwLjMwIiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5PbmVBZ2VudCDigJQgRnVsbC1TdGFjayBmb3IgZnVsbCBEU1M7IEluZnJhc3RydWN0dXJlIC8gRGlzY292ZXJ5IGdpdmUgbGltaXRlZCBkZXRlY3Rpb24gKyBSQVAuIFNQTSBuZWVkcyBubyBPbmVBZ2VudDwvdGV4dD4KPC9zdmc+Cg==" alt="Three pillars of Application Security" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Pillar | Code | Focus |
+|--------|------|-------|
+| Runtime Vulnerability Analytics | RVA | Third-party + first-party vulnerabilities with production-execution context |
+| Runtime Application Protection | RAP | Real-time attack detection and blocking |
+| Security Posture Management | SPM | Misconfiguration / compliance findings |
+-->
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#three-pillars">The Three Pillars</a></li>
+<li><a href="#data-plane">The Data Plane: Grail and the Vulnerability Service</a></li>
+<li><a href="#deployment-mode">Deployment-Mode Dependency</a></li>
+<li><a href="#dss">Dynatrace Security Score (DSS)</a></li>
+<li><a href="#series-map">The Series Map</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Gen3 SaaS with Grail (Managed not supported for this series)</td>
+</tr>
+<tr>
+<td><strong>OneAgent</strong></td>
+<td>Full-Stack monitoring recommended for the full assessment; Infrastructure and Discovery modes give limited vulnerability detection plus RAP, but no environmental DSS adjustment (Discovery also needs code-module injection) — see § 3</td>
+</tr>
+<tr>
+<td><strong>AppSec entitlement</strong></td>
+<td>Application Security must be enabled on the tenant (consumption-billed in DPS)</td>
+</tr>
+<tr>
+<td><strong>DQL familiarity</strong></td>
+<td>This series assumes working DQL knowledge. New to DQL? See the SPANS and ORGNZ series first</td>
+</tr>
+<tr>
+<td><strong>IAM</strong></td>
+<td>To run the queries: <code>storage:security.events:read</code> <strong>plus</strong> <code>storage:buckets:read</code> (a table permission alone reads nothing) — see APPSEC-09 for the full permission catalog</td>
+</tr>
+</tbody>
+</table>
+<p><a id="three-pillars"></a></p>
+<h2>1. The Three Pillars</h2>
+<p>The three pillars are separate DPS capabilities, each enabled and billed on its own: Runtime Vulnerability Analytics and Runtime Application Protection in GiB-hours, Kubernetes Security Posture Management in host-hours (each node scanned during an hour counts as one host-hour). RVA and RAP run in the OneAgent code module; SPM is independent of OneAgent. All three write their findings to the same Grail <code>security.events</code> table and share the entity model.</p>
+<h3>Runtime Vulnerability Analytics (RVA)</h3>
+<p>Continuously inspects the running process inventory and answers two questions: <em>which CVEs are reachable from production code paths</em>, and <em>which production data assets are exposed to those code paths</em>. RVA covers both third-party (library) vulnerabilities and code-level (first-party) vulnerabilities where supported.</p>
+<p>Distinguishing feature vs scanner-based tools: RVA reports a third-party vulnerability only for components a running process has actually loaded, not for every declared dependency. For Java, the optional <em>Java vulnerable function reporting</em> OneAgent feature also shows whether the vulnerable function is in use. That is a triage filter; it does not change DSS (§ 4).</p>
+<h3>Runtime Application Protection (RAP)</h3>
+<p>Sits in the OneAgent code module and watches request traffic for four documented attack classes: SQL injection and command injection on Java, .NET and Go, and JNDI injection and SSRF on Java only. Each technology's attack control is <strong>Off</strong>, <strong>Monitor</strong> (detect only), or <strong>Block</strong>; custom monitoring rules scoped to process groups or vulnerability types override that global control. Start in Monitor and promote to Block once detection has been tuned (APPSEC-04).</p>
+<p>RAP needs deep monitoring of the process — the RAP docs list it as a prerequisite — so processes without deep monitoring produce no detections.</p>
+<h3>Security Posture Management (SPM)</h3>
+<p>Evaluates the configuration state of Kubernetes clusters, cloud accounts (AWS, Azure, GCP), and VMware environments against compliance standards (CIS, PCI DSS, NIST, DORA, and others) and surfaces the results as findings in the same <code>security.events</code> table as RVA/RAP events.</p>
+<p>Where RVA/RAP are <em>runtime</em> signals (what's executing right now), SPM is a <em>config</em> signal (what's been declared in the platform).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/secure/application-security">Application Security (DT docs)</a> for the three-pillar framing and RVA/RAP/SPM definitions; <a href="https://docs.dynatrace.com/docs/secure/application-security/application-protection">Runtime Application Protection (DT docs)</a> — <em>&quot;Detection of SQL injection, JNDI injection, command injection, and SSRF attacks&quot;</em> and <em>&quot;For Runtime Application Protection to work properly, make sure deep monitoring is enabled&quot;</em> (its technology table checks JNDI injection and SSRF for Java only); <a href="https://docs.dynatrace.com/docs/secure/application-security/vulnerability-analytics">Vulnerability Analytics (DT docs)</a> — <em>&quot;Issues a vulnerability only when the component is in use.&quot;</em>; <a href="https://docs.dynatrace.com/docs/secure/vulnerabilities/concepts">Vulnerabilities concepts (DT docs)</a> — vulnerable functions are <em>&quot;not considered for the DSS calculation&quot;</em>; DPS capability pages for <a href="https://docs.dynatrace.com/docs/license/capabilities/application-security/runtime-vulnerability-analytics">RVA</a>, <a href="https://docs.dynatrace.com/docs/license/capabilities/application-security/runtime-application-protection">RAP</a> and <a href="https://docs.dynatrace.com/docs/license/capabilities/application-security/security-posture-management">SPM</a> — <em>&quot;The unit of measure for Kubernetes Security Posture Management is a host-hour.&quot;</em>; <a href="https://docs.dynatrace.com/docs/secure/application-security/spm">Security Posture Management (DT docs)</a> — <em>&quot;Security Posture Management provides comprehensive visibility into the security posture of your Kubernetes, cloud, and VMware environments.&quot;</em> (all re-read 10/02/2026). <strong>Derived:</strong> the <em>runtime vs config</em> distinction is a synthesis aid; the hub page does not phrase it this way directly.</sub></p>
+</blockquote>
+<p><a id="data-plane"></a></p>
+<h2>2. The Data Plane: Grail and the Vulnerability Service</h2>
+<p>AppSec produces two kinds of records that you'll query, alert on, and dashboard:</p>
+<table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>Where it lives</th>
+<th>How to read it</th>
+<th>How to manage it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Security events</strong> (RVA state and change events, RAP detection findings, SPM compliance findings)</td>
+<td>Grail <code>security.events</code> table</td>
+<td>DQL: <code>fetch security.events</code></td>
+<td>Read-only — triage happens in the Vulnerabilities and Threats &amp; Exploits apps; IAM: <code>storage:security.events:read</code> + <code>storage:buckets:read</code></td>
+</tr>
+<tr>
+<td><strong>Vulnerabilities</strong> (deduplicated across affected entities)</td>
+<td><code>vulnerability-service</code> (not a Grail bucket)</td>
+<td><strong>Vulnerabilities</strong> app; API; Davis CoPilot</td>
+<td>Mute affected entities, add ticket links (app / API); IAM: <code>vulnerability-service:vulnerabilities:read</code> / <code>:write</code> + the app's default policies (APPSEC-09)</td>
+</tr>
+</tbody>
+</table>
+<p>This split matters for two reasons:</p>
+<ol>
+<li><strong>DQL works on events, not problems.</strong> Custom dashboards built on DQL pull from <code>security.events</code>. You can't <code>fetch security.problems</code> — that surface is exposed via the vulnerability-service API and the Vulnerabilities app. (The classic <em>Security Problems</em> / <em>Third-Party Vulnerabilities</em> apps are deprecated.)</li>
+<li><strong>IAM splits across Grail and the vulnerability-service.</strong> DQL needs <code>storage:security.events:read</code> plus <code>storage:buckets:read</code>; the Vulnerabilities app and API need <code>vulnerability-service:vulnerabilities:read</code>. The <code>environment:roles:*security-problems</code> roles serve only the deprecated classic apps. There is no single <code>storage:security_problems:read</code> token — see APPSEC-09 for the complete model.</li>
+</ol>
+<p>A first DQL to run against your tenant to see what's actually flowing:</p>
+<pre><code class="language-dql">// All security events in the last 7 days grouped by event.type
+// Use this to discover which event types your tenant is producing
+fetch security.events, from:-7d
+| summarize count = count(), by:{event.type}
+| sort count desc
+
+</code></pre>
+<p>If that query returns rows, AppSec is producing data. If it returns zero rows, either AppSec is not enabled on the tenant, no vulnerabilities have been detected yet, the OneAgent code module is not attached to your monitored processes, SPM scans have not run in the window, or you lack <code>storage:buckets:read</code>. Widen the window to <code>from:-30d</code> before concluding.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/secure/application-security">Application Security (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a> for permission-token names verified verbatim. <strong>Softened:</strong> the absence of a <code>storage:security_problems:read</code> token reflects the IAM reference as of 10/02/2026; verify in your tenant's policy editor before relying on this gap to inform a policy design.</sub></p>
+</blockquote>
+<p><a id="deployment-mode"></a></p>
+<h2>3. Deployment-Mode Dependency</h2>
+<p>AppSec coverage is not a license toggle alone — it depends on <strong>how OneAgent is deployed on each host</strong>. The difference between modes is less about <em>whether</em> findings appear and more about <em>how well they are assessed</em>.</p>
+<table>
+<thead>
+<tr>
+<th>OneAgent mode</th>
+<th>Third-party vulnerabilities</th>
+<th>Code-level vulnerabilities</th>
+<th>RAP</th>
+<th>DSS environmental adjustment</th>
+<th>SPM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Full-Stack</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>independent of mode</td>
+</tr>
+<tr>
+<td>Infrastructure</td>
+<td>limited</td>
+<td>limited</td>
+<td>✓</td>
+<td>✗ — DSS equals the CVSS base score</td>
+<td>independent of mode</td>
+</tr>
+<tr>
+<td>Discovery</td>
+<td>limited (needs code-module injection)</td>
+<td>limited (needs code-module injection)</td>
+<td>✓ (needs code-module injection)</td>
+<td>✗ — DSS equals the CVSS base score</td>
+<td>independent of mode</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Practical implication:</strong> a tenant where most hosts run in Infrastructure or Discovery mode still produces vulnerability findings and RAP detections, but their risk ranking is flat. Without Full-Stack topology, Dynatrace cannot tell whether a vulnerable process is exposed to the public internet or reaches sensitive data assets — those values show as <em>Not available</em> — so every finding keeps its CVSS base score. The failure mode is mis-prioritization, not silence: a CVE on an internal batch host ranks the same as one on an internet-facing payment service.</p>
+<p>Recommended rollout order: put business-critical, internet-facing workloads on Full-Stack first (or enable code-module injection where Discovery mode is used), let RVA accumulate a baseline (typically 24–72 hours), <em>then</em> start prioritizing on DSS. Reading DSS on a fleet that is mostly Infrastructure mode reads CVSS with a different label.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/secure/application-security">Application Security (DT docs)</a> — the <em>Monitoring modes coverage</em> table (third-party and code-level detection <em>limited</em> in Infrastructure and Discovery; RAP in all three), <em>&quot;In an Infrastructure Monitoring deployment, Dynatrace Intelligence cannot adapt the Dynatrace Security Score&quot;</em>, <em>&quot;the DSS will be the same as the CVSS base score&quot;</em>, <em>&quot;Infrastructure Monitoring mode lacks environmental information, such as reachable data assets or public internet exposure&quot;</em>, <em>&quot;For Application Security to work in Discovery mode, after enabling Discovery mode, you also need to enable code-module injection.&quot;</em>, and <em>&quot;Dynatrace Security Posture Management (SPM) works independently of monitoring modes.&quot;</em> (re-read 09/18/2026). <strong>Softened:</strong> the 24–72 hour baseline is community-practice guidance — verify against your environment's vulnerability cadence.</sub></p>
+</blockquote>
+<p><a id="dss"></a></p>
+<h2>4. Dynatrace Security Score (DSS)</h2>
+<p>DSS is a <strong>per-vulnerability</strong> risk score (0.1–10.0). For third-party vulnerabilities it starts from the CVSS base score, and environmental context from your topology can only lower or keep it — DSS never exceeds the CVSS base score. Code-level vulnerabilities are always 10 / Critical. It is not a tenant-wide posture number: every vulnerability carries its own DSS. In Grail the score is <code>vulnerability.davis_assessment.score</code> and its level is <code>vulnerability.risk.level</code> (the semantic dictionary still describes the score as the <em>Davis Security Score</em>). A higher DSS means a more severe vulnerability.</p>
+<p>Environmental context that adjusts the score:</p>
+<ul>
+<li><strong>Public internet exposure</strong> — a vulnerability on an internal-only process is scored lower than the same vulnerability on a process reachable from the public internet. One caveat: on Linux hosts where topology cannot supply this, exposure is detected via eBPF instead, and those eBPF-derived states (<em>Public network</em> / <em>Not detected</em>) do <strong>not</strong> influence DSS.</li>
+<li><strong>Reachable data assets</strong> — does an affected process have database access (run a database service)?</li>
+</ul>
+<p>Where that context is missing — hosts in Infrastructure or Discovery mode (§ 3) — no adjustment happens and DSS equals the CVSS base score.</p>
+<p>What's not published: the exact weighting formula.</p>
+<p><strong>How to consume DSS in practice:</strong></p>
+<ul>
+<li>Use the per-vulnerability DSS to <strong>prioritize</strong> — work the CRITICAL and HIGH levels first.</li>
+<li>To <strong>trend posture</strong>, count open vulnerabilities per DSS level and chart the counts over time (the APPSEC-02 § 3 query, run on a schedule). Rising CRITICAL/HIGH counts are deterioration; falling counts are progress.</li>
+<li>Pair those counts with the backlog burn-rate from APPSEC-08: a rising count with a flat close rate means remediation is not keeping up.</li>
+<li>Don't set absolute count thresholds across business units without normalizing for estate size and monitoring-mode coverage — a Full-Stack estate surfaces more findings adjusted <em>down</em> from CVSS than an Infrastructure-mode one, whose findings keep their CVSS base score.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/secure/vulnerabilities/concepts">Vulnerabilities concepts (DT docs)</a> — <em>&quot;DSS never exceeds the original CVSS Base Score; environmental modifiers can only reduce or maintain the score.&quot;</em>, <em>&quot;The DSS scale ranges between 0.1 (lowest risk) and 10.0 (most critical risk)&quot;</em>, <em>&quot;The score of a code-level vulnerability is always 10 and the risk always Critical&quot;</em>, and reachable data assets means <em>&quot;at least one process that has database access (runs a database service)&quot;</em>; <a href="https://docs.dynatrace.com/docs/secure/application-security">Application Security (DT docs)</a> for the environmental signals and <em>&quot;public internet exposure is detected via eBPF. Potential states are Public network and Not detected. Dynatrace Security Score isn't influenced by either of these states.&quot;</em> (re-read 10/02/2026). <strong>Dictionary:</strong> <code>vulnerability.davis_assessment.score</code> (<code>stable</code>), <code>vulnerability.risk.level</code> (<code>stable</code>), read 09/18/2026. <strong>Softened:</strong> the cross-unit normalization guidance is community practice.</sub></p>
+</blockquote>
+<p><a id="series-map"></a></p>
+<h2>5. The Series Map</h2>
+<p>Where to go next depending on what you're trying to do.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Notebook</th>
+<th>When to read</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>02</strong></td>
+<td>Runtime Vulnerability Analytics</td>
+<td>You need to triage third-party vulnerabilities by exposure and vulnerable-function use</td>
+</tr>
+<tr>
+<td><strong>03</strong></td>
+<td>Code-Level Vulnerability Analytics</td>
+<td>You're responsible for first-party application code and need to action findings by entry point and code location</td>
+</tr>
+<tr>
+<td><strong>04</strong></td>
+<td>Runtime Application Protection</td>
+<td>You're setting up RAP detection rules and deciding when to promote to blocking</td>
+</tr>
+<tr>
+<td><strong>05</strong></td>
+<td>Security Posture Management</td>
+<td>You're auditing configuration drift against CIS/PCI/NIST baselines</td>
+</tr>
+<tr>
+<td><strong>06</strong></td>
+<td>Kubernetes &amp; Container Security</td>
+<td>You're running workloads under DynaKube and need image + cluster posture together</td>
+</tr>
+<tr>
+<td><strong>07</strong></td>
+<td>Investigations &amp; Dynatrace Assist for Security</td>
+<td>You're conducting an investigation and want AI-assisted queries</td>
+</tr>
+<tr>
+<td><strong>08</strong></td>
+<td>Workflows, Notifications &amp; Remediation</td>
+<td>You need vulnerabilities and attacks to reach Jira / ServiceNow / PagerDuty / Slack</td>
+</tr>
+<tr>
+<td><strong>09</strong></td>
+<td>IAM and Gen3 Permissions for AppSec</td>
+<td>You're designing the permission model — who can see what, who can manage what</td>
+</tr>
+<tr>
+<td><strong>10</strong></td>
+<td>Dashboards, Reporting &amp; Governance</td>
+<td>You're building the executive view and governance cadence</td>
+</tr>
+</tbody>
+</table>
+<p>If you're net-new to AppSec on this tenant: read 01 → 09 (IAM) → 02 (RVA) → 04 (RAP) → 10 (dashboards). IAM comes early because rolling out AppSec to users without a permission plan creates either over-exposure of sensitive payloads or under-exposure that blocks the SOC.</p>
+<p><a id="next-steps"></a></p>
+<h2>6. Next Steps</h2>
+<ol>
+<li><strong>Verify AppSec is producing data</strong> — run the <code>fetch security.events</code> query above. If it returns zero rows, work the enablement and deployment-mode questions before continuing.</li>
+<li><strong>Map your OneAgent coverage</strong> — for each business-critical workload, confirm Full-Stack mode; Infrastructure and Discovery hosts still report findings, but without the environmental DSS adjustment (§ 3).</li>
+<li><strong>Read APPSEC-09 next</strong> — get the permission model right before granting the SOC access to vulnerabilities. Mistakes here are reversible but visible.</li>
+<li><strong>Then read APPSEC-02</strong> — third-party vulnerabilities are usually the loudest finding type at first, so triaging RVA is where most AppSec rollouts start producing measurable signal.</li>
+</ol>
+<p><a id="references"></a></p>
+<h2>7. References</h2>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/secure/application-security">Application Security (DT docs)</a></td>
+<td>Three-pillar hub page; DSS signals; monitoring-modes coverage table</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/secure/vulnerabilities/concepts">Vulnerabilities concepts (DT docs)</a></td>
+<td>DSS as a per-vulnerability score built on CVSS</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/secure/application-security/application-protection">Runtime Application Protection (DT docs)</a></td>
+<td>RAP attack classes, supported technologies, attack control</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/secure/application-security/spm">Security Posture Management (DT docs)</a></td>
+<td>SPM flavors (KSPM / CSPM / VSPM) and compliance standards</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/secure">Secure (DT docs)</a></td>
+<td>Top-level Secure navigation</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/secure/faq">Secure / FAQ (DT docs)</a></td>
+<td>Official AppSec FAQ</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a></td>
+<td>Verified AppSec permission tokens</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><sub><strong>⚠️ DISCLAIMER</strong>: This information was AI generated and is provided &quot;as-is&quot; without warranty. It was produced as an independent, community-driven project and <strong>not supported by Dynatrace</strong>. Always refer to official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> for the most current information.</sub></p>
+</blockquote>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

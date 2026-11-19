@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IAM-04: Policy Authoring and Management</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">IAM — IAM Administration</a><span class="sep">/</span><span aria-current="page">IAM-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>IAM-04: Policy Authoring and Management</h1>
+<blockquote>
+<p><strong>Series:</strong> IAM — IAM Administration | <strong>Notebook:</strong> 4 of 12 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/10/2026</p>
+</blockquote>
+<h2>Mastering Dynatrace Policy Syntax</h2>
+<p>Policies are the heart of Dynatrace Gen3 IAM. They define what actions users can perform. This notebook provides a comprehensive guide to policy authoring, from basic syntax to advanced patterns.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#policy-fundamentals">Policy Fundamentals</a></li>
+<li><a href="#policy-statement-syntax">Policy Statement Syntax</a></li>
+<li><a href="#services-and-actions-reference">Services and Actions Reference</a></li>
+<li><a href="#condition-expressions">Condition Expressions</a></li>
+<li><a href="#common-policy-patterns">Common Policy Patterns</a></li>
+<li><a href="#default-vs-custom-policies">Default vs Custom Policies</a></li>
+<li><a href="#policy-testing-and-validation">Policy Testing and Validation</a></li>
+<li><a href="#gitops-for-policies">GitOps for Policies</a></li>
+<li><a href="#policy-assessment-queries">Policy Assessment Queries</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Gen3 IAM enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>account-user-management</code> to create/modify policies</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td><strong>IAM-01</strong> through <strong>IAM-03</strong></td>
+</tr>
+</tbody>
+</table>
+<h3>SaaS 1.337: <code>frontend.name</code> as a permission field</h3>
+<p>SaaS 1.337 added <code>frontend.name</code> as a condition for metrics, RUM and Smartscape data, so access can be scoped per frontend without splitting buckets. The condition is <code>storage:frontend.name</code> on each table permission, and the policy reference lists <code>=</code>, <code>IN</code>, <code>startsWith</code> and <code>MATCH</code> for it:</p>
+<pre><code class="language-text">ALLOW storage:metrics:read WHERE storage:frontend.name IN (&quot;checkout-web&quot;, &quot;account-web&quot;);
+ALLOW storage:user.events:read WHERE storage:frontend.name IN (&quot;checkout-web&quot;, &quot;account-web&quot;);
+ALLOW storage:user.sessions:read WHERE storage:frontend.name MATCH (&quot;checkout-web&quot;, &quot;account-web&quot;);
+</code></pre>
+<p>Use <code>MATCH</code> for <code>user.sessions</code>: a session can span several frontends. Check each value in Experience Vitals before binding the policy, because the <code>frontend.name</code> value is not always the display name.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-337">SaaS 1.337 (DT docs)</a> — <em>&quot;Statements like ALLOW storage:metrics:read WHERE storage:frontend.name = &quot;mobile_app&quot; let you selectively control access to metrics and Smartscape data at the record- and field level.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-04-observability-data-settings/rum-data-access-controls">RUM data access controls best practices (DT docs)</a> — <em>&quot;Because user sessions may span multiple frontends, use the MATCH operator&quot;</em>; <em>&quot;The frontend.name value may differ from the display name shown in Experience Vitals.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="policy-fundamentals"></a></p>
+<h2>1. Policy Fundamentals</h2>
+<p>Policies define <strong>what actions</strong> users can perform. They're separate from boundaries (which control <strong>what data</strong> users can see).</p>
+<blockquote>
+<p><strong>One policy language for all authorization.</strong> Dynatrace's security policies are the single configuration surface for <em>every</em> authorization requirement — environment access, Grail data access, and AppEngine capabilities alike. What used to be split between classic <em>roles</em> (RBAC — &quot;viewer&quot;, &quot;admin&quot;) and attribute-based permissions is now unified: classic roles are expressed as <code>environment:roles:*</code> permissions inside the same <code>ALLOW</code> grammar as <code>storage:*</code> and <code>app-engine:*</code>. There is no separate RBAC subsystem to manage — one policy, one language, optionally scoped by <code>WHERE</code> conditions or boundaries.</p>
+</blockquote>
+<h3>Policy Scope Levels</h3>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Applies To</th>
+<th>Managed By</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Account</strong></td>
+<td>All environments in account</td>
+<td>Account Admin</td>
+</tr>
+<tr>
+<td><strong>Environment</strong></td>
+<td>Single environment</td>
+<td>Environment Admin</td>
+</tr>
+</tbody>
+</table>
+<h3>Policy Assignment</h3>
+<p>Policies are assigned to <strong>groups</strong>, not individual users:</p>
+<pre><code>Group: dt-checkout-editors
+├── Policy: Pro User (default)
+├── Policy: log-management (custom)
+└── Boundary: checkout-services-only
+</code></pre>
+<h3>Policy Types</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Description</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Default Policies</strong></td>
+<td>Pre-built by Dynatrace</td>
+<td>Standard User, Pro User, Admin User</td>
+</tr>
+<tr>
+<td><strong>Custom Policies</strong></td>
+<td>Created by you</td>
+<td><code>log-read-only</code>, <code>dashboard-manager</code></td>
+</tr>
+</tbody>
+</table>
+<p><a id="policy-statement-syntax"></a></p>
+<h2>2. Policy Statement Syntax</h2>
+<p>Every policy contains one or more <strong>statements</strong> that define allowed actions.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgMzgwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icHNhQmx1ZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWQ0ZWQ4O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9InBzYVNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI3MDAiIGhlaWdodD0iMzgwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSIzNTAiIHk9IjMyIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzFlMjkzYiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UG9saWN5IFN0YXRlbWVudCBBbmF0b215PC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iNTIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlVuZGVyc3RhbmRpbmcgcG9saWN5IHN0YXRlbWVudCBjb21wb25lbnRzPC90ZXh0PgoKICA8IS0tIE1haW4gcG9saWN5IGJveCAtLT4KICA8cmVjdCB4PSI1MCIgeT0iNzUiIHdpZHRoPSI2MDAiIGhlaWdodD0iMTIwIiByeD0iOCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjM2I4MmY2IiBzdHJva2Utd2lkdGg9IjIiIGZpbHRlcj0idXJsKCNwc2FTaGFkb3cpIi8+CiAgPHJlY3QgeD0iNTAiIHk9Ijc1IiB3aWR0aD0iNjAwIiBoZWlnaHQ9IjM1IiByeD0iOCIgZmlsbD0idXJsKCNwc2FCbHVlR3JhZCkiLz4KICA8cmVjdCB4PSI1MCIgeT0iMTAwIiB3aWR0aD0iNjAwIiBoZWlnaHQ9IjEwIiBmaWxsPSJ1cmwoI3BzYUJsdWVHcmFkKSIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iOTgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Qb2xpY3kgU3RhdGVtZW50IEV4YW1wbGU8L3RleHQ+CgogIDwhLS0gUG9saWN5IGNvZGUgLS0+CiAgPHJlY3QgeD0iNzAiIHk9IjEyNSIgd2lkdGg9IjU2MCIgaGVpZ2h0PSI1NSIgcng9IjQiIGZpbGw9IiMxZTI5M2IiLz4KICA8dGV4dCB4PSI4NSIgeT0iMTQ3IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEyIiBmaWxsPSIjMjJkM2VlIj5BTExPVzwvdGV4dD4KICA8dGV4dCB4PSIxNDAiIHk9IjE0NyIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMiIgZmlsbD0iI2ZiYmYyNCI+c3RvcmFnZTpsb2dzOnJlYWQ8L3RleHQ+CiAgPHRleHQgeD0iODUiIHk9IjE2NyIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMiIgZmlsbD0iI2E3OGJmYSI+V0hFUkU8L3RleHQ+CiAgPHRleHQgeD0iMTQwIiB5PSIxNjciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM0YWRlODAiPnN0b3JhZ2U6ZHQuc2VjdXJpdHlfY29udGV4dCA9ICJ0ZWFtLWEiPC90ZXh0PgoKICA8IS0tIENvbXBvbmVudCBsYWJlbHMgd2l0aCBhcnJvd3MgLS0+CiAgPCEtLSBFZmZlY3QgLS0+CiAgPHJlY3QgeD0iNTAiIHk9IjIxMCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSI3MCIgcng9IjYiIGZpbGw9IiNlY2ZlZmYiIHN0cm9rZT0iIzA2YjZkNCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMTAwIiB5PSIyMzUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMDg5MWIyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FZmZlY3Q8L3RleHQ+CiAgPHRleHQgeD0iMTAwIiB5PSIyNTUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMwZTc0OTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFMTE9XIG9yPC90ZXh0PgogIDx0ZXh0IHg9IjEwMCIgeT0iMjcwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMGU3NDkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ERU5ZPC90ZXh0PgogIDxsaW5lIHgxPSIxMDAiIHkxPSIxNDciIHgyPSIxMDAiIHkyPSIyMDUiIHN0cm9rZT0iIzA2YjZkNCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1kYXNoYXJyYXk9IjQiLz4KCiAgPCEtLSBQZXJtaXNzaW9uIC0tPgogIDxyZWN0IHg9IjE3NSIgeT0iMjEwIiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjcwIiByeD0iNiIgZmlsbD0iI2ZlZjljMyIgc3Ryb2tlPSIjZWFiMzA4IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIyNDAiIHk9IjIzNSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNhMTYyMDciIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBlcm1pc3Npb248L3RleHQ+CiAgPHRleHQgeD0iMjQwIiB5PSIyNTUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNhMTYyMDciIHRleHQtYW5jaG9yPSJtaWRkbGUiPnNlcnZpY2U6cmVzb3VyY2U6YWN0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjI0MCIgeT0iMjcwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjYTE2MjA3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4oZS5nLiwgbG9nczpyZWFkKTwvdGV4dD4KICA8bGluZSB4MT0iMjQwIiB5MT0iMTQ3IiB4Mj0iMjQwIiB5Mj0iMjA1IiBzdHJva2U9IiNlYWIzMDgiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtZGFzaGFycmF5PSI0Ii8+CgogIDwhLS0gQ29uZGl0aW9uIEtleXdvcmQgLS0+CiAgPHJlY3QgeD0iMzMwIiB5PSIyMTAiIHdpZHRoPSIxMDAiIGhlaWdodD0iNzAiIHJ4PSI2IiBmaWxsPSIjZjNlOGZmIiBzdHJva2U9IiNhODU1ZjciIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjM4MCIgeT0iMjM1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzdjM2FlZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q29uZGl0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjM4MCIgeT0iMjU1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjN2MzYWVkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5XSEVSRSBjbGF1c2U8L3RleHQ+CiAgPHRleHQgeD0iMzgwIiB5PSIyNzAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM3YzNhZWQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPihvcHRpb25hbCk8L3RleHQ+CiAgPGxpbmUgeDE9IjM4MCIgeTE9IjE2NyIgeDI9IjM4MCIgeTI9IjIwNSIgc3Ryb2tlPSIjYTg1NWY3IiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iNCIvPgoKICA8IS0tIENvbmRpdGlvbiBWYWx1ZSAtLT4KICA8cmVjdCB4PSI0NTUiIHk9IjIxMCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSI3MCIgcng9IjYiIGZpbGw9IiNkY2ZjZTciIHN0cm9rZT0iIzIyYzU1ZSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNTI1IiB5PSIyMzUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMTZhMzRhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Db25kaXRpb24gVmFsdWU8L3RleHQ+CiAgPHRleHQgeD0iNTI1IiB5PSIyNTUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxNmEzNGEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmF0dHJpYnV0ZSA9IHZhbHVlPC90ZXh0PgogIDx0ZXh0IHg9IjUyNSIgeT0iMjcwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMTZhMzRhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5yZXN0cmljdHMgc2NvcGU8L3RleHQ+CiAgPGxpbmUgeDE9IjUyNSIgeTE9IjE2NyIgeDI9IjUyNSIgeTI9IjIwNSIgc3Ryb2tlPSIjMjJjNTVlIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iNCIvPgoKICA8IS0tIEV4YW1wbGUgcGF0dGVybnMgLS0+CiAgPHRleHQgeD0iMzUwIiB5PSIzMTAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMWUyOTNiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Db21tb24gUGVybWlzc2lvbiBQYXR0ZXJuczwvdGV4dD4KCiAgPHJlY3QgeD0iNTAiIHk9IjMyNSIgd2lkdGg9IjE5MCIgaGVpZ2h0PSI0MCIgcng9IjQiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMTQ1IiB5PSIzNDAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzQxNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnN0b3JhZ2U6bG9nczpyZWFkPC90ZXh0PgogIDx0ZXh0IHg9IjE0NSIgeT0iMzU1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJlYWQgbG9nIGRhdGE8L3RleHQ+CgogIDxyZWN0IHg9IjI1NSIgeT0iMzI1IiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjQwIiByeD0iNCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIzNTAiIHk9IjM0MCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzNDE1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+c2V0dGluZ3M6b2JqZWN0czp3cml0ZTwvdGV4dD4KICA8dGV4dCB4PSIzNTAiIHk9IjM1NSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Nb2RpZnkgY29uZmlndXJhdGlvbjwvdGV4dD4KCiAgPHJlY3QgeD0iNDYwIiB5PSIzMjUiIHdpZHRoPSIxOTAiIGhlaWdodD0iNDAiIHJ4PSI0IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjU1NSIgeT0iMzQwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzM0MTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5lbnZpcm9ubWVudDpyb2xlczp2aWV3ZXI8L3RleHQ+CiAgPHRleHQgeD0iNTU1IiB5PSIzNTUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QWNjZXNzIGVudmlyb25tZW50IChjbGFzc2ljKTwvdGV4dD4KPC9zdmc+Cg==" alt="Policy Statement Anatomy" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Component | Description | Example |
+|-----------|-------------|----------|
+| Effect | ALLOW or DENY | ALLOW |
+| Service | What capability | storage |
+| Resource | What object type | logs |
+| Action | What operation | read |
+| Condition | Optional filter | WHERE storage:dt.security_context = "team-a" |
+-->
+<h3>Basic Statement Structure</h3>
+<pre><code>ALLOW &lt;service&gt;:&lt;resource&gt;:&lt;action&gt;;
+</code></pre>
+<p><strong>Examples:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Statement</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ALLOW storage:logs:read;</code></td>
+<td>Read log records (plus <code>storage:buckets:read</code> — see below)</td>
+</tr>
+<tr>
+<td><code>ALLOW storage:spans:read;</code></td>
+<td>Read span records (plus <code>storage:buckets:read</code>)</td>
+</tr>
+<tr>
+<td><code>ALLOW settings:objects:write;</code></td>
+<td>Modify settings</td>
+</tr>
+<tr>
+<td><code>ALLOW document:documents:read;</code></td>
+<td>Read dashboards/notebooks</td>
+</tr>
+</tbody>
+</table>
+<h3>Wildcards Are NOT Supported</h3>
+<blockquote>
+<p><strong>Live-verified (Account Management API, 07/2026):</strong> wildcards in permissions are <strong>rejected</strong> with <code>Invalid policy statement. ALLOW or DENY must be followed by a permission in the form service-name:resource:action</code>. This applies to every position: <code>storage:*:read</code>, <code>storage:logs:*</code>, and <code>*:*:read</code> all fail.</p>
+</blockquote>
+<p>Enumerate permissions explicitly — comma-separated lists keep statements compact:</p>
+<table>
+<thead>
+<tr>
+<th>Instead of (invalid)</th>
+<th>Write (valid)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ALLOW storage:*:read</code></td>
+<td><code>ALLOW storage:logs:read, storage:spans:read, storage:metrics:read, storage:events:read, storage:bizevents:read, storage:entities:read, storage:system:read, storage:buckets:read;</code></td>
+</tr>
+<tr>
+<td><code>ALLOW storage:logs:*</code></td>
+<td><code>ALLOW storage:logs:read, storage:logs:write;</code></td>
+</tr>
+<tr>
+<td><code>ALLOW settings:objects:*</code></td>
+<td><code>ALLOW settings:objects:read, settings:objects:write;</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Also live-verified — storage WRITE permissions accept no WHERE conditions.</strong> <code>ALLOW storage:logs:write WHERE storage:bucket-name = &quot;x&quot;</code> is rejected (<code>Invalid condition name for permission storage:logs:write</code>). Storage writes are all-or-nothing: only <code>storage:logs:write</code>, <code>storage:metrics:write</code>, <code>storage:events:write</code> exist (<code>storage:spans:write</code> and <code>storage:bizevents:write</code> do <strong>not</strong>), and none can be scoped by <code>WHERE</code>. Scope <em>reads</em> with conditions; grant <em>writes</em> unscoped and only to trusted ingest paths — or control ingest via OpenPipeline instead. (Settings writes are different: <code>settings:objects:write</code> <strong>does</strong> accept <code>settings:schemaId</code> and <code>settings:dt.security_context</code> conditions.)</p>
+</blockquote>
+<h3>Multiple Statements</h3>
+<p>Combine statements to build complete policies:</p>
+<pre><code>ALLOW storage:buckets:read;
+ALLOW storage:logs:read;
+ALLOW storage:spans:read;
+ALLOW storage:metrics:read;
+ALLOW document:documents:read;
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Statements are additive. Multiple ALLOW statements combine to grant broader access.</p>
+</blockquote>
+<blockquote>
+<p><strong>Grail reads take two permissions.</strong> A table permission (<code>storage:logs:read</code>, <code>storage:spans:read</code> …) is not enough on its own: <code>storage:buckets:read</code> is <em>&quot;Required additionally to a table permission.&quot;</em> Grant it unconditionally when the table permissions carry the scoping (<code>dt.security_context</code>), or with <code>WHERE storage:bucket-name …</code> / <code>WHERE storage:table-name …</code> when the scope <em>is</em> the bucket. Every pattern below includes it.</p>
+<p><strong>DENY statements behave differently.</strong> <em>&quot;Boundaries don't apply to DENY statements&quot;</em>, and in Grail <em>&quot;Conditional DENY statements are supported only for the buckets:read permission. All other table-level storage permissions do not support conditional DENY.&quot;</em> — so express an exclusion on a table permission by narrowing the <code>ALLOW</code>, or as a <code>DENY storage:buckets:read WHERE storage:bucket-name …</code>.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a> — <code>storage:buckets:read</code> and the Grail DENY rule quoted above; <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries">Policy boundaries (DT docs)</a> — <em>&quot;Boundaries don't apply to DENY statements&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="services-and-actions-reference"></a></p>
+<h2>3. Services and Actions Reference</h2>
+<h3>Core Services</h3>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Purpose</th>
+<th>Common Resources</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>storage</code></td>
+<td>Grail data access</td>
+<td><code>logs</code>, <code>spans</code>, <code>metrics</code>, <code>events</code>, <code>bizevents</code>, <code>buckets</code>, <code>bucket-definitions</code></td>
+</tr>
+<tr>
+<td><code>settings</code></td>
+<td>Configuration objects</td>
+<td><code>objects</code>, <code>schemas</code></td>
+</tr>
+<tr>
+<td><code>document</code></td>
+<td>Notebooks, dashboards</td>
+<td><code>documents</code>, <code>direct-shares</code>, <code>environment-shares</code></td>
+</tr>
+<tr>
+<td><code>environment</code></td>
+<td>Classic roles</td>
+<td><code>roles</code> (<code>environment:roles:*</code>)</td>
+</tr>
+<tr>
+<td><code>state</code></td>
+<td>App state storage</td>
+<td><code>app-states</code>, <code>user-app-states</code></td>
+</tr>
+<tr>
+<td><code>automation</code></td>
+<td>Workflows, AutomationEngine</td>
+<td><code>workflows</code>, <code>calendars</code>, <code>rules</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>What each permission actually does:</strong> <strong>IAM-97: IAM Permission Reference</strong> covers every permission in the <em>Standard User</em> default policy and the usual reader-persona additions — what each really grants, its scope and risk, which built-in apps request it, and the basis for each claim. It also covers services this table leaves out, such as <code>state-management</code>, <code>app-settings</code>, <code>synthetic</code>, <code>credential-vault</code>, <code>platform-management</code> and <code>unified-analysis</code>.</p>
+</blockquote>
+<h3>Common Actions</h3>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>read</code></td>
+<td>View/query data</td>
+</tr>
+<tr>
+<td><code>write</code></td>
+<td>Create/modify data</td>
+</tr>
+<tr>
+<td><code>delete</code></td>
+<td>Remove data</td>
+</tr>
+<tr>
+<td><code>run</code></td>
+<td>Run (workflows: <code>automation:workflows:run</code>)</td>
+</tr>
+<tr>
+<td><code>admin</code></td>
+<td>Administer all objects of a type (e.g. <code>document:documents:admin</code>, <code>automation:workflows:admin</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3>Storage Service Details</h3>
+<table>
+<thead>
+<tr>
+<th>Resource</th>
+<th>Description</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>logs</code></td>
+<td>Log records</td>
+<td>read, write</td>
+</tr>
+<tr>
+<td><code>spans</code></td>
+<td>Distributed traces</td>
+<td>read</td>
+</tr>
+<tr>
+<td><code>metrics</code></td>
+<td>Metric data</td>
+<td>read, write</td>
+</tr>
+<tr>
+<td><code>events</code></td>
+<td>Platform events</td>
+<td>read, write</td>
+</tr>
+<tr>
+<td><code>bizevents</code></td>
+<td>Business events</td>
+<td>read</td>
+</tr>
+<tr>
+<td><code>entities</code></td>
+<td>Smartscape entities (Classic surface)</td>
+<td>read</td>
+</tr>
+<tr>
+<td><code>system</code></td>
+<td>System/audit data (query events, internal)</td>
+<td>read</td>
+</tr>
+<tr>
+<td><code>buckets</code></td>
+<td>Read records from Grail buckets (required in addition to a table permission)</td>
+<td>read</td>
+</tr>
+<tr>
+<td><code>bucket-definitions</code></td>
+<td>Create and manage bucket definitions</td>
+<td>read, write, delete, truncate</td>
+</tr>
+</tbody>
+</table>
+<p>Specialized record tables follow the same <code>storage:&lt;table&gt;:read</code> shape — e.g. <code>storage:security.events:read</code>, <code>storage:user.sessions:read</code>, <code>storage:user.replays:read</code>, <code>storage:application.snapshots:read</code>, <code>storage:smartscape:read</code>.</p>
+<p><strong>Storage condition attributes:</strong> scope <code>storage:*</code> reads with <code>storage:bucket-name</code> (e.g. <code>startsWith &quot;default_&quot;</code>), <code>storage:table-name</code> (e.g. <code>= &quot;logs&quot;</code>), and <code>storage:dt.security_context</code> (the Gen3 record-level scoping spine — see IAM-05). Example — default-bucket monitoring read:</p>
+<pre><code>ALLOW storage:buckets:read WHERE storage:bucket-name startsWith &quot;default_&quot;;
+ALLOW storage:logs:read, storage:events:read, storage:metrics:read,
+      storage:entities:read, storage:bizevents:read, storage:spans:read;
+</code></pre>
+<p>For system/audit data (the <em>Storage All System Data Read</em> managed policy), add <code>storage:system:read</code>:</p>
+<pre><code>ALLOW storage:buckets:read;
+ALLOW storage:system:read;
+ALLOW storage:logs:read, storage:events:read, storage:metrics:read,
+      storage:entities:read, storage:bizevents:read, storage:spans:read;
+</code></pre>
+<h3>Settings Service Details</h3>
+<table>
+<thead>
+<tr>
+<th>Resource</th>
+<th>Description</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>objects</code></td>
+<td>Configuration objects</td>
+<td>read, write, delete</td>
+</tr>
+<tr>
+<td><code>schemas</code></td>
+<td>Schema definitions</td>
+<td>read</td>
+</tr>
+</tbody>
+</table>
+<h3>Document Service Details</h3>
+<table>
+<thead>
+<tr>
+<th>Resource</th>
+<th>Description</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>documents</code></td>
+<td>Dashboards, notebooks</td>
+<td>read, write, delete, admin</td>
+</tr>
+<tr>
+<td><code>direct-shares</code></td>
+<td>Direct shares with users and groups</td>
+<td>read, write, delete</td>
+</tr>
+<tr>
+<td><code>environment-shares</code></td>
+<td>Shares with the whole environment</td>
+<td>read, write, delete, claim</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a> — permission list read 09/24/2026.</sub></p>
+</blockquote>
+<h3>Environment Roles (<code>environment:roles:*</code>)</h3>
+<p>Classic environment roles are expressed as IAM permissions. This is how RBAC folds into the one policy language (see §1). All are scoped by the <code>environment:management-zone</code> attribute <strong>except</strong> <code>agent-install</code> and <code>configure-request-capture-data</code> (management-zone not applicable). Those two are broader than their names suggest: for each, Dynatrace states <em>&quot;Users who have this permission assigned are also able to view monitoring data for all management zones.&quot;</em> Grant them only to groups that may see every zone.</p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Classic role meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>environment:roles:viewer</code></td>
+<td>Access environment (read)</td>
+</tr>
+<tr>
+<td><code>environment:roles:manage-settings</code></td>
+<td>Change monitoring settings</td>
+</tr>
+<tr>
+<td><code>environment:roles:agent-install</code></td>
+<td>Download / install OneAgent</td>
+</tr>
+<tr>
+<td><code>environment:roles:logviewer</code></td>
+<td>View logs</td>
+</tr>
+<tr>
+<td><code>environment:roles:view-sensitive-request-data</code></td>
+<td>View sensitive request data</td>
+</tr>
+<tr>
+<td><code>environment:roles:configure-request-capture-data</code></td>
+<td>Configure capture of sensitive data</td>
+</tr>
+<tr>
+<td><code>environment:roles:replay-sessions-with-masking</code></td>
+<td>Replay session data (masked)</td>
+</tr>
+<tr>
+<td><code>environment:roles:replay-sessions-without-masking</code></td>
+<td>Replay session data (unmasked)</td>
+</tr>
+<tr>
+<td><code>environment:roles:view-security-problems</code></td>
+<td>View security problems</td>
+</tr>
+<tr>
+<td><code>environment:roles:manage-security-problems</code></td>
+<td>Manage security problems</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a> — <code>environment:roles:agent-install</code> and <code>environment:roles:configure-request-capture-data</code>.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Privacy / compliance note.</strong> The session-replay pair and <code>view-sensitive-request-data</code> are the load-bearing least-privilege controls here — <code>replay-sessions-without-masking</code> and <code>view-sensitive-request-data</code> expose unmasked end-user data and should be granted narrowly (specific groups, specific management zones), never bundled into a broad editor policy.</p>
+</blockquote>
+<h3>Extensions Service Details</h3>
+<p>Extension authorization splits into <em>definitions</em> (the extension package) and <em>configurations</em> (a deployed instance):</p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Description</th>
+<th>Condition attributes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>extensions:definitions:read</code> / <code>:write</code></td>
+<td>The extension package itself</td>
+<td><code>extensions:extension-name</code></td>
+</tr>
+<tr>
+<td><code>extensions:configurations:read</code> / <code>:write</code></td>
+<td>A deployed configuration</td>
+<td><code>extensions:host</code>, <code>extensions:host-group</code>, <code>extensions:ag-group</code>, <code>extensions:management-zone</code></td>
+</tr>
+<tr>
+<td><code>extensions:configuration.actions:write</code></td>
+<td>Run configuration actions</td>
+<td>(as above)</td>
+</tr>
+<tr>
+<td><code>extensions:discovery.jmx:read</code> / <code>extensions:discovery.pmi:read</code></td>
+<td>Discovery surfaces</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Extension-ownership delegation</strong> — let a team manage <em>their</em> extension on <em>their</em> hosts without granting tenant-wide extension rights:</p>
+<pre><code>ALLOW extensions:definitions:read, extensions:definitions:write
+WHERE extensions:extension-name = &quot;com.acme.payments&quot;;
+ALLOW extensions:configurations:read, extensions:configurations:write
+WHERE extensions:host-group startsWith &quot;payments-&quot;;
+</code></pre>
+<h3>AppEngine Service Details (<code>app-engine:*</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>app-engine:apps:run</code></td>
+<td>See / open an app (controls navigation visibility)</td>
+</tr>
+<tr>
+<td><code>app-engine:functions:run</code></td>
+<td>Execute AppEngine functions</td>
+</tr>
+<tr>
+<td><code>app-engine:apps:install</code></td>
+<td>Install apps</td>
+</tr>
+<tr>
+<td><code>app-engine:apps:delete</code></td>
+<td>Remove apps</td>
+</tr>
+</tbody>
+</table>
+<p>App-level scoping uses the <code>shared:app-id</code> attribute (operators <code>=</code>, <code>!=</code>, <code>IN</code>, <code>NOT IN</code>, <code>startsWith</code>, <code>NOT startsWith</code>). Example — let developers install only their own apps, and grant Workflows access:</p>
+<pre><code>ALLOW app-engine:apps:install, app-engine:apps:delete WHERE shared:app-id startsWith &quot;my.&quot;;
+ALLOW app-engine:apps:run WHERE shared:app-id = &quot;dynatrace.automations&quot;;
+</code></pre>
+<p><a id="condition-expressions"></a></p>
+<h2>4. Condition Expressions</h2>
+<p>Conditions add fine-grained control to policy statements.</p>
+<blockquote>
+<p><strong>Boundary standardization (canonical pattern).</strong> The examples in this section illustrate condition operators with literal values for clarity. In production, the literal value should be a <code>${bindParam:NAME}</code> placeholder bound at policy-binding time, with the boundary field standardized on <code>dt.security_context</code> (Gen3) or management zone (Classic). See <strong>IAM REFERENCE.md § Policy Parameterization and Boundary Standardization</strong> for the canonical pattern, and <strong>IAM-10: Templated Policy-Group Assignments</strong> for binding mechanics.</p>
+</blockquote>
+<h3>Condition Syntax</h3>
+<pre><code>ALLOW &lt;service&gt;:&lt;resource&gt;:&lt;action&gt; WHERE &lt;condition&gt;;
+</code></pre>
+<h3>Condition Operators</h3>
+<table>
+<thead>
+<tr>
+<th>Operator</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>=</code></td>
+<td>Equals</td>
+<td><code>storage:dt.security_context = &quot;team-a&quot;</code></td>
+</tr>
+<tr>
+<td><code>!=</code></td>
+<td>Not equals — only on conditions that list it (e.g. <code>storage:bucket-name</code>, <code>settings:schemaId</code>); <code>storage:dt.security_context</code> does <strong>not</strong> accept <code>!=</code> or <code>NOT IN</code></td>
+<td><code>storage:bucket-name != &quot;restricted_logs&quot;</code></td>
+</tr>
+<tr>
+<td><code>IN</code></td>
+<td>In list</td>
+<td><code>storage:dt.security_context IN (&quot;team-a&quot;, &quot;team-b&quot;)</code></td>
+</tr>
+<tr>
+<td><code>startsWith</code></td>
+<td>Prefix match</td>
+<td><code>settings:schemaId startsWith &quot;builtin:openpipeline.logs.&quot;</code></td>
+</tr>
+<tr>
+<td><code>MATCH</code></td>
+<td>Wildcard pattern match</td>
+<td><code>storage:dt.security_context MATCH('*/app:easytrade')</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong><code>MATCH()</code> vs <code>startsWith</code>:</strong> Use <code>MATCH()</code> for flexible wildcard patterns anywhere in the value (e.g. middle segment). Use <code>startsWith</code> when matching a fixed leading prefix. <strong>And use <code>MATCH()</code> whenever the field can hold an array</strong> — on an array, <code>=</code>, <code>startsWith</code> and <code>IN</code> <em>&quot;always return <code>false</code>&quot;</em>, silently. The exception is <code>storage:entities:read</code> (classic entities), which offers no <code>MATCH</code>; there, <code>startsWith</code> is the documented operator for the multi-value field (see below). See <strong>IAM-05</strong> for where that bites in a boundary.</p>
+</blockquote>
+<blockquote>
+<p><strong>Corrected 09/10/2026 — <code>contains</code> is not an IAM condition operator.</strong> An earlier revision of this table listed <code>contains</code> (<code>settings:schemaId contains &quot;custom&quot;</code>). The IAM policy statement syntax reference gives the operator set as <code>= != &lt; &gt; IN startsWith NOT IN NOT startsWith MATCH</code>, and the IAM policy reference lists <code>IN</code>, <code>=</code>, <code>!=</code>, <code>startsWith</code> and <code>NOT startsWith</code> for <code>settings:schemaId</code> — <code>contains</code> appears in neither. Use <code>startsWith</code> for a prefix, or <code>MATCH</code> for a pattern.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policystatement-syntax">IAM policy statement syntax and examples (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a> — <em>&quot;Using <code>=</code>, <code>STARTSWITH</code> or <code>IN</code> when the field holds an array will always return <code>false</code>.&quot;</em></sub></p>
+</blockquote>
+<h3>Common Condition Fields</h3>
+<table>
+<thead>
+<tr>
+<th>Domain</th>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Storage</td>
+<td><code>storage:dt.security_context</code></td>
+<td>Security context on data</td>
+</tr>
+<tr>
+<td>Storage</td>
+<td><code>storage:bucket-name</code></td>
+<td>Bucket name (for team isolation)</td>
+</tr>
+<tr>
+<td>Storage</td>
+<td><code>storage:file-path</code></td>
+<td>Lookup file path. The only condition <code>storage:files:read</code> / <code>write</code> / <code>delete</code> accept, so scope files by folder (IAM-05 Pattern 8)</td>
+</tr>
+<tr>
+<td>Settings</td>
+<td><code>settings:schemaId</code></td>
+<td>Settings schema</td>
+</tr>
+<tr>
+<td>Settings</td>
+<td><code>settings:dt.security_context</code></td>
+<td>Security context on settings</td>
+</tr>
+</tbody>
+</table>
+<h3>Security Context vs Bucket Conditions</h3>
+<blockquote>
+<p><strong>Default to <code>dt.security_context</code> for general team-scoped access.</strong> Bucket conditions work well when the bucket already exists for a specific reason — compliance separation, retention isolation, or retention-cost allocation. For routine team-scoped access without one of those scenarios, the <code>dt.security_context</code> condition alone is usually simpler. See <strong>IAM REFERENCE.md § Bucket-Match Overlay</strong> for the scenario gating.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Condition Type</th>
+<th>Use Case</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Security Context</strong></td>
+<td>Team- and app-scoped access — the primary mechanism</td>
+<td><code>storage:dt.security_context = &quot;team-a&quot;</code></td>
+</tr>
+<tr>
+<td><strong>Bucket</strong></td>
+<td>Data already separated for retention, cost or compliance (e.g. a PCI bucket)</td>
+<td><code>storage:bucket-name = &quot;team-a-logs&quot;</code></td>
+</tr>
+<tr>
+<td><strong>Both</strong></td>
+<td>Defense in depth where a compliance bucket exists</td>
+<td>Both conditions in policy + boundary</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data">Partition data with Grail buckets (DT docs)</a> — buckets are <em>&quot;not intended as the primary mechanism for securing or segmenting data access.&quot;</em></sub></p>
+</blockquote>
+<h3>Condition Examples</h3>
+<p><strong>Scope to security context (exact):</strong></p>
+<pre><code>ALLOW storage:buckets:read;
+ALLOW storage:logs:read WHERE storage:dt.security_context = &quot;checkout&quot;;
+</code></pre>
+<p><strong>Scope to specific bucket:</strong></p>
+<pre><code>ALLOW storage:buckets:read WHERE storage:bucket-name = &quot;checkout_logs&quot;;
+ALLOW storage:logs:read WHERE storage:bucket-name = &quot;checkout_logs&quot;;
+</code></pre>
+<p><strong>Scope to a lookup-file folder (read and upload):</strong></p>
+<pre><code>ALLOW storage:files:read, storage:files:write WHERE storage:file-path startsWith &quot;/lookups/team_payments/&quot;;
+</code></pre>
+<p>Keep the leading and trailing slashes. Without the trailing slash, the prefix also matches <code>/lookups/team_payments2/</code>.</p>
+<p><strong>Scope to settings schema:</strong></p>
+<pre><code>ALLOW settings:objects:write WHERE settings:schemaId startsWith &quot;builtin:openpipeline.logs.&quot;;
+</code></pre>
+<p>Pick schema IDs that exist on your platform generation. Many classic schemas — <code>builtin:alerting.profile</code>, <code>builtin:problem.notifications</code>, most <code>builtin:logmonitoring.*</code> processing rules — are not visible in Latest Dynatrace, so a statement scoped to them grants nothing there (Patterns 4 and 6 below).</p>
+<p><strong>Multiple conditions (AND):</strong></p>
+<pre><code>ALLOW storage:logs:read WHERE storage:dt.security_context = &quot;team-a&quot; AND storage:bucket-name = &quot;team-a-logs&quot;;
+</code></pre>
+<p><strong>Multiple values (IN):</strong></p>
+<pre><code>ALLOW storage:logs:read WHERE storage:dt.security_context IN (&quot;team-a&quot;, &quot;team-b&quot;, &quot;shared&quot;);
+</code></pre>
+<p><strong>Multiple buckets (team access):</strong></p>
+<pre><code>ALLOW storage:buckets:read WHERE storage:bucket-name IN (&quot;checkout_logs&quot;, &quot;shared_logs&quot;, &quot;checkout_spans&quot;, &quot;shared_spans&quot;);
+ALLOW storage:logs:read WHERE storage:bucket-name IN (&quot;checkout_logs&quot;, &quot;shared_logs&quot;);
+ALLOW storage:spans:read WHERE storage:bucket-name IN (&quot;checkout_spans&quot;, &quot;shared_spans&quot;);
+</code></pre>
+<p><strong>Parameterizing the boundary (recommended for production):</strong></p>
+<p>The examples above use literal values to illustrate operators. In production, replace each literal with a <code>${bindParam:NAME}</code> placeholder and supply the value at binding time. One policy template, N bindings — instead of N near-identical policies.</p>
+<p><strong>Recommended (parameterized):</strong></p>
+<pre><code>ALLOW storage:logs:read WHERE storage:dt.security_context = &quot;${bindParam:team}&quot;;
+</code></pre>
+<p><strong>Resolved when bound with <code>{&quot;parameters&quot;: {&quot;team&quot;: &quot;checkout&quot;}}</code>:</strong></p>
+<pre><code>ALLOW storage:logs:read WHERE storage:dt.security_context = &quot;checkout&quot;;
+</code></pre>
+<p>The same approach applies to bucket-name overlays, MATCH() patterns, and IN lists. See <strong>IAM-10: Templated Policy-Group Assignments</strong> for binding mechanics and <strong>IAM REFERENCE.md § Policy Parameterization and Boundary Standardization</strong> for the full canonical pattern (including the Gen3 = <code>dt.security_context</code> standardization rule and the change-management caveat).</p>
+<h3>Structured Security Context Design</h3>
+<p>For organisations with multiple teams and cross-cutting access requirements, a flat single-value context (e.g. <code>&quot;checkout&quot;</code>) scales poorly. Instead, encode multiple dimensions into a structured key-value string:</p>
+<pre><code>comp:&lt;component&gt;/bu:&lt;business-unit&gt;/app:&lt;application&gt;
+</code></pre>
+<p><strong>Examples:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>Security Context</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Easytrade application</td>
+<td><code>comp:app/bu:digital/app:easytrade</code></td>
+</tr>
+<tr>
+<td>Easytrade database</td>
+<td><code>comp:db/bu:digital/app:easytrade</code></td>
+</tr>
+<tr>
+<td>Easytrade load balancer</td>
+<td><code>comp:lb/bu:digital/app:easytrade</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>⚠️ Dimension order matters for Smartscape/Classic entities.</strong> Place the dimension you need transversal access on <strong>first</strong> — typically <code>comp</code> for infrastructure teams. On <code>storage:smartscape:read</code> and the record tables, use <code>MATCH('comp:db*')</code> to anchor at the start. <strong><code>storage:entities:read</code> (classic entities) supports <code>=</code>, <code>IN</code> and <code>startsWith</code> only</strong> — no <code>MATCH</code> — and Dynatrace documents <code>startsWith</code> as evaluating for any matching value of the multi-value entity context.</p>
+</blockquote>
+<p><strong>Using <code>MATCH()</code> for flexible policy conditions:</strong></p>
+<p>App team — access all components within their application:</p>
+<pre><code>// 3rd Gen signals
+ALLOW storage:metrics:read WHERE storage:dt.security_context MATCH('*/app:easytrade');
+ALLOW storage:logs:read    WHERE storage:dt.security_context MATCH('*/app:easytrade');
+ALLOW storage:spans:read   WHERE storage:dt.security_context MATCH('*/app:easytrade');
+</code></pre>
+<p>Transversal database team — access all database components across all applications:</p>
+<pre><code>// 3rd Gen signals
+ALLOW storage:metrics:read WHERE storage:dt.security_context MATCH('comp:db*');
+ALLOW storage:logs:read    WHERE storage:dt.security_context MATCH('comp:db*');
+ALLOW storage:spans:read   WHERE storage:dt.security_context MATCH('comp:db*');
+// Classic entities — storage:entities:read has no MATCH; startsWith matches any value of the array
+ALLOW storage:entities:read  WHERE storage:dt.security_context startsWith &quot;comp:db&quot;;
+ALLOW storage:smartscape:read WHERE storage:dt.security_context MATCH('comp:db*');
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> <code>storage:entities:read</code> (classic entities) supports <code>=</code>, <code>IN</code> and <code>startsWith</code> only — Dynatrace documents <code>startsWith</code> as evaluating for any matching value of the multi-value entity context. <code>storage:smartscape:read</code> and the record tables (<code>storage:logs:read</code> etc.) also accept <code>MATCH</code>; anchor at the start with a trailing <code>*</code> to mimic a prefix match (e.g. <code>MATCH('comp:db*')</code>). See <strong>IAM-05</strong> for the corresponding boundary patterns.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context">Grant access to entities with security context (DT docs)</a> — <em>&quot;the security context of this entity. Can be a multi-value field and startsWith will evaluate for any matching value.&quot;</em></sub></p>
+</blockquote>
+<p><a id="common-policy-patterns"></a></p>
+<h2>5. Common Policy Patterns</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgNDIwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icGR0Qmx1ZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM2I4MmY2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxZDRlZDg7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJwZHRHcmVlbkdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2Njk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJwZHRPcmFuZ2VHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y1OWUwYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZDk3NzA2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9InBkdFNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0icGR0QXJyb3ciIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzY0NzQ4YiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjcwMCIgaGVpZ2h0PSI0MjAiIGZpbGw9IiNmOGY5ZmEiIHJ4PSIxMCIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjM1MCIgeT0iMzIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMWUyOTNiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Qb2xpY3kgRGVjaXNpb24gVHJlZTwvdGV4dD4KICA8dGV4dCB4PSIzNTAiIHk9IjUyIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5XaGVuIHRvIHVzZSBkZWZhdWx0IHBvbGljaWVzIHZzLiBjdXN0b20gcG9saWNpZXM8L3RleHQ+CgogIDwhLS0gU3RhcnQgbm9kZSAtLT4KICA8cmVjdCB4PSIyNzUiIHk9IjcwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjQwIiByeD0iMjAiIGZpbGw9InVybCgjcGR0Qmx1ZUdyYWQpIiBmaWx0ZXI9InVybCgjcGR0U2hhZG93KSIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iOTUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5OZWVkIHRvIGdyYW50IGFjY2Vzcz88L3RleHQ+CgogIDwhLS0gRmlyc3QgZGVjaXNpb24gLS0+CiAgPGxpbmUgeDE9IjM1MCIgeTE9IjExMCIgeDI9IjM1MCIgeTI9IjEzMCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cmVjdCB4PSIyNTAiIHk9IjEzNSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI0NSIgcng9IjYiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbHRlcj0idXJsKCNwZHRTaGFkb3cpIi8+CiAgPHRleHQgeD0iMzUwIiB5PSIxNTUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiMxZTI5M2IiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlN0YW5kYXJkIHBlcm1pc3Npb248L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSIxNzAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiMxZTI5M2IiIHRleHQtYW5jaG9yPSJtaWRkbGUiPihsb2dzLCBtZXRyaWNzLCBlbnRpdGllcyk/PC90ZXh0PgoKICA8IS0tIFllcyBicmFuY2ggLSBkZWZhdWx0IHBvbGljeSAtLT4KICA8bGluZSB4MT0iMjUwIiB5MT0iMTU3IiB4Mj0iMTQwIiB5Mj0iMTU3IiBzdHJva2U9IiMxNmEzNGEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSIxNDAiIHkxPSIxNTciIHgyPSIxNDAiIHkyPSIyMTAiIHN0cm9rZT0iIzE2YTM0YSIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI3BkdEFycm93KSIvPgogIDx0ZXh0IHg9IjE5NSIgeT0iMTUwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzE2YTM0YSI+WUVTPC90ZXh0PgoKICA8cmVjdCB4PSI1MCIgeT0iMjE1IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjU1IiByeD0iNiIgZmlsbD0idXJsKCNwZHRHcmVlbkdyYWQpIiBmaWx0ZXI9InVybCgjcGR0U2hhZG93KSIvPgogIDx0ZXh0IHg9IjE0MCIgeT0iMjMzIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VXNlIERlZmF1bHQgUG9saWNpZXM8L3RleHQ+CiAgPHRleHQgeD0iMTQwIiB5PSIyNDkiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNkY2ZjZTciIHRleHQtYW5jaG9yPSJtaWRkbGUiPlN0YW5kYXJkIFVzZXIgKyBSZWFkIExvZ3Mg4oCmPC90ZXh0PgogIDx0ZXh0IHg9IjE0MCIgeT0iMjYyIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZGNmY2U3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4ob3IgQWxsIEdyYWlsIGRhdGEgcmVhZCBhY2Nlc3MpPC90ZXh0PgoKICA8IS0tIE5vIGJyYW5jaCAtIGNvbnRpbnVlIC0tPgogIDxsaW5lIHgxPSI0NTAiIHkxPSIxNTciIHgyPSI1NjAiIHkyPSIxNTciIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjU2MCIgeTE9IjE1NyIgeDI9IjU2MCIgeTI9IjIxMCIgc3Ryb2tlPSIjZjU5ZTBiIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjcGR0QXJyb3cpIi8+CiAgPHRleHQgeD0iNTA1IiB5PSIxNTAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZjU5ZTBiIj5OTzwvdGV4dD4KCiAgPCEtLSBTZWNvbmQgZGVjaXNpb24gLS0+CiAgPHJlY3QgeD0iNDYwIiB5PSIyMTUiIHdpZHRoPSIyMDAiIGhlaWdodD0iNDUiIHJ4PSI2IiBmaWxsPSIjZmZmIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMS41IiBmaWx0ZXI9InVybCgjcGR0U2hhZG93KSIvPgogIDx0ZXh0IHg9IjU2MCIgeT0iMjM1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjMWUyOTNiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5OZWVkIHRvIHJlc3RyaWN0IGJ5PC90ZXh0PgogIDx0ZXh0IHg9IjU2MCIgeT0iMjUwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjMWUyOTNiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5zZWdtZW50IG9yIGNvbmRpdGlvbj88L3RleHQ+CgogIDwhLS0gWWVzIC0gY29uZGl0aW9uYWwgcG9saWN5IC0tPgogIDxsaW5lIHgxPSI0NjAiIHkxPSIyMzciIHgyPSIzNTAiIHkyPSIyMzciIHN0cm9rZT0iIzE2YTM0YSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjM1MCIgeTE9IjIzNyIgeDI9IjM1MCIgeTI9IjI4NSIgc3Ryb2tlPSIjMTZhMzRhIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjcGR0QXJyb3cpIi8+CiAgPHRleHQgeD0iNDA1IiB5PSIyMjgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMTZhMzRhIj5ZRVM8L3RleHQ+CgogIDxyZWN0IHg9IjI2MCIgeT0iMjkwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjU1IiByeD0iNiIgZmlsbD0idXJsKCNwZHRPcmFuZ2VHcmFkKSIgZmlsdGVyPSJ1cmwoI3BkdFNoYWRvdykiLz4KICA8dGV4dCB4PSIzNTAiIHk9IjMxMyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkN1c3RvbSBQb2xpY3k8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSIzMzAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNmZWYzYzciIHRleHQtYW5jaG9yPSJtaWRkbGUiPndpdGggV0hFUkUgY29uZGl0aW9uczwvdGV4dD4KCiAgPCEtLSBObyAtIGZ1bGwgY3VzdG9tIC0tPgogIDxsaW5lIHgxPSI2NjAiIHkxPSIyMzciIHgyPSI2ODAiIHkyPSIyMzciIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjY4MCIgeTE9IjIzNyIgeDI9IjY4MCIgeTI9IjMwNSIgc3Ryb2tlPSIjZjU5ZTBiIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iNjgwIiB5MT0iMzA1IiB4Mj0iNTYwIiB5Mj0iMzA1IiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSI1NjAiIHkxPSIzMDUiIHgyPSI1NjAiIHkyPSIzNTUiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI3BkdEFycm93KSIvPgogIDx0ZXh0IHg9IjY2NSIgeT0iMjU1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2Y1OWUwYiI+Tk88L3RleHQ+CgogIDxyZWN0IHg9IjQ3MCIgeT0iMzYwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjQ1IiByeD0iNiIgZmlsbD0iI2ZlZjNjNyIgc3Ryb2tlPSIjZDk3NzA2IiBzdHJva2Utd2lkdGg9IjIiIGZpbHRlcj0idXJsKCNwZHRTaGFkb3cpIi8+CiAgPHRleHQgeD0iNTYwIiB5PSIzODAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5SZXZpZXcgd2l0aCBTZWN1cml0eTwvdGV4dD4KICA8dGV4dCB4PSI1NjAiIHk9IjM5NSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2ExNjIwNyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TWF5IG5lZWQgbmV3IHBlcm1pc3Npb248L3RleHQ+CgogIDwhLS0gTGVnZW5kIC0tPgogIDxyZWN0IHg9IjUwIiB5PSIzNjAiIHdpZHRoPSIxODAiIGhlaWdodD0iNTAiIHJ4PSI2IiBmaWxsPSIjZjFmNWY5IiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjYwIiB5PSIzODAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjNDc1NTY5Ij5Qb2xpY3kgVHlwZXM6PC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSIzODgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiMxMGI5ODEiLz4KICA8dGV4dCB4PSI3NSIgeT0iMzk2IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM0NzU1NjkiPkRlZmF1bHQgKGJ1aWx0LWluKTwvdGV4dD4KICA8cmVjdCB4PSIxNTgiIHk9IjM4OCIgd2lkdGg9IjgiIGhlaWdodD0iOCIgZmlsbD0iI2Y1OWUwYiIvPgogIDx0ZXh0IHg9IjE3MyIgeT0iMzk2IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM0NzU1NjkiPkN1c3RvbSAoc2NvcGVkKTwvdGV4dD4KPC9zdmc+Cg==" alt="Policy Decision Tree" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Need | Policy Type | Recommendation |
+|------|-------------|----------------|
+| Standard app and data access, unscoped | Default | Standard User (environment and app access — no Grail table reads) plus All Grail data read access or the per-table Read Logs / Read Spans … policies |
+| Read + limited write | Custom | Create scoped policy |
+| Full access | Default | Use the Admin User default policy |
+| Specific capability | Custom | Create targeted policy |
+-->
+<h3>Pattern 1: Read-Only Access</h3>
+<pre><code>// Read all data, no write access (wildcards are not supported — enumerate)
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
+      storage:events:read, storage:bizevents:read, storage:entities:read,
+      storage:system:read, storage:buckets:read;
+ALLOW document:documents:read;
+ALLOW state:app-states:read, state:user-app-states:read;
+ALLOW settings:objects:read, settings:schemas:read;
+</code></pre>
+<h3>Pattern 2: Team-Scoped Access (Security Context)</h3>
+<blockquote>
+<p><strong>Recommended (parameterized):</strong> One policy bound per team via binding parameters. Boundary field standardized on <code>dt.security_context</code> (Gen3 universal scoping field). See <strong>IAM REFERENCE.md § Policy Parameterization and Boundary Standardization</strong>.</p>
+</blockquote>
+<pre><code>// Parameterized — one policy template, bound per team via binding parameters.
+// Reads are condition-scoped; storage writes cannot take WHERE conditions
+// (live-verified) — grant them separately and unscoped only where justified.
+ALLOW storage:buckets:read;
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
+      storage:events:read, storage:bizevents:read
+  WHERE storage:dt.security_context = &quot;${bindParam:team}&quot;;
+ALLOW settings:objects:read, settings:objects:write
+  WHERE settings:dt.security_context = &quot;${bindParam:team}&quot;;
+</code></pre>
+<p><strong>Resolved when bound with <code>{&quot;parameters&quot;: {&quot;team&quot;: &quot;checkout-team&quot;}}</code>:</strong></p>
+<pre><code>ALLOW storage:buckets:read;
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
+      storage:events:read, storage:bizevents:read
+  WHERE storage:dt.security_context = &quot;checkout-team&quot;;
+ALLOW settings:objects:read, settings:objects:write
+  WHERE settings:dt.security_context = &quot;checkout-team&quot;;
+</code></pre>
+<p>Bind the same template to each team with a different <code>team</code> value rather than duplicating the policy. See <strong>IAM-10</strong> for binding mechanics.</p>
+<h3>Pattern 3: Bucket-Scoped Team Access (When the Bucket Already Exists)</h3>
+<blockquote>
+<p><strong>Not the primary isolation mechanism.</strong> Dynatrace: buckets are <em>&quot;not intended as the primary mechanism for securing or segmenting data access&quot;</em>; they are <em>&quot;best used for organizing data by retention time, cost allocation, or query optimization.&quot;</em> Isolate teams with <code>dt.security_context</code> (Pattern 2); add bucket conditions when a team's data already sits in its own bucket for one of those reasons.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data">Partition data with Grail buckets (DT docs)</a>.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>When this pattern fits:</strong> bucket boundaries are well-suited to scenarios where the bucket already exists for a specific reason — compliance separation (PCI/HIPAA), retention isolation, or retention-cost allocation. For general team-scoped access without one of those reasons, <strong>Pattern 2 (<code>dt.security_context</code>) is usually the simpler choice</strong>. When the bucket-based scenario does apply, parameterize per-team bucket names via binding parameters (shared bucket statements stay as literals — &quot;shared&quot; is a singleton, not a per-team scope). See <strong>IAM REFERENCE.md § Bucket-Match Overlay</strong> for scenario gating, and <strong>§ Policy Parameterization and Boundary Standardization</strong> for the full pattern.</p>
+</blockquote>
+<pre><code>// Parameterized — per-team data permissions (one policy template, bound per team)
+ALLOW storage:buckets:read WHERE storage:bucket-name = &quot;${bindParam:log-bucket}&quot;;
+ALLOW storage:buckets:read WHERE storage:bucket-name = &quot;${bindParam:span-bucket}&quot;;
+ALLOW storage:buckets:read WHERE storage:bucket-name = &quot;${bindParam:metric-bucket}&quot;;
+ALLOW storage:logs:read    WHERE storage:bucket-name = &quot;${bindParam:log-bucket}&quot;;
+ALLOW storage:spans:read   WHERE storage:bucket-name = &quot;${bindParam:span-bucket}&quot;;
+ALLOW storage:metrics:read WHERE storage:bucket-name = &quot;${bindParam:metric-bucket}&quot;;
+
+// Shared buckets — literal (Class C: shared is a singleton, not per-team)
+ALLOW storage:buckets:read WHERE storage:bucket-name IN (&quot;shared_logs&quot;, &quot;shared_spans&quot;);
+ALLOW storage:logs:read  WHERE storage:bucket-name = &quot;shared_logs&quot;;
+ALLOW storage:spans:read WHERE storage:bucket-name = &quot;shared_spans&quot;;
+</code></pre>
+<blockquote>
+<p><strong>Writes cannot be bucket-scoped (live-verified).</strong> <code>storage:logs:write WHERE storage:bucket-name = ...</code> is rejected by the API, and <code>storage:spans:write</code> does not exist at all — spans are ingest-only. If a team needs log/metric/event write access, grant it unscoped in a separate, deliberately-assigned policy, and control WHERE data lands via OpenPipeline routing — not via IAM conditions.</p>
+</blockquote>
+<p><strong>Resolved when bound with <code>{&quot;parameters&quot;: {&quot;log-bucket&quot;: &quot;checkout_logs&quot;, &quot;span-bucket&quot;: &quot;checkout_spans&quot;, &quot;metric-bucket&quot;: &quot;checkout_metrics&quot;}}</code>:</strong></p>
+<pre><code>ALLOW storage:buckets:read WHERE storage:bucket-name IN (&quot;checkout_logs&quot;, &quot;checkout_spans&quot;, &quot;checkout_metrics&quot;);
+ALLOW storage:buckets:read WHERE storage:bucket-name IN (&quot;shared_logs&quot;, &quot;shared_spans&quot;);
+ALLOW storage:logs:read    WHERE storage:bucket-name = &quot;checkout_logs&quot;;
+ALLOW storage:spans:read   WHERE storage:bucket-name = &quot;checkout_spans&quot;;
+ALLOW storage:metrics:read WHERE storage:bucket-name = &quot;checkout_metrics&quot;;
+ALLOW storage:logs:read  WHERE storage:bucket-name = &quot;shared_logs&quot;;
+ALLOW storage:spans:read WHERE storage:bucket-name = &quot;shared_spans&quot;;
+</code></pre>
+<p><strong>Bucket + Security Context (Defense in Depth):</strong></p>
+<blockquote>
+<p><strong>Recommended (parameterized):</strong> Both fields parameterized; the bucket-match clause is the Gen3 data overlay on the <code>dt.security_context</code> spine.</p>
+</blockquote>
+<pre><code>// Parameterized defense-in-depth
+ALLOW storage:buckets:read WHERE storage:bucket-name = &quot;${bindParam:log-bucket}&quot;;
+ALLOW storage:logs:read WHERE storage:bucket-name = &quot;${bindParam:log-bucket}&quot;
+  AND storage:dt.security_context = &quot;${bindParam:team}&quot;;
+</code></pre>
+<p><strong>Resolved when bound with <code>{&quot;parameters&quot;: {&quot;log-bucket&quot;: &quot;checkout_logs&quot;, &quot;team&quot;: &quot;checkout&quot;}}</code>:</strong></p>
+<pre><code>ALLOW storage:buckets:read WHERE storage:bucket-name = &quot;checkout_logs&quot;;
+ALLOW storage:logs:read WHERE storage:bucket-name = &quot;checkout_logs&quot;
+  AND storage:dt.security_context = &quot;checkout&quot;;
+</code></pre>
+<h3>Pattern 4: Log Management</h3>
+<p><strong>Latest Dynatrace</strong> — log processing lives in OpenPipeline, whose configuration is stored in Settings 2.0 schemas (<code>builtin:openpipeline.logs.pipelines</code>, <code>.routing</code>, <code>.ingest-sources</code>):</p>
+<pre><code>// Read all logs, manage log pipelines (OpenPipeline)
+ALLOW storage:buckets:read WHERE storage:table-name = &quot;logs&quot;;
+ALLOW storage:logs:read;
+ALLOW settings:objects:read, settings:objects:write
+  WHERE settings:schemaId startsWith &quot;builtin:openpipeline.logs.&quot;;
+</code></pre>
+<p>Pipelines and ingest sources also have owners, who can read and write the objects they create; routing has no owner-based control, so a write grant on the routing schema — as in the statement above — covers every route in that scope.</p>
+<p><strong>Dynatrace Classic only</strong> — the classic log-processing schemas are removed in Latest Dynatrace (processing, log metrics and log security context are <em>&quot;Replaced by OpenPipeline&quot;</em>; log buckets by <em>&quot;Grail bucket assignment&quot;</em>). Keep this form only on an environment that has not moved:</p>
+<pre><code>// Classic log monitoring settings
+ALLOW settings:objects:read, settings:objects:write
+  WHERE settings:schemaId startsWith &quot;builtin:logmonitoring&quot;;
+</code></pre>
+<h3>Pattern 5: Dashboard Creator</h3>
+<pre><code>// Create and share dashboards (documents:share does not exist — sharing is direct-shares)
+ALLOW document:documents:read, document:documents:write, document:documents:delete;
+ALLOW document:direct-shares:read, document:direct-shares:write;
+ALLOW storage:buckets:read;
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
+      storage:events:read, storage:bizevents:read;
+</code></pre>
+<h3>Pattern 6: Alerting Manager</h3>
+<p><strong>Latest Dynatrace</strong> — problem notifications and alerting profiles are <em>&quot;Replaced by Workflows&quot;</em>, and custom alerts are Davis anomaly detectors (<code>builtin:davis.anomaly-detectors</code>):</p>
+<pre><code>// Manage notifications (workflows) and custom alerts (anomaly detectors)
+ALLOW automation:workflows:read, automation:workflows:write, automation:workflows:run;
+ALLOW settings:objects:read, settings:objects:write
+  WHERE settings:schemaId = &quot;builtin:davis.anomaly-detectors&quot;;
+</code></pre>
+<p><strong>Dynatrace Classic only</strong> — <code>builtin:alerting.profile</code>, <code>builtin:alerting.maintenance-window</code> and <code>builtin:problem.notifications</code> are not visible in Latest Dynatrace, so on a Latest environment these two statements grant nothing:</p>
+<pre><code>// Classic alerting profiles, maintenance windows and problem notifications
+ALLOW settings:objects:read, settings:objects:write
+  WHERE settings:schemaId startsWith &quot;builtin:alerting&quot;;
+ALLOW settings:objects:read, settings:objects:write
+  WHERE settings:schemaId startsWith &quot;builtin:problem&quot;;
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas">Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)</a> — <em>&quot;None of the schemas on this page are visible in Latest Dynatrace.&quot;</em>; <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/access-control">Owner-based access control in OpenPipeline (DT docs)</a> — <em>&quot;Owner-based control is available for pipelines and ingest sources, and not routing.&quot;</em>, <em>&quot;This policy gives users write permissions to all routes for a configuration scope and should therefore be used with caution.&quot;</em>; <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-davis-anomaly-detectors">Anomaly detectors schema table (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Pattern 7: SRE On-Call Access</h3>
+<pre><code>// Broad read access + problem/event visibility
+// (state:problems does not exist — Davis problems are events in Grail)
+ALLOW storage:buckets:read;
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
+      storage:events:read, storage:bizevents:read, storage:entities:read;
+ALLOW document:documents:read;
+ALLOW settings:objects:read;
+</code></pre>
+<h3>Pattern 8: Security Auditor</h3>
+<pre><code>// Read everything, write nothing (enumerated — wildcards are not supported)
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
+      storage:events:read, storage:bizevents:read, storage:entities:read,
+      storage:system:read, storage:buckets:read;
+ALLOW settings:objects:read, settings:schemas:read;
+ALLOW document:documents:read, document:direct-shares:read, document:environment-shares:read;
+ALLOW state:app-states:read, state:user-app-states:read;
+</code></pre>
+<h3>Pattern 9: Compliance-Scoped Access (Bucket-Based)</h3>
+<pre><code>// Access only to PCI-compliant data bucket
+ALLOW storage:buckets:read WHERE storage:bucket-name IN (&quot;pci_logs&quot;, &quot;pci_spans&quot;);
+ALLOW storage:logs:read WHERE storage:bucket-name = &quot;pci_logs&quot;;
+ALLOW storage:spans:read WHERE storage:bucket-name = &quot;pci_spans&quot;;
+// No access to non-PCI buckets
+</code></pre>
+<h3>Pattern 10: Tiered Environment Access (Management Zones)</h3>
+<p>Grant full access in lower environments and read-only in production — using <code>environment:roles:*</code> permissions scoped by the <code>environment:management-zone</code> attribute (the classic-role surface, complementary to the Grail patterns above):</p>
+<pre><code>// Full access in dev and hardening
+ALLOW environment:roles:viewer, environment:roles:manage-settings
+WHERE environment:management-zone IN (&quot;dev&quot;, &quot;hardening&quot;);
+
+// Read-only in production
+ALLOW environment:roles:viewer
+WHERE environment:management-zone IN (&quot;prod&quot;);
+</code></pre>
+<p>This is the canonical app-developer shape: iterate freely in non-prod, observe-only in prod. Add <code>environment:roles:logviewer</code> to the prod statement if the team needs production log access without settings rights.</p>
+<h3>Choosing Between Patterns</h3>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Recommended Pattern</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Teams can share data flexibly</td>
+<td>Pattern 2 (Security Context)</td>
+</tr>
+<tr>
+<td>Teams must never see each other's data</td>
+<td><strong>Pattern 2 (Security Context)</strong>, enforced by enrichment coverage on every signal</td>
+</tr>
+<tr>
+<td>Compliance/regulatory data separation</td>
+<td><strong>Pattern 9 (Bucket-Based)</strong></td>
+</tr>
+<tr>
+<td>Temporary project access</td>
+<td>Pattern 2 (Security Context)</td>
+</tr>
+<tr>
+<td>Data already split into per-team buckets for cost allocation</td>
+<td><strong>Pattern 3 (Buckets)</strong></td>
+</tr>
+<tr>
+<td>Full in non-prod, read-only in prod</td>
+<td><strong>Pattern 10 (Management Zones)</strong></td>
+</tr>
+</tbody>
+</table>
+<p><a id="default-vs-custom-policies"></a></p>
+<h2>6. Default vs Custom Policies</h2>
+<h3>Built-in Default Policies</h3>
+<p>Dynatrace provides default policies for common use cases:</p>
+<table>
+<thead>
+<tr>
+<th>Policy</th>
+<th>Description</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Standard User</strong></td>
+<td>Access the environment and run Dynatrace apps</td>
+<td>Most users</td>
+</tr>
+<tr>
+<td><strong>Pro User</strong></td>
+<td>Standard, plus build and run apps and workflows</td>
+<td>Team members</td>
+</tr>
+<tr>
+<td><strong>Admin User</strong></td>
+<td>Administrative access across all platform services</td>
+<td>Administrators</td>
+</tr>
+<tr>
+<td><code>account-viewer</code> (account permission)</td>
+<td>View account</td>
+<td>Cross-team visibility</td>
+</tr>
+<tr>
+<td><code>account-user-management</code> (account permission)</td>
+<td>Manage users, groups, policies</td>
+<td>IAM administrators</td>
+</tr>
+</tbody>
+</table>
+<h3>Reach for Managed Policies First</h3>
+<p><strong>Default to the policies Dynatrace ships before authoring custom ones.</strong> Most standard scenarios — monitoring read access, app users, automation access — are already covered by managed policies; hand-rolling a custom policy for these is extra surface to maintain and audit. Author custom policies only when no managed policy fits (team-scoped data, specific single-capability grants, compliance constraints).</p>
+<p>Commonly used managed policies for Grail and AppEngine onboarding:</p>
+<table>
+<thead>
+<tr>
+<th>Managed policy</th>
+<th>Grants</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>All Grail data read access</strong></td>
+<td>Unrestricted Grail read</td>
+</tr>
+<tr>
+<td><strong>Read <code>&lt;table&gt;</code></strong></td>
+<td>Per-table read (e.g. <em>Read Logs</em>, <em>Read Metrics</em>, <em>Read Spans</em>, <em>Read System Events</em>)</td>
+</tr>
+<tr>
+<td><strong>Standard User / Pro User / Admin User</strong></td>
+<td>App use, app and workflow building, administration (see the table above)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Legacy default policies.</strong> <em>AppEngine - User</em>, <em>AppEngine - Admin</em>, <em>AppEngine - Developer access</em>, <em>AppEngine - Manage EdgeConnect</em>, <em>AutomationEngine - User access</em>, <em>AutomationEngine - Admin access</em>, every <em>Environment role - …</em> policy (<em>Access environment</em>, <em>Change monitoring settings</em>, <em>View logs</em>, <em>Download/install OneAgent</em>, <em>Configure capture of sensitive data</em>, …), <em>Extensions - Admin access</em>, <em>Extensions - User access</em>, <em>Settings Reader</em>, <em>Settings Writer</em>, <em>Storage All System Data Read</em>, <em>Storage Default Monitoring Read</em> and others are now listed as legacy: Dynatrace states they <em>&quot;are not accessible for new policy assignments, but existing assignments of these policies remain until removed.&quot;</em> Use the role policies and the <em>Read <code>&lt;table&gt;</code></em> policies for new bindings; where a legacy policy such as <em>Settings Writer</em> has no direct successor, write a custom policy (for example <code>settings:objects:read</code>, <code>settings:objects:write</code> and <code>settings:schemas:read</code>, scoped by <code>settings:schemaId</code> or <code>settings:dt.security_context</code>). Verify the current catalog in your tenant's Account Management — it evolves.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies">Default policies (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>When to Use Default Policies</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Simple permission levels</td>
+<td>Use defaults</td>
+</tr>
+<tr>
+<td>Quick onboarding</td>
+<td>Use defaults</td>
+</tr>
+<tr>
+<td>Standard roles</td>
+<td>Use defaults</td>
+</tr>
+</tbody>
+</table>
+<h3>When to Create Custom Policies</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Team-scoped data access</td>
+<td>Custom policy</td>
+</tr>
+<tr>
+<td>Specific capability (logs only)</td>
+<td>Custom policy</td>
+</tr>
+<tr>
+<td>Compliance requirements</td>
+<td>Custom policy</td>
+</tr>
+<tr>
+<td>Least privilege needs</td>
+<td>Custom policy</td>
+</tr>
+</tbody>
+</table>
+<h3>Combining Default and Custom</h3>
+<p>Groups can have both:</p>
+<pre><code>Group: dt-checkout-editors
+├── Default Policy: Standard User (environment and app access)
+├── Default Policy: Read Logs / Read Spans … (data access — Standard User has no Grail table reads)
+└── Custom Policy: checkout-write-access (team-specific writes)
+</code></pre>
+<p>This provides base access plus targeted write permissions. <em>Standard User</em> grants app, document, workflow and settings-read access but no <code>storage:logs:read</code>-style table reads, so pair it with a data-access policy.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies">Default policies (DT docs)</a> — <em>Standard User</em>, <em>All Grail data read access</em> and legacy-policy statements, read 10/13/2026.</sub></p>
+</blockquote>
+<p><a id="policy-testing-and-validation"></a></p>
+<h2>7. Policy Testing and Validation</h2>
+<h3>Testing Methodology</h3>
+<ol>
+<li><strong>Create policy in test environment</strong> (or account)</li>
+<li><strong>Assign to test group</strong> with a test user</li>
+<li><strong>Verify intended access</strong> works</li>
+<li><strong>Verify unintended access</strong> is blocked</li>
+<li><strong>Document results</strong> and adjust</li>
+</ol>
+<h3>Common Validation Tests</h3>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Expected Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Query logs in scope</td>
+<td>Success</td>
+</tr>
+<tr>
+<td>Query logs out of scope</td>
+<td>Empty or denied</td>
+</tr>
+<tr>
+<td>Modify settings in scope</td>
+<td>Success</td>
+</tr>
+<tr>
+<td>Modify settings out of scope</td>
+<td>Denied</td>
+</tr>
+<tr>
+<td>Create dashboard</td>
+<td>Success (if allowed)</td>
+</tr>
+</tbody>
+</table>
+<h3>Debugging Policy Issues</h3>
+<p>If access isn't working as expected:</p>
+<ol>
+<li><strong>Check group membership</strong> - Is user in the correct group?</li>
+<li><strong>Check policy assignment</strong> - Is policy assigned to group?</li>
+<li><strong>Check boundary</strong> - Does boundary allow access to the entity?</li>
+<li><strong>Check conditions</strong> - Do condition values match?</li>
+<li><strong>Check security context</strong> - Is data tagged correctly?</li>
+</ol>
+<p>See <strong>IAM-09: Troubleshooting Access Issues</strong> for detailed debugging.</p>
+<p><a id="gitops-for-policies"></a></p>
+<h2>8. GitOps for Policies</h2>
+<p>Version control your policies for audit trail and peer review.</p>
+<h3>Policy as Code Structure</h3>
+<pre><code>iam-config/
+├── policies/
+│   ├── team-checkout-access.yaml
+│   ├── team-payments-access.yaml
+│   ├── sre-oncall.yaml
+│   └── security-auditor.yaml
+├── groups/
+│   └── group-assignments.yaml
+└── README.md
+</code></pre>
+<h3>Policy YAML Format (Monaco)</h3>
+<p>Monaco manages IAM as <strong>account resources</strong> — <code>policies:</code>, <code>groups:</code> and <code>boundaries:</code> are dedicated top-level types in YAML, not Settings schemas, and no JSON templates are needed. <code>monaco deploy</code> ignores account configuration — Monaco has dedicated commands for account resources, which authenticate with an OAuth client configured under <code>accounts:</code> in <code>manifest.yaml</code>.</p>
+<p><strong>Policy and group (documented account format):</strong></p>
+<pre><code class="language-yaml"># account/iam.yaml
+policies:
+  - name: team-data-reader
+    id: team-data-reader
+    level:
+      type: account
+    description: Read logs and spans — scoped per team by the boundary on each binding
+    policy: |-
+      ALLOW storage:buckets:read;
+      ALLOW storage:logs:read;
+      ALLOW storage:spans:read;
+
+boundaries:
+  - id: bnd-team-checkout
+    name: bnd-team-checkout
+    query: storage:dt.security_context IN (&quot;checkout&quot;);
+
+groups:
+  - name: dt-checkout-team
+    id: dt-checkout-team
+    description: Checkout team
+    environments:
+      - environment: abc12345
+        policies:
+          - policy:
+              type: reference
+              id: team-data-reader
+            boundaries:
+              - type: reference
+                id: bnd-team-checkout
+</code></pre>
+<blockquote>
+<p><strong>Binding parameters are not in Monaco's documented account format.</strong> The page documents policies, groups, boundaries and the policy-to-group binding (with boundaries), but not binding <code>parameters</code>, so a <code>${bindParam:team}</code> template cannot be given its value here. Bind templated policies with parameters through the IAM API or Terraform (<code>dynatrace_iam_policy_bindings_v2</code>) — see <strong>IAM-10</strong> and <strong>IAM-95</strong>. The example above keeps the policy unparameterized and scopes it with a per-team boundary instead.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/account-configuration">Monaco account configuration (DT docs)</a> — <em>&quot;Using Monaco, you can define users, service users, groups, policies, and boundaries as dedicated types in YAML configuration files.&quot;</em></sub></p>
+</blockquote>
+<h3>GitOps Workflow</h3>
+<ol>
+<li><strong>Branch</strong>: Create feature branch for policy change</li>
+<li><strong>Edit</strong>: Modify policy YAML</li>
+<li><strong>Review</strong>: Submit PR, get peer review</li>
+<li><strong>Test</strong>: Deploy to test environment</li>
+<li><strong>Approve</strong>: Merge after validation</li>
+<li><strong>Deploy</strong>: CI/CD applies to production</li>
+</ol>
+<h3>Benefits</h3>
+<table>
+<thead>
+<tr>
+<th>Benefit</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audit Trail</strong></td>
+<td>Git history shows who changed what, when</td>
+</tr>
+<tr>
+<td><strong>Peer Review</strong></td>
+<td>Changes reviewed before apply</td>
+</tr>
+<tr>
+<td><strong>Rollback</strong></td>
+<td>Easy revert to previous state</td>
+</tr>
+<tr>
+<td><strong>Documentation</strong></td>
+<td>Policies are self-documenting</td>
+</tr>
+<tr>
+<td><strong>Consistency</strong></td>
+<td>Same process for all changes</td>
+</tr>
+</tbody>
+</table>
+<p>See <strong>AUTOM-03: Monaco</strong> for full implementation details.</p>
+<p><a id="policy-assessment-queries"></a></p>
+<h2>9. Policy Assessment Queries</h2>
+<p>Use these queries to audit policy-related activity.</p>
+<blockquote>
+<p><strong>Group, policy, boundary and binding changes are account-level, and this environment's audit events are not their change log.</strong> <em>&quot;Dynatrace provides audit logs of changes to your account-level identity and access (IAM) management settings&quot;</em> — <em>&quot;Administrators can view these logs in Account Management &gt; Settings &gt; Audit log&quot;</em>, where they are kept for up to ten years (also queryable through the Account Audits API). The same page says <em>&quot;The Account Management audit log doesn't yet cover every account-level change. Some IAM configuration and login events aren't recorded.&quot;</em> The query below shows IAM API calls made <strong>through this environment</strong> — useful for spotting automation, not a change log. These events show IAM API calls made through this environment, including environment-level policy-binding changes; scheduled <code>/lookups/iam_*</code> file uploads are excluded by the query. Account-level group and policy changes are recorded in the account audit log.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/account-management/audit-logs">Account Management audit logs (DT docs)</a>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// IAM API activity in this environment (policy changes themselves: account audit log)
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter in(event.type, {&quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;CREATE&quot;, &quot;UPDATE&quot;}) and contains(resource, &quot;iam&quot;)
+| filter not startsWith(resource, &quot;/lookups/&quot;)
+| fields timestamp, user.id, event.type, resource, event.outcome
+| sort timestamp desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// Find access denied events
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter event.outcome == &quot;403&quot;
+| fields timestamp, user.id, event.type, resource, origin.address
+| sort timestamp desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// Summarize permission-related audit events
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| summarize events = count(), by:{event.outcome, event.type}
+| sort events desc
+| limit 25
+</code></pre>
+<h2>Next Steps</h2>
+<p>With policies defined, complete your access control setup:</p>
+<h3>Recommended Path</h3>
+<ol>
+<li><strong>IAM-05: Boundary Design Patterns</strong> - Control what entities users can see</li>
+<li><strong>IAM-06: User Lifecycle and Provisioning</strong> - Automate user management</li>
+<li><strong>IAM-07: Audit Logging and Compliance</strong> - Monitor policy effectiveness</li>
+<li><strong>IAM-10: Templated Policy-Group Assignments</strong> - Reusable parameterized policies for team/environment scoping at scale</li>
+<li><strong>IAM-11: Policy Persona Workshop</strong> - Design persona-based policies from stakeholder requirements using a structured 6-goal methodology</li>
+</ol>
+<h3>Policy Checklist</h3>
+<p>Before moving on, ensure you have:</p>
+<ul>
+<li>[ ] Understood policy statement syntax</li>
+<li>[ ] Reviewed services and actions reference</li>
+<li>[ ] Designed policies for your team structure</li>
+<li>[ ] Decided on default vs custom policy usage</li>
+<li>[ ] Established testing methodology</li>
+<li>[ ] Considered GitOps for policy management</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Policy fundamentals and scope levels</li>
+<li>Statement syntax: <code>ALLOW &lt;service&gt;:&lt;resource&gt;:&lt;action&gt;</code></li>
+<li>Services and actions reference</li>
+<li>Condition expressions for fine-grained control</li>
+<li>Ten common policy patterns</li>
+<li>When to use default vs custom policies</li>
+<li>Policy testing and validation approaches</li>
+<li>GitOps for policy version control</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">Policy Statements Reference</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management">Permission Management</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies">Account Policies</a></li>
+</ul>
+<h3>References</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a> — authoritative permission + attribute catalog</li>
+<li><a href="https://www.dynatrace.com/news/blog/tailored-access-management-for-dynatrace-part-1-one-configuration-for-all-authorization-requirements/">Tailored access management, Part 1 — one configuration for all authorization requirements (Dynatrace News)</a></li>
+<li><a href="https://www.dynatrace.com/news/blog/tailored-access-management-part-2-onboard-users-to-grail-and-appengine/">Tailored access management, Part 2 — onboard users to Grail and AppEngine (Dynatrace News)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

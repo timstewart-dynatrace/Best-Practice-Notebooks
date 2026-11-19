@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M2S-03: Step 3 — Design: Create Target Architecture</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">M2S — Managed to SaaS Migration</a><span class="sep">/</span><span aria-current="page">M2S-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>M2S-03: Step 3 — Design: Create Target Architecture</h1>
+<blockquote>
+<p><strong>Series:</strong> M2S — Managed to SaaS Migration | <strong>Notebook:</strong> 3 of 9 | <strong>Phase:</strong> Plan | <strong>Step:</strong> Design | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<p>With discovery and strategy complete, it's time to design the target architecture for your Dynatrace SaaS environment. This step produces the technical blueprints that guide every subsequent migration activity—network connectivity, ActiveGate topology, security controls, and high availability.</p>
+<blockquote>
+<p><strong>M2S Migration Journey — 3 Phases / 9 Steps</strong></p>
+<p><strong>Plan:</strong> 1. Discover | 2. Strategize | <strong>3. Design</strong></p>
+<p><strong>Upgrade:</strong> 4. Prepare | 5. Execute | 6. Integrate</p>
+<p><strong>Run:</strong> 7. Enable | 8. Expand | 9. Optimize</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#network-architecture">Network Architecture</a></li>
+<li><a href="#network-zones">Network Zones</a></li>
+<li><a href="#activegate-design">ActiveGate Design</a></li>
+<li><a href="#security-architecture">Security Architecture</a></li>
+<li><a href="#high-availability-design">High Availability Design</a></li>
+<li><a href="#architecture-design-checklist">Architecture Design Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<p>Before starting this notebook, you should have:</p>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Steps 1–2 completed</strong></td>
+<td>Discovery inventory and migration strategy defined</td>
+</tr>
+<tr>
+<td><strong>SaaS tenant provisioned</strong></td>
+<td>Tenant ID and URL available</td>
+</tr>
+<tr>
+<td><strong>Network diagrams</strong></td>
+<td>Current Managed network topology documented</td>
+</tr>
+<tr>
+<td><strong>Firewall change process</strong></td>
+<td>Ability to request firewall rule changes</td>
+</tr>
+<tr>
+<td><strong>Security stakeholders engaged</strong></td>
+<td>Security and identity team involvement</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>The Settings 2.0 schema for network zones (<code>builtin:networkzones.zones</code>) is catalogued alongside every other domain's schema in <strong>AUTOM-02</strong>'s consolidated Settings 2.0 Schema Catalog.</p>
+</blockquote>
+<hr />
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ul>
+<li>Design the network architecture for SaaS connectivity</li>
+<li>Plan network zone topology for optimized traffic routing</li>
+<li>Size and place ActiveGates for your environment</li>
+<li>Configure security controls including SSO and IAM</li>
+<li>Address high availability requirements</li>
+<li>Complete the architecture design checklist</li>
+</ul>
+<hr />
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI3MDAiIGhlaWdodD0iNDAwIiB2aWV3Qm94PSIwIDAgNzAwIDQwMCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZjE3MmEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWUyOTNiIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJzYWFzR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNjM2NmYxIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzRmNDZlNSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYWdHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNGI4YTYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMGQ5NDg4Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJob3N0R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNjQ3NDhiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzQ3NTU2OSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9InNoYWRvdyIgeD0iLTIwJSIgeT0iLTIwJSIgd2lkdGg9IjE0MCUiIGhlaWdodD0iMTQwJSI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSI0IiBzdGREZXZpYXRpb249IjQiIGZsb29kLW9wYWNpdHk9IjAuMyIvPgogICAgPC9maWx0ZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd2hlYWQiIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzE0YjhhNiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjcwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9InVybCgjYmdHcmFkKSIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjM1MCIgeT0iMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmOGZhZmMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiPlNhYVMgTmV0d29yayBBcmNoaXRlY3R1cmU8L3RleHQ+CgogIDwhLS0gQ2xvdWQgU2VjdGlvbiAoU2FhUykgLS0+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNDUwLCA1MCkiPgogICAgPHJlY3Qgd2lkdGg9IjIyMCIgaGVpZ2h0PSIxMTAiIHJ4PSIxMCIgZmlsbD0iIzFlMjkzYiIgc3Ryb2tlPSIjNjM2NmYxIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjUsNSIvPgogICAgPHRleHQgeD0iMTEwIiB5PSIyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2E1YjRmYyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5EWU5BVFJBQ0UgQ0xPVUQ8L3RleHQ+CgogICAgPHJlY3QgeD0iMzUiIHk9IjM1IiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjU1IiByeD0iOCIgZmlsbD0idXJsKCNzYWFzR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgICA8dGV4dCB4PSIxMTAiIHk9IjYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCI+RHluYXRyYWNlIFNhYVM8L3RleHQ+CiAgICA8dGV4dCB4PSIxMTAiIHk9Ijc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYzdkMmZlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPnt0ZW5hbnR9LmxpdmUuZHluYXRyYWNlLmNvbTwvdGV4dD4KICA8L2c+CgogIDwhLS0gQ3VzdG9tZXIgTmV0d29yayBTZWN0aW9uIC0tPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDIwLCAxNzUpIj4KICAgIDxyZWN0IHdpZHRoPSI2NTAiIGhlaWdodD0iMjAwIiByeD0iMTAiIGZpbGw9IiMxZTI5M2IiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSIzMjUiIHk9IjIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPkNVU1RPTUVSIE5FVFdPUks8L3RleHQ+CgogICAgPCEtLSBGaXJld2FsbCAtLT4KICAgIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDUzMCwgMzUpIj4KICAgICAgPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjUwIiByeD0iNCIgZmlsbD0iIzMzNDE1NSIgc3Ryb2tlPSIjZjk3MzE2IiBzdHJva2Utd2lkdGg9IjIiLz4KICAgICAgPHRleHQgeD0iNDAiIHk9IjI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZjk3MzE2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIj5GaXJld2FsbDwvdGV4dD4KICAgICAgPHRleHQgeD0iNDAiIHk9IjQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSI+UG9ydCA0NDM8L3RleHQ+CiAgICA8L2c+CgogICAgPCEtLSBBY3RpdmVHYXRlIC0tPgogICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzMwLCA1NSkiPgogICAgICA8cmVjdCB3aWR0aD0iMTQwIiBoZWlnaHQ9IjcwIiByeD0iOCIgZmlsbD0idXJsKCNhZ0dyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogICAgICA8dGV4dCB4PSI3MCIgeT0iMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIj5BY3RpdmVHYXRlPC90ZXh0PgogICAgICA8dGV4dCB4PSI3MCIgeT0iNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNhN2YzZDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5Ij4oT3B0aW9uYWwpPC90ZXh0PgogICAgICA8dGV4dCB4PSI3MCIgeT0iNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNhN2YzZDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5Ij5Qb3J0IDk5OTk8L3RleHQ+CiAgICA8L2c+CgogICAgPCEtLSBIb3N0cyB3aXRoIE9uZUFnZW50IC0tPgogICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzAsIDEwMCkiPgogICAgICA8IS0tIEhvc3QgMSAtLT4KICAgICAgPHJlY3Qgd2lkdGg9IjkwIiBoZWlnaHQ9IjcwIiByeD0iNiIgZmlsbD0idXJsKCNob3N0R3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgICAgIDx0ZXh0IHg9IjQ1IiB5PSIyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiPkhvc3QgMTwvdGV4dD4KICAgICAgPHJlY3QgeD0iMTAiIHk9IjM1IiB3aWR0aD0iNzAiIGhlaWdodD0iMjUiIHJ4PSI0IiBmaWxsPSIjM2I4MmY2Ii8+CiAgICAgIDx0ZXh0IHg9IjQ1IiB5PSI1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5Ij5PbmVBZ2VudDwvdGV4dD4KCiAgICAgIDwhLS0gSG9zdCAyIC0tPgogICAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMDUsIDApIj4KICAgICAgICA8cmVjdCB3aWR0aD0iOTAiIGhlaWdodD0iNzAiIHJ4PSI2IiBmaWxsPSJ1cmwoI2hvc3RHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICAgICAgICA8dGV4dCB4PSI0NSIgeT0iMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIj5Ib3N0IDI8L3RleHQ+CiAgICAgICAgPHJlY3QgeD0iMTAiIHk9IjM1IiB3aWR0aD0iNzAiIGhlaWdodD0iMjUiIHJ4PSI0IiBmaWxsPSIjM2I4MmY2Ii8+CiAgICAgICAgPHRleHQgeD0iNDUiIHk9IjUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiPk9uZUFnZW50PC90ZXh0PgogICAgICA8L2c+CgogICAgICA8IS0tIEhvc3QgMyAtLT4KICAgICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjEwLCAwKSI+CiAgICAgICAgPHJlY3Qgd2lkdGg9IjkwIiBoZWlnaHQ9IjcwIiByeD0iNiIgZmlsbD0idXJsKCNob3N0R3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgICAgICAgPHRleHQgeD0iNDUiIHk9IjI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCI+SG9zdCAzPC90ZXh0PgogICAgICAgIDxyZWN0IHg9IjEwIiB5PSIzNSIgd2lkdGg9IjcwIiBoZWlnaHQ9IjI1IiByeD0iNCIgZmlsbD0iIzNiODJmNiIvPgogICAgICAgIDx0ZXh0IHg9IjQ1IiB5PSI1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5Ij5PbmVBZ2VudDwvdGV4dD4KICAgICAgPC9nPgogICAgPC9nPgogIDwvZz4KCiAgPCEtLSBDb25uZWN0aW9uIExpbmVzIC0tPgogIDwhLS0gSG9zdHMgdG8gQWN0aXZlR2F0ZSAtLT4KICA8cGF0aCBkPSJNMTIwIDMzNSBRMjAwIDI5MCAzOTUgMjg1IiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWRhc2hhcnJheT0iNCwyIi8+CiAgPHBhdGggZD0iTTIyNSAzMzUgUTMwMCAzMDAgMzk1IDI4NSIgc3Ryb2tlPSIjM2I4MmY2IiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIHN0cm9rZS1kYXNoYXJyYXk9IjQsMiIvPgogIDxwYXRoIGQ9Ik0zMzAgMzM1IEwzOTUgMjg1IiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWRhc2hhcnJheT0iNCwyIi8+CgogIDwhLS0gQWN0aXZlR2F0ZSB0byBGaXJld2FsbCAtLT4KICA8cGF0aCBkPSJNNDkwIDI2NSBMNTcwIDI1NSIgc3Ryb2tlPSIjMTRiOGE2IiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3doZWFkKSIvPgoKICA8IS0tIEZpcmV3YWxsIHRvIFNhYVMgLS0+CiAgPHBhdGggZD0iTTU5MCAxOTUgTDU5MCAxNDUiIHN0cm9rZT0iIzE0YjhhNiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93aGVhZCkiLz4KCiAgPCEtLSBEaXJlY3QgY29ubmVjdGlvbiBvcHRpb24gKGRvdHRlZCkgLS0+CiAgPHBhdGggZD0iTTIwMCAzMTUgUTM1MCAxNzAgNTEwIDE0NSIgc3Ryb2tlPSIjZjk3MzE2IiBzdHJva2Utd2lkdGg9IjEiIGZpbGw9Im5vbmUiIHN0cm9rZS1kYXNoYXJyYXk9IjgsNCIvPgogIDx0ZXh0IHg9IjMxMCIgeT0iMjAwIiBmaWxsPSIjZjk3MzE2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSI+RGlyZWN0IChvcHRpb25hbCk8L3RleHQ+CgogIDwhLS0gTGVnZW5kIC0tPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDMwLCA1NSkiPgogICAgPHJlY3Qgd2lkdGg9IjE2MCIgaGVpZ2h0PSI5NSIgcng9IjYiIGZpbGw9IiMxZTI5M2IiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgICA8dGV4dCB4PSI4MCIgeT0iMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmOGZhZmMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiPkNvbm5lY3Rpb24gT3B0aW9uczwvdGV4dD4KCiAgICA8bGluZSB4MT0iMTUiIHkxPSIzNSIgeDI9IjQ1IiB5Mj0iMzUiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI0LDIiLz4KICAgIDx0ZXh0IHg9IjU1IiB5PSIzOCIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiPlZpYSBBY3RpdmVHYXRlPC90ZXh0PgoKICAgIDxsaW5lIHgxPSIxNSIgeTE9IjU1IiB4Mj0iNDUiIHkyPSI1NSIgc3Ryb2tlPSIjZjk3MzE2IiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1kYXNoYXJyYXk9IjgsNCIvPgogICAgPHRleHQgeD0iNTUiIHk9IjU4IiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSI+RGlyZWN0IHRvIFNhYVM8L3RleHQ+CgogICAgPGxpbmUgeDE9IjE1IiB5MT0iNzUiIHgyPSI0NSIgeTI9Ijc1IiBzdHJva2U9IiMxNGI4YTYiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPHRleHQgeD0iNTUiIHk9Ijc4IiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSI+QUcgdG8gU2FhUzwvdGV4dD4KICA8L2c+Cjwvc3ZnPgo=" alt="Network Architecture" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Layer | Component | Direction |
+|-------|-----------|----------|
+| Hosts | OneAgent | Outbound to SaaS or ActiveGate |
+| Routing | ActiveGate | Outbound to SaaS (port 443) |
+| Cloud | SaaS Cluster | Receives all telemetry data |
+For environments where SVG doesn't render
+-->
+<hr />
+<p><a id="network-architecture"></a></p>
+<h2>1. Network Architecture</h2>
+<p>The most significant architectural change when moving to SaaS is connectivity—your monitored infrastructure must reach Dynatrace SaaS endpoints over the internet.</p>
+<h3>1.1 SaaS Endpoints</h3>
+<p>All communication uses outbound HTTPS (port 443).</p>
+<table>
+<thead>
+<tr>
+<th>Endpoint Pattern</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>{tenant-id}.live.dynatrace.com</code></td>
+<td>Main SaaS cluster (agent communication, API)</td>
+</tr>
+<tr>
+<td><code>{tenant-id}.apps.dynatrace.com</code></td>
+<td>Apps and platform services</td>
+</tr>
+</tbody>
+</table>
+<h3>1.2 Connectivity Options</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>OneAgent →</th>
+<th>ActiveGate →</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Direct</strong></td>
+<td>SaaS (443)</td>
+<td>N/A</td>
+<td>Open internet access</td>
+</tr>
+<tr>
+<td><strong>Via Proxy</strong></td>
+<td>Proxy → SaaS</td>
+<td>N/A</td>
+<td>Proxy-controlled environments</td>
+</tr>
+<tr>
+<td><strong>Via ActiveGate</strong></td>
+<td>ActiveGate (9999)</td>
+<td>SaaS (443)</td>
+<td>Restricted networks</td>
+</tr>
+<tr>
+<td><strong>Via AG + Proxy</strong></td>
+<td>ActiveGate (9999)</td>
+<td>Proxy → SaaS (443)</td>
+<td>Most restricted environments</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Recommendation:</strong> For environments where hosts cannot reach the internet directly, deploy ActiveGates as routing proxies. OneAgents connect to the ActiveGate on port 9999; the ActiveGate forwards traffic to SaaS on port 443.</p>
+</blockquote>
+<h3>1.3 Firewall Requirements</h3>
+<p><strong>Minimum Requirements (Direct Connectivity):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Destination</th>
+<th>Port</th>
+<th>Protocol</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OneAgent hosts</td>
+<td><code>{tenant-id}.live.dynatrace.com</code></td>
+<td>443</td>
+<td>HTTPS</td>
+</tr>
+<tr>
+<td>OneAgent hosts</td>
+<td><code>{tenant-id}.apps.dynatrace.com</code></td>
+<td>443</td>
+<td>HTTPS</td>
+</tr>
+</tbody>
+</table>
+<p><strong>ActiveGate Routing (Restricted Networks):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Destination</th>
+<th>Port</th>
+<th>Protocol</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OneAgent hosts</td>
+<td>ActiveGate</td>
+<td>9999</td>
+<td>HTTPS</td>
+</tr>
+<tr>
+<td>ActiveGate</td>
+<td><code>{tenant-id}.live.dynatrace.com</code></td>
+<td>443</td>
+<td>HTTPS</td>
+</tr>
+<tr>
+<td>ActiveGate</td>
+<td><code>{tenant-id}.apps.dynatrace.com</code></td>
+<td>443</td>
+<td>HTTPS</td>
+</tr>
+</tbody>
+</table>
+<h3>1.4 DNS Resolution</h3>
+<p>Ensure DNS can resolve these domains from all hosts and ActiveGates:</p>
+<ul>
+<li><code>{tenant-id}.live.dynatrace.com</code></li>
+<li><code>{tenant-id}.apps.dynatrace.com</code></li>
+<li><code>*.dynatrace.com</code> (for additional services and updates)</li>
+</ul>
+<h3>1.5 Connectivity Testing</h3>
+<p>Test connectivity from representative hosts before migration:</p>
+<pre><code class="language-bash"># Test HTTPS connectivity to SaaS
+curl -v https://{tenant-id}.live.dynatrace.com/api/v1/time
+
+# Test apps endpoint
+curl -v https://{tenant-id}.apps.dynatrace.com
+
+# Test from behind ActiveGate (verify AG is reachable)
+curl -v https://{activegate-host}:9999
+</code></pre>
+<blockquote>
+<p><strong>Tip:</strong> Run these tests from multiple network segments to identify connectivity gaps before migration begins.</p>
+</blockquote>
+<h3>1.6 Proxy Configuration</h3>
+<p>If a proxy is required for outbound HTTPS:</p>
+<pre><code class="language-bash"># OneAgent proxy configuration
+sudo /opt/dynatrace/oneagent/agent/tools/oneagentctl --set-proxy=http://proxy.example.com:8080
+
+# ActiveGate proxy configuration — the [http.client] section of
+# /var/lib/dynatrace/gateway/config/custom.properties:
+#   [http.client]
+#   proxy-server=proxy.example.com
+#   proxy-port=8080
+# ActiveGate 1.333+ can set the same keys with agctl:
+sudo agctl property set --section=http.client --key=proxy-server --value=proxy.example.com
+sudo agctl property set --section=http.client --key=proxy-port --value=8080
+# Restart the ActiveGate service afterwards.
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/configuration/set-up-proxy-authentication-for-activegate">Proxy for ActiveGate (DT docs)</a> — <em>&quot;Specify the proxy-related parameters in the [http.client] section of the custom.properties file&quot;</em>.</sub></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Proxy Consideration</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SSL inspection</td>
+<td>Must not break TLS to Dynatrace endpoints</td>
+</tr>
+<tr>
+<td>Authentication</td>
+<td>Supported (basic auth in proxy URL)</td>
+</tr>
+<tr>
+<td>Allowlist</td>
+<td><code>*.dynatrace.com</code> on port 443</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI3MDAiIGhlaWdodD0iMzUwIiB2aWV3Qm94PSIwIDAgNzAwIDQwMCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZjE3MmEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWUyOTNiIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ6b25lMUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE0YjhhNiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZDk0ODgiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InpvbmUyR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM2I4MmY2Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzI1NjNlYiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic2Fhc0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzYzNjZmMSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM0ZjQ2ZTUiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJzaGFkb3ciIHg9Ii0yMCUiIHk9Ii0yMCUiIHdpZHRoPSIxNDAlIiBoZWlnaHQ9IjE0MCUiPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIyIiBkeT0iNCIgc3RkRGV2aWF0aW9uPSI0IiBmbG9vZC1vcGFjaXR5PSIwLjMiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0iYXJyb3doZWFkIiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM5NGEzYjgiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI3MDAiIGhlaWdodD0iMzUwIiBmaWxsPSJ1cmwoI2JnR3JhZCkiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSIzNTAiIHk9IjMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZjhmYWZjIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIj5OZXR3b3JrIFpvbmVzIGZvciBPcHRpbWl6ZWQgUm91dGluZzwvdGV4dD4KCiAgPCEtLSBab25lIDE6IERhdGFjZW50ZXIgRWFzdCAtLT4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgzMCwgNTUpIj4KICAgIDxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjMwIiByeD0iOCIgZmlsbD0iIzFlMjkzYiIgc3Ryb2tlPSIjMTRiOGE2IiBzdHJva2Utd2lkdGg9IjIiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjM1IiByeD0iOCIgZmlsbD0idXJsKCN6b25lMUdyYWQpIi8+CiAgICA8cmVjdCB5PSIyNyIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI4IiBmaWxsPSJ1cmwoI3pvbmUxR3JhZCkiLz4KICAgIDx0ZXh0IHg9IjEwMCIgeT0iMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIj5kYXRhY2VudGVyLWVhc3Q8L3RleHQ+CgogICAgPCEtLSBBY3RpdmVHYXRlcyAtLT4KICAgIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDE1LCA1MCkiPgogICAgICA8cmVjdCB3aWR0aD0iMTcwIiBoZWlnaHQ9IjQwIiByeD0iNCIgZmlsbD0iIzBkOTQ4OCIvPgogICAgICA8dGV4dCB4PSI4NSIgeT0iMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIj5BY3RpdmVHYXRlIChQcmltYXJ5KTwvdGV4dD4KICAgICAgPHRleHQgeD0iODUiIHk9IjMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYTdmM2QwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPkFHLUVBU1QtMDEsIEFHLUVBU1QtMDI8L3RleHQ+CiAgICA8L2c+CgogICAgPCEtLSBPbmVBZ2VudHMgLS0+CiAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxNSwgMTA1KSI+CiAgICAgIDxyZWN0IHdpZHRoPSIxNzAiIGhlaWdodD0iNTUiIHJ4PSI0IiBmaWxsPSIjMzM0MTU1Ii8+CiAgICAgIDx0ZXh0IHg9Ijg1IiB5PSIxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2Y4ZmFmYyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCI+T25lQWdlbnRzPC90ZXh0PgogICAgICA8Y2lyY2xlIGN4PSIyNSIgY3k9IjQwIiByPSIxMCIgZmlsbD0iIzE0YjhhNiIvPgogICAgICA8Y2lyY2xlIGN4PSI1NSIgY3k9IjQwIiByPSIxMCIgZmlsbD0iIzE0YjhhNiIvPgogICAgICA8Y2lyY2xlIGN4PSI4NSIgY3k9IjQwIiByPSIxMCIgZmlsbD0iIzE0YjhhNiIvPgogICAgICA8Y2lyY2xlIGN4PSIxMTUiIGN5PSI0MCIgcj0iMTAiIGZpbGw9IiMxNGI4YTYiLz4KICAgICAgPGNpcmNsZSBjeD0iMTQ1IiBjeT0iNDAiIHI9IjEwIiBmaWxsPSIjMTRiOGE2Ii8+CiAgICA8L2c+CgogICAgPCEtLSBBbHRlcm5hdGl2ZSBab25lIGluZGljYXRvciAtLT4KICAgIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDE1LCAxNzUpIj4KICAgICAgPHJlY3Qgd2lkdGg9IjE3MCIgaGVpZ2h0PSI0MCIgcng9IjQiIGZpbGw9IiMwZjE3MmEiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgICAgIDx0ZXh0IHg9Ijg1IiB5PSIxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5BbHRlcm5hdGl2ZSBab25lOjwvdGV4dD4KICAgICAgPHRleHQgeD0iODUiIHk9IjMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjM2I4MmY2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIj5kYXRhY2VudGVyLXdlc3Q8L3RleHQ+CiAgICA8L2c+CiAgPC9nPgoKICA8IS0tIFpvbmUgMjogRGF0YWNlbnRlciBXZXN0IC0tPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDI1MCwgNTUpIj4KICAgIDxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjMwIiByeD0iOCIgZmlsbD0iIzFlMjkzYiIgc3Ryb2tlPSIjM2I4MmY2IiBzdHJva2Utd2lkdGg9IjIiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjM1IiByeD0iOCIgZmlsbD0idXJsKCN6b25lMkdyYWQpIi8+CiAgICA8cmVjdCB5PSIyNyIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI4IiBmaWxsPSJ1cmwoI3pvbmUyR3JhZCkiLz4KICAgIDx0ZXh0IHg9IjEwMCIgeT0iMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIj5kYXRhY2VudGVyLXdlc3Q8L3RleHQ+CgogICAgPCEtLSBBY3RpdmVHYXRlcyAtLT4KICAgIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDE1LCA1MCkiPgogICAgICA8cmVjdCB3aWR0aD0iMTcwIiBoZWlnaHQ9IjQwIiByeD0iNCIgZmlsbD0iIzI1NjNlYiIvPgogICAgICA8dGV4dCB4PSI4NSIgeT0iMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIj5BY3RpdmVHYXRlIChQcmltYXJ5KTwvdGV4dD4KICAgICAgPHRleHQgeD0iODUiIHk9IjMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTNjNWZkIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPkFHLVdFU1QtMDEsIEFHLVdFU1QtMDI8L3RleHQ+CiAgICA8L2c+CgogICAgPCEtLSBPbmVBZ2VudHMgLS0+CiAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxNSwgMTA1KSI+CiAgICAgIDxyZWN0IHdpZHRoPSIxNzAiIGhlaWdodD0iNTUiIHJ4PSI0IiBmaWxsPSIjMzM0MTU1Ii8+CiAgICAgIDx0ZXh0IHg9Ijg1IiB5PSIxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2Y4ZmFmYyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCI+T25lQWdlbnRzPC90ZXh0PgogICAgICA8Y2lyY2xlIGN4PSIyNSIgY3k9IjQwIiByPSIxMCIgZmlsbD0iIzNiODJmNiIvPgogICAgICA8Y2lyY2xlIGN4PSI1NSIgY3k9IjQwIiByPSIxMCIgZmlsbD0iIzNiODJmNiIvPgogICAgICA8Y2lyY2xlIGN4PSI4NSIgY3k9IjQwIiByPSIxMCIgZmlsbD0iIzNiODJmNiIvPgogICAgICA8Y2lyY2xlIGN4PSIxMTUiIGN5PSI0MCIgcj0iMTAiIGZpbGw9IiMzYjgyZjYiLz4KICAgICAgPGNpcmNsZSBjeD0iMTQ1IiBjeT0iNDAiIHI9IjEwIiBmaWxsPSIjM2I4MmY2Ii8+CiAgICA8L2c+CgogICAgPCEtLSBBbHRlcm5hdGl2ZSBab25lIGluZGljYXRvciAtLT4KICAgIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDE1LCAxNzUpIj4KICAgICAgPHJlY3Qgd2lkdGg9IjE3MCIgaGVpZ2h0PSI0MCIgcng9IjQiIGZpbGw9IiMwZjE3MmEiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgICAgIDx0ZXh0IHg9Ijg1IiB5PSIxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5BbHRlcm5hdGl2ZSBab25lOjwvdGV4dD4KICAgICAgPHRleHQgeD0iODUiIHk9IjMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMTRiOGE2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIj5kYXRhY2VudGVyLWVhc3Q8L3RleHQ+CiAgICA8L2c+CiAgPC9nPgoKICA8IS0tIER5bmF0cmFjZSBTYWFTIC0tPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDQ3MCwgNTUpIj4KICAgIDxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjMwIiByeD0iOCIgZmlsbD0iIzFlMjkzYiIgc3Ryb2tlPSIjNjM2NmYxIiBzdHJva2Utd2lkdGg9IjIiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjM1IiByeD0iOCIgZmlsbD0idXJsKCNzYWFzR3JhZCkiLz4KICAgIDxyZWN0IHk9IjI3IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgiIGZpbGw9InVybCgjc2Fhc0dyYWQpIi8+CiAgICA8dGV4dCB4PSIxMDAiIHk9IjI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCI+RHluYXRyYWNlIFNhYVM8L3RleHQ+CgogICAgPCEtLSBDbG91ZCBpY29uIHJlcHJlc2VudGF0aW9uIC0tPgogICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNjAsIDcwKSI+CiAgICAgIDxlbGxpcHNlIGN4PSI0MCIgY3k9IjUwIiByeD0iNTAiIHJ5PSIzMCIgZmlsbD0iIzQzMzhjYSIvPgogICAgICA8ZWxsaXBzZSBjeD0iMjUiIGN5PSI0NSIgcng9IjI1IiByeT0iMjAiIGZpbGw9IiM0MzM4Y2EiLz4KICAgICAgPGVsbGlwc2UgY3g9IjYwIiBjeT0iNDAiIHJ4PSIzMCIgcnk9IjIyIiBmaWxsPSIjNDMzOGNhIi8+CiAgICAgIDx0ZXh0IHg9IjQwIiB5PSI1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiPlNhYVM8L3RleHQ+CiAgICA8L2c+CgogICAgPCEtLSBCZW5lZml0cyAtLT4KICAgIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDE1LCAxNDApIj4KICAgICAgPGNpcmNsZSBjeD0iMTAiIGN5PSIxMCIgcj0iMyIgZmlsbD0iIzIyYzU1ZSIvPgogICAgICA8dGV4dCB4PSIyMCIgeT0iMTQiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+QXV0by1zY2FsaW5nPC90ZXh0PgogICAgICA8Y2lyY2xlIGN4PSIxMCIgY3k9IjMwIiByPSIzIiBmaWxsPSIjMjJjNTVlIi8+CiAgICAgIDx0ZXh0IHg9IjIwIiB5PSIzNCIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5NdWx0aS1BWiBIQTwvdGV4dD4KICAgICAgPGNpcmNsZSBjeD0iMTAiIGN5PSI1MCIgcj0iMyIgZmlsbD0iIzIyYzU1ZSIvPgogICAgICA8dGV4dCB4PSIyMCIgeT0iNTQiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+TWFuYWdlZCB1cGRhdGVzPC90ZXh0PgogICAgICA8Y2lyY2xlIGN4PSIxMCIgY3k9IjcwIiByPSIzIiBmaWxsPSIjMjJjNTVlIi8+CiAgICAgIDx0ZXh0IHg9IjIwIiB5PSI3NCIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5HcmFpbCBkYXRhIGxha2Vob3VzZTwvdGV4dD4KICAgIDwvZz4KICA8L2c+CgogIDwhLS0gQXJyb3dzOiBab25lIDEgdG8gU2FhUyAtLT4KICA8cGF0aCBkPSJNMjMwIDEyMCBMNDcwIDEyMCIgc3Ryb2tlPSIjMTRiOGE2IiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3doZWFkKSIgc3Ryb2tlLWRhc2hhcnJheT0iNSwzIi8+CgogIDwhLS0gQXJyb3dzOiBab25lIDIgdG8gU2FhUyAtLT4KICA8cGF0aCBkPSJNNDUwIDE0MCBMNDcwIDE0MCIgc3Ryb2tlPSIjM2I4MmY2IiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3doZWFkKSIgc3Ryb2tlLWRhc2hhcnJheT0iNSwzIi8+CgogIDwhLS0gRmFpbG92ZXIgYXJyb3cgYmV0d2VlbiB6b25lcyAtLT4KICA8cGF0aCBkPSJNMjMwIDIwMCBDIDI0MCAyNDAsIDI1MCAyNDAsIDI1MCAyMDAiIHN0cm9rZT0iI2Y5NzMxNiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93aGVhZCkiIHN0cm9rZS1kYXNoYXJyYXk9IjMsMyIvPgogIDx0ZXh0IHg9IjI0MCIgeT0iMjYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZjk3MzE2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPkZhaWxvdmVyPC90ZXh0PgoKICA8IS0tIExlZ2VuZCAtLT4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgzMCwgMzEwKSI+CiAgICA8cmVjdCB3aWR0aD0iNjQwIiBoZWlnaHQ9IjMwIiByeD0iNCIgZmlsbD0iIzBmMTcyYSIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KICAgIDxjaXJjbGUgY3g9IjIwIiBjeT0iMTUiIHI9IjUiIGZpbGw9IiMxNGI4YTYiLz4KICAgIDx0ZXh0IHg9IjMyIiB5PSIxOSIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5QcmltYXJ5IHJvdXRpbmc8L3RleHQ+CiAgICA8bGluZSB4MT0iMTUwIiB5MT0iMTUiIHgyPSIyMDAiIHkyPSIxNSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjUsMyIvPgogICAgPHRleHQgeD0iMjEyIiB5PSIxOSIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5EYXRhIGZsb3c8L3RleHQ+CiAgICA8bGluZSB4MT0iMzMwIiB5MT0iMTUiIHgyPSIzODAiIHkyPSIxNSIgc3Ryb2tlPSIjZjk3MzE2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjMsMyIvPgogICAgPHRleHQgeD0iMzkyIiB5PSIxOSIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5GYWlsb3ZlciBwYXRoPC90ZXh0PgogICAgPHJlY3QgeD0iNTEwIiB5PSI4IiB3aWR0aD0iMTQiIGhlaWdodD0iMTQiIHJ4PSIyIiBmaWxsPSIjMzM0MTU1Ii8+CiAgICA8dGV4dCB4PSI1MzIiIHk9IjE5IiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPk9uZUFnZW50IGhvc3RzPC90ZXh0PgogIDwvZz4KPC9zdmc+Cg==" alt="Network Zones" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Component | Role |
+|-----------|------|
+| Network Zone | Groups ActiveGates and OneAgents by network location |
+| Primary Zone | Default routing target for agents in the zone |
+| Alternative Zone | Failover if primary zone ActiveGates are unavailable |
+For environments where SVG doesn't render
+-->
+<hr />
+<h3>Zone Failover</h3>
+<p>When no ActiveGate in an agent's own zone is reachable, OneAgents try the zone's configured <strong>alternative zones</strong>, then behave according to the zone's <strong>fallback mode</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Fallback mode</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Any ActiveGate</strong> (<code>ANY_ACTIVE_GATE</code>, default)</td>
+<td>Traffic routes to any available ActiveGate in the environment</td>
+</tr>
+<tr>
+<td><strong>Only default zone</strong> (<code>ONLY_DEFAULT_ZONE</code>)</td>
+<td>Traffic routes only to ActiveGates in the default zone</td>
+</tr>
+<tr>
+<td><strong>None</strong> (<code>NONE</code>)</td>
+<td>Traffic is dropped rather than leaving the zone</td>
+</tr>
+</tbody>
+</table>
+<p>Choose the mode deliberately: <em>Any ActiveGate</em> lets a zone failure land on ActiveGates sized for other zones, while <em>None</em> protects the fleet and drops data. FAQ-10 § 6 works through the sizing consequences.</p>
+<h3>Assigning Zones at Scale</h3>
+<p>Zone membership is set per agent at install time (<code>--set-network-zone</code>) or afterwards with <code>oneagentctl --set-network-zone</code>. Drive it from the deployment automation you already use, keyed on the site, region or cloud account the host belongs to, so every new host lands in the right zone without a manual step.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/network-zones-classic/network-zones-basic-info">Get started with network zones (DT docs)</a> — alternative zones and the three fallback modes; <a href="https://docs.dynatrace.com/docs/manage/network-zones-classic/manage-via-settings-api">Network zones - Settings API (DT docs)</a> — <em>&quot;Valid values: ANY_ACTIVE_GATE (default), ONLY_DEFAULT_ZONE, NONE&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="network-zones"></a></p>
+<h2>2. Network Zones</h2>
+<p>Network Zones optimize routing of telemetry data from OneAgents to ActiveGates to SaaS. They are especially important in multi-datacenter or hybrid-cloud environments.</p>
+<h3>2.1 Why Network Zones Matter</h3>
+<table>
+<thead>
+<tr>
+<th>Benefit</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Traffic optimization</strong></td>
+<td>Keep traffic local within network segments</td>
+</tr>
+<tr>
+<td><strong>Failover routing</strong></td>
+<td>Automatic failover to alternative zones</td>
+</tr>
+<tr>
+<td><strong>Bandwidth reduction</strong></td>
+<td>Minimize cross-datacenter WAN traffic</td>
+</tr>
+<tr>
+<td><strong>Logical grouping</strong></td>
+<td>Group agents and AGs by physical topology</td>
+</tr>
+</tbody>
+</table>
+<h3>2.2 Network Zone Planning</h3>
+<p>Create zones that match your physical network topology:</p>
+<table>
+<thead>
+<tr>
+<th>Zone Type</th>
+<th>Naming Example</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Datacenter-based</td>
+<td><code>datacenter-east</code></td>
+<td>Primary datacenter in East region</td>
+</tr>
+<tr>
+<td>Cloud region</td>
+<td><code>aws-us-east-1</code></td>
+<td>AWS region-specific zone</td>
+</tr>
+<tr>
+<td>Environment-based</td>
+<td><code>production</code></td>
+<td>Production network segment</td>
+</tr>
+<tr>
+<td>Hybrid</td>
+<td><code>dc-east-prod</code></td>
+<td>Datacenter + environment combined</td>
+</tr>
+</tbody>
+</table>
+<h3>2.3 Failover Configuration</h3>
+<p>Define alternative zones for each primary zone:</p>
+<table>
+<thead>
+<tr>
+<th>Primary Zone</th>
+<th>Alternative Zone(s)</th>
+<th>Failover Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>datacenter-east</code></td>
+<td><code>datacenter-west</code></td>
+<td>AGs in west serve east agents</td>
+</tr>
+<tr>
+<td><code>aws-us-east-1</code></td>
+<td><code>aws-us-west-2</code></td>
+<td>Cross-region failover</td>
+</tr>
+<tr>
+<td><code>production</code></td>
+<td><code>dr-production</code></td>
+<td>DR site serves production</td>
+</tr>
+</tbody>
+</table>
+<h3>2.4 Creating Network Zones</h3>
+<blockquote>
+<p><strong>API 1.339 deprecation (May 2026):</strong> the <code>/api/v2/networkZones</code> endpoints are deprecated — the reference page now reads <em>&quot;This API is deprecated. Use the Settings API instead.&quot;</em> New automation should target the Settings 2.0 schema <code>builtin:networkzones.zones</code> via <code>POST /api/v2/settings/objects</code>. The legacy endpoint still works during the deprecation period; treat the Settings 2.0 form as canonical for new work.</p>
+</blockquote>
+<p><strong>Settings 2.0 (recommended for new automation):</strong></p>
+<pre><code class="language-bash">curl -X POST &quot;https://{tenant}.live.dynatrace.com/api/v2/settings/objects&quot; \
+  -H &quot;Authorization: Api-Token {token}&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '[{
+    &quot;schemaId&quot;: &quot;builtin:networkzones.zones&quot;,
+    &quot;scope&quot;: &quot;environment&quot;,
+    &quot;value&quot;: {
+      &quot;id&quot;: &quot;datacenter-east&quot;,
+      &quot;description&quot;: &quot;Primary datacenter in East region&quot;,
+      &quot;alternativeZones&quot;: [&quot;datacenter-west&quot;],
+      &quot;fallbackMode&quot;: &quot;ANY_ACTIVE_GATE&quot;
+    }
+  }]'
+</code></pre>
+<p><code>id</code>, <code>alternativeZones</code> (may be empty) and <code>fallbackMode</code> are required; <code>id</code> cannot be changed after creation. The token needs <code>settings.write</code>.</p>
+<p><strong>Legacy Configuration API (deprecated, still works during the deprecation window):</strong></p>
+<pre><code class="language-bash">curl -X PUT &quot;https://{tenant}.live.dynatrace.com/api/v2/networkZones/datacenter-east&quot; \
+  -H &quot;Authorization: Api-Token {token}&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{
+    &quot;description&quot;: &quot;Primary datacenter in East region&quot;,
+    &quot;alternativeZones&quot;: [&quot;datacenter-west&quot;]
+  }'
+# PUT creates the zone if it does not exist. Needs the networkZones.write scope.
+</code></pre>
+<p><strong>Assigning ActiveGates:</strong></p>
+<pre><code class="language-bash"># During installation
+sudo /bin/sh Dynatrace-ActiveGate-Linux.sh --set-network-zone=datacenter-east
+
+# After installation (ActiveGate 1.333+)
+sudo agctl network-zone set datacenter-east
+# Or in /var/lib/dynatrace/gateway/config/custom.properties:
+#   [connectivity]
+#   networkZone = datacenter-east
+# Restart the ActiveGate service afterwards.
+</code></pre>
+<p><strong>Assigning OneAgents:</strong></p>
+<pre><code class="language-bash"># During installation
+sudo /bin/sh Dynatrace-OneAgent-Linux.sh --set-network-zone=datacenter-east
+
+# After installation
+sudo /opt/dynatrace/oneagent/agent/tools/oneagentctl --set-network-zone=datacenter-east
+</code></pre>
+<blockquote>
+<p><strong>Important:</strong> Every zone your agents use must exist in the SaaS tenant, with SaaS ActiveGates assigned, before you migrate OneAgents. The SaaS Upgrade Assistant lists network zones among the types it migrates; confirm they arrived and create any missing ones as part of Step 4 (Prepare).</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/network-zones-classic/manage-via-settings-api">Network zones - Settings API (DT docs)</a> — <code>id</code>: <em>&quot;Unique identifier of the network zone&quot;</em>; <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/network-zones/put-network-zone">PUT a network zone (DT docs)</a> — <em>&quot;This API is deprecated. Use the Settings API instead.&quot;</em>; <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/configuration/configure-activegate">Configure ActiveGate (DT docs)</a> — <code>[connectivity]</code> <code>networkZone</code>: <em>&quot;Defines the network zone to which the ActiveGate belongs.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI3MDAiIGhlaWdodD0iMzIwIiB2aWV3Qm94PSIwIDAgNzAwIDQwMCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZjE3MmEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWUyOTNiIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJlbnZBZ0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE0YjhhNiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZDk0ODgiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InN5bnRoQWdHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4YjVjZjYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojN2MzYWVkIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0ic2hhZG93IiB4PSItMjAlIiB5PSItMjAlIiB3aWR0aD0iMTQwJSIgaGVpZ2h0PSIxNDAlIj4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMiIgZHk9IjQiIHN0ZERldmlhdGlvbj0iNCIgZmxvb2Qtb3BhY2l0eT0iMC4zIi8+CiAgICA8L2ZpbHRlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iNzAwIiBoZWlnaHQ9IjMyMCIgZmlsbD0idXJsKCNiZ0dyYWQpIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iMzUwIiB5PSIzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2Y4ZmFmYyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCI+QWN0aXZlR2F0ZSBUeXBlcyBmb3IgU2FhUzwvdGV4dD4KCiAgPCEtLSBFbnZpcm9ubWVudCBBY3RpdmVHYXRlIC0tPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDMwLCA1NSkiPgogICAgPHJlY3Qgd2lkdGg9IjMxMCIgaGVpZ2h0PSIyNDAiIHJ4PSI4IiBmaWxsPSIjMWUyOTNiIiBzdHJva2U9IiMxNGI4YTYiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KCiAgICA8IS0tIEhlYWRlciAtLT4KICAgIDxyZWN0IHdpZHRoPSIzMTAiIGhlaWdodD0iNDUiIHJ4PSI4IiBmaWxsPSJ1cmwoI2VudkFnR3JhZCkiLz4KICAgIDxyZWN0IHk9IjM3IiB3aWR0aD0iMzEwIiBoZWlnaHQ9IjgiIGZpbGw9InVybCgjZW52QWdHcmFkKSIvPgogICAgPHRleHQgeD0iMTU1IiB5PSIyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiPkVudmlyb25tZW50IEFjdGl2ZUdhdGU8L3RleHQ+CgogICAgPCEtLSBJY29uIHBsYWNlaG9sZGVyIC0tPgogICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjAsIDYwKSI+CiAgICAgIDxyZWN0IHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcng9IjgiIGZpbGw9IiMwZDk0ODgiLz4KICAgICAgPHRleHQgeD0iMzAiIHk9IjM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0Ij5BRzwvdGV4dD4KICAgIDwvZz4KCiAgICA8IS0tIFB1cnBvc2UgLS0+CiAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg5NSwgNjUpIj4KICAgICAgPHRleHQgeD0iMCIgeT0iMCIgZmlsbD0iI2Y4ZmFmYyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCI+UHVycG9zZTo8L3RleHQ+CiAgICAgIDx0ZXh0IHg9IjAiIHk9IjE4IiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPk9uZUFnZW50IHJvdXRpbmc8L3RleHQ+CiAgICAgIDx0ZXh0IHg9IjAiIHk9IjM0IiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPkV4dGVuc2lvbnMgMi4wIGV4ZWN1dGlvbjwvdGV4dD4KICAgICAgPHRleHQgeD0iMCIgeT0iNTAiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSI+Q2xvdWQgcGxhdGZvcm0gaW50ZWdyYXRpb25zPC90ZXh0PgogICAgPC9nPgoKICAgIDwhLS0gV2hlbiBOZWVkZWQgLS0+CiAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyMCwgMTQwKSI+CiAgICAgIDx0ZXh0IHg9IjAiIHk9IjAiIGZpbGw9IiM0YWRlODAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiPldoZW4gTmVlZGVkOjwvdGV4dD4KICAgICAgPGNpcmNsZSBjeD0iMTAiIGN5PSIxOCIgcj0iMyIgZmlsbD0iIzE0YjhhNiIvPgogICAgICA8dGV4dCB4PSIyMCIgeT0iMjIiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+SG9zdHMgY2FuJ3QgcmVhY2ggU2FhUyBkaXJlY3RseTwvdGV4dD4KICAgICAgPGNpcmNsZSBjeD0iMTAiIGN5PSIzOCIgcj0iMyIgZmlsbD0iIzE0YjhhNiIvPgogICAgICA8dGV4dCB4PSIyMCIgeT0iNDIiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+UnVubmluZyBFeHRlbnNpb25zIDIuMDwvdGV4dD4KICAgICAgPGNpcmNsZSBjeD0iMTAiIGN5PSI1OCIgcj0iMyIgZmlsbD0iIzE0YjhhNiIvPgogICAgICA8dGV4dCB4PSIyMCIgeT0iNjIiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+Vk13YXJlL0Nsb3VkIG1vbml0b3Jpbmc8L3RleHQ+CiAgICAgIDxjaXJjbGUgY3g9IjEwIiBjeT0iNzgiIHI9IjMiIGZpbGw9IiMxNGI4YTYiLz4KICAgICAgPHRleHQgeD0iMjAiIHk9IjgyIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPkxvZyBpbmdlc3QgdmlhIEFQSTwvdGV4dD4KICAgIDwvZz4KICA8L2c+CgogIDwhLS0gU3ludGhldGljIEFjdGl2ZUdhdGUgLS0+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzYwLCA1NSkiPgogICAgPHJlY3Qgd2lkdGg9IjMxMCIgaGVpZ2h0PSIyNDAiIHJ4PSI4IiBmaWxsPSIjMWUyOTNiIiBzdHJva2U9IiM4YjVjZjYiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KCiAgICA8IS0tIEhlYWRlciAtLT4KICAgIDxyZWN0IHdpZHRoPSIzMTAiIGhlaWdodD0iNDUiIHJ4PSI4IiBmaWxsPSJ1cmwoI3N5bnRoQWdHcmFkKSIvPgogICAgPHJlY3QgeT0iMzciIHdpZHRoPSIzMTAiIGhlaWdodD0iOCIgZmlsbD0idXJsKCNzeW50aEFnR3JhZCkiLz4KICAgIDx0ZXh0IHg9IjE1NSIgeT0iMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIj5TeW50aGV0aWMgQWN0aXZlR2F0ZTwvdGV4dD4KCiAgICA8IS0tIEljb24gcGxhY2Vob2xkZXIgLS0+CiAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyMCwgNjApIj4KICAgICAgPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiByeD0iOCIgZmlsbD0iIzdjM2FlZCIvPgogICAgICA8dGV4dCB4PSIzMCIgeT0iMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiPlNZPC90ZXh0PgogICAgPC9nPgoKICAgIDwhLS0gUHVycG9zZSAtLT4KICAgIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDk1LCA2NSkiPgogICAgICA8dGV4dCB4PSIwIiB5PSIwIiBmaWxsPSIjZjhmYWZjIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIj5QdXJwb3NlOjwvdGV4dD4KICAgICAgPHRleHQgeD0iMCIgeT0iMTgiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSI+UHJpdmF0ZSBzeW50aGV0aWMgbG9jYXRpb25zPC90ZXh0PgogICAgICA8dGV4dCB4PSIwIiB5PSIzNCIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIj5JbnRlcm5hbCBhcHAgbW9uaXRvcmluZzwvdGV4dD4KICAgICAgPHRleHQgeD0iMCIgeT0iNTAiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSI+QnJvd3Nlci9IVFRQIG1vbml0b3JzPC90ZXh0PgogICAgPC9nPgoKICAgIDwhLS0gV2hlbiBOZWVkZWQgLS0+CiAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyMCwgMTQwKSI+CiAgICAgIDx0ZXh0IHg9IjAiIHk9IjAiIGZpbGw9IiM0YWRlODAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiPldoZW4gTmVlZGVkOjwvdGV4dD4KICAgICAgPGNpcmNsZSBjeD0iMTAiIGN5PSIxOCIgcj0iMyIgZmlsbD0iIzhiNWNmNiIvPgogICAgICA8dGV4dCB4PSIyMCIgeT0iMjIiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+SW50ZXJuYWwgYXBwIHRlc3Rpbmc8L3RleHQ+CiAgICAgIDxjaXJjbGUgY3g9IjEwIiBjeT0iMzgiIHI9IjMiIGZpbGw9IiM4YjVjZjYiLz4KICAgICAgPHRleHQgeD0iMjAiIHk9IjQyIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPlZQTi1vbmx5IGVuZHBvaW50czwvdGV4dD4KICAgICAgPGNpcmNsZSBjeD0iMTAiIGN5PSI1OCIgcj0iMyIgZmlsbD0iIzhiNWNmNiIvPgogICAgICA8dGV4dCB4PSIyMCIgeT0iNjIiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+UHJlLXByb2R1Y3Rpb24gbW9uaXRvcmluZzwvdGV4dD4KICAgICAgPGNpcmNsZSBjeD0iMTAiIGN5PSI3OCIgcj0iMyIgZmlsbD0iIzhiNWNmNiIvPgogICAgICA8dGV4dCB4PSIyMCIgeT0iODIiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+UmVnaW9uYWwgdGVzdCBsb2NhdGlvbnM8L3RleHQ+CiAgICA8L2c+CiAgPC9nPgo8L3N2Zz4K" alt="ActiveGate Deployment" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| ActiveGate Role | Purpose |
+|-----------------|--------|
+| Routing AG | OneAgent traffic routing to SaaS |
+| Extensions AG | Extensions 2.0 execution |
+| Synthetic AG | Private synthetic monitoring locations |
+For environments where SVG doesn't render
+-->
+<hr />
+<p><a id="activegate-design"></a></p>
+<h2>3. ActiveGate Design</h2>
+<h3>3.1 Do You Need ActiveGates?</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>ActiveGate Required?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hosts can reach SaaS directly</td>
+<td>No (optional for extensions)</td>
+</tr>
+<tr>
+<td>Hosts behind firewall, no direct internet</td>
+<td><strong>Yes</strong>, for routing</td>
+</tr>
+<tr>
+<td>Running Extensions 2.0</td>
+<td><strong>Yes</strong> — a host-based ActiveGate for most remote extensions; SQL extensions can also run on Kubernetes through the Dynatrace Operator</td>
+</tr>
+<tr>
+<td>Private synthetic monitoring</td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr>
+<td>VMware monitoring</td>
+<td><strong>Yes</strong></td>
+</tr>
+</tbody>
+</table>
+<h3>3.2 ActiveGate Sizing</h3>
+<p>Size from Dynatrace's published reference points, not a rule of thumb. The Linux requirements page gives estimated routed-host counts per instance size — for example roughly 800 hosts on a 2 vCPU / 3.75 GiB x86 instance, 1,800 on 4 vCPU / 7.5 GiB and 2,500 on 8 vCPU / 15 GiB, with ARM instances carrying more — and says the machine <em>&quot;shouldn't exceed 50% CPU and 80% memory.&quot;</em> Extensions, log ingestion and synthetic workloads change the math. <strong>FAQ-10</strong> reproduces the full table, the log-ingestion sizing guide and the survivor-capacity rule for HA; use it rather than a host-count band.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements">Linux ActiveGate hardware and system requirements (DT docs)</a> — <em>&quot;The machine running ActiveGate shouldn't exceed 50% CPU and 80% memory.&quot;</em></sub></p>
+</blockquote>
+<h3>3.3 Placement Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Close to monitored hosts</strong></td>
+<td>Minimize latency between OneAgents and AGs</td>
+</tr>
+<tr>
+<td><strong>Minimum 2 per network zone</strong></td>
+<td>High availability within each zone</td>
+</tr>
+<tr>
+<td><strong>Separate from monitored workloads</strong></td>
+<td>Avoid resource contention</td>
+</tr>
+<tr>
+<td><strong>In DMZ for cloud integrations</strong></td>
+<td>If needed for external access</td>
+</tr>
+</tbody>
+</table>
+<h3>3.4 ActiveGate Groups</h3>
+<p>Use AG groups to separate responsibilities:</p>
+<table>
+<thead>
+<tr>
+<th>Group Name</th>
+<th>Purpose</th>
+<th>Members</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>production-routing</code></td>
+<td>Production OneAgent routing</td>
+<td>AG-PROD-01, AG-PROD-02</td>
+</tr>
+<tr>
+<td><code>nonprod-routing</code></td>
+<td>Non-production routing</td>
+<td>AG-NONPROD-01, AG-NONPROD-02</td>
+</tr>
+<tr>
+<td><code>extensions</code></td>
+<td>Extensions 2.0 execution</td>
+<td>AG-EXT-01, AG-EXT-02</td>
+</tr>
+<tr>
+<td><code>synthetic</code></td>
+<td>Private synthetic locations</td>
+<td>AG-SYNTH-01, AG-SYNTH-02</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Plan host-based ActiveGates for Extensions 2.0. The one documented Kubernetes path is narrower: <em>&quot;Run SQL monitoring extensions on Kubernetes using Dynatrace Operator&quot;</em> (<a href="https://docs.dynatrace.com/docs/ingest-from/extensions">Extensions (DT docs)</a>).</p>
+</blockquote>
+<h3>3.5 Parallel Deployment Strategy</h3>
+<p>Install new SaaS-connected ActiveGates in parallel with existing Managed ActiveGates:</p>
+<ol>
+<li><strong>Deploy new AGs</strong> connected to the SaaS tenant</li>
+<li><strong>Validate connectivity</strong> from AGs to SaaS endpoints</li>
+<li><strong>Redirect OneAgents</strong> to new AGs during migration</li>
+<li><strong>Decommission Managed AGs</strong> after all agents are migrated</li>
+</ol>
+<p>This approach maintains monitoring continuity and provides easy rollback if issues occur.</p>
+<hr />
+<h3>3.6 ActiveGate Footprint for Cloud-Native and Serverless Estates</h3>
+<p>The sizing table above is keyed on <strong>routed host count</strong> — the right model for a VM-heavy estate. A Cloud Run / GKE / OTLP-heavy estate routes very little through ActiveGates, so its AG footprint is minimal and driven by specific needs rather than by total workload count:</p>
+<table>
+<thead>
+<tr>
+<th>Cloud-native need</th>
+<th>ActiveGate involvement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cloud Run / OTLP apps → SaaS</strong></td>
+<td>Typically none — telemetry goes to the SaaS ingest/OTLP endpoints directly (or via an existing routing AG only if the network requires it)</td>
+</tr>
+<tr>
+<td><strong>GKE OneAgent (DynaKube) → SaaS</strong></td>
+<td>Direct, or via an in-cluster ActiveGate the Dynatrace Operator can deploy — not sized from the host table</td>
+</tr>
+<tr>
+<td><strong>GCP log forwarding</strong></td>
+<td>Runs as a container workload (Pub/Sub + forwarder), <strong>not</strong> an ActiveGate — see <strong>CLOUD-06: GCP Integration</strong> for forwarder sizing</td>
+</tr>
+<tr>
+<td><strong>Private synthetic monitoring</strong></td>
+<td>Dedicated synthetic ActiveGate(s) — sized by synthetic load, not routed hosts</td>
+</tr>
+<tr>
+<td><strong>Residual VMs / VMware / Extensions 2.0</strong></td>
+<td>Host-based ActiveGate(s) sized normally for just those remaining hosts</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Rule of thumb:</strong> For a predominantly cloud-native estate, size ActiveGates for the <em>residual</em> host/VM count plus any private-synthetic and extension needs — not for the total workload count. Most Cloud Run and OTLP traffic never touches an ActiveGate.</p>
+</blockquote>
+<hr />
+<pre><code class="language-dql">// Inventory current ActiveGates and their versions
+smartscapeNodes &quot;ACTIVEGATE&quot;
+| fields name, version = dt.active_gate.version, zone = dt.network_zone.id
+| sort name asc
+
+// Correction (verified 07/2026): this cell previously ran `fetch dt.entity.active_gate` and
+// carried a note claiming Smartscape had no ActiveGate node. Both were wrong. There is NO classic
+// ActiveGate entity type in any spelling (active_gate, environment_active_gate,
+// environment_activegate), so the classic query returned zero rows in every tenant —
+// indistinguishable from &quot;no ActiveGates deployed&quot;. `smartscapeNodes &quot;ACTIVEGATE&quot;` (no
+// underscore) is the working path, and it works on tenants today.
+// Field maps: entity.name → name, softwareVersion → dt.active_gate.version,
+// networkZone → dt.network_zone.id.
+</code></pre>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI3MDAiIGhlaWdodD0iMzUwIiB2aWV3Qm94PSIwIDAgNzAwIDQwMCI+CiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI3MDAiIGhlaWdodD0iMzUwIiBmaWxsPSIjMWUyOTNiIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iMzUwIiB5PSIzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2Y4ZmFmYyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCI+U2hhcmVkIFJlc3BvbnNpYmlsaXR5IE1vZGVsPC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiI+U2VjdXJpdHkgcmVzcG9uc2liaWxpdGllcyBmb3IgRHluYXRyYWNlIFNhYVM8L3RleHQ+CgogIDwhLS0gRHluYXRyYWNlIFJlc3BvbnNpYmlsaXRpZXMgQm94IC0tPgogIDxyZWN0IHg9IjMwIiB5PSI3MCIgd2lkdGg9IjMxMCIgaGVpZ2h0PSIyNjAiIHJ4PSI4IiBmaWxsPSIjMGYxNzJhIiBzdHJva2U9IiM2MzY2ZjEiIHN0cm9rZS13aWR0aD0iMiIvPgoKICA8IS0tIER5bmF0cmFjZSBIZWFkZXIgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjcwIiB3aWR0aD0iMzEwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzYzNjZmMSIvPgogIDxyZWN0IHg9IjMwIiB5PSIxMDIiIHdpZHRoPSIzMTAiIGhlaWdodD0iOCIgZmlsbD0iIzYzNjZmMSIvPgogIDx0ZXh0IHg9IjE4NSIgeT0iOTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmZmZmYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiPkR5bmF0cmFjZSBSZXNwb25zaWJpbGl0eTwvdGV4dD4KCiAgPCEtLSBEeW5hdHJhY2UgSXRlbXMgLS0+CiAgPHJlY3QgeD0iNTAiIHk9IjEyNSIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIzNSIgcng9IjQiIGZpbGw9IiM0MzM4Y2EiIGZpbGwtb3BhY2l0eT0iMC40Ii8+CiAgPHRleHQgeD0iMTg1IiB5PSIxNDEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmOGZhZmMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiPkluZnJhc3RydWN0dXJlIFNlY3VyaXR5PC90ZXh0PgogIDx0ZXh0IHg9IjE4NSIgeT0iMTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYTViNGZjIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPkRhdGEgY2VudGVycywgcGh5c2ljYWwgc2VjdXJpdHksIGhhcmR3YXJlPC90ZXh0PgoKICA8cmVjdCB4PSI1MCIgeT0iMTcwIiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjM1IiByeD0iNCIgZmlsbD0iIzQzMzhjYSIgZmlsbC1vcGFjaXR5PSIwLjQiLz4KICA8dGV4dCB4PSIxODUiIHk9IjE4NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2Y4ZmFmYyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCI+UGxhdGZvcm0gU2VjdXJpdHk8L3RleHQ+CiAgPHRleHQgeD0iMTg1IiB5PSIyMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNhNWI0ZmMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+T1MgcGF0Y2hpbmcsIG5ldHdvcmsgc2VjdXJpdHksIEREb1MgcHJvdGVjdGlvbjwvdGV4dD4KCiAgPHJlY3QgeD0iNTAiIHk9IjIxNSIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIzNSIgcng9IjQiIGZpbGw9IiM0MzM4Y2EiIGZpbGwtb3BhY2l0eT0iMC40Ii8+CiAgPHRleHQgeD0iMTg1IiB5PSIyMzEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmOGZhZmMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiPkRhdGEgRW5jcnlwdGlvbjwvdGV4dD4KICA8dGV4dCB4PSIxODUiIHk9IjI0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2E1YjRmYyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5BdC1yZXN0IGFuZCBpbi10cmFuc2l0IGVuY3J5cHRpb248L3RleHQ+CgogIDxyZWN0IHg9IjUwIiB5PSIyNjAiIHdpZHRoPSIyNzAiIGhlaWdodD0iMzUiIHJ4PSI0IiBmaWxsPSIjNDMzOGNhIiBmaWxsLW9wYWNpdHk9IjAuNCIvPgogIDx0ZXh0IHg9IjE4NSIgeT0iMjc2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZjhmYWZjIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIj5Db21wbGlhbmNlIENlcnRpZmljYXRpb25zPC90ZXh0PgogIDx0ZXh0IHg9IjE4NSIgeT0iMjkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYTViNGZjIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPlNPQzIsIElTTyAyNzAwMSwgR0RQUiBpbmZyYXN0cnVjdHVyZTwvdGV4dD4KCiAgPCEtLSBDdXN0b21lciBSZXNwb25zaWJpbGl0aWVzIEJveCAtLT4KICA8cmVjdCB4PSIzNjAiIHk9IjcwIiB3aWR0aD0iMzEwIiBoZWlnaHQ9IjI2MCIgcng9IjgiIGZpbGw9IiMwZjE3MmEiIHN0cm9rZT0iIzE0YjhhNiIgc3Ryb2tlLXdpZHRoPSIyIi8+CgogIDwhLS0gQ3VzdG9tZXIgSGVhZGVyIC0tPgogIDxyZWN0IHg9IjM2MCIgeT0iNzAiIHdpZHRoPSIzMTAiIGhlaWdodD0iNDAiIHJ4PSI4IiBmaWxsPSIjMTRiOGE2Ii8+CiAgPHJlY3QgeD0iMzYwIiB5PSIxMDIiIHdpZHRoPSIzMTAiIGhlaWdodD0iOCIgZmlsbD0iIzE0YjhhNiIvPgogIDx0ZXh0IHg9IjUxNSIgeT0iOTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmZmZmYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiPkN1c3RvbWVyIFJlc3BvbnNpYmlsaXR5PC90ZXh0PgoKICA8IS0tIEN1c3RvbWVyIEl0ZW1zIC0tPgogIDxyZWN0IHg9IjM4MCIgeT0iMTI1IiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjM1IiByeD0iNCIgZmlsbD0iIzBkOTQ4OCIgZmlsbC1vcGFjaXR5PSIwLjQiLz4KICA8dGV4dCB4PSI1MTUiIHk9IjE0MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2Y4ZmFmYyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCI+VXNlciBBY2Nlc3MgTWFuYWdlbWVudDwvdGV4dD4KICA8dGV4dCB4PSI1MTUiIHk9IjE1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2E3ZjNkMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5TU08gY29uZmlnLCB1c2VyIHByb3Zpc2lvbmluZywgcGVybWlzc2lvbnM8L3RleHQ+CgogIDxyZWN0IHg9IjM4MCIgeT0iMTcwIiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjM1IiByeD0iNCIgZmlsbD0iIzBkOTQ4OCIgZmlsbC1vcGFjaXR5PSIwLjQiLz4KICA8dGV4dCB4PSI1MTUiIHk9IjE4NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2Y4ZmFmYyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCI+QVBJIFRva2VuIFNlY3VyaXR5PC90ZXh0PgogIDx0ZXh0IHg9IjUxNSIgeT0iMjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYTdmM2QwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPlRva2VuIGNyZWF0aW9uLCBzY29wZSBtYW5hZ2VtZW50LCByb3RhdGlvbjwvdGV4dD4KCiAgPHJlY3QgeD0iMzgwIiB5PSIyMTUiIHdpZHRoPSIyNzAiIGhlaWdodD0iMzUiIHJ4PSI0IiBmaWxsPSIjMGQ5NDg4IiBmaWxsLW9wYWNpdHk9IjAuNCIvPgogIDx0ZXh0IHg9IjUxNSIgeT0iMjMxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZjhmYWZjIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIj5EYXRhIFByaXZhY3k8L3RleHQ+CiAgPHRleHQgeD0iNTE1IiB5PSIyNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNhN2YzZDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+UElJIG1hc2tpbmcsIGRhdGEgbWluaW1pemF0aW9uPC90ZXh0PgoKICA8cmVjdCB4PSIzODAiIHk9IjI2MCIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIzNSIgcng9IjQiIGZpbGw9IiMwZDk0ODgiIGZpbGwtb3BhY2l0eT0iMC40Ii8+CiAgPHRleHQgeD0iNTE1IiB5PSIyNzYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmOGZhZmMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiPkF1ZGl0IGFuZCBNb25pdG9yaW5nPC90ZXh0PgogIDx0ZXh0IHg9IjUxNSIgeT0iMjkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYTdmM2QwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPkFjY2VzcyBsb2cgcmV2aWV3LCBjb21wbGlhbmNlIGF1ZGl0czwvdGV4dD4KPC9zdmc+Cg==" alt="Security Model" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Layer | Responsibility |
+|-------|---------------|
+| Infrastructure Security | Dynatrace |
+| Platform Security | Dynatrace |
+| Data Access & IAM | Customer |
+| User Management & SSO | Customer |
+For environments where SVG doesn't render
+-->
+<hr />
+<p><a id="security-architecture"></a></p>
+<h2>4. Security Architecture</h2>
+<h3>4.1 SAML SSO Configuration</h3>
+<p>Dynatrace documents SAML 2.0 federation for SaaS user sign-in. If your Managed environment uses LDAP authentication, plan the move to SAML 2.0 through your identity provider.</p>
+<table>
+<thead>
+<tr>
+<th>Authentication</th>
+<th>Managed</th>
+<th>SaaS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Local users</td>
+<td>Cluster Management Console</td>
+<td>Dynatrace Account Management</td>
+</tr>
+<tr>
+<td>SAML/SSO</td>
+<td>IdP → Managed cluster</td>
+<td>IdP → Dynatrace Account</td>
+</tr>
+<tr>
+<td>LDAP</td>
+<td>Direct LDAP integration</td>
+<td>Not documented for SaaS — use SAML 2.0</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Critical:</strong> Your Identity Provider (IdP) must sign the <strong>entire SAML message</strong>, not just the assertion — Dynatrace answers an assertion-only signature with <code>400 Bad Request</code>. <strong>Microsoft Entra ID does not do this by default:</strong> its default for most gallery applications is <em>Sign SAML assertion</em>. Change the enterprise application's signing option to <strong>Sign SAML response and assertion</strong>.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml">SAML (DT docs)</a> — <em>&quot;The entire SAML message must be signed (signing only SAML assertions is insufficient and generates a 400 Bad Request response).&quot;</em>; <a href="https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/certificate-signing-options">Advanced certificate signing options in a SAML token (Microsoft Learn)</a> — <em>&quot;default option set for most of the gallery applications&quot;</em>.</sub></p>
+</blockquote>
+<h3>4.2 Azure Entra ID Considerations</h3>
+<table>
+<thead>
+<tr>
+<th>Consideration</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SAML message signing</td>
+<td>Set to <strong>Sign SAML response and assertion</strong> (the Entra default signs the assertion only)</td>
+</tr>
+<tr>
+<td>Group claim limit</td>
+<td>150 groups maximum per SAML token</td>
+</tr>
+<tr>
+<td>Group filtering</td>
+<td><strong>Filter claims to Dynatrace-related groups only</strong></td>
+</tr>
+<tr>
+<td>Attribute mapping</td>
+<td>Map UPN, email, first name, last name</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Warning:</strong> If a user belongs to more than 150 Azure Entra groups, the SAML token will contain a group overage claim instead of individual groups. Filter your SAML group claims to include only Dynatrace-relevant groups.</p>
+</blockquote>
+<h3>4.3 IAM Role Mapping</h3>
+<p>Map your existing Managed roles to SaaS IAM policies:</p>
+<table>
+<thead>
+<tr>
+<th>Managed Role</th>
+<th>SaaS IAM Equivalent</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cluster administrator</td>
+<td>Account administrator</td>
+<td>Full account management</td>
+</tr>
+<tr>
+<td>Environment administrator</td>
+<td>Environment admin policy</td>
+<td>Per-environment scope</td>
+</tr>
+<tr>
+<td>Monitor user (read-only)</td>
+<td>Viewer policy</td>
+<td>Read-only access</td>
+</tr>
+<tr>
+<td>Custom roles</td>
+<td>Custom IAM policies</td>
+<td>Recreate as policy statements</td>
+</tr>
+</tbody>
+</table>
+<h3>4.4 TLS and Encryption</h3>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>In transit</strong></td>
+<td>TLS for all agent, ActiveGate and API traffic</td>
+</tr>
+<tr>
+<td><strong>At rest</strong></td>
+<td>Encrypted by Dynatrace</td>
+</tr>
+<tr>
+<td><strong>Details</strong></td>
+<td>FAQ-24 § <em>stored</em> and the Dynatrace data-security-controls page cover the specifics; confirm current algorithms and key handling there rather than in this notebook</td>
+</tr>
+</tbody>
+</table>
+<h3>4.5 Data Residency</h3>
+<table>
+<thead>
+<tr>
+<th>Decision</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Region selection</td>
+<td>Choose at provisioning time — AWS, Azure and Google Cloud regions are listed on the data-security-controls page</td>
+</tr>
+<tr>
+<td><strong>Treat as permanent</strong></td>
+<td>Moving regions means a new tenant and another migration</td>
+</tr>
+<tr>
+<td>Compliance alignment</td>
+<td>Select region matching your regulatory requirements</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> Data residency region is selected during SaaS provisioning. Treat it as permanent — moving a tenant's data to another region means provisioning a new tenant and migrating again. Confirm your region choice with compliance and legal teams before provisioning.</p>
+</blockquote>
+<h3>4.6 Firewall and Egress Controls</h3>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>Implementation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Egress filtering</td>
+<td>Restrict outbound to <code>*.dynatrace.com</code> on port 443</td>
+</tr>
+<tr>
+<td>IP allowlisting</td>
+<td>SaaS endpoint IPs published by Dynatrace (subject to change)</td>
+</tr>
+<tr>
+<td>DNS-based filtering</td>
+<td>Preferred over IP-based (IPs may rotate)</td>
+</tr>
+<tr>
+<td>User browsers: WebSocket</td>
+<td>From SaaS 1.348, Dynatrace Assist uses WebSocket. Allow <code>wss://*.apps.dynatrace.com</code> through user-side proxies and firewalls, or narrow it to the <code>/platform-reserved/ai/v0.1/operator:chat</code> path on that host.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">What's new in Dynatrace SaaS 1.348 (DT docs)</a> — <em>&quot;With this change, Dynatrace Assist now relies on WebSocket for communication with the server.&quot;</em>, <em>&quot;Some users may have network policies blocking WebSocket access. Assist will fail for those.&quot;</em> and <em>&quot;You can impose a stricter rule for the connection by allowing the /platform-reserved/ai/v0.1/operator:chat path on that host.&quot;</em></sub></p>
+</blockquote>
+<h3>4.7 API Token Strategy</h3>
+<p>Create purpose-specific tokens with minimal scopes:</p>
+<table>
+<thead>
+<tr>
+<th>Token Purpose</th>
+<th>Required Scopes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OneAgent installation</td>
+<td><code>InstallerDownload</code></td>
+</tr>
+<tr>
+<td>ActiveGate installation</td>
+<td><code>InstallerDownload</code></td>
+</tr>
+<tr>
+<td>Configuration migration</td>
+<td><code>settings.read</code>, <code>settings.write</code></td>
+</tr>
+<tr>
+<td>Entity queries</td>
+<td><code>entities.read</code></td>
+</tr>
+<tr>
+<td>Metrics and logs</td>
+<td><code>metrics.read</code>, <code>logs.read</code></td>
+</tr>
+<tr>
+<td>AutomationEngine (Workflows)</td>
+<td>OAuth client scopes <code>automation:workflows:read</code>, <code>automation:workflows:write</code> (not a classic API-token scope)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>Bandwidth and Connectivity Planning</h3>
+<table>
+<thead>
+<tr>
+<th>Consideration</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Increased outbound bandwidth</strong></td>
+<td>Relocating the Dynatrace platform to SaaS increases outbound traffic from your network — plan for this with network team</td>
+</tr>
+<tr>
+<td><strong>SSL certificates</strong></td>
+<td>SSL certificates are possible for ActiveGates but NOT for the Dynatrace SaaS UI</td>
+</tr>
+<tr>
+<td><strong>Service requests</strong></td>
+<td>Plan for change management procedures, change windows, and deployment freezes</td>
+</tr>
+<tr>
+<td><strong>OneAgent re-homing strategy</strong></td>
+<td>Choose one: (1) Uninstall agents and install new, or (2) Update agents in place via <code>oneagentctl</code> to keep IDs (host, process group, services) and metadata</td>
+</tr>
+</tbody>
+</table>
+<p><a id="high-availability-design"></a></p>
+<h2>5. High Availability Design</h2>
+<h3>5.1 SaaS-Side HA (Provided by Dynatrace)</h3>
+<p>Dynatrace SaaS includes built-in high availability <strong>within the region you choose</strong> — data stays in that region:</p>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Architecture</td>
+<td>Clustered, across multiple availability zones, with automatic failover</td>
+</tr>
+<tr>
+<td>Backups</td>
+<td>Daily, to a separate account <strong>in the same region</strong> (AWS)</td>
+</tr>
+<tr>
+<td>SLA</td>
+<td>99.5% monthly uptime with Standard Support; 99.95% with Enterprise Success and Support</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-security/data-security-controls">Data security controls (DT docs)</a> — <em>&quot;performs data backups to a different AWS account in the same AWS region&quot;</em>; <a href="https://www.dynatrace.com/company/trust-center/sla/saas/">Dynatrace SaaS SLA (Dynatrace)</a>.</sub></p>
+</blockquote>
+<h3>5.2 Customer-Side HA</h3>
+<p>Your responsibility is ensuring no single points of failure in the agent-to-SaaS path:</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>HA Strategy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ActiveGates</strong></td>
+<td>Minimum 2 per network zone, each able to carry the zone alone (FAQ-10 § 6)</td>
+</tr>
+<tr>
+<td><strong>Network zones</strong></td>
+<td>Define alternative zones and choose the fallback mode deliberately</td>
+</tr>
+<tr>
+<td><strong>Synthetic AGs</strong></td>
+<td>Deploy pairs at each private location</td>
+</tr>
+<tr>
+<td><strong>Load balancing</strong></td>
+<td>OneAgent discovers available ActiveGates itself — no load balancer in front of them</td>
+</tr>
+</tbody>
+</table>
+<h3>5.3 Failover Behavior</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>OneAgent Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Primary AG unavailable</td>
+<td>Connects to another ActiveGate in the same zone</td>
+</tr>
+<tr>
+<td>All AGs in zone unavailable</td>
+<td>Tries the zone's alternative zones</td>
+</tr>
+<tr>
+<td>No AG in the zone or its alternatives</td>
+<td>Follows the zone's fallback mode (any ActiveGate, default zone only, or drop)</td>
+</tr>
+<tr>
+<td>Connectivity restored</td>
+<td>Resumes normal transmission</td>
+</tr>
+</tbody>
+</table>
+<h3>5.4 Design for Zero Single Points of Failure</h3>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Network zones</td>
+<td>At least one alternative zone per primary</td>
+</tr>
+<tr>
+<td>ActiveGates per zone</td>
+<td>Minimum 2 per zone</td>
+</tr>
+<tr>
+<td>Network paths</td>
+<td>Redundant paths from agents to AGs</td>
+</tr>
+<tr>
+<td>DNS</td>
+<td>Multiple DNS resolvers for SaaS domains</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<pre><code class="language-dql">// Verify ActiveGate distribution across network zones
+smartscapeNodes &quot;ACTIVEGATE&quot;
+| summarize agCount = count(), by:{dt.network_zone.id}
+| sort agCount desc
+
+// Correction (verified 07/2026): this cell previously ran `fetch dt.entity.active_gate` and
+// carried a note claiming Smartscape had no ActiveGate node. Both were wrong. There is NO classic
+// ActiveGate entity type in any spelling (active_gate, environment_active_gate,
+// environment_activegate), so the classic query returned zero rows in every tenant —
+// indistinguishable from &quot;no ActiveGates deployed&quot;. `smartscapeNodes &quot;ACTIVEGATE&quot;` (no
+// underscore) is the working path, and it works on tenants today.
+// Field maps: entity.name → name, softwareVersion → dt.active_gate.version,
+// networkZone → dt.network_zone.id.
+</code></pre>
+<p><a id="architecture-design-checklist"></a></p>
+<h2>6. Architecture Design Checklist</h2>
+<p>Complete this checklist before proceeding to Step 4 (Prepare).</p>
+<h3>Network</h3>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Network firewall rules documented (outbound 443 to SaaS)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>DNS resolution verified for <code>{tenant-id}.live.dynatrace.com</code></td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>DNS resolution verified for <code>{tenant-id}.apps.dynatrace.com</code></td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Connectivity tested from representative hosts</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Proxy configuration documented (if required)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>User proxies allow WebSocket to <code>wss://*.apps.dynatrace.com</code> (Dynatrace Assist)</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<h3>Network Zones</h3>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Network zone topology designed (matching physical topology)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Alternative zones defined for failover</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Zone naming convention established</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<h3>ActiveGates</h3>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ActiveGate sizing taken from the documented reference points (FAQ-10)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Placement planned (close to monitored hosts)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Minimum 2 AGs per network zone for HA</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>AG groups defined (routing, extensions, synthetic)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Host-based AGs planned for Extensions 2.0 (if needed)</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<h3>Security</h3>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SSO/SAML configuration designed</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>IdP configured to sign full SAML message (Entra: <em>Sign SAML response and assertion</em>)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Azure Entra group claims filtered to Dynatrace groups</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>IAM policy mapping complete (Managed roles → SaaS policies)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>API token strategy defined with minimal scopes</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Data residency region confirmed with compliance team</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>TLS 1.2+ confirmed for all connections</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<h3>High Availability</h3>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No single points of failure in AG topology</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Network zone failover paths verified</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>SaaS SLA reviewed and documented</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Next Step</h2>
+<blockquote>
+<p><strong>→ M2S-04: Step 4 — Prepare</strong> — Get your SaaS environment ready for migration execution. Deploy ActiveGates, configure network zones, create API tokens, and install the SaaS Upgrade Assistant.</p>
+</blockquote>
+<h3>Continue the Series</h3>
+<table>
+<thead>
+<tr>
+<th>Next Notebook</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>M2S-04: Step 4 — Prepare</strong></td>
+<td>Environment setup and migration preparation</td>
+</tr>
+</tbody>
+</table>
+<h3>Architecture Resources</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate">ActiveGate Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/network-zones-classic">Network Zones</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oa-requirements">OneAgent Network Requirements</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management">IAM Documentation</a></li>
+<li><a href="https://www.dynatrace.com/company/trust-center/">Dynatrace Trust Center</a></li>
+<li><a href="https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant">SaaS Upgrade Assistant</a></li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you designed:</p>
+<ul>
+<li><strong>Network architecture</strong> — Firewall rules, DNS, proxy configuration, and connectivity testing</li>
+<li><strong>Network zone topology</strong> — Zones matching physical topology with failover alternatives</li>
+<li><strong>ActiveGate deployment</strong> — Sizing, placement, groups, and parallel deployment strategy</li>
+<li><strong>Security architecture</strong> — SAML SSO, IAM role mapping, TLS, data residency, and token strategy</li>
+<li><strong>High availability</strong> — Redundant AGs, zone failover, and zero single points of failure</li>
+</ul>
+<blockquote>
+<p><strong>Key Takeaway:</strong> The primary architectural change is network connectivity. Design your network zones and ActiveGate topology before migration begins—these decisions are difficult to change after OneAgents are redirected. Confirm data residency and SSO configuration with your compliance and security teams early.</p>
+</blockquote>
+<hr />
+<p><em>Continue to <strong>M2S-04: Step 4 — Prepare</strong> to set up your SaaS environment for migration execution.</em></p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

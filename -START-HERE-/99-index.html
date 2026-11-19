@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Series Catalog &amp; Cross-Reference</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../">Best Practice Notebooks</a><span class="sep">/</span><a href="./">Start here</a><span class="sep">/</span><span aria-current="page">Series Catalog &amp; Cross-Reference</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1 id="series-catalog--cross-reference">Series Catalog &amp; Cross-Reference</h1>
+<blockquote>
+<p><strong>Purpose:</strong> Full inventory of all 33 Dynatrace Best Practice Topic series with cross-references between them. Use this as a quick lookup when you need to find which series covers a specific topic, or to see related material across series.
+<strong>Last Updated:</strong> 09/28/2026</p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5BbGwgMzMgU2VyaWVzIGJ5IENhdGVnb3J5PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPk5vdGVib29rIGNvdW50IHBlciBzZXJpZXMg4oCUIHBpY2sgYnkgZW50cnkgcG9pbnQgYW5kIG5lZWQsIG5vdCBmcm9udCB0byBiYWNrPC90ZXh0PgoKICA8IS0tIEZvdW5kYXRpb24gLS0+CiAgPHJlY3QgeD0iMjAiIHk9Ijc4IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIyMiIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIxMjAiIHk9IjEwMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+Rm91bmRhdGlvbjwvdGV4dD4KICA8dGV4dCB4PSIxMjAiIHk9IjExOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+VW5pdmVyc2FsPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSIxMzYiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPk9OQlJEPC90ZXh0PgogIDx0ZXh0IHg9IjIwNCIgeT0iMTM2IiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj4xMjwvdGV4dD4KICA8dGV4dCB4PSIzNiIgeT0iMTUzIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5PUkdOWjwvdGV4dD4KICA8dGV4dCB4PSIyMDQiIHk9IjE1MyIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+MTE8L3RleHQ+CiAgPHRleHQgeD0iMzYiIHk9IjE3MCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+SUFNPC90ZXh0PgogIDx0ZXh0IHg9IjIwNCIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj4xNTwvdGV4dD4KICA8dGV4dCB4PSIzNiIgeT0iMTg3IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5BUFBTRUM8L3RleHQ+CiAgPHRleHQgeD0iMjA0IiB5PSIxODciIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPjEwPC90ZXh0PgogIDxsaW5lIHgxPSIzNiIgeTE9IjI3NiIgeDI9IjIwNCIgeTI9IjI3NiIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIxMjAiIHk9IjI5MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+NCBzZXJpZXMgwrcgNDggbm90ZWJvb2tzPC90ZXh0PgogIDwhLS0gTWlncmF0aW9uIC0tPgogIDxyZWN0IHg9IjIzMCIgeT0iNzgiIHdpZHRoPSIyNDAiIGhlaWdodD0iMjIyIiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iMTAyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5NaWdyYXRpb248L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSIxMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlRvb2wgKyBkZXBsb3ltZW50PC90ZXh0PgogIDx0ZXh0IHg9IjI0NiIgeT0iMTM2IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5OUkxDPC90ZXh0PgogIDx0ZXh0IHg9IjQ1NCIgeT0iMTM2IiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj45PC90ZXh0PgogIDx0ZXh0IHg9IjI0NiIgeT0iMTUzIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5OUjJEVDwvdGV4dD4KICA8dGV4dCB4PSI0NTQiIHk9IjE1MyIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+MTE8L3RleHQ+CiAgPHRleHQgeD0iMjQ2IiB5PSIxNzAiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPlMyRDwvdGV4dD4KICA8dGV4dCB4PSI0NTQiIHk9IjE3MCIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+MTA8L3RleHQ+CiAgPHRleHQgeD0iMjQ2IiB5PSIxODciIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPlNMMkRUPC90ZXh0PgogIDx0ZXh0IHg9IjQ1NCIgeT0iMTg3IiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj4xMTwvdGV4dD4KICA8dGV4dCB4PSIyNDYiIHk9IjIwNCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+T1BNSUc8L3RleHQ+CiAgPHRleHQgeD0iNDU0IiB5PSIyMDQiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPjEwPC90ZXh0PgogIDx0ZXh0IHg9IjI0NiIgeT0iMjIxIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5NWjJQT0w8L3RleHQ+CiAgPHRleHQgeD0iNDU0IiB5PSIyMjEiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPjE5PC90ZXh0PgogIDx0ZXh0IHg9IjI0NiIgeT0iMjM4IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5NMlM8L3RleHQ+CiAgPHRleHQgeD0iNDU0IiB5PSIyMzgiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPjExPC90ZXh0PgogIDx0ZXh0IHg9IjI0NiIgeT0iMjU1IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5TMlM8L3RleHQ+CiAgPHRleHQgeD0iNDU0IiB5PSIyNTUiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPjEyPC90ZXh0PgogIDxsaW5lIHgxPSIyNDYiIHkxPSIyNzYiIHgyPSI0NTQiIHkyPSIyNzYiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMzUwIiB5PSIyOTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPjggc2VyaWVzIMK3IDkzIG5vdGVib29rczwvdGV4dD4KICA8IS0tIERvbWFpbiAtLT4KICA8cmVjdCB4PSI0ODAiIHk9Ijc4IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjIyMiIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI2MDAiIHk9IjEwMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+RG9tYWluPC90ZXh0PgogIDx0ZXh0IHg9IjYwMCIgeT0iMTE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5XaGF0IHlvdSBtb25pdG9yPC90ZXh0PgogIDx0ZXh0IHg9IjQ5NiIgeT0iMTM2IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5LOFM8L3RleHQ+CiAgPHRleHQgeD0iNzA0IiB5PSIxMzYiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPjE1PC90ZXh0PgogIDx0ZXh0IHg9IjQ5NiIgeT0iMTUzIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5DTE9VRDwvdGV4dD4KICA8dGV4dCB4PSI3MDQiIHk9IjE1MyIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+OTwvdGV4dD4KICA8dGV4dCB4PSI0OTYiIHk9IjE3MCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+U1BBTlM8L3RleHQ+CiAgPHRleHQgeD0iNzA0IiB5PSIxNzAiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPjk8L3RleHQ+CiAgPHRleHQgeD0iNDk2IiB5PSIxODciIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPldFQlJVTTwvdGV4dD4KICA8dGV4dCB4PSI3MDQiIHk9IjE4NyIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+MTA8L3RleHQ+CiAgPHRleHQgeD0iNDk2IiB5PSIyMDQiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPk1PQkw8L3RleHQ+CiAgPHRleHQgeD0iNzA0IiB5PSIyMDQiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPjEzPC90ZXh0PgogIDx0ZXh0IHg9IjQ5NiIgeT0iMjIxIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5EQk1PTjwvdGV4dD4KICA8dGV4dCB4PSI3MDQiIHk9IjIyMSIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+NzwvdGV4dD4KICA8dGV4dCB4PSI0OTYiIHk9IjIzOCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+QklaRVY8L3RleHQ+CiAgPHRleHQgeD0iNzA0IiB5PSIyMzgiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPjg8L3RleHQ+CiAgPHRleHQgeD0iNDk2IiB5PSIyNTUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPlNZTlRIPC90ZXh0PgogIDx0ZXh0IHg9IjcwNCIgeT0iMjU1IiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj43PC90ZXh0PgogIDxsaW5lIHgxPSI0OTYiIHkxPSIyNzYiIHgyPSI3MDQiIHkyPSIyNzYiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNjAwIiB5PSIyOTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPjggc2VyaWVzIMK3IDc4IG5vdGVib29rczwvdGV4dD4KICA8IS0tIEluZ2VzdGlvbiAtLT4KICA8cmVjdCB4PSI3MzAiIHk9Ijc4IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjIyMiIgZmlsbD0iIzIyRDNFRSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI4MjAiIHk9IjEwMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+SW5nZXN0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjgyMCIgeT0iMTE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5Dcm9zcy1jdXR0aW5nPC90ZXh0PgogIDx0ZXh0IHg9Ijc0NiIgeT0iMTM2IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5PVEVMPC90ZXh0PgogIDx0ZXh0IHg9Ijg5NCIgeT0iMTM2IiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj45PC90ZXh0PgogIDx0ZXh0IHg9Ijc0NiIgeT0iMTUzIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5PUExPR1M8L3RleHQ+CiAgPHRleHQgeD0iODk0IiB5PSIxNTMiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPjk8L3RleHQ+CiAgPHRleHQgeD0iNzQ2IiB5PSIxNzAiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPk9QSVBFPC90ZXh0PgogIDx0ZXh0IHg9Ijg5NCIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj43PC90ZXh0PgogIDxsaW5lIHgxPSI3NDYiIHkxPSIyNzYiIHgyPSI4OTQiIHkyPSIyNzYiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iODIwIiB5PSIyOTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPjMgc2VyaWVzIMK3IDI1IG5vdGVib29rczwvdGV4dD4KICA8IS0tIE9wZXJhdGlvbmFsaXplIC0tPgogIDxyZWN0IHg9IjIwIiB5PSIzMTIiIHdpZHRoPSI0NTAiIGhlaWdodD0iMTQ2IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjI0NSIgeT0iMzM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5PcGVyYXRpb25hbGl6ZTwvdGV4dD4KICA8dGV4dCB4PSIyNDUiIHk9IjM1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+RGF5LTIgb3BlcmF0aW9uczwvdGV4dD4KICA8dGV4dCB4PSIzNiIgeT0iMzcwIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5BTEVSVDwvdGV4dD4KICA8dGV4dCB4PSIyMjkiIHk9IjM3MCIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+NTwvdGV4dD4KICA8dGV4dCB4PSIzNiIgeT0iMzg3IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5EQVNIPC90ZXh0PgogIDx0ZXh0IHg9IjIyOSIgeT0iMzg3IiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj44PC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSI0MDQiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPldGTE9XPC90ZXh0PgogIDx0ZXh0IHg9IjIyOSIgeT0iNDA0IiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj4xMjwvdGV4dD4KICA8dGV4dCB4PSIzNiIgeT0iNDIxIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5BVVRPTTwvdGV4dD4KICA8dGV4dCB4PSIyMjkiIHk9IjQyMSIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+MTQ8L3RleHQ+CiAgPHRleHQgeD0iMjYxIiB5PSIzNzAiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPkFJT1BTPC90ZXh0PgogIDx0ZXh0IHg9IjQ1NCIgeT0iMzcwIiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj44PC90ZXh0PgogIDx0ZXh0IHg9IjI2MSIgeT0iMzg3IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5TTE88L3RleHQ+CiAgPHRleHQgeD0iNDU0IiB5PSIzODciIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPjY8L3RleHQ+CiAgPHRleHQgeD0iMjYxIiB5PSI0MDQiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPkZJTk9QUzwvdGV4dD4KICA8dGV4dCB4PSI0NTQiIHk9IjQwNCIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+MzwvdGV4dD4KICA8bGluZSB4MT0iMzYiIHkxPSI0MzQiIHgyPSI0NTQiIHkyPSI0MzQiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMjQ1IiB5PSI0NDkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPjcgc2VyaWVzIMK3IDU2IG5vdGVib29rczwvdGV4dD4KICA8IS0tIFNlbGYtSG9zdGVkIE9wcyAtLT4KICA8cmVjdCB4PSI0ODAiIHk9IjMxMiIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxNDYiIGZpbGw9IiM2NDc0OEIiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNTgwIiB5PSIzMzYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPlNlbGYtSG9zdGVkIE9wczwvdGV4dD4KICA8dGV4dCB4PSI1ODAiIHk9IjM1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+RHluYXRyYWNlIE1hbmFnZWQ8L3RleHQ+CiAgPHRleHQgeD0iNDk2IiB5PSIzNzAiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPkRUTTwvdGV4dD4KICA8dGV4dCB4PSI2NjQiIHk9IjM3MCIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+MTQ8L3RleHQ+CiAgPGxpbmUgeDE9IjQ5NiIgeTE9IjQzNCIgeDI9IjY2NCIgeTI9IjQzNCIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI1ODAiIHk9IjQ0OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+MSBzZXJpZXMgwrcgMTQgbm90ZWJvb2tzPC90ZXh0PgogIDwhLS0gTWF0dXJpdHkgJiBSZWZlcmVuY2UgLS0+CiAgPHJlY3QgeD0iNjkwIiB5PSIzMTIiIHdpZHRoPSIyMjAiIGhlaWdodD0iMTQ2IiBmaWxsPSIjOTRBM0I4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjgwMCIgeT0iMzM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5NYXR1cml0eSAmYW1wOyBSZWZlcmVuY2U8L3RleHQ+CiAgPHRleHQgeD0iODAwIiB5PSIzNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkxvb3AgKyBzdGFuZGFsb25lPC90ZXh0PgogIDx0ZXh0IHg9IjcwNiIgeT0iMzcwIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5BRE9QVDwvdGV4dD4KICA8dGV4dCB4PSI4OTQiIHk9IjM3MCIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+NzwvdGV4dD4KICA8dGV4dCB4PSI3MDYiIHk9IjM4NyIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+RkFRPC90ZXh0PgogIDx0ZXh0IHg9Ijg5NCIgeT0iMzg3IiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj4yNjwvdGV4dD4KICA8bGluZSB4MT0iNzA2IiB5MT0iNDM0IiB4Mj0iODk0IiB5Mj0iNDM0IiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjgwMCIgeT0iNDQ5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj4yIHNlcmllcyDCtyAzMyBub3RlYm9va3M8L3RleHQ+CiAgPGxpbmUgeDE9IjQwIiB5MT0iNDcwIiB4Mj0iODkwIiB5Mj0iNDcwIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj4zMyBzZXJpZXMgwrcgMzQxIG5vdGVib29rczwvdGV4dD4KPC9zdmc+Cg==" alt="Series by Category" /></p>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#alphabetical-catalog">Alphabetical Catalog</a> — All 33 series with one-line descriptions</li>
+<li><a href="#by-category">By Category</a> — Series grouped by their role in the journey</li>
+<li><a href="#by-entry-point">By Entry Point</a> — Which doorway uses each series</li>
+<li><a href="#cross-reference-matrix">Cross-Reference Matrix</a> — For each series, related series to read</li>
+<li><a href="#reading-order-presets">Reading-Order Presets</a> — &quot;I have 1 hour / 1 week / 1 month / 1 quarter&quot;</li>
+</ol>
+<hr />
+<h2 id="alphabetical-catalog">Alphabetical Catalog</h2>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Series</th>
+<th>Notebooks</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ADOPT</strong></td>
+<td><a href="../ADOPT%20-%20Observability%20Adoption%20&amp;%20Maturity/">Observability Adoption &amp; Maturity</a></td>
+<td>7</td>
+<td>Maturity model, success metrics, optimization roadmap, coverage audit &amp; staged enablement</td>
+</tr>
+<tr>
+<td><strong>AIOPS</strong></td>
+<td><a href="../AIOPS%20-%20Dynatrace%20Intelligence/">Dynatrace Intelligence</a></td>
+<td>8</td>
+<td>Davis problems, anomaly detection, generative AI, agentic workflows</td>
+</tr>
+<tr>
+<td><strong>ALERT</strong></td>
+<td><a href="../ALERT%20-%20Alerting%20Strategy%20and%20Design/">Alerting Strategy and Design</a></td>
+<td>5</td>
+<td>End-to-end alerting architecture, detection choices, routing, ServiceNow</td>
+</tr>
+<tr>
+<td><strong>APPSEC</strong></td>
+<td><a href="../APPSEC%20%E2%80%94%20Application%20Security/">Application Security</a></td>
+<td>10</td>
+<td>RVA, RAP, SPM; security.events; Grail + vulnerability-service IAM; Investigations</td>
+</tr>
+<tr>
+<td><strong>AUTOM</strong></td>
+<td><a href="../AUTOM%20-%20Dynatrace%20Automation/">Dynatrace Automation</a></td>
+<td>14</td>
+<td>Settings API, Monaco, Terraform, workflows-as-code, GitOps, CI/CD</td>
+</tr>
+<tr>
+<td><strong>BIZEV</strong></td>
+<td><a href="../BIZEV%20-%20Business%20Events%20&amp;%20Funnel%20Analysis/">Business Events &amp; Funnel Analysis</a></td>
+<td>8</td>
+<td>Business event ingestion, conversion funnels, revenue impact, executive reporting; Gen2 vs Gen3 adoption paths (what works without Grail)</td>
+</tr>
+<tr>
+<td><strong>CLOUD</strong></td>
+<td><a href="../CLOUD%20-%20Cloud%20Provider%20Integrations/">Cloud Provider Integrations</a></td>
+<td>9</td>
+<td>AWS, Azure, GCP integrations; Lambda, EKS, multi-cloud patterns</td>
+</tr>
+<tr>
+<td><strong>DASH</strong></td>
+<td><a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">Dashboard Design &amp; Building</a></td>
+<td>8</td>
+<td>Dashboard hierarchy, executive/operations/engineering audiences, sharing and reporting</td>
+</tr>
+<tr>
+<td><strong>DBMON</strong></td>
+<td><a href="../DBMON%20-%20Database%20Monitoring/">Database Monitoring</a></td>
+<td>7</td>
+<td>SQL, NoSQL, cache, messaging, query analysis</td>
+</tr>
+<tr>
+<td><strong>DTM</strong></td>
+<td><a href="../DTM%20-%20Dynatrace%20Managed/">Dynatrace Managed</a></td>
+<td>15</td>
+<td>What is specific to a self-hosted Managed cluster (Dynatrace Classic only): series map, cluster design, configuration, environment, ActiveGate and OneAgent best practices, node architecture, five-layer health model, storage, capacity, Mission Control connectivity, backup and upgrades (formerly MCH), and a one-off rated cluster assessment</td>
+</tr>
+<tr>
+<td><strong>FAQ</strong></td>
+<td><a href="../FAQ%20-%20Frequently%20Asked%20Questions/">Frequently Asked Questions</a></td>
+<td>25+</td>
+<td>Standalone single-page reference docs (host groups, tagging, OneAgent and OTel, updates, sizing, metrics, DPL, entity selectors → Smartscape, cutover planning, third-party SaaS telemetry, alert routing, PurePath timings in Grail, metadata strategy, ActiveGate placement) — growing</td>
+</tr>
+<tr>
+<td><strong>FINOPS</strong></td>
+<td><a href="../FINOPS%20-%20Cost%20Management%20&amp;%20FinOps/">Cost Management &amp; FinOps</a></td>
+<td>3+</td>
+<td>DPS consumption, forecasting, anomaly detection, optimization framework — growing</td>
+</tr>
+<tr>
+<td><strong>IAM</strong></td>
+<td><a href="../IAM%20-%20IAM%20Administration/">IAM Administration</a></td>
+<td>16</td>
+<td>Policies, boundaries, groups, SSO, audit, parameterized assignments, permission reference</td>
+</tr>
+<tr>
+<td><strong>K8S</strong></td>
+<td><a href="../K8S%20-%20Kubernetes%20Monitoring/">Kubernetes Monitoring</a></td>
+<td>15</td>
+<td>DynaKube, GitOps deployment, cluster + workload monitoring, troubleshooting</td>
+</tr>
+<tr>
+<td><strong>M2S</strong></td>
+<td><a href="../M2S%20-%20Managed%20to%20SaaS%20Migration/">Managed to SaaS Migration</a></td>
+<td>11</td>
+<td>9-step procedural runbook for Managed → SaaS deployment migration</td>
+</tr>
+<tr>
+<td><strong>MOBL</strong></td>
+<td><a href="../MOBL%20-%20Mobile%20Monitoring/">Mobile Monitoring</a></td>
+<td>13</td>
+<td>iOS, Android, cross-platform SDKs; crash reporting, session replay, privacy</td>
+</tr>
+<tr>
+<td><strong>MZ2POL</strong></td>
+<td><a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">Management Zone Migration: Segments, Policies, Workflows</a></td>
+<td>19</td>
+<td>MZ analysis, zone-consumer inventory, zone-scoped alerting artifacts, tagging at source, MZ rule translation, IAM reference architecture, Spaces status, disposition workshop, end-to-end LAB, Gen2 → Gen3 access control migration</td>
+</tr>
+<tr>
+<td><strong>NR2DT</strong></td>
+<td><a href="../NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/">New Relic to Dynatrace Migration Steps</a></td>
+<td>11</td>
+<td>Procedural runbook (00 prereqs + 9 steps + summary); refers to NRLC for component depth</td>
+</tr>
+<tr>
+<td><strong>NRLC</strong></td>
+<td><a href="../NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/">New Relic to Dynatrace Migration Deep Dives</a></td>
+<td>9</td>
+<td>Standalone component deep dives (NRQL→DQL, dashboards, alerts, synthetics, SLOs, logs)</td>
+</tr>
+<tr>
+<td><strong>ONBRD</strong></td>
+<td><a href="../ONBRD%20-%20Dynatrace%20Onboarding/">Dynatrace Onboarding</a></td>
+<td>12</td>
+<td>First steps, IAM, ActiveGate, OneAgent, basic data org and dashboards</td>
+</tr>
+<tr>
+<td><strong>OPIPE</strong></td>
+<td><a href="../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/">OpenPipeline Beyond Logs</a></td>
+<td>8</td>
+<td>Spans, metrics, business and security event pipelines; cross-scope design patterns; pipeline group governance</td>
+</tr>
+<tr>
+<td><strong>OPLOGS</strong></td>
+<td><a href="../OPLOGS%20-%20OpenPipeline%20Logs/">OpenPipeline Logs</a></td>
+<td>9</td>
+<td>Log fundamentals, processing, buckets, parsing, security</td>
+</tr>
+<tr>
+<td><strong>OPMIG</strong></td>
+<td><a href="../OPMIG%20-%20OpenPipeline%20Migration/">OpenPipeline Migration</a></td>
+<td>10</td>
+<td>Classic Logs → OpenPipeline migration runbook</td>
+</tr>
+<tr>
+<td><strong>ORGNZ</strong></td>
+<td><a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">Organize Data: Buckets, Segments, Security</a></td>
+<td>11</td>
+<td>Buckets, security_context, permissions, segments, enterprise patterns</td>
+</tr>
+<tr>
+<td><strong>OTEL</strong></td>
+<td><a href="../OTEL%20-%20OpenTelemetry%20Integration/">OpenTelemetry Integration</a></td>
+<td>9</td>
+<td>OTel collector deployment, trace/metric/log instrumentation, Dynatrace integration</td>
+</tr>
+<tr>
+<td><strong>S2D</strong></td>
+<td><a href="../S2D%20-%20Splunk%20to%20Dynatrace%20Migration/">Splunk to Dynatrace Migration</a></td>
+<td>10</td>
+<td>SPL → DQL, anomaly detectors, dashboards, naming standards</td>
+</tr>
+<tr>
+<td><strong>S2S</strong></td>
+<td><a href="../S2S%20-%20SaaS%20to%20SaaS%20Migration/">SaaS to SaaS Migration</a></td>
+<td>12</td>
+<td>9-step runbook for SaaS → SaaS tenant moves; includes migration scripts and an AWS-to-Azure cloud-retirement LAB</td>
+</tr>
+<tr>
+<td><strong>SL2DT</strong></td>
+<td><a href="../SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/">Sumo Logic to Dynatrace</a></td>
+<td>11</td>
+<td>Sumo procedural runbook; logs/dashboards/monitors; Gen3-first</td>
+</tr>
+<tr>
+<td><strong>SLO</strong></td>
+<td><a href="../SLO%20-%20Service%20Level%20Objectives/">Service Level Objectives</a></td>
+<td>7</td>
+<td>SLI fundamentals, defining SLIs, error budgets, burn-rate alerting, SLOs as code, Site Reliability Guardians, upgrading Classic SLOs</td>
+</tr>
+<tr>
+<td><strong>SPANS</strong></td>
+<td><a href="../SPANS%20-%20Distributed%20Tracing%20and%20Spans/">Distributed Tracing and Spans</a></td>
+<td>9</td>
+<td>Span fundamentals, querying, topology, analytics, cost optimization</td>
+</tr>
+<tr>
+<td><strong>SYNTH</strong></td>
+<td><a href="../SYNTH%20-%20Synthetic%20Monitoring/">Synthetic Monitoring</a></td>
+<td>7</td>
+<td>Browser monitors, HTTP monitors, private locations, network monitoring</td>
+</tr>
+<tr>
+<td><strong>WEBRUM</strong></td>
+<td><a href="../WEBRUM%20-%20Web%20Real%20User%20Monitoring/">Web Real User Monitoring</a></td>
+<td>10</td>
+<td>RUM fundamentals, SPA, Core Web Vitals, session replay, USQL → DQL migration</td>
+</tr>
+<tr>
+<td><strong>WFLOW</strong></td>
+<td><a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">Workflows and Alert Notifications</a></td>
+<td>12</td>
+<td>Workflow triggers, notification routing, incident management, JS/HTTP actions, governance</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="by-category">By Category</h2>
+<h3 id="foundation-universal">Foundation (Universal)</h3>
+<p>Every customer needs these regardless of entry point.</p>
+<ul>
+<li><a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a> — Tenant orientation, OneAgent, ActiveGate</li>
+<li><a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> — Buckets, security_context, segments</li>
+<li><a href="../IAM%20-%20IAM%20Administration/">IAM</a> — Policies, groups, boundaries</li>
+<li><a href="../APPSEC%20%E2%80%94%20Application%20Security/">APPSEC</a> — Security observability (RVA / RAP / SPM)</li>
+</ul>
+<h3 id="migration-pick-based-on-source">Migration (Pick Based on Source)</h3>
+<p>These are entry points for customers leaving another tool or migrating their Dynatrace deployment.</p>
+<p><strong>Tool migration (typically with a net-new Dynatrace tenant):</strong></p>
+<ul>
+<li><a href="../NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/">NRLC</a> + <a href="../NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/">NR2DT</a> — From New Relic</li>
+<li><a href="../S2D%20-%20Splunk%20to%20Dynatrace%20Migration/">S2D</a> — From Splunk</li>
+<li><a href="../SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/">SL2DT</a> — From Sumo Logic</li>
+<li><a href="../OPMIG%20-%20OpenPipeline%20Migration/">OPMIG</a> — Classic Logs → OpenPipeline (internal Dynatrace migration)</li>
+<li><a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a> — Management Zone Migration: Segments, Policies, Workflows</li>
+</ul>
+<p><strong>Deployment migration (existing Dynatrace customer):</strong></p>
+<ul>
+<li><a href="../M2S%20-%20Managed%20to%20SaaS%20Migration/">M2S</a> — Managed → SaaS</li>
+<li><a href="../S2S%20-%20SaaS%20to%20SaaS%20Migration/">S2S</a> — SaaS → SaaS</li>
+</ul>
+<h3 id="self-hosted-operations-dynatrace-managed">Self-Hosted Operations (Dynatrace Managed)</h3>
+<ul>
+<li><a href="../DTM%20-%20Dynatrace%20Managed/">DTM</a> — What is specific to Dynatrace Managed: keeping a cluster healthy while you run it, and before you migrate off it</li>
+</ul>
+<h3 id="domain-pick-based-on-what-you-monitor">Domain (Pick Based on What You Monitor)</h3>
+<ul>
+<li><a href="../K8S%20-%20Kubernetes%20Monitoring/">K8S</a> — Kubernetes</li>
+<li><a href="../CLOUD%20-%20Cloud%20Provider%20Integrations/">CLOUD</a> — AWS, Azure, GCP</li>
+<li><a href="../SPANS%20-%20Distributed%20Tracing%20and%20Spans/">SPANS</a> — Distributed tracing</li>
+<li><a href="../WEBRUM%20-%20Web%20Real%20User%20Monitoring/">WEBRUM</a> — Web Real User Monitoring</li>
+<li><a href="../MOBL%20-%20Mobile%20Monitoring/">MOBL</a> — Mobile (iOS, Android)</li>
+<li><a href="../DBMON%20-%20Database%20Monitoring/">DBMON</a> — Databases</li>
+<li><a href="../BIZEV%20-%20Business%20Events%20&amp;%20Funnel%20Analysis/">BIZEV</a> — Business events</li>
+<li><a href="../SYNTH%20-%20Synthetic%20Monitoring/">SYNTH</a> — Synthetic monitoring</li>
+</ul>
+<h3 id="ingestion-cross-cutting-mechanism">Ingestion (Cross-Cutting Mechanism)</h3>
+<ul>
+<li><a href="../OTEL%20-%20OpenTelemetry%20Integration/">OTEL</a> — OpenTelemetry collector and instrumentation</li>
+<li><a href="../OPLOGS%20-%20OpenPipeline%20Logs/">OPLOGS</a> — Log processing in OpenPipeline</li>
+<li><a href="../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/">OPIPE</a> — OpenPipeline for spans, metrics, business and security events</li>
+</ul>
+<h3 id="operationalize-day-2-operations">Operationalize (Day-2 Operations)</h3>
+<p>Read in this order; each builds on the previous (see <a href="07-operationalize.html">Operationalize</a>).</p>
+<ul>
+<li><a href="../ALERT%20-%20Alerting%20Strategy%20and%20Design/">ALERT</a> — End-to-end alerting (detection, routing, ITSM)</li>
+<li><a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a> — Dashboards</li>
+<li><a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a> — Workflows and notification routing</li>
+<li><a href="../SLO%20-%20Service%20Level%20Objectives/">SLO</a> — Service level objectives</li>
+<li><a href="../AUTOM%20-%20Dynatrace%20Automation/">AUTOM</a> — Configuration automation and GitOps</li>
+<li><a href="../AIOPS%20-%20Dynatrace%20Intelligence/">AIOPS</a> — Davis intelligence</li>
+<li><a href="../FINOPS%20-%20Cost%20Management%20&amp;%20FinOps/">FINOPS</a> — Cost optimization and FinOps</li>
+</ul>
+<h3 id="maturity--reference">Maturity &amp; Reference</h3>
+<ul>
+<li><a href="../ADOPT%20-%20Observability%20Adoption%20&amp;%20Maturity/">ADOPT</a> — Continuous improvement framework</li>
+<li><a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a> — Standalone reference docs</li>
+</ul>
+<hr />
+<h2 id="by-entry-point">By Entry Point</h2>
+<p>This table shows which doorway in the playbook uses each series and how it appears (Primary = first-class entry; Refresh = revisit only where Gen3 or scope changed; — = not used).</p>
+<table>
+<thead>
+<tr>
+<th>Series</th>
+<th>Net New</th>
+<th>Expanding / Consolidating</th>
+<th>Deployment Migration</th>
+<th>Classic → Gen3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ONBRD</td>
+<td>Primary</td>
+<td>Refresh as needed</td>
+<td>Refresh as needed</td>
+<td>Primary (Phase 0 — ActiveGate and network prerequisites)</td>
+</tr>
+<tr>
+<td>ORGNZ</td>
+<td>Primary</td>
+<td>Primary (Gen3 changes)</td>
+<td>Primary (Gen3 changes)</td>
+<td>Primary (Phase 1)</td>
+</tr>
+<tr>
+<td>IAM</td>
+<td>Primary</td>
+<td>Primary (Gen3 changes)</td>
+<td>Primary (Gen2 → Gen3)</td>
+<td>Primary (Phase 1)</td>
+</tr>
+<tr>
+<td>NRLC</td>
+<td>If from New Relic</td>
+<td>If consolidating APM from NR</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>NR2DT</td>
+<td>If from New Relic</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>S2D</td>
+<td>If from Splunk</td>
+<td>If consolidating logs from Splunk</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>SL2DT</td>
+<td>If from Sumo Logic</td>
+<td>If consolidating logs from Sumo</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>M2S</td>
+<td>—</td>
+<td>—</td>
+<td>Primary (Managed → SaaS)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>DTM</td>
+<td>If running Managed</td>
+<td>If running Managed</td>
+<td>Before M2S step 1 — confirm the source cluster is healthy</td>
+<td>—</td>
+</tr>
+<tr>
+<td>S2S</td>
+<td>—</td>
+<td>—</td>
+<td>Primary (SaaS → SaaS)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>OPMIG</td>
+<td>—</td>
+<td>If on Classic Logs</td>
+<td>—</td>
+<td>Primary (Phase 2)</td>
+</tr>
+<tr>
+<td>MZ2POL</td>
+<td>—</td>
+<td>If migrating Gen2 access control, <strong>or</strong> replacing MZ-based filtering with segments (notebook 05)</td>
+<td>If migrating Gen2 MZs</td>
+<td>Primary (Phase 1)</td>
+</tr>
+<tr>
+<td>K8S</td>
+<td>After Foundation</td>
+<td>Primary for &quot;adding a domain&quot;</td>
+<td>After deployment migration</td>
+<td>Primary (Phase 0 — Operator, deployment mode, image source)</td>
+</tr>
+<tr>
+<td>CLOUD</td>
+<td>After Foundation</td>
+<td>Primary for &quot;adding a domain&quot;</td>
+<td>After deployment migration</td>
+<td>Primary (Phase 1 — connections and enrichment)</td>
+</tr>
+<tr>
+<td>WEBRUM, MOBL, DBMON, SYNTH</td>
+<td>After Foundation</td>
+<td>Primary for &quot;adding a domain&quot;</td>
+<td>After deployment migration</td>
+<td>Primary (Phase 3 — app surfaces)</td>
+</tr>
+<tr>
+<td>SPANS</td>
+<td>After Foundation</td>
+<td>Primary for &quot;adding a domain&quot;</td>
+<td>After deployment migration</td>
+<td>Refresh as needed (Phase 4 — service detection rules)</td>
+</tr>
+<tr>
+<td>APPSEC</td>
+<td>After first domain</td>
+<td>Primary for &quot;adding security&quot;</td>
+<td>After deployment migration</td>
+<td>Primary (Phase 4 — monitoring-rule cutover)</td>
+</tr>
+<tr>
+<td>OTEL</td>
+<td>As ingestion needs arise</td>
+<td>As ingestion needs arise</td>
+<td>As ingestion needs arise</td>
+<td>As ingestion needs arise</td>
+</tr>
+<tr>
+<td>OPLOGS, OPIPE, BIZEV</td>
+<td>As ingestion needs arise</td>
+<td>As ingestion needs arise</td>
+<td>As ingestion needs arise</td>
+<td>Primary (Phase 2 — classic processing surfaces)</td>
+</tr>
+<tr>
+<td>DASH, WFLOW, AUTOM, AIOPS</td>
+<td>After first domain</td>
+<td>Primary for &quot;maturing operations&quot;</td>
+<td>After deployment migration</td>
+<td>Primary (Phases 3–5)</td>
+</tr>
+<tr>
+<td>ALERT, SLO, FINOPS</td>
+<td>After first domain</td>
+<td>Primary for &quot;maturing operations&quot;</td>
+<td>After deployment migration</td>
+<td>Primary (Phases 4–5)</td>
+</tr>
+<tr>
+<td>ADOPT</td>
+<td>Ongoing</td>
+<td>Ongoing</td>
+<td>Ongoing</td>
+<td>Ongoing</td>
+</tr>
+<tr>
+<td>FAQ</td>
+<td>Reference</td>
+<td>Reference</td>
+<td>Reference</td>
+<td>Reference (entries 02, 04, 05, 07, 10, 11, 12, 16)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="cross-reference-matrix">Cross-Reference Matrix</h2>
+<p>For each series, the related series most often read alongside it:</p>
+<table>
+<thead>
+<tr>
+<th>If you are reading…</th>
+<th>Also see…</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="../ADOPT%20-%20Observability%20Adoption%20&amp;%20Maturity/">ADOPT</a></td>
+<td><a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a>, <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> (cost optimization), <a href="../BIZEV%20-%20Business%20Events%20&amp;%20Funnel%20Analysis/">BIZEV</a> (success metrics)</td>
+</tr>
+<tr>
+<td><a href="../AIOPS%20-%20Dynatrace%20Intelligence/">AIOPS</a></td>
+<td><a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a> (alert routing), <a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a> (visualizing problems), <a href="../AUTOM%20-%20Dynatrace%20Automation/">AUTOM</a> (workflow-as-code)</td>
+</tr>
+<tr>
+<td><a href="../AUTOM%20-%20Dynatrace%20Automation/">AUTOM</a></td>
+<td><a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a> (workflow-as-code overlap), <a href="../IAM%20-%20IAM%20Administration/">IAM</a> (provisioning), <a href="../K8S%20-%20Kubernetes%20Monitoring/">K8S</a> (GitOps), <a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a> (Settings API basics)</td>
+</tr>
+<tr>
+<td><a href="../BIZEV%20-%20Business%20Events%20&amp;%20Funnel%20Analysis/">BIZEV</a></td>
+<td><a href="../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/">OPIPE</a> (event pipelines), <a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a> (executive reporting), <a href="../WEBRUM%20-%20Web%20Real%20User%20Monitoring/">WEBRUM</a> (frontend events)</td>
+</tr>
+<tr>
+<td><a href="../CLOUD%20-%20Cloud%20Provider%20Integrations/">CLOUD</a></td>
+<td><a href="../OTEL%20-%20OpenTelemetry%20Integration/">OTEL</a> (collectors), <a href="../K8S%20-%20Kubernetes%20Monitoring/">K8S</a> (managed K8s), <a href="../OPLOGS%20-%20OpenPipeline%20Logs/">OPLOGS</a> (CloudWatch ingestion)</td>
+</tr>
+<tr>
+<td><a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a></td>
+<td><a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a>, <a href="../BIZEV%20-%20Business%20Events%20&amp;%20Funnel%20Analysis/">BIZEV</a> (executive dashboards), <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> (segments and filters)</td>
+</tr>
+<tr>
+<td><a href="../DBMON%20-%20Database%20Monitoring/">DBMON</a></td>
+<td><a href="../SPANS%20-%20Distributed%20Tracing%20and%20Spans/">SPANS</a> (database call tracing), <a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a> (database dashboards)</td>
+</tr>
+<tr>
+<td><a href="../DTM%20-%20Dynatrace%20Managed/">DTM</a></td>
+<td><a href="../M2S%20-%20Managed%20to%20SaaS%20Migration/">M2S</a> (moving off Managed), <a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a> (ActiveGate sizing concepts)</td>
+</tr>
+<tr>
+<td><a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a></td>
+<td><a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> (tagging), <a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a> (host groups)</td>
+</tr>
+<tr>
+<td><a href="../IAM%20-%20IAM%20Administration/">IAM</a></td>
+<td><a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> (security_context for boundaries), <a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a> (Gen2 → Gen3), <a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a> (initial setup)</td>
+</tr>
+<tr>
+<td><a href="../K8S%20-%20Kubernetes%20Monitoring/">K8S</a></td>
+<td><a href="../OTEL%20-%20OpenTelemetry%20Integration/">OTEL</a> (collector deployment), <a href="../CLOUD%20-%20Cloud%20Provider%20Integrations/">CLOUD</a> (managed K8s), <a href="../AUTOM%20-%20Dynatrace%20Automation/">AUTOM</a> (GitOps), <a href="../OPLOGS%20-%20OpenPipeline%20Logs/">OPLOGS</a> (K8s logs)</td>
+</tr>
+<tr>
+<td><a href="../M2S%20-%20Managed%20to%20SaaS%20Migration/">M2S</a></td>
+<td><a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a>, <a href="../IAM%20-%20IAM%20Administration/">IAM</a>, <a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a> (Gen2 → Gen3), <a href="../DTM%20-%20Dynatrace%20Managed/">DTM</a> (source-cluster health)</td>
+</tr>
+<tr>
+<td><a href="../MOBL%20-%20Mobile%20Monitoring/">MOBL</a></td>
+<td><a href="../SPANS%20-%20Distributed%20Tracing%20and%20Spans/">SPANS</a> (mobile-to-backend tracing), <a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a> (mobile dashboards)</td>
+</tr>
+<tr>
+<td><a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a></td>
+<td><a href="../IAM%20-%20IAM%20Administration/">IAM</a> (the access-control path), <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> (segment mechanics behind MZ2POL-05)</td>
+</tr>
+<tr>
+<td><a href="../NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/">NR2DT</a></td>
+<td><a href="../NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/">NRLC</a> (component depth), <a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a>, <a href="../OPLOGS%20-%20OpenPipeline%20Logs/">OPLOGS</a> (logs migration)</td>
+</tr>
+<tr>
+<td><a href="../NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/">NRLC</a></td>
+<td><a href="../NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/">NR2DT</a> (procedural runbook), <a href="../SPANS%20-%20Distributed%20Tracing%20and%20Spans/">SPANS</a>, <a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a>, <a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a>, <a href="../SYNTH%20-%20Synthetic%20Monitoring/">SYNTH</a></td>
+</tr>
+<tr>
+<td><a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a></td>
+<td><a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a>, <a href="../IAM%20-%20IAM%20Administration/">IAM</a>, <a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a>, <a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a></td>
+</tr>
+<tr>
+<td><a href="../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/">OPIPE</a></td>
+<td><a href="../SPANS%20-%20Distributed%20Tracing%20and%20Spans/">SPANS</a>, <a href="../BIZEV%20-%20Business%20Events%20&amp;%20Funnel%20Analysis/">BIZEV</a>, <a href="../OPLOGS%20-%20OpenPipeline%20Logs/">OPLOGS</a>, <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> (buckets)</td>
+</tr>
+<tr>
+<td><a href="../OPLOGS%20-%20OpenPipeline%20Logs/">OPLOGS</a></td>
+<td><a href="../OPMIG%20-%20OpenPipeline%20Migration/">OPMIG</a> (migration), <a href="../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/">OPIPE</a>, <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> (buckets)</td>
+</tr>
+<tr>
+<td><a href="../OPMIG%20-%20OpenPipeline%20Migration/">OPMIG</a></td>
+<td><a href="../OPLOGS%20-%20OpenPipeline%20Logs/">OPLOGS</a>, <a href="../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/">OPIPE</a>, <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a></td>
+</tr>
+<tr>
+<td><a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a></td>
+<td><a href="../IAM%20-%20IAM%20Administration/">IAM</a>, <a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a> (tagging), <a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a></td>
+</tr>
+<tr>
+<td><a href="../OTEL%20-%20OpenTelemetry%20Integration/">OTEL</a></td>
+<td><a href="../K8S%20-%20Kubernetes%20Monitoring/">K8S</a>, <a href="../CLOUD%20-%20Cloud%20Provider%20Integrations/">CLOUD</a>, <a href="../SPANS%20-%20Distributed%20Tracing%20and%20Spans/">SPANS</a>, <a href="../NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/">NRLC</a></td>
+</tr>
+<tr>
+<td><a href="../S2D%20-%20Splunk%20to%20Dynatrace%20Migration/">S2D</a></td>
+<td><a href="../OPLOGS%20-%20OpenPipeline%20Logs/">OPLOGS</a>, <a href="../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/">OPIPE</a>, <a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a>, <a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a>, <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a></td>
+</tr>
+<tr>
+<td><a href="../S2S%20-%20SaaS%20to%20SaaS%20Migration/">S2S</a></td>
+<td><a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a>, <a href="../IAM%20-%20IAM%20Administration/">IAM</a>, <a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a></td>
+</tr>
+<tr>
+<td><a href="../SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/">SL2DT</a></td>
+<td><a href="../OPLOGS%20-%20OpenPipeline%20Logs/">OPLOGS</a>, <a href="../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/">OPIPE</a>, <a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a>, <a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a>, <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a></td>
+</tr>
+<tr>
+<td><a href="../SPANS%20-%20Distributed%20Tracing%20and%20Spans/">SPANS</a></td>
+<td><a href="../OTEL%20-%20OpenTelemetry%20Integration/">OTEL</a>, <a href="../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/">OPIPE</a> (span pipelines), <a href="../DBMON%20-%20Database%20Monitoring/">DBMON</a> (DB tracing)</td>
+</tr>
+<tr>
+<td><a href="../SYNTH%20-%20Synthetic%20Monitoring/">SYNTH</a></td>
+<td><a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a>, <a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a> (alerting on synthetic)</td>
+</tr>
+<tr>
+<td><a href="../WEBRUM%20-%20Web%20Real%20User%20Monitoring/">WEBRUM</a></td>
+<td><a href="../SPANS%20-%20Distributed%20Tracing%20and%20Spans/">SPANS</a> (frontend-to-backend tracing), <a href="../BIZEV%20-%20Business%20Events%20&amp;%20Funnel%20Analysis/">BIZEV</a>, <a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a></td>
+</tr>
+<tr>
+<td><a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a></td>
+<td><a href="../AIOPS%20-%20Dynatrace%20Intelligence/">AIOPS</a> (problem routing), <a href="../AUTOM%20-%20Dynatrace%20Automation/">AUTOM</a> (workflow-as-code), <a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="reading-order-presets">Reading-Order Presets</h2>
+<p>Quick lists for time-boxed reading:</p>
+<h3 id="i-have-1-hour--fastest-orientation">&quot;I have 1 hour&quot; — fastest orientation</h3>
+<ol>
+<li>This document — sections <a href="#alphabetical-catalog">Alphabetical Catalog</a> and <a href="#by-category">By Category</a></li>
+<li><a href="./">README front door</a> — pick a doorway based on your situation</li>
+<li><a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a> — first 1–2 notebooks for orientation</li>
+</ol>
+<h3 id="i-have-1-week--foundation-only">&quot;I have 1 week&quot; — Foundation only</h3>
+<ol>
+<li><a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a> — full series (12 notebooks)</li>
+<li><a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> — first 5 notebooks (introduction, buckets, bucket strategy, Grail permissions, bucket-level access)</li>
+<li><a href="../IAM%20-%20IAM%20Administration/">IAM</a> — first 5 notebooks (governance, SSO, group architecture, policies, boundaries)</li>
+</ol>
+<p>Aligned with <a href="05-foundation.html">Foundation Module</a>.</p>
+<h3 id="i-have-1-month--foundation--first-domain--light-operationalize">&quot;I have 1 month&quot; — Foundation + first domain + light operationalize</h3>
+<ol>
+<li><a href="05-foundation.html">Foundation Module</a> reading order</li>
+<li>One domain — typically <a href="../K8S%20-%20Kubernetes%20Monitoring/">K8S</a> or <a href="../CLOUD%20-%20Cloud%20Provider%20Integrations/">CLOUD</a> depending on environment</li>
+<li><a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a> — first 4 notebooks (fundamentals, hierarchy, executive, operations)</li>
+<li><a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a> — first 4 notebooks (fundamentals, triggers, notifications basics, notification routing)</li>
+</ol>
+<h3 id="i-have-1-quarter--full-net-new-track">&quot;I have 1 quarter&quot; — full Net New track</h3>
+<ol>
+<li><a href="01-net-new.html">Net New Doorway</a> — full reading order across all phases</li>
+<li><a href="06-domain-enablement.html">Domain Enablement Module</a> — at least 2 domains</li>
+<li><a href="07-operationalize.html">Operationalize Module</a> — DASH → WFLOW → AUTOM</li>
+<li><a href="08-maturity.html">Maturity Module</a> — kick off</li>
+</ol>
+<h3 id="i-have-1-quarter--classic--gen3-surface-migration">&quot;I have 1 quarter&quot; — Classic → Gen3 surface migration</h3>
+<ol>
+<li><a href="04-gen2-to-gen3.html">Classic → Gen3 Doorway</a> — Phase 0 assessment, then Phase 1 in full</li>
+<li><a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a> — full series; <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> — notebooks 02, 03, 05, 06, 08</li>
+<li><a href="../OPMIG%20-%20OpenPipeline%20Migration/">OPMIG</a> — full series if still on Classic Logs (run as its own workstream)</li>
+<li><a href="../ALERT%20-%20Alerting%20Strategy%20and%20Design/">ALERT</a> — full series before migrating any individual alert</li>
+</ol>
+<p>Phases 2–5 typically extend past a quarter; the doorway sets the order.</p>
+<hr />
+<h2 id="maintenance-mandate">Maintenance Mandate</h2>
+<p><strong>This index and all -START-HERE- navigation files MUST be updated when new series are added to <code>topics/</code>.</strong></p>
+<p>Update checklist for each new series:</p>
+<ul>
+<li>[ ] Add series name, notebook count, and focus area to the appropriate table above (Operationalize, Domain Enablement, etc.)</li>
+<li>[ ] Add to <code>99-index.md</code> cross-reference map if overlaps exist with other series</li>
+<li>[ ] Update series-count references in all -START-HERE- files (currently 33 topic series as of September 25, 2026)</li>
+<li>[ ] Add the new series to relevant module files (e.g., if the series supports Domain Enablement, add to <code>06-domain-enablement.md</code>)</li>
+<li>[ ] Update <code>Last Updated</code> dates to current date across all affected files</li>
+<li>[ ] Verify no broken internal cross-references to the new series</li>
+</ul>
+<p>The series counts and cross-references are discovery mechanisms; stale information undermines the playbook's value. Add this update to the Definition of Done for any PR that introduces a new series.</p>
+<hr />
+<blockquote>
+<p><em>This playbook was AI-generated from community-submitted and publicly available sources. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></p>
+</blockquote>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

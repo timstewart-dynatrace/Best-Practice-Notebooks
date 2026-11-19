@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NR2DT-05: Step 5 — Migrate Dashboards &amp; Alerts</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">NR2DT — New Relic to Dynatrace Migration Steps</a><span class="sep">/</span><span aria-current="page">NR2DT-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>NR2DT-05: Step 5 — Migrate Dashboards &amp; Alerts</h1>
+<blockquote>
+<p><strong>Series:</strong> NR2DT — New Relic to Dynatrace Migration Steps | <strong>Notebook:</strong> 5 of 10 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 11/03/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Goal of this step:</strong> import dashboards (Wave 1, low risk) and alerts (Wave 3, HIGH risk). Dashboards land first as read-only signal; alerts go through a 1–2 week dual-alert window before NR alerts are silenced.</p>
+<p>Procedural — see <strong>NRLC-03</strong> (Dashboard Migration) and <strong>NRLC-04</strong> (Alert &amp; Workflow Migration) for component depth.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#wave0">Wave 0 — Apply Foundations</a></li>
+<li><a href="#wave1">Wave 1 — Dashboards</a></li>
+<li><a href="#wave3">Wave 3 — Alerts (Dual-Alert)</a></li>
+<li><a href="#gate">Step Exit Criteria</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Migration lead + assigned engineer for this step</td>
+</tr>
+<tr>
+<td><strong>Completed</strong></td>
+<td>NR2DT-04 — Translate</td>
+</tr>
+<tr>
+<td><strong>Format</strong></td>
+<td>Procedural step — use as a runbook; defer to NRLC for depth</td>
+</tr>
+<tr>
+<td><strong>NRLC deep dives</strong></td>
+<td>NRLC-03, NRLC-04</td>
+</tr>
+</tbody>
+</table>
+<p><a id="wave0"></a></p>
+<h2>1. Wave 0 — Apply Foundations</h2>
+<p>Phase-1 Terraform from Step 3 lands first.</p>
+<pre><code class="language-bash">cd terraform
+terraform apply -target=module.buckets -target=module.host_groups \
+    -target=module.iam_groups -target=module.openpipeline_enrichments
+</code></pre>
+<p><strong>Wait ~45 minutes</strong> for OpenPipeline enrichment propagation on EKS clusters before Wave 2 Terraform applies any routing rules.</p>
+<p><strong>Validate W0:</strong></p>
+<pre><code>fetch logs, from:-15m
+| summarize records = count(), by:{dt.system.bucket}
+</code></pre>
+<p>Every active bucket should show ingest. If anything lands in <code>default_logs</code> for a routed source, Wave 0 isn't done.</p>
+<p><a id="wave1"></a></p>
+<h2>2. Wave 1 — Dashboards</h2>
+<p>Dashboards are low-risk because they're read-only — users can compare visualizations side-by-side during the parallel run.</p>
+<pre><code class="language-bash"># Preview: export + transform + diff against the live tenant — imports NOTHING
+python3 migrate.py migrate --dry-run --diff --components dashboards --output ./run-dashboards
+
+# Import: the same command without --dry-run (and without --diff)
+python3 migrate.py migrate --components dashboards --output ./run-dashboards
+</code></pre>
+<blockquote>
+<p><strong>Never run <code>migrate</code> without <code>--dry-run</code>, <code>--export-only</code> or <code>--import-only</code> unless you intend to import.</strong> <code>--diff</code> and <code>--report</code> do not make a run read-only: both run <em>after</em> the import phase, so <code>migrate --diff</code> without <code>--dry-run</code> imports first and then diffs the objects it has just created.</p>
+</blockquote>
+<p>Review the preview's diff table (<code>CREATE</code> / <code>UPDATE</code> / <code>CONFLICT</code> / <code>ORPHAN</code>) before importing. The import run writes <code>./run-dashboards/rollback-manifest.json</code> — keep it; NR2DT-09 rolls back from it. Use a separate <code>--output</code> directory per run, because every run except <code>--import-only</code> — including a <code>--dry-run</code> preview — overwrites the manifest in its directory, and a preview writes it with no entries. (<code>--import-only --input ./run-dashboards --components dashboards</code> imports exactly the previewed <code>transformed/dynatrace_config.json</code> instead, but writes <strong>no</strong> rollback manifest. <code>--import-only</code> without <code>--input</code> stops with an error.)</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py">migrate.py @ 78cbfce (tool repo, GitHub)</a>, read 10/05/2026; <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migration/state.py">migration/state.py @ 78cbfce (tool repo, GitHub)</a>, read 11/03/2026.</sub></p>
+</blockquote>
+<p><strong>W1 — Dashboard parity:</strong></p>
+<p>Sample 10–20% of dashboards. Open each NR dashboard and the corresponding DT document side-by-side. Acceptable diff:</p>
+<ul>
+<li>Visual layout: minor variations OK</li>
+<li>Data values: ±5% on count widgets</li>
+<li>Time-series shape: matches</li>
+</ul>
+<p>Document any dashboard with &gt; 5% delta in <code>wave1-issues.md</code> for follow-up.</p>
+<p><a id="wave3"></a></p>
+<h2>3. Wave 3 — Alerts (Dual-Alert)</h2>
+<p><strong>HIGH RISK.</strong> Follow this exactly.</p>
+<h3>Step 1: Import to silent test channels</h3>
+<p>Set <code>DYNATRACE_DETECTOR_ACTOR</code> first (NR2DT-00 §2.3) — without it the anomaly detectors fail to import.</p>
+<p>Preview, then import (see Wave 1 for why <code>--dry-run</code> comes first):</p>
+<pre><code class="language-bash">python3 migrate.py migrate --dry-run --diff --components alerts,notification_channels --output ./run-alerts
+python3 migrate.py migrate --components alerts,notification_channels --output ./run-alerts
+</code></pre>
+<p>Component names are the ones <code>python3 migrate.py migrate --list-components</code> prints. <code>notifications</code> is not one, and the tool skips an unknown name without an error. (<code>alerts</code> also pulls in <code>notification_channels</code> as a dependency.)</p>
+<p>Routing in this step goes to a <strong>silent test Slack channel</strong> (or equivalent). Update Workflow tasks to point at the test channel before enabling.</p>
+<h3>Step 2: Run dual-alert for 1–2 weeks</h3>
+<p>Both NR and DT raise alerts. Compare volume daily:</p>
+<pre><code class="language-dql">// One record per problem: count distinct problems, not problem updates
+fetch dt.davis.problems, from:-1d
+| summarize problems = countDistinct(display_id), by:{event.name, event.category}
+| sort problems desc
+</code></pre>
+<p>Count problems from <code>dt.davis.problems</code>, not from <code>fetch events | filter event.kind == &quot;DAVIS_PROBLEM&quot;</code>. The <code>events</code> form returns one record per problem <em>update</em>: over the same 24 h on the validation tenant (10/05/2026) it returned 15,738 records for 465 distinct problems — about 34× the real number, which would make the ±10% comparison meaningless.</p>
+<p>DT problem count should match NR alert count within ±10% per condition. Investigate any condition with &gt; 25% delta.</p>
+<h3>Step 3: Promote per policy</h3>
+<p><strong>One policy at a time.</strong> When a policy's dual-alert volume aligns:</p>
+<ol>
+<li>Update its Workflow tasks to point at the production channel (re-enter secrets in DT credentials vault)</li>
+<li>Disable all of that policy's conditions in NR — a New Relic policy has no on/off state of its own: <em>&quot;You can't disable a policy directly. However, you can disable all of the policy's conditions.&quot;</em></li>
+<li>Move to the next policy</li>
+</ol>
+<p>Don't batch — sequential cutover lets you reverse one policy without affecting others.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.newrelic.com/docs/alerts/organize-alerts/create-edit-or-find-alert-policy/">Create, edit, or find an alert policy (New Relic docs)</a>, read 10/05/2026.</sub></p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5XYXZlIDMg4oCUIER1YWwtQWxlcnQgV2luZG93IFBhdHRlcm48L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+Qm90aCBOUiBhbmQgRFQgcmFpc2UgYWxlcnRzOyBjb21wYXJlIHZvbHVtZTsgY3V0IG92ZXIgcG9saWN5IGJ5IHBvbGljeTwvdGV4dD4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJkYS1hcnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iMTAiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjNzNCRTI4Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gUGhhc2UgYm94ZXMgbGVmdCB0byByaWdodCAtLT4KICA8ZyBmb250LXNpemU9IjExIj4KICAgIDwhLS0gUGhhc2UgMTogSW1wb3J0IHRvIHNpbGVudCAtLT4KICAgIDxyZWN0IHg9IjQwIiB5PSIxMTAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTIwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI2Ii8+CiAgICA8dGV4dCB4PSIxNDAiIHk9IjEzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MS4gSW1wb3J0IHRvIHNpbGVudCBjaGFubmVsPC90ZXh0PgogICAgPHRleHQgeD0iMTQwIiB5PSIxNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEQkVBRkUiIGZvbnQtc2l6ZT0iMTAiPldvcmtmbG93IHRhc2tzIHBvaW50IGF0PC90ZXh0PgogICAgPHRleHQgeD0iMTQwIiB5PSIxNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEQkVBRkUiIGZvbnQtc2l6ZT0iMTAiPmEgU1JFLW9ubHkgdGVzdCBTbGFjazwvdGV4dD4KICAgIDx0ZXh0IHg9IjE0MCIgeT0iMjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5ObyBvbi1jYWxsIGltcGFjdDwvdGV4dD4KICAgIDx0ZXh0IHg9IjE0MCIgeT0iMjE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5EYXkgMDwvdGV4dD4KCiAgICA8IS0tIFBoYXNlIDI6IER1YWwtYWxlcnQgd2luZG93IC0tPgogICAgPHJlY3QgeD0iMjcwIiB5PSIxMTAiIHdpZHRoPSIzODAiIGhlaWdodD0iMTIwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNCwyIiByeD0iNiIvPgogICAgPHRleHQgeD0iNDYwIiB5PSIxMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRUYzQzciIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjIuIER1YWwtYWxlcnQgZm9yIDHigJMyIHdlZWtzPC90ZXh0PgogICAgPHRleHQgeD0iNDYwIiB5PSIxNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGREU2OEEiIGZvbnQtc2l6ZT0iMTEiPkJvdGggTlIgKyBEVCByYWlzZSBhbGVydHMgb24gdGhlIHNhbWUgcHJvYmxlbXM8L3RleHQ+CiAgICA8dGV4dCB4PSI0NjAiIHk9IjE3NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZERTY4QSIgZm9udC1zaXplPSIxMSI+Q29tcGFyZSB2b2x1bWUgZGFpbHk8L3RleHQ+CiAgICA8dGV4dCB4PSI0NjAiIHk9IjE5OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+UGFzczogRFQgdnMgTlIgYWxlcnQgY291bnQgd2l0aGluIMKxMTAlIHBlciBjb25kaXRpb248L3RleHQ+CiAgICA8dGV4dCB4PSI0NjAiIHk9IjIxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+SW52ZXN0aWdhdGUgYW55IGNvbmRpdGlvbiB3aXRoIGRlbHRhID4gMjUlPC90ZXh0PgoKICAgIDwhLS0gUGhhc2UgMzogUHJvbW90ZSBwZXIgcG9saWN5IC0tPgogICAgPHJlY3QgeD0iNjgwIiB5PSIxMTAiIHdpZHRoPSIyMTAiIGhlaWdodD0iMTIwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHJ4PSI2Ii8+CiAgICA8dGV4dCB4PSI3ODUiIHk9IjEzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Q5Rjk5RCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+My4gUHJvbW90ZSBwZXIgcG9saWN5PC90ZXh0PgogICAgPHRleHQgeD0iNzg1IiB5PSIxNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNFQ0ZDQ0IiIGZvbnQtc2l6ZT0iMTAiPk9uZSBwb2xpY3kgYXQgYSB0aW1lOjwvdGV4dD4KICAgIDx0ZXh0IHg9Ijc4NSIgeT0iMTc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRUNGQ0NCIiBmb250LXNpemU9IjEwIj5EVCDihpIgcHJvZHVjdGlvbiBjaGFubmVsPC90ZXh0PgogICAgPHRleHQgeD0iNzg1IiB5PSIxOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNFQ0ZDQ0IiIGZvbnQtc2l6ZT0iMTAiPk5SIOKGkiBjb25kaXRpb25zIGRpc2FibGVkPC90ZXh0PgogICAgPHRleHQgeD0iNzg1IiB5PSIyMTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlJldmVyc2libGUgcGVyIHBvbGljeTwvdGV4dD4KICA8L2c+CgogIDwhLS0gQXJyb3dzIC0tPgogIDxnIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIj4KICAgIDxsaW5lIHgxPSIyNDAiIHkxPSIxNzAiIHgyPSIyNzAiIHkyPSIxNzAiIG1hcmtlci1lbmQ9InVybCgjZGEtYXJyKSIvPgogICAgPGxpbmUgeDE9IjY1MCIgeTE9IjE3MCIgeDI9IjY4MCIgeTI9IjE3MCIgbWFya2VyLWVuZD0idXJsKCNkYS1hcnIpIi8+CiAgPC9nPgoKICA8IS0tIFZvbHVtZSBjb21wYXJpc29uIHF1ZXJ5IC0tPgogIDxyZWN0IHg9IjEwMCIgeT0iMjcwIiB3aWR0aD0iNzMwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzBGMTcyQSIgc3Ryb2tlPSIjMzM0MTU1IiByeD0iNSIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjk0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5Wb2x1bWUgQ29tcGFyaXNvbiBRdWVyeSAocnVuIGRhaWx5IGR1cmluZyBkdWFsLWFsZXJ0KTwvdGV4dD4KCiAgPHRleHQgeD0iMTIwIiB5PSIzMTgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPi8vIER5bmF0cmFjZSBEUUwg4oCUIGRpc3RpbmN0IERUIHByb2JsZW1zIGluIHRoZSBwYXN0IDI0aDwvdGV4dD4KICA8dGV4dCB4PSIxMjAiIHk9IjMzMyIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+ZmV0Y2ggZHQuZGF2aXMucHJvYmxlbXMsIGZyb206LTFkPC90ZXh0PgogIDx0ZXh0IHg9IjEyMCIgeT0iMzQ4IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj58IHN1bW1hcml6ZSBwcm9ibGVtcyA9IGNvdW50RGlzdGluY3QoZGlzcGxheV9pZCksPC90ZXh0PgogIDx0ZXh0IHg9IjE0OCIgeT0iMzYzIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj5ieTomIzEyMztldmVudC5uYW1lLCBldmVudC5jYXRlZ29yeSYjMTI1OzwvdGV4dD4KCiAgPHRleHQgeD0iNDY1IiB5PSIzODMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtc3R5bGU9Iml0YWxpYyI+Q29tcGFyZSBhZ2FpbnN0IE5SIElzc3VlcyBjb3VudCBmb3IgdGhlIHNhbWUgd2luZG93PC90ZXh0PgoKICA8IS0tIEJvdHRvbSBzdW1tYXJ5IC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5XaHkgdGhlIGR1YWwtYWxlcnQgd2luZG93IGlzIG5vbi1uZWdvdGlhYmxlPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExIj5UcmFuc2xhdGlvbiBjYW4gcHJvZHVjZSBzeW50YWN0aWNhbGx5IHZhbGlkIERRTCB0aGF0IGRldGVjdHMgMzAlIG1vcmUgKG9yIGZld2VyKSBwcm9ibGVtcyB0aGFuIE5SLjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQ2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSI+U2tpcHBpbmcgdGhlIHdpbmRvdyBtZWFucyBkaXNjb3ZlcmluZyB0aGUgZ2FwIHdoZW4gb24tY2FsbCBnZXRzIHBhZ2VkIG9uIHRoZSBuZXcgYWxlcnRzLjwvdGV4dD4KPC9zdmc+Cg==" alt="Dual-Alert Window Pattern" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Phase | Action |
+|-------|--------|
+| 1 | Import to silent test channel (Day 0) |
+| 2 | Dual-alert for 1–2 weeks; compare volume daily |
+| 3 | Promote per policy (one at a time); disable the NR policy's conditions |
+
+Volume query: `fetch dt.davis.problems, from:-1d` — `countDistinct(display_id)` by `event.name`, `event.category`.
+
+Pass criteria: DT vs NR alert count within ±10% per condition.
+For environments where SVG doesn't render
+-->
+<p><a id="gate"></a></p>
+<h2>4. Step Exit Criteria</h2>
+<p><strong>S5 — Dashboards + Alerts Migrated</strong></p>
+<ul>
+<li>[ ] All Wave 0 Foundations applied; W0 validated</li>
+<li>[ ] All dashboards migrated; W1 visual-diff sample passed</li>
+<li>[ ] All alert policies migrated; dual-alert window completed (≥ 1 week)</li>
+<li>[ ] W3 dual-alert volume aligned within ±10%</li>
+<li>[ ] All notification secrets re-entered in DT credentials vault</li>
+<li>[ ] NR conditions disabled for migrated policies only (NR ingest still on)</li>
+</ul>
+<p><strong>Next step:</strong> <strong>NR2DT-06 — Migrate Synthetics, SLOs, Workloads</strong>.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources, including the open-source <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities">NewRelic-to-Dynatrace-Migration-Utilities</a>, <a href="https://github.com/timstewart-dynatrace/nrql-engine">nrql-engine</a>, and <a href="https://github.com/timstewart-dynatrace/nrql-translator">nrql-translator</a> projects. This notebook series is not officially supported by Dynatrace or New Relic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://docs.newrelic.com">New Relic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

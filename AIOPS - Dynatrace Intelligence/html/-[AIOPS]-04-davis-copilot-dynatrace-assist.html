@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIOPS-04: Davis CoPilot — Dynatrace Assist for Investigation</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">AIOPS — Dynatrace Intelligence</a><span class="sep">/</span><span aria-current="page">AIOPS-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>AIOPS-04: Davis CoPilot — Dynatrace Assist for Investigation</h1>
+<blockquote>
+<p><strong>Series:</strong> AIOPS — Dynatrace Intelligence | <strong>Notebook:</strong> 4 of 8 | <strong>Created:</strong> May 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Davis CoPilot</strong> (the older brand) and <strong>Dynatrace Assist</strong> (the current UI surface) are the same Generative AI capability — the chat interface that translates natural language to DQL, explains existing queries, summarizes problems, and suggests next steps. Since SaaS 1.346 its embedded conversation starters also run as <strong>agentic AI</strong>, working over tools and your live environment data (§1).</p>
+<p>This notebook covers the surfaces, the supported tasks, the data privacy posture, and the practical patterns for using Generative AI inside Dynatrace without burning hours wrestling with prompts.</p>
+<p><strong>Audience:</strong> Anyone who writes DQL — SRE, platform admin, observability engineer.</p>
+<p><strong>Outcome:</strong> Productive use of Dynatrace Assist for investigation; clear sense of what the chat does well and where to fall back to manual DQL.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+RGF2aXMgQ29QaWxvdCAvIER5bmF0cmFjZSBBc3Npc3QgU3VyZmFjZXM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+U2FtZSBnZW5lcmF0aXZlIGVuZ2luZSwgbXVsdGlwbGUgZW50cnkgcG9pbnRzIGFjcm9zcyB0aGUgcHJvZHVjdDwvdGV4dD4KCiAgPCEtLSBDZW50ZXI6IEVuZ2luZSAtLT4KICA8Y2lyY2xlIGN4PSI0NjUiIGN5PSIyNTAiIHI9IjgwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjEyIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5HZW5lcmF0aXZlIEFJPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5FbmdpbmU8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIyNzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkRRTDJOTCDCtyBzdW1tYXJpZXMgwrcgZXhwbGFuYXRpb25zPC90ZXh0PgoKICA8IS0tIDYgc3VyZmFjZXMgYXJvdW5kIHRoZSBlbmdpbmUgLS0+CgogIDwhLS0gVG9wLWxlZnQ6IENoYXQgLS0+CiAgPHJlY3QgeD0iNjAiIHk9IjEwMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSIxNjAiIHk9IjEyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+RHluYXRyYWNlIEFzc2lzdDwvdGV4dD4KICA8dGV4dCB4PSIxNjAiIHk9IjE0MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+KGNoYXQgc2lkZSBwYW5lbCk8L3RleHQ+CiAgPHRleHQgeD0iMTYwIiB5PSIxNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkZyZWUtZm9ybSBjb252ZXJzYXRpb248L3RleHQ+CiAgPHRleHQgeD0iMTYwIiB5PSIxNzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkRRTCBnZW5lcmF0aW9uLCBleHBsYW5hdGlvbnM8L3RleHQ+CgogIDwhLS0gVG9wLWNlbnRlcjogTm90ZWJvb2sgRFFMMk5MIC0tPgogIDxyZWN0IHg9IjM2NSIgeT0iMTAwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5Ob3RlYm9vayBEUUwyTkw8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIxNDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPihxdWVyeSBleHBsYW5hdGlvbik8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIxNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlNlbGVjdCBxdWVyeSDihpIgRW5nbGlzaDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjE3MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+bmFycmF0aXZlPC90ZXh0PgoKICA8IS0tIFRvcC1yaWdodDogTUNQIC0tPgogIDxyZWN0IHg9IjY3MCIgeT0iMTAwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc3MCIgeT0iMTI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5NQ1AgU2VydmVyPC90ZXh0PgogIDx0ZXh0IHg9Ijc3MCIgeT0iMTQzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj4oSURFIC8gYWdlbnQpPC90ZXh0PgogIDx0ZXh0IHg9Ijc3MCIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5DbGF1ZGUgQ29kZSDCtyBDdXJzb3I8L3RleHQ+CiAgPHRleHQgeD0iNzcwIiB5PSIxNzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkdpdEh1YiBDb3BpbG90PC90ZXh0PgoKICA8IS0tIEJvdHRvbS1sZWZ0OiBQcm9ibGVtcyAtLT4KICA8cmVjdCB4PSI2MCIgeT0iMzIwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjE2MCIgeT0iMzQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5Qcm9ibGVtcyBBcHA8L3RleHQ+CiAgPHRleHQgeD0iMTYwIiB5PSIzNjMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPihuYXJyYXRpdmUgc3VtbWFyeSk8L3RleHQ+CiAgPHRleHQgeD0iMTYwIiB5PSIzODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkF1dG8gcHJvYmxlbSBjb250ZXh0PC90ZXh0PgogIDx0ZXh0IHg9IjE2MCIgeT0iMzkzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5SQ0EgZXhwbGFuYXRpb248L3RleHQ+CgogIDwhLS0gQm90dG9tLWNlbnRlcjogSzhzIC0tPgogIDxyZWN0IHg9IjM2NSIgeT0iMzIwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5LdWJlcm5ldGVzIEFwcDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjM2MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+KHdhcm5pbmcgZXhwbGFuYXRpb24pPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TaWduYWwgaW50ZXJwcmV0YXRpb248L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIzOTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmluIHBsYWluIEVuZ2xpc2g8L3RleHQ+CgogIDwhLS0gQm90dG9tLXJpZ2h0OiBEQnMgLS0+CiAgPHJlY3QgeD0iNjcwIiB5PSIzMjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzcwIiB5PSIzNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkRhdGFiYXNlcyBBcHA8L3RleHQ+CiAgPHRleHQgeD0iNzcwIiB5PSIzNjMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPihwbGFuIGFuYWx5c2lzKTwvdGV4dD4KICA8dGV4dCB4PSI3NzAiIHk9IjM4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RXhlY3V0aW9uIHBsYW48L3RleHQ+CiAgPHRleHQgeD0iNzcwIiB5PSIzOTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmNsYXJpZmljYXRpb248L3RleHQ+CgogIDwhLS0gQ29ubmVjdGluZyBsaW5lcyBmcm9tIGVuZ2luZSB0byBzdXJmYWNlcyAtLT4KICA8bGluZSB4MT0iNDMwIiB5MT0iMjAwIiB4Mj0iMjAwIiB5Mj0iMTgwIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLWRhc2hhcnJheT0iMywzIiBvcGFjaXR5PSIwLjUiLz4KICA8bGluZSB4MT0iNDY1IiB5MT0iMTcwIiB4Mj0iNDY1IiB5Mj0iMTgwIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLWRhc2hhcnJheT0iMywzIiBvcGFjaXR5PSIwLjUiLz4KICA8bGluZSB4MT0iNTAwIiB5MT0iMjAwIiB4Mj0iNzMwIiB5Mj0iMTgwIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLWRhc2hhcnJheT0iMywzIiBvcGFjaXR5PSIwLjUiLz4KICA8bGluZSB4MT0iNDMwIiB5MT0iMzAwIiB4Mj0iMjAwIiB5Mj0iMzIwIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLWRhc2hhcnJheT0iMywzIiBvcGFjaXR5PSIwLjUiLz4KICA8bGluZSB4MT0iNDY1IiB5MT0iMzMwIiB4Mj0iNDY1IiB5Mj0iMzIwIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLWRhc2hhcnJheT0iMywzIiBvcGFjaXR5PSIwLjUiLz4KICA8bGluZSB4MT0iNTAwIiB5MT0iMzAwIiB4Mj0iNzMwIiB5Mj0iMzIwIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLWRhc2hhcnJheT0iMywzIiBvcGFjaXR5PSIwLjUiLz4KCiAgPCEtLSBCb3R0b20gbm90ZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjQ1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiIgZm9udC1zdHlsZT0iaXRhbGljIj5BbGwgc3VyZmFjZXMgYXJlIGdyb3VuZGVkIGluIER5bmF0cmFjZSBkb2NzICh2ZWN0b3IgcmV0cmlldmFsKSBhbmQgeW91ciB0ZW5hbnQncyBHcmFpbCBkYXRhIHdoZW4gaW52b2tlZCBpbiBjb250ZXh0LjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQ3NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiIgZm9udC1zdHlsZT0iaXRhbGljIj5Qcm9tcHRzIGdvIHRvIExMTXMgaG9zdGVkIGJ5IGVudGVycHJpc2UgdmVuZG9yczsgc2VlIHNlY3Rpb24gNy48L3RleHQ+Cjwvc3ZnPgo=" alt="Dynatrace Assist Surfaces" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Surface | Where it lives | Best for |
+|---------|---------------|----------|
+| Dynatrace Assist (chat) | Side panel | Conversational investigation, DQL generation |
+| Notebook side panel | Notebooks app | DQL2NL, explain selected query |
+| Problems app summary | Problems app | Narrative problem context |
+| Kubernetes app | K8s app | Warning signal explanations |
+| Databases app | Databases app | Execution plan clarification |
+For environments where SVG doesn't render
+-->
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#capabilities">What Davis CoPilot Does</a></li>
+<li><a href="#surfaces">Where It Surfaces in the Product</a></li>
+<li><a href="#dql-gen">DQL Generation Patterns That Work</a></li>
+<li><a href="#dql2nl">Explain-Selected-Query (DQL2NL)</a></li>
+<li><a href="#problem-summary">Problem Summarization</a></li>
+<li><a href="#limitations">Limitations and Fallbacks</a></li>
+<li><a href="#privacy">Data Privacy and Grounding</a></li>
+<li><a href="#cross">Cross-Series Pointers</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS Gen3 with Dynatrace Assist enabled</td>
+</tr>
+<tr>
+<td><strong>Apps</strong></td>
+<td>Notebooks app (chat panel); Problems / K8s / Databases apps for in-context surfaces</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>Standard read permissions for the data being queried</td>
+</tr>
+<tr>
+<td><strong>Network</strong></td>
+<td>From SaaS 1.348 (rollout start 10/12/2026), Dynatrace Assist talks to the server over WebSocket. Browsers, proxies and firewalls must allow WebSocket connections to <code>wss://*.apps.dynatrace.com</code>, or Assist fails. A stricter rule can allow only the <code>/platform-reserved/ai/v0.1/operator:chat</code> path on that host.</td>
+</tr>
+<tr>
+<td><strong>Optional</strong></td>
+<td>MCP server installed in your IDE for <code>ask-dynatrace-docs</code> and <code>find-troubleshooting-guides</code> (covered in AIOPS-06)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">What's new in Dynatrace SaaS 1.348 (DT docs)</a> — <em>&quot;With this change, Dynatrace Assist now relies on WebSocket for communication with the server.&quot;</em>, <em>&quot;Some users may have network policies blocking WebSocket access. Assist will fail for those.&quot;</em> and <em>&quot;You can impose a stricter rule for the connection by allowing the /platform-reserved/ai/v0.1/operator:chat path on that host.&quot;</em></sub></p>
+</blockquote>
+<p><a id="capabilities"></a></p>
+<h2>1. What Davis CoPilot Does</h2>
+<p>Six capability buckets, in roughly the order you'll use them:</p>
+<ol>
+<li><strong>Generate DQL from natural language</strong> — &quot;show me the slowest services in the last hour&quot;</li>
+<li><strong>Explain DQL in natural language</strong> — &quot;what does this query do?&quot; against a selected query</li>
+<li><strong>Summarize problems</strong> — narrative explanation of an incident's context and root cause</li>
+<li><strong>Explain warnings and signals</strong> — Kubernetes warnings, database execution plans</li>
+<li><strong>Discover documentation</strong> — vector-grounded retrieval over the Dynatrace docs</li>
+<li><strong>Discover troubleshooting guides</strong> — vector-grounded retrieval over remediation content</li>
+</ol>
+<p>The first two are the daily-driver uses. Problem summarization is high-value during incidents. Documentation and troubleshooting retrieval are most useful via MCP from your IDE (covered in AIOPS-06).</p>
+<h3>Agentic Mode, Personalization and QuickStart (SaaS 1.344–1.347)</h3>
+<p>Three releases since this notebook was first written change what Assist does:</p>
+<table>
+<thead>
+<tr>
+<th>Release</th>
+<th>Change</th>
+<th>What it means for you</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SaaS 1.344</strong> (rollout from 07/29/2026)</td>
+<td><strong>Personalization.</strong> <em>&quot;Dynatrace Assist can now tailor every response to your role, expertise, and preferences.&quot;</em> The profile takes your role, Dynatrace expertise level and tech stack; custom instructions set language, tone and detail level</td>
+<td>Set a profile once. <em>&quot;This context is applied automatically to all future conversations, and you can update, clear, or disable it at any time.&quot;</em></td>
+</tr>
+<tr>
+<td><strong>SaaS 1.346</strong> (rollout from 08/25/2026)</td>
+<td><strong>Agentic mode for embedded conversation starters.</strong> They <em>&quot;can reason over tools and your live environment data to investigate and analyze&quot;</em>, and existing starters <em>&quot;are upgraded from generative to agentic AI out of the box.&quot;</em></td>
+<td>A starter opened inside an app now investigates your data rather than only summarizing. It needs Agentic AI enabled — <em>&quot;ensure that you have Agentic AI activated in the environment settings&quot;</em> — and brings the PII-blocking setting in §7 into play</td>
+</tr>
+<tr>
+<td><strong>SaaS 1.347</strong> (rollout from 09/16/2026)</td>
+<td><strong>Assist on QuickStart findings.</strong> <em>&quot;Select Dynatrace Assist on any of the findings to get deep insights and answers.&quot;</em></td>
+<td>A second way into an investigation, from a finding rather than a blank chat. Verify the release has reached your tenant</td>
+</tr>
+</tbody>
+</table>
+<p>The capabilities above remain the baseline: on a tenant that has not reached a release, Assist behaves as described before this table.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-344">What's new in Dynatrace SaaS 1.344 (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-346">What's new in Dynatrace SaaS 1.346 (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-347">What's new in Dynatrace SaaS 1.347 (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="surfaces"></a></p>
+<h2>2. Where It Surfaces in the Product</h2>
+<p>Multiple surfaces, same engine:</p>
+<table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>What it does</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Assist (chat side panel)</strong></td>
+<td>Free-form chat: DQL, explanations, conversation starters (agentic from SaaS 1.346)</td>
+<td>Investigations, learning, exploration</td>
+</tr>
+<tr>
+<td><strong>QuickStart findings (SaaS 1.347)</strong></td>
+<td><em>Dynatrace Assist</em> on a finding: explanation and answers for that finding</td>
+<td>Starting from something already flagged</td>
+</tr>
+<tr>
+<td><strong>Notebook DQL2NL</strong></td>
+<td>Right-click on a query: explain in English</td>
+<td>Reviewing inherited notebooks; teaching</td>
+</tr>
+<tr>
+<td><strong>Problems app summary</strong></td>
+<td>Auto-generated problem narrative + root cause explanation</td>
+<td>First minutes of an incident</td>
+</tr>
+<tr>
+<td><strong>Kubernetes app explanations</strong></td>
+<td>Warning-signal explanations</td>
+<td>K8s troubleshooting</td>
+</tr>
+<tr>
+<td><strong>Databases app analysis</strong></td>
+<td>Execution plan clarification</td>
+<td>Slow-query investigation</td>
+</tr>
+<tr>
+<td><strong>MCP <code>ask-dynatrace-docs</code></strong></td>
+<td>Doc retrieval from your IDE / agent</td>
+<td>When you need an authoritative answer; works offline of the UI</td>
+</tr>
+</tbody>
+</table>
+<p><strong>One mental model — many entry points.</strong> All surfaces feed a single underlying assistant that's grounded in the platform's data and docs.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-346">What's new in Dynatrace SaaS 1.346 (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-347">What's new in Dynatrace SaaS 1.347 (DT docs)</a> — <em>&quot;Select Dynatrace Assist on any of the findings to get deep insights and answers.&quot;</em></sub></p>
+</blockquote>
+<p><a id="dql-gen"></a></p>
+<h2>3. DQL Generation Patterns That Work</h2>
+<p>Generative DQL is good at <strong>shape-of-query</strong> intent. It is weaker on tenant-specific field names and on queries that require a specific time-alignment or grouping that the natural-language phrasing didn't make explicit.</p>
+<p><strong>Patterns that produce good DQL:</strong></p>
+<ul>
+<li><em>&quot;Show me the top 20 slowest services in the last hour with their request counts&quot;</em> — specifies entity (services), metric (slowest = response time), bound (top 20), time (1h), and additional context (request counts).</li>
+<li><em>&quot;Failed requests by URL path in the last 24 hours, grouped by HTTP status code&quot;</em> — specifies the dimension (URL path), the filter (failed), the time window, and the secondary grouping.</li>
+<li><em>&quot;Memory usage for hosts in the production environment, last 7 days, hourly&quot;</em> — specifies the metric, the entity filter, and the resolution.</li>
+</ul>
+<p><strong>Patterns that produce poor DQL:</strong></p>
+<ul>
+<li><em>&quot;What's broken?&quot;</em> — too unbounded; the assistant can't pick a sensible time range or data object.</li>
+<li><em>&quot;Slow stuff&quot;</em> — no entity type, no metric, no bound.</li>
+<li><em>&quot;Show me the data&quot;</em> — same problem; under-specified.</li>
+</ul>
+<p><strong>Fix the prompts that fail.</strong> Add an entity (host / service / log / span), a metric or filter, a time bound, and a desired output shape (top N, by category, hourly). Treat the prompt as a SQL <code>SELECT</code> template — <code>from</code> (entity), <code>where</code> (filter), <code>group by</code> (dim), <code>order</code> (top N).</p>
+<p><a id="dql2nl"></a></p>
+<h2>4. Explain-Selected-Query (DQL2NL)</h2>
+<p>The reverse of generation. In a notebook, select a DQL query and use the explain action — the assistant produces an English narrative of what the query does.</p>
+<p><strong>Best uses:</strong></p>
+<ul>
+<li>Reviewing inherited notebooks where the DQL author isn't around</li>
+<li>Teaching DQL to teammates new to the platform</li>
+<li>Quickly auditing a long pipeline without reading every command</li>
+</ul>
+<p>Try it below — open this notebook in the Dynatrace UI, select the query, and use Assist's explain action.</p>
+<pre><code class="language-dql">// A non-trivial query worth explaining
+// For explanation, not execution — running it scans your ERROR logs; expect 0 rows unless your logs carry user_id= / request_id=
+fetch logs, from:-1h
+// status == &quot;ERROR&quot; also counts SEVERE, CRITICAL and FATAL logs; loglevel == &quot;ERROR&quot; misses them
+| filter status == &quot;ERROR&quot;
+| parse content,
+    &quot;LD 'user_id=' DATA:user_id LD 'request_id=' DATA:request_id&quot;
+| filter isNotNull(user_id) and isNotNull(request_id)
+| summarize error_count = count(), by:{user_id, k8s.namespace.name}
+| sort error_count desc
+| limit 50
+</code></pre>
+<p><a id="problem-summary"></a></p>
+<h2>5. Problem Summarization</h2>
+<p>On any active or recent problem in the Problems app, a Generative AI summary panel explains:</p>
+<ul>
+<li>What is happening (symptom)</li>
+<li>The Causal AI root cause (in narrative form)</li>
+<li>Affected entities and downstream impact</li>
+<li>Suggested first remediation steps</li>
+</ul>
+<p><strong>Operational use:</strong> read the summary first, then drill in. The summary won't tell you anything Causal AI doesn't already know — but it composes the information faster than a human can read four panels of evidence.</p>
+<p><strong>For dashboards / reports:</strong> workflow tutorials in AIOPS-06 show how to schedule a Generative AI summary across all open problems on a recurring basis (the <em>Summarize open problems with Workflows</em> pattern).</p>
+<p><a id="limitations"></a></p>
+<h2>6. Limitations and Fallbacks</h2>
+<p><strong>Where the assistant is reliable:</strong></p>
+<ul>
+<li>Common DQL shapes (fetch / timeseries / summarize / sort)</li>
+<li>Standard semantic-dictionary fields (<code>dt.entity.host</code>, <code>service.name</code>, <code>loglevel</code>)</li>
+<li>Time-window arithmetic and grouping</li>
+</ul>
+<p><strong>Where the assistant struggles:</strong></p>
+<ul>
+<li>Tenant-specific custom fields (<code>dt.openpipeline.your_attribute</code>)</li>
+<li>Highly nested DQL (joinNested, multi-stage lookups, parse expressions)</li>
+<li>Queries that require subtle smartscape topology navigation (<code>smartscapeNodes</code>, <code>traverse</code>)</li>
+<li>Queries whose intent depends on tenant-specific bucket names or schemas</li>
+</ul>
+<p><strong>Fallbacks:</strong></p>
+<ol>
+<li>Refine the prompt — add field names, time bounds, output shape.</li>
+<li>Generate a starter query with the assistant, then edit by hand.</li>
+<li>Use the <strong><code>mcp__dynatrace__create-dql</code></strong> MCP tool from your IDE — same engine but with more controlled context (covered in AIOPS-06).</li>
+<li>Validate generated queries with <strong><code>mcp__dynatrace__execute-dql</code></strong> before trusting them.</li>
+</ol>
+<p><a id="privacy"></a></p>
+<h2>7. Data Privacy and Grounding</h2>
+<p>What happens to a prompt, per the current Dynatrace data-privacy page:</p>
+<ol>
+<li><strong>Prompts leave the environment, to an enterprise-vendor LLM.</strong> <em>&quot;Your prompts are sent to LLMs hosted by enterprise vendors such as Microsoft Azure AI and AWS Bedrock, which power Dynatrace Intelligence agentic and generative AI.&quot;</em> <em>&quot;If your environment is located in EMEA, your prompts are processed in an EU region.&quot;</em> NORAM, LATAM and APAC environments are processed in a US region. The page states that the vendors <em>&quot;don't store the data you submit or the responses you receive&quot;</em> and <em>&quot;don't use the prompts to fine-tune or improve any models&quot;</em>.</li>
+<li><strong>Dynatrace may retain prompts and responses.</strong> <em>&quot;Dynatrace may store the prompts submitted to Dynatrace Intelligence agentic and generative AI and the responses provided by the LLMs&quot;</em>; with agentic Assist, <em>&quot;Dynatrace may also store results of intermediate tool calls.&quot;</em></li>
+<li><strong>Agentic Assist reads your live data (SaaS 1.346).</strong> In agentic mode Assist <em>&quot;can reason over tools and your live environment data&quot;</em>, so &quot;grounded only in documentation&quot; no longer describes a conversation started inside an app. A documentation question such as <em>&quot;how do I configure host groups?&quot;</em> is still answered from the Dynatrace docs.</li>
+<li><strong>Generated DQL runs against your Grail data.</strong> The query is generated from natural language; the <em>results</em> come from your tenant when it executes.</li>
+<li><strong>PII masking and PII blocking.</strong> Masking applies to prompts for standard generative AI (Dynatrace 1.305+). Blocking applies to agentic AI, and <em>&quot;Starting with Dynatrace version 1.345+, PII blocking is disabled by default for new environments and environments where Agentic AI was not already enabled.&quot;</em> If prompts may carry PII, turn it on under <strong>Settings &gt; Dynatrace Intelligence &gt; Generative and agentic AI</strong>. The page recommends masking data on ingest as the first control.</li>
+</ol>
+<p>Sensitive deployments should review the privacy page with their governance lead before enabling Assist.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-data-privacy">Agentic and generative AI data privacy and security (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-346">What's new in Dynatrace SaaS 1.346 (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="cross"></a></p>
+<h2>8. Cross-Series Pointers</h2>
+<ul>
+<li><strong>AIOPS-03</strong> — the Problems app surface and the underlying Causal AI it summarizes</li>
+<li><strong>AIOPS-06</strong> — MCP server: Dynatrace Assist as a tool callable from Claude Code, Cursor, GitHub Copilot</li>
+<li><strong>AIOPS-07</strong> — end-to-end pattern with Assist in the loop</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPANS-07: Grail Buckets &amp; OpenPipeline</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SPANS — Distributed Tracing and Spans</a><span class="sep">/</span><span aria-current="page">SPANS-07</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SPANS-07: Grail Buckets &amp; OpenPipeline</h1>
+<blockquote>
+<p><strong>Series:</strong> SPANS — Distributed Tracing and Spans | <strong>Notebook:</strong> 7 of 8 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 10/28/2026</p>
+</blockquote>
+<h2>Data Architecture and Processing for Distributed Traces</h2>
+<p>This notebook covers Dynatrace Grail's bucket architecture for span storage, OpenPipeline configuration patterns, and data governance strategies.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#understanding-grail-buckets">Understanding Grail Buckets</a></li>
+<li><a href="#querying-from-specific-buckets">Querying from Specific Buckets</a></li>
+<li><a href="#bucket-discovery">Bucket Discovery</a></li>
+<li><a href="#openpipeline-concepts">OpenPipeline Concepts</a></li>
+<li><a href="#filtering-dropping-unwanted-spans">Filtering &amp; Dropping Unwanted Spans</a></li>
+<li><a href="#transforming-enriching-data">Transforming &amp; Enriching Data</a></li>
+<li><a href="#routing-to-different-buckets">Routing to Different Buckets</a></li>
+<li><a href="#sampling-strategies">Sampling Strategies</a></li>
+<li><a href="#measuring-span-traffic">Measuring Span Traffic per Application</a></li>
+<li><a href="#access-control-patterns">Access Control Patterns</a></li>
+<li><a href="#best-practices-summary">Best Practices Summary</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<p>Before starting this notebook, ensure you have:</p>
+<ul>
+<li>✅ Completed previous SPANS notebooks (01-06)</li>
+<li>✅ Understanding of Dynatrace Grail architecture</li>
+<li>✅ Admin access for bucket/pipeline configuration (optional)</li>
+</ul>
+<h3>OneAgent Attribute Enrichment (OneAgent 1.333+)</h3>
+<blockquote>
+<p><strong>Requires:</strong> OneAgent version <strong>1.333</strong> or later</p>
+</blockquote>
+<p>OneAgent can enrich <strong>all telemetry signals</strong> (metrics, spans, logs, events, entities) with custom metadata at the source — before data reaches the Dynatrace platform. This is more efficient than server-side tagging (auto-tags) because enrichment happens on the host and propagates to all Smartscape nodes.</p>
+<p><strong>Primary Fields</strong> (standardized from Semantic Dictionary):</p>
+<ul>
+<li><code>dt.security_context</code> — data governance and access control</li>
+<li><code>dt.cost.costcenter</code> — cost allocation</li>
+<li><code>dt.cost.product</code> — product attribution</li>
+</ul>
+<p><strong>Primary Tags</strong> (custom key-value pairs):</p>
+<ul>
+<li><code>primary_tags.environment</code> — environment identification (production, staging, etc.)</li>
+<li><code>primary_tags.team</code> — team ownership</li>
+<li><code>primary_tags.business_unit</code> — organizational unit</li>
+</ul>
+<p><strong>Configuration:</strong></p>
+<pre><code class="language-bash"># Set during OneAgent installation
+Dynatrace-OneAgent-Linux.sh --set-host-tag=&quot;primary_tags.environment=production&quot; --set-host-tag=&quot;dt.security_context=confidential&quot;
+
+# Set on existing agents via oneagentctl
+oneagentctl --set-host-tag=&quot;primary_tags.environment=production&quot;
+oneagentctl --set-host-tag=&quot;dt.cost.costcenter=12345&quot;
+
+# Per-process via environment variable (overrides host-level)
+DT_TAGS=&quot;primary_tags.team=platform primary_tags.environment=production&quot;
+</code></pre>
+<p><strong>Benefits over auto-tagging:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Auto-Tags (Server-Side)</th>
+<th>Attribute Enrichment (Agent-Side)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>When applied</td>
+<td>After data arrives at platform</td>
+<td>At the source, before transmission</td>
+</tr>
+<tr>
+<td>Scope</td>
+<td>Entity tags only</td>
+<td>All signals: metrics, spans, logs, events, entities</td>
+</tr>
+<tr>
+<td>Grail integration</td>
+<td>Limited</td>
+<td>Full — feeds OpenPipeline routing, bucket assignment, permissions</td>
+</tr>
+<tr>
+<td>Cost allocation</td>
+<td>Not supported</td>
+<td><code>dt.cost.costcenter</code>, <code>dt.cost.product</code> fields</td>
+</tr>
+<tr>
+<td>Security context</td>
+<td>Not supported</td>
+<td><code>dt.security_context</code> for data governance</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>See:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment">Primary Grail fields and tags enrichment through OneAgent</a></p>
+</blockquote>
+<p><a id="understanding-grail-buckets"></a></p>
+<h2>1. Understanding Grail Buckets</h2>
+<p>Grail stores observability data in <strong>buckets</strong> - logical containers that provide data isolation, retention control, and access management.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzQwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhaWxHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE0OTZmZjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMGE2NGJjO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYnVja2V0RGVmYXVsdCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2MzY2ZjE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzRmNDZlNTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJ1Y2tldExvZ3MiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjJjNTVlO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNmEzNGE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJidWNrZXRTZWMiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWY0NDQ0O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkYzI2MjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJwaXBlR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4YjVjZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdjM2FlZDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJidWNrZXRTaGFkb3ciPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIyIiBkeT0iMiIgc3RkRGV2aWF0aW9uPSIzIiBmbG9vZC1vcGFjaXR5PSIwLjE1Ii8+CiAgICA8L2ZpbHRlcj4KICAgIDxtYXJrZXIgaWQ9ImJ1Y2tldEFycm93IiBtYXJrZXJXaWR0aD0iOCIgbWFya2VySGVpZ2h0PSI2IiByZWZYPSI3IiByZWZZPSIzIiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgOCAzLCAwIDYiIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iMzQwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0MDAiIHk9IjI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5HcmFpbCBCdWNrZXRzICZhbXA7IE9wZW5QaXBlbGluZSBBcmNoaXRlY3R1cmU8L3RleHQ+CgogIDwhLS0gSW5nZXN0aW9uIC0tPgogIDxyZWN0IHg9IjQwIiB5PSI2MCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSI3MCIgcng9IjgiIGZpbGw9InVybCgjZ3JhaWxHcmFkKSIgZmlsdGVyPSJ1cmwoI2J1Y2tldFNoYWRvdykiLz4KICA8dGV4dCB4PSI5MCIgeT0iOTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TcGFuPC90ZXh0PgogIDx0ZXh0IHg9IjkwIiB5PSIxMDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Jbmdlc3Rpb248L3RleHQ+CgogIDwhLS0gQXJyb3cgdG8gUGlwZWxpbmUgLS0+CiAgPGxpbmUgeDE9IjE0MCIgeTE9Ijk1IiB4Mj0iMTc1IiB5Mj0iOTUiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2J1Y2tldEFycm93KSIvPgoKICA8IS0tIE9wZW5QaXBlbGluZSAtLT4KICA8cmVjdCB4PSIxODAiIHk9IjUwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjkwIiByeD0iOCIgZmlsbD0idXJsKCNwaXBlR3JhZCkiIGZpbHRlcj0idXJsKCNidWNrZXRTaGFkb3cpIi8+CiAgPHRleHQgeD0iMjU1IiB5PSI4MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk9wZW5QaXBlbGluZTwvdGV4dD4KICA8dGV4dCB4PSIyNTUiIHk9IjEwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPi0gRHJvcCAmYW1wOyB0cmFuc2Zvcm08L3RleHQ+CiAgPHRleHQgeD0iMjU1IiB5PSIxMTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4tIEJ1Y2tldCBhc3NpZ25tZW50PC90ZXh0PgogIDx0ZXh0IHg9IjI1NSIgeT0iMTMwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+LSBFbnJpY2ggJmFtcDsgbWFzazwvdGV4dD4KCiAgPCEtLSBBcnJvd3MgdG8gQnVja2V0cyAtLT4KICA8bGluZSB4MT0iMzMwIiB5MT0iNzUiIHgyPSIzOTAiIHkyPSI2NSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYnVja2V0QXJyb3cpIi8+CiAgPGxpbmUgeDE9IjMzMCIgeTE9Ijk1IiB4Mj0iMzkwIiB5Mj0iMTQwIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNidWNrZXRBcnJvdykiLz4KICA8bGluZSB4MT0iMzMwIiB5MT0iMTE1IiB4Mj0iMzkwIiB5Mj0iMjE1IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNidWNrZXRBcnJvdykiLz4KCiAgPCEtLSBEZWZhdWx0IEJ1Y2tldCAtLT4KICA8cmVjdCB4PSIzOTUiIHk9IjQwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjYwIiByeD0iOCIgZmlsbD0idXJsKCNidWNrZXREZWZhdWx0KSIgZmlsdGVyPSJ1cmwoI2J1Y2tldFNoYWRvdykiLz4KICA8dGV4dCB4PSI0NzUiIHk9IjY1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZGVmYXVsdF9zcGFuczwvdGV4dD4KICA8dGV4dCB4PSI0NzUiIHk9IjgzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MTAgZGF5IHJldGVudGlvbiAoYnVpbHQtaW4pPC90ZXh0PgoKICA8IS0tIEN1c3RvbSBCdWNrZXQgMSAtLT4KICA8cmVjdCB4PSIzOTUiIHk9IjExNSIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI2MCIgcng9IjgiIGZpbGw9InVybCgjYnVja2V0TG9ncykiIGZpbHRlcj0idXJsKCNidWNrZXRTaGFkb3cpIi8+CiAgPHRleHQgeD0iNDc1IiB5PSIxNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5wcm9kdWN0aW9uX3RyYWNlczwvdGV4dD4KICA8dGV4dCB4PSI0NzUiIHk9IjE1OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjkwIGRheSByZXRlbnRpb248L3RleHQ+CgogIDwhLS0gU2VjdXJlIEJ1Y2tldCAtLT4KICA8cmVjdCB4PSIzOTUiIHk9IjE5MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI2MCIgcng9IjgiIGZpbGw9InVybCgjYnVja2V0U2VjKSIgZmlsdGVyPSJ1cmwoI2J1Y2tldFNoYWRvdykiLz4KICA8dGV4dCB4PSI0NzUiIHk9IjIxNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnNlbnNpdGl2ZV9zcGFuczwvdGV4dD4KICA8dGV4dCB4PSI0NzUiIHk9IjIzMyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJlc3RyaWN0ZWQgYWNjZXNzPC90ZXh0PgoKICA8IS0tIFF1ZXJ5IGFycm93cyAtLT4KICA8bGluZSB4MT0iNTU1IiB5MT0iNzAiIHgyPSI1OTAiIHkyPSI5NSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYnVja2V0QXJyb3cpIi8+CiAgPGxpbmUgeDE9IjU1NSIgeTE9IjE0NSIgeDI9IjU5MCIgeTI9IjExNSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYnVja2V0QXJyb3cpIi8+CiAgPGxpbmUgeDE9IjU1NSIgeTE9IjIyMCIgeDI9IjU5MCIgeTI9IjEzMCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYnVja2V0QXJyb3cpIi8+CgogIDwhLS0gRFFMIFF1ZXJ5IGJveCAtLT4KICA8cmVjdCB4PSI1OTUiIHk9IjU1IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjEzMCIgcng9IjgiIGZpbGw9IiMxZTI5M2IiLz4KICA8dGV4dCB4PSI2ODAiIHk9IjgwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjOTRhM2I4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5RdWVyeSBieSBCdWNrZXQ8L3RleHQ+CgogIDx0ZXh0IHg9IjYxMCIgeT0iMTA1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMjJjNTVlIj5mZXRjaDwvdGV4dD4KICA8dGV4dCB4PSI2NDgiIHk9IjEwNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2Y4ZmFmYyI+c3BhbnMsPC90ZXh0PgoKICA8dGV4dCB4PSI2MTAiIHk9IjEyMyIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzE0OTZmZiI+ICBidWNrZXQ6PC90ZXh0PgogIDx0ZXh0IHg9IjY2MCIgeT0iMTIzIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZmJiZjI0Ij57InByb2R1Y3Rpb25fdHJhY2VzIn08L3RleHQ+CgogIDx0ZXh0IHg9IjYxMCIgeT0iMTQ1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5NGEzYjgiPi8vIE9yIHF1ZXJ5IGFsbDo8L3RleHQ+CiAgPHRleHQgeD0iNjEwIiB5PSIxNjMiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMyMmM1NWUiPmZldGNoPC90ZXh0PgogIDx0ZXh0IHg9IjY0OCIgeT0iMTYzIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZjhmYWZjIj5zcGFuczwvdGV4dD4KCiAgPCEtLSBMZWdlbmQvSW5mbyAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMjY1IiB3aWR0aD0iNzI1IiBoZWlnaHQ9IjYwIiByeD0iNiIgZmlsbD0iI2YwZjlmZiIgc3Ryb2tlPSIjYmFlNmZkIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI2MCIgeT0iMjg3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMDM2OWExIj5CdWNrZXQgQmVuZWZpdHM6PC90ZXh0PgogIDx0ZXh0IHg9IjE3MCIgeT0iMjg3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiMwMzY5YTEiPkRpZmZlcmVudCByZXRlbnRpb24gcGVyaW9kcyB8IEFjY2VzcyBjb250cm9sIHBlciBidWNrZXQgfCBDb3N0IG9wdGltaXphdGlvbiB8IENvbXBsaWFuY2Ugc2VwYXJhdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMzEwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMDM2OWExIj5EaXNjb3Zlcnk6PC90ZXh0PgogIDx0ZXh0IHg9IjEzMCIgeT0iMzEwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMDM2OWExIj5mZXRjaCBzcGFucywgZnJvbTotMWggfCBzdW1tYXJpemUgbiA9IGNvdW50KCksIGJ5OntkdC5zeXN0ZW0uYnVja2V0fTwvdGV4dD4KPC9zdmc+Cg==" alt="Grail Buckets Architecture" /></p>
+<!--MARKDOWN_TABLE_ALTERNATIVE
+| Bucket | Retention | Purpose |
+|--------|-----------|---------|
+| default_spans | 10 days (built-in) | Standard span storage |
+| production_traces | 90 days | Extended retention for prod |
+| sensitive_spans | Varies | Restricted access, compliance |
+-->
+<h3>Why Use Buckets?</h3>
+<table>
+<thead>
+<tr>
+<th>Purpose</th>
+<th>Benefit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cost Control</td>
+<td>Different retention periods per bucket</td>
+</tr>
+<tr>
+<td>Access Control</td>
+<td>Restrict who can query which data</td>
+</tr>
+<tr>
+<td>Compliance</td>
+<td>Separate sensitive data for audit</td>
+</tr>
+<tr>
+<td>Performance</td>
+<td>Query specific buckets for efficiency</td>
+</tr>
+<tr>
+<td>Team Isolation</td>
+<td>Each team queries their own bucket</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💡 <strong>Tip:</strong> The default bucket for spans is <code>default_spans</code>. You create custom buckets in storage management, and OpenPipeline's <strong>Bucket assignment</strong> stage sends records to them. Retention for distributed tracing on Grail is <em>&quot;Configurable, from 10 days to 10 years of retention time&quot;</em>; the built-in <code>default_spans</code> bucket kept 10 days on the validation tenant (<code>fetch dt.system.buckets</code>).</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods">Data retention periods (DT docs)</a>.</sub></p>
+</blockquote>
+<hr />
+<p><a id="querying-from-specific-buckets"></a></p>
+<h2>2. Querying from Specific Buckets</h2>
+<p>Use the <code>bucket:</code> parameter to query from specific buckets for improved performance and cost efficiency.</p>
+<pre><code class="language-dql">// Query spans from the default bucket
+// Run cell 6 first to see which buckets your spans are in, and use those names.
+fetch spans, from:-1h, bucket: {&quot;default_spans&quot;}
+| filter span.kind == &quot;server&quot;
+| fields start_time, dt.service.name, span.name, duration
+| sort start_time desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// Query from multiple buckets (if you have custom buckets)
+// Replace with your actual bucket names
+// Run cell 6 first to see which buckets your spans are in, and use those names.
+fetch spans, from:-1h, bucket: {&quot;default_spans&quot;}
+| filter span.kind == &quot;server&quot;
+| summarize {span_count = count()}, by:{dt.service.name}
+| sort span_count desc
+| limit 20
+</code></pre>
+<hr />
+<p><a id="bucket-discovery"></a></p>
+<h2>3. Bucket Discovery</h2>
+<p>Discover which buckets contain your data and their characteristics.</p>
+<pre><code class="language-dql">// Find out which bucket your spans are stored in
+fetch spans, from:-1h
+| fieldsAdd bucket = dt.system.bucket
+| summarize {span_count = count()}, by:{bucket}
+| sort span_count desc
+</code></pre>
+<pre><code class="language-dql">// Analyze span distribution by bucket and service
+fetch spans, from:-1h
+| fieldsAdd bucket = dt.system.bucket
+| summarize {span_count = count()}, by:{bucket, dt.service.name}
+| sort bucket, span_count desc
+| limit 50
+</code></pre>
+<hr />
+<p><a id="openpipeline-concepts"></a></p>
+<h2>4. OpenPipeline Concepts</h2>
+<p><strong>OpenPipeline</strong> processes incoming telemetry <strong>before</strong> storage. For spans it can drop records, transform and mask fields, assign buckets, and extract metrics and events. It does <strong>not</strong> sample: per the Adaptive Traffic Management docs, <em>&quot;OpenPipeline processing cannot be used as an alternative to ATM configuration for controlling trace volume.&quot;</em> (see §8).</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMjgwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iaW5nZXN0R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2MzY2ZjE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzRmNDZlNTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InBpcGVsaW5lR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4YjVjZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdjM2FlZDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWlsR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyMmM1NWU7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE2YTM0YTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJvcFNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0ib3BBcnJvdyIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjNjQ3NDhiIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjI4MCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDAwIiB5PSIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+T3BlblBpcGVsaW5lIFByb2Nlc3NpbmcgRmxvdzwvdGV4dD4KCiAgPCEtLSBJbmdlc3QgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjYwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjcwIiByeD0iOCIgZmlsbD0idXJsKCNpbmdlc3RHcmFkKSIgZmlsdGVyPSJ1cmwoI29wU2hhZG93KSIvPgogIDx0ZXh0IHg9IjgwIiB5PSI5MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkluZ2VzdDwvdGV4dD4KICA8dGV4dCB4PSI4MCIgeT0iMTEwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U3BhbnM8L3RleHQ+CgogIDwhLS0gQXJyb3cgdG8gUGlwZWxpbmUgLS0+CiAgPHBhdGggZD0iTTEzMCw5NSBMMTY1LDk1IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNvcEFycm93KSIvPgoKICA8IS0tIE9wZW5QaXBlbGluZSBCb3ggLS0+CiAgPHJlY3QgeD0iMTcwIiB5PSI0NSIgd2lkdGg9IjQyMCIgaGVpZ2h0PSIxMDAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3BpcGVsaW5lR3JhZCkiIGZpbHRlcj0idXJsKCNvcFNoYWRvdykiLz4KICA8dGV4dCB4PSIzODAiIHk9IjcwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+T3BlblBpcGVsaW5lPC90ZXh0PgoKICA8IS0tIFBpcGVsaW5lIFN0YWdlcyAtLT4KICA8cmVjdCB4PSIxODUiIHk9IjgwIiB3aWR0aD0iODUiIGhlaWdodD0iNTAiIHJ4PSI1IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMikiLz4KICA8dGV4dCB4PSIyMjciIHk9IjEwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJvdXRlPC90ZXh0PgogIDx0ZXh0IHg9IjIyNyIgeT0iMTE1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VG8gYSBwaXBlbGluZTwvdGV4dD4KCiAgPHRleHQgeD0iMjgwIiB5PSIxMDUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0id2hpdGUiPuKGkjwvdGV4dD4KCiAgPHJlY3QgeD0iMjk1IiB5PSI4MCIgd2lkdGg9Ijg1IiBoZWlnaHQ9IjUwIiByeD0iNSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjIpIi8+CiAgPHRleHQgeD0iMzM3IiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Qcm9jZXNzaW5nPC90ZXh0PgogIDx0ZXh0IHg9IjMzNyIgeT0iMTE1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RHJvcCwgRFFMLCBtYXNrPC90ZXh0PgoKICA8dGV4dCB4PSIzOTAiIHk9IjEwNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSJ3aGl0ZSI+4oaSPC90ZXh0PgoKICA8cmVjdCB4PSI0MDUiIHk9IjgwIiB3aWR0aD0iODUiIGhlaWdodD0iNTAiIHJ4PSI1IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMikiLz4KICA8dGV4dCB4PSI0NDciIHk9IjEwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJ1Y2tldDwvdGV4dD4KICA8dGV4dCB4PSI0NDciIHk9IjExNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmFzc2lnbm1lbnQ8L3RleHQ+CgogIDx0ZXh0IHg9IjUwMCIgeT0iMTA1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IndoaXRlIj7ihpI8L3RleHQ+CgogIDxyZWN0IHg9IjUxNSIgeT0iODAiIHdpZHRoPSI2MCIgaGVpZ2h0PSI1MCIgcng9IjUiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4yKSIvPgogIDx0ZXh0IHg9IjU0NSIgeT0iMTAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RXh0cmFjdDwvdGV4dD4KICA8dGV4dCB4PSI1NDUiIHk9IjExNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk1ldHJpY3M8L3RleHQ+CgogIDwhLS0gQXJyb3cgdG8gR3JhaWwgLS0+CiAgPHBhdGggZD0iTTU5MCw5NSBMNjI1LDk1IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNvcEFycm93KSIvPgoKICA8IS0tIEdyYWlsIFN0b3JhZ2UgLS0+CiAgPHJlY3QgeD0iNjMwIiB5PSI2MCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSI3MCIgcng9IjgiIGZpbGw9InVybCgjZ3JhaWxHcmFkKSIgZmlsdGVyPSJ1cmwoI29wU2hhZG93KSIvPgogIDx0ZXh0IHg9IjcwMCIgeT0iODgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5HcmFpbCBTdG9yYWdlPC90ZXh0PgogIDx0ZXh0IHg9IjcwMCIgeT0iMTA4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QnVja2V0czwvdGV4dD4KCiAgPCEtLSBBY3Rpb25zIExlZ2VuZCAtLT4KICA8cmVjdCB4PSIzMCIgeT0iMTYwIiB3aWR0aD0iNzQwIiBoZWlnaHQ9IjEwNSIgcng9IjYiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNDAwIiB5PSIxODIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBpcGVsaW5lIEFjdGlvbnM8L3RleHQ+CgogIDwhLS0gRHJvcCAtLT4KICA8cmVjdCB4PSI1MCIgeT0iMTk1IiB3aWR0aD0iODAiIGhlaWdodD0iMjQiIHJ4PSI0IiBmaWxsPSIjZWY0NDQ0Ii8+CiAgPHRleHQgeD0iOTAiIHk9IjIxMiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmRyb3AgcmVjb3JkPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIyNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY2NiI+UmVtb3ZlIHNwYW5zPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIyNTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY2NiI+bWF0Y2hpbmcgY29uZGl0aW9uPC90ZXh0PgoKICA8IS0tIEtlZXAgLS0+CiAgPHJlY3QgeD0iMTcwIiB5PSIxOTUiIHdpZHRoPSI4MCIgaGVpZ2h0PSIyNCIgcng9IjQiIGZpbGw9IiMyMmM1NWUiLz4KICA8dGV4dCB4PSIyMTAiIHk9IjIxMiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmFkZCBmaWVsZHM8L3RleHQ+CiAgPHRleHQgeD0iMTcwIiB5PSIyNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY2NiI+QWRkIHN0YXRpYzwvdGV4dD4KICA8dGV4dCB4PSIxNzAiIHk9IjI1MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjY2Ij5maWVsZCB2YWx1ZXM8L3RleHQ+CgogIDwhLS0gVHJhbnNmb3JtIC0tPgogIDxyZWN0IHg9IjI5MCIgeT0iMTk1IiB3aWR0aD0iODAiIGhlaWdodD0iMjQiIHJ4PSI0IiBmaWxsPSIjMTQ5NmZmIi8+CiAgPHRleHQgeD0iMzMwIiB5PSIyMTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EUUw8L3RleHQ+CiAgPHRleHQgeD0iMjkwIiB5PSIyNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY2NiI+TW9kaWZ5IGZpZWxkcyw8L3RleHQ+CiAgPHRleHQgeD0iMjkwIiB5PSIyNTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY2NiI+YWRkIGNvbXB1dGVkPC90ZXh0PgoKICA8IS0tIFJvdXRlIC0tPgogIDxyZWN0IHg9IjQxMCIgeT0iMTk1IiB3aWR0aD0iODAiIGhlaWdodD0iMjQiIHJ4PSI0IiBmaWxsPSIjZjk3MzE2Ii8+CiAgPHRleHQgeD0iNDUwIiB5PSIyMTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5yb3V0ZTwvdGV4dD4KICA8dGV4dCB4PSI0MTAiIHk9IjI0MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjY2Ij5Sb3V0ZSBjaG9vc2VzPC90ZXh0PgogIDx0ZXh0IHg9IjQxMCIgeT0iMjUyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NjYiPnRoZSBwaXBlbGluZTwvdGV4dD4KCiAgPCEtLSBNYXNrIC0tPgogIDxyZWN0IHg9IjUzMCIgeT0iMTk1IiB3aWR0aD0iODAiIGhlaWdodD0iMjQiIHJ4PSI0IiBmaWxsPSIjOGI1Y2Y2Ii8+CiAgPHRleHQgeD0iNTcwIiB5PSIyMTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5tYXNrPC90ZXh0PgogIDx0ZXh0IHg9IjUzMCIgeT0iMjQwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NjYiPnJlcGxhY2VQYXR0ZXJuIGluPC90ZXh0PgogIDx0ZXh0IHg9IjUzMCIgeT0iMjUyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NjYiPmEgRFFMIHByb2Nlc3NvcjwvdGV4dD4KCiAgPCEtLSBTYW1wbGUgLS0+CiAgPHJlY3QgeD0iNjUwIiB5PSIxOTUiIHdpZHRoPSI4MCIgaGVpZ2h0PSIyNCIgcng9IjQiIGZpbGw9IiM2NDc0OGIiLz4KICA8dGV4dCB4PSI2OTAiIHk9IjIxMiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnNhbXBsaW5nPC90ZXh0PgogIDx0ZXh0IHg9IjY1MCIgeT0iMjQwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NjYiPk5vdCBpbiBPcGVuUGlwZWxpbmU6PC90ZXh0PgogIDx0ZXh0IHg9IjY1MCIgeT0iMjUyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NjYiPk9uZUFnZW50IEFUTSAvIENvbGxlY3RvcjwvdGV4dD4KPC9zdmc+Cg==" alt="OpenPipeline Flow" /></p>
+<!--MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Purpose | Example |
+|-------|---------|---------|
+| Route | Choose a pipeline | Production spans → `production-spans` pipeline |
+| Processing | Drop record, DQL, add/remove/rename fields | Drop health checks; add `duration_ms`; mask URLs |
+| Bucket assignment | Choose the bucket (first match) | Production → long-retention bucket |
+| Extract | Metrics (sampling-aware on spans), events | Request count per service |
+| Sampling | **Not an OpenPipeline step** | Set at the source: OneAgent ATM or an OTel Collector |
+-->
+<blockquote>
+<p>⚠️ <strong>Note:</strong> OpenPipeline configuration is done in the Dynatrace UI under <strong>Settings &gt; Process and contextualize &gt; OpenPipeline</strong>. This notebook shows how to identify candidates and verify results.</p>
+</blockquote>
+<hr />
+<p><a id="filtering-dropping-unwanted-spans"></a></p>
+<h2>5. Filtering &amp; Dropping Unwanted Spans</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzQwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZHJvcEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWY0NDQ0O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkYzI2MjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ0cmFuc2Zvcm1HcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE0OTZmZjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMGE2NGJjO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icm91dGVHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y5NzMxNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWE1ODBjO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic2FtcGxlR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4YjVjZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdjM2FlZDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJhY3RTaGFkb3ciPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIyIiBkeT0iMiIgc3RkRGV2aWF0aW9uPSIyIiBmbG9vZC1vcGFjaXR5PSIwLjE1Ii8+CiAgICA8L2ZpbHRlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjM0MCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDAwIiB5PSIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+T3BlblBpcGVsaW5lIFNwYW4gUHJvY2Vzc2luZyAoZG9jdW1lbnRlZCBwcm9jZXNzb3JzKTwvdGV4dD4KCiAgPCEtLSBEUk9QIFNlY3Rpb24gLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjUwIiB3aWR0aD0iMTc1IiBoZWlnaHQ9IjEzMCIgcng9IjgiIGZpbGw9InVybCgjZHJvcEdyYWQpIiBmaWx0ZXI9InVybCgjYWN0U2hhZG93KSIvPgogIDx0ZXh0IHg9IjExNyIgeT0iNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EUk9QIFJFQ09SRDwvdGV4dD4KICA8dGV4dCB4PSIxMTciIHk9Ijk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UHJvY2Vzc2luZyBzdGFnZTwvdGV4dD4KCiAgPHJlY3QgeD0iNDAiIHk9IjEwNSIgd2lkdGg9IjE1NSIgaGVpZ2h0PSI2NSIgcng9IjQiIGZpbGw9InJnYmEoMCwwLDAsMC4yKSIvPgogIDx0ZXh0IHg9IjUwIiB5PSIxMjIiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IndoaXRlIj5tYXRjaGluZyBjb25kaXRpb246PC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIxMzYiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNmYmJmMjQiPiAgbWF0Y2hlc1ZhbHVlKDwvdGV4dD4KICA8dGV4dCB4PSI1MCIgeT0iMTUwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSJ3aGl0ZSI+ICAgc3Bhbi5uYW1lLCAiKmhlYWx0aCoiKTwvdGV4dD4KICA8dGV4dCB4PSI1MCIgeT0iMTY0IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMjJjNTVlIj7ihpIgRHJvcCByZWNvcmQ8L3RleHQ+CgogIDwhLS0gVFJBTlNGT1JNIFNlY3Rpb24gLS0+CiAgPHJlY3QgeD0iMjIwIiB5PSI1MCIgd2lkdGg9IjE3NSIgaGVpZ2h0PSIxMzAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3RyYW5zZm9ybUdyYWQpIiBmaWx0ZXI9InVybCgjYWN0U2hhZG93KSIvPgogIDx0ZXh0IHg9IjMwNyIgeT0iNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EUUwgUFJPQ0VTU09SPC90ZXh0PgogIDx0ZXh0IHg9IjMwNyIgeT0iOTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Qcm9jZXNzaW5nIHN0YWdlPC90ZXh0PgoKICA8cmVjdCB4PSIyMzAiIHk9IjEwNSIgd2lkdGg9IjE1NSIgaGVpZ2h0PSI2NSIgcng9IjQiIGZpbGw9InJnYmEoMCwwLDAsMC4yKSIvPgogIDx0ZXh0IHg9IjI0MCIgeT0iMTIyIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSJ3aGl0ZSI+ZGVmaW5pdGlvbjo8L3RleHQ+CiAgPHRleHQgeD0iMjQwIiB5PSIxMzYiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IndoaXRlIj4gIGZpZWxkc0FkZDwvdGV4dD4KICA8dGV4dCB4PSIyNDAiIHk9IjE1MCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2ZiYmYyNCI+ICAgIGR1cmF0aW9uX21zID08L3RleHQ+CiAgPHRleHQgeD0iMjQwIiB5PSIxNjQiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMyMmM1NWUiPiAgICAgIGR1cmF0aW9uIC8gMW1zPC90ZXh0PgoKICA8IS0tIFJPVVRFIFNlY3Rpb24gLS0+CiAgPHJlY3QgeD0iNDEwIiB5PSI1MCIgd2lkdGg9IjE3NSIgaGVpZ2h0PSIxMzAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3JvdXRlR3JhZCkiIGZpbHRlcj0idXJsKCNhY3RTaGFkb3cpIi8+CiAgPHRleHQgeD0iNDk3IiB5PSI3NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJPVVRFICsgQlVDS0VUPC90ZXh0PgogIDx0ZXh0IHg9IjQ5NyIgeT0iOTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5QaXBlbGluZSwgdGhlbiBidWNrZXQ8L3RleHQ+CgogIDxyZWN0IHg9IjQyMCIgeT0iMTA1IiB3aWR0aD0iMTU1IiBoZWlnaHQ9IjY1IiByeD0iNCIgZmlsbD0icmdiYSgwLDAsMCwwLjIpIi8+CiAgPHRleHQgeD0iNDMwIiB5PSIxMjIiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IndoaXRlIj5tYXRjaGVyOjwvdGV4dD4KICA8dGV4dCB4PSI0MzAiIHk9IjEzNiIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2ZiYmYyNCI+ICBkZXBsb3ltZW50LmVudmlyb25tZW50PC90ZXh0PgogIDx0ZXh0IHg9IjQzMCIgeT0iMTUwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSJ3aGl0ZSI+ICAgPT0gInByb2R1Y3Rpb24iPC90ZXh0PgogIDx0ZXh0IHg9IjQzMCIgeT0iMTY0IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMjJjNTVlIj7ihpIgYnVja2V0OiBzcGFuc19wcm9kPC90ZXh0PgoKICA8IS0tIFNBTVBMRSBTZWN0aW9uIC0tPgogIDxyZWN0IHg9IjYwMCIgeT0iNTAiIHdpZHRoPSIxNzUiIGhlaWdodD0iMTMwIiByeD0iOCIgZmlsbD0idXJsKCNzYW1wbGVHcmFkKSIgZmlsdGVyPSJ1cmwoI2FjdFNoYWRvdykiLz4KICA8dGV4dCB4PSI2ODciIHk9Ijc1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TUVUUklDIEVYVFJBQ1RJT048L3RleHQ+CiAgPHRleHQgeD0iNjg3IiB5PSI5NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNhbXBsaW5nLWF3YXJlIGZvciBzcGFuczwvdGV4dD4KCiAgPHJlY3QgeD0iNjEwIiB5PSIxMDUiIHdpZHRoPSIxNTUiIGhlaWdodD0iNjUiIHJ4PSI0IiBmaWxsPSJyZ2JhKDAsMCwwLDAuMikiLz4KICA8dGV4dCB4PSI2MjAiIHk9IjEyMiIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0id2hpdGUiPm1hdGNoaW5nIGNvbmRpdGlvbjo8L3RleHQ+CiAgPHRleHQgeD0iNjIwIiB5PSIxMzYiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNmYmJmMjQiPiAgc3Bhbi5raW5kID09ICJzZXJ2ZXIiPC90ZXh0PgogIDx0ZXh0IHg9IjYyMCIgeT0iMTUwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSJ3aGl0ZSI+cHJvY2Vzc29yOiBTYW1wbGluZzwvdGV4dD4KICA8dGV4dCB4PSI2MjAiIHk9IjE2NCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzIyYzU1ZSI+ICBhd2FyZSBjb3VudGVyPC90ZXh0PgoKICA8IS0tIENvbW1vbiBEcm9wIENhbmRpZGF0ZXMgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjE5NSIgd2lkdGg9IjM2MCIgaGVpZ2h0PSIxMzAiIHJ4PSI2IiBmaWxsPSIjZmVmMmYyIiBzdHJva2U9IiNmZWNhY2EiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjIxMCIgeT0iMjE4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjOTkxYjFiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Db21tb24gRHJvcCBDYW5kaWRhdGVzPC90ZXh0PgoKICA8dGV4dCB4PSI1MCIgeT0iMjQyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5OTFiMWIiPkhlYWx0aCBjaGVja3M6IC9oZWFsdGgsIC9yZWFkeSwgL2FsaXZlLCAvcGluZzwvdGV4dD4KICA8dGV4dCB4PSI1MCIgeT0iMjYwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5OTFiMWIiPk1ldHJpY3MgZW5kcG9pbnRzOiAvbWV0cmljcywgL3Byb21ldGhldXM8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjI3OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOTkxYjFiIj5TdGF0aWMgYXNzZXRzOiAqLmpzLCAqLmNzcywgKi5wbmcsICouaWNvPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIyOTYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk5MWIxYiI+SGlnaC12b2x1bWUgaW50ZXJuYWwgY2FsbHMgKG1lYXN1cmUgZmlyc3QpPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIzMTQiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk5MWIxYiI+RGVidWcvdHJhY2Ugc3BhbnMgaW4gcHJvZHVjdGlvbjwvdGV4dD4KCiAgPCEtLSBBbHdheXMgS2VlcCAtLT4KICA8cmVjdCB4PSI0MTAiIHk9IjE5NSIgd2lkdGg9IjM2MCIgaGVpZ2h0PSIxMzAiIHJ4PSI2IiBmaWxsPSIjZGNmY2U3IiBzdHJva2U9IiM4NmVmYWMiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjU5MCIgeT0iMjE4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMTY2NTM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BbHdheXMgS2VlcCAoTmV2ZXIgRHJvcCk8L3RleHQ+CgogIDx0ZXh0IHg9IjQzMCIgeT0iMjQyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxNjY1MzQiPkVycm9yIHNwYW5zOiBzcGFuLnN0YXR1c19jb2RlID09ICJlcnJvciI8L3RleHQ+CiAgPHRleHQgeD0iNDMwIiB5PSIyNjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzE2NjUzNCI+U2xvdyBzcGFuczogZHVyYXRpb24gPiB0aHJlc2hvbGQ8L3RleHQ+CiAgPHRleHQgeD0iNDMwIiB5PSIyNzgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzE2NjUzNCI+U2VjdXJpdHkgZXZlbnRzOiA0MDEsIDQwMywgNDI5IHJlc3BvbnNlczwvdGV4dD4KICA8dGV4dCB4PSI0MzAiIHk9IjI5NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMTY2NTM0Ij5CdXNpbmVzcy1jcml0aWNhbCBvcGVyYXRpb25zPC90ZXh0PgogIDx0ZXh0IHg9IjQzMCIgeT0iMzE0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxNjY1MzQiPlJvb3Qgc3BhbnMgKGVudHJ5IHBvaW50cyk8L3RleHQ+Cjwvc3ZnPgo=" alt="OpenPipeline Actions" /></p>
+<!--MARKDOWN_TABLE_ALTERNATIVE
+| Action | Purpose | Example Config |
+|--------|---------|----------------|
+| Drop record | Remove spans | Matching condition `matchesValue(span.name, "*health*")` |
+| DQL processor | Modify fields | `fieldsAdd duration_ms = duration / 1ms` |
+| Route + Bucket assignment | Send to a bucket | Route matcher picks the pipeline; Bucket assignment `spans_prod` |
+| Sampling aware counter | Extract a metric | Matching condition `span.kind == "server"` |
+-->
+<h3>Candidates for Dropping</h3>
+<ol>
+<li><strong>Health checks</strong> - <code>/health</code>, <code>/ready</code>, <code>/alive</code> endpoints</li>
+<li><strong>Metrics endpoints</strong> - <code>/metrics</code>, <code>/prometheus</code></li>
+<li><strong>Static assets</strong> - <code>.js</code>, <code>.css</code>, <code>.png</code> requests</li>
+<li><strong>Internal noise</strong> - Very frequent internal operations</li>
+</ol>
+<pre><code class="language-dql">// Find health check spans (candidates for dropping)
+// matchesValue with path-shaped patterns avoids false hits: a bare substring
+// &quot;ping&quot; also matches &quot;ShippingService/GetQuote&quot;.
+fetch spans, from:-1h
+| filter matchesValue(span.name, &quot;*health*&quot;)
+    or matchesValue(span.name, &quot;*/ready*&quot;)
+    or matchesValue(span.name, &quot;*/alive*&quot;)
+    or matchesValue(span.name, &quot;*/ping&quot;)
+| summarize {count = count()}, by:{dt.service.name, span.name}
+| sort count desc
+</code></pre>
+<pre><code class="language-dql">// Find static asset requests (often low value)
+fetch spans, from:-1h
+| filter isNotNull(url.path)
+| filter endsWith(url.path, &quot;.js&quot;) or 
+        endsWith(url.path, &quot;.css&quot;) or
+        endsWith(url.path, &quot;.png&quot;) or
+        endsWith(url.path, &quot;.ico&quot;)
+| summarize {count = count()}, by:{dt.service.name}
+| sort count desc
+</code></pre>
+<pre><code class="language-dql">// Find high-volume, low-value spans
+// High volume but almost no errors = candidates for filtering
+fetch spans, from:-1h
+| summarize {
+    count = count(),
+    error_count = countIf(span.status_code == &quot;error&quot;)
+  }, by:{dt.service.name, span.name}
+| fieldsAdd error_rate = (error_count * 100.0) / count
+| filter count &gt; 1000 and error_rate &lt; 0.1
+| sort count desc
+</code></pre>
+<h3>OpenPipeline Example: Drop Health Checks</h3>
+<p>In <strong>Settings &gt; Process and contextualize &gt; OpenPipeline &gt; Spans</strong>, open the pipeline your spans are routed to and add a <strong>Drop record</strong> processor to the <strong>Processing</strong> stage:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Processor</td>
+<td>Drop record</td>
+</tr>
+<tr>
+<td>Matching condition</td>
+<td><code>matchesValue(span.name, &quot;*health*&quot;) or matchesValue(span.name, &quot;*/ready*&quot;) or matchesValue(span.name, &quot;*/alive*&quot;)</code></td>
+</tr>
+</tbody>
+</table>
+<p>Matching conditions accept <code>matchesValue</code>, <code>matchesPhrase</code>, comparisons and boolean logic — <code>contains()</code> and <code>in()</code> are rejected. Run the query above first so you know what the condition removes.</p>
+<hr />
+<p><a id="transforming-enriching-data"></a></p>
+<h2>6. Transforming &amp; Enriching Data</h2>
+<p>Pre-compute fields at ingestion time for faster queries. Each is a processor in the <strong>Processing</strong> stage, with its own matching condition.</p>
+<h3>OpenPipeline Example: Add Computed Fields</h3>
+<p><strong>DQL</strong> processor, matching condition <code>true</code>:</p>
+<pre><code class="language-text">fieldsAdd duration_ms = duration / 1ms, is_slow = duration &gt; 1s
+</code></pre>
+<h3>OpenPipeline Example: Add Business Context</h3>
+<p>Two <strong>Add fields</strong> processors (static values):</p>
+<table>
+<thead>
+<tr>
+<th>Matching condition</th>
+<th>Fields added</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>matchesValue(dt.service.name, &quot;checkout*&quot;)</code></td>
+<td><code>business.domain = &quot;commerce&quot;</code>, <code>business.criticality = &quot;high&quot;</code></td>
+</tr>
+<tr>
+<td><code>matchesValue(dt.service.name, &quot;payment*&quot;)</code></td>
+<td><code>business.domain = &quot;finance&quot;</code>, <code>business.criticality = &quot;critical&quot;</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>dt.service.name</code> is present on every span on the validation tenant; <code>service.name</code> only on OpenTelemetry spans — match on the field your spans carry, and confirm it in the pipeline's sample-data preview.</p>
+<pre><code class="language-dql">// Example: Fields you might want to pre-compute
+fetch spans, from:-1h
+| fieldsAdd 
+    duration_ms = duration / 1ms,
+    is_error = span.status_code == &quot;error&quot;,
+    latency_bucket = if(
+        duration &lt; 100ms, &quot;fast&quot;,
+        else: if(duration &lt; 1s, &quot;normal&quot;,
+        else: &quot;slow&quot;))
+| fields dt.service.name, span.name, duration_ms, is_error, latency_bucket
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Identify services by domain for enrichment planning
+fetch spans, from:-1h
+| summarize {count = count()}, by:{dt.service.name}
+| sort count desc
+| limit 20
+</code></pre>
+<hr />
+<p><a id="routing-to-different-buckets"></a></p>
+<h2>7. Routing to Different Buckets</h2>
+<p>Route spans to buckets based on:</p>
+<ul>
+<li><strong>Retention needs</strong> (short vs. long term)</li>
+<li><strong>Sensitivity</strong> (PII vs. non-PII)</li>
+<li><strong>Environment</strong> (prod vs. dev)</li>
+<li><strong>Cost</strong> (high-value vs. low-value)</li>
+</ul>
+<p>A <strong>route</strong> sends a record to a <strong>pipeline</strong> (first match wins); the pipeline's <strong>Bucket assignment</strong> stage sends it to a <strong>bucket</strong> (first match wins). Either can carry the condition.</p>
+<h3>OpenPipeline Example: Route by Environment (Bucket assignment processors)</h3>
+<table>
+<thead>
+<tr>
+<th>Matching condition</th>
+<th>Bucket</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>deployment.environment == &quot;production&quot;</code></td>
+<td><code>spans_production_90d</code></td>
+</tr>
+<tr>
+<td><code>deployment.environment == &quot;staging&quot;</code></td>
+<td><code>spans_staging_7d</code></td>
+</tr>
+<tr>
+<td><code>true</code> (last)</td>
+<td><code>spans_default</code></td>
+</tr>
+</tbody>
+</table>
+<h3>OpenPipeline Example: Route by Sensitivity (routes)</h3>
+<table>
+<thead>
+<tr>
+<th>Route matcher</th>
+<th>Target pipeline (its bucket)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>matchesValue(dt.service.name, &quot;payment*&quot;) or matchesValue(dt.service.name, &quot;auth*&quot;)</code></td>
+<td><code>sensitive-spans</code> (<code>spans_sensitive</code>)</td>
+</tr>
+<tr>
+<td><em>(default route)</em></td>
+<td>default pipeline (<code>default_spans</code>)</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Check what environments/namespaces exist for routing planning
+fetch spans, from:-1h
+| summarize {count = count()}, by:{k8s.namespace.name}
+| sort count desc
+</code></pre>
+<pre><code class="language-dql">// Identify sensitive services for routing
+// contains() is case-sensitive by default, so match case-insensitively
+fetch spans, from:-1h
+| filter contains(span.name, &quot;payment&quot;, caseSensitive: false) or
+        contains(span.name, &quot;auth&quot;, caseSensitive: false) or
+        contains(span.name, &quot;login&quot;, caseSensitive: false)
+| summarize {count = count()}, by:{dt.service.name, span.name}
+| sort count desc
+</code></pre>
+<hr />
+<p><a id="sampling-strategies"></a></p>
+<h2>8. Sampling Strategies</h2>
+<p><strong>Sampling is decided at the source, not in OpenPipeline.</strong> Per the Adaptive Traffic Management docs: <em>&quot;Adaptive Traffic Management sampling decisions are made locally (on OneAgent, or on Envoy when using the Dynatrace sampler) before any Dynatrace backend infrastructure including OpenPipeline is involved. OpenPipeline processing cannot be used as an alternative to ATM configuration for controlling trace volume.&quot;</em></p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Where sampling is set</th>
+<th>&quot;Keep all errors&quot; possible?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OneAgent</td>
+<td><strong>Adaptive Traffic Management</strong> — head-based, decided once at the start of a trace</td>
+<td>No — the decision is made before the outcome is known</td>
+</tr>
+<tr>
+<td>OpenTelemetry</td>
+<td><strong>OTel Collector</strong> <code>tail_sampling</code> processor — decided after the trace completes</td>
+<td>Yes — Dynatrace's sample configuration <em>&quot;keeps errors, traces longer than 500ms, and 20% of all remaining traces&quot;</em></td>
+</tr>
+<tr>
+<td>Either</td>
+<td>OpenPipeline <strong>Drop record</strong></td>
+<td>Only for spans you can name (health checks, probes) — dropping by rule is not sampling</td>
+</tr>
+</tbody>
+</table>
+<p>If you tail-sample in a Collector, compute service metrics <strong>before</strong> the sampler. The Dynatrace Collector sampling use case does that with the <code>spanmetrics</code> connector, so the request counts stay accurate. See <strong>OPIPE-03</strong> for extrapolating counts from sampled spans.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/adaptive-traffic-management/adaptive-traffic-management-saas-dps">Adaptive Traffic Management with DPS (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector-use-cases/sampling">Sampling with the OTel Collector (DT docs)</a>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Identify high-volume services — candidates for ATM or Collector sampling at the source
+fetch spans, from:-1h
+| summarize {
+    total = count(),
+    errors = countIf(span.status_code == &quot;error&quot;),
+    slow = countIf(duration &gt; 1s)
+  }, by:{dt.service.name}
+| fieldsAdd error_rate = (errors * 100.0) / total
+| fieldsAdd important = errors + slow
+| fieldsAdd droppable = total - errors - slow
+| filter total &gt; 10000  // High volume services
+| sort total desc
+</code></pre>
+<pre><code class="language-dql">// Calculate potential savings from filtering
+fetch spans, from:-1h
+| summarize {
+    total = count(),
+    health_checks = countIf(
+        contains(span.name, &quot;health&quot;) or 
+        contains(span.name, &quot;ready&quot;) or
+        contains(span.name, &quot;alive&quot;)),
+    static_assets = countIf(
+        endsWith(url.path, &quot;.js&quot;) or
+        endsWith(url.path, &quot;.css&quot;) or
+        endsWith(url.path, &quot;.png&quot;)),
+    errors = countIf(span.status_code == &quot;error&quot;),
+    slow = countIf(duration &gt; 1s)
+  }
+| fieldsAdd droppable = health_checks + static_assets
+| fieldsAdd must_keep = errors + slow
+| fieldsAdd droppable_pct = (droppable * 100.0) / total
+</code></pre>
+<hr />
+<p><a id="measuring-span-traffic"></a></p>
+<h2>9. Measuring Span Traffic per Application</h2>
+<p>Understanding how much span data each application generates is critical for effective <strong>data partitioning</strong> and <strong>cost allocation</strong>. Every span has a <code>dt.ingest.size</code> attribute that records its byte size at ingestion. By extracting a metric from this field in OpenPipeline, you can track span traffic per application over time.</p>
+<h3>Step 1: Verify <code>dt.ingest.size</code> Exists</h3>
+<p>First, confirm that spans carry the <code>dt.ingest.size</code> attribute:</p>
+<pre><code class="language-dql">// Verify dt.ingest.size is present on spans
+fetch spans, from:-1h
+| fieldsKeep span.name, dt.ingest.size
+| filter isNotNull(dt.ingest.size)
+| limit 10
+</code></pre>
+<h3>Step 2: Create a Metric Extraction Rule in OpenPipeline</h3>
+<p>Navigate to <strong>Settings &gt; Process and contextualize &gt; OpenPipeline &gt; Spans</strong> and create a metric extraction rule:</p>
+<ol>
+<li>Go to the <strong>Pipelines</strong> tab and create a new pipeline (e.g., <code>General Pipeline</code>)</li>
+<li>In the pipeline's <strong>Metric extraction</strong> stage, add a <strong>Sampling aware value metric</strong> processor — on spans, the metric processors are the sampling-aware variants:
+<ul>
+<li><strong>Metric key:</strong> <code>span.ingest.size.by.app</code></li>
+<li><strong>Value field:</strong> <code>dt.ingest.size</code></li>
+<li><strong>Dimension:</strong> <code>primary_tags.app</code> (or your organization's app dimension)</li>
+</ul>
+</li>
+<li>Go to <strong>Dynamic Routing</strong> and create a route that sends all spans to this pipeline</li>
+<li>Click <strong>Save</strong></li>
+</ol>
+<blockquote>
+<p><strong>Note:</strong> The dimension field (<code>primary_tags.app</code>) varies by customer. Use whichever enrichment field identifies applications in your environment.</p>
+</blockquote>
+<h3>Step 3: Query Span Traffic per Application</h3>
+<p>Once the metric is flowing (allow a few minutes after saving), query it:</p>
+<pre><code class="language-dql">// Span ingest volume per application (after metric extraction is configured)
+timeseries span_ingest = sum(span.ingest.size.by.app), from:-24h, by:{primary_tags.app}
+| fieldsAdd daily_gb = arraySum(span_ingest) / 1073741824
+| sort daily_gb desc
+</code></pre>
+<blockquote>
+<p><strong>Why this matters:</strong> Knowing which applications generate the most span traffic helps you make informed decisions about bucket partitioning, retention policies, sampling strategies, and cost attribution. See <strong>ORGNZ-03: Bucket Strategy and Design</strong> for the complete data partitioning best practice.</p>
+</blockquote>
+<hr />
+<p><a id="access-control-patterns"></a></p>
+<h2>10. Access Control Patterns</h2>
+<p>Use bucket-based queries to implement access control patterns.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzIwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idGVhbUFHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzYzNjZmMTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNGY0NmU1O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idGVhbUJHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE0OTZmZjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMGE2NGJjO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icGxhdGZvcm1HcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIyYzU1ZTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTZhMzRhO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iY29tcGxpYW5jZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZjk3MzE2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlYTU4MGM7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJidWNrZXRHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhiNWNmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojN2MzYWVkO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9ImFjU2hhZG93Ij4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMiIgZHk9IjIiIHN0ZERldmlhdGlvbj0iMiIgZmxvb2Qtb3BhY2l0eT0iMC4xNSIvPgogICAgPC9maWx0ZXI+CiAgICA8bWFya2VyIGlkPSJhY0Fycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iMzIwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0MDAiIHk9IjI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CdWNrZXQtQmFzZWQgQWNjZXNzIENvbnRyb2w8L3RleHQ+CgogIDwhLS0gVGVhbXMgQ29sdW1uIC0tPgogIDx0ZXh0IHg9IjEwMCIgeT0iNTgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlRFQU1TIC8gUk9MRVM8L3RleHQ+CgogIDwhLS0gVGVhbSBBIC0tPgogIDxyZWN0IHg9IjMwIiB5PSI3MCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSI0NSIgcng9IjgiIGZpbGw9InVybCgjdGVhbUFHcmFkKSIgZmlsdGVyPSJ1cmwoI2FjU2hhZG93KSIvPgogIDx0ZXh0IHg9IjEwMCIgeT0iOTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5UZWFtIEE8L3RleHQ+CiAgPHRleHQgeD0iMTAwIiB5PSIxMDUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Gcm9udGVuZCBFbmdpbmVlcnM8L3RleHQ+CgogIDwhLS0gVGVhbSBCIC0tPgogIDxyZWN0IHg9IjMwIiB5PSIxMjUiIHdpZHRoPSIxNDAiIGhlaWdodD0iNDUiIHJ4PSI4IiBmaWxsPSJ1cmwoI3RlYW1CR3JhZCkiIGZpbHRlcj0idXJsKCNhY1NoYWRvdykiLz4KICA8dGV4dCB4PSIxMDAiIHk9IjE0NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlRlYW0gQjwvdGV4dD4KICA8dGV4dCB4PSIxMDAiIHk9IjE2MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhY2tlbmQgRW5naW5lZXJzPC90ZXh0PgoKICA8IS0tIFBsYXRmb3JtIFRlYW0gLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjE4MCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSI0NSIgcng9IjgiIGZpbGw9InVybCgjcGxhdGZvcm1HcmFkKSIgZmlsdGVyPSJ1cmwoI2FjU2hhZG93KSIvPgogIDx0ZXh0IHg9IjEwMCIgeT0iMjAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UGxhdGZvcm0gVGVhbTwvdGV4dD4KICA8dGV4dCB4PSIxMDAiIHk9IjIxNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNSRSAvIERldk9wczwvdGV4dD4KCiAgPCEtLSBDb21wbGlhbmNlIC0tPgogIDxyZWN0IHg9IjMwIiB5PSIyMzUiIHdpZHRoPSIxNDAiIGhlaWdodD0iNDUiIHJ4PSI4IiBmaWxsPSJ1cmwoI2NvbXBsaWFuY2VHcmFkKSIgZmlsdGVyPSJ1cmwoI2FjU2hhZG93KSIvPgogIDx0ZXh0IHg9IjEwMCIgeT0iMjU1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q29tcGxpYW5jZTwvdGV4dD4KICA8dGV4dCB4PSIxMDAiIHk9IjI3MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkF1ZGl0b3JzPC90ZXh0PgoKICA8IS0tIEFycm93cyAtLT4KICA8cGF0aCBkPSJNMTcwLDkyIEwyNTAsOTIiIHN0cm9rZT0iIzYzNjZmMSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2FjQXJyb3cpIi8+CiAgPHBhdGggZD0iTTE3MCwxNDcgTDI1MCwxNDciIHN0cm9rZT0iIzE0OTZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2FjQXJyb3cpIi8+CiAgPHBhdGggZD0iTTE3MCwyMDIgTDI1MCwxMjAiIHN0cm9rZT0iIzIyYzU1ZSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2FjQXJyb3cpIi8+CiAgPHBhdGggZD0iTTE3MCwyMDIgTDI1MCwxNzUiIHN0cm9rZT0iIzIyYzU1ZSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2FjQXJyb3cpIi8+CiAgPHBhdGggZD0iTTE3MCwyMDIgTDI1MCwyMzAiIHN0cm9rZT0iIzIyYzU1ZSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2FjQXJyb3cpIi8+CiAgPHBhdGggZD0iTTE3MCwyNTcgTDQ3MCwyNTciIHN0cm9rZT0iI2Y5NzMxNiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2FjQXJyb3cpIi8+CgogIDwhLS0gQnVja2V0cyBDb2x1bW4gLS0+CiAgPHRleHQgeD0iMzMwIiB5PSI1OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QlVDS0VUUzwvdGV4dD4KCiAgPCEtLSBUZWFtIEEgQnVja2V0IC0tPgogIDxyZWN0IHg9IjI1NSIgeT0iNzUiIHdpZHRoPSIxNTAiIGhlaWdodD0iNDAiIHJ4PSI2IiBmaWxsPSJ1cmwoI2J1Y2tldEdyYWQpIiBmaWx0ZXI9InVybCgjYWNTaGFkb3cpIi8+CiAgPHRleHQgeD0iMzMwIiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5zcGFuc19mcm9udGVuZDwvdGV4dD4KCiAgPCEtLSBUZWFtIEIgQnVja2V0IC0tPgogIDxyZWN0IHg9IjI1NSIgeT0iMTMwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0idXJsKCNidWNrZXRHcmFkKSIgZmlsdGVyPSJ1cmwoI2FjU2hhZG93KSIvPgogIDx0ZXh0IHg9IjMzMCIgeT0iMTU1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+c3BhbnNfYmFja2VuZDwvdGV4dD4KCiAgPCEtLSBEZWZhdWx0IEJ1Y2tldCAtLT4KICA8cmVjdCB4PSIyNTUiIHk9IjE4NSIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9InVybCgjYnVja2V0R3JhZCkiIGZpbHRlcj0idXJsKCNhY1NoYWRvdykiLz4KICA8dGV4dCB4PSIzMzAiIHk9IjIxMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmRlZmF1bHRfc3BhbnM8L3RleHQ+CgogIDwhLS0gQXVkaXQgQnVja2V0IC0tPgogIDxyZWN0IHg9IjQ3NSIgeT0iMjQwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0idXJsKCNidWNrZXRHcmFkKSIgZmlsdGVyPSJ1cmwoI2FjU2hhZG93KSIvPgogIDx0ZXh0IHg9IjU1MCIgeT0iMjU4IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+YXVkaXRfc3BhbnM8L3RleHQ+CiAgPHRleHQgeD0iNTUwIiB5PSIyNzIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjgpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4xIHllYXIgcmV0ZW50aW9uPC90ZXh0PgoKICA8IS0tIFJldGVudGlvbiBMYWJlbHMgLS0+CiAgPHRleHQgeD0iNDIwIiB5PSI5NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj4zNSBkYXlzPC90ZXh0PgogIDx0ZXh0IHg9IjQyMCIgeT0iMTUwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiPjM1IGRheXM8L3RleHQ+CiAgPHRleHQgeD0iNDIwIiB5PSIyMDUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+MTAgZGF5czwvdGV4dD4KCiAgPCEtLSBCZW5lZml0cyBTZWN0aW9uIC0tPgogIDxyZWN0IHg9IjQ4MCIgeT0iNzAiIHdpZHRoPSIyOTAiIGhlaWdodD0iMTU1IiByeD0iNiIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI2MjUiIHk9IjkyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BY2Nlc3MgQ29udHJvbCBCZW5lZml0czwvdGV4dD4KCiAgPHRleHQgeD0iNTAwIiB5PSIxMTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+VGVhbSBJc29sYXRpb248L3RleHQ+CiAgPHRleHQgeD0iNTAwIiB5PSIxMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY2NiI+RWFjaCB0ZWFtIHF1ZXJpZXMgb25seSB0aGVpciBkYXRhPC90ZXh0PgoKICA8dGV4dCB4PSI1MDAiIHk9IjE0OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5Db3N0IEFsbG9jYXRpb248L3RleHQ+CiAgPHRleHQgeD0iNTAwIiB5PSIxNjEiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY2NiI+VHJhY2sgdXNhZ2UgcGVyIHRlYW0vYnVja2V0PC90ZXh0PgoKICA8dGV4dCB4PSI1MDAiIHk9IjE4MSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5Db21wbGlhbmNlPC90ZXh0PgogIDx0ZXh0IHg9IjUwMCIgeT0iMTk0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NjYiPkRpZmZlcmVudCByZXRlbnRpb24gcGVyIGJ1Y2tldDwvdGV4dD4KCiAgPHRleHQgeD0iNTAwIiB5PSIyMTQiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+UGVyZm9ybWFuY2U8L3RleHQ+CiAgPHRleHQgeD0iNTAwIiB5PSIyMjciIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY2NiI+RmFzdGVyIHF1ZXJpZXMgb24gc21hbGxlciBkYXRhc2V0czwvdGV4dD4KPC9zdmc+Cg==" alt="Bucket Access Control" /></p>
+<!--MARKDOWN_TABLE_ALTERNATIVE
+| Team/Role | Bucket Access | Retention |
+|-----------|---------------|-----------|
+| Team A (Frontend) | spans_frontend | 35 days |
+| Team B (Backend) | spans_backend | 35 days |
+| Platform/SRE | All buckets | 35 days |
+| Compliance | audit_spans | 1 year |
+-->
+<blockquote>
+<p>💡 <strong>Tip:</strong> Bucket permissions are configured in the Dynatrace UI under <strong>Account Management &gt; Identity &amp; Access Management</strong>.</p>
+</blockquote>
+<pre><code class="language-dql">// Data retention analysis: span volume by day
+fetch spans, from:-7d
+| fieldsAdd day = bin(start_time, 24h)
+| summarize {span_count = count()}, by:{day}
+| sort day desc
+</code></pre>
+<pre><code class="language-dql">// Volume analysis by service (for cost allocation)
+fetch spans, from:-1h
+| summarize {
+    span_count = count(),
+    avg_duration_ms = avg(duration) / 1ms
+  }, by:{dt.service.name}
+| sort span_count desc
+| limit 30
+</code></pre>
+<hr />
+<p><a id="best-practices-summary"></a></p>
+<h2>Best Practices Summary</h2>
+<h3>DO ✅</h3>
+<ul>
+<li>Drop health checks and metrics endpoints</li>
+<li>Pre-compute commonly used fields</li>
+<li>Route by environment and sensitivity</li>
+<li>Mask PII before storage</li>
+<li>Reduce volume at the source (OneAgent ATM, Collector tail sampling) and drop named noise with Drop record</li>
+</ul>
+<h3>DON'T ❌</h3>
+<ul>
+<li>Drop error spans (you'll need them for RCA)</li>
+<li>Drop slow spans (they indicate problems)</li>
+<li>Expect OpenPipeline to sample — it cannot</li>
+<li>Forget to test rules before deploying</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<p>✅ <strong>Grail bucket architecture</strong> for organizing and isolating data<br />
+✅ <strong>Querying from specific buckets</strong> using the bucket: parameter<br />
+✅ <strong>Bucket discovery</strong> to understand data distribution<br />
+✅ <strong>OpenPipeline concepts</strong> — routes, processors, bucket assignment<br />
+✅ <strong>Filtering &amp; dropping</strong> unwanted spans (health checks, static assets)<br />
+✅ <strong>Transforming &amp; enriching</strong> data with computed fields<br />
+✅ <strong>Routing to buckets</strong> by environment and sensitivity<br />
+✅ <strong>Measuring span traffic</strong> per application using OpenPipeline metric extraction<br />
+✅ <strong>Sampling</strong> happens at the source (ATM, Collector), not in OpenPipeline<br />
+✅ <strong>Access control patterns</strong> using bucket-based isolation</p>
+<hr />
+<h2>Next Steps</h2>
+<p>Continue to <strong>SPANS-08: Cost-Efficient DQL Queries</strong> to learn:</p>
+<ul>
+<li>Optimizing DQL queries for cost efficiency</li>
+<li>Query cost estimation techniques</li>
+<li>Best practices for production queries</li>
+<li>Indexed fields and performance strategies</li>
+</ul>
+<p>🆕 <strong>New Addition (March 2026):</strong> For configuring span processing pipelines (filtering, enrichment, sampling-aware metrics), see <strong>OPIPE-02: Span Processing &amp; Enrichment</strong>.</p>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/adaptive-traffic-management/adaptive-traffic-management-saas-dps">Adaptive Traffic Management with DPS (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector-use-cases/sampling">Sampling with the OTel Collector (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods">Data retention periods (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/dql-best-practices">DQL best practices (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

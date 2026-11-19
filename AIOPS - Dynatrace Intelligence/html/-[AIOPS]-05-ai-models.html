@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIOPS-05: AI Models — Causal, Predictive, and Generative</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">AIOPS — Dynatrace Intelligence</a><span class="sep">/</span><span aria-current="page">AIOPS-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>AIOPS-05: AI Models — Causal, Predictive, and Generative</h1>
+<blockquote>
+<p><strong>Series:</strong> AIOPS — Dynatrace Intelligence | <strong>Notebook:</strong> 5 of 8 | <strong>Created:</strong> May 2026 | <strong>Last Updated:</strong> 10/31/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Behind every Dynatrace Intelligence surface there's a specific model doing specific work. This notebook names the models, explains what each one is responsible for, and answers the questions admins ask about them: where do they live, what do they cost, and what is (or is not) bring-your-own.</p>
+<p><strong>Audience:</strong> Platform architect, AI / governance lead, anyone evaluating Dynatrace AI for regulatory or procurement reasons.</p>
+<p><strong>Outcome:</strong> A clear separation between what the platform's AI is, where each piece runs, and what is configurable vs. fixed.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+QUkgTW9kZWwgQ2F0ZWdvcmllczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5UaHJlZSBtb2RlbCBmYW1pbGllcyDigJQgZGlmZmVyZW50IGFyY2hpdGVjdHVyZXMsIGRpZmZlcmVudCBqb2JzLCBkaWZmZXJlbnQgb3BlcmF0b3IgY29uY2VybnM8L3RleHQ+CgogIDwhLS0gQ2F1c2FsIC0tPgogIDxyZWN0IHg9IjQwIiB5PSI5MCIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIzODAiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTc1IiB5PSIxMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI3MDAiPkNhdXNhbDwvdGV4dD4KICA8bGluZSB4MT0iNjAiIHkxPSIxMzUiIHgyPSIyOTAiIHkyPSIxMzUiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CgogIDx0ZXh0IHg9IjYwIiB5PSIxNjAiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPkFyY2hpdGVjdHVyZTwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMTc4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Ub3BvbG9neSBncmFwaCB0cmF2ZXJzYWw8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjE5NCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+KGRldGVybWluaXN0aWMsIG5vdCBzdGF0aXN0aWNhbCk8L3RleHQ+CgogIDx0ZXh0IHg9IjYwIiB5PSIyMjUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPklucHV0czwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMjQzIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgRGF2aXMgZXZlbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIyNTkiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBTbWFydHNjYXBlIGdyYXBoPC90ZXh0PgoKICA8dGV4dCB4PSI2MCIgeT0iMjkwIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5PdXRwdXQ8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjMwOCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIEdyb3VwZWQgcHJvYmxlbXM8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjMyNCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIFJvb3QgY2F1c2UgYXR0cmlidXRpb248L3RleHQ+CgogIDx0ZXh0IHg9IjYwIiB5PSIzNTUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPkNvbmZpZ3VyYWJsZT88L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjM3MyIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+Tm8gKFNtYXJ0c2NhcGUgaXRzZWxmPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIzODkiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPmlzIHRoZSBjb25maWcpPC90ZXh0PgoKICA8dGV4dCB4PSI2MCIgeT0iNDIwIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5PcGVyYXRvcidzIGpvYjwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iNDM4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5NYWtlIFNtYXJ0c2NhcGUgY29tcGxldGU6PC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSI0NTMiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnRhZ3MsIGluc3RydW1lbnRhdGlvbiw8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjQ2OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+ZXhwbGljaXQgZGVwZW5kZW5jaWVzPC90ZXh0PgoKICA8IS0tIFByZWRpY3RpdmUgLS0+CiAgPHJlY3QgeD0iMzMwIiB5PSI5MCIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIzODAiIGZpbGw9IiMyMkQzRUUiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIxMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI3MDAiPlByZWRpY3RpdmU8L3RleHQ+CiAgPGxpbmUgeDE9IjM1MCIgeTE9IjEzNSIgeDI9IjU4MCIgeTI9IjEzNSIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KCiAgPHRleHQgeD0iMzUwIiB5PSIxNjAiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPkFyY2hpdGVjdHVyZTwvdGV4dD4KICA8dGV4dCB4PSIzNTAiIHk9IjE3OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RmFtaWx5IG9mIHN0YXRpc3RpY2FsIG1vZGVsczwvdGV4dD4KICA8dGV4dCB4PSIzNTAiIHk9IjE5NCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+KERhdmlzIGFuYWx5emVycyk8L3RleHQ+CgogIDx0ZXh0IHg9IjM1MCIgeT0iMjI1IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5Nb2RlbHM8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSIyNDMiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBBZGFwdGl2ZSBiYXNlbGluZTwvdGV4dD4KICA8dGV4dCB4PSIzNTAiIHk9IjI1OSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIFNlYXNvbmFsIGJhc2VsaW5lPC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iMjc1IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgU3RhdGljIHRocmVzaG9sZDwvdGV4dD4KICA8dGV4dCB4PSIzNTAiIHk9IjI5MSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIE5vdmVsdHkgZGV0ZWN0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iMzA3IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgRm9yZWNhc3Q8L3RleHQ+CgogIDx0ZXh0IHg9IjM1MCIgeT0iMzM4IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5Db25maWd1cmFibGU/PC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iMzU2IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5ZZXMg4oCUIHNlbnNpdGl2aXR5LCBsb29rYmFjayw8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSIzNzIiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPnNjb3BlPC90ZXh0PgoKICA8dGV4dCB4PSIzNTAiIHk9IjQwMyIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+T3BlcmF0b3IncyBqb2I8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSI0MjEiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlBpY2sgbW9kZWwgcGVyIG1ldHJpYzs8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSI0MzYiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnR1bmUgc2Vuc2l0aXZpdHkgdG8gYmFsYW5jZTwvdGV4dD4KICA8dGV4dCB4PSIzNTAiIHk9IjQ1MSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+bm9pc2UgdnMuIHNpbGVudCBmYWlsdXJlOzwvdGV4dD4KICA8dGV4dCB4PSIzNTAiIHk9IjQ2NiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dmVyc2lvbiBkZXRlY3RvcnMgYXMgY29kZTwvdGV4dD4KCiAgPCEtLSBHZW5lcmF0aXZlIC0tPgogIDxyZWN0IHg9IjYyMCIgeT0iOTAiIHdpZHRoPSIyNzAiIGhlaWdodD0iMzgwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9Ijc1NSIgeT0iMTE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iNzAwIj5HZW5lcmF0aXZlPC90ZXh0PgogIDxsaW5lIHgxPSI2NDAiIHkxPSIxMzUiIHgyPSI4NzAiIHkyPSIxMzUiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CgogIDx0ZXh0IHg9IjY0MCIgeT0iMTYwIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5BcmNoaXRlY3R1cmU8L3RleHQ+CiAgPHRleHQgeD0iNjQwIiB5PSIxNzgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkxMTS1iYWNrZWQsIGhvc3RlZCBieTwvdGV4dD4KICA8dGV4dCB4PSI2NDAiIHk9IjE5NCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+ZW50ZXJwcmlzZSB2ZW5kb3JzPC90ZXh0PgoKICA8dGV4dCB4PSI2NDAiIHk9IjIyNSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+U3VyZmFjZXM8L3RleHQ+CiAgPHRleHQgeD0iNjQwIiB5PSIyNDMiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBEeW5hdHJhY2UgQXNzaXN0PC90ZXh0PgogIDx0ZXh0IHg9IjY0MCIgeT0iMjU5IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgUHJvYmxlbSBzdW1tYXJpZXM8L3RleHQ+CiAgPHRleHQgeD0iNjQwIiB5PSIyNzUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBEUUwyTkwgc2tpbGw8L3RleHQ+CiAgPHRleHQgeD0iNjQwIiB5PSIyOTEiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBNQ1AgZG9jIHJldHJpZXZhbDwvdGV4dD4KCiAgPHRleHQgeD0iNjQwIiB5PSIzMjIiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPkNvbmZpZ3VyYWJsZT88L3RleHQ+CiAgPHRleHQgeD0iNjQwIiB5PSIzNDAiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPkxpbWl0ZWQg4oCUIG1vZGVsIGl0c2VsZjwvdGV4dD4KICA8dGV4dCB4PSI2NDAiIHk9IjM1NiIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+aXMgZml4ZWQ7IEJZTyB2aWEgd29ya2Zsb3c8L3RleHQ+CiAgPHRleHQgeD0iNjQwIiB5PSIzNzIiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPnRhc2tzICZhbXA7IE1DUDwvdGV4dD4KCiAgPHRleHQgeD0iNjQwIiB5PSI0MDMiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPk9wZXJhdG9yJ3Mgam9iPC90ZXh0PgogIDx0ZXh0IHg9IjY0MCIgeT0iNDIxIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5UcmFpbiB0ZWFtcyBvbiBwcm9tcHQ8L3RleHQ+CiAgPHRleHQgeD0iNjQwIiB5PSI0MzYiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnBhdHRlcm5zOyB2YWxpZGF0ZSBnZW5lcmF0ZWQ8L3RleHQ+CiAgPHRleHQgeD0iNjQwIiB5PSI0NTEiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkRRTDsgcmV2aWV3IHRoZSBkYXRhPC90ZXh0PgogIDx0ZXh0IHg9IjY0MCIgeT0iNDY2IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5wcml2YWN5IHBvbGljeTwvdGV4dD4KPC9zdmc+Cg==" alt="AI Model Categories" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Category | Examples |
+|----------|----------|
+| Causal | Dependency-aware root cause analysis |
+| Predictive | Seasonal baseline, auto-adaptive baseline, forecast, novelty |
+| Generative | Dynatrace Assist, DQL2NL, problem summaries |
+For environments where SVG doesn't render
+-->
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#categories">The Three Model Categories Recap</a></li>
+<li><a href="#causal">Causal Correlation Analysis</a></li>
+<li><a href="#predictive">Predictive AI — Baselines and Forecasts</a></li>
+<li><a href="#seasonal">Seasonal Baseline</a></li>
+<li><a href="#generative">Generative Models — Where They Live</a></li>
+<li><a href="#byo">Bring Your Own Model — What's Possible</a></li>
+<li><a href="#cross">Cross-Series Pointers</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS Gen3</td>
+</tr>
+<tr>
+<td><strong>Apps</strong></td>
+<td>Notebooks app for the analyzer demos in this notebook</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>davis:analyzers:execute</code> for analyzer queries; standard read permissions otherwise</td>
+</tr>
+<tr>
+<td><strong>Background</strong></td>
+<td>AIOPS-01 for the umbrella; AIOPS-02 for anomaly detection mechanisms (this notebook is the <em>model</em> perspective on the same material)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="categories"></a></p>
+<h2>1. The Three Model Categories Recap</h2>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>What it does</th>
+<th>Where it runs</th>
+<th>Configurable?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Causal</strong></td>
+<td>Topology-aware root cause</td>
+<td>Davis backend</td>
+<td>No (Smartscape itself is the configuration)</td>
+</tr>
+<tr>
+<td><strong>Predictive</strong></td>
+<td>Baselines, forecasts, novelty</td>
+<td>Davis analyzer engine</td>
+<td>Yes — sensitivity, lookback, scope</td>
+</tr>
+<tr>
+<td><strong>Generative</strong></td>
+<td>LLM-backed Assist &amp; summaries</td>
+<td>Enterprise-vendor LLMs (Azure AI, AWS Bedrock) via Dynatrace; DQL generation uses a custom Dynatrace model</td>
+<td>Limited — you can't swap the LLM</td>
+</tr>
+</tbody>
+</table>
+<p>Three different model families. Three different architectural approaches. Treat them differently.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/dynatrace-intelligence-ai-models">AI models (DT docs)</a> — <em>&quot;Dynatrace Intelligence uses specialized AI models to analyze your environment and provide actionable insights.&quot;</em> It lists causal correlation, predictive AI and seasonal baseline under anomaly detection models, and DQL generation under generative AI models.</sub></p>
+</blockquote>
+<p><a id="causal"></a></p>
+<h2>2. Causal Correlation Analysis</h2>
+<p><strong>The single biggest differentiator</strong> of Dynatrace AI vs. correlation-based AIOps tools.</p>
+<p>Causal AI does not run a statistical model over symptom signals to guess at co-occurrence. It walks the Smartscape topology graph and uses the dependency edges to attribute symptoms to upstream causes. Two events on dependent entities go into one problem; two events on independent entities stay separate.</p>
+<p><strong>Inputs:</strong> the Davis event stream (<code>dt.davis.events</code>) plus the live Smartscape graph.</p>
+<p><strong>Output:</strong> records in <code>dt.davis.problems</code>, each with a <code>root_cause_entity_id</code> and an array of <code>affected_entity_ids</code>.</p>
+<p><strong>Operator's job:</strong> make Smartscape complete. Tag entities, instrument every service, declare custom dependencies where auto-discovery doesn't reach.</p>
+<p><a id="predictive"></a></p>
+<h2>3. Predictive AI — Baselines and Forecasts</h2>
+<p>Predictive AI is a <strong>family of statistical models</strong> wrapped as Davis analyzers. Each model is purpose-built; each is callable directly from MCP, and all but novelty detection also run from the <strong>Davis AI</strong> panel of a Notebooks or Dashboards section (AIOPS-02 § 7).</p>
+<blockquote>
+<p><strong>Custom alerts built on these models move to Settings (SaaS 1.344).</strong> <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones.&quot;</em> SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the <strong>Anomaly Detection</strong> app is where custom alerts are created.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app">Anomaly Detection (DT docs)</a> — <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings.&quot;</em></sub></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Purpose</th>
+<th>MCP tool</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Adaptive baseline</strong></td>
+<td>Detect anomalies vs. learned recent baseline</td>
+<td><code>mcp__dynatrace__adaptive-anomaly-detector</code></td>
+</tr>
+<tr>
+<td><strong>Seasonal baseline</strong></td>
+<td>Detect anomalies vs. recurring weekly/daily pattern</td>
+<td><code>mcp__dynatrace__seasonal-baseline-anomaly-detector</code></td>
+</tr>
+<tr>
+<td><strong>Static threshold</strong></td>
+<td>Test against a fixed limit</td>
+<td><code>mcp__dynatrace__static-threshold-analyzer</code></td>
+</tr>
+<tr>
+<td><strong>Novelty detection</strong></td>
+<td>Flag never-seen patterns</td>
+<td><code>mcp__dynatrace__timeseries-novelty-detection</code></td>
+</tr>
+<tr>
+<td><strong>Forecast</strong></td>
+<td>Project a series forward</td>
+<td><code>mcp__dynatrace__timeseries-forecast</code></td>
+</tr>
+</tbody>
+</table>
+<p>All five accept a <code>timeseries</code> query as input. Their output is a structured analyzer result — anomaly intervals, forecast bands with confidence intervals, novelty flags. Embeddable in workflows for scheduled analysis.</p>
+<p><strong>Configuration knobs:</strong></p>
+<ul>
+<li><em>Lookback window</em> (how far back is &quot;learned&quot;)</li>
+<li><em>Sensitivity</em> (how aggressive to be about flagging anomalies)</li>
+<li><em>Scope</em> (per-entity, per-dimension, global)</li>
+</ul>
+<p>Tuning these is the difference between alert fatigue and silent failure.</p>
+<p><a id="seasonal"></a></p>
+<h2>4. Seasonal Baseline</h2>
+<p>Worth a closer look because it's where most teams underuse the platform.</p>
+<p>Seasonal baseline learns the metric's recurring patterns — daily and weekly patterns, trained on the last 14 days. Detection considers the <em>expected value at this time of week</em>, not just &quot;is the metric high.&quot;</p>
+<p><strong>The use case:</strong> any metric that varies with business activity. Login traffic peaks at 8 AM and noon. Database write volume peaks at end-of-month. ETL job durations peak on Sunday night. A static threshold or even an auto-adaptive baseline misses these — they see the seasonal peak as either noise or as the new normal.</p>
+<p><strong>Common mistake:</strong> applying seasonal baseline to a metric that doesn't have seasonality. The model still produces output, but validation falls back to a simple model whose calculated interval stays constant over time.</p>
+<p>Below is an example that exercises the analyzer engine — pick a metric you know has weekly seasonality (host CPU on a business-hours app, for instance) and feed it in.</p>
+<pre><code class="language-dql">// Hourly host CPU for the last 14 days, per host
+// (Feed this query to mcp__dynatrace__seasonal-baseline-anomaly-detector for evaluation.)
+timeseries cpu = avg(dt.host.cpu.usage),
+  by:{dt.entity.host},
+  from:-14d,
+  interval:1h
+| limit 100
+</code></pre>
+<p><a id="generative"></a></p>
+<h2>5. Generative Models — Where They Live</h2>
+<p>Generative AI in Dynatrace is managed by Dynatrace — you do not see or swap the underlying LLM. Four things live in this category:</p>
+<ol>
+<li><strong>DQL2NL skill</strong> — translates DQL ↔ natural language</li>
+<li><strong>Problem summaries</strong> — narrative explanations in the Problems app</li>
+<li><strong>Dynatrace Assist</strong> — chat surface across the product</li>
+<li><strong>Agentic AI (SaaS 1.346)</strong> — Assist's embedded conversation starters <em>&quot;can reason over tools and your live environment data to investigate and analyze&quot;</em>, once Agentic AI is enabled in the environment settings (AIOPS-04 §1)</li>
+</ol>
+<p><strong>What you don't get:</strong> model selection, fine-tuning on customer data, prompt-template customization. Dynatrace chooses the vendor models; the data-handling terms are the ones on the privacy page cited below — prompts go to LLMs hosted by enterprise vendors, and the DQL generation model is trained on internally generated data rather than customer data.</p>
+<p><strong>What you do get:</strong> vector-based grounding over Dynatrace docs and (via problem context) your own observability data when the assistant is invoked from a problem. AIOPS-04 §7 walks through what that page says about where prompts go and what is retained.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-data-privacy">Agentic and generative AI data privacy and security (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-346">What's new in Dynatrace SaaS 1.346 (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="byo"></a></p>
+<h2>6. Bring Your Own Model — What's Possible</h2>
+<p>Practical answer in 2026: <strong>the platform LLM is fixed; your AI integrations are not.</strong></p>
+<p>What that means in practice:</p>
+<table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>BYO model?</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dynatrace Assist</td>
+<td>No</td>
+<td>Hosted; not configurable</td>
+</tr>
+<tr>
+<td>Problem summaries</td>
+<td>No</td>
+<td>Hosted; not configurable</td>
+</tr>
+<tr>
+<td>Workflow AI tasks</td>
+<td>Yes</td>
+<td>Workflow tasks can call external LLMs (OpenAI, Anthropic, Bedrock, Vertex) — see AIOPS-06</td>
+</tr>
+<tr>
+<td>MCP-based agentic flows</td>
+<td>Yes</td>
+<td>Your agent (Claude Code, Cursor, GitHub Copilot) chooses its own LLM</td>
+</tr>
+<tr>
+<td>Dynatrace AI app (community)</td>
+<td>Varies</td>
+<td>Community apps can wrap external models — see AIOPS-06</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Architectural takeaway:</strong> keep tenant-grounded, in-product AI on the platform's models. Use BYO models for orchestration, automation, and any operation that benefits from a model your team can fine-tune or audit independently.</p>
+<p><a id="cross"></a></p>
+<h2>7. Cross-Series Pointers</h2>
+<ul>
+<li><strong>AIOPS-02</strong> — the operator's perspective on the predictive models</li>
+<li><strong>AIOPS-06</strong> — agentic / BYO model integrations via workflows and MCP</li>
+<li><strong>AUTOM-03 / AUTOM-04</strong> — anomaly detection settings as code (Monaco / Terraform)</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

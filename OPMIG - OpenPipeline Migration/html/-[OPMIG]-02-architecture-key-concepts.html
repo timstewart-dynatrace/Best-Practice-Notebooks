@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPMIG-02: OpenPipeline Migration Guide: Part 2</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPMIG — OpenPipeline Migration</a><span class="sep">/</span><span aria-current="page">OPMIG-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPMIG-02: OpenPipeline Migration Guide: Part 2</h1>
+<blockquote>
+<p><strong>Series:</strong> OPMIG — OpenPipeline Migration | <strong>Notebook:</strong> 2 of 10 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 11/06/2026</p>
+</blockquote>
+<h2>Architecture &amp; Key Concepts</h2>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#data-flow-architecture">Data Flow Architecture</a></li>
+<li><a href="#processing-stages-in-detail">Processing Stages in Detail</a></li>
+<li><a href="#pipeline-types">Pipeline Types</a></li>
+<li><a href="#processor-types">Processor Types</a></li>
+<li><a href="#dynatrace-pattern-language-dpl">Dynatrace Pattern Language (DPL)</a></li>
+<li><a href="#complete-openpipeline-limits-reference">Complete OpenPipeline Limits Reference</a></li>
+<li><a href="#entity-field-availability-timeline">Entity Field Availability Timeline</a></li>
+<li><a href="#key-fields-metadata">Key Fields &amp; Metadata</a></li>
+<li><a href="#exploring-your-pipeline-configuration">Exploring Your Pipeline Configuration</a></li>
+<li><a href="#understanding-processing-order">Understanding Processing Order</a></li>
+<li><a href="#summary-key-architecture-concepts">Summary: Key Architecture Concepts</a></li>
+</ol>
+<hr />
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ul>
+<li>✅ Understand the complete OpenPipeline data flow architecture</li>
+<li>✅ Learn detailed processing stage execution order</li>
+<li>✅ Master DPL (Dynatrace Pattern Language) fundamentals</li>
+<li>✅ <strong>Know ALL OpenPipeline limits in comprehensive detail</strong></li>
+<li>✅ Understand processor types and capabilities</li>
+<li>✅ <strong>Learn entity field availability timeline</strong></li>
+<li>✅ Explore your pipeline configuration with DQL</li>
+</ul>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS with Grail — OpenPipeline runs in the SaaS environment; Managed is not covered by this series</td>
+</tr>
+<tr>
+<td><strong>API Access</strong></td>
+<td><code>logs.read</code> token scope for DQL validation</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>OPMIG-01 or familiarity with Classic log ingestion concepts</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="data-flow-architecture"></a></p>
+<h2>Data Flow Architecture</h2>
+<p>Understanding how data flows through OpenPipeline is essential for designing effective pipelines.</p>
+<h3>Complete Data Flow</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzYwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iaW5nZXN0R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMzYjgyZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzI1NjNlYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InByZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMDZiNmQ0O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwODkxYjI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJyb3V0ZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojOGI1Y2Y2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3YzNhZWQ7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJwcm9jZXNzR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmNTllMGI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Q5NzcwNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InN0b3JlR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlZjQ0NDQ7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2RjMjYyNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJvcFNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMiIvPgogICAgPC9maWx0ZXI+CiAgICA8bWFya2VyIGlkPSJvcEFycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSIzNjAiIGZpbGw9IiNmOGY5ZmEiIHJ4PSIxMCIvPgoKICA8dGV4dCB4PSI0MDAiIHk9IjI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PcGVuUGlwZWxpbmUgRGF0YSBGbG93PC90ZXh0PgogIDx0ZXh0IHg9IjQwMCIgeT0iNDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+NCBzdGFnZXMgKyBvcHRpb25hbCBwcmUtcHJvY2Vzc2luZyBvbiBjdXN0b20gc291cmNlczwvdGV4dD4KCiAgPCEtLSBTdGFnZSAxOiBJbmdlc3QgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjcwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjExMCIgcng9IjgiIGZpbGw9InVybCgjaW5nZXN0R3JhZCkiIGZpbHRlcj0idXJsKCNvcFNoYWRvdykiLz4KICA8dGV4dCB4PSIxMDAiIHk9IjEwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjEuIElOR0VTVDwvdGV4dD4KICA8dGV4dCB4PSIxMDAiIHk9IjEyMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJ1aWx0LWluPC90ZXh0PgogIDx0ZXh0IHg9IjEwMCIgeT0iMTM0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UmVhZHktbWFkZTwvdGV4dD4KICA8dGV4dCB4PSIxMDAiIHk9IjE0OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkN1c3RvbTwvdGV4dD4KICA8dGV4dCB4PSIxMDAiIHk9IjE2NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmR0Lm9wZW5waXBlbGluZS5zb3VyY2U8L3RleHQ+CgogIDwhLS0gUHJlLXByb2Nlc3NpbmcgZG90dGVkIGNhbGxvdXQgYm94IChjdXN0b20gb25seSwgb3B0aW9uYWwpIC0tPgogIDxyZWN0IHg9IjE4MCIgeT0iODAiIHdpZHRoPSIxNDAiIGhlaWdodD0iNjAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3ByZUdyYWQpIiBmaWx0ZXI9InVybCgjb3BTaGFkb3cpIiBzdHJva2U9IiMwODkxYjIiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLWRhc2hhcnJheT0iNCAzIi8+CiAgPHRleHQgeD0iMjUwIiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5QUkUtUFJPQ0VTUzwvdGV4dD4KICA8dGV4dCB4PSIyNTAiIHk9IjExNiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45NSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPihjdXN0b20gc291cmNlcyBvbmx5LDwvdGV4dD4KICA8dGV4dCB4PSIyNTAiIHk9IjEyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45NSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPm9wdGlvbmFsKTwvdGV4dD4KCiAgPCEtLSBBcnJvdyBJbmdlc3QgLT4gUHJlUHJvY2VzcyAoZGFzaGVkLCBvcHRpb25hbCkgLS0+CiAgPHBhdGggZD0iTTE3MCwxMTAgTDE4MCwxMTAiIHN0cm9rZT0iIzA2YjZkNCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI29wQXJyb3cpIiBzdHJva2UtZGFzaGFycmF5PSIzIDIiLz4KICA8IS0tIEFycm93IFByZVByb2Nlc3MgLT4gUm91dGluZyAtLT4KICA8cGF0aCBkPSJNMzIwLDExMCBMMzM1LDExMCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjb3BBcnJvdykiLz4KICA8IS0tIERpcmVjdCBhcnJvdyBJbmdlc3QgLT4gUm91dGluZyAoc2tpcCBwcmUtcHJvY2VzcykgLS0+CiAgPHBhdGggZD0iTTE3MCwxNjAgUTI2MCwyMDAgMzM1LDE2MCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjb3BBcnJvdykiLz4KICA8dGV4dCB4PSIyNTIiIHk9IjIwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPihidWlsdC1pbiAvIHJlYWR5LW1hZGU6IHNraXAgcHJlLXByb2Nlc3MpPC90ZXh0PgoKICA8IS0tIFN0YWdlIDI6IFJvdXRpbmcgLS0+CiAgPHJlY3QgeD0iMzQ1IiB5PSI3MCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxMTAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3JvdXRlR3JhZCkiIGZpbHRlcj0idXJsKCNvcFNoYWRvdykiLz4KICA8dGV4dCB4PSI0MDUiIHk9IjEwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjIuIFJPVVRJTkc8L3RleHQ+CiAgPHRleHQgeD0iNDA1IiB5PSIxMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EeW5hbWljIChEUUwpPC90ZXh0PgogIDx0ZXh0IHg9IjQwNSIgeT0iMTM0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U3RhdGljIChjdXN0b20pPC90ZXh0PgogIDx0ZXh0IHg9IjQwNSIgeT0iMTQ4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Rmlyc3QgbWF0Y2hpbmc8L3RleHQ+CiAgPHRleHQgeD0iNDA1IiB5PSIxNjIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5yb3V0ZTwvdGV4dD4KCiAgPCEtLSBBcnJvdyBSb3V0aW5nIC0+IFByb2Nlc3NpbmcgLS0+CiAgPHBhdGggZD0iTTQ2NSwxMjUgTDQ4NSwxMjUiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI29wQXJyb3cpIi8+CgogIDwhLS0gU3RhZ2UgMzogUHJvY2Vzc2luZyAod2lkZXIsIGhvbGRzIGFsbCBwcm9jZXNzb3IgY2F0ZWdvcmllcykgLS0+CiAgPHJlY3QgeD0iNDkwIiB5PSI3MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIxODAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3Byb2Nlc3NHcmFkKSIgZmlsdGVyPSJ1cmwoI29wU2hhZG93KSIvPgogIDx0ZXh0IHg9IjU3MCIgeT0iMTAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+My4gUFJPQ0VTU0lORzwvdGV4dD4KICA8dGV4dCB4PSI1NzAiIHk9IjExOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOTUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5NYXNrICYjODIyNjsgRHJvcDwvdGV4dD4KICA8dGV4dCB4PSI1NzAiIHk9IjEzMiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOTUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5UcmFuc2Zvcm0gLyBQYXJzZTwvdGV4dD4KICA8dGV4dCB4PSI1NzAiIHk9IjE0NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOTUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BZGQvUmVtb3ZlL1JlbmFtZTwvdGV4dD4KICA8dGV4dCB4PSI1NzAiIHk9IjE2NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOTUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Db3VudGVyIC8gVmFsdWUgLzwvdGV4dD4KICA8dGV4dCB4PSI1NzAiIHk9IjE4MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOTUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5IaXN0b2dyYW0gKFByZXZpZXcpPC90ZXh0PgogIDx0ZXh0IHg9IjU3MCIgeT0iMjAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45NSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNtYXJ0c2NhcGUgbm9kZS9lZGdlPC90ZXh0PgogIDx0ZXh0IHg9IjU3MCIgeT0iMjE0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45NSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJpemV2ZW50IC8gU0RMQyAvIERhdmlzPC90ZXh0PgogIDx0ZXh0IHg9IjU3MCIgeT0iMjM0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45NSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNvc3QgJiM4MjI2OyBzZWN1cml0eV9jb250ZXh0PC90ZXh0PgoKICA8IS0tIEFycm93IFByb2Nlc3NpbmcgLT4gU3RvcmUgLS0+CiAgPHBhdGggZD0iTTY1MCwxNjAgTDY3MCwxNjAiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI29wQXJyb3cpIi8+CgogIDwhLS0gU3RhZ2UgNDogU3RvcmUgLS0+CiAgPHJlY3QgeD0iNjc1IiB5PSIxMDAiIHdpZHRoPSIxMTUiIGhlaWdodD0iMTIwIiByeD0iOCIgZmlsbD0idXJsKCNzdG9yZUdyYWQpIiBmaWx0ZXI9InVybCgjb3BTaGFkb3cpIi8+CiAgPHRleHQgeD0iNzMyIiB5PSIxMzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj40LiBTVE9SRTwvdGV4dD4KICA8dGV4dCB4PSI3MzIiIHk9IjE1MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkdyYWlsIGJ1Y2tldHM8L3RleHQ+CiAgPHRleHQgeD0iNzMyIiB5PSIxNjQiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CdWNrZXQgYXNzaWdubWVudDwvdGV4dD4KICA8dGV4dCB4PSI3MzIiIHk9IjE3OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5vLXN0b3JhZ2Ugb3B0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjczMiIgeT0iMTk4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UmV0ZW50aW9uPC90ZXh0PgoKICA8IS0tIEtleSBQcmluY2lwbGVzIC0tPgogIDxyZWN0IHg9IjMwIiB5PSIyNjUiIHdpZHRoPSI3NjAiIGhlaWdodD0iODAiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iMjg4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5LZXkgUHJpbmNpcGxlczwvdGV4dD4KCiAgPHJlY3QgeD0iNTAiIHk9IjI5OCIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9IiNkYmVhZmUiLz4KICA8dGV4dCB4PSIxMzUiIHk9IjMxOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzFlNDBhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UHJlLXN0b3JhZ2UgcHJvY2Vzc2luZzwvdGV4dD4KICA8dGV4dCB4PSIxMzUiIHk9IjMzMiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiMxZTQwYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFsbCB0cmFuc2Zvcm1zIGJlZm9yZSBwZXJzaXN0ZW5jZTwvdGV4dD4KCiAgPHJlY3QgeD0iMjM1IiB5PSIyOTgiIHdpZHRoPSIxNzAiIGhlaWdodD0iNDAiIHJ4PSI2IiBmaWxsPSIjZmVmM2M3Ii8+CiAgPHRleHQgeD0iMzIwIiB5PSIzMTgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM5MjQwMGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkZpcnN0IG1hdGNoaW5nIHJvdXRlPC90ZXh0PgogIDx0ZXh0IHg9IjMyMCIgeT0iMzMyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzkyNDAwZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RXh0cmFjdGlvbiBpbiBhdCBtb3N0IDUgcGlwZWxpbmVzPC90ZXh0PgoKICA8cmVjdCB4PSI0MjAiIHk9IjI5OCIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9IiNkMWZhZTUiLz4KICA8dGV4dCB4PSI1MDUiIHk9IjMxOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzA0Nzg1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2VjdXJpdHkgZmlyc3Q8L3RleHQ+CiAgPHRleHQgeD0iNTA1IiB5PSIzMzIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjMDQ3ODU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PcmRlciBtYXNraW5nIGZpcnN0IGluIFByb2Nlc3Npbmc8L3RleHQ+CgogIDxyZWN0IHg9IjYwNSIgeT0iMjk4IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0iI2ZjZTdmMyIvPgogIDx0ZXh0IHg9IjY5MCIgeT0iMzE4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjOWQxNzRkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FbnRpdHkgZGV0ZWN0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjY5MCIgeT0iMzMyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzlkMTc0ZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZHQuZW50aXR5LiogYWRkZWQgYWZ0ZXIgUHJvY2Vzc2luZzwvdGV4dD4KPC9zdmc+Cg==" alt="OpenPipeline Architecture" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Components | Description |
+|-------|------------|-------------|
+| **Ingest** | OneAgent, Generic API, OTLP, Custom (built-in / ready-made / custom sources) | Data entry points; source recorded in `dt.openpipeline.source` |
+| **Pre-processing** *(custom sources only, optional)* | Source-level DQL transform | Normalize raw data into a common shape before routing |
+| **Routing** | Dynamic matchers (DQL) or static assignment (custom sources) | Each record takes the first matching route; extraction in at most 5 pipelines (pipeline groups) |
+| **Pipeline** | Fixed sequence of stages: **Processing** (DQL, Add/Remove/Rename fields, Drop record, GeoIP lookup (Early Access), Inline lookup) → Smartscape node → Smartscape edge → Permission → Product allocation → Cost allocation → **Bucket assignment** → **Metric extraction** → **Davis** → **Data extraction** | Masking, dropping, parsing and transformation all happen in the first stage (Processing); the extraction stages run after bucket assignment |
+| **Storage** | Grail bucket chosen by the Bucket assignment stage (or not stored — No storage assignment), retention per bucket | Persist to a Grail bucket, or skip retention with the No storage assignment processor |
+-->
+<blockquote>
+<p><strong>Stage model (verified 09/24/2026):</strong> data flows Ingest → Routing → pipeline → Storage, with optional pre-processing on custom sources. Inside a pipeline, per <em>Processing in OpenPipeline</em>, <em>&quot;The sequence of stages is fixed for all pipelines and cannot be modified.&quot;</em> Masking, dropping, parsing and transformation are processors in the first stage, <strong>Processing</strong>; <strong>Bucket assignment</strong> comes seventh, and <strong>Metric extraction</strong>, <strong>Davis</strong> and <strong>Data extraction</strong> run after it. The diagram's Processing box stands for that whole stage sequence.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — stage table, in execution order.</sub></p>
+</blockquote>
+<h3>Key Principles</h3>
+<ol>
+<li><strong>Pre-storage Processing</strong>: All transformations happen BEFORE data is written to Grail.</li>
+<li><strong>Order Matters</strong>: Processors execute in the order defined within each pipeline.</li>
+<li><strong>One route, possibly several pipelines</strong>: Each record takes the first matching route. Routed to a pipeline group's member pipeline, it is also processed by the group's base pipelines; data is extracted from one record in at most 5 pipelines.</li>
+<li><strong>Entity Detection</strong>: A documented set of entity fields — <code>dt.entity.service</code>, the Kubernetes and cloud-application entities, <code>dt.source_entity</code> and others — is added AFTER the Processing stage (full list under <a href="#complete-openpipeline-limits-reference">Field &amp; Matching Restrictions</a>).</li>
+<li><strong>Immutable Storage</strong>: Once stored, data cannot be modified (mask early!).</li>
+</ol>
+<hr />
+<p><a id="processing-stages-in-detail"></a></p>
+<h2>Processing Stages in Detail</h2>
+<h3>Stage 1: Ingest</h3>
+<p>Records enter via an ingest source. The source is recorded as <code>dt.openpipeline.source</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Source Type</th>
+<th>Owner</th>
+<th>Pre-processing</th>
+<th>Routing</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Built-in</strong></td>
+<td>OpenPipeline (view-only)</td>
+<td>No</td>
+<td>Dynamic only</td>
+</tr>
+<tr>
+<td><strong>Ready-made</strong></td>
+<td>Extensions</td>
+<td>No</td>
+<td>Dynamic only</td>
+</tr>
+<tr>
+<td><strong>Custom</strong></td>
+<td>User-defined</td>
+<td>Yes (optional)</td>
+<td>Dynamic or static</td>
+</tr>
+</tbody>
+</table>
+<h3>Stage 2: Pre-processing <em>(optional, custom sources only)</em></h3>
+<p>A DQL transform applied to records from a custom source <em>before</em> routing. Use this to normalize raw data from third-party shippers into a common shape that all downstream pipelines can consume.</p>
+<h3>Stage 3: Routing</h3>
+<p>The routing stage determines which pipeline(s) process each incoming record.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Purpose</strong></td>
+<td>Match incoming data to appropriate pipelines</td>
+</tr>
+<tr>
+<td><strong>Timing</strong></td>
+<td>Before any pipeline processing</td>
+</tr>
+<tr>
+<td><strong>Configuration</strong></td>
+<td>Dynamic routing rules with matching conditions, or static assignment for custom sources</td>
+</tr>
+<tr>
+<td><strong>Order</strong></td>
+<td>First matching route wins — a record takes one route</td>
+</tr>
+<tr>
+<td><strong>Fallback</strong></td>
+<td>Unmatched data takes the default route (classic pipeline for logs and business events)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Matching Condition Examples:</strong></p>
+<pre><code>k8s.namespace.name == &quot;production&quot;
+log.source == &quot;nginx&quot;
+matchesPhrase(content, &quot;payment&quot;)
+dt.openpipeline.source == &quot;oneagent&quot;
+</code></pre>
+<p>Matchers accept a subset of DQL — use <code>matchesPhrase</code> (whole tokens or phrases) or <code>matchesValue</code> with <code>*</code> wildcards (any substring, e.g. <code>matchesValue(content, &quot;*/health*&quot;)</code>); <code>contains()</code> and <code>in()</code> are not enabled in matchers and the configuration will not save. Validate a matcher before saving it. (<code>contains()</code> remains valid <em>inside</em> a DQL processor definition — only matcher positions reject it.)</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline">DQL matcher in OpenPipeline (DT docs)</a> — <em>&quot;With Dynatrace powered by Grail, you can use Dynatrace Query Language (DQL) functions and logical operators in matchers.&quot;</em> The page documents <code>matchesPhrase</code>, <code>matchesValue</code>, <code>isNull</code>/<code>isNotNull</code> and <code>duration</code>; <code>contains()</code> rejected by the OpenPipeline matcher validator with <em>The function <code>contains()</code> isn't enabled.</em> (09/28/2026).</sub></p>
+</blockquote>
+<h3>Stage 4: Pipeline — the Processing stage first</h3>
+<p>A pipeline is a fixed sequence of stages (full table in <a href="#understanding-processing-order">Understanding Processing Order</a>). The first stage, <strong>Processing</strong>, holds the processors that edit the record:</p>
+<table>
+<thead>
+<tr>
+<th>Purpose</th>
+<th>Processing-stage processors</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Masking</strong></td>
+<td>DQL with <code>replacePattern</code> (or Remove fields)</td>
+</tr>
+<tr>
+<td><strong>Filtering</strong></td>
+<td>Drop record</td>
+</tr>
+<tr>
+<td><strong>Field &amp; record manipulation</strong></td>
+<td>DQL (incl. <code>parse</code>), Add fields, Remove fields, Rename fields, Technology bundle</td>
+</tr>
+<tr>
+<td><strong>Enrichment</strong></td>
+<td>Inline lookup, GeoIP lookup (Early Access)</td>
+</tr>
+</tbody>
+</table>
+<p>Metric extraction, Smartscape node/edge, event extraction, cost allocation, <code>dt.security_context</code> and bucket assignment are <strong>not</strong> part of the Processing stage — each is its own later stage in the fixed sequence.</p>
+<blockquote>
+<p>Recommended order <em>within</em> the Processing stage: mask → drop → parse → enrich. Everything else runs in a later, fixed stage.</p>
+</blockquote>
+<h3>Stage 5: Storage</h3>
+<p>The storage stage routes data to Grail buckets. Use the <strong>No storage assignment</strong> processor to skip retention entirely (useful when a record is only needed to extract a metric or event).</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Bucket Routing</strong></td>
+<td>Direct data to specific buckets</td>
+</tr>
+<tr>
+<td><strong>Retention</strong></td>
+<td>Different retention periods per bucket</td>
+</tr>
+<tr>
+<td><strong>Cost Control</strong></td>
+<td>Route high-volume data to shorter retention or to no-storage</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="pipeline-types"></a></p>
+<h2>Pipeline Types</h2>
+<p><em>Processing in OpenPipeline</em> defines three pipeline types, by who owns them:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Owner</th>
+<th>Access</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Custom</strong></td>
+<td>User or user group</td>
+<td>Owner-based; editable</td>
+<td>The pipelines you build. All migrated processing lives here.</td>
+</tr>
+<tr>
+<td><strong>Ready-made</strong></td>
+<td>Extension</td>
+<td>View-only</td>
+<td>Created when an extension is installed, often with its own ingest source and route. To add processing, use a <strong>pipeline group</strong> with the ready-made pipeline as a member or base pipeline.</td>
+</tr>
+<tr>
+<td><strong>Built-in</strong></td>
+<td>OpenPipeline</td>
+<td>View-only</td>
+<td>Provided out of the box and <em>&quot;generally cannot be modified within OpenPipeline.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<h3>The default pipeline</h3>
+<p>The <strong>default pipeline</strong> is a built-in pipeline. It <em>&quot;processes unassigned incoming data for storage&quot;</em> — every record no route matches — and sends it to the configuration scope's default bucket so it is <em>&quot;not unintentionally dropped.&quot;</em> It is view-only: you cannot add processors to it. Processing you need on unmatched data belongs in a custom pipeline behind an explicit route.</p>
+<p><strong>Logs and business events are the exception.</strong> The default pipeline, in the docs' words, is <em>&quot;not available for log and business event configuration scopes where the Classic pipeline is available.&quot;</em> There, records that fall through to the default route are processed by the <strong>classic pipeline</strong> and carry the pipeline id <code>logs:default</code> (or <code>bizevents:default</code>) in <code>dt.openpipeline.pipelines</code>. The query <a href="#exploring-your-pipeline-configuration">in the exploration section</a> counts them; OPMIG-09 uses the same id to measure how much traffic has not been migrated yet.</p>
+<p>Technology parsing for common formats is not a pipeline type. It is the <strong>Technology bundle</strong> processor, which you add to a custom pipeline (see <a href="#processor-types">Processor Types</a>).</p>
+<blockquote>
+<p>💡 <strong>Best Practice:</strong> Create focused pipelines for specific use cases rather than one large pipeline with complex conditionals.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — pipeline-type table; <em>&quot;The default pipeline is a built-in pipeline that processes unassigned incoming data for storage.&quot;</em>, <em>&quot;not available for log and business event configuration scopes where the Classic pipeline is available.&quot;</em>; <a href="https://docs.dynatrace.com/docs/platform/upgrade/upgrade-your-data-pipeline/migration-classic-pipeline">Upgrade from classic pipeline to OpenPipeline (DT docs)</a> — <em>&quot;Data that doesn't match is processed by the default route and continues to be processed by the classic pipeline until you turn off the rules.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<p><a id="processor-types"></a></p>
+<h2>Processor Types</h2>
+<h3>DQL Processor</h3>
+<p>The DQL processor uses DQL commands to transform data. Available commands:</p>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Purpose</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fieldsAdd</code></td>
+<td>Add new fields</td>
+<td><code>fieldsAdd environment = &quot;prod&quot;</code></td>
+</tr>
+<tr>
+<td><code>fieldsRemove</code></td>
+<td>Remove fields</td>
+<td><code>fieldsRemove sensitive_field</code></td>
+</tr>
+<tr>
+<td><code>fieldsRename</code></td>
+<td>Rename fields</td>
+<td><code>fieldsRename new_name = old_name</code></td>
+</tr>
+<tr>
+<td><code>parse</code></td>
+<td>Extract with DPL patterns</td>
+<td><code>parse content, &quot;LD:prefix INT:count&quot;</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>fieldsAdd Examples:</strong></p>
+<pre><code class="language-dql">// Static value
+| fieldsAdd environment = &quot;production&quot;
+
+// Conditional value
+| fieldsAdd severity = if(loglevel == &quot;ERROR&quot;, &quot;critical&quot;, else: &quot;normal&quot;)
+
+// Computed value
+| fieldsAdd message_length = stringLength(content)
+
+// From existing field
+| fieldsAdd short_host = substring(host.name, from: 0, to: 10)
+</code></pre>
+<h3>Drop Processor</h3>
+<p>Removes records matching specified conditions:</p>
+<pre><code>Matching Condition: loglevel == &quot;DEBUG&quot;
+Result: All DEBUG logs are dropped before storage
+</code></pre>
+<h3>Technology Bundle Processor</h3>
+<p>The <strong>Technology bundle</strong> processor <em>&quot;matches records for the selected technology and processes them according to predefined context-sensitive processing statements.&quot;</em> Pick the technology (for example a web server, a runtime or a syslog source) and the bundle parses its records for you. The fields each bundle produces are defined by the bundle, not by you — open the processor's preview on a sample record to see exactly which fields it adds before you write anything downstream that depends on them.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — processor table, <em>Technology bundle</em>.</sub></p>
+</blockquote>
+<hr />
+<p><a id="dynatrace-pattern-language-dpl"></a></p>
+<h2>Dynatrace Pattern Language (DPL)</h2>
+<p>DPL is a powerful pattern matching language used in the <code>parse</code> command.</p>
+<h3>Core Matchers</h3>
+<table>
+<thead>
+<tr>
+<th>Matcher</th>
+<th>Description</th>
+<th>Example Match</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>INT</code></td>
+<td>Integer number</td>
+<td><code>42</code>, <code>-17</code></td>
+</tr>
+<tr>
+<td><code>LONG</code></td>
+<td>Long integer</td>
+<td><code>1234567890123</code></td>
+</tr>
+<tr>
+<td><code>DOUBLE</code></td>
+<td>Decimal number</td>
+<td><code>3.14</code>, <code>-0.5</code></td>
+</tr>
+<tr>
+<td><code>IPADDR</code></td>
+<td>IPv4 or IPv6 address</td>
+<td><code>192.168.1.1</code>, <code>::1</code></td>
+</tr>
+<tr>
+<td><code>IPV4ADDR</code></td>
+<td>IPv4 address only</td>
+<td><code>10.0.0.1</code></td>
+</tr>
+<tr>
+<td><code>IPV6ADDR</code></td>
+<td>IPv6 address only</td>
+<td><code>2001:db8::1</code></td>
+</tr>
+<tr>
+<td><code>TIMESTAMP('&lt;format&gt;')</code></td>
+<td>Timestamp in the format you give (bare <code>TIMESTAMP</code> returned null on this example)</td>
+<td><code>TIMESTAMP('yyyy-MM-ddTHH:mm:ssZ'):t</code> on <code>2024-01-15T10:30:00Z</code></td>
+</tr>
+<tr>
+<td><code>ISO8601</code></td>
+<td>ISO 8601 timestamp</td>
+<td><code>2024-01-15T10:30:00Z</code></td>
+</tr>
+<tr>
+<td><code>LD</code></td>
+<td>Line data (to delimiter)</td>
+<td>Any text until delimiter</td>
+</tr>
+<tr>
+<td><code>DATA</code></td>
+<td>Any data (greedy)</td>
+<td>Consumes remaining text</td>
+</tr>
+<tr>
+<td><code>SPACE</code></td>
+<td>Whitespace</td>
+<td>Spaces, tabs</td>
+</tr>
+<tr>
+<td><code>NSPACE</code></td>
+<td>Non-whitespace</td>
+<td>Any non-space chars</td>
+</tr>
+<tr>
+<td><code>WORD</code></td>
+<td>Word characters</td>
+<td><code>hello</code>, <code>user123</code></td>
+</tr>
+<tr>
+<td><code>JSON</code></td>
+<td>JSON structure</td>
+<td><code>{&quot;key&quot;: &quot;value&quot;}</code></td>
+</tr>
+<tr>
+<td><code>EOL</code></td>
+<td>End of line</td>
+<td>Line terminator</td>
+</tr>
+</tbody>
+</table>
+<h3>Pattern Syntax</h3>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>Syntax</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Export to field</td>
+<td><code>MATCHER:fieldname</code></td>
+<td>Extract and name the field</td>
+</tr>
+<tr>
+<td>Match only</td>
+<td><code>MATCHER</code></td>
+<td>Match but don't extract</td>
+</tr>
+<tr>
+<td>Optional</td>
+<td><code>MATCHER?</code></td>
+<td>Matcher is optional</td>
+</tr>
+<tr>
+<td>Literal</td>
+<td><code>'exact text'</code></td>
+<td>Match literal string</td>
+</tr>
+<tr>
+<td>Alternatives</td>
+<td><code>('opt1'|'opt2')</code></td>
+<td>Match either option</td>
+</tr>
+<tr>
+<td>Quantifier</td>
+<td><code>MATCHER{2,5}</code></td>
+<td>Bounds the characters the matcher consumes: <code>WORD{1,3}</code> on <code>hello</code> returns <code>hel</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-time-date">DPL time and date (DT docs)</a> — <code>ISO8601</code>. Timestamp and quantifier results run with <code>data record(...)</code> on 10/30/2026.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Quantifier caveat:</strong> <code>{n,m}</code> is not universal. <code>INT</code> accepts only <code>*</code> and <code>+</code> —
+<code>INT{3}</code> is rejected. For fixed-width digit runs use a character class: <code>[0-9]{3}</code>.</p>
+</blockquote>
+<h3>DPL Examples</h3>
+<pre><code class="language-dql">// Extract IP and port from log
+| parse content, &quot;IPADDR:client_ip ':' INT:port&quot;
+
+// Extract user ID with flexible prefix, anywhere in the line
+| parse content, &quot;LD? ('user='|'userId='|'user_id=') NSPACE:user_id&quot;
+
+// Parse Apache-style log
+| parse content, &quot;IPADDR:client_ip SPACE '-' SPACE LD:user SPACE '[' LD:log_time ']'&quot;
+
+// Extract JSON payload
+| parse content, &quot;LD? JSON:payload&quot;
+
+// Parse with optional port
+| parse content, &quot;IPADDR:ip (':' INT:port)?&quot;
+
+// Extract error code, anywhere in the line
+| parse content, &quot;LD? 'error_code=' INT:error_code&quot;
+</code></pre>
+<blockquote>
+<p><strong><code>parse</code> matches from the start of the field.</strong> A pattern that opens with a literal such as <code>'error_code='</code> returns <strong>null</strong> on every line that does not begin with it — no error, just an empty field. Prefix the pattern with <code>LD?</code> to skip any leading text (or none). And a trailing <code>LD:x</code> runs to the <strong>end of the line</strong>, not the end of the value: use <code>NSPACE:x</code> (stops at the next space) or a closing literal. Both verified with <code>data record(...)</code> on 10/02/2026; FAQ-15 covers DPL matching semantics in depth.</p>
+</blockquote>
+<h3>Timestamp Format Patterns</h3>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>yyyy</code></td>
+<td>Year (4 digits)</td>
+<td>2024</td>
+</tr>
+<tr>
+<td><code>MM</code></td>
+<td>Month (01-12)</td>
+<td>01</td>
+</tr>
+<tr>
+<td><code>dd</code></td>
+<td>Day (01-31)</td>
+<td>15</td>
+</tr>
+<tr>
+<td><code>HH</code></td>
+<td>Hour 24h (00-23)</td>
+<td>14</td>
+</tr>
+<tr>
+<td><code>mm</code></td>
+<td>Minute (00-59)</td>
+<td>30</td>
+</tr>
+<tr>
+<td><code>ss</code></td>
+<td>Second (00-59)</td>
+<td>45</td>
+</tr>
+<tr>
+<td><code>SSS</code></td>
+<td>Milliseconds</td>
+<td>123</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="complete-openpipeline-limits-reference"></a></p>
+<h2>Complete OpenPipeline Limits Reference</h2>
+<p>This comprehensive reference contains ALL OpenPipeline limits you need to know for planning your migration.</p>
+<h3>Data Size &amp; Volume Limits</h3>
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>Value</th>
+<th>Behavior When Exceeded</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Max record size (after processing)</strong></td>
+<td>16 MB</td>
+<td>Record is <strong>dropped</strong></td>
+</tr>
+<tr>
+<td><strong>Max request payload</strong></td>
+<td>10 MB per configuration scope</td>
+<td>Request rejected (status code not stated on the limits page)</td>
+</tr>
+<tr>
+<td><strong>Working memory per record</strong></td>
+<td>Limited — no figure published †</td>
+<td>Record dropped once processing memory is exhausted (reported as <code>buffer_overflow</code>)</td>
+</tr>
+<tr>
+<td><strong>Log attribute size</strong></td>
+<td>32 KB (4,096 characters per attribute in an event template)</td>
+<td>Attribute value <strong>truncated</strong></td>
+</tr>
+<tr>
+<td><strong>Max field name length</strong></td>
+<td>255 characters †</td>
+<td>Field creation fails</td>
+</tr>
+<tr>
+<td><strong>Max string field length</strong></td>
+<td>32 KB †</td>
+<td>Content truncated</td>
+</tr>
+<tr>
+<td><strong>Max array size</strong></td>
+<td>1000 elements †</td>
+<td>Array truncated</td>
+</tr>
+<tr>
+<td><strong>Max nesting depth (log records)</strong></td>
+<td>5 levels</td>
+<td><em>&quot;The maximum number of levels ingested with nested objects&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<h3>Processing Limits</h3>
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>Value</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Max pipelines per record</strong></td>
+<td>5</td>
+<td>Data can be extracted from one record in at most 5 pipelines (a pipeline group's base + member pipelines). After 5, data extraction stops but the record is still persisted.</td>
+</tr>
+<tr>
+<td><strong>Max processors per pipeline</strong></td>
+<td>1,000 (100 in a base pipeline)</td>
+<td>Cannot add more processors to pipeline</td>
+</tr>
+<tr>
+<td><strong>Max DQL commands per processor</strong></td>
+<td>10 commands †</td>
+<td>Split complex logic into multiple processors</td>
+</tr>
+<tr>
+<td><strong>Max parse operations per processor</strong></td>
+<td>100 patterns †</td>
+<td>Create additional parse processors</td>
+</tr>
+<tr>
+<td><strong>Max attributes per log record</strong></td>
+<td>500</td>
+<td><em>&quot;The maximum number of attributes a log can contain&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Processing timeout per record</strong></td>
+<td>30 seconds †</td>
+<td>Record dropped if exceeded</td>
+</tr>
+<tr>
+<td><strong>Max processor name length</strong></td>
+<td>100 characters †</td>
+<td>Validation error</td>
+</tr>
+</tbody>
+</table>
+<h3>Timestamp Constraints</h3>
+<table>
+<thead>
+<tr>
+<th>Data Type</th>
+<th>Earliest accepted timestamp (older → <strong>dropped</strong> before processing)</th>
+<th>Timestamp more than 10 min in the future</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Logs</strong></td>
+<td>Ingest time minus the log age limit: 72 hours for environments created after <strong>SaaS 1.348</strong>; 24 hours for older environments unless Dynatrace Support raises it to 72 on request</td>
+<td><strong>Adjusted</strong> to ingest time + 10 min</td>
+</tr>
+<tr>
+<td><strong>Spans</strong></td>
+<td>60 minutes past (end time) †</td>
+<td>Not adjusted (the adjustment doesn't apply to spans)</td>
+</tr>
+<tr>
+<td><strong>Events</strong></td>
+<td>Ingest time minus 24 hours</td>
+<td><strong>Adjusted</strong> to ingest time + 10 min</td>
+</tr>
+<tr>
+<td><strong>Business Events</strong></td>
+<td>Ingest time minus 24 hours</td>
+<td><strong>Adjusted</strong> to ingest time + 10 min</td>
+</tr>
+<tr>
+<td><strong>Metrics</strong></td>
+<td>Ingest time minus 1 hour</td>
+<td><strong>Adjusted</strong> to ingest time + 10 min</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ <strong>Critical:</strong> Historical data imports require workarounds. Contact Dynatrace support for backfilling options.</p>
+</blockquote>
+<h3>Pipeline Group Limits <em>(per group)</em></h3>
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>Value</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Pipeline slots per group</strong></td>
+<td>10</td>
+<td>Per <code>/reference/limits</code></td>
+</tr>
+<tr>
+<td><strong>Member pipelines per group</strong></td>
+<td>1,000</td>
+<td>Per <code>/reference/limits</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Pipeline &amp; Routing Limits</h3>
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>Value</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Max custom pipelines</strong></td>
+<td>100 pipelines</td>
+<td>Per configuration scope (logs, spans, etc.)</td>
+</tr>
+<tr>
+<td><strong>Max pipeline groups</strong></td>
+<td>100</td>
+<td>Per configuration scope</td>
+</tr>
+<tr>
+<td><strong>Max dynamic routes</strong></td>
+<td>100 routes</td>
+<td>Per configuration scope</td>
+</tr>
+<tr>
+<td><strong>Max ingest sources</strong></td>
+<td>100</td>
+<td>Per configuration scope</td>
+</tr>
+<tr>
+<td><strong>Max conditions per route</strong></td>
+<td>10 conditions †</td>
+<td>Combine with AND/OR operators</td>
+</tr>
+<tr>
+<td><strong>Max pipeline name length</strong></td>
+<td>100 characters †</td>
+<td>Validation error</td>
+</tr>
+<tr>
+<td><strong>Max route name length</strong></td>
+<td>100 characters †</td>
+<td>Validation error</td>
+</tr>
+</tbody>
+</table>
+<h3>Extraction Limits</h3>
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>Value</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Max metric extractions per pipeline</strong></td>
+<td>10 †</td>
+<td>Value + counter metrics combined</td>
+</tr>
+<tr>
+<td><strong>Max event extractions per pipeline</strong></td>
+<td>5 †</td>
+<td>All event types combined</td>
+</tr>
+<tr>
+<td><strong>Max bizevent extractions per pipeline</strong></td>
+<td>3 †</td>
+<td>Business events only</td>
+</tr>
+<tr>
+<td><strong>Max dimensions per metric</strong></td>
+<td>10 dimensions †</td>
+<td>Keep cardinality low</td>
+</tr>
+<tr>
+<td><strong>Metric key length</strong></td>
+<td>250 characters †</td>
+<td>Validation error</td>
+</tr>
+<tr>
+<td><strong>Event type name length</strong></td>
+<td>100 characters †</td>
+<td>Validation error</td>
+</tr>
+</tbody>
+</table>
+<h3>DQL &amp; DPL Limits</h3>
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>Value</th>
+<th>Context</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>DQL processor script length</strong></td>
+<td>8,192 characters</td>
+<td>Per <code>/reference/limits</code> (May 2026 doc)</td>
+</tr>
+<tr>
+<td><strong>Processor matching condition length</strong></td>
+<td>4,096 characters (Settings API); 1,500 for legacy Configurations API / Classic pipelines</td>
+<td>Per <code>/reference/limits</code> (Jun 17, 2026 doc)</td>
+</tr>
+<tr>
+<td><strong>Max DPL pattern length</strong></td>
+<td>4 KB †</td>
+<td>Per parse pattern</td>
+</tr>
+<tr>
+<td><strong>Max captured groups per parse</strong></td>
+<td>100 groups †</td>
+<td>Use multiple parse operations</td>
+</tr>
+<tr>
+<td><strong>Max alternatives in pattern</strong></td>
+<td>50 alternatives †</td>
+<td><code>(opt1|opt2|...|opt50)</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Bucket &amp; Storage Limits</h3>
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>Value</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Max custom buckets</strong></td>
+<td>80 by default; 250 from SaaS 1.346 (staged tenant rollout from 08/25/2026)</td>
+<td>Per environment. The upgrade guide still states 80, the Grail <em>organize data</em> page and the 1.346 release note state 250 — check which default your tenant has before planning to either number</td>
+</tr>
+<tr>
+<td><strong>Min retention period</strong></td>
+<td>1 day</td>
+<td>Per custom bucket</td>
+</tr>
+<tr>
+<td><strong>Max retention period</strong></td>
+<td>10 years, with an additional week</td>
+<td>Per custom bucket</td>
+</tr>
+<tr>
+<td><strong>Bucket name length</strong></td>
+<td>100 characters †</td>
+<td>Alphanumeric + underscore</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/data-partitioning">Data partitioning — upgrade best practices (DT docs)</a> — <em>&quot;The default bucket limit per environment is 80 buckets, which is typically sufficient for up to 5 TB/day per table.&quot;</em>; <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data">Organize data (DT docs)</a> — <em>&quot;The default limit per environment is 250 custom buckets.&quot;</em>; <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-346">SaaS 1.346 (DT docs)</a> — <em>&quot;Dynatrace now supports up to 250 custom Grail buckets by default&quot;</em>. Retention: <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data">Organize data (DT docs)</a> — <em>&quot;For custom buckets, the possible retention periods range from 1 day to 10 years, with an additional week.&quot;</em></sub></p>
+</blockquote>
+<h3>Rate Limits</h3>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Limit</th>
+<th>Per</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Log Ingest API</strong></td>
+<td>500 requests/min †</td>
+<td>Per token</td>
+</tr>
+<tr>
+<td><strong>OTLP Endpoint</strong></td>
+<td>1000 requests/min †</td>
+<td>Per token</td>
+</tr>
+<tr>
+<td><strong>Config API</strong></td>
+<td>100 requests/min †</td>
+<td>Per token</td>
+</tr>
+</tbody>
+</table>
+<h3>Field &amp; Matching Restrictions</h3>
+<p><strong>View-only fields</strong> — <em>&quot;editing via OpenPipeline is not supported&quot;</em>:</p>
+<pre><code class="language-text">dt.ingest.*          - Ingestion metadata
+dt.openpipeline.*    - Pipeline processing metadata
+dt.retain.*          - Retention information
+dt.system.*          - System metadata (bucket, etc.)
+</code></pre>
+<p><strong>Fields added after the Processing stage</strong> — usable <em>&quot;only in stages after the Processing stage, but not in pre-processing, routing, or the Processing stage&quot;</em>:</p>
+<pre><code class="language-text">dt.entity.service
+dt.entity.kubernetes_cluster, dt.entity.kubernetes_node, dt.entity.kubernetes_service
+dt.entity.cloud_application, dt.entity.cloud_application_instance (and the cloud-application namespace field)
+dt.entity.custom_device, dt.entity.aws_lambda_function, dt.entity.&lt;genericEntityType&gt;
+dt.source_entity
+dt.kubernetes.cluster.id, dt.kubernetes.cluster.name, k8s.cluster.name
+dt.env_vars.dt_tags
+dt.process.name  (classic pipelines only — use dt.process_group.detected_name before Processing)
+</code></pre>
+<p><code>k8s.cluster.name</code> is available before Processing when the OneAgent Log module runs in standalone mode (OneAgent 1.309, Dynatrace Operator 1.4.2+). <code>dt.entity.host</code>, <code>dt.entity.process_group</code> and <code>dt.entity.process_group_instance</code> are <strong>not</strong> on this list — the limits page does not restrict them, so do not design around them being missing; preview a processor on a real record to confirm what is present at that point.</p>
+<p><strong>Metric scope is stricter.</strong> In the metric configuration scope the limits page lists <code>dt.entity.*</code> — every entity field, host included — under <em>&quot;Fields excluded from dynamic route matching conditions and in the Processing stage&quot;</em>. The list above applies in every configuration scope; in the metric scope, additionally keep all <code>dt.entity.*</code> out of routing conditions and Processing-stage processors.</p>
+<blockquote>
+<p>💡 <strong>Design Pattern:</strong> For the fields on the list above, you cannot:</p>
+<ul>
+<li>Use them in routing conditions</li>
+<li>Use them in matching conditions during processing</li>
+<li>Modify them with fieldsAdd/fieldsRename</li>
+</ul>
+<p>You CAN use them in the stages after Processing — for example Bucket assignment and the extraction stages (metrics, events).</p>
+</blockquote>
+<p>The limits page does not publish a general ban on creating <code>dt.*</code> fields, but that namespace belongs to the Dynatrace semantic dictionary. In community practice, custom fields use your own prefix (or none) so they never collide with a field Dynatrace adds later.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits">OpenPipeline limits (DT docs)</a> — <em>Restricted fields</em>: <em>&quot;The following fields can be viewed-only; editing via OpenPipeline is not supported.&quot;</em>; <em>&quot;The following fields are added after the Processing stage when Dynatrace runs its entity detection.&quot;</em> (list read 10/02/2026); <em>Metric configuration scope</em>: <em>&quot;Fields excluded from dynamic route matching conditions and in the Processing stage&quot;</em> — <code>dt.entity.*</code> (read 10/14/2026).</sub></p>
+</blockquote>
+<h3>Workarounds for Common Limit Issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Workaround</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>&gt;1,000 processors needed (&gt;100 in a base pipeline)</strong></td>
+<td>Split the processing across pipelines — for example member pipelines in a pipeline group</td>
+</tr>
+<tr>
+<td><strong>&gt;10 DQL commands</strong></td>
+<td>Break into multiple processors (order matters!)</td>
+</tr>
+<tr>
+<td><strong>&gt;100 parse patterns</strong></td>
+<td>Use multiple parse processors in sequence</td>
+</tr>
+<tr>
+<td><strong>&gt;16MB after processing</strong></td>
+<td>Drop unnecessary fields, reduce field sizes</td>
+</tr>
+<tr>
+<td><strong>&gt;5 pipelines in a group needed</strong></td>
+<td>Consolidate processing logic, use conditional processors</td>
+</tr>
+<tr>
+<td><strong>&gt;10 metric dimensions</strong></td>
+<td>Reduce cardinality, use separate metrics</td>
+</tr>
+</tbody>
+</table>
+<p>† Not stated on the <em>OpenPipeline limits</em> page (read 09/28/2026) or the <em>Log Management and Analytics default limits</em> page (read 10/30/2026) — treat as community-reported and verify in your tenant before planning to it. Every unmarked number in the tables above is on one of those pages. Where a record-type limit is stricter, <em>&quot;the record-type limit takes precedence&quot;</em>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits">OpenPipeline limits (DT docs)</a> — <em>&quot;If the timestamp is more than 10 minutes in the future, it's adjusted to the ingest server time plus 10 minutes.&quot;</em>; <em>&quot;The request payload size maximum limit is 10 MB per configuration scope.&quot;</em>; <em>&quot;Once the available processing memory is exhausted, the record is dropped.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-limits">Log Management and Analytics default limits (DT docs)</a> — <em>Nested objects</em>: 5 levels; <em>Number of log attributes</em>: 500.</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">What's new in SaaS 1.348 (DT docs)</a> — <em>&quot;The log ingestion pipeline now accepts log records with timestamps up to 72 hours in the past, extended from the previous 24-hour limit.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/lma-limits">Log Management and Analytics default limits (DT docs)</a> — <em>&quot;For environments created after Dynatrace version 1.348 was released, the default log age limit is 72 hours.&quot;</em> <em>&quot;For environments created before Dynatrace version 1.348 was released, the default log age limit is 24 hours. The limit can be increased to 72 hours on request.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="entity-field-availability-timeline"></a></p>
+<h2>Entity Field Availability Timeline</h2>
+<p>Understanding WHEN entity fields become available is critical for pipeline design.</p>
+<h3>Processing Stage Timeline</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgNDUwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iaW5nZXN0R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2NDc0OGI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzQ3NTU2OTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InJvdXRlR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2NDc0OGI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzQ3NTU2OTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InByb2Nlc3NHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzY0NzQ4YjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNDc1NTY5O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZGV0ZWN0R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4YjVjZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdjM2FlZDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImV4dHJhY3RHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzEwYjk4MTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMDU5NjY5O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3RvcmVHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzEwYjk4MTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMDU5NjY5O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9ImVmU2hhZG93Ij4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMSIgZHk9IjEiIHN0ZERldmlhdGlvbj0iMiIgZmxvb2Qtb3BhY2l0eT0iMC4xNSIvPgogICAgPC9maWx0ZXI+CiAgICA8bWFya2VyIGlkPSJlZkFycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI3MDAiIGhlaWdodD0iNDUwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSIzNTAiIHk9IjI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FbnRpdHkgRmllbGQgQXZhaWxhYmlsaXR5IFRpbWVsaW5lPC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iNDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZHQuZW50aXR5LiogZmllbGRzIGFyZSBhZGRlZCBBRlRFUiB0aGUgUHJvY2Vzc2luZyBzdGFnZTwvdGV4dD4KCiAgPCEtLSBUaW1lbGluZSBsaW5lIC0tPgogIDxsaW5lIHgxPSIxMDAiIHkxPSI5MCIgeDI9IjYwMCIgeTI9IjkwIiBzdHJva2U9IiNjYmQ1ZTEiIHN0cm9rZS13aWR0aD0iMyIvPgoKICA8IS0tIFN0YWdlIDE6IEluZ2VzdCAtLT4KICA8Y2lyY2xlIGN4PSIxMjAiIGN5PSI5MCIgcj0iMTgiIGZpbGw9InVybCgjaW5nZXN0R3JhZCkiIGZpbHRlcj0idXJsKCNlZlNoYWRvdykiLz4KICA8dGV4dCB4PSIxMjAiIHk9Ijk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MTwvdGV4dD4KICA8dGV4dCB4PSIxMjAiIHk9IjEyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzQ3NTU2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SU5HRVNUPC90ZXh0PgogIDxyZWN0IHg9Ijc1IiB5PSIxMzUiIHdpZHRoPSI5MCIgaGVpZ2h0PSIyNCIgcng9IjEyIiBmaWxsPSIjZmVjYWNhIi8+CiAgPHRleHQgeD0iMTIwIiB5PSIxNTEiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2RjMjYyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4p2MIE5vIEVudGl0eTwvdGV4dD4KCiAgPCEtLSBTdGFnZSAyOiBSb3V0aW5nIC0tPgogIDxjaXJjbGUgY3g9IjIyMCIgY3k9IjkwIiByPSIxOCIgZmlsbD0idXJsKCNyb3V0ZUdyYWQpIiBmaWx0ZXI9InVybCgjZWZTaGFkb3cpIi8+CiAgPHRleHQgeD0iMjIwIiB5PSI5NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjI8L3RleHQ+CiAgPHRleHQgeD0iMjIwIiB5PSIxMjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM0NzU1NjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJPVVRJTkc8L3RleHQ+CiAgPHJlY3QgeD0iMTc1IiB5PSIxMzUiIHdpZHRoPSI5MCIgaGVpZ2h0PSIyNCIgcng9IjEyIiBmaWxsPSIjZmVjYWNhIi8+CiAgPHRleHQgeD0iMjIwIiB5PSIxNTEiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2RjMjYyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4p2MIE5vIEVudGl0eTwvdGV4dD4KCiAgPCEtLSBTdGFnZSAzOiBQcm9jZXNzaW5nIC0tPgogIDxjaXJjbGUgY3g9IjMyMCIgY3k9IjkwIiByPSIxOCIgZmlsbD0idXJsKCNwcm9jZXNzR3JhZCkiIGZpbHRlcj0idXJsKCNlZlNoYWRvdykiLz4KICA8dGV4dCB4PSIzMjAiIHk9Ijk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MzwvdGV4dD4KICA8dGV4dCB4PSIzMjAiIHk9IjEyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzQ3NTU2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UFJPQ0VTU0lORzwvdGV4dD4KICA8cmVjdCB4PSIyNzUiIHk9IjEzNSIgd2lkdGg9IjkwIiBoZWlnaHQ9IjI0IiByeD0iMTIiIGZpbGw9IiNmZWNhY2EiLz4KICA8dGV4dCB4PSIzMjAiIHk9IjE1MSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZGMyNjI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7inYwgTm8gRW50aXR5PC90ZXh0PgoKICA8IS0tIFN0YWdlIDQ6IEVudGl0eSBEZXRlY3Rpb24gKGhpZ2hsaWdodGVkKSAtLT4KICA8Y2lyY2xlIGN4PSI0MjAiIGN5PSI5MCIgcj0iMjIiIGZpbGw9InVybCgjZGV0ZWN0R3JhZCkiIHN0cm9rZT0iI2M0YjVmZCIgc3Ryb2tlLXdpZHRoPSIzIiBmaWx0ZXI9InVybCgjZWZTaGFkb3cpIi8+CiAgPHRleHQgeD0iNDIwIiB5PSI5NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuKtkDwvdGV4dD4KICA8dGV4dCB4PSI0MjAiIHk9IjEyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzdjM2FlZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RU5USVRZPC90ZXh0PgogIDxyZWN0IHg9IjM2MCIgeT0iMTM1IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjI0IiByeD0iMTIiIGZpbGw9IiNlZGU5ZmUiIHN0cm9rZT0iIzhiNWNmNiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNDIwIiB5PSIxNTEiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzdjM2FlZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZHQuZW50aXR5LiogQURERUQ8L3RleHQ+CgogIDwhLS0gU3RhZ2UgNTogRXh0cmFjdGlvbiAtLT4KICA8Y2lyY2xlIGN4PSI1MjAiIGN5PSI5MCIgcj0iMTgiIGZpbGw9InVybCgjZXh0cmFjdEdyYWQpIiBmaWx0ZXI9InVybCgjZWZTaGFkb3cpIi8+CiAgPHRleHQgeD0iNTIwIiB5PSI5NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjU8L3RleHQ+CiAgPHRleHQgeD0iNTIwIiB5PSIxMjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMwNTk2NjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkVYVFJBQ1RJT048L3RleHQ+CiAgPHJlY3QgeD0iNDc1IiB5PSIxMzUiIHdpZHRoPSI5MCIgaGVpZ2h0PSIyNCIgcng9IjEyIiBmaWxsPSIjZDFmYWU1Ii8+CiAgPHRleHQgeD0iNTIwIiB5PSIxNTEiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzA1OTY2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4pyFIEF2YWlsYWJsZTwvdGV4dD4KCiAgPCEtLSBTdGFnZSA2OiBTdG9yYWdlIC0tPgogIDxjaXJjbGUgY3g9IjYwMCIgY3k9IjkwIiByPSIxOCIgZmlsbD0idXJsKCNzdG9yZUdyYWQpIiBmaWx0ZXI9InVybCgjZWZTaGFkb3cpIi8+CiAgPHRleHQgeD0iNjAwIiB5PSI5NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjY8L3RleHQ+CiAgPHRleHQgeD0iNjAwIiB5PSIxMjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMwNTk2NjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNUT1JBR0U8L3RleHQ+CiAgPHJlY3QgeD0iNTU1IiB5PSIxMzUiIHdpZHRoPSI5MCIgaGVpZ2h0PSIyNCIgcng9IjEyIiBmaWxsPSIjZDFmYWU1Ii8+CiAgPHRleHQgeD0iNjAwIiB5PSIxNTEiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzA1OTY2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4pyFIEF2YWlsYWJsZTwvdGV4dD4KCiAgPCEtLSBEaXZpZGVyIC0tPgogIDxsaW5lIHgxPSI1MCIgeTE9IjE4NSIgeDI9IjY1MCIgeTI9IjE4NSIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjIiLz4KCiAgPCEtLSBXaGF0IFdvcmtzIC8gV2hhdCBEb2Vzbid0IFNlY3Rpb24gLS0+CiAgPHRleHQgeD0iMzUwIiB5PSIyMTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRlc2lnbiBJbXBsaWNhdGlvbnM8L3RleHQ+CgogIDwhLS0gQ2FuJ3QgRG8gU2VjdGlvbiAtLT4KICA8cmVjdCB4PSI1MCIgeT0iMjM1IiB3aWR0aD0iMjkwIiBoZWlnaHQ9IjE5MCIgcng9IjgiIGZpbGw9IiNmZWYyZjIiIHN0cm9rZT0iI2ZlY2FjYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMTk1IiB5PSIyNjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNkYzI2MjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuKdjCBDQU5OT1QgRG8gKFN0YWdlcyAxLTMpPC90ZXh0PgoKICA8dGV4dCB4PSI3MCIgeT0iMjkwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM3ZjFkMWQiPuKAoiBSb3V0ZSBiYXNlZCBvbiBkdC5lbnRpdHkuc2VydmljZTwvdGV4dD4KICA8dGV4dCB4PSI3MCIgeT0iMzE1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM3ZjFkMWQiPuKAoiBVc2UgZW50aXR5IGluIG1hdGNoaW5nIGNvbmRpdGlvbnM8L3RleHQ+CiAgPHRleHQgeD0iNzAiIHk9IjM0MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjN2YxZDFkIj7igKIgZmllbGRzQWRkIHVzaW5nIGR0LmVudGl0eS4qPC90ZXh0PgogIDx0ZXh0IHg9IjcwIiB5PSIzNjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzdmMWQxZCI+4oCiIE1vZGlmeSBvciByZW5hbWUgZW50aXR5IGZpZWxkczwvdGV4dD4KICA8dGV4dCB4PSI3MCIgeT0iMzkwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM3ZjFkMWQiPuKAoiBEcm9wIHJlY29yZHMgYnkgZW50aXR5PC90ZXh0PgoKICA8IS0tIENhbiBEbyBTZWN0aW9uIC0tPgogIDxyZWN0IHg9IjM2MCIgeT0iMjM1IiB3aWR0aD0iMjkwIiBoZWlnaHQ9IjE5MCIgcng9IjgiIGZpbGw9IiNmMGZkZjQiIHN0cm9rZT0iI2JiZjdkMCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNTA1IiB5PSIyNjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMwNTk2NjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuKchSBDQU4gRG8gKFN0YWdlcyA1LTYpPC90ZXh0PgoKICA8dGV4dCB4PSIzODAiIHk9IjI5MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjMTY2NTM0Ij7igKIgVXNlIGVudGl0eSBhcyBtZXRyaWMgZGltZW5zaW9uPC90ZXh0PgogIDx0ZXh0IHg9IjM4MCIgeT0iMzE1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiMxNjY1MzQiPuKAoiBJbmNsdWRlIGVudGl0eSBpbiBldmVudCBkYXRhPC90ZXh0PgogIDx0ZXh0IHg9IjM4MCIgeT0iMzQwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiMxNjY1MzQiPuKAoiBSb3V0ZSB0byBidWNrZXQgYnkgZW50aXR5PC90ZXh0PgogIDx0ZXh0IHg9IjM4MCIgeT0iMzY1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiMxNjY1MzQiPuKAoiBCdXNpbmVzcyBldmVudCB3aXRoIGVudGl0eSBjb250ZXh0PC90ZXh0PgogIDx0ZXh0IHg9IjM4MCIgeT0iMzkwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiMxNjY1MzQiPuKAoiBRdWVyeSBlbnRpdHkgZmllbGRzIGFmdGVyIHN0b3JhZ2U8L3RleHQ+Cjwvc3ZnPgo=" alt="Entity Field Availability Timeline" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Entity Fields | What You Can Do |
+|-------|--------------|-----------------|
+| 1. INGEST | ❌ Not Available | - |
+| 2. ROUTING | ❌ Not Available | Cannot route by entity |
+| 3. PROCESSING | ❌ Not Available | Cannot use in conditions |
+| 4. ENTITY DETECTION | ⭐ Added Here | Automatic by Dynatrace |
+| 5. EXTRACTION | ✅ Available | Use as metric dimensions |
+| 6. STORAGE | ✅ Available | Route to buckets by entity |
+-->
+<h3>Practical Examples</h3>
+<h4>❌ WRONG - Cannot route based on entity</h4>
+<pre><code>Dynamic Route:
+  Condition: dt.entity.service == &quot;SERVICE-123&quot;  ❌ FAILS
+  
+Why: Entity fields not available during routing
+</code></pre>
+<h4>❌ WRONG - Cannot use entity in processing</h4>
+<pre><code class="language-text">DQL Processor:
+  fieldsAdd service_name = dt.entity.service  ❌ FAILS
+  
+Why: Entity fields not available during processing
+</code></pre>
+<h4>✅ CORRECT - Use entity in metric extraction</h4>
+<pre><code>Metric Extraction:
+  Key: log.request.duration
+  Value: duration_ms
+  Dimensions: dt.entity.service, dt.entity.host  ✅ WORKS
+  
+Why: Entity fields available in extraction stage
+</code></pre>
+<h4>✅ CORRECT - Use entity for bucket routing</h4>
+<pre><code>Bucket Routing (in Storage stage):
+  Condition: dt.entity.service == &quot;CRITICAL-SERVICE&quot;
+  Bucket: critical_logs  ✅ WORKS
+  
+Why: Entity fields available in storage stage
+</code></pre>
+<h3>Design Patterns</h3>
+<p><strong>Pattern 1: Route by source, extract metrics by entity</strong></p>
+<pre><code>Routing: log.source == &quot;payment-service&quot;  (uses source field)
+Processing: Parse payment data
+Extraction: Create metric with dt.entity.service dimension  ✅
+</code></pre>
+<p><strong>Pattern 2: Enrich with custom field, then use entity</strong></p>
+<pre><code>Processing: fieldsAdd app_tier = &quot;frontend&quot;  (custom field)
+Extraction: Dimensions: app_tier, dt.entity.service  ✅
+</code></pre>
+<p><strong>Pattern 3: Cannot mix entity with routing</strong></p>
+<pre><code>❌ Route based on entity → Use workaround:
+   - Route based on source/content patterns instead
+   - Use service name string (not entity ID) if available
+</code></pre>
+<hr />
+<hr />
+<p><a id="key-fields-metadata"></a></p>
+<h2>Key Fields &amp; Metadata</h2>
+<h3>OpenPipeline-Specific Fields</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Example Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.openpipeline.source</code></td>
+<td>Data source identifier — for built-in API sources, the endpoint path</td>
+<td><code>oneagent</code>, <code>/api/v2/logs/ingest</code>, <code>/api/v2/otlp/v1/logs</code></td>
+</tr>
+<tr>
+<td><code>dt.openpipeline.pipelines</code></td>
+<td>Pipeline(s) that processed record — an <strong>array</strong> of <code>&quot;&lt;scope&gt;:&lt;pipeline id&gt;&quot;</code> strings</td>
+<td><code>[&quot;logs:&lt;pipeline id&gt;&quot;]</code></td>
+</tr>
+<tr>
+<td><code>dt.system.bucket</code></td>
+<td>Grail storage bucket</td>
+<td><code>default_logs</code>, <code>custom_logs</code></td>
+</tr>
+</tbody>
+</table>
+<p>Run the first query in <a href="#exploring-your-pipeline-configuration">Exploring Your Pipeline Configuration</a> to see the source values in your own tenant. Because <code>dt.openpipeline.pipelines</code> is an array, <code>dt.openpipeline.pipelines == &quot;name&quot;</code> is always false — filter with <code>matchesValue(dt.openpipeline.pipelines, &quot;*name*&quot;)</code> instead.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/data-flow">Data flow (DT docs)</a> — ingest sources <em>&quot;are defined by a name and a path (dt.openpipeline.source)&quot;</em>.</sub></p>
+</blockquote>
+<h3>Log Fields</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>timestamp</code></td>
+<td>Log timestamp (primary time field)</td>
+</tr>
+<tr>
+<td><code>content</code></td>
+<td>Log message content</td>
+</tr>
+<tr>
+<td><code>loglevel</code></td>
+<td>Log level (ERROR, WARN, INFO, DEBUG)</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>Status string (alternative to loglevel)</td>
+</tr>
+<tr>
+<td><code>log.source</code></td>
+<td>Log source identifier</td>
+</tr>
+<tr>
+<td><code>log.iostream</code></td>
+<td>Stream type (stdout, stderr)</td>
+</tr>
+</tbody>
+</table>
+<h3>Entity Context Fields</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.entity.host</code></td>
+<td>Host entity ID</td>
+</tr>
+<tr>
+<td><code>dt.entity.process_group</code></td>
+<td>Process group entity ID</td>
+</tr>
+<tr>
+<td><code>dt.entity.process_group_instance</code></td>
+<td>Process instance entity ID</td>
+</tr>
+<tr>
+<td><code>dt.entity.service</code></td>
+<td>Service entity ID</td>
+</tr>
+<tr>
+<td><code>host.name</code></td>
+<td>Host name (string)</td>
+</tr>
+<tr>
+<td><code>process.executable.name</code></td>
+<td>Process executable name</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ <strong>Important:</strong> <code>dt.entity.service</code>, the Kubernetes and cloud-application entity fields and <code>dt.source_entity</code> are added AFTER the Processing stage, so you cannot use them in routing or processing conditions. The full list is under <a href="#complete-openpipeline-limits-reference">Field &amp; Matching Restrictions</a>.</p>
+</blockquote>
+<hr />
+<p><a id="exploring-your-pipeline-configuration"></a></p>
+<h2>Exploring Your Pipeline Configuration</h2>
+<p>Use these queries to understand how your environment is configured.</p>
+<pre><code class="language-dql">// View data sources currently sending to OpenPipeline
+// Shows the distribution of data by ingestion source
+fetch logs, from: now() - 24h
+| summarize {record_count = count()}, by: {dt.openpipeline.source}
+| sort record_count desc
+</code></pre>
+<pre><code class="language-dql">// Analyze which pipelines are processing your logs
+// Helps verify routing is working correctly
+fetch logs, from: now() - 24h
+| filter isNotNull(dt.openpipeline.pipelines)
+| summarize {record_count = count()}, by: {dt.openpipeline.pipelines}
+| sort record_count desc
+</code></pre>
+<pre><code class="language-dql">// Check bucket distribution for stored logs
+// Verify data is routing to expected buckets
+fetch logs, from: now() - 24h
+| summarize {record_count = count()}, by: {dt.system.bucket}
+| sort record_count desc
+</code></pre>
+<pre><code class="language-dql">// Analyze pipeline processing by source and pipeline
+// Shows the relationship between sources and pipelines
+fetch logs, from: now() - 24h
+| filter isNotNull(dt.openpipeline.pipelines)
+| summarize {record_count = count()}, by: {dt.openpipeline.source, dt.openpipeline.pipelines}
+| sort record_count desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Check for span processing through OpenPipeline
+// Spans also flow through OpenPipeline
+fetch spans, from: now() - 24h
+| summarize {span_count = count()}, by: {dt.openpipeline.source}
+| sort span_count desc
+</code></pre>
+<pre><code class="language-dql">// View pipeline processing over time
+// Helps identify volume patterns and processing trends
+fetch logs, from: now() - 24h
+| filter isNotNull(dt.openpipeline.pipelines)
+| makeTimeseries {record_count = count()}, by: {dt.openpipeline.pipelines}, interval: 1h
+</code></pre>
+<pre><code class="language-dql">// Records that fell through to the default route, last 24 hours.
+// During a migration these are processed by the classic pipeline (id &quot;logs:default&quot;).
+// dt.openpipeline.pipelines is an array, so compare with in(), never ==.
+fetch logs, from: now() - 24h
+| filter in(dt.openpipeline.pipelines, &quot;logs:default&quot;)
+| summarize {unrouted_count = count()}, by: {log.source}
+| sort unrouted_count desc
+| limit 20
+</code></pre>
+<hr />
+<p><a id="understanding-processing-order"></a></p>
+<h2>Understanding Processing Order</h2>
+<p>Two orders are in play, and only one of them is yours to choose:</p>
+<ol>
+<li><strong>The stage sequence is fixed.</strong> Per <em>Processing in OpenPipeline</em>, <em>&quot;The sequence of stages is fixed for all pipelines and cannot be modified.&quot;</em> Every pipeline runs <strong>Processing</strong> → Smartscape node → Smartscape edge → Permission → Product allocation → Cost allocation → <strong>Bucket assignment</strong> → <strong>Metric extraction</strong> → <strong>Davis</strong> → <strong>Data extraction</strong>. Masking, dropping, parsing and transformation are all processors in the first stage; there is no separate masking or filtering stage, and the extraction stages run <em>after</em> bucket assignment.</li>
+<li><strong>Processor order within a stage is the order you configure</strong> — <em>&quot;each processor output becomes the input for the next one.&quot;</em></li>
+</ol>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzYwIj4KICA8cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjM2MCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CiAgPHRleHQgeD0iNDAwIiB5PSIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U3RhZ2UgT3JkZXIgaW4gYSBQaXBlbGluZTwvdGV4dD4KICA8dGV4dCB4PSI0MDAiIHk9IjQ4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlRoZSBzZXF1ZW5jZSBvZiBzdGFnZXMgaXMgZml4ZWQ7IG9ubHkgdGhlIG9yZGVyIG9mIHByb2Nlc3NvcnMgaW5zaWRlIGEgc3RhZ2UgaXMgeW91cnM8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjY2IiB3aWR0aD0iNjgiIGhlaWdodD0iNzQiIHJ4PSI2IiBmaWxsPSIjN2MzYWVkIi8+CiAgPHRleHQgeD0iNTQiIHk9Ijg2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4xPC90ZXh0PgogIDx0ZXh0IHg9IjU0IiB5PSIxMTMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlByb2Nlc3Npbmc8L3RleHQ+CiAgPHBvbHlnb24gcG9pbnRzPSI4OSwxMDAgOTYsMTAzIDg5LDEwNiIgZmlsbD0iIzY0NzQ4YiIvPgogIDxyZWN0IHg9Ijk3IiB5PSI2NiIgd2lkdGg9IjY4IiBoZWlnaHQ9Ijc0IiByeD0iNiIgZmlsbD0iIzA4OTFiMiIvPgogIDx0ZXh0IHg9IjEzMSIgeT0iODYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjI8L3RleHQ+CiAgPHRleHQgeD0iMTMxIiB5PSIxMDYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNtYXJ0c2NhcGU8L3RleHQ+CiAgPHRleHQgeD0iMTMxIiB5PSIxMjEiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPm5vZGU8L3RleHQ+CiAgPHBvbHlnb24gcG9pbnRzPSIxNjYsMTAwIDE3MywxMDMgMTY2LDEwNiIgZmlsbD0iIzY0NzQ4YiIvPgogIDxyZWN0IHg9IjE3NCIgeT0iNjYiIHdpZHRoPSI2OCIgaGVpZ2h0PSI3NCIgcng9IjYiIGZpbGw9IiMwODkxYjIiLz4KICA8dGV4dCB4PSIyMDgiIHk9Ijg2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4zPC90ZXh0PgogIDx0ZXh0IHg9IjIwOCIgeT0iMTA2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TbWFydHNjYXBlPC90ZXh0PgogIDx0ZXh0IHg9IjIwOCIgeT0iMTIxIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5lZGdlPC90ZXh0PgogIDxwb2x5Z29uIHBvaW50cz0iMjQzLDEwMCAyNTAsMTAzIDI0MywxMDYiIGZpbGw9IiM2NDc0OGIiLz4KICA8cmVjdCB4PSIyNTEiIHk9IjY2IiB3aWR0aD0iNjgiIGhlaWdodD0iNzQiIHJ4PSI2IiBmaWxsPSIjNDc1NTY5Ii8+CiAgPHRleHQgeD0iMjg1IiB5PSI4NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+NDwvdGV4dD4KICA8dGV4dCB4PSIyODUiIHk9IjExMyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UGVybWlzc2lvbjwvdGV4dD4KICA8cG9seWdvbiBwb2ludHM9IjMyMCwxMDAgMzI3LDEwMyAzMjAsMTA2IiBmaWxsPSIjNjQ3NDhiIi8+CiAgPHJlY3QgeD0iMzI4IiB5PSI2NiIgd2lkdGg9IjY4IiBoZWlnaHQ9Ijc0IiByeD0iNiIgZmlsbD0iIzQ3NTU2OSIvPgogIDx0ZXh0IHg9IjM2MiIgeT0iODYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjU8L3RleHQ+CiAgPHRleHQgeD0iMzYyIiB5PSIxMDYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlByb2R1Y3Q8L3RleHQ+CiAgPHRleHQgeD0iMzYyIiB5PSIxMjEiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmFsbG9jYXRpb248L3RleHQ+CiAgPHBvbHlnb24gcG9pbnRzPSIzOTcsMTAwIDQwNCwxMDMgMzk3LDEwNiIgZmlsbD0iIzY0NzQ4YiIvPgogIDxyZWN0IHg9IjQwNSIgeT0iNjYiIHdpZHRoPSI2OCIgaGVpZ2h0PSI3NCIgcng9IjYiIGZpbGw9IiM0NzU1NjkiLz4KICA8dGV4dCB4PSI0MzkiIHk9Ijg2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj42PC90ZXh0PgogIDx0ZXh0IHg9IjQzOSIgeT0iMTA2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Db3N0PC90ZXh0PgogIDx0ZXh0IHg9IjQzOSIgeT0iMTIxIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5hbGxvY2F0aW9uPC90ZXh0PgogIDxwb2x5Z29uIHBvaW50cz0iNDc0LDEwMCA0ODEsMTAzIDQ3NCwxMDYiIGZpbGw9IiM2NDc0OGIiLz4KICA8cmVjdCB4PSI0ODIiIHk9IjY2IiB3aWR0aD0iNjgiIGhlaWdodD0iNzQiIHJ4PSI2IiBmaWxsPSIjMTZhMzRhIi8+CiAgPHRleHQgeD0iNTE2IiB5PSI4NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+NzwvdGV4dD4KICA8dGV4dCB4PSI1MTYiIHk9IjEwNiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QnVja2V0PC90ZXh0PgogIDx0ZXh0IHg9IjUxNiIgeT0iMTIxIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5hc3NpZ25tZW50PC90ZXh0PgogIDxwb2x5Z29uIHBvaW50cz0iNTUxLDEwMCA1NTgsMTAzIDU1MSwxMDYiIGZpbGw9IiM2NDc0OGIiLz4KICA8cmVjdCB4PSI1NTkiIHk9IjY2IiB3aWR0aD0iNjgiIGhlaWdodD0iNzQiIHJ4PSI2IiBmaWxsPSIjZDk3NzA2Ii8+CiAgPHRleHQgeD0iNTkzIiB5PSI4NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ODwvdGV4dD4KICA8dGV4dCB4PSI1OTMiIHk9IjEwNiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TWV0cmljPC90ZXh0PgogIDx0ZXh0IHg9IjU5MyIgeT0iMTIxIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5leHRyYWN0aW9uPC90ZXh0PgogIDxwb2x5Z29uIHBvaW50cz0iNjI4LDEwMCA2MzUsMTAzIDYyOCwxMDYiIGZpbGw9IiM2NDc0OGIiLz4KICA8cmVjdCB4PSI2MzYiIHk9IjY2IiB3aWR0aD0iNjgiIGhlaWdodD0iNzQiIHJ4PSI2IiBmaWxsPSIjZDk3NzA2Ii8+CiAgPHRleHQgeD0iNjcwIiB5PSI4NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+OTwvdGV4dD4KICA8dGV4dCB4PSI2NzAiIHk9IjExMyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGF2aXM8L3RleHQ+CiAgPHBvbHlnb24gcG9pbnRzPSI3MDUsMTAwIDcxMiwxMDMgNzA1LDEwNiIgZmlsbD0iIzY0NzQ4YiIvPgogIDxyZWN0IHg9IjcxMyIgeT0iNjYiIHdpZHRoPSI2OCIgaGVpZ2h0PSI3NCIgcng9IjYiIGZpbGw9IiNkOTc3MDYiLz4KICA8dGV4dCB4PSI3NDciIHk9Ijg2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4xMDwvdGV4dD4KICA8dGV4dCB4PSI3NDciIHk9IjEwNiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGF0YTwvdGV4dD4KICA8dGV4dCB4PSI3NDciIHk9IjEyMSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZXh0cmFjdGlvbjwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iMTUyIiB3aWR0aD0iNzYwIiBoZWlnaHQ9IjM4IiByeD0iNiIgZmlsbD0iI2VkZTlmZSIgc3Ryb2tlPSIjN2MzYWVkIi8+CiAgPHRleHQgeD0iNDAwIiB5PSIxNjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM1YjIxYjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkluc2lkZSBQcm9jZXNzaW5nOiBEUUwsIEFkZC9SZW1vdmUvUmVuYW1lIGZpZWxkcywgRHJvcCByZWNvcmQsIEdlb0lQIGxvb2t1cCwgSW5saW5lIGxvb2t1cDwvdGV4dD4KICA8dGV4dCB4PSI0MDAiIHk9IjE4MyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNWIyMWI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5NYXNraW5nLCBkcm9wcGluZyBhbmQgcGFyc2luZyBhcmUgcHJvY2Vzc29ycyBoZXJlLCBhbmQgdGhleSBydW4gaW4gdGhlIG9yZGVyIHlvdSBsaXN0IHRoZW08L3RleHQ+CiAgPHJlY3QgeD0iMzAiIHk9IjIwMCIgd2lkdGg9Ijc0MCIgaGVpZ2h0PSIxNDUiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNjYmQ1ZTEiLz4KICA8dGV4dCB4PSI0MDAiIHk9IjIyMyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+V2h5IE9yZGVyIE1hdHRlcnM8L3RleHQ+CiAgPHJlY3QgeD0iNTAiIHk9IjI0MCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSI5MCIgcng9IjYiIGZpbGw9IiNmOGZhZmMiIHN0cm9rZT0iIzdjM2FlZCIvPgogIDx0ZXh0IHg9IjE2MCIgeT0iMjY1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjN2MzYWVkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5NYXNraW5nIEZpcnN0PC90ZXh0PgogIDx0ZXh0IHg9IjE2MCIgeT0iMjg1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM0NzU1NjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkEgcHJvY2Vzc29yIGxpc3RlZCBhaGVhZCBvZjwvdGV4dD4KICA8dGV4dCB4PSIxNjAiIHk9IjMwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNDc1NTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj50aGUgbWFza2luZyBwcm9jZXNzb3I8L3RleHQ+CiAgPHRleHQgeD0iMTYwIiB5PSIzMTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzQ3NTU2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+c2VlcyB0aGUgcmF3IHZhbHVlPC90ZXh0PgogIDxyZWN0IHg9IjI5MCIgeT0iMjQwIiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjkwIiByeD0iNiIgZmlsbD0iI2Y4ZmFmYyIgc3Ryb2tlPSIjZDk3NzA2Ii8+CiAgPHRleHQgeD0iNDAwIiB5PSIyNjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNkOTc3MDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRyb3AgRWFybHk8L3RleHQ+CiAgPHRleHQgeD0iNDAwIiB5PSIyODUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzQ3NTU2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QSBkcm9wcGVkIHJlY29yZCBza2lwczwvdGV4dD4KICA8dGV4dCB4PSI0MDAiIHk9IjMwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNDc1NTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ldmVyeSBsYXRlciBzdGFnZTwvdGV4dD4KICA8dGV4dCB4PSI0MDAiIHk9IjMxNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNDc1NTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Ecm9wcGVkIGRhdGEgaXMgbm90IHJldGFpbmVkPC90ZXh0PgogIDxyZWN0IHg9IjUzMCIgeT0iMjQwIiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjkwIiByeD0iNiIgZmlsbD0iI2Y4ZmFmYyIgc3Ryb2tlPSIjMTZhMzRhIi8+CiAgPHRleHQgeD0iNjQwIiB5PSIyNjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxNmEzNGEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkVudGl0eSBGaWVsZHMgQWZ0ZXIgUHJvY2Vzc2luZzwvdGV4dD4KICA8dGV4dCB4PSI2NDAiIHk9IjI4NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNDc1NTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5MaXN0ZWQgZW50aXR5IGZpZWxkcyBhcmUgYWRkZWQ8L3RleHQ+CiAgPHRleHQgeD0iNjQwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzQ3NTU2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+YWZ0ZXIgdGhlIFByb2Nlc3Npbmcgc3RhZ2U7PC90ZXh0PgogIDx0ZXh0IHg9IjY0MCIgeT0iMzE1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM0NzU1NjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnVzZSB0aGVtIGluIGxhdGVyIHN0YWdlczwvdGV4dD4KPC9zdmc+Cg==" alt="Processing Stage Order" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Order | Stage | Processors |
+|-------|-------|------------|
+| 1 | Processing | DQL, Add/Remove/Rename fields, Drop record, GeoIP lookup (Early Access), Inline lookup — all matching processors, in the order you list them |
+| 2 | Smartscape node | Smartscape node |
+| 3 | Smartscape edge | Smartscape edge |
+| 4 | Permission | Set security context (first match only) |
+| 5 | Product allocation | DPS cost allocation – product (first match only) |
+| 6 | Cost allocation | DPS cost allocation – cost center (first match only) |
+| 7 | Bucket assignment | Bucket assignment, No storage assignment (first match only) |
+| 8 | Metric extraction | Counter / value / histogram metric (sampling-aware variants on spans) |
+| 9 | Davis | Davis event |
+| 10 | Data extraction | Business event, software development lifecycle event |
+-->
+<blockquote>
+<p>💡 <strong>Tip:</strong> Masking is not automatically first. Inside the Processing stage, place masking processors <strong>before</strong> any processor that copies, parses or extracts from the sensitive field — a processor listed ahead of the masking processor sees the raw value. Records reach Bucket assignment and storage only after the whole Processing stage has run. The platform enforces the stage sequence in the diagram; the order inside Processing is yours.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — stage table, in execution order; <em>&quot;The processor order in the stage; each processor output becomes the input for the next one.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<p><a id="summary-key-architecture-concepts"></a></p>
+<h2>Summary: Key Architecture Concepts</h2>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Key Points</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Data Flow</strong></td>
+<td>Ingest → (Pre-process) → Route → pipeline (fixed stage sequence) → Store</td>
+</tr>
+<tr>
+<td><strong>Pre-storage</strong></td>
+<td>All processing happens before data is persisted</td>
+</tr>
+<tr>
+<td><strong>Source Types</strong></td>
+<td>Built-in / Ready-made / Custom — only custom sources support pre-processing and static routing</td>
+</tr>
+<tr>
+<td><strong>Routing</strong></td>
+<td>Dynamic (DQL matcher) or static (custom sources only)</td>
+</tr>
+<tr>
+<td><strong>Processing Order</strong></td>
+<td>Fixed stages: Processing (mask, drop, parse, transform — in the order you list them) → Smartscape node/edge → Permission → Product and cost allocation → Bucket assignment → Metric extraction → Davis → Data extraction</td>
+</tr>
+<tr>
+<td><strong>Entity Detection</strong></td>
+<td>Happens AFTER processing, BEFORE most extraction processors run</td>
+</tr>
+<tr>
+<td><strong>Multi-pipeline</strong></td>
+<td>One route per record; pipeline groups add base pipelines; extraction in at most 5 pipelines (<code>/reference/limits</code>)</td>
+</tr>
+<tr>
+<td><strong>DPL</strong></td>
+<td>Powerful pattern language for parsing</td>
+</tr>
+<tr>
+<td><strong>Buckets</strong></td>
+<td>Control retention and cost at the storage assignment step; or skip with No storage assignment</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Next Steps</h2>
+<p>Now that you understand OpenPipeline architecture, continue with:</p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Focus Area</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OPMIG-03</strong></td>
+<td>Migration Assessment &amp; Planning</td>
+</tr>
+<tr>
+<td><strong>OPMIG-04</strong></td>
+<td>Pipeline Configuration Fundamentals</td>
+</tr>
+<tr>
+<td><strong>OPMIG-05</strong></td>
+<td>Routing &amp; Bucket Management</td>
+</tr>
+<tr>
+<td><strong>OPMIG-06</strong></td>
+<td>Processing, Parsing &amp; Transformation</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/data-flow">OpenPipeline Data Flow</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">OpenPipeline Processing</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language">Dynatrace Pattern Language</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits">OpenPipeline Limits</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/dpl-architect">DPL Architect Tool</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

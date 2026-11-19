@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MZ2POL-01: Introduction - Why Migrate from Management Zones</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MZ2POL — Management Zone Migration: Segments, Policies, Workflows</a><span class="sep">/</span><span aria-current="page">MZ2POL-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MZ2POL-01: Introduction - Why Migrate from Management Zones</h1>
+<blockquote>
+<p><strong>Series:</strong> MZ2POL — Management Zone Migration: Segments, Policies, Workflows | <strong>Notebook:</strong> 2 of 17 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 11/15/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook introduces the migration from <strong>Management Zones (MZs)</strong> in classic Dynatrace to the modern <strong>Policies, Boundaries, and Segments</strong> framework. Understanding why this migration is necessary and what benefits it brings is essential for planning a successful transition.</p>
+<blockquote>
+<p><strong>Note:</strong> This series is for organizations <strong>migrating from existing Management Zones</strong>. If you're setting up IAM governance from scratch (greenfield), see the <strong>IAM</strong> series for comprehensive IAM administration guidance.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#the-evolution-of-access-control-in-dynatrace">The Evolution of Access Control in Dynatrace</a></li>
+<li><a href="#the-new-access-control-model">The New Access Control Model</a></li>
+<li><a href="#understanding-your-current-management-zone-usage">Understanding Your Current Management Zone Usage</a></li>
+<li><a href="#benefits-of-migration">Benefits of Migration</a></li>
+<li><a href="#migration-timeline-considerations">Migration Timeline Considerations</a></li>
+<li><a href="#choose-your-reading-path">Choose Your Reading Path</a></li>
+<li><a href="#additional-resources">Additional Resources</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS on Latest Dynatrace, with management zones in use</td>
+</tr>
+<tr>
+<td><strong>Background</strong></td>
+<td>None — this notebook is the starting point; MZ2POL-00 inventories your zones</td>
+</tr>
+</tbody>
+</table>
+<h2>Target Audience</h2>
+<ul>
+<li>Dynatrace administrators managing access control</li>
+<li>Platform engineers responsible for multi-tenant configurations</li>
+<li>Security teams overseeing data access policies</li>
+<li>Teams currently using Management Zones for data filtering</li>
+</ul>
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ol>
+<li>Understand why Management Zones do not carry into Latest Dynatrace</li>
+<li>Know the key differences between MZs and the new model</li>
+<li>Recognize the benefits of Policies, Boundaries, and Segments</li>
+<li>Distinguish the three jobs a Management Zone conflates — access control, filtering, and alerting — and see how each fans out to a different construct (Policies + Boundaries, Segments, and problem-triggered workflows, respectively)</li>
+<li>Identify your current MZ usage patterns for migration planning</li>
+</ol>
+<h3>API 1.337 (April 2026): Zone and Tag Placeholder Properties Deprecated</h3>
+<p>Dynatrace API 1.337 marked the <code>managementZone</code> and <code>serviceTag</code> properties as deprecated on the Configuration API v2 <code>/calculatedMetrics/service</code> and <code>/service/requestNaming</code> endpoints — plus <code>managementZones</code> on request naming — and changed their <code>placeholders</code> property. Each entry reads <em>&quot;Deprecated changed to true&quot;</em>. The notes deprecate these properties, not calculated service metrics or request naming as such, and do not change how existing objects behave.</p>
+<p>What this means for the migration program:</p>
+<ul>
+<li><strong>Audit angle:</strong> in the MZ2POL-03 assessment, list custom calculated service metrics and request-naming rules that set <code>managementZone</code> or <code>serviceTag</code>, and plan to rewrite them.</li>
+<li><strong>New automation:</strong> in community practice, new configuration avoids deprecated properties — author new calculated metrics and naming rules without the zone property.</li>
+<li><strong>A related OneAgent change:</strong> OneAgent 1.337 made <code>DT_TAGS</code> primary fields reach Lambda data — <em>&quot;Primary fields set via DT_TAGS are now added to logs and spans in AWS Lambda deployments of OneAgent.&quot;</em> The general tagging-at-source model is in MZ2POL-10.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-337">Dynatrace API 1.337 (DT docs)</a> — <code>managementZone</code>: <em>&quot;Deprecated changed to true&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-337">OneAgent 1.337 (DT docs)</a>.</sub></p>
+</blockquote>
+<hr />
+<hr />
+<p><a id="the-evolution-of-access-control-in-dynatrace"></a></p>
+<h2>1. The Evolution of Access Control in Dynatrace</h2>
+<h3>What Are Management Zones?</h3>
+<p>Management Zones have been the primary mechanism for:</p>
+<ul>
+<li><strong>Data filtering</strong>: Limiting what data users see in the UI</li>
+<li><strong>Access control</strong>: Restricting user access to specific entities</li>
+<li><strong>Multi-tenancy</strong>: Separating data for different teams, regions, or business units</li>
+</ul>
+<h3>Why the Change?</h3>
+<p>Management Zones were designed for <strong>classic Dynatrace</strong> and have fundamental limitations:</p>
+<table>
+<thead>
+<tr>
+<th>Limitation</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rule-based assignment to entities</td>
+<td>Rules referencing other zones <em>&quot;can greatly delay management-zone assignment&quot;</em>; all rules share a limit of <em>&quot;100,000 conditions&quot;</em> per environment</td>
+</tr>
+<tr>
+<td>Not compatible with Grail</td>
+<td>Cannot filter Grail-stored data</td>
+</tr>
+<tr>
+<td>Tight coupling</td>
+<td>Access, filtering and alerting scope in a single construct</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management-classic/permission-management/management-zones/management-zone-rules">Management-zone rules (DT docs)</a> — <em>&quot;100,000 conditions for all management-zone rules taken together.&quot;</em></sub></p>
+</blockquote>
+<h3>The New Platform Architecture</h3>
+<p>The latest Dynatrace platform uses <strong>Grail</strong> as its data lakehouse. Grail:</p>
+<ul>
+<li>Does <strong>NOT</strong> support Management Zones</li>
+<li>Uses <strong>storage:</strong> fields for record-level access control</li>
+<li>Requires <strong>IAM policies</strong> for data access</li>
+<li>Leverages <strong>Segments</strong> for query-time filtering</li>
+</ul>
+<hr />
+<p><a id="the-new-access-control-model"></a></p>
+<h2>2. The New Access Control Model</h2>
+<p>The modern Dynatrace access control framework is based on <strong>ABAC (Attribute-Based Access Control)</strong> and consists of three key components:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+TWFuYWdlbWVudCBab25lcyBhbmQgdGhlIE1vZGVsIFRoYXQgUmVwbGFjZXMgVGhlbTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyLjUiPk9uZSBjb25zdHJ1Y3QgZG9pbmcgdGhyZWUgam9icyBvbiBlbnRpdGllcywgcmVwbGFjZWQgYnkgdGhyZWUgbWVjaGFuaXNtcyB0aGF0IHJlYWQgZmllbGRzIG9uIHRoZSBkYXRhPC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSI3MiIgd2lkdGg9IjQyMCIgaGVpZ2h0PSIzMzAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2UtZGFzaGFycmF5PSI1IDQiLz4KICA8dGV4dCB4PSIyMzAiIHk9Ijk2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5NQU5BR0VNRU5UIFpPTkUgKGNsYXNzaWMpPC90ZXh0PgogIDxyZWN0IHg9IjQwIiB5PSIxMTIiIHdpZHRoPSIzODAiIGhlaWdodD0iNzAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTAiIHk9IjEzMSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5PbmUgb2JqZWN0LCB0aHJlZSBqb2JzPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIxNDgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5hY2Nlc3MgKyBmaWx0ZXJpbmcgKyBhbGVydGluZyBzY29wZSw8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjE2NSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmFzc2lnbmVkIHBlciB6b25lPC90ZXh0PgogIDxyZWN0IHg9IjQwIiB5PSIxOTQiIHdpZHRoPSIzODAiIGhlaWdodD0iNzAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTAiIHk9IjIxMyIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5SdWxlcyBldmFsdWF0ZWQgb24gZW50aXRpZXM8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjIzMCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPnBlcmlvZGljYWxseSBpbiB0aGUgYmFja2dyb3VuZCw8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjI0NyIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPndpdGggcHJvcGFnYXRpb24gZmxhZ3M8L3RleHQ+CiAgPHJlY3QgeD0iNDAiIHk9IjI3NiIgd2lkdGg9IjM4MCIgaGVpZ2h0PSI3MCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI1MCIgeT0iMjk1IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPk5vdCBldmFsdWF0ZWQgZm9yIEdyYWlsIGRhdGE8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjMxMiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmF2YWlsYWJsZSBvbmx5IG9uIGNsYXNzaWMgcGFnZXM8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjMyOSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmZvciBiYWNrd2FyZCBjb21wYXRpYmlsaXR5PC90ZXh0PgogIDx0ZXh0IHg9IjIzMCIgeT0iMzgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5EYXRhIHdhcyBpbiBzY29wZSBiZWNhdXNlIGl0cyBlbnRpdHkgd2FzPC90ZXh0PgogIDxsaW5lIHgxPSI0NDAiIHkxPSIyMzciIHgyPSI0ODgiIHkyPSIyMzciIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgPHJlY3QgeD0iNDkwIiB5PSI3MiIgd2lkdGg9IjQyMCIgaGVpZ2h0PSIzMzAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2UtZGFzaGFycmF5PSI1IDQiLz4KICA8dGV4dCB4PSI3MDAiIHk9Ijk2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5MQVRFU1QgRFlOQVRSQUNFPC90ZXh0PgogIDxyZWN0IHg9IjUxMCIgeT0iMTEyIiB3aWR0aD0iMzgwIiBoZWlnaHQ9IjU4IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjUyNCIgeT0iMTM1IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkFjY2VzcyDihpIgcG9saWNpZXMgKyBib3VuZGFyaWVzPC90ZXh0PgogIDx0ZXh0IHg9IjUyNCIgeT0iMTU0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+cmVjb3JkIGNvbmRpdGlvbnMsIG1vc3RseSBkdC5zZWN1cml0eV9jb250ZXh0IOKAlCBNWjJQT0wtMDQsIC0xMjwvdGV4dD4KICA8cmVjdCB4PSI1MTAiIHk9IjE4MCIgd2lkdGg9IjM4MCIgaGVpZ2h0PSI1OCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI1MjQiIHk9IjIwMyIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5GaWx0ZXJpbmcg4oaSIHNlZ21lbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjUyNCIgeT0iMjIyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+cXVlcnktdGltZSBmaWx0ZXJzIG9uIGZpZWxkcyDigJQgTVoyUE9MLTA1PC90ZXh0PgogIDxyZWN0IHg9IjUxMCIgeT0iMjQ4IiB3aWR0aD0iMzgwIiBoZWlnaHQ9IjU4IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjUyNCIgeT0iMjcxIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkFsZXJ0aW5nIOKGkiBwcm9ibGVtLXRyaWdnZXJlZCB3b3JrZmxvd3M8L3RleHQ+CiAgPHRleHQgeD0iNTI0IiB5PSIyOTAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij50cmlnZ2VyIGZpbHRlcnMgb24gdGhlIHByb2JsZW0g4oCUIE1aMlBPTC0wOTwvdGV4dD4KICA8cmVjdCB4PSI1MTAiIHk9IjMxNiIgd2lkdGg9IjM4MCIgaGVpZ2h0PSI1NiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI1MjAiIHk9IjMzNSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5BbGwgdGhyZWUgcmVhZCBmaWVsZHMgc2V0IGF0IHRoZSBzb3VyY2U8L3RleHQ+CiAgPHRleHQgeD0iNTIwIiB5PSIzNTIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5wcmltYXJ5X3RhZ3MuKiwgZHQuc2VjdXJpdHlfY29udGV4dCDigJQgTVoyUE9MLTEwPC90ZXh0PgogIDx0ZXh0IHg9IjcwMCIgeT0iMzkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5FYWNoIHJlY29yZCBjYXJyaWVzIGl0cyBvd24gY29udGV4dDwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iNDE4IiB3aWR0aD0iODkwIiBoZWlnaHQ9IjYwIiByeD0iNyIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjIwIiB5PSI0MTgiIHdpZHRoPSI4OTAiIGhlaWdodD0iNjAiIHJ4PSI3IiBmaWxsPSJub25lIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzYiIHk9IjQ0MiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjExLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPkR5bmF0cmFjZTogbWFuYWdlbWVudCB6b25lcyAiYXJlIG5vdCBzdXBwb3J0ZWQgYnkgYW55IHBsYXRmb3JtIGZlYXR1cmUgb3IgRHluYXRyYWNlIGFwcCIg4oCUIGFuZCBhdXRvLXRhZ2dpbmcgcnVsZXM8L3RleHQ+CiAgPHRleHQgeD0iMzYiIHk9IjQ2MiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPiJoYXZlIG5vIGVmZmVjdCBvbiBTbWFydHNjYXBlIG9uIEdyYWlsIi4gQm90aCBzdGF5IGF2YWlsYWJsZSBvbiBjbGFzc2ljIHBhZ2VzIGR1cmluZyB0aGUgdHJhbnNpdGlvbi48L3RleHQ+Cjwvc3ZnPgo=" alt="Management zones and the model that replaces them" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Aspect | Management Zones (classic) | Latest Dynatrace |
+|---|---|---|
+| Jobs | Access + filtering + alerting scope in one object | Three mechanisms: policies + boundaries (access), segments (filtering), problem-triggered workflows (alerting) |
+| Evaluation | Rules on entities, periodically in the background, with propagation flags | Fields on each record, set at the source |
+| Grail data | Not evaluated — available only on classic pages | Native |
+| Prerequisite | Entity rules | primary_tags.* and dt.security_context on the data (MZ2POL-10) |
+For environments where SVG doesn't render
+-->
+<h3>Policies</h3>
+<p><strong>What they do</strong>: Define WHAT actions users can perform</p>
+<ul>
+<li>Encapsulate permissions against protected platform resources and data</li>
+<li>Leverage user, resource, data, and contextual attributes</li>
+<li>Can be default (read-only) or custom</li>
+</ul>
+<h3>Boundaries</h3>
+<p><strong>What they do</strong>: Define WHERE policies apply (scope restrictions)</p>
+<ul>
+<li>Bundle restrictions on record and/or resource level</li>
+<li>Enable re-usability across multiple policy assignments</li>
+<li>Decouple &quot;what&quot; from &quot;where&quot; for easier management</li>
+<li>Used together with policies when assigning to groups</li>
+</ul>
+<h3>Segments</h3>
+<p><strong>What they do</strong>: Provide dynamic data filtering at query time</p>
+<ul>
+<li>Reusable, pre-defined filter conditions using DQL</li>
+<li>Support variables for dynamic filtering</li>
+<li>Layerable - several segments can be applied together</li>
+<li>Replace MZ filtering for cross-app data segmentation</li>
+</ul>
+<h3>Comparison: Management Zones vs. New Model</h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Management Zones</th>
+<th>Policies + Boundaries + Segments</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scope</td>
+<td>Classic apps only</td>
+<td>All apps including Grail-based</td>
+</tr>
+<tr>
+<td>Evaluation</td>
+<td>Rules assign entities (and match logs and metrics by dimension)</td>
+<td>Query-time conditions on each record</td>
+</tr>
+<tr>
+<td>Combining dimensions</td>
+<td>Within one zone's rules</td>
+<td>Layer several segments</td>
+</tr>
+<tr>
+<td>Reusability</td>
+<td>Limited</td>
+<td>High (components are decoupled)</td>
+</tr>
+<tr>
+<td>Data filtering</td>
+<td>Built into MZ</td>
+<td>Segments (separate concern)</td>
+</tr>
+<tr>
+<td>Access control</td>
+<td>Built into MZ</td>
+<td>Policies + Boundaries (separate)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="understanding-your-current-management-zone-usage"></a></p>
+<h2>3. Understanding Your Current Management Zone Usage</h2>
+<p>Before migrating, audit your current MZ implementation.</p>
+<blockquote>
+<p>⚠️ <strong>Important:</strong> Management Zone configurations <strong>cannot be queried via DQL</strong>.</p>
+<p><strong>Options for viewing MZ configurations:</strong></p>
+<ol>
+<li><strong>Dynatrace UI (Recommended):</strong> Settings → Management Zones</li>
+<li><strong>SDK Analysis:</strong> See <strong>MZ2POL-00: SDK Management Zone Analysis Tool</strong> for comprehensive analysis including rule patterns, coverage metrics, and migration readiness.</li>
+</ol>
+</blockquote>
+<h3>Check Entity Distribution by Management Zone</h3>
+<p>You can query entity distribution across MZs using DQL:</p>
+<pre><code class="language-dql">// Count entities per Management Zone
+// Helps understand data distribution for Segment planning
+fetch dt.entity.service
+| expand mz = managementZones
+| summarize serviceCount = count(), by:{managementZone = mz}
+| sort serviceCount desc
+| limit 20
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
+</code></pre>
+<hr />
+<p><a id="benefits-of-migration"></a></p>
+<h2>4. Benefits of Migration</h2>
+<h3>Scalability</h3>
+<ul>
+<li><strong>Query-time filtering</strong> on the fields of each record</li>
+<li>Dynatrace describes segments as providing <em>&quot;real-time filtering on huge data sets without the need to define thousands of individual rules.&quot;</em></li>
+</ul>
+<h3>Flexibility</h3>
+<ul>
+<li><strong>Layered segments</strong> - apply several filters together</li>
+<li><strong>Dynamic variables</strong> - adapt to user context</li>
+<li><strong>DQL-powered</strong> - full query language for conditions</li>
+</ul>
+<h3>Separation of Concerns</h3>
+<ul>
+<li><strong>Policies</strong>: What can be done (permissions)</li>
+<li><strong>Boundaries</strong>: Where it can be done (scope)</li>
+<li><strong>Segments</strong>: What data to show (filtering)</li>
+</ul>
+<h3>Future-Proof</h3>
+<ul>
+<li>In Latest Dynatrace, management zones <em>&quot;have been replaced by three new concepts&quot;</em> — data partitioning, data access and data segmentation. No retirement date is published; zones keep working on classic pages</li>
+<li>In community practice, the Latest Dynatrace apps are where new capability lands, and they filter with segments</li>
+<li>Alerting profiles give way to <strong>problem-triggered workflows</strong> — not to Segments (see §5)</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments">Upgrade guide: management zones to segments (DT docs)</a> — <em>&quot;Segments do not replace this aspect of management zones.&quot;</em> (access control, which policies take over).</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Segments do not scope alerting.</strong> A common misreading of this migration is that alerting profiles will eventually accept a segment the way a dashboard does. They will not. Alerting profiles are scoped by Management Zone plus severity-rule tag matching; their Gen3 successor is a problem-triggered workflow whose trigger filters on affected-entity tags and an optional DQL matcher. Segments touch alerting in exactly one place — scoping an <em>anomaly detector</em> — and never scope triggers, notifications, or problem visibility. §5 gives the full mapping.</p>
+</blockquote>
+<hr />
+<p><a id="migration-timeline-considerations"></a></p>
+<h2>5. Migration Timeline Considerations</h2>
+<h3>Current State</h3>
+<ul>
+<li>Management Zones <strong>still work</strong> on classic pages</li>
+<li>They are not evaluated for Grail data, so Latest Dynatrace apps filter with segments instead — in community practice, that is where teams first notice the gap</li>
+<li>Hybrid approach possible during transition</li>
+</ul>
+<h3>What to Migrate</h3>
+<p>Management Zones do several unrelated jobs at once, and those jobs migrate to <strong>different</strong> places. Read this table as a fan-out, not a rename — there is no single construct that &quot;replaces&quot; a Management Zone.</p>
+<table>
+<thead>
+<tr>
+<th>Current MZ Use Case</th>
+<th>New Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>User access restriction</td>
+<td>Policies + Boundaries</td>
+</tr>
+<tr>
+<td>Data filtering in UI</td>
+<td>Segments</td>
+</tr>
+<tr>
+<td>Alerting profile scoping</td>
+<td><strong>Problem-triggered workflows</strong> — trigger filters on affected-entity tags + optional DQL matcher</td>
+</tr>
+<tr>
+<td>Problem <em>visibility</em> (who may see which problems)</td>
+<td>IAM record-level policy on <code>dt.security_context</code></td>
+</tr>
+<tr>
+<td>Anomaly detector scoping</td>
+<td>Segments (the one place segments touch alerting)</td>
+</tr>
+<tr>
+<td>Dashboard filtering</td>
+<td>Segments</td>
+</tr>
+<tr>
+<td>API access control</td>
+<td>Policies + Boundaries</td>
+</tr>
+</tbody>
+</table>
+<h3>The three axes, kept separate</h3>
+<p>The single most common planning error is collapsing these into one:</p>
+<table>
+<thead>
+<tr>
+<th>Axis</th>
+<th>Question it answers</th>
+<th>Mechanism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Routing</strong></td>
+<td>Who gets paged?</td>
+<td>Workflow trigger: affected-entity tags + DQL matcher</td>
+</tr>
+<tr>
+<td><strong>Visibility</strong></td>
+<td>Who may see the problem at all?</td>
+<td>IAM policy on <code>dt.security_context</code></td>
+</tr>
+<tr>
+<td><strong>Filtering</strong></td>
+<td>What does a user see in the UI?</td>
+<td>Segments</td>
+</tr>
+</tbody>
+</table>
+<p>Segments are not an access-control mechanism and are not a routing mechanism. Anyone holding <code>storage:filter-segments:read</code> can apply any segment.</p>
+<blockquote>
+<p>⚠️ <strong>The Management Zone filter does not carry over into the alerting model.</strong> Dynatrace's upgrade guide moves filtering into the workflow trigger: <em>&quot;A workflow's Problem trigger filters problems directly with DQL matchers on the problem.&quot;</em> Its own best practice is that <em>&quot;Tagging entities with meaningful metadata and filtering on primary_tags.</em> is more maintainable than chaining entity conditions&quot;*. This means the routing dimension must be carried by something the workflow trigger can actually match on — entity <strong>tags</strong>, or <code>dt.security_context</code>. If your MZ rules are computed from name patterns or entity selectors rather than tags, that enrichment work is a <strong>prerequisite</strong>, not a follow-up. See MZ2POL-09 §4 for converting zone rules into routing dimensions, and MZ2POL-11 for the rule-by-rule translation.</p>
+</blockquote>
+<blockquote>
+<p><strong>Duration-based suppression has a successor.</strong> An alerting profile can delay notification until a problem has been open longer than <em>N</em> minutes (<code>delayInMinutes</code>). The problem trigger's <strong>Minimum duration</strong> option postpones <em>&quot;the trigger until the problem has been open for at least the configured duration&quot;</em> — 5, 10, 15, 30, 60, 120, 240, 1440, or 10080 minutes, evaluated on <code>dt.duration_marker</code>. Since its 09/07/2026 rewrite the alert-notification upgrade guide agrees: <em>&quot;The delay, update, and severity capabilities described in this guide exist only on the workflow trigger.&quot;</em> Inventory <code>delayInMinutes</code> across every profile and map each value onto a Minimum duration setting. See MZ2POL-09 §6.1.</p>
+</blockquote>
+<h3>Migration Phases</h3>
+<ol>
+<li><strong>Assessment</strong>: Audit current MZ usage (this notebook)</li>
+<li><strong>Planning</strong>: Map MZs to Policies/Boundaries/Segments</li>
+<li><strong>Implementation</strong>: Create new access control constructs</li>
+<li><strong>Validation</strong>: Test access and filtering</li>
+<li><strong>Cutover</strong>: Transition users to new model</li>
+<li><strong>Cleanup</strong>: Remove deprecated MZ configurations</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event trigger (DT docs)</a> — the <strong>Minimum duration</strong> option and the <code>dt.duration_marker</code> field quoted above.</sub></p>
+</blockquote>
+<p><a id="choose-your-reading-path"></a></p>
+<h2>6. Choose Your Reading Path</h2>
+<p>The series is long because a management zone does up to three jobs, and each job migrates to a different construct. You do not need every notebook. Classify your zones first (MZ2POL-03; the test is in MZ2POL-05 §1), then take the lane for the job they do.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+Q2hvb3NlIFlvdXIgUmVhZGluZyBQYXRoPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIuNSI+UGljayB0aGUgbGFuZSBmb3IgdGhlIGpvYiB5b3VyIHpvbmVzIGRvIOKAlCB6b25lcyBkb2luZyBzZXZlcmFsIGpvYnMgdGFrZSB0aGUgZnVsbCBwYXRoPC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSI3NCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI3MiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzNCIgeT0iMTA0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkZpbHRlcmluZyBvbmx5PC90ZXh0PgogIDx0ZXh0IHg9IjM0IiB5PSIxMjYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij56b25lcyBzY29wZSB2aWV3cyBhbmQgZGFzaGJvYXJkczwvdGV4dD4KICA8cmVjdCB4PSIyMzQiIHk9Ijk0IiB3aWR0aD0iNTIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjMjJEM0VFIiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iMjM0IiB5PSI5NCIgd2lkdGg9IjUyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjI2MC4wIiB5PSIxMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjAwPC90ZXh0PgogIDxyZWN0IHg9IjI5NiIgeT0iOTQiIHdpZHRoPSI1MiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9IiMyMkQzRUUiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSIyOTYiIHk9Ijk0IiB3aWR0aD0iNTIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzIyLjAiIHk9IjExNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MDM8L3RleHQ+CiAgPHJlY3QgeD0iMzU4IiB5PSI5NCIgd2lkdGg9IjUyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzIyRDNFRSIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjM1OCIgeT0iOTQiIHdpZHRoPSI1MiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzODQuMCIgeT0iMTE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4xNTwvdGV4dD4KICA8cmVjdCB4PSI0MjAiIHk9Ijk0IiB3aWR0aD0iNTIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNDQ2LjAiIHk9IjExNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MTA8L3RleHQ+CiAgPHJlY3QgeD0iNDgyIiB5PSI5NCIgd2lkdGg9IjUyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjUwOC4wIiB5PSIxMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjExPC90ZXh0PgogIDxyZWN0IHg9IjU0NCIgeT0iOTQiIHdpZHRoPSI1MiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9IiMyMkQzRUUiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSI1NDQiIHk9Ijk0IiB3aWR0aD0iNTIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTcwLjAiIHk9IjExNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MDU8L3RleHQ+CiAgPHJlY3QgeD0iNjA2IiB5PSI5NCIgd2lkdGg9IjUyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzIyRDNFRSIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjYwNiIgeT0iOTQiIHdpZHRoPSI1MiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI2MzIuMCIgeT0iMTE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4wNjwvdGV4dD4KICA8cmVjdCB4PSI2NjgiIHk9Ijk0IiB3aWR0aD0iNTIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjMjJEM0VFIiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iNjY4IiB5PSI5NCIgd2lkdGg9IjUyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjY5NC4wIiB5PSIxMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjA3PC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSIxNTYiIHdpZHRoPSIyMDAiIGhlaWdodD0iNzIiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzQiIHk9IjE4NiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5BY2Nlc3MgY29udHJvbDwvdGV4dD4KICA8dGV4dCB4PSIzNCIgeT0iMjA4IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+em9uZXMgcmVzdHJpY3Qgd2hvIG1heSByZWFkPC90ZXh0PgogIDxyZWN0IHg9IjIzNCIgeT0iMTc2IiB3aWR0aD0iNTIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iMjM0IiB5PSIxNzYiIHdpZHRoPSI1MiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIyNjAuMCIgeT0iMTk3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4wMDwvdGV4dD4KICA8cmVjdCB4PSIyOTYiIHk9IjE3NiIgd2lkdGg9IjUyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjI5NiIgeT0iMTc2IiB3aWR0aD0iNTIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzIyLjAiIHk9IjE5NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MDM8L3RleHQ+CiAgPHJlY3QgeD0iMzU4IiB5PSIxNzYiIHdpZHRoPSI1MiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSIzNTgiIHk9IjE3NiIgd2lkdGg9IjUyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjM4NC4wIiB5PSIxOTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjE1PC90ZXh0PgogIDxyZWN0IHg9IjQyMCIgeT0iMTc2IiB3aWR0aD0iNTIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNDQ2LjAiIHk9IjE5NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MTA8L3RleHQ+CiAgPHJlY3QgeD0iNDgyIiB5PSIxNzYiIHdpZHRoPSI1MiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI1MDguMCIgeT0iMTk3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4xMTwvdGV4dD4KICA8cmVjdCB4PSI1NDQiIHk9IjE3NiIgd2lkdGg9IjUyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjU0NCIgeT0iMTc2IiB3aWR0aD0iNTIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTcwLjAiIHk9IjE5NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MTI8L3RleHQ+CiAgPHJlY3QgeD0iNjA2IiB5PSIxNzYiIHdpZHRoPSI1MiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSI2MDYiIHk9IjE3NiIgd2lkdGg9IjUyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjYzMi4wIiB5PSIxOTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjA0PC90ZXh0PgogIDxyZWN0IHg9IjY2OCIgeT0iMTc2IiB3aWR0aD0iNTIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iNjY4IiB5PSIxNzYiIHdpZHRoPSI1MiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI2OTQuMCIgeT0iMTk3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4wODwvdGV4dD4KICA8cmVjdCB4PSI3MzAiIHk9IjE3NiIgd2lkdGg9IjUyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjczMCIgeT0iMTc2IiB3aWR0aD0iNTIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNzU2LjAiIHk9IjE5NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MDY8L3RleHQ+CiAgPHJlY3QgeD0iNzkyIiB5PSIxNzYiIHdpZHRoPSI1MiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSI3OTIiIHk9IjE3NiIgd2lkdGg9IjUyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjgxOC4wIiB5PSIxOTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjA3PC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSIyMzgiIHdpZHRoPSIyMDAiIGhlaWdodD0iNzIiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzQiIHk9IjI2OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5BbGVydGluZzwvdGV4dD4KICA8dGV4dCB4PSIzNCIgeT0iMjkwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+em9uZXMgc2NvcGUgYWxlcnRpbmcgcHJvZmlsZXM8L3RleHQ+CiAgPHJlY3QgeD0iMjM0IiB5PSIyNTgiIHdpZHRoPSI1MiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSIyMzQiIHk9IjI1OCIgd2lkdGg9IjUyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjI2MC4wIiB5PSIyNzkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjAwPC90ZXh0PgogIDxyZWN0IHg9IjI5NiIgeT0iMjU4IiB3aWR0aD0iNTIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iMjk2IiB5PSIyNTgiIHdpZHRoPSI1MiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzMjIuMCIgeT0iMjc5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4wMzwvdGV4dD4KICA8cmVjdCB4PSIzNTgiIHk9IjI1OCIgd2lkdGg9IjUyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjM1OCIgeT0iMjU4IiB3aWR0aD0iNTIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzg0LjAiIHk9IjI3OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MTU8L3RleHQ+CiAgPHJlY3QgeD0iNDIwIiB5PSIyNTgiIHdpZHRoPSI1MiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI0NDYuMCIgeT0iMjc5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4xMDwvdGV4dD4KICA8cmVjdCB4PSI0ODIiIHk9IjI1OCIgd2lkdGg9IjUyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjUwOC4wIiB5PSIyNzkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjExPC90ZXh0PgogIDxyZWN0IHg9IjU0NCIgeT0iMjU4IiB3aWR0aD0iNTIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iNTQ0IiB5PSIyNTgiIHdpZHRoPSI1MiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI1NzAuMCIgeT0iMjc5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4wOTwvdGV4dD4KICA8cmVjdCB4PSI2MDYiIHk9IjI1OCIgd2lkdGg9IjUyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjYwNiIgeT0iMjU4IiB3aWR0aD0iNTIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNjMyLjAiIHk9IjI3OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MTY8L3RleHQ+CiAgPHJlY3QgeD0iNjY4IiB5PSIyNTgiIHdpZHRoPSI1MiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSI2NjgiIHk9IjI1OCIgd2lkdGg9IjUyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjY5NC4wIiB5PSIyNzkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjA2PC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSIzMjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNzIiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzQiIHk9IjM1MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5GdWxsIG1pZ3JhdGlvbjwvdGV4dD4KICA8dGV4dCB4PSIzNCIgeT0iMzcyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+em9uZXMgZG8gc2V2ZXJhbCBqb2JzPC90ZXh0PgogIDxyZWN0IHg9IjIzNCIgeT0iMzQwIiB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iMjM0IiB5PSIzNDAiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIyNTAuMCIgeT0iMzYxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4wMTwvdGV4dD4KICA8cmVjdCB4PSIyNjkiIHk9IjM0MCIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjI2OSIgeT0iMzQwIiB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMjg1LjAiIHk9IjM2MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MDI8L3RleHQ+CiAgPHJlY3QgeD0iMzA0IiB5PSIzNDAiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSIzMDQiIHk9IjM0MCIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjMyMC4wIiB5PSIzNjEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjAwPC90ZXh0PgogIDxyZWN0IHg9IjMzOSIgeT0iMzQwIiB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iMzM5IiB5PSIzNDAiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzNTUuMCIgeT0iMzYxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4wMzwvdGV4dD4KICA8cmVjdCB4PSIzNzQiIHk9IjM0MCIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjM3NCIgeT0iMzQwIiB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzkwLjAiIHk9IjM2MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MTU8L3RleHQ+CiAgPHJlY3QgeD0iNDA5IiB5PSIzNDAiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSI0MDkiIHk9IjM0MCIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjQyNS4wIiB5PSIzNjEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjE0PC90ZXh0PgogIDxyZWN0IHg9IjQ0NCIgeT0iMzQwIiB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNDYwLjAiIHk9IjM2MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MTA8L3RleHQ+CiAgPHJlY3QgeD0iNDc5IiB5PSIzNDAiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI0OTUuMCIgeT0iMzYxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4xMTwvdGV4dD4KICA8cmVjdCB4PSI1MTQiIHk9IjM0MCIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjUxNCIgeT0iMzQwIiB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTMwLjAiIHk9IjM2MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MTI8L3RleHQ+CiAgPHJlY3QgeD0iNTQ5IiB5PSIzNDAiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSI1NDkiIHk9IjM0MCIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjU2NS4wIiB5PSIzNjEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjA0PC90ZXh0PgogIDxyZWN0IHg9IjU4NCIgeT0iMzQwIiB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iNTg0IiB5PSIzNDAiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI2MDAuMCIgeT0iMzYxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4wODwvdGV4dD4KICA8cmVjdCB4PSI2MTkiIHk9IjM0MCIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjYxOSIgeT0iMzQwIiB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNjM1LjAiIHk9IjM2MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MDU8L3RleHQ+CiAgPHJlY3QgeD0iNjU0IiB5PSIzNDAiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSI2NTQiIHk9IjM0MCIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjY3MC4wIiB5PSIzNjEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjA5PC90ZXh0PgogIDxyZWN0IHg9IjY4OSIgeT0iMzQwIiB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iNjg5IiB5PSIzNDAiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI3MDUuMCIgeT0iMzYxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4xNjwvdGV4dD4KICA8cmVjdCB4PSI3MjQiIHk9IjM0MCIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjcyNCIgeT0iMzQwIiB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNzQwLjAiIHk9IjM2MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MDY8L3RleHQ+CiAgPHJlY3QgeD0iNzU5IiB5PSIzNDAiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSI3NTkiIHk9IjM0MCIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9Ijc3NS4wIiB5PSIzNjEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjA3PC90ZXh0PgogIDxyZWN0IHg9Ijc5NCIgeT0iMzQwIiB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iNzk0IiB5PSIzNDAiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI4MTAuMCIgeT0iMzYxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj45NTwvdGV4dD4KICA8cmVjdCB4PSI4MjkiIHk9IjM0MCIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjgyOSIgeT0iMzQwIiB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iODQ1LjAiIHk9IjM2MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+OTk8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjQwMiIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI3MiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzNCIgeT0iNDMyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkRlY2lzaW9uIG1ha2VyczwvdGV4dD4KICA8dGV4dCB4PSIzNCIgeT0iNDU0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+c2NvcGUsIGFwcHJvYWNoLCB3aGF0IGlzIG5vdCByZWFkeTwvdGV4dD4KICA8cmVjdCB4PSIyMzQiIHk9IjQyMiIgd2lkdGg9IjUyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzY0NzQ4QiIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjIzNCIgeT0iNDIyIiB3aWR0aD0iNTIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMjYwLjAiIHk9IjQ0MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MDE8L3RleHQ+CiAgPHJlY3QgeD0iMjk2IiB5PSI0MjIiIHdpZHRoPSI1MiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9IiM2NDc0OEIiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSIyOTYiIHk9IjQyMiIgd2lkdGg9IjUyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjMyMi4wIiB5PSI0NDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjAyPC90ZXh0PgogIDxyZWN0IHg9IjM1OCIgeT0iNDIyIiB3aWR0aD0iNTIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjNjQ3NDhCIiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iMzU4IiB5PSI0MjIiIHdpZHRoPSI1MiIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzODQuMCIgeT0iNDQzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4xMzwvdGV4dD4KICA8cmVjdCB4PSI0MjAiIHk9IjQyMiIgd2lkdGg9IjUyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzY0NzQ4QiIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjQyMCIgeT0iNDIyIiB3aWR0aD0iNTIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNDQ2LjAiIHk9IjQ0MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+OTk8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0ODYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPkdyZWVuIGNoaXBzICgxMCwgMTEpIGFyZSBvbiBldmVyeSB3b3JraW5nIHBhdGg6IHRoZSB0YWdzIGF0IHNvdXJjZSBhbmQgdGhlIHJ1bGUgdHJhbnNsYXRpb24gY29tZSBiZWZvcmUgYW55dGhpbmcgaXMgYnVpbHQ8L3RleHQ+Cjwvc3ZnPgo=" alt="Choose your reading path" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Path | Use it when | Read in this order |
+|---|---|---|
+| **Filtering only** | Your zones only scope views and dashboards | 00 → 03 → 15 → 10 → 11 → 05 → 06 → 07 |
+| **Access control** | Your zones restrict who may read what | 00 → 03 → 15 → 10 → 11 → 12 → 04 → 08 → 06 → 07 |
+| **Alerting** | Your zones scope alerting profiles | 00 → 03 → 15 → 10 → 11 → 09 → 16 → 06 |
+| **Full migration** | Your zones do several of these jobs | 01 → 02 → 00 → 03 → 15 → 14 → 10 → 11 → 12 → 04 → 08 → 05 → 09 → 16 → 06 → 07 → 95 → 99 |
+| **Decision makers** | You need scope, approach and what is not ready yet | 01 → 02 → 13 → 99 |
+Notebooks 10 (tagging at source) and 11 (rule translation) are on every working path.
+For environments where SVG doesn't render
+-->
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Use it when</th>
+<th>Read in this order</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Filtering only</strong></td>
+<td>Your zones only scope views and dashboards</td>
+<td>00 → 03 → 15 → 10 → 11 → 05 → 06 → 07</td>
+</tr>
+<tr>
+<td><strong>Access control</strong></td>
+<td>Your zones restrict who may read what</td>
+<td>00 → 03 → 15 → 10 → 11 → 12 → 04 → 08 → 06 → 07</td>
+</tr>
+<tr>
+<td><strong>Alerting</strong></td>
+<td>Your zones scope alerting profiles</td>
+<td>00 → 03 → 15 → 10 → 11 → 09 → 16 → 06</td>
+</tr>
+<tr>
+<td><strong>Full migration</strong></td>
+<td>Your zones do several of these jobs</td>
+<td>01 → 02 → 00 → 03 → 15 → 14 → 10 → 11 → 12 → 04 → 08 → 05 → 09 → 16 → 06 → 07 → 95 → 99</td>
+</tr>
+<tr>
+<td><strong>Decision makers</strong></td>
+<td>You need scope, approach and what is not ready yet</td>
+<td>01 → 02 → 13 → 99</td>
+</tr>
+</tbody>
+</table>
+<p>Two notebooks are on every working path: <strong>MZ2POL-10</strong> (tagging at source) and <strong>MZ2POL-11</strong> (rule translation). Every replacement — segment, boundary or workflow — reads a field on the data, so those two come before anything is built.</p>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ol>
+<li><strong>Why migrate</strong>: Management Zones are not evaluated for Grail data and remain only on classic pages</li>
+<li><strong>The new model</strong>: Policies (what) + Boundaries (where) + Segments (filter)</li>
+<li><strong>Key benefits</strong>: Scalability, flexibility, separation of concerns</li>
+<li><strong>The fan-out</strong>: one MZ's jobs migrate to <em>different</em> constructs — access to policies/boundaries, UI filtering to segments, alert routing to workflow triggers, problem visibility to <code>dt.security_context</code></li>
+<li><strong>Assessment queries</strong>: How to audit your current MZ usage</li>
+</ol>
+<h2>Next Steps</h2>
+<p>Pick your lane in §6. On the full path, continue to <strong>MZ2POL-02: Understanding the New Access Control Model</strong> to dive deeper into:</p>
+<ul>
+<li>Policy structure and syntax</li>
+<li>Boundary configuration</li>
+<li>Segment creation and management</li>
+</ul>
+<p>For the alerting side of the migration specifically, see <strong>WFLOW-02</strong> (problem-trigger configuration) and <strong>WFLOW-04</strong> (tag- and ownership-based routing).</p>
+<p><a id="additional-resources"></a></p>
+<h2>Additional Resources</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/access-concepts">Access Management Concepts</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries">Policy Boundaries</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles">Upgrade from RBAC to ABAC</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-queries">Segments Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide — alerting and notifications (DT docs)</a> — the authoritative old→new mapping, including where filtering goes in a workflow and the connector equivalence table</li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/alerting-profiles">Alerting profiles (DT docs)</a> — Dynatrace Classic surface; carries the &quot;we recommend using simple workflows&quot; steer</li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/use-segments-anomaly-detection">Use segments in anomaly detection (DT docs)</a> — the one documented intersection of segments and alerting</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

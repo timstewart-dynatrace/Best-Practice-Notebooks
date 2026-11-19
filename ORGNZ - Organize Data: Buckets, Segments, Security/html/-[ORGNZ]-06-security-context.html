@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ORGNZ-06: Security Context</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ORGNZ — Organize Data: Buckets, Segments, Security</a><span class="sep">/</span><span aria-current="page">ORGNZ-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ORGNZ-06: Security Context</h1>
+<blockquote>
+<p><strong>Series:</strong> ORGNZ — Organize Data: Buckets, Segments, Security | <strong>Notebook:</strong> 6 of 10 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>If permissions on deployment-level attributes or bucket level are insufficient, Dynatrace allows you to set up <strong>fine-grained permissions</strong> by adding a <code>dt.security_context</code> attribute to your data. This enables record-level access control that scales beyond bucket limits.</p>
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS environment with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:logs:read</code>, OpenPipeline configuration access</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>Completed ORGNZ-05 (Bucket-Level Access Control)</td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>Logs with <code>dt.security_context</code> field (or ability to configure)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#what-is-security-context">What is Security Context?</a></li>
+<li><a href="#security-context-values">Security Context Values</a></li>
+<li><a href="#setting-security-context">Setting Security Context</a></li>
+<li><a href="#iam-policies-with-security-context">IAM Policies with Security Context</a></li>
+<li><a href="#querying-security-context">Querying Security Context</a></li>
+<li><a href="#security-context-patterns">Security Context Patterns</a></li>
+<li><a href="#security-context-best-practices">Security Context Best Practices</a></li>
+<li><a href="#entity-security-context">Entity Security Context</a></li>
+</ol>
+<hr />
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ul>
+<li>Understand the purpose and structure of security context</li>
+<li>Know how to assign security context via OpenPipeline</li>
+<li>Create IAM policies that use security context</li>
+<li>Design hierarchical security context patterns</li>
+</ul>
+<p><a id="what-is-security-context"></a></p>
+<h2>What is Security Context?</h2>
+<p>Security context is a reserved field (<code>dt.security_context</code>) that enables custom authorization:</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Field name</strong></td>
+<td><code>dt.security_context</code></td>
+</tr>
+<tr>
+<td><strong>Type</strong></td>
+<td>String or array of strings</td>
+</tr>
+<tr>
+<td><strong>Purpose</strong></td>
+<td>Custom authorization beyond standard attributes</td>
+</tr>
+<tr>
+<td><strong>Source</strong></td>
+<td>OpenPipeline, OneAgent, Kubernetes labels</td>
+</tr>
+<tr>
+<td><strong>Enforcement</strong></td>
+<td>IAM policies filter at query time</td>
+</tr>
+</tbody>
+</table>
+<h3>Why Use Security Context?</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Without Security Context</th>
+<th>With Security Context</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>100 teams sharing data</td>
+<td>Need 100 buckets</td>
+<td>Single bucket, 100 context values</td>
+</tr>
+<tr>
+<td>Dynamic team membership</td>
+<td>Static bucket assignment</td>
+<td>Update context via tags</td>
+</tr>
+<tr>
+<td>Hierarchical access</td>
+<td>Complex policy combinations</td>
+<td>Hierarchical string encoding</td>
+</tr>
+</tbody>
+</table>
+<p><a id="security-context-values"></a></p>
+<h2>Security Context Values</h2>
+<h3>Simple Values</h3>
+<pre><code>dt.security_context: &quot;team-a&quot;
+dt.security_context: &quot;finance&quot;
+dt.security_context: &quot;sec-lvl-7&quot;
+</code></pre>
+<h3>Hierarchical Encoding</h3>
+<p>Encode hierarchy in a string for flexible access patterns:</p>
+<pre><code>dt.security_context: &quot;department-A/team-1/project-x&quot;
+dt.security_context: &quot;org1/finance/compliance&quot;
+dt.security_context: &quot;region-us/aws-account-123/team-platform&quot;
+</code></pre>
+<h3>Array Values</h3>
+<p>Records can have multiple security context values:</p>
+<pre><code>dt.security_context: [&quot;team-a&quot;, &quot;project-x&quot;, &quot;compliance&quot;]
+</code></pre>
+<p>From OneAgent 1.349 (rollout start 11/09/2026 — verify the version has reached your hosts) you can <em>&quot;assign multiple dt.security_context values to a single host or process, set during installation or with oneagentctl for hosts, and with environment variables for processes.&quot;</em> A second value on a host turns the field on its records into an array, so policies on that data need <code>MATCH</code> — see <em>Array Field Access with MATCH</em> below — before the second value is rolled out.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349">OneAgent 1.349 release notes (DT docs)</a> — <em>&quot;You can now assign multiple dt.security_context values to a single host or process.&quot;</em></sub></p>
+</blockquote>
+<p><a id="setting-security-context"></a></p>
+<h2>Setting Security Context</h2>
+<p><em>&quot;Set the dt.security_context field as early as possible in the data pipeline, ideally at the source.&quot;</em> Dynatrace lists the patterns in order of preference and is explicit about the order: <em>&quot;At-source enrichment is always preferred over OpenPipeline-based enrichment for the security context.&quot;</em> A value set at the source is on the record before pipeline routing, so the record reaches the right pipeline and bucket from the start.</p>
+<blockquote>
+<p><strong>Corrected 09/18/2026.</strong> Earlier versions of this notebook showed a <code>dynatrace.com/security-context</code> Kubernetes label and annotation, a YAML OpenPipeline processor, and an automatic host-group mapping. None of those is documented, and Dynatrace does not read that label or annotation. If you copied them, replace them with one of the patterns below.</p>
+</blockquote>
+<h3>1. At the source (preferred)</h3>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OneAgent host tag</td>
+<td><em>&quot;OneAgent host tags: Add dt.security_context=<value> as a host tag during installation or via Deployment Status.&quot;</em> Applies to all telemetry from that host.</td>
+</tr>
+<tr>
+<td>Process on shared infrastructure</td>
+<td>Set <code>DT_TAGS=&quot;dt.security_context=&lt;value&gt;&quot;</code> as an environment variable on the process.</td>
+</tr>
+<tr>
+<td>Kubernetes</td>
+<td>Namespace labels or annotations, mapped through Kubernetes metadata enrichment — see below.</td>
+</tr>
+<tr>
+<td>OpenTelemetry</td>
+<td>Add <code>dt.security_context</code> as a resource attribute in <code>OTEL_RESOURCE_ATTRIBUTES</code> or in the OpenTelemetry Collector.</td>
+</tr>
+</tbody>
+</table>
+<h3>2. Central configuration</h3>
+<p>Under <strong>Settings &gt; Collect and capture</strong>, the central primary Grail tag configuration maps a tag, label or resource attribute to <code>dt.security_context</code> — or, per the docs, can <em>&quot;Set a fixed value for all signals within a given scope (environment, Kubernetes cluster, host group).&quot;</em> That fixed value is how you give a whole host group one security context; nothing assigns it automatically from group membership.</p>
+<h3>3. OpenPipeline (refinement)</h3>
+<p>Use OpenPipeline only where the value has to be computed from several fields: <em>&quot;define dt.security_context in OpenPipeline using dedicated Set security context processors. These are available for spans, logs, and metrics.&quot;</em> Configure them in the OpenPipeline app for the relevant scope.</p>
+<h3>Kubernetes</h3>
+<p>Use existing namespace labels or annotations: <em>&quot;Via the Kubernetes metadata enrichment feature, you can use already existing namespace labels and annotations as source for your security context.&quot;</em> Metadata enrichment must be enabled in Dynatrace Operator.</p>
+<p>A pod annotation is the fallback, not the default — <em>&quot;Dedicated pod annotations are only intended for scenarios where namespace labels or annotations cannot be used as a source.&quot;</em> The documented annotation is:</p>
+<pre><code class="language-yaml">metadata:
+  annotations:
+    metadata.dynatrace.com/dt.security_context: &quot;team-checkout&quot;
+</code></pre>
+<p>It also enriches less: <em>&quot;They do not enrich Kubernetes metrics, Kubernetes events, Kubernetes Smartscape entities, or Prometheus metrics.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/tags-security-context">Configure security context (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/k8-security-context">Kubernetes security context (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="iam-policies-with-security-context"></a></p>
+<h2>IAM Policies with Security Context</h2>
+<h3>Basic Security Context Policy</h3>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;team-a-data-access&quot;,
+  &quot;description&quot;: &quot;Team A can access data with team-a security context&quot;,
+  &quot;statementQuery&quot;: &quot;ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH 'default_'; ALLOW storage:logs:read WHERE storage:dt.security_context = 'team-a';&quot;,
+  &quot;tags&quot;: [&quot;team:team-a&quot;]
+}
+</code></pre>
+<h3>Hierarchical Access with MATCH</h3>
+<p>Grant access to entire department:</p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;finance-department-access&quot;,
+  &quot;description&quot;: &quot;Finance department can access all finance sub-teams&quot;,
+  &quot;statementQuery&quot;: &quot;ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH 'default_'; ALLOW storage:logs:read WHERE storage:dt.security_context MATCH ('finance/*');&quot;,
+  &quot;tags&quot;: [&quot;department:finance&quot;]
+}
+</code></pre>
+<h3>Array Field Access with MATCH</h3>
+<blockquote>
+<p><strong>Important</strong>: When <code>dt.security_context</code> holds an array, you MUST use <code>MATCH</code> operator. Using <code>=</code>, <code>STARTSWITH</code>, or <code>IN</code> will always return false for array fields.</p>
+</blockquote>
+<pre><code>// Correct - MATCH for array fields
+ALLOW storage:logs:read WHERE storage:dt.security_context MATCH (&quot;crn-70400-*&quot;);
+
+// Wrong - = won't work for arrays
+ALLOW storage:logs:read WHERE storage:dt.security_context = &quot;crn-70400-team&quot;;
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a> — <em>&quot;Using =, STARTSWITH or IN when the field holds an array will always return false.&quot;</em></sub></p>
+</blockquote>
+<p><a id="querying-security-context"></a></p>
+<h2>Querying Security Context</h2>
+<h3>DQL: Security Context Verification</h3>
+<p>Verify that <code>dt.security_context</code> is being set on your log data:</p>
+<pre><code class="language-dql">// Summarize log volume by security context — verify dt.security_context is assigned correctly
+fetch logs, from:-1h
+| filter isNotNull(dt.security_context)
+| summarize recordCount = count(), by:{dt.security_context}
+| sort recordCount desc
+| limit 20
+</code></pre>
+<p><a id="security-context-patterns"></a></p>
+<h2>Security Context Patterns</h2>
+<h3>Pattern 1: Team-Based Access</h3>
+<pre><code>Context value: &quot;team:&lt;team-name&gt;&quot;
+Examples: &quot;team:platform&quot;, &quot;team:checkout&quot;, &quot;team:payments&quot;
+Policy: ALLOW ... WHERE storage:dt.security_context = &quot;team:platform&quot;
+</code></pre>
+<h3>Pattern 2: Line of Business</h3>
+<pre><code>Context value: &quot;lob:&lt;business-unit&gt;&quot;
+Examples: &quot;lob:finance&quot;, &quot;lob:retail&quot;, &quot;lob:healthcare&quot;
+Policy: ALLOW ... WHERE storage:dt.security_context = &quot;lob:finance&quot;
+</code></pre>
+<h3>Pattern 3: Hierarchical Organization</h3>
+<pre><code>Context value: &quot;&lt;org&gt;/&lt;department&gt;/&lt;team&gt;&quot;
+Examples: &quot;acme/engineering/platform&quot;, &quot;acme/finance/compliance&quot;
+
+Department-level access:
+ALLOW ... WHERE storage:dt.security_context MATCH (&quot;acme/engineering/*&quot;)
+
+Team-level access:
+ALLOW ... WHERE storage:dt.security_context = &quot;acme/engineering/platform&quot;
+</code></pre>
+<blockquote>
+<p><strong><code>=</code> works only while the field holds a single string.</strong> Patterns 1–3 use <code>=</code> for exact values. <em>Permissions in Grail</em> is explicit: <em>&quot;Using =, STARTSWITH or IN when the field holds an array will always return false. If you expect your record filters might contain an array, use the MATCH operator in your IAM statements.&quot;</em> Check the shape of your data first (the shape-check query in ORGNZ-99 §5). If any record can carry an array, write the exact value with <code>MATCH</code>, which needs no wildcard:</p>
+<pre><code>ALLOW storage:logs:read WHERE storage:dt.security_context MATCH (&quot;team:platform&quot;);
+ALLOW storage:logs:read WHERE storage:dt.security_context MATCH (&quot;lob:finance&quot;);
+ALLOW storage:logs:read WHERE storage:dt.security_context MATCH (&quot;acme/engineering/platform&quot;);
+</code></pre>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a> — as quoted; the page's own team example is <code>MATCH (&quot;TeamA&quot;)</code>.</sub></p>
+</blockquote>
+<h3>Pattern 4: Cloud Account Mapping</h3>
+<pre><code>Context value: &quot;&lt;cloud&gt;/&lt;account&gt;&quot;
+Examples: &quot;aws/123456789012&quot;, &quot;gcp/my-project-id&quot;
+Policy: ALLOW ... WHERE storage:dt.security_context MATCH (&quot;aws/*&quot;)
+</code></pre>
+<h3>Pattern 5: Multi-Dimensional Structured Context</h3>
+<p>Encode multiple dimensions into a single string for transversal team access — teams that need cross-application visibility (database, networking, OS) without being tied to a specific application.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iMTAiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1ibHVlIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzE0OTZGRiIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiMyMkQzRUUiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiNBNzhCRkEiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDY1IiB5PSIzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+U3RydWN0dXJlZCBTZWN1cml0eSBDb250ZXh0IERlc2lnbjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5jb21wOiZsdDtjb21wb25lbnQmZ3Q7IC8gYnU6Jmx0O2J1c2luZXNzLXVuaXQmZ3Q7IC8gYXBwOiZsdDthcHBsaWNhdGlvbiZndDsgIOKAlCAgZW5hYmxlcyB0cmFuc3ZlcnNhbCB0ZWFtIGFjY2VzcyB2aWEgTUFUQ0goKTwvdGV4dD4KCiAgPCEtLSDilIDilIAgQ29sdW1uIGhlYWRlcnMg4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSAIC0tPgogIDx0ZXh0IHg9IjE2NSIgeT0iODQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiIGxldHRlci1zcGFjaW5nPSIxIj5EQVRBIEVOVElUSUVTPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iODQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiIGxldHRlci1zcGFjaW5nPSIxIj5NQVRDSCgpIEJPVU5EQVJZPC90ZXh0PgogIDx0ZXh0IHg9Ijc3NSIgeT0iODQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiIGxldHRlci1zcGFjaW5nPSIxIj5URUFNIEdFVFMgQUNDRVNTPC90ZXh0PgoKICA8IS0tIOKUgOKUgCBEaXZpZGVyIGxpbmVzIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgCAtLT4KICA8bGluZSB4MT0iMzMwIiB5MT0iNzIiIHgyPSIzMzAiIHkyPSI0OTAiIHN0cm9rZT0iIzFFMjkzQiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPGxpbmUgeDE9IjYxMCIgeTE9IjcyIiB4Mj0iNjEwIiB5Mj0iNDkwIiBzdHJva2U9IiMxRTI5M0IiIHN0cm9rZS13aWR0aD0iMSIvPgoKICA8IS0tIOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkAogICAgICAgTEVGVCBDT0xVTU4g4oCUIERhdGEgZW50aXRpZXMgd2l0aCBzdHJ1Y3R1cmVkIGR0LnNlY3VyaXR5X2NvbnRleHQgdmFsdWVzCiAgICAgICDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZAgLS0+CgogIDwhLS0gRW50aXR5IDE6IGVhc3l0cmFkZSBhcHAgbGF5ZXIgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjEwMCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI1MiIgcng9IjYiIGZpbGw9IiMxNDk2RkYiIGZpbGwtb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjQ0IiB5PSIxMTkiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPmNvbXA6YXBwIC8gYnU6ZGlnaXRhbCAvIGFwcDplYXN5dHJhZGU8L3RleHQ+CiAgPHRleHQgeD0iNDQiIHk9IjEzNiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+QXBwbGljYXRpb24gbGF5ZXIg4oCUIGZyb250ZW5kLCBBUElzPC90ZXh0PgogIDxyZWN0IHg9IjQ0IiB5PSIxNDAiIHdpZHRoPSI0MiIgaGVpZ2h0PSI4IiByeD0iMyIgZmlsbD0iIzE0OTZGRiIgZmlsbC1vcGFjaXR5PSIwLjI1Ii8+CiAgPHRleHQgeD0iNjUiIHk9IjE0NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSI4IiBmb250LXdlaWdodD0iNzAwIj5hcHA8L3RleHQ+CgogIDwhLS0gRW50aXR5IDI6IGVhc3l0cmFkZSBkYiBsYXllciAtLT4KICA8cmVjdCB4PSIzMCIgeT0iMTY0IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjUyIiByeD0iNiIgZmlsbD0iIzczQkUyOCIgZmlsbC1vcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNDQiIHk9IjE4MyIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+Y29tcDpkYiAvIGJ1OmRpZ2l0YWwgLyBhcHA6ZWFzeXRyYWRlPC90ZXh0PgogIDx0ZXh0IHg9IjQ0IiB5PSIyMDAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkRhdGFiYXNlIGxheWVyIOKAlCBNeVNRTCwgUmVkaXM8L3RleHQ+CiAgPHJlY3QgeD0iNDQiIHk9IjIwNCIgd2lkdGg9IjM4IiBoZWlnaHQ9IjgiIHJ4PSIzIiBmaWxsPSIjNzNCRTI4IiBmaWxsLW9wYWNpdHk9IjAuMyIvPgogIDx0ZXh0IHg9IjYzIiB5PSIyMTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iOCIgZm9udC13ZWlnaHQ9IjcwMCI+ZGI8L3RleHQ+CgogIDwhLS0gRW50aXR5IDM6IGVhc3l0cmFkZSBsYiBsYXllciAtLT4KICA8cmVjdCB4PSIzMCIgeT0iMjI4IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjUyIiByeD0iNiIgZmlsbD0iI0ZGQjgwMCIgZmlsbC1vcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNDQiIHk9IjI0NyIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+Y29tcDpsYiAvIGJ1OmRpZ2l0YWwgLyBhcHA6ZWFzeXRyYWRlPC90ZXh0PgogIDx0ZXh0IHg9IjQ0IiB5PSIyNjQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkxvYWQgYmFsYW5jZXIgbGF5ZXIg4oCUIG5naW54LCBBTEI8L3RleHQ+CiAgPHJlY3QgeD0iNDQiIHk9IjI2OCIgd2lkdGg9IjMyIiBoZWlnaHQ9IjgiIHJ4PSIzIiBmaWxsPSIjRkZCODAwIiBmaWxsLW9wYWNpdHk9IjAuMyIvPgogIDx0ZXh0IHg9IjYwIiB5PSIyNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iOCIgZm9udC13ZWlnaHQ9IjcwMCI+bGI8L3RleHQ+CgogIDwhLS0gc2VwYXJhdG9yIC0tPgogIDxsaW5lIHgxPSI0NCIgeTE9IjMwMCIgeDI9IjI5NiIgeTI9IjMwMCIgc3Ryb2tlPSIjMUUyOTNCIiBzdHJva2UtZGFzaGFycmF5PSIzLDMiLz4KCiAgPCEtLSBFbnRpdHkgNDogbGF1bmNocGFkIGRiIGxheWVyIC0tPgogIDxyZWN0IHg9IjMwIiB5PSIzMTIiIHdpZHRoPSIyODAiIGhlaWdodD0iNTIiIHJ4PSI2IiBmaWxsPSIjNzNCRTI4IiBmaWxsLW9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI0NCIgeT0iMzMxIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5jb21wOmRiIC8gYnU6ZGlnaXRhbCAvIGFwcDpsYXVuY2hwYWQ8L3RleHQ+CiAgPHRleHQgeD0iNDQiIHk9IjM0OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+RGF0YWJhc2UgbGF5ZXIg4oCUIFBvc3RncmVTUUw8L3RleHQ+CiAgPHJlY3QgeD0iNDQiIHk9IjM1MiIgd2lkdGg9IjM4IiBoZWlnaHQ9IjgiIHJ4PSIzIiBmaWxsPSIjNzNCRTI4IiBmaWxsLW9wYWNpdHk9IjAuMyIvPgogIDx0ZXh0IHg9IjYzIiB5PSIzNTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iOCIgZm9udC13ZWlnaHQ9IjcwMCI+ZGI8L3RleHQ+CgogIDwhLS0gRW50aXR5IDU6IGxhdW5jaHBhZCBhcHAgbGF5ZXIgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjM3NiIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI1MiIgcng9IjYiIGZpbGw9IiMxNDk2RkYiIGZpbGwtb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjQ0IiB5PSIzOTUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPmNvbXA6YXBwIC8gYnU6ZGlnaXRhbCAvIGFwcDpsYXVuY2hwYWQ8L3RleHQ+CiAgPHRleHQgeD0iNDQiIHk9IjQxMiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+QXBwbGljYXRpb24gbGF5ZXIg4oCUIE5vZGUuanMgc2VydmljZXM8L3RleHQ+CiAgPHJlY3QgeD0iNDQiIHk9IjQxNiIgd2lkdGg9IjQyIiBoZWlnaHQ9IjgiIHJ4PSIzIiBmaWxsPSIjMTQ5NkZGIiBmaWxsLW9wYWNpdHk9IjAuMjUiLz4KICA8dGV4dCB4PSI2NSIgeT0iNDIzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjgiIGZvbnQtd2VpZ2h0PSI3MDAiPmFwcDwvdGV4dD4KCiAgPCEtLSDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZAKICAgICAgIE1JRERMRSBDT0xVTU4g4oCUIE1BVENIKCkgYm91bmRhcnkgZXhwcmVzc2lvbnMKICAgICAgIOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkCAtLT4KCiAgPCEtLSBQYXR0ZXJuIEE6IEFwcCB0ZWFtIChlYXN5dHJhZGUg4oCUIGFsbCBjb21wb25lbnRzKSAtLT4KICA8cmVjdCB4PSIzNDUiIHk9IjEwMCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI2MCIgcng9IjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI0NzAiIHk9IjExOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+QXBwIFRlYW0g4oCUIGVhc3l0cmFkZTwvdGV4dD4KICA8dGV4dCB4PSI0NzAiIHk9IjEzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzIyRDNFRSIgZm9udC1zaXplPSIxMSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+TUFUQ0goJyovYXBwOmVhc3l0cmFkZScpPC90ZXh0PgogIDx0ZXh0IHg9IjQ3MCIgeT0iMTUxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEwIj53aWxkY2FyZCBiZWZvcmUgYXBwOiBkaW1lbnNpb248L3RleHQ+CgogIDwhLS0gUGF0dGVybiBCOiBUcmFuc3ZlcnNhbCBEQiB0ZWFtIC0tPgogIDxyZWN0IHg9IjM0NSIgeT0iMjIyIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjYwIiByeD0iNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjQ3MCIgeT0iMjQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5UcmFuc3ZlcnNhbCBEQiBUZWFtPC90ZXh0PgogIDx0ZXh0IHg9IjQ3MCIgeT0iMjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNzNCRTI4IiBmb250LXNpemU9IjExIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj5NQVRDSCgnY29tcDpkYionKTwvdGV4dD4KICA8dGV4dCB4PSI0NzAiIHk9IjI3MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMCI+d2lsZGNhcmQgYWZ0ZXIgY29tcDpkYiBwcmVmaXg8L3RleHQ+CgogIDwhLS0gUGF0dGVybiBDOiBCVSB0ZWFtIC0tPgogIDxyZWN0IHg9IjM0NSIgeT0iMzgwIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjYwIiByeD0iNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjQ3MCIgeT0iMzk4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5CdXNpbmVzcyBVbml0IFRlYW0g4oCUIGRpZ2l0YWw8L3RleHQ+CiAgPHRleHQgeD0iNDcwIiB5PSI0MTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNzhCRkEiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPk1BVENIKCcqL2J1OmRpZ2l0YWwvKicpPC90ZXh0PgogIDx0ZXh0IHg9IjQ3MCIgeT0iNDMxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEwIj53aWxkY2FyZHMgYXJvdW5kIGJ1OiBkaW1lbnNpb248L3RleHQ+CgogIDwhLS0g4pSA4pSAIEFycm93cyBmcm9tIGVudGl0aWVzIHRvIE1BVENIIHBhdHRlcm5zIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgCAtLT4KCiAgPCEtLSBBcHAgdGVhbSAoY3lhbikgbWF0Y2hlcyBlbnRpdGllcyAxLCAzLCAobm90IDIgYnkgY29udGV4dCBidXQgYWxsIGVhc3l0cmFkZSkgLS0+CiAgPCEtLSBFbnRpdHkgMSDihpIgUGF0dGVybiBBIC0tPgogIDxsaW5lIHgxPSIzMTAiIHkxPSIxMjYiIHgyPSIzNDUiIHkyPSIxMzAiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyLWN5YW4pIi8+CiAgPCEtLSBFbnRpdHkgMiDihpIgUGF0dGVybiBBIC0tPgogIDxsaW5lIHgxPSIzMTAiIHkxPSIxOTAiIHgyPSIzNDAiIHkyPSIxNDgiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxIiBzdHJva2UtZGFzaGFycmF5PSI0LDMiIG1hcmtlci1lbmQ9InVybCgjYXJyLWN5YW4pIi8+CiAgPCEtLSBFbnRpdHkgMyDihpIgUGF0dGVybiBBIC0tPgogIDxsaW5lIHgxPSIzMTAiIHkxPSIyNTQiIHgyPSIzNDAiIHkyPSIxNTgiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxIiBzdHJva2UtZGFzaGFycmF5PSI0LDMiIG1hcmtlci1lbmQ9InVybCgjYXJyLWN5YW4pIi8+CgogIDwhLS0gREIgdGVhbSAoZ3JlZW4pIG1hdGNoZXMgZW50aXRpZXMgMiBhbmQgNCAtLT4KICA8IS0tIEVudGl0eSAyIOKGkiBQYXR0ZXJuIEIgLS0+CiAgPGxpbmUgeDE9IjMxMCIgeTE9IjE5MCIgeDI9IjM0NSIgeTI9IjI1MiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPCEtLSBFbnRpdHkgNCDihpIgUGF0dGVybiBCIC0tPgogIDxsaW5lIHgxPSIzMTAiIHkxPSIzMzgiIHgyPSIzNDUiIHkyPSIyNjgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgoKICA8IS0tIEJVIHRlYW0gKHB1cnBsZSkgbWF0Y2hlcyBhbGwgNSBlbnRpdGllcyAtLT4KICA8IS0tIEVudGl0eSAxIOKGkiBQYXR0ZXJuIEMgLS0+CiAgPGxpbmUgeDE9IjMxMCIgeTE9IjEyNiIgeDI9IjM0MCIgeTI9IjM5OCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1kYXNoYXJyYXk9IjMsMyIgbWFya2VyLWVuZD0idXJsKCNhcnItcHVycGxlKSIvPgogIDwhLS0gRW50aXR5IDUg4oaSIFBhdHRlcm4gQyAtLT4KICA8bGluZSB4MT0iMzEwIiB5MT0iNDAyIiB4Mj0iMzQ1IiB5Mj0iNDEwIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1wdXJwbGUpIi8+CgogIDwhLS0g4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQCiAgICAgICBSSUdIVCBDT0xVTU4g4oCUIFRlYW1zCiAgICAgICDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZAgLS0+CgogIDwhLS0gVGVhbSBBOiBlYXN5dHJhZGUgQXBwIFRlYW0gLS0+CiAgPHJlY3QgeD0iNjMwIiB5PSIxMDAiIHdpZHRoPSIyNzAiIGhlaWdodD0iODAiIHJ4PSI2IiBmaWxsPSIjMjJEM0VFIiBmaWxsLW9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI3NjUiIHk9IjEyMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+ZWFzeXRyYWRlIEFwcCBUZWFtPC90ZXh0PgogIDx0ZXh0IHg9Ijc2NSIgeT0iMTQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5TZWVzIGFsbCBjb21wb25lbnQgbGF5ZXJzPC90ZXh0PgogIDx0ZXh0IHg9Ijc2NSIgeT0iMTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5mb3IgdGhlaXIgYXBwbGljYXRpb24gb25seTwvdGV4dD4KICA8dGV4dCB4PSI3NjUiIHk9IjE3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMCI+Y29tcDphcHAsIGNvbXA6ZGIsIGNvbXA6bGIgLyBhcHA6ZWFzeXRyYWRlPC90ZXh0PgoKICA8IS0tIFRlYW0gQjogVHJhbnN2ZXJzYWwgREIgVGVhbSAtLT4KICA8cmVjdCB4PSI2MzAiIHk9IjIyMiIgd2lkdGg9IjI3MCIgaGVpZ2h0PSI4MCIgcng9IjYiIGZpbGw9IiM3M0JFMjgiIGZpbGwtb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9Ijc2NSIgeT0iMjQ0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5UcmFuc3ZlcnNhbCBEQiBUZWFtPC90ZXh0PgogIDx0ZXh0IHg9Ijc2NSIgeT0iMjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5TZWVzIGRhdGFiYXNlIGxheWVyPC90ZXh0PgogIDx0ZXh0IHg9Ijc2NSIgeT0iMjc3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5hY3Jvc3MgYWxsIGFwcGxpY2F0aW9uczwvdGV4dD4KICA8dGV4dCB4PSI3NjUiIHk9IjI5NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMCI+Y29tcDpkYiAvIGFwcDplYXN5dHJhZGUsIGFwcDpsYXVuY2hwYWQsIOKApjwvdGV4dD4KCiAgPCEtLSBUZWFtIEM6IEJVIFRlYW0gLS0+CiAgPHJlY3QgeD0iNjMwIiB5PSIzNzAiIHdpZHRoPSIyNzAiIGhlaWdodD0iOTAiIHJ4PSI2IiBmaWxsPSIjQTc4QkZBIiBmaWxsLW9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI3NjUiIHk9IjM5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+RGlnaXRhbCBCVSBUZWFtPC90ZXh0PgogIDx0ZXh0IHg9Ijc2NSIgeT0iNDEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5TZWVzIGFsbCBjb21wb25lbnRzIGFuZCBhcHBzPC90ZXh0PgogIDx0ZXh0IHg9Ijc2NSIgeT0iNDI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj53aXRoaW4gdGhlIGRpZ2l0YWwgYnVzaW5lc3MgdW5pdDwvdGV4dD4KICA8dGV4dCB4PSI3NjUiIHk9IjQ1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMCI+YWxsIGNvbXA6IHR5cGVzIC8gYWxsIGFwcDogdmFsdWVzIC8gYnU6ZGlnaXRhbDwvdGV4dD4KCiAgPCEtLSBBcnJvd3MgZnJvbSBNQVRDSCBwYXR0ZXJucyB0byB0ZWFtcyAtLT4KICA8bGluZSB4MT0iNTk1IiB5MT0iMTMwIiB4Mj0iNjMwIiB5Mj0iMTQwIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1jeWFuKSIvPgogIDxsaW5lIHgxPSI1OTUiIHkxPSIyNTIiIHgyPSI2MzAiIHkyPSIyNjIiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDxsaW5lIHgxPSI1OTUiIHkxPSI0MTAiIHgyPSI2MzAiIHkyPSI0MTUiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyLXB1cnBsZSkiLz4KCiAgPCEtLSDilIDilIAgQ2xhc3NpYyBlbnRpdHkgbm90ZSDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAgLS0+CiAgPHJlY3QgeD0iMzQ1IiB5PSI0NTIiIHdpZHRoPSI1NDAiIGhlaWdodD0iMzYiIHJ4PSI2IiBmaWxsPSIjMUUyOTNCIi8+CiAgPHRleHQgeD0iMzUwIiB5PSI0NjgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPlNtYXJ0c2NhcGUvZW50aXRpZXMgYWNjZXNzICh1c2UgTUFUQ0gg4oCUIHN0YXJ0c1dpdGggaGFzIGEga25vd24gYnVnIGhlcmUpOjwvdGV4dD4KICA8dGV4dCB4PSIzNTAiIHk9IjQ4MiIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+Y29tcDpkYi9idTpkaWdpdGFsL2FwcDplYXN5dHJhZGUgIOKGkiAgTUFUQ0goJ2NvbXA6ZGIqJykgIG1hdGNoZXMgYWxsIERCIGFjcm9zcyBhcHBzPC90ZXh0PgoKICA8IS0tIOKUgOKUgCBCb3R0b20gZGl2aWRlciDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAgLS0+CiAgPGxpbmUgeDE9IjMwIiB5MT0iNDQ4IiB4Mj0iMzMwIiB5Mj0iNDQ4IiBzdHJva2U9IiMxRTI5M0IiIHN0cm9rZS13aWR0aD0iMSIvPgoKPC9zdmc+Cg==" alt="Structured Security Context — comp/bu/app dimensions with MATCH() access patterns" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Team Type | MATCH() Expression | Gets Access To |
+|-----------|-------------------|----------------|
+| App team (easytrade) | MATCH('*/app:easytrade') | All component layers for easytrade |
+| Transversal DB team | MATCH('comp:db*') | Database layer across all applications |
+| Digital BU team | MATCH('*/bu:digital/*') | All components and apps within digital BU |
+For environments where SVG doesn't render
+-->
+<pre><code>Context format: &quot;comp:&lt;component&gt;/bu:&lt;business-unit&gt;/app:&lt;application&gt;&quot;
+Examples:
+  &quot;comp:app/bu:digital/app:easytrade&quot;  — application layer, digital BU
+  &quot;comp:db/bu:digital/app:easytrade&quot;   — database layer, digital BU
+  &quot;comp:lb/bu:digital/app:easytrade&quot;   — load balancer layer, digital BU
+</code></pre>
+<p><strong>MATCH() access patterns (Grail / 3rd Gen storage domain):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Team Type</th>
+<th>MATCH() Expression</th>
+<th>Grants Access To</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>App team</td>
+<td><code>MATCH('*/app:easytrade')</code></td>
+<td>All components for one application</td>
+</tr>
+<tr>
+<td>Transversal DB team</td>
+<td><code>MATCH('comp:db*')</code></td>
+<td>Database layer across all applications</td>
+</tr>
+<tr>
+<td>Business unit team</td>
+<td><code>MATCH('*/bu:digital/*')</code></td>
+<td>All components and apps within digital BU</td>
+</tr>
+</tbody>
+</table>
+<p><strong>startsWith patterns</strong> — these are Grail <code>storage:</code> statements, so the array caveat under Pattern 3 applies: <code>STARTSWITH</code> returns false on an array-valued field. Use them only where every record holds one string; otherwise use the <code>MATCH()</code> table above. (Classic entity access uses the same prefix idea; see IAM-05.)</p>
+<pre><code>// App team — enumerate each component explicitly
+ALLOW storage:logs:read WHERE storage:dt.security_context startsWith &quot;comp:app/bu:digital/app:easytrade&quot;
+ALLOW storage:logs:read WHERE storage:dt.security_context startsWith &quot;comp:db/bu:digital/app:easytrade&quot;
+
+// Transversal DB team — one prefix covers all apps
+ALLOW storage:logs:read WHERE storage:dt.security_context startsWith &quot;comp:db&quot;
+</code></pre>
+<blockquote>
+<p><strong>Dimension order matters for Classic entities.</strong> Place the dimension used for transversal access <em>first</em> (typically <code>comp</code>). For the full two-domain comparison and multi-value contexts (which OneAgent 1.349 can set on a host or process), see <strong>IAM-04: Policy Authoring</strong> and <strong>IAM-05: Boundary Design</strong>.</p>
+</blockquote>
+<p><a id="security-context-best-practices"></a></p>
+<h2>Security Context Best Practices</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Use consistent naming conventions</td>
+<td>Enables pattern matching in policies</td>
+</tr>
+<tr>
+<td>Plan hierarchy before implementation</td>
+<td>Hard to change after data is ingested</td>
+</tr>
+<tr>
+<td>Use prefixes for context types</td>
+<td><code>team:</code>, <code>lob:</code>, <code>env:</code> for clarity</td>
+</tr>
+<tr>
+<td>Document context values</td>
+<td>Governance and audit requirements</td>
+</tr>
+<tr>
+<td>Test with sample data</td>
+<td>Verify context is assigned correctly</td>
+</tr>
+<tr>
+<td>Use MATCH for array fields</td>
+<td>Required for correct policy evaluation</td>
+</tr>
+<tr>
+<td>Encode multiple dimensions for transversal access</td>
+<td><code>comp/bu/app</code> format scales to cross-application teams without per-app policies</td>
+</tr>
+</tbody>
+</table>
+<p><a id="entity-security-context"></a></p>
+<h2>Entity Security Context</h2>
+<p>Security context can also be set on entities (not just records):</p>
+<ol>
+<li>Go to <strong>Settings</strong> &gt; <strong>Topology model</strong> &gt; <strong>Grail Security Context</strong></li>
+<li>Define rules to assign security context to entities</li>
+<li>This scopes access to the <strong>entities</strong> only. Records sent from those entities are not scoped by it: <em>&quot;Logs, spans, metrics, and events powered by Grail that are sent from an entity do not inherit the management zones of that entity.&quot;</em> To scope a host's records, set <code>dt.security_context</code> as a host tag (see §3) — <em>&quot;After you set the security context on a host, it will be used to automatically determine the security context for all logs, spans, metrics, and events that are sent from this host.&quot;</em></li>
+</ol>
+<p>This enables entity-level access control for services, hosts, and other monitored entities.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context">Grant access to entities with security context (DT docs)</a>.</sub></p>
+</blockquote>
+<h2>Next Steps</h2>
+<p>Continue with the ORGNZ series:</p>
+<ul>
+<li><strong>ORGNZ-07</strong>: Advanced Permission Patterns</li>
+</ul>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/advanced-permission-setup">Configure advanced permissions with security context</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-security-context">Set up Grail permissions for OneAgent</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context">Grant access to entities with security context</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from Dynatrace documentation and enterprise best practices. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S2S-05: Step 5 — Execute: Configuration Import and Agent Cutover</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">S2S — SaaS to SaaS Migration</a><span class="sep">/</span><span aria-current="page">S2S-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>S2S-05: Step 5 — Execute: Configuration Import and Agent Cutover</h1>
+<blockquote>
+<p><strong>Series:</strong> S2S — SaaS to SaaS Migration | <strong>Notebook:</strong> 5 of 9 | <strong>Phase:</strong> Upgrade | <strong>Step:</strong> Execute | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/18/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>With the target tenant provisioned and all prerequisites staged (Step 4), this step performs the actual migration: importing configuration, redirecting agents, and validating data flow. Execution follows a wave-based approach — non-production environments first, production last — with DQL validation gates between each wave.</p>
+<p>This is the highest-risk step in the migration. Every action in this notebook changes the live monitoring path. Follow the configuration deployment order from Step 3 exactly, and validate after each major operation.</p>
+<h3>S2S Migration Framework</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Steps</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plan</td>
+<td>1. Discover → 2. Strategize → 3. Design</td>
+<td>Understand what exists, choose approach, design target</td>
+</tr>
+<tr>
+<td><strong>Upgrade</strong></td>
+<td>4. Prepare → <strong>5. Execute</strong> → 6. Integrate</td>
+<td>Build target, move config, connect integrations</td>
+</tr>
+<tr>
+<td>Run</td>
+<td>7. Expand → 8. Enable → 9. Optimize</td>
+<td>Roll out agents, enable teams, tune and decommission</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>You are here: Step 5 — Execute.</strong> The target tenant is provisioned, configuration is exported, ActiveGates are deployed, and the configuration freeze is active (Step 4). Now you import configuration and redirect agents.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#configuration-deployment-order">Configuration Deployment Order</a></li>
+<li><a href="#monaco-deploy-workflow">Monaco Deploy Workflow</a></li>
+<li><a href="#terraform-apply-for-iam">Terraform Apply for IAM</a></li>
+<li><a href="#entity-id-remapping">Entity ID Remapping</a></li>
+<li><a href="#oneagent-reconfiguration">OneAgent Reconfiguration</a></li>
+<li><a href="#kubernetes-operator-migration">Kubernetes Operator Migration</a></li>
+<li><a href="#activegate-migration">ActiveGate Migration</a></li>
+<li><a href="#wave-execution-and-validation">Wave Execution and Validation</a></li>
+<li><a href="#step-completion-checklist">Step Completion Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Step 4 Complete</strong></td>
+<td>Target tenant provisioned, SSO/IAM deployed, Monaco export validated, ActiveGates connected, K8s operator prepared</td>
+</tr>
+<tr>
+<td><strong>Configuration Freeze Active</strong></td>
+<td>Source tenant frozen — no new settings changes</td>
+</tr>
+<tr>
+<td><strong>Change Window Approved</strong></td>
+<td>Execution window approved by change management</td>
+</tr>
+<tr>
+<td><strong>Rollback Procedure Reviewed</strong></td>
+<td>Rollback steps documented and tested</td>
+</tr>
+<tr>
+<td><strong>Target Tenant Access</strong></td>
+<td>API token with <code>WriteConfig</code>, <code>settings.write</code>, <code>entities.read</code> scopes</td>
+</tr>
+<tr>
+<td><strong>Monaco CLI</strong></td>
+<td><code>monaco v2.x</code> pointed at target tenant</td>
+</tr>
+<tr>
+<td><strong>Terraform</strong></td>
+<td><code>terraform &gt;= 1.0</code> with Dynatrace provider <code>~&gt; 1.91</code></td>
+</tr>
+<tr>
+<td><strong>Communication Plan</strong></td>
+<td>Stakeholders notified of execution window</td>
+</tr>
+</tbody>
+</table>
+<h3>Order of Operations</h3>
+<p>This notebook covers <strong>operations 4–6</strong> of the Upgrade phase:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Operation</th>
+<th>Section</th>
+<th>Dependency</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Provision target tenant and configure SSO/IAM</td>
+<td>Step 4</td>
+<td>Step 3 design deliverables</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Export configuration from source tenant</td>
+<td>Step 4</td>
+<td>Source tenant access</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Deploy ActiveGates and prepare K8s operators</td>
+<td>Step 4</td>
+<td>Target tenant provisioned</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td><strong>Import configuration to target tenant</strong></td>
+<td>Sections 1–4</td>
+<td>Operations 1–3 complete</td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td><strong>Redirect agents to target tenant</strong></td>
+<td>Sections 5–7</td>
+<td>Configuration imported</td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td><strong>Validate data flow in target tenant</strong></td>
+<td>Section 8</td>
+<td>Agents redirected</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Reconnect cloud integrations</td>
+<td>Step 6</td>
+<td>Agents reporting</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Migrate dashboards, workflows, and extensions</td>
+<td>Step 6</td>
+<td>Integrations connected</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Bold</strong> operations are covered in this notebook. Operations 1–3 were completed in Step 4. Operations 7–8 are covered in Step 6.</p>
+</blockquote>
+<p><a id="configuration-deployment-order"></a></p>
+<h2>1. Configuration Deployment Order</h2>
+<p>Configuration must be imported in dependency order. Resources that other resources reference must exist first. This is the 24-item deployment order from Step 3 — follow it exactly.</p>
+<h3>Phase 1: Data Foundation — Deploy First</h3>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Category</th>
+<th>Tool</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Grail buckets</td>
+<td>Monaco / Terraform</td>
+<td>Bucket list matches design</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Enrichment rules (K8s labels → tags)</td>
+<td>Monaco</td>
+<td>Tags populating on incoming data</td>
+</tr>
+<tr>
+<td>3</td>
+<td>OpenPipeline processing rules</td>
+<td>Monaco</td>
+<td>Rules processing test data</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Segments</td>
+<td>Monaco / Terraform</td>
+<td>Segments visible in UI</td>
+</tr>
+</tbody>
+</table>
+<h3>Phase 2: Gen2 (Classic) Configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Category</th>
+<th>Tool</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5</td>
+<td>Management zones</td>
+<td>Monaco</td>
+<td>Zones visible in UI</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Auto-tags</td>
+<td>Monaco</td>
+<td>Tags applying to entities</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Request attributes</td>
+<td>Monaco</td>
+<td>Attributes capturing on services</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Calculated service metrics</td>
+<td>Monaco</td>
+<td>Metrics generating</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Custom services and detection rules</td>
+<td>Monaco</td>
+<td>Services detected</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Application detection rules</td>
+<td>Monaco</td>
+<td>Web applications created</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Conditional naming rules</td>
+<td>Monaco</td>
+<td>Entity names updating</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Anomaly detection settings</td>
+<td>Monaco</td>
+<td>Thresholds set</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Credential vault entries</td>
+<td>Manual</td>
+<td>Secrets stored</td>
+</tr>
+</tbody>
+</table>
+<h3>Phase 3: Monitoring and Alerting</h3>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Category</th>
+<th>Tool</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>14</td>
+<td>Alerting profiles</td>
+<td>Monaco</td>
+<td>Profiles visible</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Notification rules + integrations</td>
+<td>Monaco</td>
+<td>Test notification sent</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Maintenance windows</td>
+<td>Monaco</td>
+<td>Windows scheduled</td>
+</tr>
+<tr>
+<td>17</td>
+<td>SLO definitions</td>
+<td>Monaco</td>
+<td>SLOs evaluating (after agents report)</td>
+</tr>
+<tr>
+<td>18</td>
+<td>Synthetic monitors</td>
+<td>Monaco</td>
+<td>Monitors executing</td>
+</tr>
+</tbody>
+</table>
+<h3>Phase 4: User-Facing Configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Category</th>
+<th>Tool</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>19</td>
+<td>Classic dashboards</td>
+<td>Monaco</td>
+<td>Dashboards load (data after agents)</td>
+</tr>
+<tr>
+<td>20</td>
+<td>Gen3 dashboards and notebooks</td>
+<td>Monaco</td>
+<td>Documents visible</td>
+</tr>
+<tr>
+<td>21</td>
+<td>Workflows and automations</td>
+<td>Terraform / Monaco</td>
+<td>Workflows listed</td>
+</tr>
+</tbody>
+</table>
+<h3>Phase 5: Governance — Deploy Last</h3>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Category</th>
+<th>Tool</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>22</td>
+<td>IAM policies (tightened)</td>
+<td>Terraform</td>
+<td>Policies restrict as designed</td>
+</tr>
+<tr>
+<td>23</td>
+<td>IAM groups (final)</td>
+<td>Terraform</td>
+<td>Users inherit correct permissions</td>
+</tr>
+<tr>
+<td>24</td>
+<td>IAM policy bindings (final)</td>
+<td>Terraform</td>
+<td>Access validated by test users</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> Deploy Phases 1–4 <strong>before</strong> redirecting any agents. Agents will begin generating data immediately upon connection — the data foundation, processing rules, and alerting configuration must be in place first.</p>
+</blockquote>
+<p><a id="monaco-deploy-workflow"></a></p>
+<h2>2. Monaco Deploy Workflow</h2>
+<p>Monaco deploys configuration in two stages: an offline dry-run, then the deploy. <code>monaco deploy</code> takes the manifest as its one positional argument and selects the target with <code>--environment</code>; the target's URL and token come from the manifest, not from command-line flags.</p>
+<h3>Point the Manifest at the Target</h3>
+<p>Add the target environment to <code>export/manifest.yaml</code>. Both values name environment variables — the manifest never holds the token itself:</p>
+<pre><code class="language-yaml">environmentGroups:
+  - name: target
+    environments:
+      - name: target-tenant
+        url:
+          type: environment
+          value: DT_TARGET_URL
+        auth:
+          token:
+            name: DT_TARGET_TOKEN
+</code></pre>
+<pre><code class="language-bash">export DT_TARGET_URL=&quot;https://&lt;target-env-id&gt;.live.dynatrace.com&quot;
+export DT_TARGET_TOKEN=&quot;dt0c01.xxx...&quot;
+</code></pre>
+<p>Platform configurations (documents, automations, buckets, segments, SLOs, OpenPipeline) additionally need an OAuth client under the environment's <code>auth</code> block.</p>
+<h3>Dry-Run (Offline)</h3>
+<pre><code class="language-bash">monaco deploy ./export/manifest.yaml --environment target-tenant --dry-run
+</code></pre>
+<p>A dry-run checks manifest structure, references and template rendering. It does <strong>not</strong> contact the target tenant, so it cannot tell you whether the target will accept the payloads — Monaco's own flag help: <em>&quot;Dry-run will resolve all configuration parameters and render JSON templates, but can not validate the content of JSON payloads.&quot;</em></p>
+<h3>Errors and Where They Surface</h3>
+<table>
+<thead>
+<tr>
+<th>Error</th>
+<th>Surfaces at</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>reference not found</code></td>
+<td>Dry-run</td>
+<td>A configuration references one that is not in the deploy</td>
+<td>Include the referenced project, or deploy it first (see Section 1)</td>
+</tr>
+<tr>
+<td>Template or parameter error</td>
+<td>Dry-run</td>
+<td>Unresolved parameter or unset environment variable</td>
+<td>Fix the YAML or export the variable</td>
+</tr>
+<tr>
+<td><code>unknown schema</code> (HTTP 400)</td>
+<td>Deploy</td>
+<td>Schema or payload not valid on the target</td>
+<td>Remove or adapt the setting for the target</td>
+</tr>
+<tr>
+<td><code>permission denied</code> (HTTP 403)</td>
+<td>Deploy</td>
+<td>Token missing a scope</td>
+<td>Add the scope to the target token</td>
+</tr>
+<tr>
+<td><code>duplicate key</code></td>
+<td>Deploy</td>
+<td>The object already exists on the target with a different ID</td>
+<td>Download it from the target and reconcile, or delete it first</td>
+</tr>
+</tbody>
+</table>
+<h3>Deploy</h3>
+<pre><code class="language-bash"># Deploy configuration to the target tenant
+monaco deploy ./export/manifest.yaml --environment target-tenant
+
+# Deploy a single project (phased deployment). monaco download writes one project,
+# named &quot;project&quot; by default — split configurations into separate project folders
+# to deploy them in phases.
+monaco deploy ./export/manifest.yaml --environment target-tenant --project project
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas">Monaco CLI commands (DT docs)</a> — <em>&quot;A dry-run doesn't connect to Dynatrace and can't validate the content of the JSON sent to Dynatrace.&quot;</em>, <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/cmd/monaco/deploy/command.go">monaco deploy flags, v2.30.0 (Dynatrace GitHub)</a>.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Monaco resolves dependencies automatically</strong> within a single deploy run. The 24-item deployment order (Section 1) is the reference model for understanding dependencies. If you deploy everything in one run, Monaco handles the ordering.</p>
+</blockquote>
+<p><a id="terraform-apply-for-iam"></a></p>
+<h2>3. Terraform Apply for IAM</h2>
+<p>IAM policies with tightened <code>WHERE</code> clauses can now be applied because all referenced resources (buckets, schemas, segments) exist in the target tenant.</p>
+<pre><code class="language-bash"># Navigate to IAM Terraform directory
+cd terraform/iam
+
+# Plan with tightened policies
+terraform plan -var-file=&quot;target-tenant.tfvars&quot; -out=iam-tighten.plan
+
+# Review the plan carefully — verify WHERE clauses reference existing resources
+terraform show iam-tighten.plan
+
+# Apply tightened IAM
+terraform apply iam-tighten.plan
+</code></pre>
+<h3>IAM Tightening Example</h3>
+<pre><code class="language-hcl"># Before (Step 4 — broad access during setup)
+resource &quot;dynatrace_iam_policy&quot; &quot;sre_access&quot; {
+  name            = &quot;SRE Team Access&quot;
+  environment     = var.dynatrace_environment_id
+  statement_query = &quot;ALLOW storage:logs:read, storage:spans:read, storage:metrics:read; ALLOW storage:buckets:read;&quot;
+}
+
+# After (Step 5 — scoped to specific buckets)
+resource &quot;dynatrace_iam_policy&quot; &quot;sre_access&quot; {
+  name            = &quot;SRE Team Access&quot;
+  environment     = var.dynatrace_environment_id
+  statement_query = &lt;&lt;-EOT
+    ALLOW storage:logs:read
+      WHERE storage:bucket-name IN (&quot;app_logs&quot;, &quot;infra_logs&quot;);
+    ALLOW storage:spans:read
+      WHERE storage:bucket-name = &quot;default_spans&quot;;
+    ALLOW storage:metrics:read;
+    ALLOW storage:buckets:read
+      WHERE storage:bucket-name IN (&quot;app_logs&quot;, &quot;infra_logs&quot;, &quot;default_spans&quot;);
+    ALLOW storage:buckets:read
+      WHERE storage:table-name = &quot;metrics&quot;;
+  EOT
+}
+</code></pre>
+<blockquote>
+<p><strong>Bucket permission.</strong> Each table read is paired with <code>storage:buckets:read</code>, which the <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a> describes as <em>&quot;Required additionally to a table permission&quot;</em>. Scoping that permission by <code>storage:bucket-name</code> is what limits a team to specific buckets.</p>
+</blockquote>
+<blockquote>
+<p><strong>Deploy IAM last</strong> (Phase 5 in the deployment order). If you tighten IAM too early, it may block subsequent Monaco deploys or agent registrations.</p>
+</blockquote>
+<p><a id="entity-id-remapping"></a></p>
+<h2>4. Entity ID Remapping</h2>
+<p>Entity IDs are auto-generated and unique per tenant. Configurations exported from the source tenant contain hardcoded entity IDs that will not exist in the target tenant.</p>
+<h3>Remapping Strategy</h3>
+<table>
+<thead>
+<tr>
+<th>Before Import</th>
+<th>After Import</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>entityId(&quot;HOST-1A2B3C4D&quot;)</code></td>
+<td><code>tag(&quot;env:production&quot;), tag(&quot;app:checkout&quot;)</code></td>
+</tr>
+<tr>
+<td><code>type(SERVICE),entityId(SERVICE-5E6F7A8B)</code></td>
+<td><code>type(SERVICE),tag(&quot;service:checkout&quot;)</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.host == &quot;HOST-1A2B3C4D&quot;</code> (DQL on logs, spans, metrics)</td>
+<td>Filter on a dimension the data already carries: <code>fetch logs | filter host.name == &quot;prod-web-01&quot;</code>, or <code>timeseries avg(dt.host.cpu.usage), filter:{host.name == &quot;prod-web-01&quot;}</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Automated Remapping Script</h3>
+<pre><code class="language-bash"># Find all hardcoded entity IDs in the exported configuration
+grep -rn &quot;HOST-\|SERVICE-\|PROCESS_GROUP-\|APPLICATION-&quot; ./export/project/ \
+  | grep -v &quot;.git&quot; \
+  &gt; entity-id-references.txt
+
+# Count references per entity type
+echo &quot;Hosts: $(grep -c 'HOST-' entity-id-references.txt)&quot;
+echo &quot;Services: $(grep -c 'SERVICE-' entity-id-references.txt)&quot;
+echo &quot;Process Groups: $(grep -c 'PROCESS_GROUP-' entity-id-references.txt)&quot;
+echo &quot;Applications: $(grep -c 'APPLICATION-' entity-id-references.txt)&quot;
+</code></pre>
+<p>The DQL row is dimension-first: <code>host.name</code> is a dimension on the host metrics and on log records, so the filter needs no entity lookup and survives the move (both forms executed on the validation tenant, 09/28/2026). Host names can collide across an estate — check uniqueness before relying on a name-only match (<strong>FAQ-25</strong> §4).</p>
+<blockquote>
+<p><strong>Best practice:</strong> Replace hardcoded entity IDs with entity selectors or tags in the exported configuration <strong>before</strong> deploying to the target tenant. This makes the configuration portable and resilient to future migrations.</p>
+</blockquote>
+<p><a id="oneagent-reconfiguration"></a></p>
+<h2>5. OneAgent Reconfiguration</h2>
+<p>OneAgent instances must be redirected from the source tenant to the target tenant. This is done host-by-host (or wave-by-wave) using the <code>oneagentctl</code> command.</p>
+<h3>Reconfiguration Command</h3>
+<pre><code class="language-bash"># On each monitored host, run as root/administrator:
+
+# Linux
+/opt/dynatrace/oneagent/agent/tools/oneagentctl \
+  --set-server=https://&lt;target-env-id&gt;.live.dynatrace.com/communication \
+  --set-tenant=&lt;target-env-id&gt; \
+  --set-tenant-token=&lt;target-tenant-token&gt; \
+  --restart-service
+
+# Windows
+&quot;C:\Program Files\dynatrace\oneagent\agent\tools\oneagentctl.exe&quot; \
+  --set-server=https://&lt;target-env-id&gt;.live.dynatrace.com/communication \
+  --set-tenant=&lt;target-env-id&gt; \
+  --set-tenant-token=&lt;target-tenant-token&gt; \
+  --restart-service
+</code></pre>
+<blockquote>
+<p><strong>OneAgent and application restarts required.</strong> <code>--set-tenant</code> and <code>--set-tenant-token</code> always go together — the environment ID changes with the tenant. The OneAgent CLI docs: <em>&quot;These parameters require restart of OneAgent, as well as restart of all the applications monitored with deep code modules. Add --restart-service to the command to restart OneAgent automatically or stop and start OneAgent process manually.&quot;</em> <code>--restart-service</code> handles OneAgent; plan the application restarts as part of the wave execution.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface">OneAgent configuration via command-line interface (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>ActiveGate Routing for Firewall-Restricted Hosts</h3>
+<p>On-premises or DMZ hosts that cannot reach the SaaS target directly must route through ActiveGates. Use the ActiveGate communication endpoint instead of the SaaS URL:</p>
+<pre><code class="language-bash"># Route through a single ActiveGate
+/opt/dynatrace/oneagent/agent/tools/oneagentctl \
+  --set-server=https://&lt;activegate-host&gt;:9999/communication \
+  --set-tenant=&lt;target-env-id&gt; \
+  --set-tenant-token=&lt;target-tenant-token&gt; \
+  --restart-service
+
+# Route through multiple ActiveGates (failover — semicolon-separated)
+/opt/dynatrace/oneagent/agent/tools/oneagentctl \
+  --set-server=&quot;https://ag-01.corp.com:9999/communication;https://ag-02.corp.com:9999/communication&quot; \
+  --set-tenant=&lt;target-env-id&gt; \
+  --set-tenant-token=&lt;target-tenant-token&gt; \
+  --restart-service
+</code></pre>
+<blockquote>
+<p><strong>Network dependency:</strong> ActiveGate routing requires firewall rules allowing the monitored host to reach the AG on port 9999. Coordinate with the network team early — firewall change lead times are a common critical path item.</p>
+</blockquote>
+<h3>Wave Strategy</h3>
+<table>
+<thead>
+<tr>
+<th>Wave</th>
+<th>Scope</th>
+<th>Validation Window</th>
+<th>Rollback Window</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Wave 1</strong></td>
+<td>Non-production (dev, staging)</td>
+<td>2–4 hours</td>
+<td>1 hour</td>
+</tr>
+<tr>
+<td><strong>Wave 2</strong></td>
+<td>Low-risk production (internal apps)</td>
+<td>4–8 hours</td>
+<td>2 hours</td>
+</tr>
+<tr>
+<td><strong>Wave 3</strong></td>
+<td>High-risk production (customer-facing)</td>
+<td>24 hours</td>
+<td>4 hours</td>
+</tr>
+<tr>
+<td><strong>Wave 4</strong></td>
+<td>Remaining infrastructure</td>
+<td>24 hours</td>
+<td>4 hours</td>
+</tr>
+</tbody>
+</table>
+<h3>Automation at Scale</h3>
+<p>For environments with hundreds of hosts, use configuration management tools:</p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Ansible</strong></td>
+<td>Playbook with <code>oneagentctl</code> commands, host groups matching waves</td>
+</tr>
+<tr>
+<td><strong>Puppet/Chef</strong></td>
+<td>Update OneAgent configuration module with target tenant URL</td>
+</tr>
+<tr>
+<td><strong>SCCM/Intune</strong></td>
+<td>Push script to Windows fleet</td>
+</tr>
+<tr>
+<td><strong>SSM Run Command</strong></td>
+<td>Execute on AWS EC2 instances by tag</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip — OneAgent Attribute Enrichment (1.333+):</strong> During agent redirect, consider adding primary tags and fields in the same call using <code>--set-host-tag</code> (for example <code>--set-host-tag=&quot;dt.cost.costcenter=12345&quot;</code>). This enriches all telemetry at the source with <code>primary_tags.environment</code>, <code>dt.security_context</code>, <code>dt.cost.costcenter</code>, etc. — eliminating the need for some server-side auto-tagging rules. See <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment">docs</a>.</p>
+</blockquote>
+<h3>Validate Host Migration</h3>
+<p>After each wave, verify hosts are reporting to the target tenant:</p>
+<pre><code class="language-dql">// Target tenant: count hosts reporting after wave cutover (Smartscape)
+smartscapeNodes &quot;HOST&quot;, from:-2h
+| summarize host_count = count()
+| fieldsAdd validation = &quot;Compare this count against the pre-migration baseline from Step 4&quot;
+
+// Use the same surface as the Step 4 baseline (Smartscape vs classic). Classic fallback:
+// fetch dt.entity.host | summarize host_count = count()
+</code></pre>
+<pre><code class="language-dql">// Target tenant: count services detected after agent cutover (Smartscape)
+smartscapeNodes &quot;SERVICE&quot;, from:-2h
+| summarize service_count = count()
+| fieldsAdd validation = &quot;Compare against the Step 4 baseline once the wave's traffic has flowed&quot;
+
+// Classic fallback: fetch dt.entity.service | summarize service_count = count()
+</code></pre>
+<p><a id="kubernetes-operator-migration"></a></p>
+<h2>6. Kubernetes Operator Migration</h2>
+<p>A DynaKube cannot be edited to point at a different tenant: <code>spec.apiUrl</code> is immutable, and the Operator rejects a CR that changes the tenant in it. Kubernetes environments are migrated by <strong>deleting</strong> the DynaKube and <strong>applying a new one</strong> against the target tenant (the same rule as <strong>M2S-05</strong>).</p>
+<h3>Migration Steps</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Command</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Confirm the source CR is saved for rollback</td>
+<td><code>dynakube-source.yaml</code> from Step 4, Section 5</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Delete the running DynaKube</td>
+<td><code>kubectl delete dynakube dynakube -n dynatrace</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Apply the target CR prepared in Step 4</td>
+<td>Its <code>tokens:</code> field names the <code>dynakube-target</code> secret created in Step 4</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Monitor operator logs for successful reconnection</td>
+<td><code>kubectl logs -n dynatrace -l app.kubernetes.io/name=dynatrace-operator</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Verify pods restart with new configuration, then restart applications</td>
+<td><code>kubectl get pods -n dynatrace -w</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Delete and Recreate the DynaKube</h3>
+<pre><code class="language-bash"># apiUrl is immutable — delete and recreate (OneAgent pods restart)
+kubectl delete dynakube dynakube -n dynatrace
+
+# Apply the target CR prepared in Step 4 (tokens: dynakube-target)
+kubectl apply -f dynakube-target.yaml -n dynatrace
+
+# Monitor the rollout
+kubectl get dynakube -n dynatrace -w
+
+# Verify all OneAgent pods are running with new configuration
+kubectl get pods -n dynatrace -l app.kubernetes.io/component=oneagent
+</code></pre>
+<blockquote>
+<p><strong>Monitoring gap.</strong> Deleting the DynaKube removes its OneAgent and ActiveGate pods, so monitoring on that cluster stops until the new CR reconciles. Restart the monitored applications afterwards so their code modules report to the target. Schedule the switch inside the wave's maintenance window.</p>
+</blockquote>
+<p>The Dynatrace docs give the same sequence: <em>&quot;Delete the existing DynaKube (starting with Dynatrace Operator version 1.3.0, editing spec.apiUrl is not allowed).&quot;</em> Their example reuses the secret name <code>dynakube</code>; this series creates a separate <code>dynakube-target</code> secret in Step 4, so the source tokens stay available for rollback.</p>
+<p><strong>Helm-installed Operators</strong> are switched the same way: the tenant URL and tokens live in the DynaKube CR and its secret, so use the delete-and-recreate steps above rather than looking for a Helm value to change.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/migrate-dto-to-tenant">Migrate Dynatrace Operator to a new environment (DT docs)</a>.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Rollout timing:</strong> the new DynaKube's OneAgent pods start on every node, and rollout time grows with cluster size. The docs give no figure, so time the first non-production cluster and plan the maintenance window from that measurement. Watch progress with <code>kubectl get pods -n dynatrace -w</code>.</p>
+</blockquote>
+<p><a id="activegate-migration"></a></p>
+<h2>7. ActiveGate Migration</h2>
+<p>Source tenant ActiveGates are decommissioned after target tenant ActiveGates are validated and all agents are redirected.</p>
+<h3>Migration Sequence</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Verify target AGs are healthy and processing data</td>
+<td>AG appears in target tenant topology</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Verify no agents are still routing through source AGs</td>
+<td>Source AG connection count = 0</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Disable source AG services</td>
+<td>Stop AG process, do not uninstall yet</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Monitor for 24–48 hours</td>
+<td>Verify no data gaps in target tenant</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Uninstall source AG</td>
+<td>Remove AG software and clean up</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Do not uninstall source ActiveGates until Step 9 (Optimize).</strong> Keeping them stopped but installed allows rapid rollback if needed.</p>
+</blockquote>
+<p><a id="wave-execution-and-validation"></a></p>
+<h2>8. Wave Execution and Validation</h2>
+<p>After each wave of agent cutover, run these DQL queries against the <strong>target tenant</strong> to validate data flow.</p>
+<h3>Validation Query Suite</h3>
+<p>Run all queries below after each wave. All should return data within 15 minutes of agent cutover.</p>
+<pre><code class="language-dql">// Target tenant: verify log data is flowing
+fetch logs, from:-15m
+| summarize log_count = count()
+| fieldsAdd status = if(log_count &gt; 0, then: &quot;Logs flowing&quot;, else: &quot;No logs — check agent connectivity&quot;)
+</code></pre>
+<pre><code class="language-dql">// Target tenant: verify span/trace data is flowing
+fetch spans, from:-15m
+| summarize span_count = count()
+| fieldsAdd status = if(span_count &gt; 0, then: &quot;Spans flowing&quot;, else: &quot;No spans — check OneAgent instrumentation&quot;)
+</code></pre>
+<pre><code class="language-dql">// Target tenant: verify metric data is flowing (CPU usage as smoke test)
+timeseries avg_cpu = avg(dt.host.cpu.usage), from:-15m
+| fieldsAdd avg_cpu_value = arrayAvg(avg_cpu)
+| fieldsAdd status = if(avg_cpu_value &gt; 0, then: &quot;Metrics flowing&quot;, else: &quot;No metrics — check host agent&quot;)
+</code></pre>
+<pre><code class="language-dql">// Target tenant: verify enrichment tags are applied to incoming data
+fetch logs, from:-15m
+| filter isNotNull(dt.security_context)
+| summarize enriched = count()
+| fieldsAdd status = if(enriched &gt; 0, then: &quot;Enrichment active&quot;, else: &quot;No enriched records — check OpenPipeline rules&quot;)
+</code></pre>
+<pre><code class="language-dql">// Target tenant: check for detected problems generated during migration
+//
+// Corrected 08/12/2026: the cell sorted by `timestamp` AFTER a `fields` projection that dropped it,
+// so it failed with FIELD_DOES_NOT_EXIST. dt.davis.problems does carry `timestamp` — `fields` had
+// simply removed it. Keep the sort key in the projection.
+fetch dt.davis.problems, from:-1h
+| fields timestamp, display_id, event.name, event.status, event.category
+| sort timestamp desc
+| limit 20
+</code></pre>
+<h3>Validation Decision Matrix</h3>
+<table>
+<thead>
+<tr>
+<th>Validation</th>
+<th>Result</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Host count ≥ 95% of baseline</td>
+<td>Pass</td>
+<td>Proceed to next wave</td>
+</tr>
+<tr>
+<td>Host count 80–95% of baseline</td>
+<td>Warning</td>
+<td>Investigate missing hosts before next wave</td>
+</tr>
+<tr>
+<td>Host count &lt; 80% of baseline</td>
+<td>Fail</td>
+<td><strong>Halt and investigate</strong> — do not proceed</td>
+</tr>
+<tr>
+<td>Log count &gt; 0 in target</td>
+<td>Pass</td>
+<td>Log pipeline functional</td>
+</tr>
+<tr>
+<td>Span count &gt; 0 in target</td>
+<td>Pass</td>
+<td>Distributed tracing functional</td>
+</tr>
+<tr>
+<td>Metric data present</td>
+<td>Pass</td>
+<td>Infrastructure monitoring functional</td>
+</tr>
+<tr>
+<td>detected problems from migration</td>
+<td>Expected</td>
+<td>Review each — suppress if migration-related</td>
+</tr>
+<tr>
+<td>Enrichment tags present</td>
+<td>Pass</td>
+<td>OpenPipeline rules functional</td>
+</tr>
+<tr>
+<td>Enrichment tags missing</td>
+<td>Fail</td>
+<td>Fix OpenPipeline rules before next wave</td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-completion-checklist"></a></p>
+<h2>9. Step Completion Checklist</h2>
+<p>Before proceeding to Step 6 (Integrate), verify all execution tasks are complete:</p>
+<table>
+<thead>
+<tr>
+<th>Deliverable</th>
+<th>Status</th>
+<th>Owner</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Configuration imported (Phases 1–4)</strong></td>
+<td>☐</td>
+<td>Platform</td>
+<td>Monaco deploy completed without errors</td>
+</tr>
+<tr>
+<td><strong>IAM policies tightened (Phase 5)</strong></td>
+<td>☐</td>
+<td>Security / Platform</td>
+<td>Terraform apply successful</td>
+</tr>
+<tr>
+<td><strong>Entity ID remapping completed</strong></td>
+<td>☐</td>
+<td>Platform</td>
+<td>No hardcoded IDs in deployed config</td>
+</tr>
+<tr>
+<td><strong>Wave 1: Non-prod agents redirected</strong></td>
+<td>☐</td>
+<td>Platform / App teams</td>
+<td>Data flowing, validation passed</td>
+</tr>
+<tr>
+<td><strong>Wave 2: Low-risk prod agents redirected</strong></td>
+<td>☐</td>
+<td>Platform / App teams</td>
+<td>Data flowing, validation passed</td>
+</tr>
+<tr>
+<td><strong>Wave 3: High-risk prod agents redirected</strong></td>
+<td>☐</td>
+<td>Platform / App teams</td>
+<td>Data flowing, 24h validation passed</td>
+</tr>
+<tr>
+<td><strong>Wave 4: Remaining agents redirected</strong></td>
+<td>☐</td>
+<td>Platform / Infra</td>
+<td>All agents reporting to target</td>
+</tr>
+<tr>
+<td><strong>K8s operators migrated</strong></td>
+<td>☐</td>
+<td>Platform / K8s</td>
+<td>All clusters reporting</td>
+</tr>
+<tr>
+<td><strong>Source ActiveGates stopped</strong></td>
+<td>☐</td>
+<td>Infra</td>
+<td>AG processes stopped (not uninstalled)</td>
+</tr>
+<tr>
+<td><strong>detected problems reviewed</strong></td>
+<td>☐</td>
+<td>Platform</td>
+<td>Migration-related problems documented</td>
+</tr>
+<tr>
+<td><strong>Host count matches baseline</strong></td>
+<td>☐</td>
+<td>Platform</td>
+<td>Within 5% of pre-migration count</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Gate check:</strong> Do not proceed to Step 6 until all agents are reporting to the target tenant and validation queries return expected results. Cloud integrations (Step 6) depend on agents providing entity context.</p>
+</blockquote>
+<hr />
+<h2>Next Step</h2>
+<p>Continue to <strong>S2S-06: Step 6 — Integrate: Cloud, Dashboards, and Workflows</strong> to reconnect cloud integrations, migrate dashboards, and restore all external connections.</p>
+<table>
+<thead>
+<tr>
+<th>Completed</th>
+<th>Next</th>
+<th>Remaining</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><s>1. Discover</s> → <s>2. Strategize</s> → <s>3. Design</s> → <s>4. Prepare</s> → <s>5. Execute</s></td>
+<td><strong>6. Integrate</strong></td>
+<td>7. Expand → 8. Enable → 9. Optimize</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

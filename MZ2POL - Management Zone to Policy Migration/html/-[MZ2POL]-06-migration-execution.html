@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MZ2POL-06: Migration Execution</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MZ2POL — Management Zone Migration: Segments, Policies, Workflows</a><span class="sep">/</span><span aria-current="page">MZ2POL-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MZ2POL-06: Migration Execution</h1>
+<blockquote>
+<p><strong>Series:</strong> MZ2POL — Management Zone Migration: Segments, Policies, Workflows | <strong>Notebook:</strong> 7 of 17 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 10/13/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook provides a step-by-step guide for executing your migration from Management Zones to Policies, Boundaries, and Segments. It covers the parallel running period, cutover procedures, and rollback strategies.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#migration-phase-overview">Migration Phase Overview</a></li>
+<li><a href="#phase-1-foundation-setup">Phase 1: Foundation Setup</a></li>
+<li><a href="#phase-2-security-context-assignment">Phase 2: Security Context Assignment</a></li>
+<li><a href="#phase-3-policy-boundary-configuration">Phase 3: Policy &amp; Boundary Configuration</a></li>
+<li><a href="#phase-4-segment-creation">Phase 4: Segment Creation</a></li>
+<li><a href="#phase-5-parallel-running">Phase 5: Parallel Running</a></li>
+<li><a href="#phase-6-cutover">Phase 6: Cutover</a></li>
+<li><a href="#phase-7-cleanup">Phase 7: Cleanup</a></li>
+<li><a href="#rollback-procedures">Rollback Procedures</a></li>
+<li><a href="#migration-verification-queries">Migration Verification Queries</a></li>
+<li><a href="#additional-resources">Additional Resources</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>Completed MZ2POL-01 through MZ2POL-05, and the zone-disposition workshop (MZ2POL-14) if you ran one</li>
+<li>Migration plan document (from MZ2POL-03)</li>
+<li>Tag readiness gate passed — context on the data, rules translated (MZ2POL-10, MZ2POL-11)</li>
+<li>Policies and boundaries configured (MZ2POL-04, checked against MZ2POL-12; templated per MZ2POL-08 if teams are many)</li>
+<li>Segments created (from MZ2POL-05)</li>
+<li>If zones scope alerting: replacement workflows built and running in parallel (MZ2POL-09)</li>
+</ul>
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ol>
+<li>Know how to execute each migration phase</li>
+<li>Understand parallel running strategies</li>
+<li>Be able to perform cutover safely</li>
+<li>Know how to handle rollback if needed</li>
+</ol>
+<hr />
+<p><a id="migration-phase-overview"></a></p>
+<h2>1. Migration Phase Overview</h2>
+<h3>Phase Summary</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+TWlncmF0aW9uIFBoYXNlcyBhbmQgVGhlaXIgR2F0ZXM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMi41Ij5FYWNoIHBoYXNlIGhhbmRzIHRoZSBuZXh0IG9uZSBzb21ldGhpbmcgdmVyaWZpYWJsZSDigJQgdGhlIHRhZyBnYXRlIGNvbWVzIGJlZm9yZSBhbnl0aGluZyBpcyBidWlsdDwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iNzQiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTAwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjM0IiB5PSIxMDIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+MSDCtyBBc3Nlc3M8L3RleHQ+CiAgPHRleHQgeD0iMzQiIHk9IjEyNiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5NWjJQT0wtMDAsIC0wMzwvdGV4dD4KICA8dGV4dCB4PSIzNCIgeT0iMTQ2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnpvbmVzIGJ5IGpvYjwvdGV4dD4KICA8cmVjdCB4PSIyNTAiIHk9Ijc0IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIyNjQiIHk9IjEwMiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj4yIMK3IFRhZyArIHRyYW5zbGF0ZTwvdGV4dD4KICA8dGV4dCB4PSIyNjQiIHk9IjEyNiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5NWjJQT0wtMTAsIC0xMTwvdGV4dD4KICA8dGV4dCB4PSIyNjQiIHk9IjE0NiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5yZWFkaW5lc3MgZ2F0ZTwvdGV4dD4KICA8cmVjdCB4PSI0ODAiIHk9Ijc0IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI0OTQiIHk9IjEwMiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj4zIMK3IEFjY2VzczwvdGV4dD4KICA8dGV4dCB4PSI0OTQiIHk9IjEyNiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5NWjJQT0wtMTIsIC0wNCwgLTA4PC90ZXh0PgogIDx0ZXh0IHg9IjQ5NCIgeT0iMTQ2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmdyb3Vwcywgb25lIGJvdW5kYXJ5L3RlYW08L3RleHQ+CiAgPHJlY3QgeD0iNzEwIiB5PSI3NCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxMDAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNzI0IiB5PSIxMDIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+NCDCtyBGaWx0ZXJpbmc8L3RleHQ+CiAgPHRleHQgeD0iNzI0IiB5PSIxMjYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+TVoyUE9MLTA1PC90ZXh0PgogIDx0ZXh0IHg9IjcyNCIgeT0iMTQ2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnNlZ21lbnRzIHBlciBkaW1lbnNpb248L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjIwMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxMDAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzQiIHk9IjIyOCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj41IMK3IEFsZXJ0aW5nPC90ZXh0PgogIDx0ZXh0IHg9IjM0IiB5PSIyNTIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+TVoyUE9MLTA5PC90ZXh0PgogIDx0ZXh0IHg9IjM0IiB5PSIyNzIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+d29ya2Zsb3dzLCBwYXJpdHk8L3RleHQ+CiAgPHJlY3QgeD0iMjUwIiB5PSIyMDAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTAwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjI2NCIgeT0iMjI4IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPjYgwrcgUGFyYWxsZWwgcnVuPC90ZXh0PgogIDx0ZXh0IHg9IjI2NCIgeT0iMjUyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPsKnNiBzdGF0ZXMgMOKGkjI8L3RleHQ+CiAgPHRleHQgeD0iMjY0IiB5PSIyNzIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+ZXZpZGVuY2UsIG5vdCB3ZWVrczwvdGV4dD4KICA8cmVjdCB4PSI0ODAiIHk9IjIwMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxMDAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNDk0IiB5PSIyMjgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+NyDCtyBDdXRvdmVyPC90ZXh0PgogIDx0ZXh0IHg9IjQ5NCIgeT0iMjUyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPsKnNzwvdGV4dD4KICA8dGV4dCB4PSI0OTQiIHk9IjI3MiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5yZW1vdmUgem9uZSBsaW5lczwvdGV4dD4KICA8cmVjdCB4PSI3MTAiIHk9IjIwMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxMDAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNzI0IiB5PSIyMjgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+OCDCtyBDbGVhbnVwPC90ZXh0PgogIDx0ZXh0IHg9IjcyNCIgeT0iMjUyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPsKnODwvdGV4dD4KICA8dGV4dCB4PSI3MjQiIHk9IjI3MiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5kZWxldGUgem9uZXMgbGFzdDwvdGV4dD4KICA8bGluZSB4MT0iMjIwIiB5MT0iMTI0IiB4Mj0iMjQ4IiB5Mj0iMTI0IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogIDxsaW5lIHgxPSIyMjAiIHkxPSIyNTAiIHgyPSIyNDgiIHkyPSIyNTAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgPGxpbmUgeDE9IjQ1MCIgeTE9IjEyNCIgeDI9IjQ3OCIgeTI9IjEyNCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICA8bGluZSB4MT0iNDUwIiB5MT0iMjUwIiB4Mj0iNDc4IiB5Mj0iMjUwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogIDxsaW5lIHgxPSI2ODAiIHkxPSIxMjQiIHgyPSI3MDgiIHkyPSIxMjQiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgPGxpbmUgeDE9IjY4MCIgeTE9IjI1MCIgeDI9IjcwOCIgeTI9IjI1MCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICA8cGF0aCBkPSJNIDgxMCAxNzQgQyA4MTAgMTkwLCAxMjAgMTgwLCAxMjAgMTk4IiBmaWxsPSJub25lIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogIDxyZWN0IHg9IjI1MCIgeT0iMzEyIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjI2IiByeD0iMTMiIGZpbGw9IiNERTM1MEIiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSIyNTAiIHk9IjMxMiIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyNiIgcng9IjEzIiBmaWxsPSJub25lIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzUwIiB5PSIzMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkdBVEU6IHRhZ3MgdmVyaWZpZWQ8L3RleHQ+CiAgPHJlY3QgeD0iNDgwIiB5PSIzMTIiIHdpZHRoPSIyMDAiIGhlaWdodD0iMjYiIHJ4PSIxMyIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjQ4MCIgeT0iMzEyIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjI2IiByeD0iMTMiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI1ODAiIHk9IjMzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+R0FURTogcGFyaXR5ICsgcGVybWlzc2lvbnM8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjM1NiIgd2lkdGg9Ijg5MCIgaGVpZ2h0PSIxMjIiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2UtZGFzaGFycmF5PSI1IDQiLz4KICA8dGV4dCB4PSIzNiIgeT0iMzgwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPldoeSB0aGlzIG9yZGVyPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSI0MDQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5QaGFzZXMgM+KAkzUgYWxsIHJlYWQgZmllbGRzIG9uIHRoZSBkYXRhOyBidWlsdCBiZWZvcmUgcGhhc2UgMidzIGdhdGUsIHRoZXkgcmV0dXJuIHBhcnRpYWwgZGF0YSB3aXRob3V0IGFuIGVycm9yLjwvdGV4dD4KICA8dGV4dCB4PSIzNiIgeT0iNDI2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+UGhhc2VzIDPigJM1IGNhbiBydW4gaW4gcGFyYWxsZWwgb25jZSB0aGUgZ2F0ZSBwYXNzZXMg4oCUIHRoZXkgYXJlIGluZGVwZW5kZW50IGpvYnMgb2YgdGhlIHpvbmUgKGFjY2VzcywgZmlsdGVyLCBhbGVydCkuPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSI0NDgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5ab25lIGxpbmVzIGFuZCBhbGVydGluZyBwcm9maWxlcyBsZWF2ZSBpbiBzZXBhcmF0ZSBjaGFuZ2Ugd2luZG93czsgem9uZXMgdGhlbXNlbHZlcyBhcmUgZGVsZXRlZCBsYXN0IChNWjJQT0wtMDkgwqc4KS48L3RleHQ+Cjwvc3ZnPgo=" alt="Migration phases and their gates" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Phase | Notebooks | Hands over |
+|---|---|---|
+| 1 · Assess | MZ2POL-00, -03 | Zones classified by job |
+| 2 · Tag + translate | MZ2POL-10, -11 | Readiness gate passed — GATE: tags verified |
+| 3 · Access | MZ2POL-12, -04, -08 | Groups, one boundary per team |
+| 4 · Filtering | MZ2POL-05 | Segments per dimension |
+| 5 · Alerting | MZ2POL-09 | Workflows, alert parity |
+| 6 · Parallel run | §6, states 0→2 | Evidence, not weeks — GATE: parity + permissions |
+| 7 · Cutover | §7 | Zone lines removed |
+| 8 · Cleanup | §8 | Zones deleted last |
+| Why | Phases 3–5 read fields on the data; built before the gate they return partial data without an error. Phases 3–5 can run in parallel once it passes | |
+For environments where SVG doesn't render
+-->
+<p>The headings below keep this notebook's original phase numbering (Foundation → Cleanup); the diagram adds the two phases the series now runs first — assessment and the tag readiness gate.</p>
+<h3>Risk Mitigation Strategy</h3>
+<ul>
+<li><strong>Parallel running</strong>: Both systems active simultaneously</li>
+<li><strong>Phased rollout</strong>: Migrate groups incrementally</li>
+<li><strong>Rollback capability</strong>: Document how to revert</li>
+<li><strong>Testing checkpoints</strong>: Verify at each phase</li>
+</ul>
+<hr />
+<p><a id="phase-1-foundation-setup"></a></p>
+<h2>2. Phase 1: Foundation Setup</h2>
+<h3>Checklist</h3>
+<ul>
+<li>[ ] Create user groups in Account Management</li>
+<li>[ ] Document group → MZ mapping</li>
+<li>[ ] Verify Account Management access</li>
+<li>[ ] Backup current RBAC configuration</li>
+</ul>
+<h3>Create User Groups</h3>
+<p>For each MZ-based access pattern, create a corresponding group:</p>
+<table>
+<thead>
+<tr>
+<th>MZ Access Pattern</th>
+<th>New Group Name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Frontend Team MZ</td>
+<td><code>frontend-team</code></td>
+</tr>
+<tr>
+<td>Production MZ viewers</td>
+<td><code>prod-viewers</code></td>
+</tr>
+<tr>
+<td>SRE full access</td>
+<td><code>sre-team</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Via Account Management</h3>
+<ol>
+<li>Navigate to <strong>Account Management</strong> → <strong>Identity &amp; Access Management</strong></li>
+<li>Select <strong>Group Management</strong></li>
+<li>Click <strong>Create group</strong></li>
+<li>Configure:
+<ul>
+<li><strong>Group name</strong>: Match your naming convention</li>
+<li><strong>Description</strong>: Purpose and MZ equivalent</li>
+</ul>
+</li>
+<li>Add initial members (or leave empty for now)</li>
+<li>Click <strong>Save</strong></li>
+</ol>
+<hr />
+<p><a id="phase-2-security-context-assignment"></a></p>
+<h2>3. Phase 2: Security Context Assignment</h2>
+<h3>Why Security Context?</h3>
+<p>Security context is the one record field that every Grail table accepts in an IAM condition (MZ2POL-12 §1). Before creating boundaries, the <strong>data</strong> — logs, spans, metrics, events — must carry it, not only the entities. Entity coverage alone is misleading: the classic <em>Grail Security Context</em> mapping can copy zone names onto entities, while the records from those entities <em>&quot;do not inherit the management zones of that entity.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context">Grant access to entities with security context (DT docs)</a> — <em>&quot;Logs, spans, metrics, and events powered by Grail that are sent from an entity do not inherit the management zones of that entity.&quot;</em></sub></p>
+</blockquote>
+<h3>Query Current Security Context Coverage</h3>
+<pre><code class="language-dql">// Security-context coverage on the DATA, per table.
+// Records without dt.security_context are invisible to users scoped only by it.
+fetch logs, from:-1h
+| summarize {records = count(), without_sc = countIf(isNull(dt.security_context))}
+| fieldsAdd table = &quot;logs&quot;
+| append [fetch spans, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context))} | fieldsAdd table = &quot;spans&quot;]
+| append [fetch events, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context) or arraySize(dt.security_context) == 0)} | fieldsAdd table = &quot;events&quot;]
+| fieldsAdd without_pct = round(100.0 * without_sc / records, decimals: 1)
+| fields table, records, without_sc, without_pct
+</code></pre>
+<h3>Assignment Methods</h3>
+<p>Set it where the data is produced, cheapest first — MZ2POL-10 §5 has the full ladder:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OneAgent host tag (<code>--set-host-tag</code> / <code>oneagentctl</code>)</td>
+<td>Whole hosts owned by one team</td>
+</tr>
+<tr>
+<td><code>DT_TAGS</code> on the process</td>
+<td>Shared hosts</td>
+</tr>
+<tr>
+<td>Kubernetes namespace labels / annotations</td>
+<td>Namespaces owned by one team</td>
+</tr>
+<tr>
+<td>Central <em>Ingest enrichment configuration</em> (OneAgent 1.343+)</td>
+<td>Values already present as host tags, host groups or naming conventions</td>
+</tr>
+<tr>
+<td>OpenTelemetry resource attributes</td>
+<td>OTel-instrumented services</td>
+</tr>
+<tr>
+<td>OpenPipeline <em>Set security context</em> processor</td>
+<td>Last resort — runs after routing</td>
+</tr>
+</tbody>
+</table>
+<p>Auto-tagging rules are <strong>not</strong> a method: they <em>&quot;have no effect on Smartscape on Grail&quot;</em> (MZ2POL-10 §2).</p>
+<h3>Recommended: Derive It from the Tags You Already Have</h3>
+<p>If hosts already carry team or environment tags, promote them centrally rather than re-tagging hosts — an ingest enrichment rule reads <code>host.tags.&lt;key&gt;</code> and writes <code>dt.security_context</code> (and <code>primary_tags.team</code> in the same rule):</p>
+<pre><code class="language-text">host tag team:frontend                  → dt.security_context = team-frontend
+host tag team:frontend + env:production → dt.security_context = prod/team-frontend
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/tags-difference-classic">Differences between classic auto-tagging and primary Grail tags (DT docs)</a> — <em>&quot;Auto-tagging rules have no effect on Smartscape on Grail and are not used in any Latest Dynatrace app.&quot;</em></sub></p>
+</blockquote>
+<h3>Checklist</h3>
+<ul>
+<li>[ ] Identify security context naming strategy</li>
+<li>[ ] Map existing tags to security context values</li>
+<li>[ ] Apply security context at every relevant data producer</li>
+<li>[ ] Verify coverage with DQL query</li>
+<li>[ ] Document security context → team/env mapping</li>
+</ul>
+<hr />
+<p><a id="phase-3-policy-boundary-configuration"></a></p>
+<h2>4. Phase 3: Policy &amp; Boundary Configuration</h2>
+<h3>Verify Policies and Boundaries</h3>
+<p>Confirm policies and boundaries are created per MZ2POL-04:</p>
+<ul>
+<li>[ ] Built-in policies identified for each user type</li>
+<li>[ ] Custom policies created where needed</li>
+<li>[ ] One boundary per access scope with a line for every domain the bound policies grant — <code>storage:</code>, <code>settings:</code>, and <code>environment:management-zone</code> during the parallel run (MZ2POL-04 §6)</li>
+<li>[ ] Security context conditions configured</li>
+<li>[ ] Boundary naming follows convention</li>
+<li>[ ] Policy and boundary documentation complete</li>
+</ul>
+<h3>Create Policy Bindings (Parallel Mode)</h3>
+<p>During parallel running, users have BOTH:</p>
+<ul>
+<li>Existing MZ-based RBAC access</li>
+<li>New policy-based access</li>
+</ul>
+<p><strong>Important</strong>: Users should see the same data with both systems.</p>
+<h3>Binding Process</h3>
+<p>For each group:</p>
+<ol>
+<li>Navigate to <strong>Group Management</strong></li>
+<li>Select the target group</li>
+<li>Go to <strong>Permissions</strong> tab</li>
+<li>Click <strong>Add permission</strong></li>
+<li>Configure:
+<ul>
+<li><strong>Policy</strong>: Select appropriate policy</li>
+<li><strong>Boundary</strong>: Select matching boundary</li>
+<li><strong>Environment</strong>: Target environment</li>
+</ul>
+</li>
+<li>Click <strong>Save</strong></li>
+</ol>
+<h3>Binding Matrix Template</h3>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th>Policy</th>
+<th>Boundary</th>
+<th>Environment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>frontend-team</td>
+<td>Standard User + Read Logs/Spans/Metrics</td>
+<td>Frontend Team Scope</td>
+<td>Production</td>
+</tr>
+<tr>
+<td>sre-team</td>
+<td>Pro User + All Grail data read access</td>
+<td>All Production</td>
+<td>Production</td>
+</tr>
+<tr>
+<td>prod-viewers</td>
+<td>Standard User + Read Logs/Metrics</td>
+<td>Production Only</td>
+<td>Production</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="phase-4-segment-creation"></a></p>
+<h2>5. Phase 4: Segment Creation</h2>
+<h3>Verify Segments</h3>
+<p>Confirm segments are created per MZ2POL-05:</p>
+<ul>
+<li>[ ] Segment for each MZ filtering use case</li>
+<li>[ ] Segment filters tested with DQL</li>
+<li>[ ] Segments shared with appropriate users</li>
+</ul>
+<h3>Update Dashboards</h3>
+<p>For dashboards currently using MZ filtering:</p>
+<ol>
+<li>Open dashboard in edit mode</li>
+<li>Configure dashboard-level segment</li>
+<li>Update individual tiles if needed</li>
+<li>Save and test</li>
+</ol>
+<h3>Segment Rollout Strategy</h3>
+<p>There is no documented schedule. In community practice teams roll segments out in four steps, moving to the next when the previous one is confirmed rather than on a fixed week:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+<th>Move on when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Create all segments, test internally</td>
+<td>Each segment's filter returns the expected records (MZ2POL-05 §7)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Share segments with pilot users</td>
+<td>Pilot users confirm the views</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Update key dashboards to use segments</td>
+<td>Dashboard owners sign off</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Communicate segment availability to all users</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="phase-5-parallel-running"></a></p>
+<h2>6. Phase 5: Parallel Running</h2>
+<h3>Duration</h3>
+<p>There is no documented duration. In community practice teams plan a few weeks per batch — but exit each state on evidence (tag coverage, effective permissions, alert parity), not on a calendar.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+UnVubmluZyBCb3RoIE1vZGVscyBTaWRlIGJ5IFNpZGU8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMi41Ij5QZXIgdGVhbSwgZm91ciBzdGF0ZXMg4oCUIHRoZSB6b25lIGxpbmUgbGVhdmVzIHRoZSBib3VuZGFyeSBvbmx5IGFmdGVyIHZlcmlmaWNhdGlvbiwgbmV2ZXIgYmVmb3JlPC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSI3NCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSI3MCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzNCIgeT0iMTAyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPjAgwrcgVG9kYXk8L3RleHQ+CiAgPHRleHQgeD0iMzQiIHk9IjEyNCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPnpvbmUtc2NvcGVkIHJvbGVzPC90ZXh0PgogIDxyZWN0IHg9IjI3MCIgeT0iNzQiIHdpZHRoPSI2NDAiIGhlaWdodD0iNzAiIHJ4PSI3IiBmaWxsPSIjNjQ3NDhCIiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iMjcwIiB5PSI3NCIgd2lkdGg9IjY0MCIgaGVpZ2h0PSI3MCIgcng9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIyODQiIHk9IjExNCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPkNoZWNrOiB6b25lLW9ubHkgYm91bmRhcnkgb24gYSBkZWZhdWx0IHBvbGljeSBhbHJlYWR5IGdyYW50cyBhbGwgR3JhaWwgZGF0YTwvdGV4dD4KICA8bGluZSB4MT0iMTQwIiB5MT0iMTQ0IiB4Mj0iMTQwIiB5Mj0iMTUzIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogIDxyZWN0IHg9IjIwIiB5PSIxNTQiIHdpZHRoPSIyNDAiIGhlaWdodD0iNzAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzQiIHk9IjE4MiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj4xIMK3IER1YWw8L3RleHQ+CiAgPHRleHQgeD0iMzQiIHk9IjIwNCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPm9uZSBib3VuZGFyeTogem9uZSArIEdyYWlsICsgc2V0dGluZ3MgbGluZXM8L3RleHQ+CiAgPHJlY3QgeD0iMjcwIiB5PSIxNTQiIHdpZHRoPSI2NDAiIGhlaWdodD0iNzAiIHJ4PSI3IiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iMjcwIiB5PSIxNTQiIHdpZHRoPSI2NDAiIGhlaWdodD0iNzAiIHJ4PSI3IiBmaWxsPSJub25lIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMjg0IiB5PSIxOTQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5DbGFzc2ljIHNjb3BlZCBieSB6b25lOyBHcmFpbCBieSBzZWN1cml0eSBjb250ZXh0PC90ZXh0PgogIDxsaW5lIHgxPSIxNDAiIHkxPSIyMjQiIHgyPSIxNDAiIHkyPSIyMzMiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgPHJlY3QgeD0iMjAiIHk9IjIzNCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSI3MCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzNCIgeT0iMjYyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPjIgwrcgVmVyaWZpZWQ8L3RleHQ+CiAgPHRleHQgeD0iMzQiIHk9IjI4NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPnNhbWUgYm91bmRhcnk8L3RleHQ+CiAgPHJlY3QgeD0iMjcwIiB5PSIyMzQiIHdpZHRoPSI2NDAiIGhlaWdodD0iNzAiIHJ4PSI3IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iMjcwIiB5PSIyMzQiIHdpZHRoPSI2NDAiIGhlaWdodD0iNzAiIHJ4PSI3IiBmaWxsPSJub25lIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMjg0IiB5PSIyNzQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5FZmZlY3RpdmUgcGVybWlzc2lvbnMgcmVzb2x2ZWQ7IE1aMlBPTC0xMiDCpzEwIGFuZCBNWjJQT0wtMTAgwqc5IGNoZWNrcyBjbGVhbjwvdGV4dD4KICA8bGluZSB4MT0iMTQwIiB5MT0iMzA0IiB4Mj0iMTQwIiB5Mj0iMzEzIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogIDxyZWN0IHg9IjIwIiB5PSIzMTQiIHdpZHRoPSIyNDAiIGhlaWdodD0iNzAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzQiIHk9IjM0MiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj4zIMK3IFJldGlyZWQ8L3RleHQ+CiAgPHRleHQgeD0iMzQiIHk9IjM2NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPnpvbmUgbGluZSByZW1vdmVkPC90ZXh0PgogIDxyZWN0IHg9IjI3MCIgeT0iMzE0IiB3aWR0aD0iNjQwIiBoZWlnaHQ9IjcwIiByeD0iNyIgZmlsbD0iIzIyRDNFRSIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjI3MCIgeT0iMzE0IiB3aWR0aD0iNjQwIiBoZWlnaHQ9IjcwIiByeD0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjI4NCIgeT0iMzU0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+Q2xhc3NpYyBwYWdlcyBubyBsb25nZXIgdXNlZCBieSB0aGUgdGVhbTsgR3JhaWwgdW5jaGFuZ2VkPC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSI0MDAiIHdpZHRoPSI4OTAiIGhlaWdodD0iNzgiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2UtZGFzaGFycmF5PSI1IDQiLz4KICA8dGV4dCB4PSIzNiIgeT0iNDI0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIuNSIgZm9udC13ZWlnaHQ9IjcwMCI+Tm8gZml4ZWQgZHVyYXRpb248L3RleHQ+CiAgPHRleHQgeD0iMzYiIHk9IjQ0NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5FeGl0IGVhY2ggc3RhdGUgb24gZXZpZGVuY2UsIG5vdCBvbiBhIGNhbGVuZGFyOiB0YWcgY292ZXJhZ2UsIGVmZmVjdGl2ZSBwZXJtaXNzaW9ucyBhbmQgYWxlcnQgcGFyaXR5IChNWjJQT0wtMDkpPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSI0NjIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+cGVyIHRlYW0uIEJvdW5kYXJ5IGVkaXRzIGFwcGx5IGltbWVkaWF0ZWx5IHRvIGV2ZXJ5IGJpbmRpbmcsIHNvIHBpbG90IGVhY2ggY2hhbmdlIG9uIG9uZSBncm91cCBmaXJzdC48L3RleHQ+Cjwvc3ZnPgo=" alt="Running both models side by side" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| State | Boundary | Result |
+|---|---|---|
+| 0 · Today | Zone-scoped roles | Check: a zone-only boundary on a default policy already grants all Grail data |
+| 1 · Dual | One boundary: zone + Grail + settings lines | Classic scoped by zone; Grail by security context |
+| 2 · Verified | Same | Effective permissions resolved; MZ2POL-12 §10 and MZ2POL-10 §9 checks clean |
+| 3 · Retired | Zone line removed | Classic pages no longer used by the team; Grail unchanged |
+For environments where SVG doesn't render
+-->
+<h3>During Parallel Running</h3>
+<table>
+<thead>
+<tr>
+<th>System</th>
+<th>Status</th>
+<th>User Experience</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Management Zones</td>
+<td>Active</td>
+<td>Users see MZ-filtered data</td>
+</tr>
+<tr>
+<td>Policies + Boundaries</td>
+<td>Active</td>
+<td>Access control via ABAC</td>
+</tr>
+<tr>
+<td>Segments</td>
+<td>Active</td>
+<td>Users can select segments</td>
+</tr>
+</tbody>
+</table>
+<h3>Validation Queries</h3>
+<p>Compare each zone with its replacement <strong>on the data</strong>, not by counting entities — an entity's security context can be copied from its zone name and match 100% while its records carry nothing (§3). The first query sizes the gap; the second lists where to fix it.</p>
+<pre><code class="language-dql">// Compare, on the DATA: records from the zone's hosts vs records carrying the replacement security context.
+// Run as an unscoped (admin) user. Classic zone roles do not scope Grail reads — only record
+// fields such as dt.security_context do (MZ2POL-12 §1) — so this is a coverage check, not an access test.
+// Replace the zone name and the security-context value. Executed 10/13/2026 against a real zone/value pair.
+fetch logs, from:-1h
+| filter isNotNull(dt.entity.host)
+| lookup [fetch dt.entity.host | fields id, managementZones],
+    sourceField: dt.entity.host, lookupField: id, fields: {managementZones}
+| fieldsAdd in_zone = in(&quot;Frontend-Team&quot;, managementZones),
+            has_context = dt.security_context == &quot;team-frontend&quot;
+| summarize {zone_records = countIf(in_zone),
+             context_records = countIf(has_context),
+             zone_missing_context = countIf(in_zone and not(coalesce(has_context, false))),
+             context_outside_zone = countIf(coalesce(has_context, false) and not(in_zone))}
+
+// zone_missing_context: records the team sees today through the zone and would lose.
+// context_outside_zone: records the new value grants that the zone never did — confirm they are intended.
+// dt.security_context is a string on logs on the validation tenant; on events it is an array (MZ2POL-12 §10).
+</code></pre>
+<pre><code class="language-dql">// Where the zone's records lack the replacement value: per host, with the value they carry instead.
+// Fix each row at the source (MZ2POL-10 §5) — not on the entity.
+fetch logs, from:-1h
+| filter isNotNull(dt.entity.host)
+| lookup [fetch dt.entity.host | fields id, entity.name, managementZones],
+    sourceField: dt.entity.host, lookupField: id, fields: {entity.name, managementZones}
+| filter in(&quot;Frontend-Team&quot;, managementZones)
+| filter not(coalesce(dt.security_context == &quot;team-frontend&quot;, false))
+| summarize {records = count()}, by:{entity.name, dt.security_context}
+| sort records desc
+| limit 20
+
+// Note: dt.entity.host is read only to resolve zone membership — management zones have
+// NO Smartscape node equivalent; they are what this migration replaces.
+</code></pre>
+<h3>Parallel Running Checklist</h3>
+<ul>
+<li>[ ] All groups have policy bindings</li>
+<li>[ ] Users added to new groups</li>
+<li>[ ] Segments available and shared</li>
+<li>[ ] Dashboards updated (optional in parallel phase)</li>
+<li>[ ] Test users verify equivalent access</li>
+<li>[ ] Document any discrepancies</li>
+</ul>
+<h3>Issue Tracking</h3>
+<p>Track issues during parallel running:</p>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>MZ Behavior</th>
+<th>New Model Behavior</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Example</td>
+<td>Team reads its zone's records through the zone</td>
+<td><code>zone_missing_context</code> is 63% of the zone's log records (one zone on the validation tenant, 10/13/2026)</td>
+<td>Set the value at the source for the hosts the second query lists (MZ2POL-10 §5)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="phase-6-cutover"></a></p>
+<h2>7. Phase 6: Cutover</h2>
+<h3>Cutover Prerequisites</h3>
+<ul>
+<li>[ ] Parallel running completed successfully</li>
+<li>[ ] All discrepancies resolved</li>
+<li>[ ] User training completed</li>
+<li>[ ] Communication sent to stakeholders</li>
+<li>[ ] Rollback plan documented</li>
+</ul>
+<h3>Cutover Steps</h3>
+<h4>Step 1: Update Dependencies</h4>
+<p>Before removing MZ access:</p>
+<ul>
+<li>[ ] Alerting profiles: rebuild as problem-triggered workflows. The MZ filter has <strong>no successor</strong> inside the alerting model — route on the primary fields and <code>primary_tags.*</code> the problem record carries, in the trigger's DQL matcher (MZ2POL-09 §4). Segments do not scope alerting</li>
+<li>[ ] API integrations: Update to use new access model</li>
+<li>[ ] Automation workflows: Verify still functional</li>
+</ul>
+<h4>Step 2: Remove RBAC MZ Assignments</h4>
+<p>For each user/group:</p>
+<ol>
+<li>Navigate to user/group management</li>
+<li>Remove MZ-based permission assignments</li>
+<li>Verify policy-based access still works</li>
+</ol>
+<h4>Step 3: Verify Access</h4>
+<p>For each user type:</p>
+<ol>
+<li>Log in as a pilot user (never an admin) with no segment selected</li>
+<li>Verify expected data access</li>
+<li>Verify restricted data not accessible</li>
+<li>Document verification result</li>
+</ol>
+<h4>Step 4: Monitor</h4>
+<p>There is no documented monitoring window. In community practice teams watch closely for the first day or two after cutover, and longer for teams with infrequent workloads:</p>
+<ul>
+<li>Monitor for access issues</li>
+<li>Check support tickets</li>
+<li>Verify critical workflows</li>
+</ul>
+<h3>Cutover Communication Template</h3>
+<pre><code>Subject: Dynatrace Access Model Migration - Cutover Complete
+
+Team,
+
+We have completed the migration from Management Zones to the new
+Policies/Boundaries/Segments access model.
+
+What changed:
+- Access is now controlled via IAM Policies
+- Data filtering uses Segments (select in app header)
+- Management Zone filters no longer work in new apps
+
+Action required:
+- Select your team's Segment when using Logs, Traces, Services apps
+- Report any access issues to [contact]
+
+Documentation: [link to internal docs]
+
+Questions? Contact [team/channel]
+</code></pre>
+<hr />
+<p><a id="phase-7-cleanup"></a></p>
+<h2>8. Phase 7: Cleanup</h2>
+<h3>Post-Cutover Cleanup</h3>
+<p>After a successful cutover. There is no documented waiting period; in community practice teams wait until each team has been through its normal cycle — releases, on-call rotations, month-end jobs — on the new model, the same <em>evidence, not weeks</em> rule as §6:</p>
+<h4>Step 1: Archive MZ Configuration</h4>
+<ul>
+<li>Export MZ settings via API</li>
+<li>Store in version control or documentation</li>
+<li>Document MZ → new model mapping</li>
+</ul>
+<h4>Step 2: Remove Unused MZs</h4>
+<p><strong>Caution</strong>: Only remove MZs no longer referenced anywhere — the MZ2POL-15 dependency matrix (§9) is the evidence that a zone has no remaining consumer</p>
+<ul>
+<li>[ ] Verify no alerting profiles use MZ (and that each has a live workflow replacement running in parallel)</li>
+<li>[ ] <strong>Disable</strong> the MZ-scoped alerting profiles first, in their own change window, and let them soak (MZ2POL-09 §8)</li>
+<li>[ ] Run the MZ2POL-09 §8 deletion test in non-prod and record the result — what a profile does when its zone is deleted is undocumented</li>
+<li>[ ] Verify no API integrations use MZ</li>
+<li>[ ] Verify no dashboards rely on MZ filtering</li>
+<li>[ ] Delete MZ via Settings, in a separate change window from the profile disable</li>
+</ul>
+<blockquote>
+<p><strong>Treat deletion as irreversible.</strong> The Step 1 export restores a zone's <em>rules</em>, not the zone. In community practice, teams report that a deleted zone cannot be recreated under its old ID, so anything that referenced the ID — profiles, dashboards, API calls — does not reconnect to a re-created zone.</p>
+</blockquote>
+<h4>Step 3: Update Documentation</h4>
+<ul>
+<li>[ ] Update internal runbooks</li>
+<li>[ ] Update onboarding documentation</li>
+<li>[ ] Archive MZ-related documentation</li>
+<li>[ ] Create new model reference guide</li>
+</ul>
+<hr />
+<p><a id="rollback-procedures"></a></p>
+<h2>9. Rollback Procedures</h2>
+<h3>When to Rollback</h3>
+<ul>
+<li>Critical access issues affecting multiple users</li>
+<li>Data visibility significantly different than expected</li>
+<li>Business-critical workflows broken</li>
+</ul>
+<h3>Rollback Steps</h3>
+<h4>Quick Rollback (During Parallel Running)</h4>
+<ol>
+<li>Communicate rollback to users</li>
+<li>Instruct users to use MZ filtering (classic apps)</li>
+<li>Investigate and resolve issues</li>
+<li>Re-attempt cutover when ready</li>
+</ol>
+<h4>Full Rollback (After Cutover)</h4>
+<ol>
+<li>Re-enable RBAC MZ assignments, or re-add the <code>environment:management-zone</code> line to the team boundary</li>
+<li>If the alerting cutover is part of the rollback: re-enable the disabled classic alerting profiles, then disable or pause the replacement workflows so teams are not paged twice (MZ2POL-09 §8). This only works while the zones still exist — another reason to delete them last</li>
+<li>Communicate to users</li>
+<li>Document what went wrong</li>
+<li>Create remediation plan</li>
+<li>Schedule new cutover date</li>
+</ol>
+<h3>Rollback Checklist</h3>
+<ul>
+<li>[ ] Identify affected users/groups</li>
+<li>[ ] Re-apply MZ-based RBAC</li>
+<li>[ ] Re-enable classic alerting profiles (if disabled)</li>
+<li>[ ] Verify access restored</li>
+<li>[ ] Communicate status</li>
+<li>[ ] Document root cause</li>
+</ul>
+<hr />
+<p><a id="migration-verification-queries"></a></p>
+<h2>10. Migration Verification Queries</h2>
+<h3>Final Verification</h3>
+<pre><code class="language-dql">// Verify: security-context coverage on the DATA is complete enough to cut over.
+// Entity coverage is not a substitute — entity contexts may be copied from zone names.
+fetch logs, from:-1h
+| summarize {records = count(), without_sc = countIf(isNull(dt.security_context))}
+| fieldsAdd table = &quot;logs&quot;
+| append [fetch spans, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context))} | fieldsAdd table = &quot;spans&quot;]
+| append [fetch events, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context) or arraySize(dt.security_context) == 0)} | fieldsAdd table = &quot;events&quot;]
+| fieldsAdd without_pct = round(100.0 * without_sc / records, decimals: 1)
+| filter without_sc &gt; 0
+| fields table, records, without_sc, without_pct
+</code></pre>
+<pre><code class="language-dql">// Verify: the hosts whose DATA carries the replacement tag match the zone's hosts.
+// Replace the zone name and the tag condition (see MZ2POL-10 §9 Step 5).
+fetch logs, from:-1h
+| filter isNotNull(dt.entity.host)
+| summarize {tagged = countIf(primary_tags.team == &quot;frontend&quot;), records = count()}, by:{dt.entity.host}
+| fieldsAdd carries_tag = tagged &gt; 0
+| lookup [fetch dt.entity.host | fields id, entity.name, managementZones],
+    sourceField: dt.entity.host, lookupField: id, fields: {entity.name, managementZones}
+| fieldsAdd in_zone = in(&quot;Frontend-Team&quot;, managementZones)
+| fieldsAdd verdict = if(in_zone and carries_tag, &quot;match&quot;,
+    else: if(in_zone, &quot;in zone, tag missing&quot;,
+    else: if(carries_tag, &quot;tagged, not in zone&quot;, else: &quot;neither&quot;)))
+| summarize {hosts = count()}, by:{verdict}
+| sort hosts desc
+</code></pre>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ol>
+<li><strong>Migration phases</strong>: Foundation → Security Context → Policies → Segments → Parallel → Cutover → Cleanup</li>
+<li><strong>Parallel running</strong>: How to run both systems simultaneously</li>
+<li><strong>Cutover process</strong>: Step-by-step cutover with verification</li>
+<li><strong>Rollback procedures</strong>: How to revert if needed</li>
+</ol>
+<h2>Next Steps</h2>
+<p>Continue to <strong>MZ2POL-07: Validation and Troubleshooting</strong> to:</p>
+<ul>
+<li>Validate migration success</li>
+<li>Troubleshoot common issues</li>
+<li>Perform ongoing maintenance</li>
+</ul>
+<p><a id="additional-resources"></a></p>
+<h2>Additional Resources</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles">Upgrade from RBAC to IAM Policies</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management-classic/permission-management/management-zones">Management Zones Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-platform">Grant Access to Dynatrace</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

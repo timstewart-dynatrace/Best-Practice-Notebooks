@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>APPSEC-08: Workflows, Notifications and Remediation</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">APPSEC — Application Security</a><span class="sep">/</span><span aria-current="page">APPSEC-08</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>APPSEC-08: Workflows, Notifications and Remediation</h1>
+<blockquote>
+<p><strong>Series:</strong> APPSEC — Application Security | <strong>Notebook:</strong> 8 of 10 | <strong>Created:</strong> June 2026 | <strong>Last Updated:</strong> 10/28/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>A vulnerability that sits in the Dynatrace UI helps nobody. The value of AppSec is realized when findings reach the people who can act on them — the SOC for triage, AppDev for code fixes, the platform team for infrastructure changes. <strong>Workflows</strong> are the bridge.</p>
+<p>This notebook covers the trigger patterns, the routing decisions, the SLA + burn-rate alerting, and the ticket linkage that ties a Dynatrace vulnerability to its ticket.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5Xb3JrZmxvd3MgYW5kIFJlbWVkaWF0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPlZ1bG5lcmFiaWxpdHkgZXZlbnQgLT4gdHJpZ2dlciAtPiByb3V0ZSAtPiB0aWNrZXQgLyBub3RpZnk8L3RleHQ+CiAgPHJlY3QgeD0iNDAiIHk9Ijk1IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE3MCIgZmlsbD0iI0VDNDg5OSIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjRUM0ODk5IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIxODAiIHk9IjEzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+VnVsbmVyYWJpbGl0eSBzdGF0dXMgY2hhbmdlPC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSIxNjUiIHdpZHRoPSIyNDAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0VDNDg5OSIgcng9IjYiLz4KICA8dGV4dCB4PSIxODAiIHk9IjIxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+dHJpZ2dlciBldmVudDwvdGV4dD4KICA8cmVjdCB4PSIzMzUiIHk9Ijk1IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE3MCIgZmlsbD0iI0VDNDg5OSIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjRUM0ODk5IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NzUiIHk9IjEzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+V29ya2Zsb3cgZmlsdGVyPC90ZXh0PgogIDxyZWN0IHg9IjM1NSIgeT0iMTY1IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNFQzQ4OTkiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDc1IiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPnNldmVyaXR5ICsgZXhwb3N1cmU8L3RleHQ+CiAgPHJlY3QgeD0iNjMwIiB5PSI5NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiNFQzQ4OTkiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iI0VDNDg5OSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNzcwIiB5PSIxMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPlJvdXRpbmc8L3RleHQ+CiAgPHJlY3QgeD0iNjUwIiB5PSIxNjUiIHdpZHRoPSIyNDAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0VDNDg5OSIgcng9IjYiLz4KICA8dGV4dCB4PSI3NzAiIHk9IjIxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+SmlyYSAvIFNlcnZpY2VOb3cgLyBQYWdlckR1dHkgLyBTbGFjazwvdGV4dD4KICA8cmVjdCB4PSI0MCIgeT0iMjc1IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE3MCIgZmlsbD0iI0VDNDg5OSIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjRUM0ODk5IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIxODAiIHk9IjMxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+VHJhY2tpbmcgbGluazwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMzQ1IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNFQzQ4OTkiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIzOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPnRpY2tldCBVUkwgb24gYWZmZWN0ZWQgZW50aXRpZXM8L3RleHQ+CiAgPHJlY3QgeD0iMzM1IiB5PSIyNzUiIHdpZHRoPSIyODAiIGhlaWdodD0iMTcwIiBmaWxsPSIjRUM0ODk5IiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiNFQzQ4OTkiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjQ3NSIgeT0iMzE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5TTEEgdHJhY2tpbmc8L3RleHQ+CiAgPHJlY3QgeD0iMzU1IiB5PSIzNDUiIHdpZHRoPSIyNDAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0VDNDg5OSIgcng9IjYiLz4KICA8dGV4dCB4PSI0NzUiIHk9IjM5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+YnVybi1yYXRlIGFsZXJ0czwvdGV4dD4KICA8cmVjdCB4PSI2MzAiIHk9IjI3NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiNFQzQ4OTkiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iI0VDNDg5OSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNzcwIiB5PSIzMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPk11dGUgd2l0aCByZWFzb248L3RleHQ+CiAgPHJlY3QgeD0iNjUwIiB5PSIzNDUiIHdpZHRoPSIyNDAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0VDNDg5OSIgcng9IjYiLz4KICA8dGV4dCB4PSI3NzAiIHk9IjM5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+YWNjZXB0ZWQgcmlzayBvbmx5PC90ZXh0Pgo8L3N2Zz4K" alt="Workflow remediation flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Destination | Content | Trigger |
+|-------------|---------|---------|
+| Jira | AppDev backlog | Risk level >= High, exposed |
+| ServiceNow | Platform changes | SPM findings (CIS/PCI) |
+| PagerDuty | SOC paging | RAP DETECTION_FINDING in prod |
+| Slack | Awareness | Critical or digest |
+-->
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#triggers">1. Triggers on Security Events</a></li>
+<li><a href="#routing">2. Routing: Jira / ServiceNow / PagerDuty / Slack</a></li>
+<li><a href="#ack-loopback">3. Ticket Linkage</a></li>
+<li><a href="#sla-alerts">4. SLA and Burn-Rate Alerts</a></li>
+<li><a href="#dql-sla">5. DQL: Backlog Burn-Rate</a></li>
+<li><a href="#next">6. Next Steps</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Gen3 SaaS with Grail; AppSec entitlement enabled</td>
+</tr>
+<tr>
+<td><strong>OneAgent</strong></td>
+<td>Full-Stack mode (or code-module attached) on monitored hosts</td>
+</tr>
+<tr>
+<td><strong>Read access</strong></td>
+<td>To run the DQL: <code>storage:security.events:read</code> <strong>plus</strong> <code>storage:buckets:read</code> (a table permission alone reads nothing). The Vulnerabilities and Threats &amp; Exploits apps have their own requirements — see APPSEC-09 for the full model</td>
+</tr>
+<tr>
+<td><strong>Background</strong></td>
+<td>APPSEC-01 (fundamentals + three-pillar framing)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="triggers"></a></p>
+<h2>1. Triggers on Security Events</h2>
+<p>Security routing uses the workflow <strong>Event trigger</strong> with event type <code>security.events</code> and a DQL matcher; a <strong>Schedule</strong> trigger covers digests and SLA sweeps.</p>
+<table>
+<thead>
+<tr>
+<th>Trigger</th>
+<th>Filter (DQL matcher)</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Event trigger on <code>security.events</code></td>
+<td><code>event.type == &quot;VULNERABILITY_STATUS_CHANGE_EVENT&quot; and event.level == &quot;VULNERABILITY&quot; and (event.status_transition == &quot;NEW_OPEN&quot; or event.status_transition == &quot;REOPEN&quot;) and vulnerability.mute.status != &quot;MUTED&quot;</code></td>
+<td>New or reopened vulnerabilities — SOC triage (add a <code>CLOSE</code> row if you want closures too)</td>
+</tr>
+<tr>
+<td>Event trigger on <code>security.events</code></td>
+<td><code>event.type == &quot;DETECTION_FINDING&quot; and product.name == &quot;Runtime Application Protection&quot;</code></td>
+<td>RAP attack alerting</td>
+</tr>
+<tr>
+<td>Schedule</td>
+<td>—</td>
+<td>Digests and SLA sweeps</td>
+</tr>
+</tbody>
+</table>
+<p>Do <strong>not</strong> use the <strong>Problem trigger</strong> for vulnerabilities. It fires on Davis problems — the correlated performance and availability problems — so a SOC workflow built on it never runs for a new vulnerability. Filter the vulnerability trigger to the vulnerability level (<code>event.level == &quot;VULNERABILITY&quot;</code>) so each vulnerability transition fires once, not once per affected entity; narrow further with <code>event.status_transition</code> (<code>NEW_OPEN</code>, <code>REOPEN</code>, <code>CLOSE</code>, <code>MUTE</code>, <code>UNMUTE</code> — an <code>experimental</code> field) and <code>vulnerability.risk.level</code> as needed. Without the <code>event.status_transition</code> filter the trigger also fires on mute / unmute and on risk-score changes — the change event is emitted <em>&quot;whenever a vulnerability's overall status or risk assessment changes&quot;</em>. Dynatrace's own mapping of the classic <em>Vulnerability (re)opened</em> condition filters on <code>event.level == &quot;ENTITY&quot;</code>, which fires once per affected entity; the vulnerability level above fires once per vulnerability. RAP detections are one record per observed attack, so that trigger needs a tight filter (production only, risk level) before it pages anyone — event triggers are limited to 1,000 executions per hour.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event trigger (DT docs)</a> — <em>&quot;The Problem trigger starts a workflow when a problem opens, changes, or resolves.&quot;</em>, with Davis problems as its event source, and for <code>security.events</code>: <em>&quot;Use this type to automate remediation or ticketing when new vulnerabilities are detected.&quot;</em> and <em>&quot;the 1,000 executions per hour limit and the 1,000-character filter expression limit&quot;</em> (re-read 10/02/2026); <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/vulnerability">Vulnerability events (DT semantic dictionary)</a> — <em>&quot;A vulnerability change event is generated by Dynatrace Runtime Vulnerability Analytics (RVA) whenever a vulnerability's overall status or risk assessment changes&quot;</em>, transition values <code>NEW_OPEN ; REOPEN ; CLOSE ; MUTE ; UNMUTE</code>; <a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-09-team-based-global-alerting/upgrade-security-notifications">Upgrade security notifications (DT docs)</a> for the classic <em>Vulnerability (re)opened</em> mapping.</sub></p>
+</blockquote>
+<p><a id="routing"></a></p>
+<h2>2. Routing: Jira / ServiceNow / PagerDuty / Slack</h2>
+<p>In community practice, a common routing split looks like this — verify it against your SOC's ownership model:</p>
+<table>
+<thead>
+<tr>
+<th>Destination</th>
+<th>What goes there</th>
+<th>Trigger filter</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Jira</strong></td>
+<td>AppDev backlog: code-level vulns + third-party vulns scoped to service team</td>
+<td>New/reopened vulnerability, risk level ≥ High, owner-tag mapped</td>
+</tr>
+<tr>
+<td><strong>ServiceNow</strong></td>
+<td>Platform/infra changes: SPM findings on cluster, cloud-account config</td>
+<td>Severity ≥ High, framework in {CIS, PCI}</td>
+</tr>
+<tr>
+<td><strong>PagerDuty</strong></td>
+<td>Real-time SOC paging: RAP detections in production</td>
+<td><code>event.type == &quot;DETECTION_FINDING&quot;</code>, <code>product.name == &quot;Runtime Application Protection&quot;</code>, production scope</td>
+</tr>
+<tr>
+<td><strong>Slack</strong></td>
+<td>Awareness channel: new critical vulnerabilities, weekly digest</td>
+<td>Risk level = Critical OR scheduled summary</td>
+</tr>
+</tbody>
+</table>
+<p>A finding can fire into multiple destinations — there's no requirement to pick one. What matters is that each destination has a clear ownership boundary so no finding falls between teams.</p>
+<p><strong>Coming from classic security notifications.</strong> If your tenant still sends security alerts through the global notification settings in Settings (Classic), those do not carry over. The upgrade guide lists the difference in one line, <em>&quot;You create and orchestrate alerts via Workflows&quot;</em> versus <em>&quot;You configure security notifications globally in Settings (Classic)&quot;</em>, and gives the action as <em>&quot;Recreate notifications using workflows.&quot;</em> The routing matrix above is where to start: a global classic notification usually becomes several narrower workflows, one per destination. If you opt into Phase 3, this is not optional: <em>&quot;migrating security alerting profiles to Workflows is mandatory; classic security alerting profiles will not function after the Phase 3 transition.&quot;</em> In-product, the ready-made <em>Check your upgrade readiness</em> dashboard listed the legacy security notifications still active on the validation tenant (observed 09/2026; no public docs page describes it).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/get-apps-and-surfaces-working/vulnerabilities-upgrade-classic-to-latest">Upgrade Third‑party and Code‑level vulnerabilities to the Latest Dynatrace (DT docs)</a> — the three quotes on classic security notifications; <a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-09-team-based-global-alerting/upgrade-security-notifications">Upgrade security notifications (DT docs)</a> — the Phase 3 quote (re-read 10/02/2026). <strong>Softened:</strong> the routing split is community practice.</sub></p>
+</blockquote>
+<p><a id="ack-loopback"></a></p>
+<h2>3. Ticket Linkage</h2>
+<p>Dynatrace has no <em>acknowledged</em> or <em>exception</em> state for a vulnerability. Its states are <strong>Open</strong>, <strong>Resolved</strong> — set automatically when the root cause is no longer present — and <strong>Muted (Open)</strong>, when every affected entity has been muted. The documented write-backs are two: links to tickets on affected entities, and the mute status of affected entities.</p>
+<p>So the loop runs one way:</p>
+<ol>
+<li><strong>On ticket creation</strong>, a workflow writes the ticket URL as a tracking link on the affected entities. Analysts see the ticket from the Vulnerabilities app, and the open-vulnerability count stays honest.</li>
+<li><strong>Resolution comes from Dynatrace</strong>, not from the ticket. When the fix is deployed and the vulnerable component is gone, Dynatrace resolves the vulnerability on its own. Closing a ticket should change nothing in Dynatrace.</li>
+<li><strong>Mute only for accepted risk or false positives</strong>, with a reason. Muting on ticket close would hide vulnerabilities that are still present.</li>
+</ol>
+<p>For programmatic changes, the IAM scope is <code>vulnerability-service:vulnerabilities:write</code>, held by the service user the workflow runs as (APPSEC-09 § 7).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/secure/vulnerabilities/concepts">Vulnerabilities concepts (DT docs)</a> — <em>&quot;Resolved The vulnerability was closed automatically because the root cause is no longer present.&quot;</em> and <em>&quot;Muted (Open) The vulnerability is active but all its affected entities were muted by request.&quot;</em>; <a href="https://docs.dynatrace.com/docs/secure/vulnerabilities/address-remediation">Address and track remediation (DT docs)</a> — <em>&quot;You can add links to tickets created in your issue tracking system for affected entities&quot;</em> (re-read 10/02/2026); <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a> for <code>vulnerability-service:vulnerabilities:write</code>. <strong>Softened:</strong> the one-way loop is community practice built on those documented features.</sub></p>
+</blockquote>
+<p><a id="sla-alerts"></a></p>
+<h2>4. SLA and Burn-Rate Alerts</h2>
+<p>For regulated environments, security findings have remediation SLAs (e.g., Critical: 7 days, High: 30 days, Medium: 90 days). In community practice — borrowed from SLO burn-rate alerting — two complementary alerts are common; verify the pairing against your governance model:</p>
+<ol>
+<li><strong>Per-problem SLA breach</strong> — fires when an individual problem crosses its deadline.</li>
+<li><strong>Backlog burn-rate</strong> — fires when the <em>rate of new high-severity findings</em> exceeds the <em>rate of remediation</em> for several days running, signaling the team can't keep up.</li>
+</ol>
+<p>Burn-rate alerts catch the systemic-overload pattern that per-problem alerts miss — a team can close every individual ticket on time and still be accumulating debt if new findings outpace remediation.</p>
+<blockquote>
+<p><sub><strong>Softened:</strong> the SLA tiers and the burn-rate pairing above are community practice, not Dynatrace defaults.</sub></p>
+</blockquote>
+<p><a id="dql-sla"></a></p>
+<h2>5. DQL: Backlog Burn-Rate</h2>
+<p>A starter query for backlog burn-rate dashboards: critical vulnerabilities opened (new or reopened) vs closed per day, over the trailing 7 days. It counts <strong>status transitions</strong> from <code>VULNERABILITY_STATUS_CHANGE_EVENT</code>, not state snapshots — RVA re-reports every open vulnerability at regular intervals, so counting <code>OPEN</code> snapshots would count the same vulnerability again on every report and inflate the &quot;opened&quot; side.</p>
+<pre><code class="language-dql">// Critical vulnerabilities: opened (new or reopened) vs closed per day, from status transitions, last 7 days
+fetch security.events, from:-7d
+| filter event.provider == &quot;Dynatrace&quot;
+| filter event.category == &quot;VULNERABILITY_MANAGEMENT&quot;
+| filter event.type == &quot;VULNERABILITY_STATUS_CHANGE_EVENT&quot;
+| filter event.level == &quot;VULNERABILITY&quot;
+| filter vulnerability.risk.level == &quot;CRITICAL&quot;
+| summarize {opened = countIf(in(event.status_transition, {&quot;NEW_OPEN&quot;, &quot;REOPEN&quot;})), closed = countIf(event.status_transition == &quot;CLOSE&quot;)}, by:{day = bin(timestamp, 24h)}
+| sort day asc
+
+</code></pre>
+<blockquote>
+<p><strong>Validation note:</strong> validated for syntax and field names on 09/18/2026 and executes cleanly; the validation tenant has no RVA data, so it returned 0 rows there. The <code>countIf</code> logic was additionally exercised on synthetic records.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/vulnerability">Vulnerability events (DT semantic dictionary)</a> — <em>&quot;A vulnerability change event is generated by Dynatrace Runtime Vulnerability Analytics (RVA) whenever a vulnerability's overall status or risk assessment changes&quot;</em>, <code>event.status_transition</code> examples <code>NEW_OPEN ; REOPEN ; CLOSE ; MUTE ; UNMUTE</code>, and <em>&quot;RVA re-reports the open state at regular intervals and reports a resolved state once&quot;</em> (re-read 09/18/2026). <strong>Dictionary:</strong> <code>event.status_transition</code> (<code>experimental</code>), <code>vulnerability.risk.level</code> (<code>stable</code>), <code>event.type</code> (<code>stable</code>), read 09/18/2026. Because <code>event.status_transition</code> is <code>experimental</code>, re-check its values before building an alert on this query.</sub></p>
+</blockquote>
+<p><a id="next"></a></p>
+<h2>6. Next Steps</h2>
+<ol>
+<li>Decide which findings go to which destination. Write down the routing matrix before building the first workflow.</li>
+<li>Build the ticket linkage before the first finding flows, so every ticketed vulnerability carries its link from day one.</li>
+<li>Read <strong>APPSEC-09</strong> to get the Service User permissions right for workflow execution.</li>
+<li>Read <strong>APPSEC-10</strong> for the governance dashboards that read off the burn-rate query above.</li>
+</ol>
+<p><a id="references"></a></p>
+<h2>References</h2>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/secure/application-security">Application Security (DT docs)</a></td>
+<td>Workflow + notification framing</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/platform/upgrade/get-apps-and-surfaces-working/vulnerabilities-upgrade-classic-to-latest">Upgrade Third‑party and Code‑level vulnerabilities to the Latest Dynatrace (DT docs)</a></td>
+<td>Classic security notifications → workflows</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event trigger (DT docs)</a></td>
+<td>Problem trigger vs Event trigger on <code>security.events</code></td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/vulnerability">Vulnerability events (DT semantic dictionary)</a></td>
+<td>Status-change events and transition values</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a></td>
+<td>vulnerability-service:vulnerabilities:write scope</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><sub><strong>⚠️ DISCLAIMER</strong>: This information was AI generated and is provided &quot;as-is&quot; without warranty. It was produced as an independent, community-driven project and <strong>not supported by Dynatrace</strong>. Always refer to official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> for the most current information.</sub></p>
+</blockquote>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

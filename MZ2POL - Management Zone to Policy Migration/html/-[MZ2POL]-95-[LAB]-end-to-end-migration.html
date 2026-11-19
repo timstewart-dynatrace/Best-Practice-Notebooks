@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MZ2POL-95 LAB: Migrating a Sample Zone Estate End to End</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MZ2POL — Management Zone Migration: Segments, Policies, Workflows</a><span class="sep">/</span><span aria-current="page">MZ2POL-95 LAB</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MZ2POL-95 LAB: Migrating a Sample Zone Estate End to End</h1>
+<blockquote>
+<p><strong>Series:</strong> MZ2POL — Management Zone Migration: Segments, Policies, Workflows | <strong>Reference:</strong> 95 — End-to-End Migration LAB | <strong>Created:</strong> October 2026 | <strong>Last Updated:</strong> 10/13/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This LAB takes a small fictional estate — eight zones, three teams, one shared platform — through the whole migration the series describes: inventory, rule translation, enrichment, the readiness gate, IAM, segments, alerting, and the checks you then run on your own tenant.</p>
+<p>Steps 1–7 run on <strong>simulated records</strong> built with <code>data record(...)</code> inside the query itself. They need no ingest, scan <strong>zero bytes</strong>, and return the same result on any tenant, so you can run the whole LAB safely and compare your output with the expected results given after each step. The simulated data has the series' traps planted in it on purpose — an array-typed security context, a mis-cased team value, untagged producers, a legacy host that must be excluded — and each step shows which check catches which trap.</p>
+<p>Step 8 switches to real data on your tenant.</p>
+<blockquote>
+<p><strong>What the simulation does and does not prove.</strong> The DQL steps reproduce the <em>logic</em> of each check. They do not execute IAM policies or segments. Where a step models an IAM operator, it follows the documented rule: Dynatrace ties <code>MATCH</code> to DQL's <code>matchesValue</code>, and states that <code>=</code>, <code>IN</code> and <code>startsWith</code> are always false on an array. Confirm real access with the effective-permissions API (MZ2POL-12 §10).</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#the-estate">The Estate</a></li>
+<li><a href="#step-1">Step 1 — Inventory and Classify</a></li>
+<li><a href="#step-2">Step 2 — Translate Each Rule</a></li>
+<li><a href="#step-3">Step 3 — Write the Enrichment</a></li>
+<li><a href="#step-4">Step 4 — Run the Readiness Gate</a></li>
+<li><a href="#step-5">Step 5 — Design IAM and Test Who Sees What</a></li>
+<li><a href="#step-6">Step 6 — Segments and the Pushed-Down Exclusion</a></li>
+<li><a href="#step-7">Step 7 — Replace the Alerting Profile</a></li>
+<li><a href="#step-8">Step 8 — Run the Real Checks on Your Tenant</a></li>
+<li><a href="#cutover-plan">Cutover Plan for the Estate</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Any Latest Dynatrace SaaS tenant; Steps 1–7 scan zero bytes</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>None for Steps 1–7; <code>storage:logs:read</code>, <code>storage:events:read</code>, <code>storage:spans:read</code> for Step 8</td>
+</tr>
+<tr>
+<td><strong>Background reading</strong></td>
+<td>MZ2POL-10 (tagging), MZ2POL-11 (rule translation), MZ2POL-12 (IAM), MZ2POL-05 (segments), MZ2POL-09 (alerting)</td>
+</tr>
+<tr>
+<td><strong>Time</strong></td>
+<td>In community practice about two hours, or one workshop session (MZ2POL-14)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="the-estate"></a></p>
+<h2>1. The Estate</h2>
+<p>Northwind (fictional) runs three application teams — <strong>payments</strong>, <strong>checkout</strong> and <strong>catalog</strong> — and a <strong>platform</strong> team that owns shared hosts. Its management-zone estate has grown to eight objects:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+VGhlIExBQiBFc3RhdGU6IEVpZ2h0IFpvbmVzLCBUaHJlZSBUZWFtcywgT25lIFBsYXRmb3JtPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIuNSI+QSBmaWN0aW9uYWwgZXN0YXRlIHNtYWxsIGVub3VnaCB0byBtaWdyYXRlIGVuZCB0byBlbmQg4oCUIGV2ZXJ5IHpvbmUgc2hhcGUgZnJvbSB0aGUgc2VyaWVzIGFwcGVhcnMgb25jZTwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iNjgiIHdpZHRoPSIyMTAiIGhlaWdodD0iMzAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzAiIHk9Ijg4IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEuNSIgZm9udC13ZWlnaHQ9IjcwMCI+Wm9uZTwvdGV4dD4KICA8cmVjdCB4PSIyMzgiIHk9IjY4IiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjI0OCIgeT0iODgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMS41IiBmb250LXdlaWdodD0iNzAwIj5SdWxlPC90ZXh0PgogIDxyZWN0IHg9IjU0NiIgeT0iNjgiIHdpZHRoPSIxNDAiIGhlaWdodD0iMzAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTU2IiB5PSI4OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPkpvYnM8L3RleHQ+CiAgPHJlY3QgeD0iNjk0IiB5PSI2OCIgd2lkdGg9IjIxNiIgaGVpZ2h0PSIzMCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI3MDQiIHk9Ijg4IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEuNSIgZm9udC13ZWlnaHQ9IjcwMCI+RGlzcG9zaXRpb248L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjEwNCIgd2lkdGg9IjIxMCIgaGVpZ2h0PSI0MCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzMCIgeT0iMTI5IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPlBheW1lbnRzIC0gUHJvZDwvdGV4dD4KICA8cmVjdCB4PSIyMzgiIHk9IjEwNCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSI0MCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIyNDgiIHk9IjEyOSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPkhPU1RfR1JPVVBfTkFNRSBFUVVBTFMgcHJvZC1wYXk8L3RleHQ+CiAgPHJlY3QgeD0iNTQ2IiB5PSIxMDQiIHdpZHRoPSIxNDAiIGhlaWdodD0iNDAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTU2IiB5PSIxMjkiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YWNjZXNzLCBmaWx0ZXIsIGFsZXJ0PC90ZXh0PgogIDxyZWN0IHg9IjY5NCIgeT0iMTA0IiB3aWR0aD0iMjE2IiBoZWlnaHQ9IjQwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjcwNCIgeT0iMTI5IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC13ZWlnaHQ9IjcwMCI+aG9zdCBncm91cCArIHNlY3VyaXR5IGNvbnRleHQ8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjE1MCIgd2lkdGg9IjIxMCIgaGVpZ2h0PSI0MCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzMCIgeT0iMTc1IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkNoZWNrb3V0IC0gUHJvZDwvdGV4dD4KICA8cmVjdCB4PSIyMzgiIHk9IjE1MCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSI0MCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIyNDgiIHk9IjE3NSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPlBHX0RFVEVDVEVEX05BTUUgQ09OVEFJTlMgY2hlY2tvdXQ8L3RleHQ+CiAgPHJlY3QgeD0iNTQ2IiB5PSIxNTAiIHdpZHRoPSIxNDAiIGhlaWdodD0iNDAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTU2IiB5PSIxNzUiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YWNjZXNzPC90ZXh0PgogIDxyZWN0IHg9IjY5NCIgeT0iMTUwIiB3aWR0aD0iMjE2IiBoZWlnaHQ9IjQwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjcwNCIgeT0iMTc1IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC13ZWlnaHQ9IjcwMCI+RFRfVEFHUyBvbiB0aGUgcHJvY2VzczwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iMTk2IiB3aWR0aD0iMjEwIiBoZWlnaHQ9IjQwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjMwIiB5PSIyMjEiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+Q2F0YWxvZzwvdGV4dD4KICA8cmVjdCB4PSIyMzgiIHk9IjE5NiIgd2lkdGg9IjMwMCIgaGVpZ2h0PSI0MCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIyNDgiIHk9IjIyMSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPks4cyBOQU1FU1BBQ0VfTkFNRSBFUVVBTFMgY2F0YWxvZzwvdGV4dD4KICA8cmVjdCB4PSI1NDYiIHk9IjE5NiIgd2lkdGg9IjE0MCIgaGVpZ2h0PSI0MCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI1NTYiIHk9IjIyMSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5maWx0ZXI8L3RleHQ+CiAgPHJlY3QgeD0iNjk0IiB5PSIxOTYiIHdpZHRoPSIyMTYiIGhlaWdodD0iNDAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNzA0IiB5PSIyMjEiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMC41IiBmb250LXdlaWdodD0iNzAwIj5rOHMubmFtZXNwYWNlLm5hbWUgKGJ1aWx0IGluKTwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iMjQyIiB3aWR0aD0iMjEwIiBoZWlnaHQ9IjQwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjMwIiB5PSIyNjciIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+UHJvZHVjdGlvbiAoZXhjbC4gbGVnYWN5KTwvdGV4dD4KICA8cmVjdCB4PSIyMzgiIHk9IjI0MiIgd2lkdGg9IjMwMCIgaGVpZ2h0PSI0MCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIyNDgiIHk9IjI2NyIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPkhHIEJFR0lOU19XSVRIIHByb2QtIEFORCBOT1QgbGVnYWN5PC90ZXh0PgogIDxyZWN0IHg9IjU0NiIgeT0iMjQyIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjQwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjU1NiIgeT0iMjY3IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmZpbHRlcjwvdGV4dD4KICA8cmVjdCB4PSI2OTQiIHk9IjI0MiIgd2lkdGg9IjIxNiIgaGVpZ2h0PSI0MCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI3MDQiIHk9IjI2NyIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEwLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPmNlbnRyYWwgcnVsZSDihpIgdGllciB0YWc8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjI4OCIgd2lkdGg9IjIxMCIgaGVpZ2h0PSI0MCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzMCIgeT0iMzEzIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPlBsYXRmb3JtPC90ZXh0PgogIDxyZWN0IHg9IjIzOCIgeT0iMjg4IiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjI0OCIgeT0iMzEzIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+U0VMRUNUT1IgdHlwZShIT1NUKSx0YWcocm9sZTpwbGF0Zm9ybSk8L3RleHQ+CiAgPHJlY3QgeD0iNTQ2IiB5PSIyODgiIHdpZHRoPSIxNDAiIGhlaWdodD0iNDAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTU2IiB5PSIzMTMiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YWNjZXNzPC90ZXh0PgogIDxyZWN0IHg9IjY5NCIgeT0iMjg4IiB3aWR0aD0iMjE2IiBoZWlnaHQ9IjQwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjcwNCIgeT0iMzEzIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC13ZWlnaHQ9IjcwMCI+Y2VudHJhbCBydWxlIG9uIGhvc3QudGFncy5yb2xlPC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSIzMzQiIHdpZHRoPSIyMTAiIGhlaWdodD0iNDAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzAiIHk9IjM1OSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5QYXltZW50cyBsb2dzPC90ZXh0PgogIDxyZWN0IHg9IjIzOCIgeT0iMzM0IiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjI0OCIgeT0iMzU5IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+RElNRU5TSU9OIExPR19GSUxFX05BTUUgL3Zhci9sb2cvcGF5bWVudHM8L3RleHQ+CiAgPHJlY3QgeD0iNTQ2IiB5PSIzMzQiIHdpZHRoPSIxNDAiIGhlaWdodD0iNDAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTU2IiB5PSIzNTkiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YWNjZXNzPC90ZXh0PgogIDxyZWN0IHg9IjY5NCIgeT0iMzM0IiB3aWR0aD0iMjE2IiBoZWlnaHQ9IjQwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjcwNCIgeT0iMzU5IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC13ZWlnaHQ9IjcwMCI+bG9nLnNvdXJjZSAob24gdGhlIHJlY29yZCk8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjM4MCIgd2lkdGg9IjIxMCIgaGVpZ2h0PSI0MCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzMCIgeT0iNDA1IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPk9sZCBUZXN0IE1aPC90ZXh0PgogIDxyZWN0IHg9IjIzOCIgeT0iMzgwIiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjI0OCIgeT0iNDA1IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+bm8gdXNhZ2UgaW4gOTAgZGF5czwvdGV4dD4KICA8cmVjdCB4PSI1NDYiIHk9IjM4MCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSI0MCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI1NTYiIHk9IjQwNSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igJQ8L3RleHQ+CiAgPHJlY3QgeD0iNjk0IiB5PSIzODAiIHdpZHRoPSIyMTYiIGhlaWdodD0iNDAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNzA0IiB5PSI0MDUiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMC41IiBmb250LXdlaWdodD0iNzAwIj5kZWxldGU8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjQyNiIgd2lkdGg9IjIxMCIgaGVpZ2h0PSI0MCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzMCIgeT0iNDUxIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPlBheW1lbnRzIG9uLWNhbGwgKHByb2ZpbGUpPC90ZXh0PgogIDxyZWN0IHg9IjIzOCIgeT0iNDI2IiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjI0OCIgeT0iNDUxIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+YWxlcnRpbmcgcHJvZmlsZSBvbiBQYXltZW50cyAtIFByb2Q8L3RleHQ+CiAgPHJlY3QgeD0iNTQ2IiB5PSI0MjYiIHdpZHRoPSIxNDAiIGhlaWdodD0iNDAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTU2IiB5PSI0NTEiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YWxlcnQ8L3RleHQ+CiAgPHJlY3QgeD0iNjk0IiB5PSI0MjYiIHdpZHRoPSIyMTYiIGhlaWdodD0iNDAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNzA0IiB5PSI0NTEiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMC41IiBmb250LXdlaWdodD0iNzAwIj53b3JrZmxvdywgdGFnIHRlYW06cGF5bWVudHM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0ODYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlRlYW1zOiBwYXltZW50cywgY2hlY2tvdXQsIGNhdGFsb2cgwrcgc2hhcmVkIHBsYXRmb3JtIMK3IHNlY3VyaXR5IGNvbnRleHQgdmFsdWVzIGNhcnJ5IHRoZSBzdGFnZTogcHJvZC8mbHQ7dGVhbSZndDs8L3RleHQ+Cjwvc3ZnPgo=" alt="The LAB estate" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Zone | Rule | Jobs | Disposition |
+|---|---|---|---|
+| Payments - Prod | HOST_GROUP_NAME EQUALS prod-pay | access, filter, alert | Host group + security context |
+| Checkout - Prod | PROCESS_GROUP_DETECTED_NAME CONTAINS checkout (+ pgToHost) | access | DT_TAGS on the process |
+| Catalog | CLOUD_APPLICATION_NAMESPACE_NAME EQUALS catalog | filter | k8s.namespace.name (built in) |
+| Production (excl. legacy) | HOST_GROUP_NAME BEGINS_WITH prod- AND HOST_NAME NOT_CONTAINS legacy | filter | Central rule → primary_tags.tier |
+| Platform | SELECTOR type(HOST),tag(role:platform) | access | Central rule on host.tags.role |
+| Payments logs | DIMENSION LOG_FILE_NAME BEGINS_WITH /var/log/payments | access | log.source (on the record) |
+| Old Test MZ | No usage in 90 days | — | Delete |
+| Payments on-call (alerting profile) | Scoped to Payments - Prod | alert | Workflow on tag team:payments |
+Teams: payments, checkout, catalog; shared platform. Security context values carry the stage: prod/<team>.
+For environments where SVG doesn't render
+-->
+<p>Host groups are <code>prod-pay</code> (payments), <code>prod-shared</code> (checkout and platform processes share these hosts) and <code>prod-legacy</code>. The catalog team runs in the <code>catalog</code> Kubernetes namespace. Some logs arrive through an API integration with no host at all.</p>
+<p>The design decision taken up front, following MZ2POL-12 §6: security-context values carry the stage and the team — <code>prod/payments</code>, <code>prod/checkout</code>, <code>prod/catalog</code>, <code>prod/shared</code> — and the same team name goes into <code>primary_tags.team</code>.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+TEFCIFN0ZXBzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIuNSI+U3RlcHMgMeKAkzcgcnVuIG9uIHNpbXVsYXRlZCByZWNvcmRzICh6ZXJvIGJ5dGVzLCBhbnkgdGVuYW50KTsgc3RlcCA4IHJ1bnMgYWdhaW5zdCB5b3VyIG93biB0ZW5hbnQ8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjgwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzNCIgeT0iMTE0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjEgwrcgSW52ZW50b3J5PC90ZXh0PgogIDx0ZXh0IHg9IjM0IiB5PSIxNDIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+Y2xhc3NpZnkgam9iczwvdGV4dD4KICA8cmVjdCB4PSIyNTAiIHk9IjgwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIyNjQiIHk9IjExNCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj4yIMK3IFRyYW5zbGF0ZTwvdGV4dD4KICA8dGV4dCB4PSIyNjQiIHk9IjE0MiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5kZWNpc2lvbiBwYXRoPC90ZXh0PgogIDxyZWN0IHg9IjQ4MCIgeT0iODAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTAwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjQ5NCIgeT0iMTE0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjMgwrcgRW5yaWNoPC90ZXh0PgogIDx0ZXh0IHg9IjQ5NCIgeT0iMTQyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPnRoZSBhY3R1YWwgY29uZmlnPC90ZXh0PgogIDxyZWN0IHg9IjcxMCIgeT0iODAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTAwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjcyNCIgeT0iMTE0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjQgwrcgUmVhZGluZXNzPC90ZXh0PgogIDx0ZXh0IHg9IjcyNCIgeT0iMTQyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPmdhdGUgY2hlY2tzPC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSIyMjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTAwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjM0IiB5PSIyNTQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+NSDCtyBJQU08L3RleHQ+CiAgPHRleHQgeD0iMzQiIHk9IjI4MiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj53aG8gc2VlcyB3aGF0PC90ZXh0PgogIDxyZWN0IHg9IjI1MCIgeT0iMjIwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIyNjQiIHk9IjI1NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj42IMK3IFNlZ21lbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjI2NCIgeT0iMjgyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPmZpbHRlcnMgKyBleGNsdXNpb248L3RleHQ+CiAgPHJlY3QgeD0iNDgwIiB5PSIyMjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTAwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjQ5NCIgeT0iMjU0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjcgwrcgQWxlcnRpbmc8L3RleHQ+CiAgPHRleHQgeD0iNDk0IiB5PSIyODIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+dHJpZ2dlciBjb25maWc8L3RleHQ+CiAgPHJlY3QgeD0iNzEwIiB5PSIyMjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTAwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjcyNCIgeT0iMjU0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjggwrcgWW91ciB0ZW5hbnQ8L3RleHQ+CiAgPHRleHQgeD0iNzI0IiB5PSIyODIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+cmVhbCBjaGVja3M8L3RleHQ+CiAgPGxpbmUgeDE9IjIyMCIgeTE9IjEzMCIgeDI9IjI0OCIgeTI9IjEzMCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICA8bGluZSB4MT0iMjIwIiB5MT0iMjcwIiB4Mj0iMjQ4IiB5Mj0iMjcwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogIDxsaW5lIHgxPSI0NTAiIHkxPSIxMzAiIHgyPSI0NzgiIHkyPSIxMzAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgPGxpbmUgeDE9IjQ1MCIgeTE9IjI3MCIgeDI9IjQ3OCIgeTI9IjI3MCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICA8bGluZSB4MT0iNjgwIiB5MT0iMTMwIiB4Mj0iNzA4IiB5Mj0iMTMwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogIDxsaW5lIHgxPSI2ODAiIHkxPSIyNzAiIHgyPSI3MDgiIHkyPSIyNzAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgPHBhdGggZD0iTSA4MTAgMTgwIEMgODEwIDIwMCwgMTIwIDE5NiwgMTIwIDIxOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICA8cmVjdCB4PSIyMCIgeT0iMzUyIiB3aWR0aD0iODkwIiBoZWlnaHQ9IjEyNiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjIiIHN0cm9rZS1kYXNoYXJyYXk9IjUgNCIvPgogIDx0ZXh0IHg9IjM2IiB5PSIzNzYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+V2h5IHNpbXVsYXRlZCByZWNvcmRzPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSI0MDAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5kYXRhIHJlY29yZCguLi4pIGJ1aWxkcyB0aGUgZXN0YXRlJ3MgcmVjb3JkcyBpbiB0aGUgcXVlcnkgaXRzZWxmOiBubyBpbmdlc3QsIG5vIGJ5dGVzIHNjYW5uZWQsIHNhbWUgcmVzdWx0IGV2ZXJ5d2hlcmUuPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSI0MjIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5FYWNoIHN0ZXAgdXNlcyB0aGUgc2FtZSBxdWVyeSBzaGFwZSBhcyB0aGUgc2VyaWVzIG5vdGVib29rIGl0IGV4ZXJjaXNlcywgc28gdGhlIGxvZ2ljIGNhcnJpZXMgc3RyYWlnaHQgb3ZlcjwvdGV4dD4KICA8dGV4dCB4PSIzNiIgeT0iNDQ0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+dG8gcmVhbCBkYXRhIGluIHN0ZXAgOC4gVGhlIHRyYXBzIOKAlCBhcnJheSBzZWN1cml0eSBjb250ZXh0cywgdmFsdWUgZHJpZnQsIHVudGFnZ2VkIHByb2R1Y2VycyDigJQgYXJlIHBsYW50ZWQgb24gcHVycG9zZS48L3RleHQ+Cjwvc3ZnPgo=" alt="LAB steps" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Content | Data |
+|---|---|---|
+| 1 · Inventory | Classify jobs | Simulated |
+| 2 · Translate | Decision path | Simulated |
+| 3 · Enrich | The actual configuration | Configuration text |
+| 4 · Readiness | Gate checks | Simulated |
+| 5 · IAM | Who sees what | Simulated |
+| 6 · Segments | Filters and exclusion | Simulated |
+| 7 · Alerting | Trigger configuration | Configuration text |
+| 8 · Your tenant | Real checks | Your data |
+For environments where SVG doesn't render
+-->
+<p><a id="step-1"></a></p>
+<h2>2. Step 1 — Inventory and Classify</h2>
+<p>MZ2POL-00 exports zones and MZ2POL-03 classifies them. Here the export is simulated as one record per zone with its usage counts. The classification rule is the series' test: role assignments mean the <strong>access</strong> job, alerting profiles the <strong>alerting</strong> job, dashboards or query activity the <strong>filtering</strong> job; no usage at all means delete.</p>
+<pre><code class="language-dql">// Step 1 — classify the estate's zones by job and priority. Zero bytes scanned.
+data record(zone = &quot;Payments - Prod&quot;, role_assignments = 3, alerting_profiles = 1, dashboards = 4, queries_90d = 812),
+     record(zone = &quot;Checkout - Prod&quot;, role_assignments = 2, alerting_profiles = 0, dashboards = 0, queries_90d = 0),
+     record(zone = &quot;Catalog&quot;, role_assignments = 0, alerting_profiles = 0, dashboards = 3, queries_90d = 95),
+     record(zone = &quot;Production (excl. legacy)&quot;, role_assignments = 0, alerting_profiles = 0, dashboards = 6, queries_90d = 410),
+     record(zone = &quot;Platform&quot;, role_assignments = 1, alerting_profiles = 0, dashboards = 0, queries_90d = 0),
+     record(zone = &quot;Payments logs&quot;, role_assignments = 1, alerting_profiles = 0, dashboards = 0, queries_90d = 0),
+     record(zone = &quot;Old Test MZ&quot;, role_assignments = 0, alerting_profiles = 0, dashboards = 0, queries_90d = 0)
+| fieldsAdd used = role_assignments + alerting_profiles + dashboards + queries_90d &gt; 0,
+    access_job = role_assignments &gt; 0,
+    alert_job = alerting_profiles &gt; 0,
+    filter_job = dashboards &gt; 0 or queries_90d &gt; 0
+| fieldsAdd jobs = if(not(used), &quot;none&quot;,
+    else: concat(if(access_job, &quot;access &quot;, else: &quot;&quot;), if(filter_job, &quot;filter &quot;, else: &quot;&quot;), if(alert_job, &quot;alert&quot;, else: &quot;&quot;)))
+| fieldsAdd priority = if(not(used), &quot;P4 - delete&quot;,
+    else: if(access_job and in(zone, {&quot;Payments - Prod&quot;, &quot;Payments logs&quot;}), &quot;P1&quot;,
+    else: if(access_job or alert_job, &quot;P2&quot;, else: &quot;P3&quot;)))
+| fields zone, jobs, priority
+| sort priority asc, zone asc
+</code></pre>
+<p><strong>Expected:</strong> <em>Payments - Prod</em> (access, filter, alert) and <em>Payments logs</em> (access) at P1 — payments data is the regulated estate in this scenario; <em>Checkout - Prod</em> and <em>Platform</em> (access) at P2; <em>Catalog</em> and <em>Production (excl. legacy)</em> (filter) at P3; <em>Old Test MZ</em> at P4 — delete, after archiving its export.</p>
+<p>The alerting profile is handled with its zone: <em>Payments - Prod</em> carries the alerting job.</p>
+<p><a id="step-2"></a></p>
+<h2>3. Step 2 — Translate Each Rule</h2>
+<p>Each rule goes through the MZ2POL-11 decision path: built-in field → set at source → central enrichment rule → OpenPipeline tag rule → explicit membership tag. The query encodes that path for this estate's rules.</p>
+<pre><code class="language-dql">// Step 2 — translate each rule with the MZ2POL-11 decision path. Zero bytes scanned.
+data record(zone = &quot;Payments - Prod&quot;, rule_type = &quot;ME&quot;, property = &quot;HOST_GROUP_NAME&quot;, operator = &quot;EQUALS&quot;, value = &quot;prod-pay&quot;),
+     record(zone = &quot;Checkout - Prod&quot;, rule_type = &quot;ME&quot;, property = &quot;PROCESS_GROUP_DETECTED_NAME&quot;, operator = &quot;CONTAINS&quot;, value = &quot;checkout&quot;),
+     record(zone = &quot;Catalog&quot;, rule_type = &quot;ME&quot;, property = &quot;CLOUD_APPLICATION_NAMESPACE_NAME&quot;, operator = &quot;EQUALS&quot;, value = &quot;catalog&quot;),
+     record(zone = &quot;Production (excl. legacy)&quot;, rule_type = &quot;ME&quot;, property = &quot;HOST_GROUP_NAME + HOST_NAME&quot;, operator = &quot;BEGINS_WITH + NOT_CONTAINS&quot;, value = &quot;prod- / legacy&quot;),
+     record(zone = &quot;Platform&quot;, rule_type = &quot;SELECTOR&quot;, property = &quot;tag(role:platform)&quot;, operator = &quot;SELECTOR&quot;, value = &quot;role:platform&quot;),
+     record(zone = &quot;Payments logs&quot;, rule_type = &quot;DIMENSION&quot;, property = &quot;LOG_FILE_NAME&quot;, operator = &quot;BEGINS_WITH&quot;, value = &quot;/var/log/payments&quot;)
+| fieldsAdd step = if(in(property, {&quot;HOST_GROUP_NAME&quot;, &quot;CLOUD_APPLICATION_NAMESPACE_NAME&quot;, &quot;KUBERNETES_CLUSTER_NAME&quot;, &quot;AWS_ACCOUNT_ID&quot;}), &quot;1 - built-in field&quot;,
+    else: if(rule_type == &quot;DIMENSION&quot;, &quot;1 - field on the record&quot;,
+    else: if(startsWith(property, &quot;PROCESS_GROUP&quot;) or startsWith(property, &quot;SERVICE&quot;), &quot;2 - set at source (DT_TAGS)&quot;,
+    else: if(contains(operator, &quot;NOT_&quot;) or contains(property, &quot;tag(&quot;) or startsWith(property, &quot;HOST_&quot;), &quot;3 - central enrichment rule&quot;,
+    else: &quot;5 - explicit membership tag&quot;))))
+| fieldsAdd target = if(property == &quot;HOST_GROUP_NAME&quot;, &quot;dt.host_group.id&quot;,
+    else: if(property == &quot;CLOUD_APPLICATION_NAMESPACE_NAME&quot;, &quot;k8s.namespace.name&quot;,
+    else: if(property == &quot;LOG_FILE_NAME&quot;, &quot;log.source&quot;,
+    else: if(zone == &quot;Checkout - Prod&quot;, &quot;primary_tags.team = checkout + dt.security_context = prod/checkout&quot;,
+    else: if(zone == &quot;Platform&quot;, &quot;dt.security_context = prod/shared (from host.tags.role)&quot;,
+    else: &quot;primary_tags.tier = core-prod&quot;)))))
+| fields zone, rule_type, step, target
+</code></pre>
+<p><strong>Expected:</strong> three rules need no new values — host group, namespace and log source are already on the records. <em>Checkout</em> moves to the process (step 2); <em>Production (excl. legacy)</em> and <em>Platform</em> become central enrichment rules (step 3). Nothing falls through to step 5 here.</p>
+<p>Two refinements the query does not show, both from the series:</p>
+<ul>
+<li><strong>Payments also gets a security context</strong>, although <code>storage:dt.host_group.id</code> could scope its logs, spans and metrics. Entities, user sessions and system data accept only <code>storage:dt.security_context</code> (MZ2POL-12 §1), and the alerting profile's replacement needs a team tag.</li>
+<li><strong>Checkout's zone propagated to hosts</strong> (<code>pgToHost</code>), so the zone put the shared hosts' own metrics in front of the checkout team. The process-level tag deliberately does not (MZ2POL-10 §7).</li>
+</ul>
+<p><a id="step-3"></a></p>
+<h2>4. Step 3 — Write the Enrichment</h2>
+<p>The actual configuration for this estate, cheapest rung first (MZ2POL-10 §5). Values set here are what Steps 4–7 read.</p>
+<p><strong>Payments — central rule on the host group</strong> (Settings &gt; Collect and capture &gt; Ingest enrichment configuration, OneAgent 1.343+):</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scope</td>
+<td>Environment (or host group <code>prod-pay</code>)</td>
+</tr>
+<tr>
+<td>Condition</td>
+<td><code>matchesValue(dt.host_group.id, &quot;prod-pay&quot;)</code></td>
+</tr>
+<tr>
+<td>Enrichments</td>
+<td>Security context = <code>prod/payments</code>; primary tag <code>team</code> = <code>payments</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Checkout — process level, in the checkout deployment:</strong></p>
+<pre><code class="language-bash">DT_TAGS=&quot;primary_tags.team=checkout dt.security_context=prod/checkout&quot; java -jar checkout-service.jar
+</code></pre>
+<p><strong>Catalog — namespace annotations</strong>, so Kubernetes metrics and events carry them too:</p>
+<pre><code class="language-yaml">metadata:
+  annotations:
+    metadata.dynatrace.com/primary_tags.team: catalog
+    metadata.dynatrace.com/dt.security_context: prod/catalog
+</code></pre>
+<p><strong>Platform — central rule on the existing host tag:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scope</td>
+<td>Environment</td>
+</tr>
+<tr>
+<td>Condition</td>
+<td><code>matchesValue(host.tags.role, &quot;platform&quot;)</code></td>
+</tr>
+<tr>
+<td>Enrichments</td>
+<td>Security context = <code>prod/shared</code>; primary tag <code>team</code> = <code>platform</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Production (excl. legacy) — the exclusion pushed into enrichment</strong> (MZ2POL-11 §5):</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scope</td>
+<td>Environment</td>
+</tr>
+<tr>
+<td>Condition</td>
+<td><code>matchesValue(dt.host_group.id, &quot;prod-*&quot;) AND NOT matchesValue(host.name, &quot;*legacy*&quot;)</code></td>
+</tr>
+<tr>
+<td>Enrichments</td>
+<td>Primary tag <code>tier</code> = <code>core-prod</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Payments logs</strong> — nothing to set: <code>log.source</code> is on every log record.</p>
+<p><strong>API-ingested logs</strong> — no host, so none of the above reaches them. The integration owner adds <code>dt.security_context</code> and <code>primary_tags.team</code> to the payload, or an OpenPipeline primary Grail tag rule fills them with an <code>isNull(primary_tags.team)</code> guard (FAQ-26 §5.8).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent">Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)</a> — <em>&quot;Ingest enrichment configuration requires OneAgent version 1.343+ .&quot;</em>; its conditions accept <code>matchesValue</code>, which takes <code>*</code> wildcards — MZ2POL-11 §4 explains why the begins-with and contains here are not <code>matchesPhrase</code>, <a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments">Best practice examples: from Management Zones to Segments (DT docs)</a> — for processes on shared hosts: <em>&quot;Set DT_TAGS and OTEL_RESOURCE_ATTRIBUTES on each process with the same metadata fields used for dedicated infrastructure&quot;</em>, a list that starts with <code>dt.security_context=&lt;value&gt;</code>, <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s">Enrich Kubernetes telemetry with primary Grail fields and tags (DT docs)</a> — <code>metadata.dynatrace.com/primary_tags.&lt;key&gt;</code> and <code>metadata.dynatrace.com/dt.security_context</code> annotation format.</sub></p>
+</blockquote>
+<p><a id="step-4"></a></p>
+<h2>5. Step 4 — Run the Readiness Gate</h2>
+<p>The records below are what the estate's telemetry looks like <em>after</em> Step 3 — including three mistakes a real rollout produces: one host whose team value was typed as <code>Payments</code>, a legacy host and an API integration that nobody enriched, and events whose security context is an array. The gate (MZ2POL-10 §10) must catch all of them before anything is built.</p>
+<p><strong>Check 4a — coverage by host group and table.</strong></p>
+<pre><code class="language-dql">// Step 4a — coverage of team tag and security context, per table and host group. Zero bytes scanned.
+data record(table = &quot;logs&quot;, host = &quot;pay-prod-01&quot;, `dt.host_group.id` = &quot;prod-pay&quot;, `primary_tags.team` = &quot;payments&quot;, `dt.security_context` = &quot;prod/payments&quot;),
+     record(table = &quot;logs&quot;, host = &quot;pay-prod-02&quot;, `dt.host_group.id` = &quot;prod-pay&quot;, `primary_tags.team` = &quot;Payments&quot;, `dt.security_context` = &quot;prod/payments&quot;),
+     record(table = &quot;logs&quot;, host = &quot;shared-prod-03&quot;, `dt.host_group.id` = &quot;prod-shared&quot;, `primary_tags.team` = &quot;checkout&quot;, `dt.security_context` = &quot;prod/checkout&quot;),
+     record(table = &quot;logs&quot;, host = &quot;shared-prod-03&quot;, `dt.host_group.id` = &quot;prod-shared&quot;, `primary_tags.team` = &quot;platform&quot;, `dt.security_context` = &quot;prod/shared&quot;),
+     record(table = &quot;logs&quot;, host = &quot;legacy-prod-07&quot;, `dt.host_group.id` = &quot;prod-legacy&quot;),
+     record(table = &quot;logs&quot;, `k8s.namespace.name` = &quot;catalog&quot;, `primary_tags.team` = &quot;catalog&quot;, `dt.security_context` = &quot;prod/catalog&quot;),
+     record(table = &quot;logs&quot;, `log.source` = &quot;api-ingest&quot;),
+     record(table = &quot;events&quot;, `primary_tags.team` = &quot;payments&quot;, `dt.security_context` = array(&quot;prod/payments&quot;, &quot;prod/shared&quot;)),
+     record(table = &quot;events&quot;, `primary_tags.team` = &quot;catalog&quot;, `dt.security_context` = array(&quot;prod/catalog&quot;))
+| summarize {records = count(),
+    team_tagged = countIf(isNotNull(primary_tags.team)),
+    sc_set = countIf(isNotNull(dt.security_context)),
+    sc_types = collectDistinct(type(dt.security_context))},
+    by:{table, dt.host_group.id}
+| fieldsAdd team_pct = round(100.0 * team_tagged / records, decimals: 0)
+| sort table asc, team_pct asc
+</code></pre>
+<p><strong>Expected:</strong> <code>prod-legacy</code> at 0% — the legacy host is unenriched; the logs row with <strong>no host group</strong> at 50% — the catalog pod is tagged, the API integration is not; <code>prod-pay</code> and <code>prod-shared</code> at 100%; <strong>events</strong> at 100% with <code>sc_types</code> = <code>array</code>.</p>
+<p><strong>Gate verdict:</strong> not green. The legacy host is out of scope by design (it is excluded from <em>core-prod</em> anyway) but still needs an owner's security context if anyone must read it; the API integration needs its payload fixed; the array finding drives Step 5's operator choice.</p>
+<p><strong>Check 4b — value drift.</strong></p>
+<pre><code class="language-dql">// Step 4b — one meaning, several spellings. Zero bytes scanned.
+data record(`primary_tags.team` = &quot;payments&quot;), record(`primary_tags.team` = &quot;Payments&quot;), record(`primary_tags.team` = &quot;payments &quot;),
+     record(`primary_tags.team` = &quot;checkout&quot;), record(`primary_tags.team` = &quot;platform&quot;), record(`primary_tags.team` = &quot;catalog&quot;)
+| summarize {records = count()}, by:{value = primary_tags.team}
+| fieldsAdd normalized = lower(trim(value))
+| summarize {spellings = countDistinct(value), variants = collectDistinct(value), records = sum(records)}, by:{normalized}
+| sort spellings desc, normalized asc
+</code></pre>
+<p><strong>Expected:</strong> <code>payments</code> with <strong>3 spellings</strong> — <code>payments</code>, <code>Payments</code>, <code>payments </code> (trailing space). Every one becomes a separate value in segment variables and workflow filters. Fix at the source; add <code>team</code> to the allowed-values list (MZ2POL-10 §4).</p>
+<p><a id="step-5"></a></p>
+<h2>6. Step 5 — Design IAM and Test Who Sees What</h2>
+<p>The access design, following MZ2POL-12 §6 — one group per team and role, current default policies plus one custom settings policy, one boundary per team covering every domain:</p>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th>Policies</th>
+<th>Boundary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>nw-payments-dev</code></td>
+<td>Standard User, Read Logs, Read Spans, Read Metrics, Read Events</td>
+<td><code>team-payments</code></td>
+</tr>
+<tr>
+<td><code>nw-payments-lead</code></td>
+<td>Pro User, the same data reads, and a custom policy <code>ALLOW settings:objects:read, settings:objects:write, settings:schemas:read;</code></td>
+<td><code>team-payments</code> (its <code>settings:dt.security_context</code> line scopes the settings writes)</td>
+</tr>
+<tr>
+<td><code>nw-checkout-dev</code></td>
+<td>Standard User, Read Logs, Read Spans, Read Metrics, Read Events</td>
+<td><code>team-checkout</code></td>
+</tr>
+<tr>
+<td><code>nw-platform-sre</code></td>
+<td>Pro User, All Grail data read access</td>
+<td>none</td>
+</tr>
+</tbody>
+</table>
+<p><em>Settings Writer</em> and <em>Storage Default Monitoring Read</em> would once have filled the last two rows. Both are now legacy default policies, which are <em>&quot;not accessible for new policy assignments&quot;</em>, so a new design uses a custom settings policy and the current data-access policies instead.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies">Dynatrace default policies reference (DT docs)</a> — legacy default policies: <em>&quot;They are not accessible for new policy assignments, but existing assignments of these policies remain until removed.&quot;</em>, <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a> — <code>settings:objects:write</code> accepts <code>settings:dt.security_context</code>, <em>&quot;applicable to any settings object that is allowed on the scope of an entity that can have a security context assigned&quot;</em>.</sub></p>
+</blockquote>
+<pre><code class="language-text">// Boundary &quot;team-payments&quot; — parallel-run version
+storage:dt.security_context MATCH (&quot;prod/payments&quot;, &quot;prod/shared&quot;);
+settings:dt.security_context IN (&quot;prod/payments&quot;);
+environment:management-zone IN (&quot;Payments - Prod&quot;, &quot;Payments logs&quot;);
+</code></pre>
+<p>The <code>environment:management-zone</code> line keeps classic pages scoped while they are in use, and is deleted at retirement (MZ2POL-06 §6).</p>
+<p>The query below shows what the payments developer would see under that boundary, and what they would see if the Grail line used <code>IN</code> instead of <code>MATCH</code>. It models the documented rules: <code>MATCH</code> behaves like DQL's <code>matchesValue</code> (&quot;for any value&quot;), and <code>=</code> / <code>IN</code> are false on an array.</p>
+<pre><code class="language-dql">// Step 5 — what the payments boundary reaches, MATCH vs IN, plus the payments segment. Zero bytes scanned.
+// iam_in models the documented rule: = / IN / startsWith are always false on an array.
+data record(table = &quot;logs&quot;, host = &quot;pay-prod-01&quot;, `primary_tags.team` = &quot;payments&quot;, `dt.security_context` = &quot;prod/payments&quot;),
+     record(table = &quot;logs&quot;, host = &quot;pay-prod-02&quot;, `primary_tags.team` = &quot;Payments&quot;, `dt.security_context` = &quot;prod/payments&quot;),
+     record(table = &quot;logs&quot;, host = &quot;shared-prod-03&quot;, `primary_tags.team` = &quot;checkout&quot;, `dt.security_context` = &quot;prod/checkout&quot;),
+     record(table = &quot;logs&quot;, host = &quot;shared-prod-03&quot;, `primary_tags.team` = &quot;platform&quot;, `dt.security_context` = &quot;prod/shared&quot;),
+     record(table = &quot;logs&quot;, host = &quot;legacy-prod-07&quot;),
+     record(table = &quot;logs&quot;, `primary_tags.team` = &quot;catalog&quot;, `dt.security_context` = &quot;prod/catalog&quot;),
+     record(table = &quot;logs&quot;, `log.source` = &quot;api-ingest&quot;),
+     record(table = &quot;events&quot;, `primary_tags.team` = &quot;payments&quot;, `dt.security_context` = array(&quot;prod/payments&quot;, &quot;prod/shared&quot;)),
+     record(table = &quot;events&quot;, `primary_tags.team` = &quot;catalog&quot;, `dt.security_context` = array(&quot;prod/catalog&quot;))
+| fieldsAdd iam_match = coalesce(matchesValue(dt.security_context, {&quot;prod/payments&quot;, &quot;prod/shared&quot;}), false),
+    iam_in = coalesce(type(dt.security_context) == &quot;string&quot; and in(dt.security_context, {&quot;prod/payments&quot;, &quot;prod/shared&quot;}), false),
+    segment_hit = coalesce(primary_tags.team == &quot;payments&quot;, false)
+| summarize {boundary_MATCH = countIf(iam_match),
+    boundary_IN = countIf(iam_in),
+    segment_team_payments = countIf(segment_hit),
+    no_security_context = countIf(isNull(dt.security_context))},
+    by:{table}
+</code></pre>
+<p><strong>Expected:</strong></p>
+<table>
+<thead>
+<tr>
+<th>table</th>
+<th>boundary_MATCH</th>
+<th>boundary_IN</th>
+<th>segment_team_payments</th>
+<th>no_security_context</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>events</td>
+<td>1</td>
+<td><strong>0</strong></td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr>
+<td>logs</td>
+<td>3</td>
+<td>3</td>
+<td><strong>1</strong></td>
+<td><strong>2</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Three findings, each one a trap from the series:</p>
+<ol>
+<li><strong><code>IN</code> loses the team's own events</strong> — the array-typed security context never matches. <code>MATCH</code> is required (MZ2POL-12 §6, principle 5).</li>
+<li><strong>The segment shows one payments log, not two</strong> — <code>Payments</code> is a different value. Segments compare exactly; the boundary did not care, because the security context was spelled correctly. Drift hides in the layer you test least.</li>
+<li><strong>Two logs have no security context</strong> — the legacy host and the API integration. No team-scoped user will ever see them, under any boundary.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a> — <em>&quot;This is because matchesValue used in DQL queries, performs better when word separators are present.&quot;</em> (the guidance on <code>MATCH</code> wildcards) and <em>&quot;Using = , STARTSWITH or IN when the field holds an array will always return false .&quot;</em></sub></p>
+</blockquote>
+<p><a id="step-6"></a></p>
+<h2>7. Step 6 — Segments and the Pushed-Down Exclusion</h2>
+<p>Segments for the estate, one per dimension (MZ2POL-05 §2):</p>
+<table>
+<thead>
+<tr>
+<th>Segment</th>
+<th>Include</th>
+<th>Filter</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>team</code></td>
+<td>Data (all types)</td>
+<td><code>primary_tags.team = $team</code> (variable from distinct <code>primary_tags.team</code>)</td>
+</tr>
+<tr>
+<td><code>tier</code></td>
+<td>Data (all types)</td>
+<td><code>primary_tags.tier = &quot;core-prod&quot;</code></td>
+</tr>
+<tr>
+<td><code>team</code> problems</td>
+<td>events</td>
+<td><code>event.kind = &quot;DAVIS_PROBLEM&quot;</code> AND <code>primary_tags.team = $team</code></td>
+</tr>
+</tbody>
+</table>
+<p><em>Catalog</em> needs no segment of its own: <code>k8s.namespace.name = &quot;catalog&quot;</code> is a built-in field, and the <code>team</code> segment covers it once the namespace annotation is in place.</p>
+<p>The <em>Production (excl. legacy)</em> zone becomes the <code>tier</code> segment. The exclusion is decided by the Step 3 central rule, not by the segment. The query below applies that rule's logic to the hosts and shows who ends up in the segment.</p>
+<pre><code class="language-dql">// Step 6 — the Step 3 enrichment condition exactly as shipped (host stands for host.name), then the segment filter.
+// Zero bytes scanned.
+data record(host = &quot;pay-prod-01&quot;, `dt.host_group.id` = &quot;prod-pay&quot;, `primary_tags.team` = &quot;payments&quot;),
+     record(host = &quot;pay-prod-02&quot;, `dt.host_group.id` = &quot;prod-pay&quot;, `primary_tags.team` = &quot;Payments&quot;),
+     record(host = &quot;shared-prod-03&quot;, `dt.host_group.id` = &quot;prod-shared&quot;, `primary_tags.team` = &quot;checkout&quot;),
+     record(host = &quot;shared-prod-03&quot;, `dt.host_group.id` = &quot;prod-shared&quot;, `primary_tags.team` = &quot;platform&quot;),
+     record(host = &quot;legacy-prod-07&quot;, `dt.host_group.id` = &quot;prod-legacy&quot;)
+| fieldsAdd `primary_tags.tier` = if(matchesValue(dt.host_group.id, &quot;prod-*&quot;) and not(matchesValue(host, &quot;*legacy*&quot;)), &quot;core-prod&quot;)
+| fieldsAdd in_core_prod_segment = coalesce(primary_tags.tier == &quot;core-prod&quot;, false)
+| fields host, dt.host_group.id, primary_tags.tier, in_core_prod_segment
+</code></pre>
+<p><strong>Expected:</strong> four records with <code>tier = core-prod</code> and <code>in_core_prod_segment = true</code>; <code>legacy-prod-07</code> with no tier and <code>false</code>. The segment itself is a plain positive filter — the <code>NOT</code> lives in exactly one place, the enrichment rule.</p>
+<p><a id="step-7"></a></p>
+<h2>8. Step 7 — Replace the Alerting Profile</h2>
+<p>The <em>Payments on-call</em> profile was scoped to <em>Payments - Prod</em>. Its replacement is a problem-triggered workflow (MZ2POL-09 §2, §5):</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Trigger</td>
+<td>Problem trigger</td>
+</tr>
+<tr>
+<td>Problem state</td>
+<td>Active</td>
+</tr>
+<tr>
+<td>Severity</td>
+<td>As the profile's severity rules</td>
+</tr>
+<tr>
+<td>Affected entities</td>
+<td>Include entities carrying the payments team tag — on Smartscape nodes it appears under the key <code>primary_tags.team</code>; pick the exact key in the trigger's tag selector</td>
+</tr>
+<tr>
+<td>Custom filter query</td>
+<td>Optional DQL matcher on the problem record</td>
+</tr>
+<tr>
+<td>Minimum duration</td>
+<td>The profile's delay, mapped to the nearest available value (MZ2POL-09 §6.1)</td>
+</tr>
+<tr>
+<td>Action</td>
+<td>Payments on-call destination</td>
+</tr>
+</tbody>
+</table>
+<p>Two estate-specific notes:</p>
+<ul>
+<li><strong>The routing tag comes from Step 3.</strong> The central rule on <code>prod-pay</code> enriches the hosts, and host-level enrichment is inherited by the processes on them. Confirm the tag on the affected entities of a real payments problem before switching the profile off.</li>
+<li><strong>Visibility is separate.</strong> Who may <em>see</em> payments problems is decided by the <code>team-payments</code> boundary on <code>dt.security_context</code> — with <code>MATCH</code>, because problem records hold it as an array (MZ2POL-09 §7).</li>
+</ul>
+<p><a id="step-8"></a></p>
+<h2>9. Step 8 — Run the Real Checks on Your Tenant</h2>
+<p>Everything above used simulated records. These two checks run against your own data — the same shapes, now reading real tables.</p>
+<p><strong>8a — which tables hold <code>dt.security_context</code> as an array?</strong> (MZ2POL-12 §10, Check 1)</p>
+<blockquote>
+<p><strong>These two checks read real data and are billed.</strong> On the validation tenant (10/13/2026), 8a scanned about 1.6 GB and 8b about 3.3 GB, each over one hour. Keep the window at <code>-1h</code>; widening the events leg to <code>-24h</code> alone scanned about 1.4 GB there. Run them once per wave, not on a loop.</p>
+</blockquote>
+<pre><code class="language-dql">// Step 8a — real data: security-context type per table.
+fetch logs, from:-1h
+| filter isNotNull(dt.security_context)
+| fieldsAdd sc_type = type(dt.security_context)
+| summarize {records = count()}, by:{sc_type}
+| fieldsAdd table = &quot;logs&quot;
+| append [fetch events, from:-1h | filter isNotNull(dt.security_context) | fieldsAdd sc_type = type(dt.security_context) | summarize {records = count()}, by:{sc_type} | fieldsAdd table = &quot;events&quot;]
+| fields table, sc_type, records
+</code></pre>
+<p><strong>8b — what share of each table has no security context?</strong> (MZ2POL-12 §10, Check 2)</p>
+<pre><code class="language-dql">// Step 8b — real data: records a security-context-scoped user would never see.
+fetch logs, from:-1h
+| summarize {records = count(), without_sc = countIf(isNull(dt.security_context))}
+| fieldsAdd table = &quot;logs&quot;
+| append [fetch spans, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context))} | fieldsAdd table = &quot;spans&quot;]
+| append [fetch events, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context) or arraySize(dt.security_context) == 0)} | fieldsAdd table = &quot;events&quot;]
+| fieldsAdd without_pct = round(100.0 * without_sc / records, decimals: 1)
+| fields table, records, without_sc, without_pct
+</code></pre>
+<p>On the validation tenant (10/13/2026), 8a showed logs as <code>string</code> and events as <code>array</code>; 8b showed about 41% of logs, no spans and 75% of events without a security context. Compare your own numbers with the simulated estate: the same three findings usually appear, just larger.</p>
+<p>For the full set — parity, per-zone acceptance, drift and derived-data reach — continue with MZ2POL-10 §9.</p>
+<p><a id="cutover-plan"></a></p>
+<h2>10. Cutover Plan for the Estate</h2>
+<p>Batches follow priority (Step 1). Each batch moves through the states in MZ2POL-06 §6 and exits on evidence, not dates.</p>
+<table>
+<thead>
+<tr>
+<th>Batch</th>
+<th>Zones</th>
+<th>Exit criteria for state 2 (verified)</th>
+<th>Then</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Payments - Prod, Payments logs, Payments on-call</td>
+<td>Step 4 green for payments; effective permissions for one <code>nw-payments-dev</code> user show no unscoped <code>storage:*:read</code>; alert parity over the agreed window (MZ2POL-09 §8)</td>
+<td>Disable the profile; later, remove the zone lines</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Checkout - Prod, Platform</td>
+<td>Same, for checkout and platform; shared-host metrics confirmed visible to platform, not checkout</td>
+<td>Remove the zone lines</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Catalog, Production (excl. legacy)</td>
+<td>Segments return the same views as the zones on the busiest dashboards</td>
+<td>Repoint dashboards; zones unused</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Old Test MZ</td>
+<td>Export archived</td>
+<td>Delete</td>
+</tr>
+<tr>
+<td>Last</td>
+<td>All zones</td>
+<td>No role assignment, profile, dashboard or API call references any zone</td>
+<td>Delete zones in a separate change window</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Summary</h2>
+<ol>
+<li><strong>Seven of eight zones translated without an explicit membership tag</strong> — built-in fields, one process tag, three central rules.</li>
+<li><strong>The gate caught three problems before anything was built</strong> — an unenriched host, an unenriched integration, and a mis-cased team value.</li>
+<li><strong><code>MATCH</code> mattered</strong>: <code>IN</code> would have hidden the payments team's own events.</li>
+<li><strong>Drift hid in the segment, not the boundary</strong> — test both layers.</li>
+<li><strong>The exclusion lives in one rule</strong>, and the segment stays a positive filter.</li>
+</ol>
+<h2>Next Steps</h2>
+<ul>
+<li>Run <strong>MZ2POL-14</strong> (the disposition workshop) on your real estate, with this LAB as the worked example.</li>
+<li>Use <strong>MZ2POL-10 §9</strong> and <strong>MZ2POL-12 §10</strong> for the full check set on your data.</li>
+</ul>
+<h2>Additional Resources</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent">Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s">Enrich Kubernetes telemetry with primary Grail fields and tags (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries">Policy boundaries (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

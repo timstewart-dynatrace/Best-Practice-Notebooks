@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ-21: How Do I Get the Right Alerts to the Right People?</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">FAQ — Frequently Asked Questions</a><span class="sep">/</span><span aria-current="page">FAQ-21</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>FAQ-21: How Do I Get the Right Alerts to the Right People?</h1>
+<blockquote>
+<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 21 — Alert Notification Routing | <strong>Created:</strong> August 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This entry is decision support for the question: <strong>when Davis opens a problem, what determines who hears about it, what they hear, and when?</strong></p>
+<p>The question is almost always asked late — after detectors are configured, after a channel is already noisy, and usually in the same breath as &quot;can we just turn some of these off?&quot; By then the design has usually collapsed four separate concerns into one.</p>
+<p>Separating them is the whole answer. Each lives in a different place on the platform, uses a different field, and fails in its own way.</p>
+<h3>The four axes</h3>
+<table>
+<thead>
+<tr>
+<th>Axis</th>
+<th>Question it answers</th>
+<th>Mechanism</th>
+<th>Failure mode if wrong</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Fires</strong></td>
+<td>What is worth opening a problem about?</td>
+<td>Anomaly detectors, scoped by segments</td>
+<td>Noise, or silence</td>
+</tr>
+<tr>
+<td><strong>Routes</strong></td>
+<td>Who gets paged?</td>
+<td>Problem-triggered workflow trigger filter</td>
+<td>Wrong team paged</td>
+</tr>
+<tr>
+<td><strong>Sees</strong></td>
+<td>Who may view the problem at all?</td>
+<td>IAM access model — see ORGNZ-06 / IAM-05</td>
+<td>Wrong team <strong>sees data they should not</strong></td>
+</tr>
+<tr>
+<td><strong>Filters</strong></td>
+<td>What does a user see in the UI?</td>
+<td>Segments</td>
+<td>Cosmetic</td>
+</tr>
+</tbody>
+</table>
+<p>Rows 2 and 3 are the pair that gets conflated, and they have very different consequences. This entry names the mechanism for each and points at the series that documents it properly. <strong>It does not restate them.</strong></p>
+<p>Everything below is written for a Gen3 / Grail tenant on its own terms. If you are migrating an older estate, the note in <a href="#the-four-axes-of-alert-scoping">section 2</a> maps the deprecated constructs onto these four axes — but the model does not depend on having had them.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#the-four-axes-of-alert-scoping">The Four Axes of Alert Scoping</a></li>
+<li><a href="#where-each-element-is-documented">Where Each Element Is Documented</a></li>
+<li><a href="#right-stuff-denoise-before-you-route">Right Stuff — Denoise Before You Route</a></li>
+<li><a href="#right-people-route-on-labels-not-entities">Right People — Ownership Is the Built-In Answer</a></li>
+<li><a href="#right-time">Right Time</a></li>
+<li><a href="#three-ways-this-goes-wrong">Three Ways This Goes Wrong</a></li>
+<li><a href="#recommended-approach">Recommended Approach</a></li>
+<li><a href="#summary-and-next-steps">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<p><a id="prerequisites"></a></p>
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Applies to</strong></td>
+<td>Any Gen3 / Grail tenant routing Davis problems to humans or to an ITSM system</td>
+</tr>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Platform owners, on-call leads, and anyone designing or reworking problem notification</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>Workflow creation rights; <code>storage:buckets:read</code> plus <code>storage:events:read</code> for the measurement queries in section 4, and <code>storage:smartscape:read</code> for the ownership-coverage query in section 5 — table permissions alone do not grant reads; IAM policy authoring for the visibility model in section 7</td>
+</tr>
+<tr>
+<td><strong>Related topic series</strong></td>
+<td>ALERT (detection, routing, destinations) · WFLOW (triggers, notification routing, incident management) · ORGNZ (security context, segments) · IAM (policy authoring, boundaries) · MZ2POL (migration from management zones) · AIOPS (Davis problem formation)</td>
+</tr>
+<tr>
+<td><strong>Related FAQs</strong></td>
+<td><strong>FAQ-02</strong> (tagging sources, standards, strategy) — the enrichment prerequisite · <strong>FAQ-06</strong> (can we trust Davis AI) · <strong>FAQ-17</strong> (planning a migration cutover)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Validation status.</strong> The two DQL queries in <a href="#right-stuff-denoise-before-you-route">section 4</a> and the ownership-coverage query in section 5 were executed against a live Dynatrace tenant on 10/02/2026 (an earlier 08/03/2026 pass could only syntax-verify them, for lack of the <code>storage:events:read</code> scope). Everything else in this entry is structural guidance and cross-references.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Assign permissions in Grail (DT docs)</a> — <em>&quot;Besides granting access to buckets, you also need to configure table permissions.&quot;</em></sub></p>
+</blockquote>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<p><strong>Use Ownership. It is the built-in answer to &quot;who are the right people.&quot;</strong></p>
+<ul>
+<li><strong>Ownership is tag-based</strong>, with <code>owner</code> and <code>dt.owner</code> as <strong>default keys available in every monitoring environment</strong> — plus up to three custom keys, and every key is matched as a prefix (<code>owner-1</code> counts under <code>owner</code>). Assign them via Kubernetes labels, <code>oneagentctl --set-host-property</code>, or process-group environment variables.</li>
+<li><strong>Route on those tags.</strong> Affected-entity tags are a first-class problem-trigger option, so a team's workflow filters on the ownership tag directly.</li>
+<li><strong>Or carry <code>dt.owner</code> on the event and propagate it to the problem</strong> via <em>Settings → Dynatrace Intelligence → Root cause analysis → <strong>Problem fields</strong></em>, then match it in the trigger.</li>
+<li><strong>Look up contact details at run time</strong> with the Ownership app's <code>get_owners</code> workflow action — it returns <em>&quot;ownership team info with contact details for Slack/Teams/Email/JIRA.&quot;</em> One workflow can then route dynamically instead of one workflow per team.</li>
+<li><strong>&quot;Available&quot; is not &quot;populated.&quot;</strong> The keys exist in every environment; that says nothing about whether a single entity carries an owner, whether team records exist, or whether contact details are filled in. Measure coverage before designing around it — on the validation tenant, 0 of 7 hosts and 137 of 1,787 Kubernetes pods carried an ownership tag (10/02/2026; see § 5).</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/deliver/ownership/assign-team-ownership">Assign team ownership (DT docs)</a> — <em>&quot;Ownership assignment is based on tags. Tags are key-value pairs stored in Smartscape nodes&quot;</em>; <em>&quot;By default, Dynatrace provides two keys: owner and dt.owner.&quot;</em>; <em>&quot;Ownership keys are matched as a prefix, not as an exact key.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/deliver/ownership/ownership-app">Ownership app (DT docs)</a> — the <code>get_owners</code> action and its contact details</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app/problems-app-custom-problem-field-examples">Problem fields mapping (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Problem and event triggers (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="the-four-axes-of-alert-scoping"></a></p>
+<h2>2. The Four Axes of Alert Scoping</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+Rm91ciBBeGVzIG9mIEFsZXJ0IFNjb3Bpbmc8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMi41Ij5FdmVyeSBhbGVydGluZyBkZXNpZ24gYW5zd2VycyB0aGVzZSBmb3VyIHF1ZXN0aW9ucyDigJQgZWFjaCB3aXRoIGl0cyBvd24gbWVjaGFuaXNtLCBmaWVsZCwgYW5kIGZhaWx1cmUgbW9kZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9Ijc3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEyIj5ST1VURVMgYW5kIFNFRVMgYXJlIHRoZSBwYWlyIHRoYXQgZ2V0cyBjb25mbGF0ZWQsIGFuZCB0aGV5IGZhaWwgdmVyeSBkaWZmZXJlbnRseTwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT0gQ29sdW1uIDEg4oCUIEZJUkVTID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSIzMCIgeT0iOTYiIHdpZHRoPSIxODYiIGhlaWdodD0iMzU4IiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA3IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjEyMyIgeT0iMTI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE3IiBmb250LXdlaWdodD0iNzAwIj5GSVJFUzwvdGV4dD4KICA8dGV4dCB4PSIxMjMiIHk9IjE0NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+V2hhdCBvcGVucyBhIHByb2JsZW0/PC90ZXh0PgoKICA8cmVjdCB4PSI0NiIgeT0iMTY0IiB3aWR0aD0iMTU0IiBoZWlnaHQ9IjY2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTIzIiB5PSIxODQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPk1FQ0hBTklTTTwvdGV4dD4KICA8dGV4dCB4PSIxMjMiIHk9IjIwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+QW5vbWFseSBkZXRlY3RvcjwvdGV4dD4KICA8dGV4dCB4PSIxMjMiIHk9IjIyMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+c2NvcGVkIGJ5IHNlZ21lbnQ8L3RleHQ+CgogIDxyZWN0IHg9IjQ2IiB5PSIyNDQiIHdpZHRoPSIxNTQiIGhlaWdodD0iNzgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgcng9IjYiLz4KICA8dGV4dCB4PSIxMjMiIHk9IjI2NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+U0NPUEVEIEJZPC90ZXh0PgogIDx0ZXh0IHg9IjEyMyIgeT0iMjkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIj5kZXRlY3RvciBzY29wZTwvdGV4dD4KICA8dGV4dCB4PSIxMjMiIHk9IjMwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+KyBzZWdtZW50PC90ZXh0PgoKICA8cmVjdCB4PSI0NiIgeT0iMzM2IiB3aWR0aD0iMTU0IiBoZWlnaHQ9IjEwNCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiByeD0iNiIvPgogIDx0ZXh0IHg9IjEyMyIgeT0iMzU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5JRiBXUk9ORzwvdGV4dD4KICA8dGV4dCB4PSIxMjMiIHk9IjM3OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Tm9pc2Ug4oCUIG9yIHNpbGVuY2UuPC90ZXh0PgogIDx0ZXh0IHg9IjEyMyIgeT0iMzk2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5GaXggdGhpcyBiZWZvcmU8L3RleHQ+CiAgPHRleHQgeD0iMTIzIiB5PSI0MTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnRvdWNoaW5nIHJvdXRpbmcuPC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PSBDb2x1bW4gMiDigJQgUk9VVEVTID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSIyNTgiIHk9Ijk2IiB3aWR0aD0iMTg2IiBoZWlnaHQ9IjM1OCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIzNTEiIHk9IjEyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNyIgZm9udC13ZWlnaHQ9IjcwMCI+Uk9VVEVTPC90ZXh0PgogIDx0ZXh0IHg9IjM1MSIgeT0iMTQ3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5XaG8gZ2V0cyBwYWdlZD88L3RleHQ+CgogIDxyZWN0IHg9IjI3NCIgeT0iMTY0IiB3aWR0aD0iMTU0IiBoZWlnaHQ9IjY2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMzUxIiB5PSIxODQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPk1FQ0hBTklTTTwvdGV4dD4KICA8dGV4dCB4PSIzNTEiIHk9IjIwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+V29ya2Zsb3cgdHJpZ2dlcjwvdGV4dD4KICA8dGV4dCB4PSIzNTEiIHk9IjIyMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+cHJvYmxlbS10cmlnZ2VyZWQ8L3RleHQ+CgogIDxyZWN0IHg9IjI3NCIgeT0iMjQ0IiB3aWR0aD0iMTU0IiBoZWlnaHQ9Ijc4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMzUxIiB5PSIyNjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPkZJTFRFUiBPTjwvdGV4dD4KICA8dGV4dCB4PSIzNTEiIHk9IjI4NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMSI+b3duZXIgLyBkdC5vd25lciB0YWdzPC90ZXh0PgogIDx0ZXh0IHg9IjM1MSIgeT0iMzA0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjExIj7CtyBzZXZlcml0eTwvdGV4dD4KCiAgPHJlY3QgeD0iMjc0IiB5PSIzMzYiIHdpZHRoPSIxNTQiIGhlaWdodD0iMTA0IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMzUxIiB5PSIzNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPklGIFdST05HPC90ZXh0PgogIDx0ZXh0IHg9IjM1MSIgeT0iMzc5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Xcm9uZyB0ZWFtIHBhZ2VkLjwvdGV4dD4KICA8dGV4dCB4PSIzNTEiIHk9IjM5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+TG91ZCwgdmlzaWJsZSw8L3RleHQ+CiAgPHRleHQgeD0iMzUxIiB5PSI0MTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnNlbGYtY29ycmVjdGluZy48L3RleHQ+CgogIDwhLS0gPT09PT09PT09PT09IENvbHVtbiAzIOKAlCBTRUVTID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSI0ODYiIHk9Ijk2IiB3aWR0aD0iMTg2IiBoZWlnaHQ9IjM1OCIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4wOSIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI1NzkiIHk9IjEyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxNyIgZm9udC13ZWlnaHQ9IjcwMCI+U0VFUzwvdGV4dD4KICA8dGV4dCB4PSI1NzkiIHk9IjE0NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+V2hvIG1heSB2aWV3IGl0PzwvdGV4dD4KCiAgPHJlY3QgeD0iNTAyIiB5PSIxNjQiIHdpZHRoPSIxNTQiIGhlaWdodD0iNjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0RFMzUwQiIgcng9IjYiLz4KICA8dGV4dCB4PSI1NzkiIHk9IjE4NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+TUVDSEFOSVNNPC90ZXh0PgogIDx0ZXh0IHg9IjU3OSIgeT0iMjA1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5JQU0gcG9saWN5IGJvdW5kYXJ5PC90ZXh0PgogIDx0ZXh0IHg9IjU3OSIgeT0iMjIxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5vbiBFdmVudCBSZWFkIHBlcm1pc3Npb248L3RleHQ+CgogIDxyZWN0IHg9IjUwMiIgeT0iMjQ0IiB3aWR0aD0iMTU0IiBoZWlnaHQ9Ijc4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNERTM1MEIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNTc5IiB5PSIyNjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPkZJTFRFUiBPTjwvdGV4dD4KICA8dGV4dCB4PSI1NzkiIHk9IjI4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+ZHQuc2VjdXJpdHlfY29udGV4dDwvdGV4dD4KICA8dGV4dCB4PSI1NzkiIHk9IjMwMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5LjUiPm1hcHBlZCBvbnRvIHByb2JsZW1zPC90ZXh0PgogIDx0ZXh0IHg9IjU3OSIgeT0iMzE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkuNSI+YXV0b21hdGljYWxseTwvdGV4dD4KCiAgPHJlY3QgeD0iNTAyIiB5PSIzMzYiIHdpZHRoPSIxNTQiIGhlaWdodD0iMTA0IiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjEyIiBzdHJva2U9IiNERTM1MEIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNTc5IiB5PSIzNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPklGIFdST05HPC90ZXh0PgogIDx0ZXh0IHg9IjU3OSIgeT0iMzc5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5Xcm9uZyB0ZWFtIHNlZXM8L3RleHQ+CiAgPHRleHQgeD0iNTc5IiB5PSIzOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPnJlc3RyaWN0ZWQgZGF0YS48L3RleHQ+CiAgPHRleHQgeD0iNTc5IiB5PSI0MTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlNpbGVudCB1bnRpbCBhdWRpdC48L3RleHQ+CgogIDwhLS0gPT09PT09PT09PT09IENvbHVtbiA0IOKAlCBGSUxURVJTID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSI3MTQiIHk9Ijk2IiB3aWR0aD0iMTg2IiBoZWlnaHQ9IjM1OCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4wNyIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI4MDciIHk9IjEyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxNyIgZm9udC13ZWlnaHQ9IjcwMCI+RklMVEVSUzwvdGV4dD4KICA8dGV4dCB4PSI4MDciIHk9IjE0NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+V2hhdCBzaG93cyBpbiB0aGUgVUk/PC90ZXh0PgoKICA8cmVjdCB4PSI3MzAiIHk9IjE2NCIgd2lkdGg9IjE1NCIgaGVpZ2h0PSI2NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiByeD0iNiIvPgogIDx0ZXh0IHg9IjgwNyIgeT0iMTg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5NRUNIQU5JU008L3RleHQ+CiAgPHRleHQgeD0iODA3IiB5PSIyMDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPlNlZ21lbnQ8L3RleHQ+CiAgPHRleHQgeD0iODA3IiB5PSIyMjEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnF1ZXJ5LXRpbWUgZmlsdGVyPC90ZXh0PgoKICA8cmVjdCB4PSI3MzAiIHk9IjI0NCIgd2lkdGg9IjE1NCIgaGVpZ2h0PSI3OCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiByeD0iNiIvPgogIDx0ZXh0IHg9IjgwNyIgeT0iMjY0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5TQ09QRUQgQlk8L3RleHQ+CiAgPHRleHQgeD0iODA3IiB5PSIyOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTEiPnNlZ21lbnQ8L3RleHQ+CiAgPHRleHQgeD0iODA3IiB5PSIzMDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTEiPmRlZmluaXRpb248L3RleHQ+CgogIDxyZWN0IHg9IjczMCIgeT0iMzM2IiB3aWR0aD0iMTU0IiBoZWlnaHQ9IjEwNCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiByeD0iNiIvPgogIDx0ZXh0IHg9IjgwNyIgeT0iMzU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5JRiBXUk9ORzwvdGV4dD4KICA8dGV4dCB4PSI4MDciIHk9IjM3OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Q29zbWV0aWMgb25seS48L3RleHQ+CiAgPHRleHQgeD0iODA3IiB5PSIzOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk5ldmVyIGEgcm91dGluZzwvdGV4dD4KICA8dGV4dCB4PSI4MDciIHk9IjQxMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+b3IgYWNjZXNzIGNvbnRyb2wuPC90ZXh0PgoKICA8IS0tIEZvb3RlciAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjQ3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMSI+RW5yaWNobWVudCBnYXRlcyBhbGwgZm91ciDigJQgYW5kIGEga2V5IGJlaW5nICYjODIyMDthdmFpbGFibGUmIzgyMjE7IGlzIG5vdCB0aGUgc2FtZSBhcyBhbnl0aGluZyBiZWluZyB0YWdnZWQgd2l0aCBpdDwvdGV4dD4KPC9zdmc+Cg==" alt="The four axes of alert scoping and the field each one uses" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Axis | Mechanism | Field | Failure mode |
+|------|-----------|-------|--------------|
+| Fires | Anomaly detector | Detector scope / segment | Noise or silence |
+| Routes | Workflow trigger filter | entity tags, severity, a custom attribute | Wrong team paged |
+| Sees | IAM policy boundary (Event Read) | dt.security_context | Wrong team sees restricted data |
+| Filters | Segment | Segment definition | Cosmetic only |
+For environments where SVG doesn't render
+-->
+<p>Read the axes left to right as a dependency chain rather than a menu. <strong>Fires</strong> determines whether there is anything to route at all, so detector scoping is upstream of every routing decision — tuning routing to compensate for a noisy detector just distributes the noise more precisely. <strong>Routes</strong> and <strong>sees</strong> then run in parallel on the same problem, answering different questions with different fields. <strong>Filters</strong> sits apart from all three: it changes what a person looking at a screen sees, and nothing else.</p>
+<p>The two that matter most are the middle pair, because they look like the same question:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Routes</th>
+<th>Sees</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Question</td>
+<td>Who gets paged about this problem?</td>
+<td>Who may view this problem at all?</td>
+</tr>
+<tr>
+<td>Mechanism</td>
+<td>Workflow trigger filter</td>
+<td>IAM access model</td>
+</tr>
+<tr>
+<td>Field</td>
+<td>Entity tags, severity, a custom attribute you set</td>
+<td>Security context</td>
+</tr>
+<tr>
+<td>Owner, in practice</td>
+<td>Whoever owns alerting</td>
+<td>Whoever owns access control</td>
+</tr>
+<tr>
+<td>Failure mode</td>
+<td>Wrong team paged — loud, and it corrects itself</td>
+<td>Wrong team sees restricted data — silent until an audit</td>
+</tr>
+</tbody>
+</table>
+<p>Getting routing right does nothing for visibility. They are configured in different places, by different people, and only one of them fails quietly.</p>
+<blockquote>
+<p><strong>If you are migrating from management zones.</strong> A management zone did all four of these jobs through a single object, which is why the migration feels like one thing being replaced when it is really four things being separated. The upgrade guide moves that filtering into the workflow trigger: <em>&quot;A workflow's Problem trigger filters problems directly with DQL matchers on the problem.&quot;</em> <em>&quot;There is no separate filter object to create, name, and maintain, nor is there a one-management-zone-per-profile constraint.&quot;</em> <strong>MZ2POL-09</strong> carries the per-profile disposition detail. The four-axis model above does not depend on any of this history.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Problem and event triggers (DT docs)</a> — the documented trigger option list, which contains no segment field. <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications">Alerting and notifications (DT docs)</a> — <em>&quot;We recommend filtering based on the following attributes: Primary Grail fields, Security context, Custom attributes.&quot;</em> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide — alerting and notifications (DT docs)</a> — where management-zone filtering goes in a workflow, quoted verbatim.</sub></p>
+</blockquote>
+<p><a id="where-each-element-is-documented"></a></p>
+<h2>3. Where Each Element Is Documented</h2>
+<p>This entry is a decision layer. The mechanics live in the topic series, and are better there:</p>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>Read this first</th>
+<th>Also see</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>End-to-end alerting architecture</td>
+<td>ALERT-01</td>
+<td>AIOPS-03 (how Davis forms a problem)</td>
+</tr>
+<tr>
+<td>Choosing a detector and a threshold model</td>
+<td>ALERT-02</td>
+<td>AIOPS-02 (anomaly detection)</td>
+</tr>
+<tr>
+<td>Routing, destinations, and their cost</td>
+<td>ALERT-03</td>
+<td>WFLOW-04 (notification routing)</td>
+</tr>
+<tr>
+<td>Workflow trigger filter surface</td>
+<td>WFLOW-02</td>
+<td>WFLOW-03 (notification basics)</td>
+</tr>
+<tr>
+<td>ServiceNow / ITSM integration</td>
+<td>ALERT-04</td>
+<td>WFLOW-05 (incident management)</td>
+</tr>
+<tr>
+<td>Problem visibility and the access model</td>
+<td>ORGNZ-06</td>
+<td>IAM-04 (policy authoring), IAM-05 (boundary design)</td>
+</tr>
+<tr>
+<td>Segments — what they scope and what they do not</td>
+<td>ORGNZ-08</td>
+<td>ORGNZ-10 (advanced segment definitions)</td>
+</tr>
+<tr>
+<td>Migrating classic profiles wholesale</td>
+<td>MZ2POL-09</td>
+<td>MZ2POL-05 (segments implementation)</td>
+</tr>
+<tr>
+<td>Workflow governance at scale</td>
+<td>WFLOW-09</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>If you are running a management-zone migration specifically, <strong>MZ2POL-09</strong> is the procedural counterpart to this entry and carries the per-profile disposition detail this one deliberately omits.</p>
+<p><a id="right-stuff-denoise-before-you-route"></a></p>
+<h2>4. Right Stuff — Denoise Before You Route</h2>
+<p>Routing a noisy stream more precisely just distributes the noise more precisely. Two moves come first.</p>
+<p><strong>Trigger on problems, not on individual alerts.</strong> Dynatrace Intelligence ships <em>&quot;built-in event correlation rules that combine individual alerts into a single problem based on shared topology fields&quot;</em> — <em>&quot;any two alerts that reference the same Smartscape entity and arrive within the established timeframe are merged into a single problem.&quot;</em> The problem record carries <code>dt.davis.event_ids</code>, <em>&quot;an array of event IDs (dt.davis.event_ids) that represents all the events collected and merged during the root-cause analysis,&quot;</em> and when that aggregation happens field values from the separate events are combined into arrays on the problem record. Triggering on the problem is what lets that correlation do its job; triggering on raw alerts bypasses it. The documented framing is blunt: <em>&quot;One sustained open alert is easier to manage than 30 short-lived alerts that open and close every 2 minutes.&quot;</em></p>
+<p><strong>Prune the alert library before you re-route it.</strong> The guidance is not to minimize detector count but to fix or remove the badly configured ones — review on a schedule (the page suggests <em>&quot;for example, once every quarter&quot;</em>), treat high-frequency alerts as <em>&quot;candidates for a threshold increase, a model change, or removal,&quot;</em> and delete alerts bound to orphaned entities, which <em>&quot;should be promptly deleted.&quot;</em> The reason: <em>&quot;A smaller, well-maintained alert library with a high signal-to-noise ratio produces more accurate and effective results than a large alert library that contains noise-creating configurations and produces a significant number of false positives.&quot;</em></p>
+<h3>Measure before you tune</h3>
+<p>The two queries below tell you where the volume comes from, which is rarely where people assume. Compare the totals, counting only event categories that can open a problem: a large gap between event count and problem count means correlation is doing real work; a small gap means alerts are arriving uncorrelated, which is a detector-configuration problem rather than a routing problem.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting">Avoid overalerting (DT docs)</a> — correlation rules, the 30-short-lived-alerts framing, the alert-library pruning guidance, and <em>&quot;An info event never opens a problem on its own.&quot;</em>, all quoted verbatim. <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app">Davis Problems app (DT docs)</a> — <code>dt.davis.event_ids</code> and the array-combining behavior on merge. <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Problem and event triggers (DT docs)</a>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Which problems dominate the last week, deduplicated.
+// The top few rows usually account for most of the pager volume.
+fetch dt.davis.problems, from: -7d
+| filter not(dt.davis.is_duplicate)
+| summarize problems = count(), by:{event.name, event.category}
+| sort problems desc
+| limit 20
+</code></pre>
+<p>Then compare that against the raw event stream — but only the part of it that can become a problem. Dynatrace documents that info and warning events never open one (<em>&quot;An info event never opens a problem on its own&quot;</em>; warnings <em>&quot;don't open a new problem&quot;</em> either), and on most tenants they are the bulk of the stream, so counting them inflates the ratio until it says nothing about correlation. A large gap between problem-raising events and problems means Davis is denoising effectively; a small gap means most events are arriving already uncorrelated, which is a detector-scoping problem rather than a routing problem.</p>
+<p>On the validation tenant (7 days, 10/02/2026) the unfiltered stream held about 250,000 events against 4,510 problems — a ratio of roughly 55 to 1 — but more than 236,000 of those events were <code>WARNING</code> or <code>INFO</code>. Filtered to problem-raising categories it was 10,549 events, about 2.3 to 1:</p>
+<pre><code class="language-dql">// Raw alert-event volume by category and status — problem-raising
+// categories only. INFO and WARNING events never open a problem, and
+// events without a category are excluded too. Compare the total against
+// the problem count above — the ratio tells you how much work Davis
+// denoising is actually doing.
+fetch dt.davis.events, from: -7d
+| filter isNotNull(event.category) and not(in(event.category, {&quot;INFO&quot;, &quot;WARNING&quot;}))
+| summarize events = count(), by:{event.category, event.status}
+| sort events desc
+| limit 20
+</code></pre>
+<p><a id="right-people-route-on-labels-not-entities"></a></p>
+<h2>5. Right People — Ownership Is the Built-In Answer</h2>
+<p>Start from what the trigger exposes. A problem trigger is configured with:</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Problem state</strong></td>
+<td>Active (default), active or closed, or closed only</td>
+</tr>
+<tr>
+<td><strong>Event category</strong></td>
+<td>Which Davis categories activate the workflow</td>
+</tr>
+<tr>
+<td><strong>Severity</strong></td>
+<td>Filters by level threshold</td>
+</tr>
+<tr>
+<td><strong>Affected entities</strong></td>
+<td>Tag-based — all entities, all defined tags, or any defined tag</td>
+</tr>
+<tr>
+<td><strong>Minimum duration</strong> <em>(advanced)</em></td>
+<td>Postpone until the problem has been open a set duration — see <a href="#right-time">section 6</a></td>
+</tr>
+<tr>
+<td><strong>Updates</strong> <em>(advanced)</em></td>
+<td>Re-trigger when selected fields change</td>
+</tr>
+<tr>
+<td><strong>Wait for root cause analysis</strong> <em>(advanced)</em></td>
+<td>Start only after root cause analysis has completed for the problem — recommended, so routing fields are populated when the trigger evaluates</td>
+</tr>
+<tr>
+<td><strong>Additional custom filter query</strong> <em>(advanced)</em></td>
+<td>A DQL matcher over the problem record; counts toward a 1,000-character limit across all trigger fields</td>
+</tr>
+</tbody>
+</table>
+<p>There is no segment filter and no entity-selector filter. But there <strong>is</strong> a first-class concept of team ownership, and it plugs straight into the tag filter.</p>
+<h3>Ownership — the mechanism to reach for first</h3>
+<p><em>&quot;Ownership assignment is based on tags. Tags are key-value pairs stored in Smartscape nodes.&quot;</em> Dynatrace ships two <strong>default keys — <code>owner</code> and <code>dt.owner</code> — available in every monitoring environment</strong>, and you may define up to three custom keys of your own. Every key is matched as a prefix — <em>&quot;Ownership keys are matched as a prefix, not as an exact key&quot;</em> — so a tag such as <code>owner-1</code> or <code>dt.owner.team</code> is picked up by the default keys without defining anything. As the tag value you use the team's identifier — mandatory, unique, and unchangeable once set — optionally followed by a supplementary identifier you can modify.</p>
+<p>You set ownership where the entity is described:</p>
+<table>
+<thead>
+<tr>
+<th>Where</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Kubernetes</td>
+<td>Labels</td>
+</tr>
+<tr>
+<td>Hosts</td>
+<td><code>./oneagentctl --set-host-property owner-1=team-automation</code></td>
+</tr>
+<tr>
+<td>Process groups</td>
+<td>Environment variables</td>
+</tr>
+</tbody>
+</table>
+<p>Because ownership <em>is</em> tags on Smartscape nodes, the trigger's <strong>affected-entity tag filter</strong> routes on it with no DQL at all. That is the shortest path from &quot;who owns this&quot; to &quot;who gets paged.&quot;</p>
+<h3>&quot;Available&quot; is not &quot;populated&quot;</h3>
+<p>The <code>owner</code> and <code>dt.owner</code> keys exist in every monitoring environment. <strong>That is a statement about the key namespace, not about your data.</strong> None of the following follows from availability:</p>
+<table>
+<thead>
+<tr>
+<th>Available means</th>
+<th>Available does <strong>not</strong> mean</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The key is valid and will be honored</td>
+<td>Any entity actually carries an owner tag</td>
+</tr>
+<tr>
+<td>You may create ownership teams</td>
+<td>Ownership team records exist</td>
+</tr>
+<tr>
+<td>Teams <em>can</em> hold contact details</td>
+<td>Those details are filled in</td>
+</tr>
+<tr>
+<td>Event fields <em>can</em> reach the problem record</td>
+<td>The Problem fields mapping has been created</td>
+</tr>
+</tbody>
+</table>
+<p>Each of those is work someone has to do, and the tagging is usually the bulk of it. Routing designed on top of unpopulated ownership produces workflows that never fire — and a trigger matching nothing looks exactly like a healthy, quiet estate.</p>
+<p><strong>Measure coverage before you design around it.</strong> Run this against your own tenant first:</p>
+<pre><code class="language-dql">// Ownership coverage — what fraction of hosts carry an ownership tag.
+// Run this BEFORE designing routing on ownership. Repeat per entity type.
+// Ownership keys match as PREFIXES: tags[`dt.owner`] alone misses entities
+// tagged `owner` (and `owner-1`, `dt.owner.team`, ...). Add any prefixed or
+// custom keys you use. Host properties set with oneagentctl also count for
+// ownership and are not visible here.
+smartscapeNodes &quot;HOST&quot;
+| fieldsAdd has_owner = isNotNull(tags[`owner`]) or isNotNull(tags[`dt.owner`])
+| summarize hosts = count(), by:{has_owner}
+</code></pre>
+<p>Executed against the validation tenant on 10/02/2026 this returned a <strong>single row: <code>has_owner = false</code>, 7 hosts</strong> — the keys were available and populated on no host at all. That is the normal starting state, not an anomaly. Swapped to <code>&quot;K8S_POD&quot;</code> (with <code>from:-24h</code>), the same query found <strong>137 of 1,787 pods</strong> owned — every one of them through the <code>owner</code> key. Checking the <code>dt.owner</code> key alone reported <strong>0 of 1,787</strong>: a coverage check that reads only one key reports an owned estate as unowned. Swap <code>&quot;HOST&quot;</code> for the entity types you intend to route on, and treat anything short of full coverage as scope for the enrichment work in <a href="#three-ways-this-goes-wrong">section 7</a>.</p>
+<p>Ownership is still the right mechanism to reach for. It is simply not free, and the gap between &quot;the platform supports this&quot; and &quot;our estate uses this&quot; is where routing projects stall.</p>
+<h3>Carrying ownership on the event instead</h3>
+<p>Entity tags cover problems whose affected entities are tagged. When the alert itself should declare its owner — custom alerts, ingested events, automation-generated events — set <code>dt.owner</code> as an <strong>event property</strong> on the alert configuration (documented example: <code>&quot;dt.owner&quot;: &quot;app-team-us-23&quot;</code>), then propagate it onto the problem record.</p>
+<p>The propagation is an explicit setting, not automatic: <strong>Settings → Dynatrace Intelligence → Root cause analysis → Problem fields</strong>, then <em>New field</em>, mapping the event field name to the problem field name. Once configured, <em>&quot;all newly created problems will automatically include field values from the single events for these keys.&quot;</em></p>
+<p>The documented worked example sets several properties on one custom alert — <code>dt.source_entity</code>, <code>event.type: ERROR_EVENT</code>, <code>event.name</code>, <code>event.description</code>, <code>dt.owner: app-team-us-23</code>, <code>app-id: app-23</code> — then maps <strong>both</strong> <code>dt.owner</code> and <code>app-id</code> through to the problem. <code>dt.security_context</code> is mappable the same way, which is how the visibility axis gets its value onto the problem record.</p>
+<p><strong>This mapping step is the one people miss.</strong> Setting <code>dt.owner</code> on the event and then filtering the trigger on it will silently match nothing until the Problem fields mapping exists — and a trigger that matches nothing is indistinguishable from a quiet estate.</p>
+<blockquote>
+<p><strong>The mapping is not retroactive, and cannot be made so.</strong> <em>&quot;Problem records in Grail are immutable. This means that you can modify the field mapping configuration at any time, but previously recorded problems that were closed before the modifications will not change.&quot;</em> Add the mapping late and every already-closed problem is permanently without the field. Two consequences worth planning around: create the mapping <strong>before</strong> the parallel-run window, not during it, or your before/after comparison is measuring the mapping rather than the routing; and never expect a backfill to rescue a mapping that was forgotten.</p>
+</blockquote>
+<p><strong>Not every field needs that mapping.</strong> There are two classes, and confusing them wastes configuration effort:</p>
+<table>
+<thead>
+<tr>
+<th>Field class</th>
+<th>How it reaches the problem</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fields the permission system defines as <strong>record permissions</strong> (e.g. <code>dt.security_context</code>)</td>
+<td><strong>Automatic</strong> — <em>&quot;All fields that occur on single violation events and are defined by the Dynatrace permission system as record permissions are automatically mapped onto problems.&quot;</em></td>
+</tr>
+<tr>
+<td>Any other custom field (<code>dt.owner</code>, <code>app-id</code>, …)</td>
+<td><strong>Explicit</strong> — you create the Problem fields mapping yourself</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Three things the documentation does not settle</strong>, so do not assume them: the maximum number of mapped fields, what happens when merged events carry <em>conflicting</em> values for the same field, and how array-valued fields behave. If your design depends on any of these, test it rather than reasoning about it.</p>
+<h3>Contact details at run time — one workflow instead of many</h3>
+<p>The Ownership app supplies workflow actions. <strong><code>get_owners</code></strong> returns <em>&quot;ownership team info with contact details for Slack/Teams/Email/JIRA&quot;</em> for an entity. A workflow can therefore look up the owning team when the problem fires and address the notification dynamically, rather than hard-coding a destination per team.</p>
+<p>That inverts the usual granularity advice. With <code>get_owners</code> you can run <strong>one workflow that routes to many teams</strong>; without it you fall back to <strong>one workflow per destination</strong>. Choose deliberately — the dynamic form is fewer objects but a longer chain to debug when a notification does not arrive.</p>
+<p>The <strong>Import teams</strong> action keeps the roster in sync — the app page lists the use case as <em>&quot;Automatically import and store ownership-team information to keep the information always in sync and up-to-date.&quot;</em> — and names the sources separately: <em>&quot;import teams using automation workflows from Microsoft Entra ID&quot;</em>, <em>&quot;import teams using automation workflows from ServiceNow&quot;</em>, and <em>&quot;import teams using automation workflows from any data source using JSON structure&quot;</em> — so the team roster does not have to be maintained twice.</p>
+<h3>When you still need the custom filter</h3>
+<p>For anything ownership does not express, the additional custom filter query takes a <strong>DQL matcher</strong> — a restricted subset, not full DQL. Core functions are <code>matchesPhrase</code>, <code>matchesValue</code>, <code>isNotNull</code>, <code>isNull</code> with logical operators; documented examples look like <code>matchesValue(process.technology, &quot;nginx&quot;)</code>.</p>
+<p><strong>Test the expression before you rely on it.</strong> The trigger page describes the custom filter as <em>&quot;a DQL matcher expression&quot;</em> and links it to the OpenPipeline matcher reference, which documents numerical operators and the iterative <code>iAny</code> function as well. That page is written for OpenPipeline, so for anything beyond the core functions, check the expression against real problems first — the trigger page's own advice is to <em>&quot;test filter conditions before configuring the trigger&quot;</em> by running <code>fetch dt.davis.problems</code> in a notebook. Severity does not belong in the matcher anyway — it is already a first-class trigger option.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/deliver/ownership/assign-team-ownership">Assign team ownership (DT docs)</a> — tag-based assignment, the <code>owner</code> / <code>dt.owner</code> default keys, custom keys, prefix matching, the team identifier, and the <code>oneagentctl</code> example; <em>&quot;An identifier is mandatory, and it needs to be unique. You can't change it later.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/deliver/ownership/ownership-app">Ownership app (DT docs)</a> — <code>get_owners</code>, the team-import use case, and the contact-detail channels</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/deliver/ownership/ownership-app/ownership-actions">Ownership actions (DT docs)</a> — <em>&quot;Import teams from different data sources such as Microsoft Entra ID, ServiceNow, or custom JSON.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/dynatrace-intelligence-problems-use-cases#manage-the-access-to-problem-records">Manage access to problem records (DT docs)</a> — record-permission fields are mapped onto problems automatically</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app/problems-app-custom-problem-field-examples">Custom problem field examples (DT docs)</a> — the <code>dt.owner</code> event property and the Problem fields mapping path</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Problem and event triggers (DT docs)</a> — <em>&quot;closed : Starts only when the problem closes.&quot;</em>; <em>&quot;Wait for root cause analysis : When enabled, the trigger starts only after Dynatrace Intelligence has completed root cause analysis for the problem. Recommended: Enable this to avoid triggering on incomplete problem data.&quot;</em>; <em>&quot;limited to 1,000 characters across all trigger fields&quot;</em>; <em>&quot;Add a DQL matcher expression to further refine which problems start the trigger.&quot;</em>; <em>&quot;test filter conditions before configuring the trigger&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications">Alerting and notifications (DT docs)</a> — <em>&quot;We recommend filtering based on the following attributes: Primary Grail fields, Security context, Custom attributes.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline">DQL matcher in OpenPipeline (DT docs)</a> — the reference the trigger page links; <em>&quot;With DQL matcher in OpenPipeline, you can use the following numerical operators&quot;</em></sub></li>
+<li><sub><strong>Derived:</strong> the one-workflow-per-destination-versus-dynamic-lookup trade-off combines the trigger surface with the <code>get_owners</code> action; no single source frames it as a choice</sub></li>
+</ul>
+</blockquote>
+<p><a id="right-time"></a></p>
+<h2>6. Right Time</h2>
+<p><strong>Severity tiers the urgency.</strong> Severity is a first-class trigger filter. Route the top level to whatever wakes someone up; route the lower levels to a channel read during business hours.</p>
+<blockquote>
+<p><strong>Breaking — SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout): severity is no longer defaulted.</strong> <em>&quot;Davis events and problems no longer default <code>event.severity</code> to <code>3</code>.&quot;</em> A severity filter that was silently matching the default stops matching once 1.348 reaches your tenant: <em>&quot;Workflows with a Davis event/problem trigger that filter on <code>event.severity=3</code> expecting it to be defaulted, might need to be changed to filter for <code>Any</code> severity to keep being triggered.&quot;</em> Before relying on severity tiers, check which of your event sources actually <strong>set</strong> a severity; for those that do not, route on ownership tags or a custom attribute instead, or restore a default with a Davis event OpenPipeline processor. Until 1.348 reaches your tenant, the defaulting behavior still applies.</p>
+</blockquote>
+<p><strong>Pair every open-notification with a close-notification.</strong> The problem state option takes <em>active</em>, <em>active or closed</em>, or <em>closed</em> — pick <em>active or closed</em>. Responders need the all-clear as much as the alarm, and on the ITSM side it is what resolves the ticket rather than leaving a queue of incidents describing conditions that ended days ago.</p>
+<p><strong>Duration suppression is a documented trigger option.</strong> The <strong>Minimum duration</strong> setting (formerly <strong>Delay</strong>) postpones <em>&quot;the trigger until the problem has been open for at least the configured duration.&quot;</em> Allowed values, in minutes: <strong>5, 10, 15, 30, 60, 120, 240, 1440 (one day), 10080 (one week)</strong>. It evaluates <code>dt.duration_marker</code>, <em>&quot;a field set by Dynatrace Intelligence that accumulates from the moment the problem was first created,&quot;</em> and <em>&quot;the trigger fires once when the threshold is crossed on the active phase&quot;</em> — and where the filter also detects the closed phase, <em>&quot;the trigger will additionally fire once when the problem is closed&quot;</em></p>
+<p>This is the mechanism for suppressing transient blips: a problem that resolves inside the delay window never notifies.</p>
+<blockquote>
+<p><strong>A documentation conflict, resolved 09/17/2026.</strong> Earlier versions of this entry recorded that the alert-notification upgrade guide described the classic <strong>Duration</strong> filter as having no alternative — which contradicted the <strong>Minimum duration</strong> option above. The guide was rewritten on 09/07/2026 and that statement is gone. It now lists <code>dt.duration_marker</code> as <em>&quot;How long the problem has been open, as a stepped threshold&quot;</em>, and says <em>&quot;The delay, update, and severity capabilities described in this guide exist only on the workflow trigger.&quot;</em> The two pages now agree: duration suppression is a workflow-trigger option.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Problem and event triggers (DT docs)</a> — <em>&quot;active or closed : Starts when the problem opens and again when it closes.&quot;</em>; the Minimum duration option, its allowed values, <code>dt.duration_marker</code>, and the firing behavior, all quoted verbatim (re-verified 08/27/2026; the option was renamed from <strong>Delay</strong>, and the docs still use the lowercase word &quot;delay&quot; in the <code>dt.duration_marker</code> sentence, which is how the rename went unnoticed). <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide — alerting and notifications (DT docs)</a> — <code>dt.duration_marker</code> and the delay capability on the workflow trigger, quoted verbatim (page rewritten 09/07/2026, which resolved the earlier conflict). <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">What's new in Dynatrace SaaS 1.348 (DT docs)</a> — the <code>event.severity</code> default removal quoted above (GA, rollout start 10/12/2026; re-read 10/23/2026).</sub></p>
+</blockquote>
+<p><a id="three-ways-this-goes-wrong"></a></p>
+<h2>7. Three Ways This Goes Wrong</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJmYTIxYi1hcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM3M0JFMjgiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+VGhyZWUgV2F5cyBBbGVydCBSb3V0aW5nIEdvZXMgV3Jvbmc8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+RWFjaCBiZWxpZWYgaXMgcGxhdXNpYmxlIOKAlCB0aGUgZmlyc3QgdHdvIGFyZSBhbG1vc3QgcmlnaHQsIHdoaWNoIGlzIHdoeSB0aGV5IHN1cnZpdmUgZGVzaWduIHJldmlldzwvdGV4dD4KCiAgPCEtLSBDb2x1bW4gaGVhZGVycyAtLT4KICA8dGV4dCB4PSIyMzgiIHk9IjgyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5USEUgQkVMSUVGPC90ZXh0PgogIDx0ZXh0IHg9IjY4MyIgeT0iODIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPldIQVQgSVMgQUNUVUFMTFkgVFJVRTwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT0gUm93IDEgPT09PT09PT09PT09IC0tPgogIDxyZWN0IHg9IjQwIiB5PSI5MiIgd2lkdGg9IjM5NiIgaGVpZ2h0PSIxMTgiIGZpbGw9IiNERTM1MEIiIG9wYWNpdHk9IjAuMDkiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNjAiIHk9IjExNiIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+MSDCtyBTZWdtZW50cyBzY29wZSBub3RpZmljYXRpb248L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjE0MCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMS41Ij7igJxDYW4gSSBqdXN0IHNjb3BlIHRoaXMgYWxlcnQgdG8gYTwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMTU3IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExLjUiPnNlZ21lbnQ/4oCdPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIxODIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+U3Vydml2ZXMgYmVjYXVzZSBpdCBpcyBhbG1vc3QgcmlnaHQg4oCUIHNlZ21lbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIxOTciIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+cmVhbGx5IGRvIHNjb3BlIGFub21hbHkgZGV0ZWN0b3JzLjwvdGV4dD4KCiAgPGxpbmUgeDE9IjQ0NCIgeTE9IjE1MSIgeDI9IjQ4MiIgeTI9IjE1MSIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjZmEyMWItYXJyb3cpIi8+CgogIDxyZWN0IHg9IjQ5MCIgeT0iOTIiIHdpZHRoPSI0MDAiIGhlaWdodD0iMTE4IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjUxMCIgeT0iMTE2IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5ObyBzZWdtZW50IGZpZWxkIG9uIGEgd29ya2Zsb3cgdHJpZ2dlcjwvdGV4dD4KICA8dGV4dCB4PSI1MTAiIHk9IjE0MCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMS41Ij5TZWdtZW50cyBzY29wZSBERVRFQ1RJT04gYW5kIHF1ZXJpZXMuPC90ZXh0PgogIDx0ZXh0IHg9IjUxMCIgeT0iMTU3IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExLjUiPk5ldmVyIE5PVElGSUNBVElPTi48L3RleHQ+CiAgPHRleHQgeD0iNTEwIiB5PSIxODIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+U2VnbWVudHMgc2NvcGUgd2hhdCBhIGRldGVjdG9yIGV2YWx1YXRlcyBhbmQgd2hhdDwvdGV4dD4KICA8dGV4dCB4PSI1MTAiIHk9IjE5NyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5hIHF1ZXJ5IHJldHVybnMg4oCUIHJvdXRpbmcgaXMgYSB0cmlnZ2VyLWZpbHRlciBqb2IuPC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PSBSb3cgMiA9PT09PT09PT09PT0gLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjIyNiIgd2lkdGg9IjM5NiIgaGVpZ2h0PSIxMTgiIGZpbGw9IiNERTM1MEIiIG9wYWNpdHk9IjAuMDkiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNjAiIHk9IjI1MCIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+MiDCtyBSb3V0aW5nIHJlcGxhY2VzIHZpc2liaWxpdHk8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjI3NCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMS41Ij7igJxXZSd2ZSBzZXQgd2hvIGdldHMgcGFnZWQsIHNvIGFjY2VzczwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMjkxIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExLjUiPmlzIGhhbmRsZWQu4oCdPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIzMTYiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+V29yc3QgZmFpbHVyZSBtb2RlIG9mIHRoZSB0aHJlZSwgYW5kIHRoZSBvbmx5IG9uZTwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMzMxIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPnRoYXQgc3RheXMgc2lsZW50IHVudGlsIGFuIGF1ZGl0IGZpbmRzIGl0LjwvdGV4dD4KCiAgPGxpbmUgeDE9IjQ0NCIgeTE9IjI4NSIgeDI9IjQ4MiIgeTI9IjI4NSIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjZmEyMWItYXJyb3cpIi8+CgogIDxyZWN0IHg9IjQ5MCIgeT0iMjI2IiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjExOCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI1MTAiIHk9IjI1MCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+VmlzaWJpbGl0eSBpcyBhIHNlcGFyYXRlIElBTSBkZXNpZ248L3RleHQ+CiAgPHRleHQgeD0iNTEwIiB5PSIyNzQiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEuNSI+QSB0cmlnZ2VyIGRlY2lkZXMgd2hldGhlciBhIG5vdGlmaWNhdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI1MTAiIHk9IjI5MSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMS41Ij5maXJlcyDigJQgbm90IHdobyBtYXkgcmVhZCB0aGUgcHJvYmxlbS48L3RleHQ+CiAgPHRleHQgeD0iNTEwIiB5PSIzMTYiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+UmVhZGluZyBpcyBhbiBJQU0gcG9saWN5IGJvdW5kYXJ5IOKAlCBlLmcuPC90ZXh0PgogIDx0ZXh0IHg9IjUxMCIgeT0iMzMxIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPnN0b3JhZ2U6ZHQuc2VjdXJpdHlfY29udGV4dCBvbiBFdmVudCBSZWFkLjwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT0gUm93IDMgPT09PT09PT09PT09IC0tPgogIDxyZWN0IHg9IjQwIiB5PSIzNjAiIHdpZHRoPSIzOTYiIGhlaWdodD0iMTE4IiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjA5IiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjYwIiB5PSIzODQiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPjMgwrcgUm91dGUgZmlyc3QsIGVucmljaCBsYXRlcjwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iNDA4IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExLjUiPuKAnFN0YW5kIHRoZSByb3V0aW5nIHVwIG5vdywgc29ydCB0aGU8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjQyNSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMS41Ij50YWdnaW5nIHN0YW5kYXJkIG91dCBhZnRlcndhcmRzLuKAnTwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iNDUwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPldoZXJlIHRoZSBkZXNpZ24gc3RhbGxzIOKAlCB0aGUgcm91dGluZyBtb2RlbCBoYXM8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjQ2NSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5ub3RoaW5nIHRvIGZpbHRlciBvbi48L3RleHQ+CgogIDxsaW5lIHgxPSI0NDQiIHkxPSI0MTkiIHgyPSI0ODIiIHkyPSI0MTkiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2ZhMjFiLWFycm93KSIvPgoKICA8cmVjdCB4PSI0OTAiIHk9IjM2MCIgd2lkdGg9IjQwMCIgaGVpZ2h0PSIxMTgiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNTEwIiB5PSIzODQiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkVucmljaG1lbnQgZ2F0ZXMgcm91dGluZzwvdGV4dD4KICA8dGV4dCB4PSI1MTAiIHk9IjQwOCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMS41Ij5BIHRyaWdnZXIgZmlsdGVycyBvbiB0YWdzIHRoYXQgbXVzdCBhbHJlYWR5PC90ZXh0PgogIDx0ZXh0IHg9IjUxMCIgeT0iNDI1IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExLjUiPmV4aXN0IGFuZCBoYXZlIHByb3BhZ2F0ZWQuPC90ZXh0PgogIDx0ZXh0IHg9IjUxMCIgeT0iNDUwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPkJ1aWxkIG9uZSB3b3JrZmxvdyBwZXIgZGVzdGluYXRpb24g4oCUIGFuZCBuZXZlciBsZXQgYTwvdGV4dD4KICA8dGV4dCB4PSI1MTAiIHk9IjQ2NSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5sZWdhY3kgb2JqZWN0IGNvdW50IHNldCB0aGUgdGFyZ2V0IHNoYXBlLjwvdGV4dD4KPC9zdmc+Cg==" alt="Three alert-routing anti-patterns and their corrections" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Anti-pattern | Belief | Correction |
+|--------------|--------|------------|
+| Segments scope notification | "Can I scope this alert to a segment?" | The documented trigger options contain no segment field; segments scope detection and queries |
+| Routing replaces visibility | "We set who gets paged, so access is handled" | Notification filtering and access control are different concerns with different owners |
+| Route before enrich | "Stand routing up now, tag later" | The trigger filters on tags that must already exist and have propagated |
+For environments where SVG doesn't render
+-->
+<h3>1. &quot;Can I just scope this alert to a segment?&quot;</h3>
+<p>It arrives greenfield as the question above and mid-migration as <em>&quot;we moved to Segments, so our alerting profiles point at segments now.&quot;</em> Both survive because they are <em>almost</em> right — segments do scope anomaly detectors.</p>
+<p>But the documented problem-trigger options are problem state, event category, severity, affected entities, minimum duration, updates, wait for root cause analysis, and the additional custom filter query. <strong>There is no segment field among them.</strong> Segments scope what a detector evaluates and what a query returns; they do not scope who gets notified.</p>
+<p>For a migrating estate the upgrade guide puts the filtering a management zone used to do into the trigger itself: <em>&quot;A workflow's Problem trigger filters problems directly with DQL matchers on the problem.&quot;</em></p>
+<h3>2. Setting who gets paged, and calling access handled</h3>
+<p>Notification filtering and access control are different concerns. A trigger condition decides whether a <em>notification fires</em>; it does not decide whether a person may <em>open the problem and read it</em>.</p>
+<p>Restricting who may read a problem is a <strong>policy boundary</strong>, not a workflow setting. The documented shape is a boundary such as <code>storage:dt.security_context IN (&quot;app-23&quot;);</code> attached to an <strong>Event Read</strong> permission and assigned to a user group — <em>&quot;This allows you to segregate and manage access to the Dynatrace Grail data lake based on reading permissions for various user groups.&quot;</em></p>
+<p>Two things follow that make this genuinely separate from routing:</p>
+<ul>
+<li><strong>The field arrives on its own.</strong> Record-permission fields are mapped onto problems automatically from the violation events, so <code>dt.security_context</code> does not need the Problem fields mapping that <code>dt.owner</code> does — but it does need to be <em>set</em> on the events in the first place, or, if the value arrives under another name, mapped onto it with a Problem fields entry, as the documented example does with <code>app_id</code>.</li>
+<li><strong>It is configured elsewhere, by someone else.</strong> Policy boundaries live in IAM, not in Workflows. <strong>ORGNZ-06</strong> and <strong>IAM-05</strong> carry the authoring detail.</li>
+</ul>
+<p>Getting routing right therefore settles nothing about visibility, and the failure is silent: nobody is paged incorrectly, someone simply reads data they should not.</p>
+<h3>3. Routing before enriching</h3>
+<p>A workflow trigger's affected-entity filter operates on <strong>tags</strong>, and a custom-attribute filter operates on an attribute something must already have set. Both require enrichment that has already propagated. Sequencing the routing design ahead of the tagging standard produces a routing model with nothing to filter on. <strong>FAQ-02</strong> covers the tagging side; the ordering dependency is the point here.</p>
+<p>A related trap for migrating estates: rebuilding every legacy profile as its own workflow recreates an object count that reflected the constraints of the old model rather than any current requirement. Ask what each cluster of profiles was working around before reproducing it.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/dynatrace-intelligence-problems-use-cases#manage-the-access-to-problem-records">Manage access to problem records (DT docs)</a> — the automatic record-permission mapping and the <code>storage:dt.security_context</code> boundary, quoted verbatim</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app/problems-app-custom-problem-field-examples">Custom problem field examples (DT docs)</a> — <em>&quot;First, you need to configure dt.security_context field within the problem field mapping settings.&quot;</em> (the example maps the event field <code>app_id</code>)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Problem and event triggers (DT docs)</a> — the complete documented option list, which contains no segment field</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications">Alerting and notifications (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide — alerting and notifications (DT docs)</a> — where management-zone filtering goes in a workflow, quoted verbatim</sub></li>
+</ul>
+</blockquote>
+<p><a id="recommended-approach"></a></p>
+<h2>8. Recommended Approach</h2>
+<p>Sequenced, because the dependencies are real:</p>
+<ol>
+<li><strong>Enrich first.</strong> Establish the tagging standard and confirm propagation before designing routing. Every dimension you intend to filter on must already exist as a tag or an attribute.</li>
+<li><strong>Decide the visibility model separately, and early.</strong> If problems need access restriction, that is IAM work (<strong>ORGNZ-06</strong>, <strong>IAM-05</strong>) — settle it before workflows are built on top of it.</li>
+<li><strong>Route on the ownership tags first.</strong> <code>owner</code> and <code>dt.owner</code> are default tag keys in every monitoring environment and affected-entity tags are a first-class trigger filter, so this needs no custom field and no DQL matcher (§ 1, § 9). Measure coverage before relying on it — <em>available</em> is not <em>populated</em>; on the validation tenant 0 of 7 hosts and 137 of 1,787 Kubernetes pods carried an ownership tag (10/02/2026, § 5). <strong>Only where ownership cannot be populated</strong> for a given signal, standardize one custom attribute (e.g. <code>alert_group</code>), set it wherever those events are raised, and match it with a DQL matcher.</li>
+<li><strong>Build one workflow per destination.</strong> Filter on affected-entity tags and severity where those suffice, and put anything finer in the additional custom filter query as a DQL matcher. Enable <strong>Wait for root cause analysis</strong> on the trigger, so the problem's routing fields are populated before the trigger evaluates them.</li>
+<li><strong>Set the Minimum duration option</strong> where transient problems should not page, rather than filtering them out downstream — but verify it behaves as documented in your tenant first (see <a href="#right-time">section 6</a>).</li>
+<li><strong>Pair every open-notification with a close-notification.</strong></li>
+<li><strong>Cut over on evidence.</strong> Prove per-team volume parity across an agreed window before retiring whatever the workflows replace. <strong>FAQ-17</strong> covers the cutover discipline.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Problem and event triggers (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications">Alerting and notifications (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline">DQL matcher (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="summary-and-next-steps"></a></p>
+<h2>9. Summary and Next Steps</h2>
+<p><strong>Five things to carry away:</strong></p>
+<ol>
+<li><strong>Four axes, not one.</strong> Fires, routes, sees, filters — each a different mechanism and a different failure mode.</li>
+<li><strong>Ownership is the built-in answer.</strong> <code>owner</code> and <code>dt.owner</code> are default tag keys in every environment, and affected-entity tags are a first-class trigger filter — so routing on ownership needs no custom field and no DQL. Reach for a custom attribute only where ownership genuinely does not fit.</li>
+<li><strong>The custom filter is a DQL matcher, not DQL.</strong> <code>matchesPhrase</code>, <code>matchesValue</code>, <code>isNotNull</code>, <code>isNull</code> plus logical operators — and the exact surface differs per matcher context, so verify what the trigger accepts rather than assuming. Anything needing aggregation belongs upstream in enrichment.</li>
+<li><strong>Duration suppression exists</strong> as the trigger's <strong>Minimum duration</strong> option — and since the upgrade guide's 09/07/2026 rewrite, both documentation pages agree on it.</li>
+<li><strong>Enrichment gates everything.</strong> You cannot filter on a tag or attribute that does not exist yet.</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>If you need…</th>
+<th>Read</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The full trigger filter surface</td>
+<td>WFLOW-02</td>
+</tr>
+<tr>
+<td>Routing patterns, destinations, and their cost</td>
+<td>ALERT-03, WFLOW-04</td>
+</tr>
+<tr>
+<td>End-to-end alerting architecture</td>
+<td>ALERT-01</td>
+</tr>
+<tr>
+<td>How Davis forms and merges a problem</td>
+<td>AIOPS-03</td>
+</tr>
+<tr>
+<td>The visibility / access model</td>
+<td>ORGNZ-06, IAM-05</td>
+</tr>
+<tr>
+<td>Per-profile migration disposition</td>
+<td>MZ2POL-09</td>
+</tr>
+<tr>
+<td>The tagging standard routing depends on</td>
+<td><strong>FAQ-02</strong></td>
+</tr>
+<tr>
+<td>Cutover discipline for the parallel run</td>
+<td><strong>FAQ-17</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

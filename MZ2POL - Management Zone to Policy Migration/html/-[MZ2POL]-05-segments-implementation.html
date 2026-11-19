@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MZ2POL-05: Migrating Management Zone Filtering to Segments</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MZ2POL — Management Zone Migration: Segments, Policies, Workflows</a><span class="sep">/</span><span aria-current="page">MZ2POL-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MZ2POL-05: Migrating Management Zone Filtering to Segments</h1>
+<blockquote>
+<p><strong>Series:</strong> MZ2POL — Management Zone Migration: Segments, Policies, Workflows | <strong>Notebook:</strong> 6 of 17 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 11/07/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Management Zones do three jobs: <strong>access control</strong>, <strong>filtering</strong>, and <strong>alerting</strong> (see MZ2POL-09 for the third). Most migration guidance — including the rest of this series — covers the <strong>access-control</strong> job, which becomes IAM policies, boundaries, and <code>dt.security_context</code>. This notebook covers the second job: <strong>filtering and scoping what people see</strong>, which becomes <strong>Segments</strong>.</p>
+<p>If your Management Zones are mostly used to scope dashboards, filter views, and give teams a &quot;my stuff only&quot; lens — rather than to enforce who may read what or who gets paged — this notebook is the one you need, and you can read it without working through the access-control notebooks first.</p>
+<p>The work is <strong>manual</strong>. There is no button that turns a Management Zone into a segment. What this notebook gives you is the mapping: for each way an MZ is commonly defined, the corresponding way to get the same scope in Grail — plus the four constraints that make some MZs impossible to reproduce exactly.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#which-job">Which Job Is Your MZ Doing?</a></li>
+<li><a href="#no-auto-conversion">There Is No Automatic Conversion</a></li>
+<li><a href="#segment-mechanics">Segment Mechanics: Where They Are Documented</a></li>
+<li><a href="#migration-scenarios">Migration Scenarios</a></li>
+<li><a href="#conversion-blockers">Conversion Blockers</a></li>
+<li><a href="#mapping-mz-rules">Mapping MZ Rules to Segment Filters</a></li>
+<li><a href="#testing-mapping">Testing Your Mapping with DQL</a></li>
+<li><a href="#coexistence">Coexistence: Classic Apps and Parallel Running</a></li>
+<li><a href="#visibility-and-permissions">Visibility and Permissions</a></li>
+<li><a href="#migration-checklist">Migration Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail — segments are a Grail-only construct</td>
+</tr>
+<tr>
+<td><strong>Existing Management Zones</strong></td>
+<td>An inventory of the zones you intend to migrate (see MZ2POL-00 and MZ2POL-03)</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:filter-segments:read</code> and <code>storage:filter-segments:write</code> to create segments; <code>storage:entities:read</code> and <code>storage:logs:read</code> to run the validation queries in §7</td>
+</tr>
+<tr>
+<td><strong>Enrichment in place</strong></td>
+<td>Host tags, host groups, or Kubernetes metadata must already reach Grail — see §4 for which scenario applies, and pass the MZ2POL-10 readiness gate first; MZ2POL-11 maps each MZ rule to its target field</td>
+</tr>
+<tr>
+<td><strong>Background reading</strong></td>
+<td>ORGNZ-08 and ORGNZ-10 for segment mechanics; this notebook covers the migration, not the feature</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<hr />
+<p><a id="which-job"></a></p>
+<h2>1. Which Job Is Your MZ Doing?</h2>
+<p>Before mapping anything, classify each Management Zone by what it is actually being used for. The replacement construct differs, and picking the wrong one produces either a security gap or a lot of unnecessary IAM work.</p>
+<table>
+<thead>
+<tr>
+<th>What the MZ is used for</th>
+<th>Replacement</th>
+<th>Covered in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Restricting <strong>who may read</strong> which data</td>
+<td>IAM policy + boundary on <code>dt.security_context</code></td>
+<td>MZ2POL-04</td>
+</tr>
+<tr>
+<td>Scoping <strong>what a user sees</strong> in apps and dashboards</td>
+<td><strong>Segment</strong></td>
+<td>This notebook</td>
+</tr>
+<tr>
+<td>Deciding <strong>who gets paged</strong> — alerting profile scope</td>
+<td>Routing dimensions on a problem-triggered workflow</td>
+<td>MZ2POL-09</td>
+</tr>
+<tr>
+<td>More than one of the above</td>
+<td>Each job migrates independently — they are separate layers</td>
+<td>The matching notebook(s) above</td>
+</tr>
+</tbody>
+</table>
+<p>The three are not alternatives and they do not substitute for each other:</p>
+<blockquote>
+<p><strong>Segments are not access control.</strong> A segment changes what is <em>shown</em>, not what is <em>permitted</em>. Anyone with <code>storage:filter-segments:read</code> can apply any segment, and a segment never widens what a user is allowed to query — the IAM policy still decides that. If the MZ was load-bearing for security, a segment alone does <strong>not</strong> replace it. Segments also do not replace alerting-profile scoping — see MZ2POL-09.</p>
+</blockquote>
+<h3>A useful heuristic</h3>
+<p>If removing the Management Zone would let someone see data they are <strong>not allowed</strong> to see, it is doing the access-control job — go to MZ2POL-04. If removing it would only make their dashboards noisy, it is doing the filtering job, and this notebook covers it. If removing it would change who gets paged, it is doing the alerting job — go to MZ2POL-09.</p>
+<p>Most MZ estates contain far more of the filtering kind than teams expect. Run the inventory in MZ2POL-00 and MZ2POL-03 first; it classifies the estate for you.</p>
+<hr />
+<p><a id="no-auto-conversion"></a></p>
+<h2>2. There Is No Automatic Conversion</h2>
+<blockquote>
+<p><strong>There is no automatic Management Zone to Segment conversion.</strong> No button, no API endpoint, no wizard. Unlike Metric Events, which have a supported automatic upgrade path to Anomaly Detectors, Management Zones must be re-expressed as segments by hand.</p>
+</blockquote>
+<p>This matters for planning. A 200-zone estate is 200 hand-authored segment definitions unless you consolidate first — and consolidation is usually the right move, because MZ estates typically accumulate zones that no longer have owners or users.</p>
+<h3>What tooling does exist</h3>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>What it does</th>
+<th>What it does not do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MZ2POL-00 SDK analysis tool</td>
+<td>Exports <code>builtin:management-zones</code>, classifies each rule (tag-based / name-based / SELECTOR / host-group / complex-nested), scores migration readiness</td>
+<td>Emits no segments — it is an inventory and triage aid</td>
+</tr>
+<tr>
+<td>Filter Segments API (<code>POST /platform/storage/filter-segments/v1/filter-segments</code>, <code>storage:filter-segments:write</code>; SDK: <a href="https://developer.dynatrace.com/develop/sdks/client-filter-segment-management/">client-filter-segment-management (Dynatrace Developer)</a>)</td>
+<td>Creates segments programmatically once you have written the definition</td>
+<td>Does not derive the definition from an MZ. Segments are not a Settings 2.0 object — there is no <code>builtin:filter-segments</code> schema (the Settings API returns 404 for it)</td>
+</tr>
+<tr>
+<td>Terraform <code>dynatrace_segment</code> / Monaco <code>type: segment</code> (Monaco CLI 2.19.0+)</td>
+<td>Manages segment definitions as code</td>
+<td>Same — you write the include filters yourself, in segment filter syntax (not DQL; only variable definitions are DQL)</td>
+</tr>
+</tbody>
+</table>
+<p>The practical sequence is therefore: <strong>inventory (MZ2POL-00) → consolidate → hand-author the definitions using the scenarios below → deploy as code (ORGNZ-10 §10, AUTOM-04)</strong>.</p>
+<h3>Consolidate before you convert: one segment per <em>dimension</em>, not per <em>value</em></h3>
+<p>This is the single most important planning decision, and it changes the arithmetic of the whole migration.</p>
+<p>A Management Zone is a <strong>static definition of one value</strong> — <code>Easytrade</code>, <code>Hipstershop</code>, <code>Easytravel</code> are three separate zones, and onboarding a fourth app means authoring a fourth zone. A segment does not work that way: a segment carries <strong>variables</strong>, and a variable's values come from a live DQL query. One segment named <code>app</code>, whose variable enumerates every distinct application value, covers every app that exists now and every app added later — with no further configuration.</p>
+<p>So the migration is <strong>not</strong> N zones → N segments:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Management Zones</th>
+<th>Segments</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Unit of definition</td>
+<td>One per <strong>value</strong></td>
+<td>One per <strong>dimension</strong></td>
+</tr>
+<tr>
+<td>Typical count</td>
+<td>Dozens to hundreds</td>
+<td>Usually <strong>three to eight</strong></td>
+</tr>
+<tr>
+<td>New app onboarded</td>
+<td>Author a new zone</td>
+<td>Appears automatically, if enrichment is present</td>
+</tr>
+</tbody>
+</table>
+<p>An estate with dozens of zones across three dimensions — app, stage, platform — converges on <strong>three segments</strong>, not dozens. If your target count is climbing past roughly eight, that is the signal that you are converting values instead of dimensions, and it is worth stopping to revisit the dimension design.</p>
+<blockquote>
+<p><strong>Segment sprawl is the common failure mode.</strong> Teams migrate zone-for-zone, end up with dozens of overlapping segments, and reproduce exactly the maintenance burden they were trying to escape — with the added downside that users now face a long, confusing segment picker.</p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+T25lIFNlZ21lbnQgcGVyIERpbWVuc2lvbiwgTm90IHBlciBab25lPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIuNSI+Wm9uZXMgZW5jb2RlIG9uZSB2YWx1ZSBlYWNoOyBhIHNlZ21lbnQgdmFyaWFibGUgZW51bWVyYXRlcyBldmVyeSB2YWx1ZSBvZiBhIGRpbWVuc2lvbiBmcm9tIGEgbGl2ZSBxdWVyeTwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iNzYiIHdpZHRoPSIyNjAiIGhlaWdodD0iMzQiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzIiIHk9Ijk4IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEuNSI+RWFzeXRyYWRlIC0gUHJvZDwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iMTE2IiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjM0IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjMyIiB5PSIxMzgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMS41Ij5FYXN5dHJhZGUgLSBEZXY8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjE1NiIgd2lkdGg9IjI2MCIgaGVpZ2h0PSIzNCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzMiIgeT0iMTc4IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEuNSI+SGlwc3RlcnNob3AgLSBQcm9kPC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSIxOTYiIHdpZHRoPSIyNjAiIGhlaWdodD0iMzQiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzIiIHk9IjIxOCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExLjUiPkhpcHN0ZXJzaG9wIC0gRGV2PC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSIyMzYiIHdpZHRoPSIyNjAiIGhlaWdodD0iMzQiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzIiIHk9IjI1OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExLjUiPkVhc3l0cmF2ZWwgLSBQcm9kPC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSIyNzYiIHdpZHRoPSIyNjAiIGhlaWdodD0iMzQiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzIiIHk9IjI5OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExLjUiPkVhc3l0cmF2ZWwgLSBEZXY8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjMxNiIgd2lkdGg9IjI2MCIgaGVpZ2h0PSIzNCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzMiIgeT0iMzM4IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEuNSI+QVdTIC0gUHJvZDwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iMzU2IiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjM0IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjMyIiB5PSIzNzgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMS41Ij5LOHMgLSBQbGF0Zm9ybTwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iMzk2IiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjM0IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjMyIiB5PSI0MTgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMS41Ij7igKYgb25lIHpvbmUgcGVyIG5ldyBhcHA8L3RleHQ+CiAgPHRleHQgeD0iMTUwIiB5PSI0NTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPlpvbmVzOiBvbmUgcGVyIHZhbHVlIOKAlCBkb3plbnMgdG8gaHVuZHJlZHM8L3RleHQ+CiAgPHJlY3QgeD0iMzgwIiB5PSI5MiIgd2lkdGg9IjUzMCIgaGVpZ2h0PSI5NiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzOTYiIHk9IjExOCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5TZWdtZW50OiBhcHA8L3RleHQ+CiAgPHRleHQgeD0iMzk2IiB5PSIxNDIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dmFyaWFibGUgJGFwcCDihpAgZGlzdGluY3QgcHJpbWFyeV90YWdzLmFwcDwvdGV4dD4KICA8dGV4dCB4PSIzOTYiIHk9IjE2NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5maWx0ZXI6IHByaW1hcnlfdGFncy5hcHAgPSAkYXBwPC90ZXh0PgogIDxyZWN0IHg9IjM4MCIgeT0iMjEyIiB3aWR0aD0iNTMwIiBoZWlnaHQ9Ijk2IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjM5NiIgeT0iMjM4IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlNlZ21lbnQ6IHN0YWdlPC90ZXh0PgogIDx0ZXh0IHg9IjM5NiIgeT0iMjYyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnZhcmlhYmxlICRzdGFnZSDihpAgZGlzdGluY3QgcHJpbWFyeV90YWdzLnN0YWdlPC90ZXh0PgogIDx0ZXh0IHg9IjM5NiIgeT0iMjg0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmZpbHRlcjogcHJpbWFyeV90YWdzLnN0YWdlID0gJHN0YWdlPC90ZXh0PgogIDxyZWN0IHg9IjM4MCIgeT0iMzMyIiB3aWR0aD0iNTMwIiBoZWlnaHQ9Ijk2IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjM5NiIgeT0iMzU4IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlNlZ21lbnQ6IHBsYXRmb3JtPC90ZXh0PgogIDx0ZXh0IHg9IjM5NiIgeT0iMzgyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnZhcmlhYmxlICRwbGF0Zm9ybSDihpAgZHQuaG9zdF9ncm91cC5pZCBwYXJ0czwvdGV4dD4KICA8dGV4dCB4PSIzOTYiIHk9IjQwNCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5maWx0ZXI6IGR0Lmhvc3RfZ3JvdXAuaWQgPSAiJHBsYXRmb3JtKiI8L3RleHQ+CiAgPGxpbmUgeDE9IjI4MiIgeTE9IjI2MCIgeDI9IjM3OCIgeTI9IjE0MCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICA8bGluZSB4MT0iMjgyIiB5MT0iMjYwIiB4Mj0iMzc4IiB5Mj0iMjYwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogIDxsaW5lIHgxPSIyODIiIHkxPSIyNjAiIHgyPSIzNzgiIHkyPSIzODAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgPHRleHQgeD0iNjQ1IiB5PSI0NTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPlNlZ21lbnRzOiBvbmUgcGVyIGRpbWVuc2lvbiDigJQgdXN1YWxseSB0aHJlZSB0byBlaWdodDwvdGV4dD4KICA8dGV4dCB4PSI2NDUiIHk9IjQ3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+QSBuZXcgYXBwIGFwcGVhcnMgaW4gJGFwcCBhdXRvbWF0aWNhbGx5LCBpZiBpdHMgZGF0YSBjYXJyaWVzIHRoZSB0YWc8L3RleHQ+Cjwvc3ZnPgo=" alt="One segment per dimension, not per zone" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Zones (one per value) | Segments (one per dimension) |
+|---|---|
+| Easytrade - Prod, Easytrade - Dev, Hipstershop - Prod, Hipstershop - Dev, Easytravel - Prod, Easytravel - Dev, AWS - Prod, K8s - Platform, … one per new app | app: variable $app from distinct primary_tags.app; filter primary_tags.app = $app |
+| | stage: variable $stage from distinct primary_tags.stage; filter primary_tags.stage = $stage |
+| | platform: variable $platform from dt.host_group.id parts; filter dt.host_group.id = "$platform*" |
+| Dozens to hundreds | Usually three to eight; a new app appears in $app automatically if its data carries the tag |
+For environments where SVG doesn't render
+-->
+<p>This rule is canonical in <strong>ORGNZ-10</strong> (§ <em>Best Practice: One Segment Per Dimension</em>) and <strong>ORGNZ-99</strong> (rule 46); this notebook applies it to the migration.</p>
+<h3>Other reductions worth making</h3>
+<ul>
+<li>Zones with no query activity in the last 90 days: delete rather than convert.</li>
+<li>Zones that duplicate a dimension already carried by a Primary Grail field (host group, K8s namespace, cloud tags) — those come nearly free via §4.2 and §4.4.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments">Best practice examples: from Management Zones to Segments (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage/segments">Segments (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas-type-fields">Monaco configuration type fields (DT docs)</a> — <em>&quot;the segment type is supported&quot;</em> (Monaco CLI 2.19.0+), <a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/segment">dynatrace_segment (Dynatrace Terraform provider)</a>.</sub></p>
+</blockquote>
+<hr />
+<p><a id="segment-mechanics"></a></p>
+<h2>3. Segment Mechanics: Where They Are Documented</h2>
+<p>This notebook covers the <strong>migration</strong>, not segment mechanics in general. For how segments actually work, the canonical treatment in this corpus is the ORGNZ series:</p>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Read</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Segments vs. buckets, include structure, design patterns, limits</td>
+<td>ORGNZ-08 — Grail Segments</td>
+</tr>
+<tr>
+<td>Filter syntax and operators, include rules, variables, host-group segments, visibility, segments-as-code, Query API, Davis problem includes</td>
+<td>ORGNZ-10 — Advanced Segment Definitions</td>
+</tr>
+<tr>
+<td>Managing segments with Terraform and Monaco</td>
+<td>AUTOM-04, AUTOM-97</td>
+</tr>
+</tbody>
+</table>
+<p>What you need to carry into the migration from those notebooks is a short list of constraints, because they determine which Management Zones can be reproduced faithfully and which cannot:</p>
+<table>
+<thead>
+<tr>
+<th>Constraint</th>
+<th>Value</th>
+<th>Why it matters when converting</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Includes per segment</td>
+<td>20</td>
+<td>A complex MZ with many rule types may not fit in one segment</td>
+</tr>
+<tr>
+<td>Include blocks per data type</td>
+<td>1</td>
+<td>You cannot add two <code>logs</code> includes — combine with <code>OR</code> inside one</td>
+</tr>
+<tr>
+<td>Expressions per filter condition</td>
+<td>10</td>
+<td>Caps how many conditions a single MZ rule can become</td>
+</tr>
+<tr>
+<td>Segments per environment</td>
+<td>10,000</td>
+<td>Rarely binding, but relevant for very large estates</td>
+</tr>
+<tr>
+<td>Values in a variable dropdown</td>
+<td>15,000 (5 MB byte cap)</td>
+<td>Relevant for tenant-wide variables such as host group</td>
+</tr>
+<tr>
+<td>Selected variable values per segment</td>
+<td>100</td>
+<td>Classic entities; constrains variable-driven consolidation</td>
+</tr>
+<tr>
+<td>Filter operators</td>
+<td><code>=</code> and <code>in()</code> only</td>
+<td>There is no separate <code>contains</code> operator — see below</td>
+</tr>
+<tr>
+<td>Wildcards</td>
+<td><code>*</code> inside the value</td>
+<td>Gives starts-with / contains / ends-with matching</td>
+</tr>
+<tr>
+<td>Classic entity properties</td>
+<td>Only <code>entity.name</code> accepts wildcards</td>
+<td>Every <strong>other</strong> entity property is exact-equals only</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Include blocks are ORed.</strong> Data matching <em>any</em> include is in scope. Within a single include, conditions are ANDed. An MZ whose rules were implicitly ANDed across entity types will not behave the same way if you map each rule to its own include.</p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+SG93IGEgU2VnbWVudCBJcyBCdWlsdDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyLjUiPkluY2x1ZGVzIGFyZSBPUmVkOyBjb25kaXRpb25zIGluc2lkZSBvbmUgaW5jbHVkZSBhcmUgQU5EZWQg4oCUIGFuZCBvbmx5ID0gYW5kIGluKCkgZXhpc3Q8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjcyIiB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwNiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjIiIHN0cm9rZS1kYXNoYXJyYXk9IjUgNCIvPgogIDx0ZXh0IHg9IjM2IiB5PSI5NiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5TZWdtZW50OiB0ZWFtLXBheW1lbnRzPC90ZXh0PgogIDxyZWN0IHg9IjM2IiB5PSIxMTIiIHdpZHRoPSI1NjgiIGhlaWdodD0iOTgiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTAiIHk9IjEzNiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPkRhdGEgKGFsbCB0eXBlcykgIOKAlCByZWNvbW1lbmRlZCBzdGFydDwvdGV4dD4KICA8dGV4dCB4PSI1MCIgeT0iMTYyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+cHJpbWFyeV90YWdzLnRlYW0gPSAicGF5bWVudHMiPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIxODIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5BTkQgcHJpbWFyeV90YWdzLnN0YWdlID0gJHN0YWdlPC90ZXh0PgogIDxyZWN0IHg9IjM2IiB5PSIyMjIiIHdpZHRoPSI1NjgiIGhlaWdodD0iOTgiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTAiIHk9IjI0NiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPmV2ZW50cyAg4oCUIG5lZWRlZCB0byBzY29wZSB0aGUgcHJvYmxlbSBmZWVkPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIyNzIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5ldmVudC5raW5kID0gIkRBVklTX1BST0JMRU0iPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIyOTIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5BTkQgcHJpbWFyeV90YWdzLnRlYW0gPSAicGF5bWVudHMiPC90ZXh0PgogIDxyZWN0IHg9IjM2IiB5PSIzMzIiIHdpZHRoPSI1NjgiIGhlaWdodD0iOTgiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTAiIHk9IjM1NiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPkVudGl0aWVzICDigJQgU21hcnRzY2FwZSBub2RlcyAoTW9yZSAmZ3Q7IEVudGl0aWVzKTwvdGV4dD4KICA8dGV4dCB4PSI1MCIgeT0iMzgyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+dHlwZSA9ICJTRVJWSUNFIjwvdGV4dD4KICA8dGV4dCB4PSI1MCIgeT0iNDAyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+QU5EIGlkIGluICgkZHQuc21hcnRzY2FwZS5zZXJ2aWNlKTwvdGV4dD4KICA8dGV4dCB4PSIzMjAiIHk9IjIxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+T1I8L3RleHQ+CiAgPHRleHQgeD0iMzIwIiB5PSIzMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPk9SPC90ZXh0PgogIDxyZWN0IHg9IjY0MCIgeT0iNzIiIHdpZHRoPSIyNzAiIGhlaWdodD0iNDA2IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjY1NiIgeT0iOTYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMi41IiBmb250LXdlaWdodD0iNzAwIj5MaW1pdHMgdGhhdCBzaGFwZSB0aGUgY29udmVyc2lvbjwvdGV4dD4KICA8dGV4dCB4PSI2NTYiIHk9IjEyNCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4yMCBpbmNsdWRlcyBwZXIgc2VnbWVudDwvdGV4dD4KICA8dGV4dCB4PSI2NTYiIHk9IjE0OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4xIGluY2x1ZGUgYmxvY2sgcGVyIGRhdGEgdHlwZTwvdGV4dD4KICA8dGV4dCB4PSI2NTYiIHk9IjE3MiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4xMCBleHByZXNzaW9ucyBwZXIgY29uZGl0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjY1NiIgeT0iMTk2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPjEwIHNlZ21lbnRzIGFwcGxpZWQgcGVyIHF1ZXJ5PC90ZXh0PgogIDx0ZXh0IHg9IjY1NiIgeT0iMjIwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm9wZXJhdG9yczogPSBhbmQgaW4oKSBvbmx5PC90ZXh0PgogIDx0ZXh0IHg9IjY1NiIgeT0iMjQ0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPndpbGRjYXJkICogaW5zaWRlIHRoZSB2YWx1ZTwvdGV4dD4KICA8dGV4dCB4PSI2NTYiIHk9IjI2OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5ubyBleGNsdXNpb25zPC90ZXh0PgogIDx0ZXh0IHg9IjY1NiIgeT0iMjkyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnZhcmlhYmxlczogbm8gKiBpbiBuYW1lcyBvciB2YWx1ZXM8L3RleHQ+CiAgPHRleHQgeD0iNjU2IiB5PSIzMTYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dmlzaWJpbGl0eSDiiaAgYWNjZXNzOiBhbnlvbmUgd2l0aDwvdGV4dD4KICA8dGV4dCB4PSI2NTYiIHk9IjM0MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5zdG9yYWdlOmZpbHRlci1zZWdtZW50czpyZWFkPC90ZXh0PgogIDx0ZXh0IHg9IjY1NiIgeT0iMzY0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmNhbiBhcHBseSBhbnkgc2VnbWVudDwvdGV4dD4KPC9zdmc+Cg==" alt="How a segment is built" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Part | Content |
+|---|---|
+| Include: Data (all types) — recommended start | primary_tags.team = "payments" AND primary_tags.stage = $stage |
+| Include: events — scopes the problem feed | event.kind = "DAVIS_PROBLEM" AND primary_tags.team = "payments" |
+| Include: Entities — Smartscape nodes | type = "SERVICE" AND id in ($dt.smartscape.service) |
+| Logic | Includes are ORed; conditions inside one include are ANDed |
+| Limits | 20 includes; 1 include block per data type; 10 expressions per condition; = and in() only; wildcard inside the value; no exclusions; no * in variable names or values; anyone with storage:filter-segments:read can apply any segment |
+For environments where SVG doesn't render
+-->
+<h3>Start with <code>Data (all types)</code></h3>
+<p>Segments offer a <strong><code>Data (all types)</code></strong> include block alongside the type-specific ones, and it is the <strong>recommended</strong> starting point. It applies your filter conditions across signals <em>and</em> Smartscape entities in one rule, which means a single include often replaces what would otherwise be several — and it keeps you well clear of the 20-include ceiling.</p>
+<p>Reach for a type-specific include only when a dimension genuinely differs by data type, or when you need one of the cases <code>Data (all types)</code> does not cover: the <code>events</code> include for Davis problems (§5.4), or an <code>Entities</code> include for Smartscape service nodes (§8).</p>
+<blockquote>
+<p><strong>Classic entity includes are a backward-compatibility path, not the default.</strong> Dynatrace states that entity relationships in segments &quot;are only supported for backward compatibility with classic entities.&quot; The includes page describes them for higher-cardinality classic entities (Kubernetes workloads filtered by their related clusters, for example), but the later Services and Smartscape tutorial says <em>&quot;Do not use legacy dt.entity.</em> attributes in include blocks in your segments.&quot;* A migration should not build on them. For services in particular, §8 has the documented replacement.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits">Segment limits (DT docs)</a> — <em>&quot;15,000 values in the variable dropdown (5 MB byte cap also applies)&quot;</em>, <a href="https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-includes">Include data in segments (DT docs)</a> — verbatim: entity relationships in segments <em>&quot;are only supported for backward compatibility with classic entities&quot;</em>, <a href="https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-filter-smartscape-nodes">Filter Smartscape nodes with segments (DT docs)</a> — the <code>Data (all types)</code> include block is the recommended form, <a href="https://docs.dynatrace.com/docs/observe/application-observability/services/segment-services">Use segments to scope Services and Smartscape apps (DT docs)</a> — as quoted.</sub></p>
+</blockquote>
+<hr />
+<p><a id="migration-scenarios"></a></p>
+<h2>4. Migration Scenarios</h2>
+<p>Dynatrace documents a set of fully supported upgrade scenarios, organized by <strong>how the Management Zone was defined</strong> rather than by what it was called. Find the row matching your MZ's rule type and follow that scenario.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>If the MZ is defined by…</th>
+<th>Segment approach</th>
+<th>Extra tagging needed?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4.1</td>
+<td>Auto-tagging on process / host / service <strong>name or metadata</strong></td>
+<td>Set the tag at the source as a <strong>host tag</strong></td>
+<td>Yes — move tagging to OneAgent</td>
+</tr>
+<tr>
+<td>4.2</td>
+<td><strong>Host group</strong> membership</td>
+<td>Filter on <code>dt.host_group.id</code></td>
+<td>No — enriched automatically</td>
+</tr>
+<tr>
+<td>4.3</td>
+<td><strong>Systematic host-group naming</strong> (<code>&lt;CMDBID&gt;-&lt;app&gt;-&lt;component&gt;-&lt;stage&gt;</code>)</td>
+<td>Parse the name with DPL in a variable definition</td>
+<td>No</td>
+</tr>
+<tr>
+<td>4.4</td>
+<td><strong>Kubernetes</strong> cluster or namespace</td>
+<td>Filter on the K8s enrichment fields</td>
+<td>No — enriched automatically</td>
+</tr>
+<tr>
+<td>4.5</td>
+<td><strong>Host tags / properties</strong> set at OneAgent install</td>
+<td>Re-set the tag with a <code>primary_tags.</code> prefix and filter a <code>Data (all types)</code> include on it</td>
+<td>Yes — a plain host tag stays on the host's Smartscape node and does not reach logs, spans or metrics</td>
+</tr>
+<tr>
+<td>4.6</td>
+<td>Anything else (rules that do not fit above)</td>
+<td>Introduce a <strong>membership tag</strong> whose value is the MZ name, set as <code>primary_tags.segment</code></td>
+<td>Yes — the guide gives this for zones built on names or metadata without auto-tags, on host OneAgents; this notebook uses it as the general fallback</td>
+</tr>
+<tr>
+<td>4.7</td>
+<td><strong>Extension</strong> data</td>
+<td>Filter on the extension enrichment attributes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>4.8</td>
+<td><strong>Cloud-native / application-only injection</strong></td>
+<td>Set <code>DT_TAGS</code> and <code>OTEL_RESOURCE_ATTRIBUTES</code> on the process</td>
+<td>Yes — environment variables</td>
+</tr>
+</tbody>
+</table>
+<p>The guide describes these as its <em>&quot;fully supported scenarios&quot;</em> — its stated purpose is <em>&quot;sharing best practices for fully supported scenarios.&quot;</em> Treat them as the supported set today, not an exhaustive account of every MZ shape.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments">Best practice examples: from Management Zones to Segments (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>4.1 Auto-tagging on process, host, or service names</h3>
+<p><strong>The MZ pattern:</strong> an auto-tagging rule derives a tag from a process name, host name, service name, or their metadata, and the Management Zone selects on that tag.</p>
+<p><strong>The move:</strong> stop deriving the tag from observed names and <strong>set it at the source as a primary Grail tag</strong> — a host tag whose key carries the <code>primary_tags.</code> prefix (<code>primary_tags.app=checkout</code>), set during OneAgent deployment. Tags in that form are enriched onto the signals themselves as fields, which is what makes them usable in segment filter conditions across data types. A host tag <em>without</em> the prefix is a standard tag: it stays on the host's Smartscape node and is not enriched onto raw signals.</p>
+<p>This is the single most common scenario and also the one that requires the most upfront work, because it changes where tagging happens — from a rule evaluated in Dynatrace to a value supplied at install time. See FAQ-02 for tagging-source strategy and ORGNZ-10 §3 for the enrichment prerequisite and a coverage-audit query.</p>
+<blockquote>
+<p><strong>Watch the derived-data caveat.</strong> Derived data — service metrics, Davis events and problems — carries primary Grail fields, the special fields (<code>dt.security_context</code>, <code>dt.cost.costcenter</code>, <code>dt.cost.product</code>) and <code>primary_tags.*</code>. Standard tags and signal-local attributes do <strong>not</strong> carry through. The <code>primary_tags.</code> prefix is therefore what decides whether a converted tag also works on metric-based dashboards. See §5.2.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags">Primary Grail fields and tags (DT docs)</a> — standard tags: <em>&quot;Dynatrace doesn't automatically enrich them on raw telemetry signals.&quot;</em></sub></p>
+</blockquote>
+<h3>4.2 Host group membership</h3>
+<p><strong>The MZ pattern:</strong> the zone selects hosts by host group.</p>
+<p><strong>The move:</strong> no tagging work at all. Every signal from a OneAgent that belongs to a host group is automatically enriched with <strong><code>dt.host_group.id</code></strong>. Filter on it directly.</p>
+<p>This is the cheapest scenario to migrate and a good first candidate for a pilot conversion. FAQ-01 covers host-group naming strategy, which determines how much you can extract in 4.3.</p>
+<h3>4.3 Extraction from systematic host-group naming</h3>
+<p><strong>The MZ pattern:</strong> host groups follow a structured naming convention — for example <code>&lt;CMDBID&gt;-&lt;AppName&gt;-&lt;component&gt;-&lt;deploymentEnvironment&gt;</code> — and separate MZs slice on different parts of the name.</p>
+<p><strong>The move:</strong> parse the components out with DPL in a <strong>segment variable definition</strong>, then filter on the extracted value. One segment with a variable replaces the whole family of MZs.</p>
+<pre><code class="language-dql">// Segment variable definition — extract dimensions from systematic host-group naming.
+// Pattern: &lt;CMDBID&gt;-&lt;AppName&gt;-&lt;component&gt;-&lt;deploymentEnvironment&gt;
+// Live-verified 07/21/2026. smartscapeNodes scans 0 bytes — this costs nothing to run.
+smartscapeNodes &quot;HOST&quot;
+| filter isNotNull(dt.host_group.id)
+| parse dt.host_group.id, &quot;LD:CMDBID '-' LD:app '-' LD:component '-' LD:stage&quot;
+| filter isNotNull(CMDBID)
+| fields CMDBID
+| dedup CMDBID
+| sort CMDBID asc
+</code></pre>
+<blockquote>
+<p><strong>A segment variable definition is ordinary DQL.</strong> It is not restricted to the classic entity model — <code>smartscapeNodes</code> works and is the preferred form. The published upgrade-guide examples use <code>fetch dt.entity.host_group</code>, which still works but queries the deprecated classic entity model; the <code>smartscapeNodes</code> equivalents above and below were verified against a live tenant on 07/21/2026 and scan <strong>zero bytes</strong>.</p>
+<p>The real constraints on a variable query are different ones: the result must be <strong>columnar</strong> — the first column becomes the primary variable and later columns become secondary variables — high-volume data types such as <code>logs</code> should be avoided, and <strong>neither variable names nor values may contain <code>*</code></strong> (though a wildcard may <em>follow</em> a variable reference in a condition, as <code>$stage*</code>).</p>
+</blockquote>
+<p><strong>There is no <code>HOST_GROUP</code> Smartscape node type.</strong> Host groups are a <em>field</em> (<code>dt.host_group.id</code>) on <code>HOST</code> nodes, not nodes of their own — which is why the query above starts from <code>HOST</code> and dedups, rather than fetching host groups directly.</p>
+<p>If your host groups are <em>not</em> systematically named, this scenario is unavailable and you fall back to 4.6. That is a strong argument for fixing host-group naming before migrating rather than after — see FAQ-01.</p>
+<h3>4.4 Kubernetes cluster and namespace</h3>
+<p><strong>The MZ pattern:</strong> the zone scopes to a Kubernetes cluster or namespace.</p>
+<p><strong>The move:</strong> Kubernetes signals are automatically enriched with cluster and namespace information — no additional tagging. Build the variable from the namespace entity and filter on the enrichment fields.</p>
+<p>That is enough for simple setups. For production the guide recommends a richer baseline: <em>&quot;For most production environments, use Namespace annotations and labels as the baseline.&quot;</em> Map the namespace labels or annotations your teams already maintain through Kubernetes telemetry enrichment, and filter segments on those (<a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments">upgrade guide (DT docs)</a>).</p>
+<blockquote>
+<p><strong>Version gate.</strong> The Kubernetes enrichment page is labelled <em>&quot;Dynatrace Operator version 1.10+&quot;</em>, <em>&quot;OneAgent version 1.333+&quot;</em> and <em>&quot;ActiveGate version 1.343+&quot;</em>; annotations on the workload object itself (<code>Deployment</code>, <code>StatefulSet</code>, <code>DaemonSet</code>) additionally carry <em>&quot;Dynatrace Operator version 1.11+&quot;</em> and <em>&quot;ActiveGate version 1.347+&quot;</em>. Operators, OneAgents and ActiveGates are upgraded cluster by cluster, so verify the versions in each cluster before relying on primary tags there. Until they are in place, the built-in <code>k8s.cluster.name</code> and <code>k8s.namespace.name</code> fields remain the working path, and namespace-level annotations are the level to use where workload-level ones are not yet supported.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s">Enrich Kubernetes telemetry with primary Grail fields and tags (DT docs)</a> — version labels as quoted; <em>&quot;Annotations on the workload object itself&quot;</em> apply <em>&quot;to every pod created by that workload.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Segment variable definition — Kubernetes namespaces.
+// Live-verified 07/21/2026: K8S_NAMESPACE is a real Smartscape node type; 0 bytes scanned.
+smartscapeNodes &quot;K8S_NAMESPACE&quot;
+| fields namespace = name
+| dedup namespace
+| sort namespace asc
+</code></pre>
+<p>For the filter conditions themselves, the Primary Grail Fields are <code>k8s.cluster.name</code> (cluster-scoped) and <code>k8s.namespace.name</code> (namespace-scoped). ORGNZ-10 §5 walks the full four-step build for both the host-group and Kubernetes variants.</p>
+<blockquote>
+<p><strong>Kubernetes coverage:</strong> both central enrichment rules and dedicated annotations (<code>metadata.dynatrace.com/primary_tags.&lt;key&gt;</code>) reach Kubernetes platform metrics, Kubernetes events and Smartscape Kubernetes entities, so one <code>primary_tags.*</code> include scopes K8s metrics, events, logs and spans alike. On the validation tenant on 10/13/2026, 7,377 of 8,617 Kubernetes events in 24 h carried a <code>primary_tags.*</code> field, and <code>dt.kubernetes.container.restarts</code> split by it. Two documented caveats apply:</p>
+<ul>
+<li>OneAgent-based enrichment needs the <strong>Cloud Native Full Stack</strong> or <strong>Application Monitoring</strong> deployment mode; Classic Full Stack is not supported.</li>
+<li>The cost-allocation page says <strong>pod</strong> annotations don't reach Kubernetes metrics, events, Smartscape entities or Prometheus metrics, while the Kubernetes page ticks a combined pod/workload/namespace column. Until the pages agree, set any tag that must scope K8s metrics with a central rule or at namespace level.</li>
+</ul>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s">Enrich Kubernetes telemetry with primary Grail fields and tags (DT docs)</a> — <em>&quot;consistently across logs, metrics, spans, events, and Smartscape entities&quot;</em>; <em>&quot;OneAgent-based enrichment requires the Cloud Native Full Stack or Application Monitoring deployment mode. Classic Full Stack is not supported.&quot;</em>, <a href="https://docs.dynatrace.com/docs/manage/tags/tags-cost-allocation">Configure cost allocation (DT docs)</a> — <em>&quot;Pod annotations don't enrich Kubernetes metrics, events, Smartscape entities, or Prometheus metrics.&quot;</em></sub></p>
+</blockquote>
+<h3>4.5 Host tags and properties</h3>
+<p><strong>The MZ pattern:</strong> the zone selects on tags set during OneAgent installation.</p>
+<p><strong>The move:</strong> re-set the value as a primary Grail tag and filter on that. Don't build a classic <code>dt.entity.host</code> include on the existing tag, because Dynatrace advises against <code>dt.entity.*</code> attributes in include blocks (§8). If you inventory the old tag in classic DQL, note that host tags added via OneAgent appear <strong>with an <code>[Environment]</code> prefix</strong>, so a tag whose key is <code>App</code> reads as <code>[Environment]App</code>.</p>
+<p>A plain host tag does not reach signals (logs, spans, metrics, problems) either. The primary Grail fields and tags page classes tags <em>&quot;defined at the host or process level&quot;</em> as standard tags: <em>&quot;These tags are available only on the respective Smartscape node. Dynatrace doesn't automatically enrich them on raw telemetry signals.&quot;</em> Re-set the value with a <code>primary_tags.</code> prefix (<code>--set-host-tag=&quot;primary_tags.app=checkout&quot;</code>, §4.1) and filter on <code>primary_tags.app</code> in a <code>Data (all types)</code> include. The upgrade guide's host-tag procedure says the key-value lands <em>&quot;on every signal as a field value combination&quot;</em>; the reference page says the opposite for unprefixed tags, so check a log record from a tagged host before relying on an unprefixed key.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags">Primary Grail fields and tags (DT docs)</a> — as quoted, <a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments">Best practice examples: from Management Zones to Segments (DT docs)</a> — <em>&quot;the tag is visible on the host level with the [Environment] prefix&quot;</em>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Segment variable definition — distinct values of a primary tag.
+// On Smartscape nodes `tags` is a RECORD: access keys with unquoted bracket notation.
+// Live-verified 07/21/2026; 0 bytes scanned.
+smartscapeNodes &quot;HOST&quot;
+| fieldsAdd app = tags[primary_tags.application]
+| filter isNotNull(app)
+| fields app
+| dedup app
+| sort app asc
+</code></pre>
+<blockquote>
+<p><strong>Two different tag shapes — this is the trap.</strong> On <strong>Smartscape</strong> nodes, <code>tags</code> is a <strong>record</strong>: keys are raw (<code>primary_tags.application</code>) and you read them with unquoted bracket notation, <code>tags[primary_tags.application]</code>. On the <strong>classic</strong> entity model (<code>fetch dt.entity.host | expand tag = tags</code>), <code>tags</code> is an <strong>array of <code>&quot;key:value&quot;</code> strings</strong>, and host tags added via OneAgent surface there with an <code>[Environment]</code> prefix — so a tag whose key is <code>App</code> reads as <code>&quot;[Environment]App:&lt;value&gt;&quot;</code>.</p>
+<p>Mixing the two produces a filter that validates but silently matches nothing. Running <code>matchesValue(tags, &quot;[Environment]App:x&quot;)</code> against <code>smartscapeNodes &quot;HOST&quot;</code> returns the verifier warning <em>&quot;this parameter should be a string, an array or a smartscape id, but was a record&quot;</em> followed by <em>&quot;the query will always return an empty result as the condition can't be true&quot;</em> — confirmed 07/21/2026. Prefer the Smartscape form and the record accessor.</p>
+</blockquote>
+<p><code>dt.security_context</code> is also worth knowing: on Smartscape nodes it is an <strong>array</strong>, so enumerating its distinct values needs <code>expand</code> (see §4.6).</p>
+<h3>4.6 Everything else — the <code>Segment</code> tag fallback</h3>
+<p><strong>The MZ pattern:</strong> any zone whose definition does not reduce to one of the patterns above — hand-maintained entity lists, complex nested rules, SELECTOR-based rules.</p>
+<p><strong>The move:</strong> introduce a <strong>new tag with a key such as <code>Segment</code>, whose value is the name of the Management Zone</strong>, and filter a <code>Data (all types)</code> include on it. The guide gives this move for its non-auto-tagging scenario — zones defined by process name, host name, service name, or metadata; using it for every zone that fits no other scenario is this notebook's extension of it.</p>
+<p>Two details decide whether the tag actually scopes data:</p>
+<ul>
+<li><strong>Give it the <code>primary_tags.</code> prefix</strong> — <code>primary_tags.segment=&lt;zone name&gt;</code>, the same key MZ2POL-11 uses. A plain <code>Segment</code> host tag is a standard tag, which stays on the host's Smartscape node and does not reach logs, spans or service metrics (§4.5, §5.2). The prefixed form also reaches derived data.</li>
+<li><strong>Know where it applies.</strong> The guide scopes this move to <em>&quot;data coming from OneAgents not running in cloud-native environments, where the OneAgent is injected into the application only&quot;</em> — it is set as a host tag on full-stack hosts. Application-only workloads have no host tag to carry it; set the same key through <code>DT_TAGS</code> and <code>OTEL_RESOURCE_ATTRIBUTES</code> (§4.8), and for Kubernetes through a namespace annotation (§4.4).</li>
+</ul>
+<p>This is deliberately low-cleverness. It reproduces the zone's membership without trying to re-derive its logic, which is exactly what you want for zones whose rules have accumulated exceptions nobody can explain. The tag becomes the explicit, greppable statement of membership that the MZ rule was only implying.</p>
+<p>Two consequences worth accepting up front:</p>
+<ul>
+<li>Membership is now <strong>maintained where the tag is set</strong>, not by a rule that re-evaluates. Entities added later need the tag.</li>
+<li>In community practice it works well as a migration destination and ages less well as a long-term model, because membership is hand-maintained rather than derived from the estate. Where a real dimension exists (host group, namespace, environment), prefer 4.2–4.5 and treat 4.6 as the fallback it is.</li>
+</ul>
+<h3>4.7 Extensions</h3>
+<p><strong>The MZ pattern:</strong> the zone scopes extension-collected data.</p>
+<p><strong>The move:</strong> filter on the extension enrichment attributes — <strong>security context</strong>, <strong>product</strong>, and <strong>cost center</strong>, which the guide says can be configured <em>&quot;for every extension configuration.&quot;</em> They write the three special fields <code>dt.security_context</code>, <code>dt.cost.product</code> and <code>dt.cost.costcenter</code>, which also reach derived data (§5.2).</p>
+<h3>4.8 Cloud-native and application-only injection</h3>
+<p><strong>The MZ pattern:</strong> the zone covers workloads instrumented by application-only injection, where there is no host OneAgent to carry host tags.</p>
+<p><strong>The move:</strong> set the enrichment on the process itself, via environment variables — <code>dt.security_context</code>, <strong><code>DT_TAGS</code></strong>, and <strong><code>OTEL_RESOURCE_ATTRIBUTES</code></strong>.</p>
+<blockquote>
+<p><strong>They are not interchangeable.</strong> <code>DT_TAGS</code> and <code>OTEL_RESOURCE_ATTRIBUTES</code> look similar but separate their key-value pairs differently. The OneAgent enrichment page's <code>DT_TAGS</code> example is <strong>space</strong>-separated — <code>DT_TAGS=&quot;primary_tags.environment=production primary_tags.team=bravo&quot;</code> — while the OpenTelemetry enrichment page's <code>OTEL_RESOURCE_ATTRIBUTES</code> example is <strong>comma</strong>-separated — <code>primary_tags.team=alpha,primary_tags.app=myapp</code>. Both use <code>=</code> between key and value. (The upgrade guide describes the difference as <em>&quot;a colon instead of a space as a separator&quot;</em>; follow the two enrichment pages' examples.) Setting one and assuming the other is covered is a reliable way to produce a segment that half-works.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments">Best practice examples: from Management Zones to Segments (DT docs)</a> — for non-auto-tagging zones, a new tag <em>&quot;with the value set to the name of the management zone&quot;</em>; extensions: <em>&quot;you can configure the enrichment attributes Security context, Product, and Cost center for every extension configuration&quot;</em>, <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent">Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)</a> — <code>DT_TAGS</code> example, <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-otel">Enrich OpenTelemetry with primary Grail fields and tags (DT docs)</a> — <code>OTEL_RESOURCE_ATTRIBUTES</code> example, <a href="https://docs.dynatrace.com/docs/manage/segments/use-cases/segments-use-cases-kubernetes-clusters">Segment data by Kubernetes clusters (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>4.9 Shortcut: reuse <code>dt.security_context</code> as a segment dimension</h3>
+<p>If you are migrating access control at the same time (MZ2POL-04), <code>dt.security_context</code> is already being populated across your signals. That makes it available as a ready-made segment dimension at no extra enrichment cost — the values are already there.</p>
+<p>The caveat is conceptual, and worth stating plainly: <strong>filtering on <code>dt.security_context</code> does not make the segment an access-control mechanism.</strong> The field happens to be convenient and universally populated; the segment is still just a view filter, and the IAM policy is still what decides what the user may read (§1). Use it because the enrichment already exists, not because it sounds secure.</p>
+<p>On Smartscape nodes <code>dt.security_context</code> is an <strong>array</strong>, so enumerating its distinct values requires <code>expand</code>:</p>
+<pre><code class="language-dql">// Segment variable definition — enumerate distinct security-context values.
+// dt.security_context is an ARRAY on Smartscape nodes, hence the expand.
+// Live-verified 07/21/2026; 0 bytes scanned.
+smartscapeNodes &quot;PROCESS&quot;
+| fields dt.security_context
+| expand dt.security_context
+| filter isNotNull(dt.security_context)
+| dedup dt.security_context
+| sort dt.security_context asc
+</code></pre>
+<hr />
+<p><a id="conversion-blockers"></a></p>
+<h2>5. Conversion Blockers</h2>
+<p>Four constraints make some Management Zones impossible to reproduce exactly. Find these before you start authoring, not after — each one changes the design rather than just the syntax.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+Rm91ciBDb252ZXJzaW9uIEJsb2NrZXJzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIuNSI+RmluZCB0aGVzZSBiZWZvcmUgYXV0aG9yaW5nIOKAlCBlYWNoIGNoYW5nZXMgdGhlIGRlc2lnbiwgbm90IGp1c3QgdGhlIHN5bnRheDwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iNzQiIHdpZHRoPSI0MzAiIGhlaWdodD0iOTIiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzYiIHk9IjEwMiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEyLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPjUuMSBObyBleGNsdXNpb25zPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSIxMjYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+InByb2QgZXhjZXB0IGxlZ2FjeSIgY2Fubm90IGJlIHdyaXR0ZW48L3RleHQ+CiAgPGxpbmUgeDE9IjQ1MCIgeTE9IjEyMCIgeDI9IjQ3OCIgeTI9IjEyMCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JlZW4pIi8+CiAgPHJlY3QgeD0iNDgwIiB5PSI3NCIgd2lkdGg9IjQzMCIgaGVpZ2h0PSI5MiIgcng9IjciIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSI0ODAiIHk9Ijc0IiB3aWR0aD0iNDMwIiBoZWlnaHQ9IjkyIiByeD0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjQ5NiIgeT0iMTAyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkZpeDwvdGV4dD4KICA8dGV4dCB4PSI0OTYiIHk9IjEyNiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5QdXNoIHRoZSBOT1QgaW50byB0aGUgZW5yaWNobWVudCBydWxlIGFuZCBmaWx0ZXIgb24gYSBwb3NpdGl2ZSB2YWx1ZSAoTVoyUE9MLTExIMKnNSk8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjE3NiIgd2lkdGg9IjQzMCIgaGVpZ2h0PSI5MiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzNiIgeT0iMjA0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIuNSIgZm9udC13ZWlnaHQ9IjcwMCI+NS4yIE9ubHkgcHJpbWFyeSBmaWVsZHMgYW5kIHRhZ3MgcmVhY2ggZGVyaXZlZCBkYXRhPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSIyMjgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YSBzdGFuZGFyZCB0YWcgZmlsdGVycyBlbnRpdGllcyBidXQgbm90IHNlcnZpY2UgbWV0cmljczwvdGV4dD4KICA8bGluZSB4MT0iNDUwIiB5MT0iMjIyIiB4Mj0iNDc4IiB5Mj0iMjIyIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmVlbikiLz4KICA8cmVjdCB4PSI0ODAiIHk9IjE3NiIgd2lkdGg9IjQzMCIgaGVpZ2h0PSI5MiIgcng9IjciIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSI0ODAiIHk9IjE3NiIgd2lkdGg9IjQzMCIgaGVpZ2h0PSI5MiIgcng9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI0OTYiIHk9IjIwNCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5GaXg8L3RleHQ+CiAgPHRleHQgeD0iNDk2IiB5PSIyMjgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UHJvbW90ZSB0aGUgdmFsdWUgdG8gcHJpbWFyeV90YWdzLiZsdDtrZXkmZ3Q7IGF0IHRoZSBzb3VyY2UgKE1aMlBPTC0xMCk8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjI3OCIgd2lkdGg9IjQzMCIgaGVpZ2h0PSI5MiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzNiIgeT0iMzA2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIuNSIgZm9udC13ZWlnaHQ9IjcwMCI+NS4zIENsYXNzaWMgZW50aXR5IHByb3BlcnRpZXMgYXJlIGVxdWFscy1vbmx5PC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSIzMzAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+ZW50aXR5Lm5hbWUgc3RhcnRzLXdpdGggb25seTsgbm8gY29udGFpbnMgb24gY2xhc3NpYzwvdGV4dD4KICA8bGluZSB4MT0iNDUwIiB5MT0iMzI0IiB4Mj0iNDc4IiB5Mj0iMzI0IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmVlbikiLz4KICA8cmVjdCB4PSI0ODAiIHk9IjI3OCIgd2lkdGg9IjQzMCIgaGVpZ2h0PSI5MiIgcng9IjciIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSI0ODAiIHk9IjI3OCIgd2lkdGg9IjQzMCIgaGVpZ2h0PSI5MiIgcng9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI0OTYiIHk9IjMwNiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5GaXg8L3RleHQ+CiAgPHRleHQgeD0iNDk2IiB5PSIzMzAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+VXNlIGEgRGF0YSAoYWxsIHR5cGVzKSBvciBTbWFydHNjYXBlIGluY2x1ZGUsIG9yIGFuIGV4cGxpY2l0IG1lbWJlcnNoaXAgdGFnPC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSIzODAiIHdpZHRoPSI0MzAiIGhlaWdodD0iOTIiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzYiIHk9IjQwOCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPjUuNCBQcm9ibGVtcyBuZWVkIGFuIGV2ZW50cyBpbmNsdWRlPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSI0MzIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+ZW50aXR5IGluY2x1ZGVzIGRvIG5vdCBmaWx0ZXIgdGhlIHByb2JsZW0gZmVlZDwvdGV4dD4KICA8bGluZSB4MT0iNDUwIiB5MT0iNDI2IiB4Mj0iNDc4IiB5Mj0iNDI2IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmVlbikiLz4KICA8cmVjdCB4PSI0ODAiIHk9IjM4MCIgd2lkdGg9IjQzMCIgaGVpZ2h0PSI5MiIgcng9IjciIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSI0ODAiIHk9IjM4MCIgd2lkdGg9IjQzMCIgaGVpZ2h0PSI5MiIgcng9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI0OTYiIHk9IjQwOCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5GaXg8L3RleHQ+CiAgPHRleHQgeD0iNDk2IiB5PSI0MzIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+QWRkIGV2ZW50LmtpbmQgPSAiREFWSVNfUFJPQkxFTSIgQU5EICZsdDtjb25kaXRpb24mZ3Q7IGFzIGFuIGV2ZW50cyBpbmNsdWRlPC90ZXh0Pgo8L3N2Zz4K" alt="Four conversion blockers" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Blocker | Symptom | Fix |
+|---|---|---|
+| 5.1 No exclusions | "prod except legacy" cannot be written | Push the NOT into the enrichment rule and filter on a positive value (MZ2POL-11 §5) |
+| 5.2 Only primary fields and tags reach derived data | A standard tag filters entities but not service metrics | Promote the value to primary_tags.<key> at the source (MZ2POL-10) |
+| 5.3 Classic entity properties are equals-only | entity.name starts-with only; no contains on classic | Use a Data (all types) or Smartscape include, or an explicit membership tag |
+| 5.4 Problems need an events include | Entity includes do not filter the problem feed | Add event.kind = "DAVIS_PROBLEM" AND <condition> as an events include |
+For environments where SVG doesn't render
+-->
+<h3>5.1 Segments cannot express exclusions</h3>
+<p><strong>Management Zone rules support exclusions. Segment includes do not.</strong> There is no way to say &quot;everything except team-X&quot; in a segment.</p>
+<p>Any MZ built as <em>broad rule minus exceptions</em> has to be inverted into an explicit statement of what to include. For a zone defined as &quot;all production hosts except the three legacy boxes,&quot; the segment must enumerate or characterize the included set positively.</p>
+<p>This is the single most common reason a conversion is not one-to-one, and it is why the fallback tag in §4.6 exists: applying a <code>Segment</code> tag to exactly the right entities sidesteps the need to express the exclusion at all.</p>
+<h3>5.2 Only primary fields and tags reach derived data</h3>
+<p>Derived data — service metrics, Davis events and problems — is enriched with primary Grail fields, the three special fields, and primary Grail tags. Nothing else carries through.</p>
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>Example</th>
+<th>Reaches service metrics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Primary Grail fields</td>
+<td><code>dt.host_group.id</code>, <code>k8s.namespace.name</code></td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr>
+<td>Special fields</td>
+<td><code>dt.security_context</code>, <code>dt.cost.costcenter</code>, <code>dt.cost.product</code></td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr>
+<td>Primary Grail tags</td>
+<td><code>primary_tags.&lt;key&gt;</code></td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr>
+<td>Standard tags</td>
+<td>Host tags without the <code>primary_tags.</code> prefix, Kubernetes labels and annotations, cloud tags</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td>Signal-local attributes</td>
+<td>OpenTelemetry resource attributes that don't use the <code>primary_tags.</code> convention</td>
+<td><strong>No</strong></td>
+</tr>
+</tbody>
+</table>
+<p>A segment built on a standard tag may filter Smartscape-based views correctly and still return unfiltered or empty results on service metrics. If the Management Zone scoped metric-based dashboards, verify that surface specifically — it is the one most likely to silently misbehave after conversion. The fix is to promote the value into a primary Grail tag (§4.1) rather than to give up on the dimension.</p>
+<blockquote>
+<p><strong>The upgrade guide is narrower than the reference page.</strong> The Management Zones → Segments guide still says <em>&quot;Currently, only keys will be carried over to derived data: dt.security_context, dt.cost.costcenter, and dt.cost.product.&quot;</em> The primary Grail fields and tags page says derived signals carry <em>&quot;the same tags&quot;</em>, and the OpenTelemetry enrichment page says the same for spans → service metrics. On the validation tenant on 10/06/2026, <code>timeseries sum(dt.service.request.count)</code> split cleanly by <code>dt.security_context</code>, <code>dt.host_group.id</code> and two different <code>primary_tags.*</code> keys. Read the guide's sentence as true of <strong>non-primary</strong> tags. FAQ-26 §4 carries the full reach-by-kind matrix.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags">Primary Grail fields and tags (DT docs)</a> — <em>&quot;Dynatrace enriches all derived signals (service metrics, Davis events, and problems) with the same tags.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-otel">Enrich OpenTelemetry with primary Grail fields and tags (DT docs)</a> — <em>&quot;Dynatrace automatically propagates the dt.security_context value, along with other primary Grail fields and tags carried on the resource, from spans to the corresponding service metrics.&quot;</em>; non-convention attributes <em>&quot;aren't automatically propagated across signal types or to Davis events and problems.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments">Best practice examples: from Management Zones to Segments (DT docs)</a> — <em>&quot;Derived data such as service metrics, which are calculated based on span data, don't get every key-value that you add on the OneAgent side as a dimension.&quot;</em></sub></li>
+<li><sub><strong>Derived:</strong> &quot;true of non-primary tags&quot; reconciles the guide with the two reference pages; the primary-tag half was checked on <code>dt.service.request.count</code>, validation tenant, 10/06/2026.</sub></li>
+</ul>
+</blockquote>
+<h3>5.3 Entity properties other than <code>entity.name</code> are equals-only</h3>
+<p>Segment includes offer only two operators: <strong><code>=</code> and <code>in()</code></strong>. There is no distinct <code>contains</code> operator — substring and suffix matching are expressed by putting a <strong>wildcard <code>*</code> inside the value</strong>.</p>
+<p>The restriction that bites during migration is <em>where</em> wildcards are allowed on classic entities:</p>
+<table>
+<thead>
+<tr>
+<th>Entity property</th>
+<th>Matching available</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>entity.name</code></td>
+<td><strong>Starts-with only</strong> — <code>&quot;payment*&quot;</code>. No contains (<code>&quot;*payment*&quot;</code>) or ends-with (<code>&quot;*-prod&quot;</code>)</td>
+</tr>
+<tr>
+<td>Every other property</td>
+<td><strong>Exact equals only</strong> — no wildcards</td>
+</tr>
+<tr>
+<td>Any property not suggested in the filter field</td>
+<td><strong>Not allowed</strong></td>
+</tr>
+</tbody>
+</table>
+<p>These restrictions are specific to classic-entity includes. The <em>Segment limits</em> page states they do not apply to Smartscape on Grail, where the general <code>*</code> wildcard rules hold — verify the Smartscape include in your own tenant before relying on it.</p>
+<p>Tag conditions are a separate case: a tag filter tests <strong>membership in the tag set</strong> rather than a substring of a string field, so verify tag-based entity includes against your own tenant before assuming wildcard behavior.</p>
+<p>So on a classic-entity include a <em>service name starts with payment</em> rule converts (<code>entity.name = &quot;payment*&quot;</code>), but a <em>service name contains payment</em> rule does <strong>not</strong>, and nor does <code>host property X contains Y</code>. For a new segment, don't use the classic include at all: Dynatrace advises against <code>dt.entity.*</code> attributes in include blocks (§3, §8). For a contains rule, or for the equals-only properties, the options are, in order of preference: rely on an exact value or an <code>in()</code> set, use a Smartscape include, move the condition onto a signal include on a field that carries the same value, or fall back to the <code>Segment</code> tag (§4.6).</p>
+<p>Wildcards may also follow a variable name in a starts-with condition — <code>foo = $bar*</code> — which is what makes the variable-driven consolidation in §2 practical. Variable <em>values</em> themselves may never contain <code>*</code>.</p>
+<blockquote>
+<p><strong>Design values with separators.</strong> The <em>Permissions in Grail</em> page advises placing the <code>*</code> of an IAM <code>MATCH</code> condition immediately before or after a word separator — <code>-</code>, <code>_</code>, <code>.</code>, or <code>/</code> — because <code>storage:dt.host_group.id MATCH (&quot;db-tech-*&quot;)</code> is more efficient than <code>MATCH (&quot;db-tech*&quot;)</code>. That is IAM guidance, not a documented segment rule, and a performance point rather than a correctness one. It is still a good reason to design host-group and security-context values with explicit separators between dimensions: the same values feed both the segment and the boundary (MZ2POL-04).</p>
+</blockquote>
+<h3>5.4 Davis problems need an events include</h3>
+<p>Entity includes alone do <strong>not</strong> filter the problem feed. To scope problems, the segment needs an <code>events</code> include with <code>event.kind = &quot;DAVIS_PROBLEM&quot;</code> plus the scoping condition.</p>
+<p>If the Management Zone was used to give a team a filtered problem view — a very common use — this is the include that does the work. ORGNZ-10 §12 has the full include shape and a worked example.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits">Segment limits (DT docs)</a> — classic entities: <em>&quot;starts-with, contains, and ends-with are not supported&quot;</em>, <em>&quot;entity.name supports starts-with&quot;</em>, <em>&quot;Other properties only support equals&quot;</em>, <em>&quot;Only selected properties (suggested in the filter field) are allowed&quot;</em>, <em>&quot;These limits don't apply to Smartscape on Grail.&quot;</em>, <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a> — <em>&quot;This is because matchesValue used in DQL queries, performs better when word separators are present.&quot;</em>, <a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments">Best practice examples: from Management Zones to Segments (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app">Problems app (DT docs)</a>.</sub></p>
+</blockquote>
+<hr />
+<p><a id="mapping-mz-rules"></a></p>
+<h2>6. Mapping MZ Rules to Segment Filters</h2>
+<p>Rule-level mapping, once you have chosen a scenario from §4. The <strong>Include type</strong> column matters: segment filter conditions are evaluated per data object, so an entity condition and a signal condition are not interchangeable.</p>
+<table>
+<thead>
+<tr>
+<th>MZ rule</th>
+<th>Segment filter</th>
+<th>Include type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Host group equals</td>
+<td><code>dt.host_group.id = &quot;&lt;group&gt;&quot;</code></td>
+<td>Data (all types)</td>
+<td>Cheapest mapping (§4.2)</td>
+</tr>
+<tr>
+<td>Host group starts with</td>
+<td><code>dt.host_group.id = &quot;&lt;prefix&gt;*&quot;</code></td>
+<td>Data (all types)</td>
+<td>Wildcard inside the value</td>
+</tr>
+<tr>
+<td>Host tag equals</td>
+<td><code>primary_tags.&lt;key&gt; = &quot;&lt;value&gt;&quot;</code></td>
+<td>Data (all types)</td>
+<td>Re-set the tag with the <code>primary_tags.</code> prefix first (§4.5)</td>
+</tr>
+<tr>
+<td>Kubernetes namespace</td>
+<td><code>k8s.namespace.name = &quot;&lt;namespace&gt;&quot;</code></td>
+<td>Data (all types)</td>
+<td>Auto-enriched (§4.4)</td>
+</tr>
+<tr>
+<td>Kubernetes cluster</td>
+<td><code>k8s.cluster.name = &quot;&lt;cluster&gt;&quot;</code></td>
+<td>Data (all types)</td>
+<td>Auto-enriched</td>
+</tr>
+<tr>
+<td>Service name (equals, starts with, contains)</td>
+<td><code>primary_tags.&lt;key&gt; = &quot;&lt;value&gt;&quot;</code>, after tagging the services at the source</td>
+<td>Data (all types) + variable + Entities</td>
+<td>Don't use a <code>dt.entity.service</code> include: Dynatrace advises against it (§8). Tag the processes that provide the services (§4.1, §4.6) and use the §8 build</td>
+</tr>
+<tr>
+<td>Other entity property contains</td>
+<td>—</td>
+<td>—</td>
+<td><strong>Not expressible</strong> — equals-only (§5.3)</td>
+</tr>
+<tr>
+<td>Cloud provider / arbitrary tag</td>
+<td><code>primary_tags.&lt;key&gt; = &quot;&lt;value&gt;&quot;</code></td>
+<td>Data (all types)</td>
+<td>Cloud tags stay on their Smartscape node unless promoted; set the value as a primary tag at the source (§4.1, FAQ-02)</td>
+</tr>
+<tr>
+<td>Anything else</td>
+<td><code>primary_tags.segment = &quot;&lt;MZ name&gt;&quot;</code></td>
+<td>Data (all types)</td>
+<td>The fallback (§4.6) — the tag must carry the <code>primary_tags.</code> prefix to reach signals</td>
+</tr>
+<tr>
+<td>Broad rule <strong>minus</strong> exceptions</td>
+<td>—</td>
+<td>—</td>
+<td><strong>Not expressible</strong> — invert to positive (§5.1)</td>
+</tr>
+<tr>
+<td>Problem feed scoping</td>
+<td><code>event.kind = &quot;DAVIS_PROBLEM&quot; and &lt;condition&gt;</code></td>
+<td>Events</td>
+<td>Required for problem filtering (§5.4)</td>
+</tr>
+</tbody>
+</table>
+<h3>Worked conversions</h3>
+<p><strong>MZ:</strong> hosts with tag <code>env</code> = <code>production</code>
+<strong>Segment:</strong> re-set the tag as <code>primary_tags.env=production</code> (§4.5) and filter one <code>Data (all types)</code> include on <code>primary_tags.env = &quot;production&quot;</code>. One include covers logs, spans and the hosts' Smartscape nodes; no <code>dt.entity.host</code> include is needed.</p>
+<p><strong>MZ:</strong> all hosts in host groups beginning <code>PROD-</code>
+<strong>Segment:</strong> <code>Data (all types)</code> include with <code>dt.host_group.id = &quot;PROD-*&quot;</code> — wildcard inside the value, one include, no tagging work.</p>
+<p><strong>MZ:</strong> production Kubernetes namespace, and its problems
+<strong>Segment:</strong> two includes — <code>Data (all types)</code> with <code>k8s.namespace.name = &quot;production&quot;</code>, and an <code>events</code> include with <code>event.kind = &quot;DAVIS_PROBLEM&quot; and k8s.namespace.name = &quot;production&quot;</code>.</p>
+<p><strong>MZ:</strong> &quot;Payments platform&quot; — a hand-maintained list of 40 services
+<strong>Segment:</strong> set <code>primary_tags.segment=payments-platform</code> on the processes that provide those 40 services (<code>DT_TAGS</code>, or a host tag where a host runs only them) and filter a <code>Data (all types)</code> include on <code>primary_tags.segment = &quot;payments-platform&quot;</code>. Service metrics inherit it from the spans. Add the metrics variable and the <code>Entities</code> include (§8) so Smartscape shows the same 40 services. Do not attempt to re-derive the list from naming.</p>
+<hr />
+<p><a id="testing-mapping"></a></p>
+<h2>7. Testing Your Mapping with DQL</h2>
+<p>Validate the scope <strong>before</strong> creating the segment. Every query below is ad-hoc validation DQL — it uses the modern <code>smartscapeNodes</code> form, the same form as the segment-variable definitions in §4 (the published upgrade-guide examples use <code>fetch dt.entity.*</code>, which also works).</p>
+<p>The question each answers: <em>does this filter select the same entities the Management Zone did?</em></p>
+<pre><code class="language-dql">// Validate a host-group mapping (scenario 4.2).
+// Compare this count against the host count in the Management Zone.
+smartscapeNodes &quot;HOST&quot;
+| filter dt.host_group.id == &quot;PROD-PAYMENTS&quot;
+| fields name, dt.host_group.id
+| sort name asc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// Validate a prefix-wildcard host-group mapping.
+// Verify the prefix is selective enough before using it in a segment.
+smartscapeNodes &quot;HOST&quot;
+| filter startsWith(dt.host_group.id, &quot;PROD-&quot;)
+| summarize hosts = count(), by:{dt.host_group.id}
+| sort hosts desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// Validate a tag-based mapping (scenarios 4.1, 4.5, 4.6).
+// `tags` is a RECORD on Smartscape nodes -- use unquoted bracket access, NOT matchesValue().
+smartscapeNodes &quot;HOST&quot;
+| fieldsAdd env = tags[primary_tags.environment]
+| filter env == &quot;production&quot;
+| fields name, env, dt.host_group.id
+| sort name asc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// Coverage audit -- which hosts would the mapping MISS?
+// Any host without the tag falls outside the segment. Review this list before cutover:
+// these are the hosts that silently disappear from the filtered view.
+smartscapeNodes &quot;HOST&quot;
+| fieldsAdd env = tags[primary_tags.environment]
+| filter isNull(env)
+| fields name, dt.host_group.id
+| sort name asc
+| limit 100
+</code></pre>
+<pre><code class="language-dql">// Validate a Kubernetes namespace mapping against signal data (scenario 4.4).
+// Entity-level checks do not prove the signal include works -- test the signal directly.
+fetch logs, from:-1h
+| filter k8s.namespace.name == &quot;production&quot;
+| summarize records = count(), by:{k8s.cluster.name, k8s.namespace.name}
+| sort records desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Validate the Davis problem include shape (blocker 5.4).
+// Entity includes alone do NOT filter the problem feed -- this is the condition that does.
+// On problem records k8s.namespace.name is an ARRAY: use in(&quot;&lt;value&gt;&quot;, field), never ==.
+fetch events, from:-24h
+| filter event.kind == &quot;DAVIS_PROBLEM&quot;
+    and in(&quot;production&quot;, k8s.namespace.name)
+| fields timestamp, event.name, event.status
+| sort timestamp desc
+| limit 20
+</code></pre>
+<blockquote>
+<p><strong>On problem records, entity-derived fields are arrays.</strong> A problem aggregates several events, so <code>k8s.namespace.name</code> on a <code>DAVIS_PROBLEM</code> record holds a list. <code>k8s.namespace.name == &quot;production&quot;</code> against it is always false, and Grail attaches no warning — on the validation tenant (10/05/2026) the <code>==</code> form returned 0 of 15,738 problem records for a namespace where <code>in(&quot;&lt;namespace&gt;&quot;, k8s.namespace.name)</code> returned 6. Use <code>in(&quot;&lt;value&gt;&quot;, field)</code> in DQL. The segment include itself (<code>k8s.namespace.name = &quot;production&quot;</code> in §6) is segment syntax, which accepts array fields, and does not need this change.</p>
+</blockquote>
+<blockquote>
+<p><strong>Validate the signal surface, not just the entity surface.</strong> A filter that selects the right hosts proves nothing about whether logs, spans, and metrics carry the same field. Derived metrics in particular may not (§5.2). Run at least one signal-level check per data type the segment is meant to scope.</p>
+</blockquote>
+<hr />
+<p><a id="coexistence"></a></p>
+<h2>8. Coexistence: Classic Apps and Parallel Running</h2>
+<p>Segments and Management Zones coexist, which makes a staged migration practical.</p>
+<table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>Scoping mechanism during migration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Grail-based apps (Logs, Distributed Traces, Problems, Dashboards, Notebooks, SLOs)</td>
+<td>Segments</td>
+</tr>
+<tr>
+<td>Services app</td>
+<td>Segments: a <code>Data (all types)</code> include on a primary Grail field or tag, which reaches service metrics. No <code>dt.entity.service</code> include</td>
+</tr>
+<tr>
+<td>Smartscape</td>
+<td>Segments: a <code>metrics</code> variable that collects <code>dt.smartscape.service</code> IDs, plus an <code>Entities</code> include, <code>type = &quot;SERVICE&quot; AND id in ($dt.smartscape.service)</code></td>
+</tr>
+<tr>
+<td>Classic apps</td>
+<td>Management Zones — segments do not apply</td>
+</tr>
+<tr>
+<td>Alerting profiles</td>
+<td>Management Zones, for as long as you keep the profiles. Segment support for alerting profiles is <strong>not</strong> pending — the exit is a problem-triggered workflow, not a segment</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Corrected 10/14/2026: no classic include for services.</strong> Earlier versions of this section said to keep a hand-built classic-entity include (typically an <code>application:$app</code> tag filter) so that the Services app's default Explorer could be filtered. Dynatrace's Services and Smartscape segment tutorial says the opposite: <em>&quot;Do not use dt.entity.service in your segments. Instead, use dt.smartscape.service.&quot;</em> Legacy <code>dt.entity.*</code> attributes <em>&quot;might incorrectly filter the service list&quot;</em>, and the segment editor shows a warning on them.</p>
+<p>Build the service part of a migrated zone in three parts instead:</p>
+<ol>
+<li>A <code>Data (all types)</code> include for the service list</li>
+<li>A <code>metrics</code> variable that collects <code>dt.smartscape.service</code> IDs</li>
+<li>An <code>Entities</code> include for Smartscape</li>
+</ol>
+<p>ORGNZ-08 § <em>Scoping Services and Smartscape</em> has the worked build and a validated variable query. Two points from the tutorial:</p>
+<ul>
+<li><em>&quot;A segment that covers only metrics filters the service list but leaves the topology view unfiltered.&quot;</em></li>
+<li>The variable <em>&quot;works reliably for up to 10,000 services&quot;</em>, so split broad zones by cluster or region.</li>
+</ul>
+<p>The tutorial checks the result in <strong>Services &gt; Explorer (Early Access)</strong> and does not mention the default Explorer.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/application-observability/services/segment-services">Use segments to scope Services and Smartscape apps (DT docs)</a> — published 10/07/2026; all quotes above.</sub></p>
+</blockquote>
+<p>The practical consequence: <strong>do not delete the Management Zones when the segments go live.</strong> Keep both running until the classic surfaces that depend on MZs are themselves retired or migrated. MZ2POL-06 covers the parallel-running period, cutover sequencing, and rollback; MZ2POL-07 covers post-cutover validation.</p>
+<h3>Order of operations</h3>
+<ol>
+<li>Build and validate segments alongside the existing MZs (this notebook).</li>
+<li>Move Grail-app users onto segments; leave MZs untouched.</li>
+<li>Confirm no classic surface still depends on the MZ.</li>
+<li>Retire the MZ.</li>
+</ol>
+<p>Reversing steps 3 and 4 is the mistake that produces a broken alerting profile discovered at 3 a.m.</p>
+<hr />
+<p><a id="visibility-and-permissions"></a></p>
+<h2>9. Visibility and Permissions</h2>
+<p>A Management Zone was itself a permission object. A segment is not, and the mental model has to change accordingly.</p>
+<h3>Visibility settings</h3>
+<p>There are exactly two:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Unlisted</strong> (default)</td>
+<td>The segment appears only in the owner's segment list</td>
+</tr>
+<tr>
+<td><strong>Anyone in the environment</strong></td>
+<td>The segment appears in everyone's segment list</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>There is no share-with-specific-group mechanism.</strong> Visibility controls only whether a segment is <em>listed</em> in someone's picker. Unlisted segments still become reachable when referenced from a shared notebook or dashboard — anyone with access to that app gets read access to the segment.</p>
+</blockquote>
+<blockquote>
+<p><strong>Visibility is not access control.</strong> Anyone holding <code>storage:filter-segments:read</code> can access any segment regardless of its visibility setting. Applying a segment never grants data the user's IAM policy does not already permit.</p>
+</blockquote>
+<p>The common team pattern that follows from this: application teams keep their segments <strong>Unlisted</strong> and surface them by reference from team-owned dashboards, rather than adding noise to every user's picker.</p>
+<h3>Permission scopes</h3>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>storage:filter-segments:read</code></td>
+<td>View and use segments</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:write</code></td>
+<td>Create and edit segments</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:share</code></td>
+<td>Share with others</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:delete</code></td>
+<td>Delete your own segments</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:admin</code></td>
+<td>Write and delete all segments in the environment, not only your own</td>
+</tr>
+</tbody>
+</table>
+<p>ORGNZ-10 §6 maps these to the default Dynatrace user policies and covers the governance model; ORGNZ-10 §10 covers restricting write scope when segments are managed as code.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-visibility">Visibility of segments (DT docs)</a> — verbatim: any segment can be accessed with <code>storage:filter-segments:read</code> regardless of configured visibility, <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies">Dynatrace default policies reference (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a> — <code>storage:filter-segments:delete</code>: <em>&quot;Delete own filter-segments in grail&quot;</em>; <code>storage:filter-segments:admin</code>: <em>&quot;Write and delete all filter-segments in grail&quot;</em>.</sub></p>
+</blockquote>
+<hr />
+<p><a id="migration-checklist"></a></p>
+<h2>10. Migration Checklist</h2>
+<p><strong>Inventory and triage</strong></p>
+<ul>
+<li>[ ] Ran the MZ2POL-00 analysis tool; have a classified inventory of every zone</li>
+<li>[ ] Split the estate: access-control zones (→ MZ2POL-04) vs. filtering zones (→ this notebook) vs. both</li>
+<li>[ ] Identified zones with no recent usage — delete rather than convert</li>
+<li>[ ] Counted <strong>dimensions, not zones</strong> — the target is one segment per dimension (usually 3-8 total), not one per Management Zone</li>
+</ul>
+<p><strong>Per zone</strong></p>
+<ul>
+<li>[ ] Matched the zone to a §4 scenario, or explicitly assigned it the §4.6 fallback</li>
+<li>[ ] Checked it against all four §5 blockers — especially exclusions</li>
+<li>[ ] Confirmed the required enrichment exists on the <strong>records</strong> (<code>primary_tags.*</code> key, host group, K8s field, <code>primary_tags.segment</code>)</li>
+<li>[ ] Verified the scope with DQL (§7) at both entity <strong>and</strong> signal level</li>
+<li>[ ] Confirmed the segment fits within the §3 limits</li>
+<li>[ ] Added the <code>events</code> include if the zone was used for problem filtering</li>
+<li>[ ] Used <code>Data (all types)</code>; no legacy <code>dt.entity.*</code> include blocks</li>
+<li>[ ] Segments used in Services or Smartscape have the <code>metrics</code> variable and <code>Entities</code> include (§8)</li>
+</ul>
+<p><strong>Rollout</strong></p>
+<ul>
+<li>[ ] Segment created, named per convention, visibility set deliberately</li>
+<li>[ ] Dashboards and notebooks repointed from MZ filtering to the segment</li>
+<li>[ ] Users know the segment exists and how to select it</li>
+<li>[ ] MZ left in place for classic apps and alerting profiles</li>
+<li>[ ] Segment promoted to code (Filter Segments API / Terraform <code>dynatrace_segment</code> / Monaco <code>type: segment</code>) if it is long-lived</li>
+<li>[ ] MZ retired only after confirming no classic surface depends on it</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<ol>
+<li><strong>Classify first</strong> — Management Zones do three jobs: access control, filtering, and alerting. Only the filtering job becomes a segment; access control becomes IAM policy and boundary (MZ2POL-04), and alerting becomes routing dimensions on a problem-triggered workflow (MZ2POL-09).</li>
+<li><strong>There is no automatic conversion</strong> — every segment is hand-authored. Consolidate the estate before converting it.</li>
+<li><strong>Match the zone to a scenario</strong> — how the MZ was <em>defined</em> determines the approach, from free (host group, Kubernetes) to tagging work (name-based auto-tagging) to the <code>Segment</code> tag fallback.</li>
+<li><strong>Check the blockers</strong> — exclusions cannot be expressed, non-primary tags do not reach derived data, classic entity includes lack <code>contains</code> and are legacy, and problems need an <code>events</code> include.</li>
+<li><strong>Validate both surfaces</strong> — entity-level and signal-level, before cutover.</li>
+<li><strong>Coexist deliberately</strong> — classic apps and alerting profiles still need the Management Zone. Retire it last. For Services and Smartscape, use the three-part service build (§8), not a classic <code>dt.entity.service</code> include.</li>
+</ol>
+<h2>Next Steps</h2>
+<p>Continue to <strong>MZ2POL-06: Migration Execution</strong> for the phased rollout, parallel-running period, cutover, and rollback procedures. For segment mechanics in depth, read <strong>ORGNZ-08</strong> and <strong>ORGNZ-10</strong>; for managing segments as code, <strong>AUTOM-04</strong>. For the alerting job, see <strong>MZ2POL-09</strong>.</p>
+<p><a id="additional-resources"></a></p>
+<h2>Additional Resources</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments">Best practice examples: from Management Zones to Segments (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments">Segments (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits">Segment limits (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-visibility">Visibility of segments (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-includes">Include data in segments (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments/use-cases/segments-use-cases-kubernetes-clusters">Segment data by Kubernetes clusters (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-filter-smartscape-nodes">Filter Smartscape nodes with segments (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/application-observability/services/services-app">Services app (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/application-observability/services/segment-services">Use segments to scope Services and Smartscape apps (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies">Dynatrace default policies reference (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

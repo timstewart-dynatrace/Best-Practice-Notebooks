@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WFLOW-01: Workflow Fundamentals</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">WFLOW — Workflows and Alert Notifications</a><span class="sep">/</span><span aria-current="page">WFLOW-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>WFLOW-01: Workflow Fundamentals</h1>
+<blockquote>
+<p><strong>Series:</strong> WFLOW — Workflows and Alert Notifications | <strong>Notebook:</strong> 1 of 10 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 10/15/2026</p>
+</blockquote>
+<h2>Introduction to Dynatrace Workflows</h2>
+<p>Dynatrace Workflows is the automation engine that enables event-driven automation, scheduled tasks, and integration orchestration. This notebook introduces core concepts, components, and your first workflow.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#what-are-workflows">What Are Workflows?</a></li>
+<li><a href="#workflows-vs-other-automation">Workflows vs Other Automation</a></li>
+<li><a href="#workflow-components">Workflow Components</a></li>
+<li><a href="#accessing-workflows">Accessing Workflows</a></li>
+<li><a href="#execution-model">Execution Model</a></li>
+<li><a href="#your-first-workflow">Your First Workflow</a></li>
+<li><a href="#viewing-execution-history">Viewing Execution History</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Platform subscription</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>app-engine:apps:run</code>, <code>automation:workflows:read</code>, <code>automation:workflows:write</code>, <code>automation:workflows:run</code>, <code>app-engine:functions:run</code>; for the §7 queries, <code>storage:system:read</code> and <code>storage:buckets:read</code> on <code>dt.system.events</code> (§4)</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td>Basic Dynatrace navigation</td>
+</tr>
+</tbody>
+</table>
+<p><a id="what-are-workflows"></a></p>
+<h2>1. What Are Workflows?</h2>
+<p><strong>Workflows</strong> are automated sequences of tasks that execute in response to events, schedules, or manual triggers. They enable:</p>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Alert Notifications</strong></td>
+<td>Send Slack/Teams messages when problems occur</td>
+</tr>
+<tr>
+<td><strong>Incident Management</strong></td>
+<td>Create PagerDuty/ServiceNow tickets automatically</td>
+</tr>
+<tr>
+<td><strong>Auto-Remediation</strong></td>
+<td>Restart pods, scale resources, run scripts</td>
+</tr>
+<tr>
+<td><strong>Reporting</strong></td>
+<td>Generate and email daily reports</td>
+</tr>
+<tr>
+<td><strong>Integration</strong></td>
+<td>Sync data with external systems</td>
+</tr>
+<tr>
+<td><strong>Data Enrichment</strong></td>
+<td>Query APIs and enrich events</td>
+</tr>
+</tbody>
+</table>
+<h3>Key Benefits</h3>
+<ul>
+<li><strong>No Infrastructure</strong> - Runs in Dynatrace, no external servers needed</li>
+<li><strong>Event-Driven</strong> - Triggers on detected problems, Davis events, other Grail events, schedules</li>
+<li><strong>Low-Code + Code</strong> - Visual builder with JavaScript option</li>
+<li><strong>Secure</strong> - Built-in secrets management, RBAC, audit logs</li>
+<li><strong>Observable</strong> - Execution history, metrics, debugging</li>
+</ul>
+<p><a id="workflows-vs-other-automation"></a></p>
+<h2>2. Workflows vs Other Automation</h2>
+<p>Dynatrace offers multiple automation approaches. When should you use Workflows?</p>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Best For</th>
+<th>Limitations</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Workflows</strong></td>
+<td>Event-driven automation, notifications, integrations</td>
+<td>Rate limits, execution time limits</td>
+</tr>
+<tr>
+<td><strong>Alerting profiles + problem notifications</strong> (Classic)</td>
+<td>The profile filters problems; the problem notification delivers them (email, webhook, integrations)</td>
+<td>One alerting profile per notification, no logic</td>
+</tr>
+<tr>
+<td><strong>Apps (AppEngine)</strong></td>
+<td>Custom UI, complex applications</td>
+<td>Requires development expertise</td>
+</tr>
+<tr>
+<td><strong>Extensions</strong></td>
+<td>Data collection, custom metrics</td>
+<td>Not for automation/notifications</td>
+</tr>
+<tr>
+<td><strong>Site Reliability Guardian</strong></td>
+<td>Release validation, SLO verification</td>
+<td>Specific to deployment validation</td>
+</tr>
+</tbody>
+</table>
+<h3>Migration from Legacy Alerting</h3>
+<table>
+<thead>
+<tr>
+<th>Legacy Alerting</th>
+<th>Workflow Equivalent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Problem notification → Email</td>
+<td>Detected Problem trigger → Email task</td>
+</tr>
+<tr>
+<td>Problem notification → Webhook</td>
+<td>Detected Problem trigger → HTTP Request task</td>
+</tr>
+<tr>
+<td>Custom integration</td>
+<td>Detected Problem trigger → JavaScript + HTTP</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Recommendation:</strong> New implementations should use Workflows. Alerting profiles are labeled <strong>Dynatrace Classic</strong> and Dynatrace recommends simple workflows for new setups — but no deprecation or end-of-life date has been published, so existing profiles keep working. The one real forcing function is Management Zones: the workflow Problem trigger has no management-zone filter, and Dynatrace's upgrade guidance states <em>&quot;Management zones are not available in Latest Dynatrace. Replace management zone scoping with Grail record-based field filters.&quot;</em> A profile scoped by an MZ is rebuilt as a problem-triggered workflow scoped by affected-entity tags or a custom DQL matcher (WFLOW-02 §2; MZ2POL-01 §5).</p>
+</blockquote>
+<p><a id="workflow-components"></a></p>
+<h2>3. Workflow Components</h2>
+<p>Every workflow consists of these components:</p>
+<h3>3.1 Trigger</h3>
+<p>What starts the workflow:</p>
+<table>
+<thead>
+<tr>
+<th>Trigger Type</th>
+<th>Starts When</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Detected Problem</strong></td>
+<td>Dynatrace Intelligence detects a problem</td>
+<td>Alert notifications</td>
+</tr>
+<tr>
+<td><strong>Davis Event</strong></td>
+<td>An anomaly detector raised a Davis event (per-alert, before grouping into a problem)</td>
+<td>Per-alert automation</td>
+</tr>
+<tr>
+<td><strong>Schedule</strong></td>
+<td>A fixed time, a time interval, or a cron expression comes due</td>
+<td>Daily reports</td>
+</tr>
+<tr>
+<td><strong>On-Demand</strong></td>
+<td>Manual execution or API call</td>
+<td>Testing, ad-hoc runs</td>
+</tr>
+<tr>
+<td><strong>Event Trigger</strong></td>
+<td>Any event matching a DQL matcher (<code>events</code>, <code>bizevents</code>, <code>security.events</code>, <code>dt.system.events</code>)</td>
+<td>Business process automation</td>
+</tr>
+</tbody>
+</table>
+<h3>3.2 Tasks</h3>
+<p>Actions the workflow performs:</p>
+<table>
+<thead>
+<tr>
+<th>Task Category</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Notifications</strong></td>
+<td>Slack, Teams, Email, PagerDuty</td>
+</tr>
+<tr>
+<td><strong>Incident Management</strong></td>
+<td>ServiceNow, Jira</td>
+</tr>
+<tr>
+<td><strong>Data Queries</strong></td>
+<td>DQL queries, entity lookups</td>
+</tr>
+<tr>
+<td><strong>HTTP Requests</strong></td>
+<td>REST API calls to any endpoint</td>
+</tr>
+<tr>
+<td><strong>JavaScript</strong></td>
+<td>Custom code execution</td>
+</tr>
+<tr>
+<td><strong>Control Flow</strong></td>
+<td>Wait, conditions, loops</td>
+</tr>
+</tbody>
+</table>
+<h3>3.3 Conditions</h3>
+<p>Logic that controls task execution. Each task carries one <code>conditions</code> block: the states its predecessors must end in, an optional custom expression, and what to do when the condition is not met (<code>SKIP</code> or <code>STOP</code>):</p>
+<pre><code class="language-yaml">conditions:
+  states:
+    previous_task: OK        # SUCCESS, ERROR, ANY, OK or NOK
+  custom: '{{ event()[&quot;event.category&quot;] == &quot;AVAILABILITY&quot; }}'
+  else: SKIP
+</code></pre>
+<h3>3.4 Expressions</h3>
+<p>Dynamic values using Jinja2 syntax:</p>
+<pre><code>{{ event()[&quot;event.name&quot;] }}      # Access trigger data (problem title)
+{{ problem_link() }}             # Link to the problem (Problem trigger only)
+{{ result(&quot;task_name&quot;) }}        # Previous task result — shape depends on task type; see WFLOW-08 §6
+{{ input(&quot;environment&quot;) }}       # Workflow input
+</code></pre>
+<p>There is no <code>env</code> object in the expression language. Secrets belong in a <strong>connection</strong> or the <strong>Credential Vault</strong>, never in an expression (WFLOW-09 §2).</p>
+<h3>3.5 Workflow Types, Live vs. Draft, and the Actor</h3>
+<p>Three more concepts decide whether a workflow runs at all and what it costs.</p>
+<p><strong>Simple or standard.</strong> <em>&quot;Simple workflows are limited to a single task, with reduced task options and a restricted set of available actions.&quot;</em> They cannot use Run JavaScript or Run workflow, and <em>&quot;They do not generate any consumption of workflow hours.&quot;</em> Standard workflows support multiple tasks, branches, loops and JavaScript, and <em>&quot;They consume workflow hours.&quot;</em> Billing counts how long a standard workflow exists, not how often it runs: <em>&quot;Workflow hours are the number of hours that a workflow has existed in your environment, measured since the point of its creation.&quot;</em> A one-destination notification is a good fit for a simple workflow; ALERT-03 covers the cost trade-off.</p>
+<p><strong>Live or draft.</strong> <em>&quot;Triggers only start on live workflows.&quot;</em> Select <strong>Deploy</strong> to make the draft live. A draft can still be run by hand from the <strong>Run</strong> button, and <em>&quot;Draft-only workflows do not directly consume workflow hours&quot;</em>.</p>
+<p><strong>Actor.</strong> <em>&quot;Every task executes under the actor's permissions, regardless of how the workflow was started.&quot;</em> By default the actor is the user who created or last updated the workflow, and event triggers only see events that user can read. For production workflows Dynatrace recommends a service user: <em>&quot;We highly recommend using service users as actors for all workflows that are worked on collaboratively and serve a production grade use case.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/concepts">Workflows concepts (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/license/capabilities/automation/automation">Automation Workflow consumption (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger">Workflow triggers (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security">Workflow security (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Visual: Workflow Execution Flow</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnR3JhZFdGMSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwRjE3MkEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMUUyOTNCIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ0cmlnZ2VyR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojRkZCODAwIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Q5NzcwNiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idGFza0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I0E3OEJGQSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3QzNBRUQiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImNvbmRpdGlvbkdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIyRDNFRSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwODkxYjIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InJlc3VsdEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzczQkUyOCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNmEzNGEiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJzaGFkb3dXRjEiIHg9Ii0yMCUiIHk9Ii0yMCUiIHdpZHRoPSIxNDAlIiBoZWlnaHQ9IjE0MCUiPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIyIiBkeT0iMiIgc3RkRGV2aWF0aW9uPSIzIiBmbG9vZC1vcGFjaXR5PSIwLjMiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0iYXJyb3dXRjEiIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzk0QTNCOCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9InVybCgjYmdHcmFkV0YxKSIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPldvcmtmbG93IEV4ZWN1dGlvbiBGbG93PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPlRyaWdnZXIg4oaSIFRhc2tzIOKGkiBDb25kaXRpb25zIOKGkiBSZXN1bHRzIOKAlCB0aGUgZm91ci1zdGFnZSBXb3JrZmxvd3MgcGlwZWxpbmU8L3RleHQ+CgogIDwhLS0gVG9wIHJvdzogNCBzdGFnZSBib3hlcyAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMTAwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgcng9IjEwIiBmaWxsPSJ1cmwoI3RyaWdnZXJHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvd1dGMSkiLz4KICA8dGV4dCB4PSIxNDAiIHk9IjEzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9IjcwMCI+MS4gVHJpZ2dlcjwvdGV4dD4KICA8dGV4dCB4PSIxNDAiIHk9IjE1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiI+RXZlbnQgZmlyZXMgdGhlIHdvcmtmbG93PC90ZXh0PgogIDx0ZXh0IHg9IjE0MCIgeT0iMTc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIj5EYXZpcyBwcm9ibGVtIC8gZXZlbnQgLzwvdGV4dD4KICA8dGV4dCB4PSIxNDAiIHk9IjE5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+c2NoZWR1bGUgLyBtYW51YWw8L3RleHQ+CgogIDxsaW5lIHgxPSIyNDUiIHkxPSIxNTAiIHgyPSIyNzAiIHkyPSIxNTAiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93V0YxKSIvPgoKICA8cmVjdCB4PSIyNzUiIHk9IjEwMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxMDAiIHJ4PSIxMCIgZmlsbD0idXJsKCN0YXNrR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3dXRjEpIi8+CiAgPHRleHQgeD0iMzc1IiB5PSIxMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI3MDAiPjIuIFRhc2tzPC90ZXh0PgogIDx0ZXh0IHg9IjM3NSIgeT0iMTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyIj5FYWNoIHRhc2sgcnVucyBvbmUgYWN0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjM3NSIgeT0iMTc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjExIj5Ob3RpZnksIEhUVFAsIEphdmFTY3JpcHQsPC90ZXh0PgogIDx0ZXh0IHg9IjM3NSIgeT0iMTkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjExIj5EUUwsIFNlcnZpY2VOb3csIEppcmE8L3RleHQ+CgogIDxsaW5lIHgxPSI0ODAiIHkxPSIxNTAiIHgyPSI1MDUiIHkyPSIxNTAiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93V0YxKSIvPgoKICA8cmVjdCB4PSI1MTAiIHk9IjEwMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxMDAiIHJ4PSIxMCIgZmlsbD0idXJsKCNjb25kaXRpb25HcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvd1dGMSkiLz4KICA8dGV4dCB4PSI2MTAiIHk9IjEzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9IjcwMCI+My4gQ29uZGl0aW9uczwvdGV4dD4KICA8dGV4dCB4PSI2MTAiIHk9IjE1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMiI+RXZhbHVhdGUgSmluamEgZXhwcmVzc2lvbnM8L3RleHQ+CiAgPHRleHQgeD0iNjEwIiB5PSIxNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTEiPlByZWRlY2Vzc29yIHN0YXRlcyArPC90ZXh0PgogIDx0ZXh0IHg9IjYxMCIgeT0iMTkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjExIj5jdXN0b207IGVsc2UgU0tJUC9TVE9QPC90ZXh0PgoKICA8bGluZSB4MT0iNzE1IiB5MT0iMTUwIiB4Mj0iNzQwIiB5Mj0iMTUwIiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd1dGMSkiLz4KCiAgPHJlY3QgeD0iNzQ1IiB5PSIxMDAiIHdpZHRoPSIxNDUiIGhlaWdodD0iMTAwIiByeD0iMTAiIGZpbGw9InVybCgjcmVzdWx0R3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3dXRjEpIi8+CiAgPHRleHQgeD0iODE3IiB5PSIxMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI3MDAiPjQuIFJlc3VsdHM8L3RleHQ+CiAgPHRleHQgeD0iODE3IiB5PSIxNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPkNhcHR1cmUgc3RhdGU8L3RleHQ+CiAgPHRleHQgeD0iODE3IiB5PSIxNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPlNVQ0NFU1MgLyBFUlJPUiAvPC90ZXh0PgogIDx0ZXh0IHg9IjgxNyIgeT0iMTkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5DQU5DRUxMRUQ8L3RleHQ+CgogIDwhLS0gQm90dG9tIHJvdzogNCBkZXRhaWwgcGFuZWxzIChvbmUgcGVyIHN0YWdlKSAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMjI1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI1NSIgeT0iMjQ4IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5UcmlnZ2VyIHR5cGVzPC90ZXh0PgogIDx0ZXh0IHg9IjU1IiB5PSIyNzIiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPuKAoiBQcm9ibGVtIHRyaWdnZXI8L3RleHQ+CiAgPHRleHQgeD0iNTUiIHk9IjI5MCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+4oCiIERhdmlzIGV2ZW50IHRyaWdnZXI8L3RleHQ+CiAgPHRleHQgeD0iNTUiIHk9IjMwOCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+4oCiIFNjaGVkdWxlICh0aW1lL2Nyb24pPC90ZXh0PgogIDx0ZXh0IHg9IjU1IiB5PSIzMjYiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPuKAoiBPbiBkZW1hbmQgLyBBUEk8L3RleHQ+CiAgPHRleHQgeD0iNTUiIHk9IjM0NCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+4oCiIEV2ZW50IHRyaWdnZXIgKERRTCk6PC90ZXh0PgogIDx0ZXh0IHg9IjU1IiB5PSIzNjIiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPiAgIGJpemV2ZW50cywgZXZlbnRzLDwvdGV4dD4KICA8dGV4dCB4PSI1NSIgeT0iMzgwIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj4gICBzZWN1cml0eS9zeXN0ZW0gZXZlbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjU1IiB5PSI0MDIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtc3R5bGU9Iml0YWxpYyI+U2VlIFdGTE9XLTAyIGZvciBkZXRhaWxzLjwvdGV4dD4KCiAgPHJlY3QgeD0iMjc1IiB5PSIyMjUiIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiByeD0iOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjI5MCIgeT0iMjQ4IiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5UYXNrIHR5cGVzPC90ZXh0PgogIDx0ZXh0IHg9IjI5MCIgeT0iMjcyIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj7igKIgU2xhY2sgLyBUZWFtcyAvIEVtYWlsPC90ZXh0PgogIDx0ZXh0IHg9IjI5MCIgeT0iMjkwIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj7igKIgUGFnZXJEdXR5IC8gU2VydmljZU5vdzwvdGV4dD4KICA8dGV4dCB4PSIyOTAiIHk9IjMwOCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+4oCiIEhUVFAgcmVxdWVzdDwvdGV4dD4KICA8dGV4dCB4PSIyOTAiIHk9IjMyNiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+4oCiIFJ1biBKYXZhU2NyaXB0PC90ZXh0PgogIDx0ZXh0IHg9IjI5MCIgeT0iMzQ0IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj7igKIgUnVuIERRTCBxdWVyeTwvdGV4dD4KICA8dGV4dCB4PSIyOTAiIHk9IjM2MiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+4oCiIFdvcmtmbG93IGFzIHRhc2s8L3RleHQ+CiAgPHRleHQgeD0iMjkwIiB5PSIzODAiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPuKAoiBBcHBGdW5jdGlvbiAvIERhdmlzIENvUGlsb3Q8L3RleHQ+CiAgPHRleHQgeD0iMjkwIiB5PSI0MDIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtc3R5bGU9Iml0YWxpYyI+U2VlIFdGTE9XLTAzLzA3LzA4LjwvdGV4dD4KCiAgPHJlY3QgeD0iNTEwIiB5PSIyMjUiIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiByeD0iOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjUyNSIgeT0iMjQ4IiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5KaW5qYSBleHByZXNzaW9uczwvdGV4dD4KICA8dGV4dCB4PSI1MjUiIHk9IjI3MiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+e3sgZXZlbnQoKVsiZXZlbnQubmFtZSJdIH19PC90ZXh0PgogIDx0ZXh0IHg9IjUyNSIgeT0iMjkwIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj57eyByZXN1bHQoInQxIikgfX08L3RleHQ+CiAgPHRleHQgeD0iNTI1IiB5PSIzMDgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPnt7IGlucHV0KCJlbnYiKSB9fTwvdGV4dD4KICA8dGV4dCB4PSI1MjUiIHk9IjMyNiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+e3sgbm93KCkgLSB0aW1lZGVsdGEoZGF5cz0xKSB9fTwvdGV4dD4KICA8dGV4dCB4PSI1MjUiIHk9IjM0NCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+eyUgaWYg4oCmICV9eyUgZW5kaWYgJX08L3RleHQ+CiAgPHRleHQgeD0iNTI1IiB5PSIzNjIiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPkNvbmRpdGlvbmFsIGV4ZWN1dGlvbiw8L3RleHQ+CiAgPHRleHQgeD0iNTI1IiB5PSIzODAiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPnRlbXBsYXRpbmcsIGlucHV0cy48L3RleHQ+CiAgPHRleHQgeD0iNTI1IiB5PSI0MDIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtc3R5bGU9Iml0YWxpYyI+U2VlIFdGTE9XLTA2IHRlbXBsYXRlcy48L3RleHQ+CgogIDxyZWN0IHg9Ijc0NSIgeT0iMjI1IiB3aWR0aD0iMTQ1IiBoZWlnaHQ9IjIwMCIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI3NjAiIHk9IjI0OCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+U3RhdGVzPC90ZXh0PgogIDx0ZXh0IHg9Ijc2MCIgeT0iMjcyIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj7igKIgUlVOTklORzwvdGV4dD4KICA8dGV4dCB4PSI3NjAiIHk9IjI5MCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+4oCiIFNVQ0NFU1M8L3RleHQ+CiAgPHRleHQgeD0iNzYwIiB5PSIzMDgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPuKAoiBFUlJPUjwvdGV4dD4KICA8dGV4dCB4PSI3NjAiIHk9IjMyNiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+4oCiIENBTkNFTExFRDwvdGV4dD4KICA8dGV4dCB4PSI3NjAiIHk9IjM0NCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+VGFza3MgYWxzbzo8L3RleHQ+CiAgPHRleHQgeD0iNzYwIiB5PSIzNjIiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPuKAoiBTS0lQUEVEPC90ZXh0PgogIDx0ZXh0IHg9Ijc2MCIgeT0iMzgwIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj7igKIgRElTQ0FSREVEPC90ZXh0PgogIDx0ZXh0IHg9Ijc2MCIgeT0iNDAyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPkRRTDogZHQuc3lzdGVtLmV2ZW50czwvdGV4dD4KCiAgPCEtLSBCb3R0b20gZ3VpZGFuY2UgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjQ0NSIgd2lkdGg9Ijg1MCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNTUiIHk9IjQ3MCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+VGFza3Mgd2l0aCBubyBwcmVkZWNlc3NvciBzdGFydCBpbiBwYXJhbGxlbDsgc2V0IHByZWRlY2Vzc29ycyBhbmQgY29uZGl0aW9ucyB0byBvcmRlciB0aGUgcmVzdC4gU2VlIFdGTE9XLTk5IMKnMSBXb3JrZmxvdyBEZXNpZ24gJmFtcDsgQXJjaGl0ZWN0dXJlLjwvdGV4dD4KPC9zdmc+Cg==" alt="Workflow Execution Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Description | Examples |
+|-------|-------------|----------|
+| Trigger | Event that starts workflow | Detected Problem, Schedule, On-Demand |
+| Tasks | Actions to execute | Slack, HTTP, JavaScript, DQL |
+| Conditions | Logic to control flow | Predecessor states, custom expression, else SKIP/STOP |
+| Results | Capture output | SUCCESS, ERROR, CANCELLED |
+For environments where SVG doesn't render
+-->
+<p><a id="accessing-workflows"></a></p>
+<h2>4. Accessing Workflows</h2>
+<h3>Navigation</h3>
+<ol>
+<li>Open Dynatrace</li>
+<li>Go to <strong>Apps</strong> in the left navigation</li>
+<li>Search for and open <strong>Workflows</strong></li>
+</ol>
+<p>Or use the direct URL: <code>https://&lt;your-environment&gt;/ui/apps/dynatrace.automations/workflows</code></p>
+<h3>Required Permissions</h3>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Allows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>app-engine:apps:run</code></td>
+<td>Open the Workflows app (list apps, read app bundles)</td>
+</tr>
+<tr>
+<td><code>automation:workflows:read</code></td>
+<td>View workflows</td>
+</tr>
+<tr>
+<td><code>storage:system:read</code> + <code>storage:buckets:read</code> (scoped to <code>dt.system.events</code>)</td>
+<td>View execution history, including the §7 queries</td>
+</tr>
+<tr>
+<td><code>automation:workflows:write</code></td>
+<td>Create, edit, delete workflows (can be limited to <code>automation:workflow-type = &quot;SIMPLE&quot;</code>)</td>
+</tr>
+<tr>
+<td><code>automation:workflows:run</code></td>
+<td>Run workflows manually or via the API</td>
+</tr>
+<tr>
+<td><code>app-engine:functions:run</code></td>
+<td>Use the function executor (needed to write and execute workflows)</td>
+</tr>
+<tr>
+<td><code>automation:workflows:admin</code></td>
+<td>Workflow admin mode: all workflows and executions</td>
+</tr>
+</tbody>
+</table>
+<p>These grant access to workflows only: <em>&quot;To successfully run workflow tasks, the actor might need additional permissions.&quot;</em> Each connector's setup page lists what its actions need (for example <code>email:emails:send</code> for Send email).</p>
+<h3>Workflow Listing</h3>
+<p>The Workflows app has an <strong>All workflows</strong> tab and an <strong>Executions</strong> tab. A new workflow is private: <em>&quot;By default, a workflow is only visible to the creator (workflow owner).&quot;</em> The owner can make it public, or transfer ownership to another user or a group.</p>
+<p><a id="execution-model"></a></p>
+<h2>5. Execution Model</h2>
+<p>Understanding how workflows execute is important for designing reliable automation.</p>
+<h3>Execution Flow</h3>
+<pre><code>Trigger fires
+    ↓
+Workflow instance created
+    ↓
+Tasks execute (sequential or parallel)
+    ↓
+Conditions evaluated at each step
+    ↓
+Results captured
+    ↓
+Execution complete (success/failure)
+</code></pre>
+<h3>Platform Limits</h3>
+<p>Two distinct timeouts apply to every workflow task — confusing them is one of the most common causes of &quot;why did my task fail at exactly 2 minutes?&quot;:</p>
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>Default</th>
+<th>Maximum</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Task timeout</strong></td>
+<td>60 minutes</td>
+<td>7 days</td>
+<td>Wall-clock budget for the whole task, including retries and loops. Configured per task via the <code>timeout</code> field (in seconds).</td>
+</tr>
+<tr>
+<td><strong>Dynatrace runtime timeout</strong></td>
+<td>120 seconds</td>
+<td>—</td>
+<td>Per-action execution budget inside the AutomationEngine runtime (applies to DQL queries and individual JavaScript/HTTP calls). Limits a single action and cannot be raised. A timed-out action fails; the task ends in <code>ERROR</code> unless <strong>Retry on error</strong> or a <strong>Loop</strong> runs further actions, and the task timeout bounds their total runtime.</td>
+</tr>
+<tr>
+<td><strong>DQL <code>requestTimeoutMilliseconds</code></strong></td>
+<td>No default documented</td>
+<td>—</td>
+<td>The JavaScript SDK's <code>queryExecute()</code> parameter — how long the call waits for the result before returning a <code>requestToken</code> instead, in milliseconds. It does not stop the query; poll with <code>queryPoll()</code> to collect the result (WFLOW-08 §2).</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Why this matters.</strong> Raising the task <code>timeout</code> does not help a DQL query that's hitting the 120-second runtime budget — you need to narrow the query window, pre-aggregate, or split the work. Conversely, an approval task waiting for a human pager-out doesn't need a runtime budget — it needs a long task timeout (<code>timeout: 1800</code> for 30 minutes, <code>timeout: 86400</code> for 24 hours).</p>
+</blockquote>
+<p>Concrete handling: see <strong>WFLOW-08 § Configuring Task Timeouts</strong> for the YAML/JSON shape on <code>execute-dql-query</code>, <code>run-javascript</code>, and approval tasks.</p>
+<p><strong>Other documented limits.</strong></p>
+<ul>
+<li><strong>Event-triggered executions:</strong> <em>&quot;Each workflow is limited to 1,000 event-triggered executions per hour.&quot;</em> Beyond that, executions are throttled (HTTP 429) for up to one hour. The two Dynatrace pages disagree about repeated breaches: the event-trigger reference says <em>&quot;If it's exceeded three times within seven days, the trigger is automatically deactivated.&quot;</em>, while the upgrade guide says <em>&quot;The trigger is not automatically deactivated when the limit is reached repeatedly.&quot;</em> Check the Workflows overview for throttled or deactivated triggers rather than relying on either.</li>
+<li><strong>Trigger filter size:</strong> the matching expression compiled from all trigger fields is limited to 1,000 characters (WFLOW-02 §2).</li>
+<li><strong>Workflows per environment:</strong> <em>&quot;Environment limits are 10,000 workflows per customer environment and 100 per trial environment.&quot;</em></li>
+<li><strong>Concurrent executions:</strong> <em>&quot;There can be as many executions of a workflow running at any given time as requested (within system capacity).&quot;</em></li>
+<li><strong>Input and result size:</strong> <em>&quot;The workflow default input size is limited to 10 MB.&quot;</em> The execution result has the same 10 MB limit.</li>
+</ul>
+<p>Per-workflow task counts are not published. In community practice, keep workflows small (under ~20 tasks) and focused (one trigger → one outcome), and verify behavior under load in your own environment before designing around a specific number.</p>
+<h3>Execution States</h3>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RUNNING</code></td>
+<td>Currently executing</td>
+</tr>
+<tr>
+<td><code>SUCCESS</code></td>
+<td>Completed successfully</td>
+</tr>
+<tr>
+<td><code>ERROR</code></td>
+<td>A task failed or timed out — there is no separate <code>TIMED_OUT</code> state</td>
+</tr>
+<tr>
+<td><code>CANCELLED</code></td>
+<td>Manually cancelled</td>
+</tr>
+<tr>
+<td><code>SKIPPED</code> / <code>DISCARDED</code></td>
+<td>Task level only — the task's conditions were not met</td>
+</tr>
+</tbody>
+</table>
+<p>These are the values <code>dt.automation_engine.state</code> carries in <code>dt.system.events</code> (the queries in §7 read them); <code>FAILED</code>, <code>SUCCEEDED</code> and <code>TIMED_OUT</code> are not values.</p>
+<p><a id="your-first-workflow"></a></p>
+<h2>6. Your First Workflow</h2>
+<p>Let's create a simple workflow that logs a message when manually triggered.</p>
+<h3>Step 1: Create New Workflow</h3>
+<ol>
+<li>Open <strong>Workflows</strong> app</li>
+<li>Click <strong>+ Workflow</strong></li>
+<li>Name it: <code>Hello World Workflow</code></li>
+</ol>
+<p>A new workflow starts as a <strong>simple</strong> workflow (shown in the upper-left corner of the editor), and simple workflows exclude Run JavaScript. Dynatrace's own pages differ here: the simple-workflow page excludes the action, while the Get started walkthrough adds it directly. If Run JavaScript is not offered in Step 3, unlock the full functionality, which makes this a standard workflow (§3.5). Leaving it as an undeployed draft keeps it out of workflow-hour billing; delete it when you are done.</p>
+<h3>Step 2: Configure Trigger</h3>
+<ol>
+<li>Click the trigger box (top of canvas)</li>
+<li>Select <strong>On demand</strong> trigger</li>
+<li>This allows manual execution for testing</li>
+</ol>
+<h3>Step 3: Add a Task</h3>
+<ol>
+<li>Click <strong>+</strong> below the trigger</li>
+<li>Search for <strong>Run JavaScript</strong></li>
+<li>Add the following code:</li>
+</ol>
+<pre><code class="language-javascript">export default async function() {
+  const now = new Date().toISOString();
+  console.log(`Hello from Dynatrace Workflows at ${now}`);
+  
+  return {
+    message: &quot;Workflow executed successfully!&quot;,
+    timestamp: now
+  };
+}
+</code></pre>
+<h3>Step 4: Save and Run</h3>
+<ol>
+<li>Click <strong>Save</strong></li>
+<li>Click <strong>Run</strong> (play button). <em>&quot;The first time you run a workflow, you are prompted to authorize the automation service to run a workflow as your user.&quot;</em> Select <strong>Allow and run</strong>.</li>
+<li>View execution results</li>
+</ol>
+<p>Running from the editor works on a draft. Automatic triggers (Schedule, Problem, Event) start only once you select <strong>Deploy</strong> (§3.5).</p>
+<h3>Expected Output</h3>
+<p>The task output should show:</p>
+<pre><code class="language-json">{
+  &quot;message&quot;: &quot;Workflow executed successfully!&quot;,
+  &quot;timestamp&quot;: &quot;2026-01-27T12:00:00.000Z&quot;
+}
+</code></pre>
+<p><a id="viewing-execution-history"></a></p>
+<h2>7. Viewing Execution History</h2>
+<p>Monitor your workflow executions using DQL queries.</p>
+<pre><code class="language-dql">// Recent workflow executions
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == &quot;WORKFLOW_EVENT&quot;` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note &quot;FAILED&quot; is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; | limit 1
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;WORKFLOW_EXECUTION&quot;
+| filter dt.automation_engine.state.is_final == true
+| fields timestamp, dt.automation_engine.workflow.title, dt.automation_engine.state, duration
+| sort timestamp desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Workflow execution summary
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == &quot;WORKFLOW_EVENT&quot;` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note &quot;FAILED&quot; is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;WORKFLOW_EXECUTION&quot;
+| filter dt.automation_engine.state.is_final == true
+| summarize executions = count(), by:{dt.automation_engine.workflow.title, dt.automation_engine.state}
+| sort executions desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Failed workflow executions
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == &quot;WORKFLOW_EVENT&quot;` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note &quot;FAILED&quot; is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; | limit 1
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;WORKFLOW_EXECUTION&quot;
+| filter dt.automation_engine.state == &quot;ERROR&quot;
+| fields timestamp, dt.automation_engine.workflow.title, dt.automation_engine.state_info
+| sort timestamp desc
+| limit 25
+</code></pre>
+<h2>Next Steps</h2>
+<p>Now that you understand workflow fundamentals, continue with:</p>
+<h3>Recommended Path</h3>
+<ol>
+<li><strong>WFLOW-02: Triggers &amp; Event Types</strong> - Configure event-driven triggers</li>
+<li><strong>WFLOW-03: Alert Notification Basics</strong> - Send Slack, Teams, email alerts</li>
+<li><strong>WFLOW-04: Advanced Notification Routing</strong> - Conditional routing and escalation</li>
+</ol>
+<h3>Key Takeaways</h3>
+<ul>
+<li>Workflows automate responses to events, schedules, and manual triggers</li>
+<li>Components: Triggers → Tasks → Conditions → Results</li>
+<li>Use Workflows for notifications, integrations, and auto-remediation</li>
+<li>Monitor execution history via DQL queries</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>What Dynatrace Workflows are and when to use them</li>
+<li>How workflows compare to other automation options</li>
+<li>Core workflow components (triggers, tasks, conditions)</li>
+<li>How to access and navigate the Workflows app</li>
+<li>The execution model and limits</li>
+<li>How to create your first workflow</li>
+<li>How to query execution history</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows">Workflows umbrella (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger">Workflow triggers (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions">Workflow actions (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference">Workflow reference / Jinja expressions (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications">Alerting and notifications umbrella (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app">Davis Problems app (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/concepts">Workflows concepts (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build">Build workflows (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/simple-workflow">Create a simple workflow (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/quickstart">Get started with Workflows (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security">Manage workflow permissions (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/running">Monitor workflow executions (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/license/capabilities/automation/automation">Automation Workflow consumption (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event triggers for workflows (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide — alerting and notifications (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-09-team-based-global-alerting/upgrade-security-notifications">Upgrade security notifications — management zones (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

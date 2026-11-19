@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPLOGS-05: Querying &amp; Parsing Logs</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPLOGS — OpenPipeline Logs</a><span class="sep">/</span><span aria-current="page">OPLOGS-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPLOGS-05: Querying &amp; Parsing Logs</h1>
+<blockquote>
+<p><strong>Series:</strong> OPLOGS — OpenPipeline Logs | <strong>Notebook:</strong> 5 of 8 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 10/23/2026</p>
+</blockquote>
+<h2>DQL Fundamentals and DPL Pattern Matching</h2>
+<p>This notebook covers DQL query syntax, filtering, string matching, and DPL (Dynatrace Pattern Language) for extracting structured data from logs.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#dql-fundamentals">DQL Fundamentals</a></li>
+<li><a href="#filtering-logs">Filtering Logs</a></li>
+<li><a href="#string-matching-functions">String Matching Functions</a></li>
+<li><a href="#field-selection-and-transformation">Field Selection and Transformation</a></li>
+<li><a href="#dpl-dynatrace-pattern-language-parsing">DPL (Dynatrace Pattern Language) Parsing</a></li>
+<li><a href="#working-with-json-logs">Working with JSON Logs</a></li>
+<li><a href="#null-handling">Null Handling</a></li>
+<li><a href="#advanced-parsing-examples">Advanced Parsing Examples</a></li>
+<li><a href="#summary">📝 Summary</a></li>
+<li><a href="#next-steps">➡️ Next Steps</a></li>
+<li><a href="#references">📚 References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>✅ Access to a Dynatrace environment with log data</li>
+<li>✅ Completed OPLOGS-01 through OPLOGS-04</li>
+<li>✅ Basic understanding of regular expressions (helpful)</li>
+</ul>
+<p><a id="dql-fundamentals"></a></p>
+<h2>1. DQL Fundamentals</h2>
+<h3>Query Structure</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZmV0Y2hHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjU2M2ViO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZmlsdGVyR3JhZERRTCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlZjQ0NDQ7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2RjMjYyNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImZpZWxkc0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2Njk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJzdW1tYXJpemVHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhiNWNmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojN2MzYWVkO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic29ydEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZjU5ZTBiO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkOTc3MDY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0iZHFsU2hhZG93Ij4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMSIgZHk9IjEiIHN0ZERldmlhdGlvbj0iMiIgZmxvb2Qtb3BhY2l0eT0iMC4xNSIvPgogICAgPC9maWx0ZXI+CiAgICA8bWFya2VyIGlkPSJkcWxBcnJvdyIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjNjQ3NDhiIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDAwIiB5PSIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RFFMIFF1ZXJ5IFBpcGVsaW5lIE1vZGVsPC90ZXh0PgogIDx0ZXh0IHg9IjQwMCIgeT0iNDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGF0YSBmbG93cyBsZWZ0IHRvIHJpZ2h0IHRocm91Z2ggc2VxdWVudGlhbCBjb21tYW5kczwvdGV4dD4KCiAgPCEtLSBQaXBlbGluZSBTdGFnZXMgLS0+CiAgPHJlY3QgeD0iMzAiIHk9Ijc1IiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjgwIiByeD0iMTAiIGZpbGw9InVybCgjZmV0Y2hHcmFkKSIgZmlsdGVyPSJ1cmwoI2RxbFNoYWRvdykiLz4KICA8dGV4dCB4PSI4MCIgeT0iMTA1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmZldGNoPC90ZXh0PgogIDx0ZXh0IHg9IjgwIiB5PSIxMjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5sb2dzPC90ZXh0PgogIDx0ZXh0IHg9IjgwIiB5PSIxNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BbGwgcmVjb3JkczwvdGV4dD4KCiAgPHBhdGggZD0iTTEzMCwxMTUgTDE1NSwxMTUiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2RxbEFycm93KSIvPgoKICA8cmVjdCB4PSIxNjUiIHk9Ijc1IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjgwIiByeD0iMTAiIGZpbGw9InVybCgjZmlsdGVyR3JhZERRTCkiIGZpbHRlcj0idXJsKCNkcWxTaGFkb3cpIi8+CiAgPHRleHQgeD0iMjI1IiB5PSIxMDUiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+fCBmaWx0ZXI8L3RleHQ+CiAgPHRleHQgeD0iMjI1IiB5PSIxMjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5zdGF0dXMgPT0gIkVSUk9SIjwvdGV4dD4KICA8dGV4dCB4PSIyMjUiIHk9IjE0NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJlZHVjZSByb3dzPC90ZXh0PgoKICA8cGF0aCBkPSJNMjg1LDExNSBMMzEwLDExNSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjZHFsQXJyb3cpIi8+CgogIDxyZWN0IHg9IjMyMCIgeT0iNzUiIHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIHJ4PSIxMCIgZmlsbD0idXJsKCNmaWVsZHNHcmFkKSIgZmlsdGVyPSJ1cmwoI2RxbFNoYWRvdykiLz4KICA8dGV4dCB4PSIzODAiIHk9IjEwNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj58IGZpZWxkczwvdGV4dD4KICA8dGV4dCB4PSIzODAiIHk9IjEyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnRpbWVzdGFtcCwgY29udGVudDwvdGV4dD4KICA8dGV4dCB4PSIzODAiIHk9IjE0NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNlbGVjdCBjb2x1bW5zPC90ZXh0PgoKICA8cGF0aCBkPSJNNDQwLDExNSBMNDY1LDExNSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjZHFsQXJyb3cpIi8+CgogIDxyZWN0IHg9IjQ3NSIgeT0iNzUiIHdpZHRoPSIxMzAiIGhlaWdodD0iODAiIHJ4PSIxMCIgZmlsbD0idXJsKCNzdW1tYXJpemVHcmFkKSIgZmlsdGVyPSJ1cmwoI2RxbFNoYWRvdykiLz4KICA8dGV4dCB4PSI1NDAiIHk9IjEwNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj58IHN1bW1hcml6ZTwvdGV4dD4KICA8dGV4dCB4PSI1NDAiIHk9IjEyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmNvdW50KCksIGJ5OntzdmN9PC90ZXh0PgogIDx0ZXh0IHg9IjU0MCIgeT0iMTQ1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QWdncmVnYXRlPC90ZXh0PgoKICA8cGF0aCBkPSJNNjA1LDExNSBMNjMwLDExNSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjZHFsQXJyb3cpIi8+CgogIDxyZWN0IHg9IjY0MCIgeT0iNzUiIHdpZHRoPSIxMzAiIGhlaWdodD0iODAiIHJ4PSIxMCIgZmlsbD0idXJsKCNzb3J0R3JhZCkiIGZpbHRlcj0idXJsKCNkcWxTaGFkb3cpIi8+CiAgPHRleHQgeD0iNzA1IiB5PSIxMDUiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+fCBzb3J0IHwgbGltaXQ8L3RleHQ+CiAgPHRleHQgeD0iNzA1IiB5PSIxMjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5jb3VudCBkZXNjPC90ZXh0PgogIDx0ZXh0IHg9IjcwNSIgeT0iMTQ1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+T3JkZXIgKyBsaW1pdDwvdGV4dD4KCiAgPCEtLSBEYXRhIEZsb3cgVmlzdWFsaXphdGlvbiAtLT4KICA8cmVjdCB4PSIzMCIgeT0iMTc1IiB3aWR0aD0iNzQwIiBoZWlnaHQ9IjExMCIgcng9IjEwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iMjAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EYXRhIFRyYW5zZm9ybWF0aW9uIGF0IEVhY2ggU3RhZ2U8L3RleHQ+CgogIDwhLS0gU3RhZ2UgZGV0YWlscyAtLT4KICA8cmVjdCB4PSI1MCIgeT0iMjE1IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjU1IiByeD0iNiIgZmlsbD0iI2RiZWFmZSIvPgogIDx0ZXh0IHg9IjExMCIgeT0iMjM1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMWU0MGFmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4xTSByZWNvcmRzPC90ZXh0PgogIDx0ZXh0IHg9IjExMCIgeT0iMjU1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxZTNhOGEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFsbCBmaWVsZHM8L3RleHQ+CgogIDx0ZXh0IHg9IjE4NSIgeT0iMjQyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM2NDc0OGIiPuKGkjwvdGV4dD4KCiAgPHJlY3QgeD0iMjAwIiB5PSIyMTUiIHdpZHRoPSIxMjAiIGhlaWdodD0iNTUiIHJ4PSI2IiBmaWxsPSIjZmVmMmYyIi8+CiAgPHRleHQgeD0iMjYwIiB5PSIyMzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNkYzI2MjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjUwSyByZWNvcmRzPC90ZXh0PgogIDx0ZXh0IHg9IjI2MCIgeT0iMjU1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM3ZjFkMWQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkVycm9ycyBvbmx5PC90ZXh0PgoKICA8dGV4dCB4PSIzMzUiIHk9IjI0MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSIjNjQ3NDhiIj7ihpI8L3RleHQ+CgogIDxyZWN0IHg9IjM1MCIgeT0iMjE1IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjU1IiByeD0iNiIgZmlsbD0iI2QxZmFlNSIvPgogIDx0ZXh0IHg9IjQxMCIgeT0iMjM1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMDQ3ODU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj41MEsgcmVjb3JkczwvdGV4dD4KICA8dGV4dCB4PSI0MTAiIHk9IjI1NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMDY0ZTNiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4yIGNvbHVtbnM8L3RleHQ+CgogIDx0ZXh0IHg9IjQ4NSIgeT0iMjQyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM2NDc0OGIiPuKGkjwvdGV4dD4KCiAgPHJlY3QgeD0iNTAwIiB5PSIyMTUiIHdpZHRoPSIxMjAiIGhlaWdodD0iNTUiIHJ4PSI2IiBmaWxsPSIjZWRlOWZlIi8+CiAgPHRleHQgeD0iNTYwIiB5PSIyMzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM2ZDI4ZDkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjEwMCByZWNvcmRzPC90ZXh0PgogIDx0ZXh0IHg9IjU2MCIgeT0iMjU1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM0YzFkOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBlciBzZXJ2aWNlPC90ZXh0PgoKICA8dGV4dCB4PSI2MzUiIHk9IjI0MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSIjNjQ3NDhiIj7ihpI8L3RleHQ+CgogIDxyZWN0IHg9IjY1MCIgeT0iMjE1IiB3aWR0aD0iMTA1IiBoZWlnaHQ9IjU1IiByeD0iNiIgZmlsbD0iI2ZlZjNjNyIvPgogIDx0ZXh0IHg9IjcwMiIgeT0iMjM1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4xMCByZWNvcmRzPC90ZXh0PgogIDx0ZXh0IHg9IjcwMiIgeT0iMjU1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM3ODM1MGYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlRvcCAxMDwvdGV4dD4KPC9zdmc+Cg==" alt="DQL Pipeline Model" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+DQL Pipeline Model:
+
+fetch logs, from: now() - 1h
+↓
+filter <condition>
+↓
+fields <field1>, <field2>
+↓
+sort <field> desc
+↓
+limit 100
+
+Each stage processes data sequentially through the pipeline.
+-->
+<pre><code>fetch logs, from: now() - 1h          // Data source and time range
+| filter &lt;condition&gt;                   // Filter records
+| fields &lt;field1&gt;, &lt;field2&gt;           // Select fields
+| sort &lt;field&gt; desc                   // Order results
+| limit 100                           // Limit output
+</code></pre>
+<h3>🚨 Critical DQL Rules (DQL ≠ SQL)</h3>
+<table>
+<thead>
+<tr>
+<th>✅ DQL Syntax</th>
+<th>❌ SQL Syntax</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>filter status == &quot;ERROR&quot;</code></td>
+<td><code>WHERE status = 'ERROR'</code></td>
+</tr>
+<tr>
+<td><code>in(field, {&quot;a&quot;, &quot;b&quot;})</code></td>
+<td><code>field IN ('a', 'b')</code></td>
+</tr>
+<tr>
+<td><code>summarize {count = count()}</code></td>
+<td><code>SELECT COUNT(*)</code></td>
+</tr>
+<tr>
+<td><code>isNull(field)</code></td>
+<td><code>field IS NULL</code></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Basic log query - explore recent logs
+fetch logs, from: now() - 1h
+| fields timestamp, content, loglevel, dt.entity.host
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Query with time range options
+fetch logs, from: now() - 24h, to: now() - 12h
+| summarize {count = count()}, by: {loglevel}
+| sort count desc
+</code></pre>
+<p><a id="filtering-logs"></a></p>
+<h2>2. Filtering Logs</h2>
+<h3>Comparison Operators</h3>
+<table>
+<thead>
+<tr>
+<th>Operator</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>==</code></td>
+<td>Equals</td>
+<td><code>loglevel == &quot;ERROR&quot;</code></td>
+</tr>
+<tr>
+<td><code>!=</code></td>
+<td>Not equals</td>
+<td><code>status != &quot;NONE&quot;</code></td>
+</tr>
+<tr>
+<td><code>&gt;</code>, <code>&gt;=</code></td>
+<td>Greater than</td>
+<td><code>count &gt; 100</code></td>
+</tr>
+<tr>
+<td><code>&lt;</code>, <code>&lt;=</code></td>
+<td>Less than</td>
+<td><code>duration &lt; 1s</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Logical Operators</h3>
+<table>
+<thead>
+<tr>
+<th>Operator</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>AND</code></td>
+<td>Both conditions</td>
+<td><code>loglevel == &quot;ERROR&quot; AND isNotNull(host)</code></td>
+</tr>
+<tr>
+<td><code>OR</code></td>
+<td>Either condition</td>
+<td><code>loglevel == &quot;ERROR&quot; OR loglevel == &quot;WARN&quot;</code></td>
+</tr>
+<tr>
+<td><code>NOT</code></td>
+<td>Negate</td>
+<td><code>NOT contains(content, &quot;health&quot;)</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Compare durations with duration literals — <code>5s</code>, <code>100ms</code> — never a bare number: <code>duration &lt; 1000</code> compares an integer with a duration and silently matches nothing.</p>
+</blockquote>
+<pre><code class="language-dql">// Filter by log level
+fetch logs, from: now() - 1h
+| filter loglevel == &quot;ERROR&quot;
+| fields timestamp, content, dt.entity.host
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Multiple conditions with AND/OR
+fetch logs, from: now() - 1h
+| filter (loglevel == &quot;ERROR&quot; OR loglevel == &quot;WARN&quot;)
+        AND isNotNull(dt.entity.host)
+| summarize {count = count()}, by: {loglevel, dt.entity.host}
+| sort count desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Filter using in() for multiple values
+fetch logs, from: now() - 1h
+| filter in(loglevel, {&quot;ERROR&quot;, &quot;WARN&quot;, &quot;INFO&quot;})
+| summarize {count = count()}, by: {loglevel}
+| sort count desc
+</code></pre>
+<p><a id="string-matching-functions"></a></p>
+<h2>3. String Matching Functions</h2>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>contains(str, substr)</code></td>
+<td>Substring match</td>
+<td><code>contains(content, &quot;error&quot;)</code></td>
+</tr>
+<tr>
+<td><code>startsWith(str, prefix)</code></td>
+<td>Prefix match</td>
+<td><code>startsWith(content, &quot;[ERROR]&quot;)</code></td>
+</tr>
+<tr>
+<td><code>endsWith(str, suffix)</code></td>
+<td>Suffix match</td>
+<td><code>endsWith(content, &quot;failed&quot;)</code></td>
+</tr>
+<tr>
+<td><code>matchesPhrase(str, phrase)</code></td>
+<td>Word boundary match</td>
+<td><code>matchesPhrase(content, &quot;connection refused&quot;)</code></td>
+</tr>
+<tr>
+<td><code>matchesValue(str, pattern)</code></td>
+<td>Exact or wildcard match</td>
+<td><code>matchesValue(host, &quot;web-*&quot;)</code></td>
+</tr>
+</tbody>
+</table>
+<h3>What each match costs</h3>
+<p>None of these functions prunes buckets the way <code>bucket:{...}</code> does: every one read all 3.51M records in scope in the test below. What differs is how much of each record they have to read. Dynatrace's guidance is to use <code>==</code> for known values and token matching (<code>matchesPhrase</code>, <code>~</code>) rather than substring matching on text. Measurements on one validation tenant point the same way (10/23/2026, a 15-minute window that scanned 731.8 MB unfiltered, <code>summarize count()</code> after each filter):</p>
+<table>
+<thead>
+<tr>
+<th>Filter</th>
+<th>Scanned</th>
+<th>Rows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>k8s.namespace.name == &quot;easytrade&quot;</code></td>
+<td>419.4 MB</td>
+<td>83,324</td>
+</tr>
+<tr>
+<td><code>matchesValue(k8s.namespace.name, &quot;easytrade&quot;)</code></td>
+<td>419.4 MB</td>
+<td>83,324</td>
+</tr>
+<tr>
+<td><code>contains(k8s.namespace.name, &quot;easytrade&quot;)</code></td>
+<td>488.3 MB</td>
+<td>83,324</td>
+</tr>
+<tr>
+<td><code>matchesValue(k8s.namespace.name, &quot;easy*&quot;)</code></td>
+<td>502.9 MB</td>
+<td>84,929</td>
+</tr>
+<tr>
+<td><code>contains(content, &quot;error&quot;)</code></td>
+<td>371.1 MB</td>
+<td>15,652</td>
+</tr>
+<tr>
+<td><code>matchesValue(content, &quot;*error*&quot;)</code></td>
+<td>371.1 MB</td>
+<td>18,811</td>
+</tr>
+<tr>
+<td><code>matchesPhrase(content, &quot;error&quot;)</code></td>
+<td>341.4 MB</td>
+<td>18,669</td>
+</tr>
+<tr>
+<td><code>status == &quot;ERROR&quot;</code></td>
+<td>243.2 MB</td>
+<td>29,637</td>
+</tr>
+</tbody>
+</table>
+<p>Three patterns held on that tenant:</p>
+<ul>
+<li><strong>Structured field:</strong> an exact match (<code>==</code>, or <code>matchesValue</code> without a wildcard) scanned 14–17% less than <code>contains</code> or a wildcard.</li>
+<li><strong>Free text:</strong> <code>contains</code> and <code>matchesValue</code> scanned the same bytes and differed only in which rows matched. The default <code>matchesValue</code> ignores case, so it found 18,811 rows to <code>contains</code>' 15,652.</li>
+<li><strong>Error records:</strong> filtering the parsed <code>status</code> field beat every text search for &quot;error&quot;. It scanned the least and returned the most error records.</li>
+</ul>
+<p>In community practice the size of these gaps depends on how your data is laid out, so read the table as direction, not as a rate. Compare your own queries with the <code>scannedBytes</code> value in the query metadata.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/anomaly-detection-dql-optimization">Anomaly Detection DQL optimization guide (DT docs)</a> — <em>&quot;Use the == operator to filter known values. This is the most efficient way to narrow your alerting scope.&quot;</em>; on <code>contains</code> versus <code>matchesPhrase</code>, <em>&quot;it is less efficient because token matching is not applied.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Search for specific content patterns
+fetch logs, from: now() - 1h
+| filter contains(content, &quot;Exception&quot;)
+| fieldsAdd content_preview = substring(content, from: 0, to: 100)
+| fields timestamp, content_preview, dt.entity.host
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Use matchesPhrase for word-boundary matching
+fetch logs, from: now() - 1h
+| filter matchesPhrase(content, &quot;connection&quot;)
+| fieldsAdd content_preview = substring(content, from: 0, to: 120)
+| summarize {count = count()}, by: {content_preview}
+| sort count desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Exclude patterns with NOT
+// status == &quot;ERROR&quot; covers every error-class level (ERROR, SEVERE, CRITICAL, FATAL, …);
+// loglevel == &quot;ERROR&quot; alone misses SEVERE and the rest
+fetch logs, from: now() - 1h
+| filter status == &quot;ERROR&quot;
+| filter NOT matchesPhrase(content, &quot;health&quot;)
+| filter NOT matchesPhrase(content, &quot;heartbeat&quot;)
+| fieldsAdd content_preview = substring(content, from: 0, to: 100)
+| summarize {count = count()}, by: {content_preview}
+| sort count desc
+| limit 10
+</code></pre>
+<p><a id="field-selection-and-transformation"></a></p>
+<h2>4. Field Selection and Transformation</h2>
+<h3>Field Commands</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fields</code></td>
+<td>Select specific fields only</td>
+</tr>
+<tr>
+<td><code>fieldsAdd</code></td>
+<td>Add computed fields</td>
+</tr>
+<tr>
+<td><code>fieldsRemove</code></td>
+<td>Remove fields</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Add computed fields
+fetch logs, from: now() - 1h
+| filter status == &quot;ERROR&quot;
+| fieldsAdd severity = if(contains(content, &quot;critical&quot;), &quot;CRITICAL&quot;, 
+                       else: if(contains(content, &quot;fatal&quot;), &quot;FATAL&quot;,
+                       else: loglevel))
+| fieldsAdd content_length = stringLength(content)
+| fields timestamp, severity, content_length, dt.entity.host
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// String manipulation functions
+fetch logs, from: now() - 1h
+| filter isNotNull(k8s.namespace.name)
+| fieldsAdd pod_short = substring(k8s.pod.name, from: 0, to: 30)
+| fields timestamp, k8s.namespace.name, pod_short, loglevel
+| limit 10
+</code></pre>
+<p><a id="dpl-dynatrace-pattern-language-parsing"></a></p>
+<h2>5. DPL (Dynatrace Pattern Language) Parsing</h2>
+<p>DPL extracts structured data from unstructured log content.</p>
+<h3>DPL Matchers</h3>
+<table>
+<thead>
+<tr>
+<th>Matcher</th>
+<th>Description</th>
+<th>Matches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>INT</code></td>
+<td>Integer</td>
+<td><code>42</code>, <code>-17</code></td>
+</tr>
+<tr>
+<td><code>DOUBLE</code></td>
+<td>Decimal</td>
+<td><code>3.14</code>, <code>-0.5</code></td>
+</tr>
+<tr>
+<td><code>IPADDR</code></td>
+<td>IP address</td>
+<td><code>192.168.1.1</code>, <code>::1</code></td>
+</tr>
+<tr>
+<td><code>LD</code></td>
+<td>Line data (to delimiter)</td>
+<td>Any text</td>
+</tr>
+<tr>
+<td><code>WORD</code></td>
+<td>Word characters</td>
+<td><code>hello</code>, <code>user123</code></td>
+</tr>
+<tr>
+<td><code>SPACE</code></td>
+<td>Whitespace</td>
+<td>spaces, tabs</td>
+</tr>
+<tr>
+<td><code>JSON</code></td>
+<td>JSON structure</td>
+<td><code>{&quot;key&quot;: &quot;value&quot;}</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Pattern Syntax</h3>
+<table>
+<thead>
+<tr>
+<th>Syntax</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MATCHER:fieldname</code></td>
+<td>Extract to named field</td>
+</tr>
+<tr>
+<td><code>MATCHER</code></td>
+<td>Match but don't extract</td>
+</tr>
+<tr>
+<td><code>MATCHER?</code></td>
+<td>Optional matcher</td>
+</tr>
+<tr>
+<td><code>'literal'</code></td>
+<td>Match exact string</td>
+</tr>
+<tr>
+<td><code>(opt1|opt2)</code></td>
+<td>Match alternatives</td>
+</tr>
+</tbody>
+</table>
+<p>A <code>parse</code> pattern must match from the <strong>start</strong> of the string (trailing text is fine). To find a value anywhere, prefix <code>DATA?</code> before a literal, or use <code>parseAll()</code> for matcher-only patterns — see FAQ-15 §5.</p>
+<pre><code class="language-dql">// Parse log level from content (e.g., &quot;[ERROR] message&quot;)
+fetch logs, from: now() - 1h
+| filter startsWith(content, &quot;[&quot;)
+| parse content, &quot;'[' LD:parsed_level ']'&quot;
+// keep only supported loglevel values — bracketed timestamps and message fragments are not levels
+| fieldsAdd parsed_level = upper(parsed_level)
+| filter in(parsed_level, {&quot;EMERGENCY&quot;, &quot;ALERT&quot;, &quot;CRITICAL&quot;, &quot;SEVERE&quot;, &quot;ERROR&quot;, &quot;FATAL&quot;, &quot;WARN&quot;, &quot;NOTICE&quot;, &quot;INFO&quot;, &quot;DEBUG&quot;, &quot;TRACE&quot;})
+| summarize {count = count()}, by: {parsed_level}
+| sort count desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Parse HTTP-style logs
+// Example: GET /api/users 200 45ms -&gt; GET, /api/users, 200
+// Returns rows only for single-spaced lines of this exact shape; the range filter drops counters in the status position
+fetch logs, from: now() - 1h
+| filter contains(content, &quot;GET&quot;) OR contains(content, &quot;POST&quot;)
+| parse content, &quot;[A-Z]+:method ' ' NSPACE:path ' ' INT:status_code ' '&quot;
+| filter status_code &gt;= 100 and status_code &lt;= 599
+| summarize {count = count()}, by: {method, status_code}
+| sort count desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Parse key-value pairs
+// Example: &quot;user=john action=login status=success&quot;
+// parseAll returns every user= value in the line (parse would return only one);
+// the !&lt;&lt; lookbehind stops &quot;superuser=root&quot; or &quot;service_user=x&quot; matching as user=
+fetch logs, from: now() - 1h
+| fieldsAdd usernames = parseAll(content, &quot;!&lt;&lt;[A-Za-z0-9_] 'user=' [A-Za-z0-9._@-]+:username&quot;)
+| filter arraySize(usernames) &gt; 0
+| expand username = usernames
+| summarize {count = count()}, by: {username}
+| sort count desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Parse IP addresses from logs
+fetch logs, from: now() - 1h
+// parseAll finds every IP anywhere in the line; parse would only match one at the very start
+// IPADDR also matches IPv4-shaped version strings (rv:1.9.2.20) and IPv6 fragments (::0000);
+// OPLOGS-08 §3 shows a bounded IPv4 pattern for classification
+| fieldsAdd client_ip = parseAll(content, &quot;IPADDR:ip&quot;)
+| filter arraySize(client_ip) &gt; 0
+| expand client_ip
+| summarize {count = count()}, by: {client_ip}
+| sort count desc
+| limit 15
+</code></pre>
+<p><a id="working-with-json-logs"></a></p>
+<h2>6. Working with JSON Logs</h2>
+<p>Many applications emit JSON-formatted logs. DQL provides tools to work with JSON content.</p>
+<pre><code class="language-dql">// Find JSON-formatted logs
+fetch logs, from: now() - 1h
+| filter startsWith(content, &quot;{&quot;)
+| fieldsAdd content_preview = substring(content, from: 0, to: 150)
+| summarize {count = count()}, by: {content_preview}
+| sort count desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Parse JSON and extract fields
+fetch logs, from: now() - 1h
+| filter startsWith(content, &quot;{&quot;)
+| parse content, &quot;JSON:json_data&quot;
+| filter isNotNull(json_data)
+| fields timestamp, json_data
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Access nested JSON fields
+fetch logs, from: now() - 1h
+| filter startsWith(content, &quot;{&quot;)
+| parse content, &quot;JSON:json_data&quot;
+| filter isNotNull(json_data)
+| fieldsAdd error_type = json_data[errorType]
+| fieldsAdd status_val = json_data[status]
+| filter isNotNull(status_val)
+| summarize {count = count()}, by: {status_val, error_type}
+| sort count desc
+| limit 15
+</code></pre>
+<p><a id="null-handling"></a></p>
+<h2>7. Null Handling</h2>
+<p>DQL uses three-valued logic. <code>NULL</code> comparisons require special functions.</p>
+<table>
+<thead>
+<tr>
+<th>❌ Wrong</th>
+<th>✅ Correct</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>field == null</code></td>
+<td><code>isNull(field)</code></td>
+</tr>
+<tr>
+<td><code>field != null</code></td>
+<td><code>isNotNull(field)</code></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Check for null values
+fetch logs, from: now() - 1h
+| summarize {
+    total = count(),
+    with_host = countIf(isNotNull(dt.entity.host)),
+    without_host = countIf(isNull(dt.entity.host)),
+    with_namespace = countIf(isNotNull(k8s.namespace.name)),
+    without_namespace = countIf(isNull(k8s.namespace.name))
+  }
+</code></pre>
+<pre><code class="language-dql">// Use coalesce for default values
+// coalesce returns the first non-null argument: the workload name, else the namespace, else &quot;UNKNOWN&quot;.
+// (coalesce(loglevel, …) would never fall back: loglevel is never null, and missing levels arrive as &quot;NONE&quot;.)
+fetch logs, from: now() - 1h
+| fieldsAdd owner = coalesce(k8s.workload.name, k8s.namespace.name, &quot;UNKNOWN&quot;)
+| summarize {count = count()}, by: {owner}
+| sort count desc
+| limit 15
+</code></pre>
+<p><a id="advanced-parsing-examples"></a></p>
+<h2>8. Advanced Parsing Examples</h2>
+<pre><code class="language-dql">// Parse exception patterns
+// Split the record into whitespace-separated tokens (splitByPattern with SPACE also splits on line breaks) and keep the ones that end in &quot;Exception&quot;.
+// A pattern like &quot;LD:exception_type 'Exception'&quot; anchors at the start of the line, so it
+// captures the whole prefix (&quot;2026-10-02 ERROR c.e.Svc - java.lang.NullPointer&quot;) instead
+// of the class name; DPL does not backtrack, so a greedy word matcher cannot stop before
+// the literal &quot;Exception&quot; either.
+fetch logs, from: now() - 24h
+| filter contains(content, &quot;Exception&quot;)
+| fieldsAdd token = splitByPattern(content, &quot;SPACE&quot;)
+| expand token
+| filter endsWith(token, &quot;Exception&quot;) OR endsWith(token, &quot;Exception:&quot;)
+| fieldsAdd exception_type = replaceString(token, &quot;:&quot;, &quot;&quot;)
+| summarize {count = count()}, by: {exception_type}
+| sort count desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Parse with optional fields
+// Matches &quot;error code=123&quot; or &quot;... error code=123 message=failed&quot; anywhere in the line
+// (DATA? lets the pattern start mid-line; parse otherwise anchors at the start)
+fetch logs, from: now() - 1h
+| filter contains(content, &quot;error&quot;)
+| parse content, &quot;DATA? 'error' SPACE 'code=' INT:error_code (SPACE 'message=' LD:error_msg)?&quot;
+| filter isNotNull(error_code)
+| summarize {count = count()}, by: {error_code}
+| sort count desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Parse alternative formats
+// Matches &quot;user=john&quot; or &quot;username=john&quot; anywhere in the line, every occurrence (parseAll);
+// the character class stops at the first character outside it, so &quot;user=jdoe,&quot; yields &quot;jdoe&quot;
+// (a trailing LD would take the rest of the line), and the !&lt;&lt; lookbehind skips &quot;superuser=root&quot;
+fetch logs, from: now() - 1h
+| fieldsAdd user_values = parseAll(content, &quot;!&lt;&lt;[A-Za-z0-9_] ('user='|'username=') [A-Za-z0-9._@-]+:user_value&quot;)
+| filter arraySize(user_values) &gt; 0
+| expand user_value = user_values
+| summarize {count = count()}, by: {user_value}
+| sort count desc
+| limit 10
+</code></pre>
+<hr />
+<p><a id="summary"></a></p>
+<h2>📝 Summary</h2>
+<p>In this notebook, you learned:</p>
+<p>✅ <strong>DQL fundamentals</strong> - Query structure and syntax rules<br />
+✅ <strong>Filtering</strong> - Comparison operators, logical operators, in()<br />
+✅ <strong>String matching</strong> - contains, matchesPhrase, startsWith<br />
+✅ <strong>Field manipulation</strong> - fieldsAdd, computed fields<br />
+✅ <strong>DPL parsing</strong> - Matchers (INT, LD, IPADDR, JSON)<br />
+✅ <strong>JSON handling</strong> - Parsing and accessing nested fields<br />
+✅ <strong>Null handling</strong> - isNull, isNotNull, coalesce</p>
+<hr />
+<p><a id="next-steps"></a></p>
+<h2>➡️ Next Steps</h2>
+<p>Continue to <strong>OPLOGS-06: Topology &amp; Entity Context</strong> to learn about entity context and relationships.</p>
+<hr />
+<p><a id="references"></a></p>
+<h2>📚 References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">Dynatrace Query Language (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions">DQL functions (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language">Dynatrace Pattern Language (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/dpl-architect">DPL Architect (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WFLOW-07: Problem-Triggered Remediation</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">WFLOW — Workflows and Alert Notifications</a><span class="sep">/</span><span aria-current="page">WFLOW-07</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>WFLOW-07: Problem-Triggered Remediation</h1>
+<blockquote>
+<p><strong>Series:</strong> WFLOW — Workflows and Alert Notifications | <strong>Notebook:</strong> 7 of 10 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/16/2026</p>
+</blockquote>
+<h2>Auto-Remediation with Workflows</h2>
+<p>Move beyond notifications to automated problem resolution. This notebook covers remediation patterns, safety guardrails, runbook automation, and common remediation scenarios.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#auto-remediation-principles">Auto-Remediation Principles</a></li>
+<li><a href="#safety-guardrails">Safety Guardrails</a></li>
+<li><a href="#common-remediation-patterns">Common Remediation Patterns</a></li>
+<li><a href="#kubernetes-remediation">Kubernetes Remediation</a></li>
+<li><a href="#cloud-resource-remediation">Cloud Resource Remediation</a></li>
+<li><a href="#runbook-automation">Runbook Automation</a></li>
+<li><a href="#approval-workflows">Approval Workflows</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Platform subscription</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>automation:workflows:write</code> to author. Each task also needs the scopes it uses, granted to the workflow under <strong>Settings &gt; Authorization settings</strong> in the Workflows app — for example <code>automation:workflows:read</code> for <code>execution()</code> and <code>result()</code>, <code>environment-api:credentials:read</code> for the Credential Vault, and the <code>storage:*:read</code> scope of each data object a query reads. A missing one fails the task with a 403 at run time.</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td><strong>WFLOW-01</strong> through <strong>WFLOW-06</strong></td>
+</tr>
+<tr>
+<td><strong>External Systems</strong></td>
+<td>Credentials for the target system in the Credential Vault, or a connection for the Kubernetes or AWS Connector</td>
+</tr>
+<tr>
+<td><strong>Outbound access</strong></td>
+<td>Every host a script or HTTP task calls added under <strong>Settings &gt; General &gt; External requests</strong>. Hosts on a private network (an internal automation API, a Kubernetes API server, an <code>.internal</code> endpoint) also need an EdgeConnect host pattern — see the <strong>WFLOW-94 LAB</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action">Run JavaScript action (DT docs)</a> — <em>&quot;The external endpoint must be added to External requests.&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security">Workflows security (DT docs)</a> — <em>&quot;If the required permission for a workflow task is missing, an attempt to execute this task results in a 403 Forbidden error.&quot;</em>; <a href="https://docs.dynatrace.com/docs/ingest-from/edgeconnect">EdgeConnect (DT docs)</a> — <em>&quot;When an app function, ad hoc function, or workflow action targets a host that matches a configured host pattern, the Dynatrace runtime forwards the request to EdgeConnect.&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="auto-remediation-principles"></a></p>
+<h2>1. Auto-Remediation Principles</h2>
+<h3>When to Automate Remediation</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Automate?</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pod crash loop</td>
+<td>Yes</td>
+<td>Well-defined fix (restart)</td>
+</tr>
+<tr>
+<td>Disk space 90%</td>
+<td>Yes</td>
+<td>Clear action (cleanup)</td>
+</tr>
+<tr>
+<td>Memory pressure</td>
+<td>Maybe</td>
+<td>Scale up vs investigate</td>
+</tr>
+<tr>
+<td>Database deadlock</td>
+<td>No</td>
+<td>Needs investigation</td>
+</tr>
+<tr>
+<td>Security incident</td>
+<td>No</td>
+<td>Requires human judgment</td>
+</tr>
+</tbody>
+</table>
+<h3>Remediation Maturity Model</h3>
+<pre><code>Level 0: Manual remediation (runbook lookup)
+Level 1: Automated notification with runbook link
+Level 2: Semi-automated (human approval required)
+Level 3: Fully automated with guardrails
+Level 4: Self-healing with learning
+</code></pre>
+<h3>Auto-Remediation Loop</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnR3JhZFdGNiIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwRjE3MkEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMUUyOTNCIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJkZXRlY3RHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNERTM1MEIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojYjkxYzFjIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJhbmFseXplR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojRkZCODAwIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Q5NzcwNiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icmVtZWRpYXRlR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojQTc4QkZBIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdDM0FFRCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idmFsaWRhdGVHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3M0JFMjgiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTZhMzRhIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0ic2hhZG93V0Y2IiB4PSItMjAlIiB5PSItMjAlIiB3aWR0aD0iMTQwJSIgaGVpZ2h0PSIxNDAlIj4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMiIgZHk9IjIiIHN0ZERldmlhdGlvbj0iMyIgZmxvb2Qtb3BhY2l0eT0iMC4zIi8+CiAgICA8L2ZpbHRlcj4KICAgIDxtYXJrZXIgaWQ9ImFycm93V0Y2IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM5NEEzQjgiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyb3dMb29wIiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiNGQ0QzNEQiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSJ1cmwoI2JnR3JhZFdGNikiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5BdXRvLVJlbWVkaWF0aW9uIExvb3A8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+RGV0ZWN0IOKGkiBBbmFseXplIOKGkiBSZW1lZGlhdGUg4oaSIFZhbGlkYXRlLCB3aXRoIHJldHJ5IGxvb3AgYW5kIGh1bWFuLWluLXRoZS1sb29wIGd1YXJkcmFpbDwvdGV4dD4KCiAgPCEtLSBMb29wIGVsbGlwc2UgKHZpc3VhbCBndWlkZSkgLS0+CiAgPGVsbGlwc2UgY3g9IjQ2NSIgY3k9IjI2NSIgcng9IjI4MCIgcnk9IjEyNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1kYXNoYXJyYXk9IjYgNCIvPgoKICA8IS0tIFN0ZXAgMTogRGV0ZWN0ICh0b3ApIC0tPgogIDxyZWN0IHg9IjM4MCIgeT0iMTAwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjkwIiByeD0iMTAiIGZpbGw9InVybCgjZGV0ZWN0R3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3dXRjYpIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIxMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjEuIERldGVjdDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjE1MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMiI+RGF2aXMgcHJvYmxlbSBmaXJlczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjE3MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSI+d29ya2Zsb3cgdHJpZ2dlcjwvdGV4dD4KCiAgPCEtLSBBcnJvdyAxIOKGkiAyIC0tPgogIDxwYXRoIGQ9Ik0gNTU1IDE0NSBRIDY2MCAxNjUgNzE1IDIyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRBM0I4IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dXRjYpIi8+CgogIDwhLS0gU3RlcCAyOiBBbmFseXplIChyaWdodCkgLS0+CiAgPHJlY3QgeD0iNzIwIiB5PSIyMjUiIHdpZHRoPSIxNzAiIGhlaWdodD0iOTAiIHJ4PSIxMCIgZmlsbD0idXJsKCNhbmFseXplR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3dXRjYpIi8+CiAgPHRleHQgeD0iODA1IiB5PSIyNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjIuIEFuYWx5emU8L3RleHQ+CiAgPHRleHQgeD0iODA1IiB5PSIyNzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIiPkRRTCBxdWVyaWVzIGVucmljaDwvdGV4dD4KICA8dGV4dCB4PSI4MDUiIHk9IjI5OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+cm9vdCBjYXVzZSArIGVudGl0aWVzPC90ZXh0PgoKICA8IS0tIEFycm93IDIg4oaSIDMgLS0+CiAgPHBhdGggZD0iTSA3MTUgMzIwIFEgNjYwIDM4MCA1NTUgMzgwIiBmaWxsPSJub25lIiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd1dGNikiLz4KCiAgPCEtLSBTdGVwIDM6IFJlbWVkaWF0ZSAoYm90dG9tKSAtLT4KICA8cmVjdCB4PSIzODAiIHk9IjM0NSIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI5MCIgcng9IjEwIiBmaWxsPSJ1cmwoI3JlbWVkaWF0ZUdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93V0Y2KSIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj4zLiBSZW1lZGlhdGU8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIzOTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiPkhUVFAgLyBKUyAvIEs4cyBBUEk8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0MTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTEiPmd1YXJkcmFpbHMgKyBkcnktcnVuPC90ZXh0PgoKICA8IS0tIEFycm93IDMg4oaSIDQgLS0+CiAgPHBhdGggZD0iTSAzODAgMzgwIFEgMjgwIDM4MCAyMjAgMzIwIiBmaWxsPSJub25lIiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd1dGNikiLz4KCiAgPCEtLSBTdGVwIDQ6IFZhbGlkYXRlIChsZWZ0KSAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMjI1IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjkwIiByeD0iMTAiIGZpbGw9InVybCgjdmFsaWRhdGVHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvd1dGNikiLz4KICA8dGV4dCB4PSIxMjUiIHk9IjI1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+NC4gVmFsaWRhdGU8L3RleHQ+CiAgPHRleHQgeD0iMTI1IiB5PSIyNzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPkNoZWNrIG1ldHJpY3MgKzwvdGV4dD4KICA8dGV4dCB4PSIxMjUiIHk9IjI5OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+RGF2aXMgc3RhdHVzIGNsb3NlZD88L3RleHQ+CgogIDwhLS0gUmV0cnkgbG9vcCA0IOKGkiAxIC0tPgogIDxwYXRoIGQ9Ik0gMjIwIDIyMCBRIDI4MCAxNjUgMzgwIDE0NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkNEMzREIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjYgNCIgbWFya2VyLWVuZD0idXJsKCNhcnJvd0xvb3ApIi8+CiAgPHRleHQgeD0iMjkwIiB5PSIxODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPk5vdCByZXNvbHZlZD8gcmV0cnkgdXAgdG8gTjwvdGV4dD4KCiAgPCEtLSBDZW50ZXIgbGFiZWwgLS0+CiAgPHRleHQgeD0iNDY1IiB5PSIyNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNzhCRkEiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPlNlbGYtSGVhbGluZzwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjI3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+YXV0b21hdGlvbiBjeWNsZTwvdGV4dD4KCiAgPCEtLSBFeGFtcGxlcyBwYW5lbCAtLT4KICA8cmVjdCB4PSI0MCIgeT0iNDU1IiB3aWR0aD0iNjAwIiBoZWlnaHQ9IjM1IiByeD0iNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjU1IiB5PSI0NzkiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkNvbW1vbiB0YXJnZXRzPC90ZXh0PgogIDx0ZXh0IHg9IjE4MCIgeT0iNDc5IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5Qb2QgcmVzdGFydCDCtyBIUEEgc2NhbGUtdXAgwrcgRGlzayBjbGVhbnVwIMK3IFNlcnZpY2UgcmVzdGFydCDCtyBDZXJ0IHJvdGF0aW9uIMK3IENhY2hlIGZsdXNoIMK3IEZhaWxvdmVyPC90ZXh0PgoKICA8IS0tIEd1YXJkcmFpbCBjYWxsb3V0IC0tPgogIDxyZWN0IHg9IjY1MCIgeT0iNDU1IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjM1IiByeD0iNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjY2NSIgeT0iNDc5IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5HdWFyZHJhaWxzOjwvdGV4dD4KICA8dGV4dCB4PSI3NDUiIHk9IjQ3OSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+ZHJ5LXJ1biDCtyBtYXggcmV0cmllcyDCtyBhcHByb3ZhbCBnYXRlPC90ZXh0Pgo8L3N2Zz4K" alt="Auto-Remediation Loop" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Action | Description |
+|------|--------|-------------|
+| 1. Detect | Detected Problem | Triggers workflow |
+| 2. Analyze | DQL queries | Determine root cause |
+| 3. Remediate | Execute action | HTTP/Script/K8s API |
+| 4. Validate | Check metrics | Verify resolution |
+| Loop | If not resolved | Return to step 1 |
+Examples: Restart pod, scale up, clear cache, rotate certs
+For environments where SVG doesn't render
+-->
+<h3>Gate Every Action on a Root-Cause Entity</h3>
+<p>Remediation acts on a component, and most problems do not name one. On the validation tenant over seven days (10/06/2026), 850 problems carried <code>root_cause_entity_id</code>, 151 carried <code>root_cause.smartscape_entity</code>, and 3,348 of 4,241 (79%) carried neither. The upgrade guide gives the reason: <em>&quot;Dynatrace Intelligence does not populate a root cause for every problem, particularly early in the lifecycle or for externally ingested events.&quot;</em> A script that reads the field without checking passes <code>undefined</code> to whatever it calls next.</p>
+<p>The guide also states that <em>&quot;root_cause_entity_id and root_cause_entity_name are deprecated in favor of root_cause.smartscape_entity&quot;</em>, a record with <code>id</code>, <code>type</code> and <code>name</code>. On the same tenant the two fields did not cover the same problems: the Smartscape field named EC2 instances where the classic field was empty, and the classic field named Kubernetes workloads where the Smartscape field was empty. The samples in this notebook therefore read the Smartscape field first, fall back to the classic ID, and end the run with a clear &quot;skipped&quot; result when neither is present:</p>
+<pre><code class="language-javascript">// Root-cause entity of a problem, or null when Davis named none.
+// Reads root_cause.smartscape_entity first and falls back to the deprecated
+// root_cause_entity_id. Event values can arrive as JSON strings, so parse defensively.
+function rootCause(event) {
+  let rc = event['root_cause.smartscape_entity'];
+  if (typeof rc === 'string') {
+    try { rc = JSON.parse(rc); } catch { rc = null; }
+  }
+  if (rc &amp;&amp; rc.id) return { id: String(rc.id), type: rc.type, name: rc.name };
+  const classic = event.root_cause_entity_id;
+  if (!classic) return null;
+  return { id: classic, type: classic.split('-')[0], name: event.root_cause_entity_name ?? null };
+}
+</code></pre>
+<p>Measure the split on your own tenant with the last query in §7 before you decide which problems a workflow can act on.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide: alert notifications (DT docs)</a> — <em>&quot;A root-cause condition silently drops those problems.&quot;</em>, <em>&quot;root_cause_entity_id and root_cause_entity_name are deprecated in favor of root_cause.smartscape_entity, and affected_entity_ids in favor of smartscape.affected_entities.&quot;</em></sub></p>
+</blockquote>
+<p><a id="safety-guardrails"></a></p>
+<h2>2. Safety Guardrails</h2>
+<h3>Essential Guardrails</h3>
+<table>
+<thead>
+<tr>
+<th>Guardrail</th>
+<th>Implementation</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Rate limiting</strong></td>
+<td>Max 3 remediations/hour</td>
+<td>Prevent loops</td>
+</tr>
+<tr>
+<td><strong>Time window</strong></td>
+<td>Business hours only</td>
+<td>Avoid off-hours changes</td>
+</tr>
+<tr>
+<td><strong>Environment scope</strong></td>
+<td>Non-prod first</td>
+<td>Protect production</td>
+</tr>
+<tr>
+<td><strong>Cooldown period</strong></td>
+<td>30 min between actions</td>
+<td>Allow stabilization</td>
+</tr>
+<tr>
+<td><strong>Rollback capability</strong></td>
+<td>Capture pre-state</td>
+<td>Enable undo</td>
+</tr>
+</tbody>
+</table>
+<h3>Rate Limiting Implementation</h3>
+<p>Run the check as its own task, <code>check_rate_limit</code>, before the remediation task. It <strong>fails</strong> when the limit is reached, so a remediation task gated on its success does not run (see the YAML under <em>Time Window Check</em>).</p>
+<pre><code class="language-javascript">import { queryExecutionClient } from '@dynatrace-sdk/client-query';
+
+async function runQuery(query) {
+  // queryExecute returns a requestToken instead of the result when the query outlasts
+  // requestTimeoutMilliseconds - poll until it reaches a final state (see WFLOW-08 §2).
+  const started = await queryExecutionClient.queryExecute({ body: { query, requestTimeoutMilliseconds: 30000 } });
+  let r = started;
+  while (r &amp;&amp; (r.state === 'NOT_STARTED' || r.state === 'RUNNING')) {
+    r = await queryExecutionClient.queryPoll({ requestToken: started.requestToken, requestTimeoutMilliseconds: 30000 });
+  }
+  if (!r || r.state !== 'SUCCEEDED') throw new Error(`DQL query did not succeed: ${r?.state ?? 'no response'}`);
+  return r.result.records;
+}
+
+export default async function ({ executionId }) {
+  // Count remediation runs in the last hour. Workflow executions are recorded in dt.system.events;
+  // there is no automation.workflow.execution event type (a query on it always returns 0,
+  // so this guardrail would never trip).
+  // - countDistinctExact on the execution ID counts runs that are still in flight as well as
+  //   finished ones; count() would count each run twice (a RUNNING record, then a final one).
+  // - This run is excluded, or it would count against its own limit.
+  // - contains() is case-sensitive unless told otherwise; filtering on the exact
+  //   dt.automation_engine.workflow.id of your remediation workflows is stricter still.
+  // runQuery() throws if the query does not complete, so a slow query stops the
+  // remediation instead of reading as &quot;0 attempts&quot; and sailing past the limit.
+  const records = await runQuery(`
+    fetch dt.system.events, from:-1h
+    | filter event.kind == &quot;WORKFLOW_EVENT&quot; and event.type == &quot;WORKFLOW_EXECUTION&quot;
+    | filter contains(dt.automation_engine.workflow.title, &quot;remediation&quot;, caseSensitive: false)
+    | filter dt.automation_engine.workflow_execution.id != &quot;${executionId}&quot;
+    | summarize attempts = countDistinctExact(dt.automation_engine.workflow_execution.id)
+  `);
+
+  const attempts = Number(records[0]?.attempts ?? 0);
+  const maxAttempts = 3;
+
+  if (attempts &gt;= maxAttempts) {
+    // Fail the task. A returned { proceed: false } would leave it in SUCCESS, and a
+    // remediation task chained after it would run anyway.
+    throw new Error(`Rate limit reached: ${attempts}/${maxAttempts} remediation runs in the last hour`);
+  }
+
+  return { attempt_number: attempts + 1 };
+}
+</code></pre>
+<p>This counts remediation runs across all entities. Execution records do not carry the entity a run acted on, so a per-entity limit needs the entity ID recorded somewhere you can query — for example in a business event the remediation task emits.</p>
+<h3>Time Window Check</h3>
+<p>A workflow has no named, workflow-level conditions. Each guardrail is a condition on the task it protects: a <strong>state</strong> condition on its predecessors and an optional <strong>custom</strong> Jinja condition. The remediation task below runs only when <code>check_rate_limit</code> succeeded and the current time is inside the window:</p>
+<pre><code class="language-yaml">tasks:
+  remediation_action:
+    name: remediation_action
+    action: dynatrace.automations:run-javascript
+    predecessors:
+      - check_rate_limit
+    conditions:
+      states:
+        check_rate_limit: SUCCESS        # a tripped rate limit leaves ERROR, so this task does not run
+      # Monday to Friday, 06:00-21:59 in the named timezone. now() without a timezone is UTC.
+      custom: '{{ now(&quot;Europe/Vienna&quot;).weekday() &lt; 5 and now(&quot;Europe/Vienna&quot;).hour &gt;= 6 and now(&quot;Europe/Vienna&quot;).hour &lt; 22 }}'
+      else: SKIP                         # outside the window: skip instead of stopping the workflow
+    input:
+      script: |
+        // ... remediation
+</code></pre>
+<p>Test the window expression once with a manual run in your timezone before you rely on it.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference">Workflow reference / Jinja expressions (DT docs)</a> — <em>&quot;If no timezone is provided, UTC is used.&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build">Build workflows (DT docs)</a> — <em>&quot;The custom condition of a task is only checked if all the predecessor tasks are finished and fulfilled their state condition.&quot;</em>; <a href="https://developer.dynatrace.com/develop/sdks/client-automation/">client-automation SDK — TaskConditionOption (Dynatrace Developer)</a>.</sub></p>
+</blockquote>
+<p><a id="common-remediation-patterns"></a></p>
+<h2>3. Common Remediation Patterns</h2>
+<p>Every sample below that acts on a component first checks that the problem names one (§1), and every target host must be reachable from the Dynatrace runtime (Prerequisites). Functions marked <code>placeholder</code> are yours to supply.</p>
+<h3>Pattern 1: Service Restart</h3>
+<pre><code class="language-javascript">// Ask your own automation system to restart the root-cause component
+import { execution } from '@dynatrace-sdk/automation-utils';
+import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+// rootCause() as defined in §1
+// A private endpoint: add it under External requests and give it an EdgeConnect host pattern
+const AUTOMATION_URL = 'https://automation.company.internal/api/restart';
+
+export default async function () {
+  const event = (await execution()).params.event;   // trigger payload
+  const rc = rootCause(event);
+  if (!rc) {
+    return { skipped: 'problem has no root-cause entity' };
+  }
+  const token = (await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' })).token;
+
+  // The automation system maps the Dynatrace entity to the host and service it manages
+  const response = await fetch(AUTOMATION_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      entity_id: rc.id,
+      entity_type: rc.type,
+      entity_name: rc.name,
+      reason: `Dynatrace problem ${event.display_id}`
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Restart request failed: HTTP ${response.status} ${await response.text()}`);
+  }
+  return { success: true, entity: rc.id };
+}
+</code></pre>
+<h3>Pattern 2: Clear Cache</h3>
+<p>A Dynatrace entity ID is not a hostname, so call a fixed endpoint of your own and send the problem in the payload. If the endpoint needs a hostname, resolve it in a JavaScript task first and pass it on with <code>result()</code>.</p>
+<pre><code class="language-yaml">tasks:
+  clear_cache:
+    name: clear_cache
+    action: dynatrace.automations:http-function
+    input:
+      url: &quot;https://cache-admin.company.internal/api/clear&quot;   # private host: needs an EdgeConnect host pattern
+      method: POST
+      headers:
+        Content-Type: &quot;application/json&quot;
+      payload: |
+        {
+          &quot;problem_id&quot;: {{ event()['display_id'] | to_json }},
+          &quot;title&quot;: {{ event()['event.name'] | to_json }}
+        }
+      # Authentication: a Credential Vault token selected in the task's
+      # Authentication field — never a static Authorization header
+</code></pre>
+<h3>Pattern 3: Traffic Redirect</h3>
+<pre><code class="language-javascript">// Redirect traffic away from a failing instance
+import { execution } from '@dynatrace-sdk/automation-utils';
+
+// rootCause() as defined in §1
+
+export default async function () {
+  const event = (await execution()).params.event;   // trigger payload
+  const rc = rootCause(event);
+  if (!rc) {
+    return { redirected: false, skipped: 'problem has no root-cause entity' };
+  }
+
+  // placeholder: implement updateLoadBalancer() for your load balancer's API.
+  // It receives a Dynatrace entity; map it to the load-balancer target your LB knows.
+  await updateLoadBalancer({
+    action: 'drain',
+    entity: rc,
+    reason: event.display_id
+  });
+
+  return { redirected: true, entity: rc.id };
+}
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action">HTTP request action (DT docs)</a> — <em>&quot;All HTTP calls are validated against the global allowlist.&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference">Workflow reference / Jinja expressions (DT docs)</a> — <code>to_json</code>: <em>&quot;Converts an object to its JSON representation.&quot;</em></sub></p>
+</blockquote>
+<p><a id="kubernetes-remediation"></a></p>
+<h2>4. Kubernetes Remediation</h2>
+<p>The <strong>Kubernetes Connector</strong> runs Kubernetes operations as workflow actions — <em>&quot;All actions correspond to a command of the command-line interface kubectl&quot;</em> — and reaches the cluster through EdgeConnect, so the API server stays private. Setting it up prepares <em>&quot;EdgeConnect so it can, once deployed, route the API requests executed by the Kubernetes workflow actions to the Kubernetes API.&quot;</em> Prefer it to a Kubernetes client library: a Run JavaScript task cannot import npm packages by name, only ECMAScript modules from allow-listed URLs, and libraries that need sockets or the file system do not load.</p>
+<h3>Restart a Workload</h3>
+<p>Problem records carry Kubernetes context as arrays. On the validation tenant over seven days (10/06/2026), 2,039 of 4,245 problems carried <code>k8s.namespace.name</code> and <code>k8s.workload.name</code>, but only 17 carried <code>k8s.pod.name</code>. Restart the <strong>workload</strong>, and only when the problem names exactly one. Use two tasks:</p>
+<ol>
+<li><code>pick_workload</code> (Run JavaScript) returns the namespace, workload and kind, or <code>restart: false</code> with a reason.</li>
+<li><code>restart_workload</code> is the connector's <strong>Rollout restart resource</strong> action (<code>kubectl rollout restart</code>). Set <strong>Resource type</strong> to match <code>{{ result(&quot;pick_workload&quot;).kind }}</code>, <strong>Namespace</strong> to <code>{{ result(&quot;pick_workload&quot;).namespace }}</code> and <strong>Resource name</strong> to <code>{{ result(&quot;pick_workload&quot;).workload }}</code>.</li>
+</ol>
+<pre><code class="language-javascript">// pick_workload: name the one workload to restart, or decline
+import { execution } from '@dynatrace-sdk/automation-utils';
+
+// Kinds that `kubectl rollout restart` accepts (k8s.workload.kind is lowercase, e.g. &quot;deployment&quot;)
+const RESTARTABLE = new Set(['deployment', 'daemonset', 'statefulset']);
+
+// Problem fields such as k8s.workload.name are arrays; they may arrive as JSON strings
+function asArray(v) {
+  if (Array.isArray(v)) return v;
+  if (typeof v === 'string' &amp;&amp; v.startsWith('[')) {
+    try { return JSON.parse(v); } catch { return [v]; }
+  }
+  return v == null || v === '' ? [] : [v];
+}
+
+export default async function () {
+  const event = (await execution()).params.event;   // trigger payload
+  const namespaces = [...new Set(asArray(event['k8s.namespace.name']))];
+  const workloads = [...new Set(asArray(event['k8s.workload.name']))];
+  const kinds = [...new Set(asArray(event['k8s.workload.kind']))];
+
+  if (namespaces.length !== 1 || workloads.length !== 1 || kinds.length !== 1) {
+    return {
+      restart: false,
+      reason: `expected exactly one workload, found ${workloads.length} in ${namespaces.length} namespace(s)`
+    };
+  }
+  if (!RESTARTABLE.has(String(kinds[0]))) {
+    return { restart: false, reason: `a ${kinds[0]} cannot be rollout-restarted` };
+  }
+  return { restart: true, namespace: namespaces[0], workload: workloads[0], kind: kinds[0] };
+}
+</code></pre>
+<p>Gate the restart on the result, so a problem without a single workload ends as a skipped task rather than a failed one:</p>
+<pre><code class="language-yaml">tasks:
+  restart_workload:
+    name: restart_workload
+    # action: the Kubernetes Connector's &quot;Rollout restart resource&quot; action, picked in the editor
+    predecessors:
+      - pick_workload
+    conditions:
+      states:
+        pick_workload: SUCCESS
+      custom: '{{ result(&quot;pick_workload&quot;).restart }}'
+      else: SKIP
+</code></pre>
+<p>To delete a single pod instead, the connector's <strong>Delete resources</strong> action takes a resource type, name and namespace.</p>
+<h3>Deployment Rollback</h3>
+<p>There is no rollback field to patch: for <code>apps/v1</code> Deployments, <em>&quot;spec.rollbackTo is removed&quot;</em>. Kubernetes rolls a Deployment back with <code>kubectl rollout undo</code> (<em>&quot;Roll back to the previous deployment&quot;</em>), and the Kubernetes Connector lists no action for it. A rollback also reverses a release. In community practice it is left to the delivery tooling that made the release — a workflow triggers the CD system's own rollback (Argo CD, Flux or a pipeline job) through an HTTP request task, behind the approval gate in §7.</p>
+<h3>Horizontal Pod Autoscaler Adjustment</h3>
+<p>The connector's <strong>Patch resource</strong> action does this through EdgeConnect. The same patch with <code>fetch</code> needs the API server added under External requests, which a private API server cannot be without EdgeConnect:</p>
+<pre><code class="language-javascript">import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+// Add to Settings &gt; General &gt; External requests; a private API server also needs
+// an EdgeConnect host pattern
+const K8S_API_SERVER = 'https://k8s-api.example.com';
+
+export default async function () {
+  const k8sToken = (await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' })).token;
+  // Temporarily raise the replica floor for high load
+  const response = await fetch(
+    `${K8S_API_SERVER}/apis/autoscaling/v2/namespaces/production/horizontalpodautoscalers/checkout-hpa`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${k8sToken}`,
+        'Content-Type': 'application/merge-patch+json'
+      },
+      body: JSON.stringify({
+        spec: {
+          minReplicas: 5  // raise the floor (the Kubernetes default is 1)
+        }
+      })
+    }
+  );
+
+  return { scaled: response.ok, status: response.status };
+}
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/kubernetes-automation/kubernetes-workflow-actions">Actions for Kubernetes Connector (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/edgeconnect/kubernetes-automation">EdgeConnect for Kubernetes Connector (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action">Run JavaScript action (DT docs)</a> — <em>&quot;Only modules from allowlisted URLs can be loaded.&quot;</em>, <em>&quot;Libraries that require low-level socket or filesystem access (for example, Kafka clients like KafkaJS) will fail to load.&quot;</em>; <a href="https://kubernetes.io/docs/reference/using-api/deprecation-guide/">Deprecated API migration guide (kubernetes.io)</a>; <a href="https://kubernetes.io/docs/reference/kubectl/generated/kubectl_rollout/">kubectl rollout (kubernetes.io)</a> — <em>&quot;Valid resource types include: deployments daemonsets statefulsets&quot;</em>; <a href="https://kubernetes.io/docs/reference/kubectl/generated/kubectl_rollout/kubectl_rollout_undo/">kubectl rollout undo (kubernetes.io)</a>; <a href="https://kubernetes.io/docs/reference/kubernetes-api/autoscaling/horizontal-pod-autoscaler-v2/">HorizontalPodAutoscaler v2 (kubernetes.io)</a> — <em>&quot;It defaults to 1 pod.&quot;</em></sub></p>
+</blockquote>
+<p><a id="cloud-resource-remediation"></a></p>
+<h2>5. Cloud Resource Remediation</h2>
+<h3>AWS EC2 Instance Reboot</h3>
+<p>The <strong>AWS Connector</strong> runs AWS API operations as workflow actions over a connection you configure, so no AWS SDK has to load in the JavaScript runtime. Its <strong>Reboot instances</strong> action <em>&quot;Requests a reboot of the specified instances&quot;</em> and takes <strong>Region</strong> and <strong>InstanceIds</strong>; the AWS role behind the connection needs <code>ec2:RebootInstances</code>. Follow the connector's setup page for the IAM role, the connection and the External requests entry.</p>
+<p>A Dynatrace entity ID is not an instance ID. Resolve it from the Smartscape node first:</p>
+<pre><code class="language-javascript">// resolve_instance: find the EC2 instance behind the problem's root cause
+import { execution } from '@dynatrace-sdk/automation-utils';
+
+// runQuery() as defined in §2; rootCause() as defined in §1
+
+export default async function () {
+  const event = (await execution()).params.event;   // trigger payload
+  const rc = rootCause(event);
+  if (!rc || rc.type !== 'AWS_EC2_INSTANCE') {
+    return { reboot: false, reason: rc ? `root cause is ${rc.type}, not an EC2 instance` : 'problem has no root-cause entity' };
+  }
+
+  const records = await runQuery(`
+    smartscapeNodes &quot;AWS_EC2_INSTANCE&quot;, from:-24h
+    | filter id == toSmartscapeId(&quot;${rc.id}&quot;)
+    | fields aws.resource.id, aws.region, aws.state
+    | limit 1
+  `);
+  const node = records[0];
+  if (!node || node['aws.state'] !== 'running') {
+    return { reboot: false, reason: `instance is ${node ? node['aws.state'] : 'not found'}` };
+  }
+  return { reboot: true, instance_id: node['aws.resource.id'], region: node['aws.region'] };
+}
+</code></pre>
+<p>Then add the connector's <strong>Reboot instances</strong> task with predecessor <code>resolve_instance</code>, <strong>Region</strong> <code>{{ result(&quot;resolve_instance&quot;).region }}</code>, the instance ID from <code>result(&quot;resolve_instance&quot;).instance_id</code> in <strong>InstanceIds</strong>, and the conditions <code>states: { resolve_instance: SUCCESS }</code>, <code>custom: '{{ result(&quot;resolve_instance&quot;).reboot }}'</code> and <code>else: SKIP</code>.</p>
+<h3>AWS Lambda</h3>
+<p>Redeploying a function from an artifact replaces its code with whatever the artifact holds: it is a deployment, not a restart, and belongs to your release process and its change approval. The AWS Lambda Connector also offers configuration-level actions such as <strong>Update function configuration</strong>, which <em>&quot;Modify the version-specific settings of a Lambda function.&quot;</em> A configuration change is still a production change, so put it behind the approval gate in §7.</p>
+<h3>Azure App Service Restart</h3>
+<p>Store the service principal's client ID and secret, not an access token: an Entra access token expires, by default after <em>&quot;a random value ranging between 60-90 minutes&quot;</em>. The script requests a fresh token on each run with the client-credentials flow. Add <code>login.microsoftonline.com</code> and <code>management.azure.com</code> under External requests.</p>
+<pre><code class="language-javascript">import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+const AZURE_TENANT_ID = '&lt;tenant-id&gt;';
+const AZURE_SUBSCRIPTION_ID = '&lt;subscription-id&gt;';
+const RESOURCE_GROUP = '&lt;resource-group&gt;';
+const APP_NAME = '&lt;app-service-name&gt;';
+
+export default async function () {
+  // A username/password credential holding the service principal's client ID and secret.
+  // Request a fresh access token on every run: a stored token expires.
+  const sp = await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' });
+  const tokenResponse = await fetch(`https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: sp.username,
+      client_secret: sp.password,
+      scope: 'https://management.azure.com/.default',
+      grant_type: 'client_credentials'
+    })
+  });
+  if (!tokenResponse.ok) {
+    throw new Error(`Token request failed: HTTP ${tokenResponse.status}`);
+  }
+  const { access_token } = await tokenResponse.json();
+
+  const response = await fetch(
+    `https://management.azure.com/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Web/sites/${APP_NAME}/restart?api-version=2022-03-01`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${access_token}`
+      }
+    }
+  );
+
+  return { restarted: response.ok, status: response.status };
+}
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/aws/aws-workflows-actions-ec2">AWS EC2 Connector (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/aws/aws-workflows-actions-lambda">AWS Lambda Connector (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/aws/aws-workflows-setup">Set up AWS Connector (DT docs)</a>; <a href="https://learn.microsoft.com/en-us/entra/identity-platform/access-tokens">Access tokens (Microsoft Learn)</a>; <a href="https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-client-creds-grant-flow">OAuth 2.0 client credentials flow (Microsoft Learn)</a>.</sub></p>
+</blockquote>
+<p><a id="runbook-automation"></a></p>
+<h2>6. Runbook Automation</h2>
+<h3>Runbook Lookup and Execution</h3>
+<pre><code class="language-javascript">import { execution } from '@dynatrace-sdk/automation-utils';
+
+// rootCause() as defined in §1
+
+export default async function () {
+  const event = (await execution()).params.event;   // trigger payload
+  // Map problem types to runbooks
+  const runbookMap = {
+    'High CPU': 'runbook-cpu-investigation',
+    'Memory exhaustion': 'runbook-memory-cleanup',
+    'Disk space': 'runbook-disk-cleanup',
+    'Connection pool': 'runbook-connection-reset'
+  };
+
+  // Find matching runbook
+  let runbookId = null;
+  for (const [pattern, id] of Object.entries(runbookMap)) {
+    if (event['event.name'].includes(pattern)) {
+      runbookId = id;
+      break;
+    }
+  }
+
+  if (!runbookId) {
+    return {
+      action: 'no_runbook',
+      message: 'No automated runbook for this problem type'
+    };
+  }
+
+  const rc = rootCause(event);
+  if (!rc) {
+    return { action: 'no_runbook', message: 'Problem has no root-cause entity to run the runbook against' };
+  }
+
+  // placeholder: implement executeRunbook() as a call to your automation system
+  const result = await executeRunbook(runbookId, {
+    problem_id: event.display_id,
+    entity_id: rc.id,
+    entity_name: rc.name
+  });
+
+  return {
+    action: 'runbook_executed',
+    runbook: runbookId,
+    result: result
+  };
+}
+</code></pre>
+<h3>Include Runbook Link in Notification</h3>
+<pre><code class="language-yaml">message: |
+  :warning: *{{ event()['event.name'] }}*
+  
+  *Suggested Runbook:*
+  {% if &quot;CPU&quot; in event()[&quot;event.name&quot;] %}
+  &lt;https://wiki.company.com/runbooks/cpu-investigation|CPU Investigation Runbook&gt;
+  {% elif &quot;Memory&quot; in event()[&quot;event.name&quot;] %}
+  &lt;https://wiki.company.com/runbooks/memory-troubleshooting|Memory Troubleshooting Runbook&gt;
+  {% else %}
+  &lt;https://wiki.company.com/runbooks|Browse Runbooks&gt;
+  {% endif %}
+</code></pre>
+<p><a id="approval-workflows"></a></p>
+<h2>7. Approval Workflows</h2>
+<h3>Human-in-the-Loop Pattern</h3>
+<p>The Slack Connector's <strong>Request approval</strong> action is the built-in way to pause for a person. The docs describe it as: <em>&quot;Send an approval request to a Slack channel and pause the workflow until a response is received.&quot;</em> The action posts the message with its own <strong>Approve</strong> and <strong>Decline</strong> buttons. It resumes the workflow when someone answers or the timeout set in its <strong>Options</strong> tab passes, and replies in the thread with the outcome.</p>
+<pre><code class="language-yaml">tasks:
+  # 1. Ask for approval and pause until someone answers or the timeout passes
+  request_approval:
+    name: request_approval
+    action: dynatrace.slack:request-approval
+    timeout: 1800          # 30 minutes, in seconds (Options tab)
+    input:
+      connection: slack-production
+      channel: &quot;#approvals&quot;
+      message: &quot;*Remediation approval required*\nProblem: {{ event()['event.name'] }}\nProposed action: restart pod\nRoot cause: {{ event().get('root_cause_entity_id', 'none identified') }}&quot;
+
+  # 2. Execute only after the approval task finished successfully
+  execute_remediation:
+    name: execute_remediation
+    action: dynatrace.automations:run-javascript
+    predecessors:
+      - request_approval
+    conditions:
+      states:
+        request_approval: SUCCESS
+    input:
+      script: |
+        // Perform remediation action
+</code></pre>
+<blockquote>
+<p><strong>Test Decline before you rely on the gate.</strong> The docs list the action's outputs (<code>approvalType</code> plus the channel, message and thread IDs and a permalink), but they name no approved/declined field and do not say which task state a Decline or a timeout leaves. Run one approval, one decline and one timeout in a test workflow, and read the task's state and result each time. The same test confirms that the task timeout in the YAML (set in the Options tab as <strong>Adapt timeout</strong>) is the approval window. If a Decline also ends in <code>SUCCESS</code>, gate on whatever field distinguishes it, or the remediation runs either way. The message takes Slack Markdown only, so do not add buttons of your own.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-actions">Slack Connector actions (DT docs)</a> — <em>&quot;When an approver responds, or the configured timeout is reached, the workflow resumes and posts the outcome as a reply in the original message thread.&quot;</em>, <em>&quot;Configure the timeout in the action's Options tab.&quot;</em></sub></p>
+</blockquote>
+<h3>Auto-Approve for Non-Production</h3>
+<p>Problem records carry no <code>management_zones</code> field, so a gate that reads it never sees &quot;Production&quot;: on the validation tenant over seven days (10/06/2026), none of 4,246 problems carried the field. A gate written as &quot;approve unless production&quot; then sends <strong>every</strong> problem, production included, down the auto-remediation path. Write the gate the other way round, so that it <strong>fails closed</strong>: remediate without approval only when the problem positively says it is non-production, and send everything else — production, an unknown value, or no value at all — to approval.</p>
+<p>The upgrade guide's advice for routing applies here: <em>&quot;Filter on tags or affected entities instead. Prefer tags over long filter chains.&quot;</em> Primary tags (<code>primary_tags.*</code>) are propagated from the alerting events into the problem record and arrive as arrays; <code>entity_tags</code> <em>&quot;still exists but is deprecated&quot;</em>. The sample reads <code>primary_tags.environment</code> — replace it with the primary tag your organization sets. A classifying task makes the decision once, so both branches read the same answer:</p>
+<pre><code class="language-javascript">// classify_environment: decide whether this problem may be remediated without approval
+import { execution } from '@dynatrace-sdk/automation-utils';
+
+// The values of your environment tag that mark non-production. Anything else,
+// including no tag at all, is treated as production.
+const NON_PRODUCTION = new Set(['dev', 'test', 'staging']);
+
+function asArray(v) {
+  if (Array.isArray(v)) return v;
+  if (typeof v === 'string' &amp;&amp; v.startsWith('[')) {
+    try { return JSON.parse(v); } catch { return [v]; }
+  }
+  return v == null || v === '' ? [] : [v];
+}
+
+export default async function () {
+  const event = (await execution()).params.event;   // trigger payload
+  // primary_tags.environment: replace with the primary tag your organization uses
+  const environments = asArray(event['primary_tags.environment']).map((e) =&gt; String(e).toLowerCase());
+  // Non-production only if the problem names at least one environment and every one is non-production
+  const nonProduction = environments.length &gt; 0 &amp;&amp; environments.every((e) =&gt; NON_PRODUCTION.has(e));
+  return { non_production: nonProduction, environments };
+}
+</code></pre>
+<pre><code class="language-yaml">tasks:
+  # classify_environment: the script above
+  auto_remediate:
+    name: auto_remediate
+    predecessors:
+      - classify_environment
+    conditions:
+      states:
+        classify_environment: SUCCESS
+      custom: '{{ result(&quot;classify_environment&quot;).non_production == true }}'
+      else: SKIP
+    # ... remediation action
+
+  request_prod_approval:
+    name: request_prod_approval
+    action: dynatrace.slack:request-approval
+    predecessors:
+      - classify_environment
+    conditions:
+      states:
+        classify_environment: SUCCESS
+      custom: '{{ result(&quot;classify_environment&quot;).non_production != true }}'
+      else: SKIP
+    # ... approval input, then the remediation chained on request_prod_approval: SUCCESS
+</code></pre>
+<p>If <code>classify_environment</code> itself fails, neither branch runs. Check how often your problems carry the tag before you rely on the non-production path: a problem without it always waits for approval.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide: alert notifications (DT docs)</a> — <em>&quot;are automatically propagated from the alerting events into the problem record.&quot;</em></sub></p>
+</blockquote>
+<h3>Monitor Remediation Workflows</h3>
+<pre><code class="language-dql">// Workflow success rates. To see only your remediation workflows, uncomment the title filter
+// (or filter on their dt.automation_engine.workflow.id).
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == &quot;WORKFLOW_EVENT&quot;` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note &quot;FAILED&quot; is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;WORKFLOW_EXECUTION&quot;
+| filter dt.automation_engine.state.is_final == true
+// | filter contains(dt.automation_engine.workflow.title, &quot;remediation&quot;, caseSensitive: false)
+| summarize {total = count(), succeeded = countIf(dt.automation_engine.state == &quot;SUCCESS&quot;)}, by:{dt.automation_engine.workflow.title}
+| fieldsAdd success_pct = round(succeeded * 100.0 / total, decimals: 1)
+| sort total desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Distinct problems closed per day
+// Counted with countDistinctExact(display_id) since 09/24/2026: `events` holds several records per
+// closed problem, so count() over-reported closed problems ~4x on the validation tenant.
+// Field names corrected 08/12/2026: on `events`, a Davis problem carries `event.status` and
+// `event.category` — there are no bare `status` / `severity` fields, so those filters matched
+// nothing. `event.status` values are ACTIVE / CLOSED — &quot;OPEN&quot; is not one of them.
+fetch events, from:-30d
+| filter event.kind == &quot;DAVIS_PROBLEM&quot; and event.status == &quot;CLOSED&quot;
+| summarize total_closed = countDistinctExact(display_id), by:{time_bucket = bin(timestamp, 24h)}
+| sort time_bucket asc
+</code></pre>
+<pre><code class="language-dql">// How often do your problems name a root cause? (see §1)
+// One row per problem: dt.davis.problems holds one record per problem.
+// On the validation tenant (10/06/2026, 7 days) 3,348 of 4,241 problems had neither field.
+fetch dt.davis.problems, from:-7d
+| summarize {problems = count(),
+    smartscape_root_cause = countIf(isNotNull(root_cause.smartscape_entity)),
+    classic_root_cause = countIf(isNotNull(root_cause_entity_id)),
+    neither = countIf(isNull(root_cause.smartscape_entity) and isNull(root_cause_entity_id))}
+| fieldsAdd neither_pct = round(neither * 100.0 / problems, decimals: 1)
+</code></pre>
+<h2>Next Steps</h2>
+<p>With remediation patterns in place, learn advanced integrations:</p>
+<h3>Recommended Path</h3>
+<ol>
+<li><strong>WFLOW-08: JavaScript &amp; HTTP Actions</strong> - Custom integrations</li>
+<li><strong>WFLOW-09: Security, Governance &amp; Monitoring</strong> - Production best practices</li>
+</ol>
+<h3>Key Takeaways</h3>
+<ul>
+<li><strong>Guardrails</strong> prevent runaway automation</li>
+<li><strong>Rate limiting</strong> avoids remediation loops</li>
+<li><strong>Root cause</strong> is absent on most problems: gate every action on it</li>
+<li><strong>Kubernetes</strong> and <strong>AWS</strong> actions run through their connectors</li>
+<li><strong>Runbook mapping</strong> ties problems to solutions</li>
+<li><strong>Approval workflows</strong> for production changes</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Auto-remediation principles and maturity model</li>
+<li>Safety guardrails (rate limiting, time windows)</li>
+<li>Common remediation patterns</li>
+<li>Kubernetes workload remediation through the Kubernetes Connector</li>
+<li>Cloud resource remediation (AWS, Azure)</li>
+<li>Runbook automation integration</li>
+<li>Human-in-the-loop approval workflows</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions">Workflow actions umbrella (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action">Run JavaScript action (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action">HTTP request action (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference">Workflow reference / Jinja expressions (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app">Davis Problems app (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build">Build workflows (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide: alert notifications (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/kubernetes-automation/kubernetes-workflow-actions">Actions for Kubernetes Connector (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/aws/aws-workflows-actions-ec2">AWS EC2 Connector (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/edgeconnect">EdgeConnect (DT docs)</a></li>
+<li><a href="https://kubernetes.io/docs/reference/kubernetes-api/">Kubernetes API reference (kubernetes.io)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MOBL-07: Network Request Monitoring</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MOBL — Mobile Monitoring</a><span class="sep">/</span><span aria-current="page">MOBL-07</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MOBL-07: Network Request Monitoring</h1>
+<blockquote>
+<p><strong>Series:</strong> MOBL — Mobile Monitoring | <strong>Notebook:</strong> 7 of 12 | <strong>Created:</strong> February 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Every mobile app depends on the network. Whether it is fetching user profiles, loading product catalogs, or submitting orders, HTTP(S) requests are the lifeline between a mobile frontend and its backend services. Dynatrace automatically captures these network requests from instrumented mobile apps, providing deep visibility into:</p>
+<ul>
+<li><strong>What</strong> is being requested (URL, method, status code)</li>
+<li><strong>How long</strong> each request takes (<code>duration</code>)</li>
+<li><strong>How much</strong> data is transferred (request and response sizes)</li>
+<li><strong>What connection</strong> the device is using (WiFi, 5G, LTE, 3G)</li>
+<li><strong>Where</strong> the request goes on the backend (distributed trace correlation)</li>
+</ul>
+<p>This notebook explains how Dynatrace captures network requests across platforms, how to query and analyze them with DQL, and how to identify slow or failed requests that degrade the mobile user experience.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#automatic-http-capture">Automatic HTTP Capture</a></li>
+<li><a href="#connection-type-detection">Connection Type Detection</a></li>
+<li><a href="#request-timing-breakdown">Request Timing Breakdown</a></li>
+<li><a href="#frontend-backend-correlation">Frontend-to-Backend Correlation</a></li>
+<li><a href="#querying-network-requests">Querying Network Requests</a></li>
+<li><a href="#slow-failed-requests">Slow &amp; Failed Requests</a></li>
+<li><a href="#performance-optimization">Performance Optimization Tips</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail</td>
+</tr>
+<tr>
+<td><strong>Mobile App Instrumented</strong></td>
+<td>Dynatrace Mobile SDK deployed (iOS, Android, Flutter, or React Native)</td>
+</tr>
+<tr>
+<td><strong>Network Requests</strong></td>
+<td>Mobile app actively making HTTP(S) requests being captured by the SDK</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:user.events:read</code>, <code>storage:spans:read</code></td>
+</tr>
+<tr>
+<td><strong>Distributed Tracing</strong></td>
+<td>Backend services instrumented with OneAgent, OpenTelemetry, or both for correlation</td>
+</tr>
+</tbody>
+</table>
+<p><a id="automatic-http-capture"></a></p>
+<h2>1. Automatic HTTP Capture</h2>
+<p>The Dynatrace Mobile SDK automatically intercepts HTTP(S) requests made through standard networking libraries on each platform. No manual instrumentation is required for the libraries listed below.</p>
+<h3>Supported Platforms and Libraries</h3>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>HTTP Library</th>
+<th>Auto-Captured</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>iOS</td>
+<td>URLSession</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>iOS</td>
+<td>Alamofire (URLSession-based)</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Android</td>
+<td>OkHttp</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Android</td>
+<td>HttpURLConnection</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Flutter</td>
+<td>Dart <code>http</code> package via <code>Dynatrace().createHttpClient()</code></td>
+<td>Yes (wrapper client)</td>
+</tr>
+<tr>
+<td>Flutter</td>
+<td><code>dart:io HttpClient</code>, gRPC, custom stacks</td>
+<td>No -- manual web request monitoring</td>
+</tr>
+<tr>
+<td>React Native</td>
+<td>Fetch API, XMLHttpRequest</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Third-party libraries that use non-standard HTTP stacks (e.g., custom socket implementations) may require manual instrumentation. Check the Dynatrace documentation for your specific SDK version.</p>
+</blockquote>
+<h3>Data Captured Per Request</h3>
+<p>For each intercepted network request, the SDK captures:</p>
+<table>
+<thead>
+<tr>
+<th>Data Point</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>URL</strong></td>
+<td>Full request URL (query parameters may be redacted based on privacy settings)</td>
+</tr>
+<tr>
+<td><strong>HTTP Method</strong></td>
+<td>GET, POST, PUT, DELETE, PATCH, etc.</td>
+</tr>
+<tr>
+<td><strong>Status Code</strong></td>
+<td>HTTP response status code (200, 404, 500, etc.)</td>
+</tr>
+<tr>
+<td><strong>Request / Response Size</strong></td>
+<td>Body sizes in bytes (<code>http.request.body.size</code>, <code>http.response.body.size</code>) where the agent reports them</td>
+</tr>
+<tr>
+<td><strong>Duration</strong></td>
+<td>Total time from request initiation to response completion</td>
+</tr>
+<tr>
+<td><strong>Connection Type</strong></td>
+<td>Network connection type at the time of the request (WiFi, LTE, 5G, etc.)</td>
+</tr>
+</tbody>
+</table>
+<p>The SDK batches captured data and sends it to the Dynatrace cluster at regular intervals, minimizing the performance impact on the mobile app.</p>
+<p><a id="connection-type-detection"></a></p>
+<h2>2. Connection Type Detection</h2>
+<p>Understanding the network conditions under which requests are made is critical for diagnosing performance issues. A request that takes 3 seconds over a 2G connection is expected, but the same latency over WiFi signals a backend problem.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzUwIj4KICA8ZGVmcz4KICAgIDxmaWx0ZXIgaWQ9InNoYWRvdyIgeD0iLTIlIiB5PSItMiUiIHdpZHRoPSIxMDQlIiBoZWlnaHQ9IjEwNCUiPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIxIiBkeT0iMiIgc3RkRGV2aWF0aW9uPSIyIiBmbG9vZC1vcGFjaXR5PSIwLjEyIi8+CiAgICA8L2ZpbHRlcj4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmx1ZUdyYWQiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIwIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzE0OTZmZiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMwYTY0YmMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InB1cnBsZUdyYWQiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIwIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzYzNjZmMSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM0ZjQ2ZTUiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9Im9yYW5nZUdyYWQiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIwIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI2Y5NzMxNiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNlYTU4MGMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InJlZEdyYWQiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIwIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI2VmNDQ0NCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNkYzI2MjYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImdyZWVuR3JhZCIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjAiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMjJjNTVlIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzE2YTM0YSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjM1MCIgcng9IjEyIiByeT0iMTIiIGZpbGw9IiNmOGY5ZmEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0MDAiIHk9IjM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMWUyOTNiIj5OZXR3b3JrIFJlcXVlc3QgVGltaW5nIEJyZWFrZG93bjwvdGV4dD4KCiAgPCEtLSBDb2x1bW4gaGVhZGVycyAtLT4KICA8dGV4dCB4PSIxMzAiIHk9IjYyIiB0ZXh0LWFuY2hvcj0iZW5kIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjNjQ3NDhiIj5QaGFzZTwvdGV4dD4KICA8dGV4dCB4PSIxNTUiIHk9IjYyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM2NDc0OGIiPlRpbWVsaW5lPC90ZXh0PgoKICA8IS0tIFZlcnRpY2FsIHNlcGFyYXRvciAtLT4KICA8bGluZSB4MT0iMTQwIiB5MT0iNTAiIHgyPSIxNDAiIHkyPSIyNzAiIHN0cm9rZT0iI2NiZDVlMSIgc3Ryb2tlLXdpZHRoPSIxIiBzdHJva2UtZGFzaGFycmF5PSI0LDMiLz4KCiAgPCEtLSBUaW1lbGluZSBheGlzIHRpY2tzIC0tPgogIDxsaW5lIHgxPSIxNTUiIHkxPSI2OCIgeDI9IjE1NSIgeTI9IjI3MCIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIxNTUiIHk9IjI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOTRhM2I4Ij4wbXM8L3RleHQ+CiAgPGxpbmUgeDE9IjI4NSIgeTE9IjY4IiB4Mj0iMjg1IiB5Mj0iMjcwIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjI4NSIgeT0iMjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5NGEzYjgiPjUwbXM8L3RleHQ+CiAgPGxpbmUgeDE9IjQxNSIgeTE9IjY4IiB4Mj0iNDE1IiB5Mj0iMjcwIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQxNSIgeT0iMjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5NGEzYjgiPjEwMG1zPC90ZXh0PgogIDxsaW5lIHgxPSI1NDUiIHkxPSI2OCIgeDI9IjU0NSIgeTI9IjI3MCIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI1NDUiIHk9IjI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOTRhM2I4Ij4xNTBtczwvdGV4dD4KICA8bGluZSB4MT0iNjc1IiB5MT0iNjgiIHgyPSI2NzUiIHkyPSIyNzAiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNjc1IiB5PSIyODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk0YTNiOCI+MjAwbXM8L3RleHQ+CgogIDwhLS0gUm93IDE6IEROUyBMb29rdXAgLS0+CiAgPHRleHQgeD0iMTMwIiB5PSI5MCIgdGV4dC1hbmNob3I9ImVuZCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSIjMzM0MTU1Ij5ETlMgTG9va3VwPC90ZXh0PgogIDxyZWN0IHg9IjE1NSIgeT0iNzciIHdpZHRoPSI1MiIgaGVpZ2h0PSIyMCIgcng9IjQiIHJ5PSI0IiBmaWxsPSJ1cmwoI2JsdWVHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIxODEiIHk9IjkxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNmZmZmZmYiPjIwbXM8L3RleHQ+CgogIDwhLS0gUm93IDI6IFRDUCBDb25uZWN0IC0tPgogIDx0ZXh0IHg9IjEzMCIgeT0iMTIyIiB0ZXh0LWFuY2hvcj0iZW5kIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiMzMzQxNTUiPlRDUCBDb25uZWN0PC90ZXh0PgogIDxyZWN0IHg9IjIwNyIgeT0iMTA5IiB3aWR0aD0iNzgiIGhlaWdodD0iMjAiIHJ4PSI0IiByeT0iNCIgZmlsbD0idXJsKCNibHVlR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMjQ2IiB5PSIxMjMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2ZmZmZmZiI+MzBtczwvdGV4dD4KCiAgPCEtLSBSb3cgMzogVExTIEhhbmRzaGFrZSAtLT4KICA8dGV4dCB4PSIxMzAiIHk9IjE1NCIgdGV4dC1hbmNob3I9ImVuZCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSIjMzM0MTU1Ij5UTFMgSGFuZHNoYWtlPC90ZXh0PgogIDxyZWN0IHg9IjI4NSIgeT0iMTQxIiB3aWR0aD0iMTA0IiBoZWlnaHQ9IjIwIiByeD0iNCIgcnk9IjQiIGZpbGw9InVybCgjcHVycGxlR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMzM3IiB5PSIxNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2ZmZmZmZiI+NDBtczwvdGV4dD4KCiAgPCEtLSBSb3cgNDogUmVxdWVzdCBTZW50IC0tPgogIDx0ZXh0IHg9IjEzMCIgeT0iMTg2IiB0ZXh0LWFuY2hvcj0iZW5kIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiMzMzQxNTUiPlJlcXVlc3QgU2VudDwvdGV4dD4KICA8cmVjdCB4PSIzODkiIHk9IjE3MyIgd2lkdGg9IjM5IiBoZWlnaHQ9IjIwIiByeD0iNCIgcnk9IjQiIGZpbGw9InVybCgjb3JhbmdlR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iNDA4IiB5PSIxODciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2ZmZmZmZiI+MTVtczwvdGV4dD4KCiAgPCEtLSBSb3cgNTogV2FpdGluZyAoVFRGQikgLS0+CiAgPHRleHQgeD0iMTMwIiB5PSIyMTgiIHRleHQtYW5jaG9yPSJlbmQiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNkYzI2MjYiPldhaXRpbmcgKFRURkIpPC90ZXh0PgogIDxyZWN0IHg9IjQyOCIgeT0iMjA1IiB3aWR0aD0iMTU2IiBoZWlnaHQ9IjIwIiByeD0iNCIgcnk9IjQiIGZpbGw9InVybCgjcmVkR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iNTA2IiB5PSIyMTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmZmZmYiPjYwbXMgLS0gQmlnZ2VzdCBib3R0bGVuZWNrPC90ZXh0PgoKICA8IS0tIFJvdyA2OiBSZXNwb25zZSBSZWNlaXZlZCAtLT4KICA8dGV4dCB4PSIxMzAiIHk9IjI1MCIgdGV4dC1hbmNob3I9ImVuZCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSIjMzM0MTU1Ij5SZXNwb25zZSBSZWNlaXZlZDwvdGV4dD4KICA8cmVjdCB4PSI1ODQiIHk9IjIzNyIgd2lkdGg9IjkxIiBoZWlnaHQ9IjIwIiByeD0iNCIgcnk9IjQiIGZpbGw9InVybCgjZ3JlZW5HcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSI2MjkiIHk9IjI1MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZmZmZmZmIj4zNW1zPC90ZXh0PgoKICA8IS0tIFRvdGFsIGR1cmF0aW9uIGxpbmUgLS0+CiAgPGxpbmUgeDE9IjE1NSIgeTE9IjI2OCIgeDI9IjY3NSIgeTI9IjI2OCIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iMTU1IiB5MT0iMjY0IiB4Mj0iMTU1IiB5Mj0iMjcyIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSI2NzUiIHkxPSIyNjQiIHgyPSI2NzUiIHkyPSIyNzIiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNDE1IiB5PSIyOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzMzQxNTUiPlRvdGFsIER1cmF0aW9uOiAyMDBtczwvdGV4dD4KCiAgPCEtLSBMZWdlbmQgYmFyIC0tPgogIDxyZWN0IHg9IjAiIHk9IjMwNSIgd2lkdGg9IjgwMCIgaGVpZ2h0PSI0NSIgcng9IjAiIHJ5PSIwIiBmaWxsPSIjZTJlOGYwIi8+CiAgPHJlY3QgeD0iMCIgeT0iMzM4IiB3aWR0aD0iODAwIiBoZWlnaHQ9IjEyIiByeD0iMCIgcnk9IjEyIiBmaWxsPSIjZTJlOGYwIi8+CiAgPHRleHQgeD0iNDAwIiB5PSIzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzQ3NTU2OSI+QSBkaWFnbm9zdGljIG1vZGVsIG9mIHJlcXVlc3QgcGhhc2VzLiBNb2JpbGUgcmVxdWVzdCBldmVudHMgcmVjb3JkIHRoZSB0b3RhbCBkdXJhdGlvbiwgbm90IGVhY2ggcGhhc2UuPC90ZXh0Pgo8L3N2Zz4=" alt="Network Request Waterfall" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Phase | Description | Typical Duration |
+|-------|-------------|------------------|
+| DNS Lookup | Resolves domain to IP address | 1-50ms (WiFi), 50-200ms (cellular) |
+| TCP Connect | Establishes TCP connection | 10-50ms (WiFi), 50-300ms (cellular) |
+| TLS Handshake | Negotiates secure connection | 20-100ms (WiFi), 100-500ms (cellular) |
+| Request Sent | Transmits request payload | Varies by payload size |
+| Waiting (TTFB) | Server processing time | Varies by backend logic |
+| Response Received | Downloads response payload | Varies by response size and bandwidth |
+For environments where SVG doesn't render
+-->
+<h3>Connection Types</h3>
+<p>The SDK records the connection type at the time of each request in <code>network.connection.type</code> (dictionary examples <code>wifi</code>, <code>cell</code>) and the technology in <code>network.connection.subtype</code> (examples <code>lte</code>, <code>802.11x</code>); the cellular generations below are subtype values. Run <code>summarize count(), by:{network.connection.type, network.connection.subtype}</code> on your own data to see the exact values your agents report:</p>
+<table>
+<thead>
+<tr>
+<th>Connection</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>WiFi</strong></td>
+<td>Connected via WiFi network</td>
+</tr>
+<tr>
+<td><strong>5G</strong></td>
+<td>5th generation cellular network</td>
+</tr>
+<tr>
+<td><strong>LTE/4G</strong></td>
+<td>4th generation cellular network</td>
+</tr>
+<tr>
+<td><strong>3G</strong></td>
+<td>3rd generation cellular network</td>
+</tr>
+<tr>
+<td><strong>2G</strong></td>
+<td>2nd generation cellular network</td>
+</tr>
+</tbody>
+</table>
+<p>Connection type is stored alongside each network request event, enabling you to:</p>
+<ul>
+<li><strong>Segment performance by connection type</strong> to set realistic SLOs</li>
+<li><strong>Identify users on poor connections</strong> who experience degraded performance</li>
+<li><strong>Build adaptive behavior</strong> in your app based on detected connection quality</li>
+</ul>
+<p><a id="request-timing-breakdown"></a></p>
+<h2>3. Request Timing Breakdown</h2>
+<p>A single network request goes through multiple phases, each of which can contribute to perceived latency. This section is a <strong>diagnostic framework</strong>, not a list of captured fields: a mobile request event reports the overall <code>duration</code>, status and sizes. The phase-level timings in the <code>rum_request</code> model come from the browser's W3C Resource Timing API (<code>characteristics.has_w3c_resource_timings</code>) and apply to web frontends. For a slow mobile request, compare <code>duration</code> across connection types (Section 2) and follow the backend trace (Section 4) to separate network time from server time.</p>
+<blockquote>
+<p><sub><strong>Dictionary:</strong> model <code>rum_request</code> (<code>user.events</code>) lists <code>characteristics.has_w3c_resource_timings</code>, <code>characteristics.has_w3c_navigation_timings</code>, <code>http.request.method</code>, <code>http.response.status_code</code> — no DNS/TCP/TLS phase fields; <code>network.connection.type</code> (<code>experimental</code>); <code>http.response.body.size</code> (<code>stable</code>), read 10/02/2026.</sub></p>
+</blockquote>
+<h3>Timing Phases</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>What Happens</th>
+<th>What a Slow Phase Indicates</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>DNS Lookup</strong></td>
+<td>Resolves the domain name to an IP address</td>
+<td>DNS server issues, missing DNS cache, poor network conditions</td>
+</tr>
+<tr>
+<td><strong>TCP Connect</strong></td>
+<td>Establishes a TCP connection to the server</td>
+<td>Network latency, server unreachable, firewall delays</td>
+</tr>
+<tr>
+<td><strong>TLS Handshake</strong></td>
+<td>Negotiates the TLS/SSL secure connection</td>
+<td>Certificate chain issues, slow TLS negotiation, outdated cipher suites</td>
+</tr>
+<tr>
+<td><strong>Request Sent</strong></td>
+<td>Transmits the HTTP request body to the server</td>
+<td>Large request payload, low upload bandwidth</td>
+</tr>
+<tr>
+<td><strong>Waiting (TTFB)</strong></td>
+<td>Time to First Byte -- server processes the request</td>
+<td>Slow backend logic, database queries, cold starts, overloaded services</td>
+</tr>
+<tr>
+<td><strong>Response Received</strong></td>
+<td>Downloads the HTTP response body</td>
+<td>Large response payload, low download bandwidth, connection throttling</td>
+</tr>
+</tbody>
+</table>
+<h3>Diagnostic Guide</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely Cause</th>
+<th>Investigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>High DNS time</td>
+<td>DNS resolution issues</td>
+<td>Check DNS provider, enable DNS caching</td>
+</tr>
+<tr>
+<td>High TCP Connect time</td>
+<td>Network path issues</td>
+<td>Check CDN proximity, network hops</td>
+</tr>
+<tr>
+<td>High TLS time</td>
+<td>Certificate or cipher issues</td>
+<td>Verify certificate chain, enable TLS session resumption</td>
+</tr>
+<tr>
+<td>High TTFB</td>
+<td>Backend performance</td>
+<td>Check backend traces, database queries, cold starts</td>
+</tr>
+<tr>
+<td>High Response time</td>
+<td>Large payloads</td>
+<td>Enable compression, paginate responses, reduce payload size</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> When the backend span accounts for most of the request's <code>duration</code>, the problem is on the backend. Use the frontend-to-backend correlation (Section 4) to trace the request into your server-side services.</p>
+</blockquote>
+<p><a id="frontend-backend-correlation"></a></p>
+<h2>4. Frontend-to-Backend Correlation</h2>
+<p>One of the most powerful features of Dynatrace mobile monitoring is the ability to correlate a network request on the mobile device with the corresponding backend service trace. This creates end-to-end visibility from the user's finger tap to the database query.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzIwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icHVycGxlR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2MzY2ZjE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzRmNDZlNTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJsdWVHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE0OTZmZjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMGE2NGJjO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZ3JlZW5HcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIyYzU1ZTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTZhMzRhO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9InNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjEiIGR5PSIxIiBzdGREZXZpYXRpb249IjIiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0iYXJyb3ciIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzY0NzQ4YiIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd0JsdWUiIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzBhNjRiYyIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSIzMjAiIGZpbGw9IiNmOGY5ZmEiIHJ4PSIxMCIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjQwMCIgeT0iMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk1vYmlsZS10by1CYWNrZW5kIFRyYWNlIENvcnJlbGF0aW9uPC90ZXh0PgoKICA8IS0tIE1vYmlsZSBBcHAgYm94IChwdXJwbGUpIC0tPgogIDxyZWN0IHg9IjYwIiB5PSI1NSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI4MCIgcng9IjEwIiBmaWxsPSJ1cmwoI3B1cnBsZUdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjE2MCIgeT0iODgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Nb2JpbGUgQXBwPC90ZXh0PgogIDx0ZXh0IHg9IjE2MCIgeT0iMTA2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkR5bmF0cmFjZSBTREs8L3RleHQ+CgogIDwhLS0gSFRUUCBSZXF1ZXN0IGxhYmVsIGJlbG93IE1vYmlsZSBBcHAgLS0+CiAgPHRleHQgeD0iMTYwIiB5PSIxNTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzU1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SFRUUCBSZXF1ZXN0PC90ZXh0PgogIDxyZWN0IHg9IjEwNSIgeT0iMTQxIiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjIwIiByeD0iNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjY2JkNWUxIiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1kYXNoYXJyYXk9IjMsMiIvPgoKICA8IS0tIEFycm93IHdpdGggY29ycmVsYXRpb24gaGVhZGVyIGxhYmVsIC0tPgogIDxwYXRoIGQ9Ik0yNjAsOTUgTDUyMCw5NSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CiAgPHJlY3QgeD0iMzAwIiB5PSI3NSIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIyMiIgcng9IjYiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMzkwIiB5PSI5MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzQ3NTU2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+eC1keW5hdHJhY2UgLyB0cmFjZXBhcmVudDwvdGV4dD4KCiAgPCEtLSBCYWNrZW5kIFNlcnZpY2UgYm94IChibHVlKSAtLT4KICA8cmVjdCB4PSI1MzAiIHk9IjU1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiByeD0iMTAiIGZpbGw9InVybCgjYmx1ZUdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjYzMCIgeT0iODgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CYWNrZW5kIFNlcnZpY2U8L3RleHQ+CiAgPHRleHQgeD0iNjMwIiB5PSIxMDYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjg1KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+T25lQWdlbnQ8L3RleHQ+CgogIDwhLS0gU2VydmVyIFNwYW4gbGFiZWwgYmVsb3cgQmFja2VuZCAtLT4KICA8dGV4dCB4PSI2MzAiIHk9IjE1NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TZXJ2ZXIgU3BhbjwvdGV4dD4KICA8cmVjdCB4PSI1ODAiIHk9IjE0MSIgd2lkdGg9IjEwMCIgaGVpZ2h0PSIyMCIgcng9IjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2NiZDVlMSIgc3Ryb2tlLXdpZHRoPSIxIiBzdHJva2UtZGFzaGFycmF5PSIzLDIiLz4KCiAgPCEtLSBHcmFpbCBib3ggc3Bhbm5pbmcgd2lkdGggLS0+CiAgPHJlY3QgeD0iNjAiIHk9IjE4MCIgd2lkdGg9IjY3MCIgaGVpZ2h0PSI2MCIgcng9IjEwIiBmaWxsPSJ1cmwoI2dyZWVuR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMzk1IiB5PSIyMDYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5HcmFpbDwvdGV4dD4KICA8dGV4dCB4PSIzOTUiIHk9IjIyNiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnRyYWNlLmlkIGxpbmtzIGZyb250ZW5kICYjeDIxOTQ7IGJhY2tlbmQ8L3RleHQ+CgogIDwhLS0gRG90dGVkIGxpbmVzIGZyb20gTW9iaWxlIEFwcCBkb3duIHRvIEdyYWlsIC0tPgogIDxsaW5lIHgxPSIxNjAiIHkxPSIxMzUiIHgyPSIxNjAiIHkyPSIxODAiIHN0cm9rZT0iIzYzNjZmMSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1kYXNoYXJyYXk9IjQsMyIvPgoKICA8IS0tIERvdHRlZCBsaW5lcyBmcm9tIEJhY2tlbmQgZG93biB0byBHcmFpbCAtLT4KICA8bGluZSB4MT0iNjMwIiB5MT0iMTM1IiB4Mj0iNjMwIiB5Mj0iMTgwIiBzdHJva2U9IiMxNDk2ZmYiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtZGFzaGFycmF5PSI0LDMiLz4KCiAgPCEtLSBMZWdlbmQgYmFyIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIyNTgiIHdpZHRoPSI3MjAiIGhlaWdodD0iNDgiIHJ4PSI2IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iMjc4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM1NTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlRoZSBtb2JpbGUgU0RLIGFkZHMgeC1keW5hdHJhY2UgYW5kICg4LjMzMyspIFczQyB0cmFjZXBhcmVudCB0byBjb3JyZWxhdGUgcmVxdWVzdHMgd2l0aCBiYWNrZW5kIHNwYW5zLjwvdGV4dD4KICA8Y2lyY2xlIGN4PSIxMDAiIGN5PSIyOTUiIHI9IjYiIGZpbGw9IiM2MzY2ZjEiLz4KICA8dGV4dCB4PSIxMTUiIHk9IjI5OSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5Nb2JpbGUgQXBwPC90ZXh0PgogIDxjaXJjbGUgY3g9IjIyMCIgY3k9IjI5NSIgcj0iNiIgZmlsbD0iIzE0OTZmZiIvPgogIDx0ZXh0IHg9IjIzNSIgeT0iMjk5IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPkJhY2tlbmQ8L3RleHQ+CiAgPGNpcmNsZSBjeD0iMzIwIiBjeT0iMjk1IiByPSI2IiBmaWxsPSIjMjJjNTVlIi8+CiAgPHRleHQgeD0iMzM1IiB5PSIyOTkiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+R3JhaWwgU3RvcmFnZTwvdGV4dD4KICA8Y2lyY2xlIGN4PSI0NDAiIGN5PSIyOTUiIHI9IjYiIGZpbGw9IiM2NDc0OGIiLz4KICA8dGV4dCB4PSI0NTUiIHk9IjI5OSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5EYXRhIGZsb3c8L3RleHQ+Cjwvc3ZnPg==" alt="Mobile-Backend Correlation" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Component | Action |
+|------|-----------|--------|
+| 1 | Mobile App | Initiates HTTP request |
+| 2 | Dynatrace SDK | Adds the `x-dynatrace` header (RUM Classic) and, from 8.333, W3C `traceparent` / `tracestate` |
+| 3 | Network | Request travels to backend |
+| 4 | Backend Service | Receives the request with the correlation headers |
+| 5 | OneAgent/OTel | Creates server-side span linked to mobile trace |
+| 6 | Dynatrace | Stitches mobile action and backend trace into unified distributed trace |
+For environments where SVG doesn't render
+-->
+<h3>How It Works</h3>
+<ol>
+<li><strong>Request Initiation</strong> -- The mobile app makes an HTTP(S) request using a standard networking library.</li>
+<li><strong>Header Injection</strong> -- The Dynatrace Mobile SDK adds the <code>x-dynatrace</code> header to the outgoing request (RUM Classic), and from OneAgent for Mobile 8.333 also injects the W3C Trace Context headers <code>traceparent</code> and <code>tracestate</code>. Custom networking stacks must add the headers manually (for <code>x-dynatrace</code>, via <code>Dynatrace.getRequestTagHeader()</code> and a request tag -- see MOBL-12 §4).</li>
+<li><strong>Backend Processing</strong> -- The backend service (instrumented with OneAgent, OpenTelemetry, or both) reads the trace context and creates a server-side span that is linked to the mobile request.</li>
+<li><strong>Trace Stitching</strong> -- Dynatrace automatically stitches the mobile user action and the backend service call into a unified distributed trace.</li>
+</ol>
+<h3>What This Enables</h3>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>End-to-end latency</strong></td>
+<td>See total time from mobile request to backend response</td>
+</tr>
+<tr>
+<td><strong>Backend root cause</strong></td>
+<td>When TTFB is high, drill into the exact backend service, method, and database call</td>
+</tr>
+<tr>
+<td><strong>Service dependency mapping</strong></td>
+<td>Understand which backend services support which mobile features</td>
+</tr>
+<tr>
+<td><strong>Error correlation</strong></td>
+<td>Link a mobile HTTP 500 error to the specific backend exception</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> For correlation to work, the backend service must be instrumented with Dynatrace OneAgent, OpenTelemetry, or both. W3C trace context works with either.</p>
+</blockquote>
+<blockquote>
+<p><strong>Correction (09/28/2026).</strong> Earlier revisions named the mobile correlation header <code>x-dtc</code>. That is the web RUM JavaScript header; the mobile SDK uses <code>x-dynatrace</code> and, from 8.333, W3C trace context. OneAgent for Mobile 8.333 was released 02/23/2026 with rollout from 02/24/2026; mobile agent versions reach users with app releases, so older builds in the field still send only <code>x-dynatrace</code>.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/oneagent-sdk-for-android">OneAgent SDK for Android (DT docs)</a> — <em>&quot;To track web requests, add the x-dynatrace HTTP header with a unique value to the web request.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-333">What's new in OneAgent for Mobile 8.333 (DT docs)</a> — <em>&quot;OneAgent for Mobile now injects W3C Trace Context headers ( traceparent and tracestate ) into outbound requests&quot;</em>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience/rum/concepts/frontend-backend-linking">Frontend-backend linking (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="querying-network-requests"></a></p>
+<h2>5. Querying Network Requests</h2>
+<p>Network requests from mobile apps are stored in the Grail <code>user.events</code> store (<code>characteristics.has_request</code>), with <code>url.full</code>, <code>http.request.method</code>, <code>http.response.status_code</code>, <code>duration</code> and <code>network.connection.type</code>. The following queries demonstrate how to retrieve, aggregate, and analyze mobile network request data.</p>
+<h3>Recent Network Requests</h3>
+<p>Retrieve the most recent network requests from mobile applications, showing the key attributes for each request.</p>
+<pre><code class="language-dql">// Recent network requests from mobile apps
+fetch user.events, from:-1h
+| filter in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;}) and characteristics.has_request
+| fields start_time, frontend.name, url.full, http.request.method, http.response.status_code, duration, network.connection.type
+| sort start_time desc
+| limit 50
+</code></pre>
+<h3>Network Request Volume by Application</h3>
+<p>Understand which mobile applications are generating the most network traffic. This helps identify apps that may need optimization or capacity planning.</p>
+<pre><code class="language-dql">// Network request volume by application
+fetch user.events, from:-1h
+| filter in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;}) and characteristics.has_request
+| summarize request_count = count(), by:{frontend.name}
+| sort request_count desc
+| limit 20
+</code></pre>
+<h3>Trace Coverage of Mobile Requests</h3>
+<p>Measure how many mobile requests were linked to a backend distributed trace: a request event that carries <code>trace.id</code> was linked. A low rate points at backends that are not instrumented, or at app builds older than 8.333. To see the backend side, collect the <code>trace.id</code> values and query <code>fetch spans | filter in(trace.id, ...)</code>.</p>
+<pre><code class="language-dql">// Trace coverage of mobile-originated requests
+// A request that carries trace.id was linked to backend distributed tracing
+// (OneAgent for Mobile 8.333+ injects W3C traceparent / tracestate headers).
+fetch user.events, from:-2h
+| filter in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;}) and characteristics.has_request
+| summarize {total_requests = count(), traced_requests = countIf(isNotNull(trace.id))}, by:{frontend.name}
+| fieldsAdd trace_rate = 100.0 * traced_requests / total_requests
+| sort trace_rate asc
+</code></pre>
+<p><a id="slow-failed-requests"></a></p>
+<h2>6. Slow &amp; Failed Requests</h2>
+<p>Monitoring network request performance over time helps you detect regressions, correlate with deployments, and identify patterns. The following queries create time-series visualizations for request volume and error rates.</p>
+<h3>Request Volume Over Time</h3>
+<p>Track how network request volume changes throughout the day for each mobile application.</p>
+<pre><code class="language-dql">// Network request volume timeseries by application
+fetch user.events, from:-24h
+| filter in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;}) and characteristics.has_request
+| makeTimeseries request_count = count(), by:{frontend.name}, interval:1h
+</code></pre>
+<h3>Request Volume by Status Code Group</h3>
+<p>Categorize network requests by HTTP status code group (2xx, 3xx, 4xx, 5xx) to visualize error trends over time. A rising 4xx or 5xx trend may indicate API issues or backend failures.</p>
+<pre><code class="language-dql">// Network request volume over time by status code group
+fetch user.events, from:-24h
+| filter in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;}) and characteristics.has_request
+| filter isNotNull(http.response.status_code)
+| fieldsAdd status_group = if(http.response.status_code &lt; 300, then:&quot;2xx Success&quot;, else:if(http.response.status_code &lt; 400, then:&quot;3xx Redirect&quot;, else:if(http.response.status_code &lt; 500, then:&quot;4xx Client Error&quot;, else:&quot;5xx Server Error&quot;)))
+| makeTimeseries request_count = count(), by:{status_group}, interval:1h
+</code></pre>
+<h3>Interpreting the Results</h3>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>What It Means</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Spike in 5xx errors</strong></td>
+<td>Backend service failures</td>
+<td>Check backend service health, recent deployments</td>
+</tr>
+<tr>
+<td><strong>Rising 4xx errors</strong></td>
+<td>Client-side issues (bad URLs, auth failures)</td>
+<td>Review API contracts, check token expiration logic</td>
+</tr>
+<tr>
+<td><strong>Request volume drop</strong></td>
+<td>Users abandoning the app or connectivity issues</td>
+<td>Check app crash rates, network availability</td>
+</tr>
+<tr>
+<td><strong>Slow upward trend</strong></td>
+<td>Growing user base or increased API chattiness</td>
+<td>Plan capacity, consider request batching</td>
+</tr>
+</tbody>
+</table>
+<p><a id="performance-optimization"></a></p>
+<h2>7. Performance Optimization Tips</h2>
+<p>Once you have visibility into your mobile network requests, apply these optimization strategies to improve the user experience.</p>
+<h3>Reduce Payload Sizes</h3>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Enable gzip/brotli compression</strong></td>
+<td>Substantially smaller text payloads (JSON compresses well)</td>
+</tr>
+<tr>
+<td><strong>Use pagination</strong></td>
+<td>Avoid loading entire datasets at once</td>
+</tr>
+<tr>
+<td><strong>Return only needed fields</strong></td>
+<td>Use GraphQL or sparse fieldsets to minimize JSON payloads</td>
+</tr>
+<tr>
+<td><strong>Optimize images</strong></td>
+<td>Serve appropriately sized images via CDN with content negotiation</td>
+</tr>
+</tbody>
+</table>
+<h3>Minimize Round Trips</h3>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Batch API calls</strong></td>
+<td>Combine multiple requests into a single endpoint</td>
+</tr>
+<tr>
+<td><strong>Use HTTP/2 or HTTP/3</strong></td>
+<td>Multiplexing reduces connection overhead</td>
+</tr>
+<tr>
+<td><strong>Implement prefetching</strong></td>
+<td>Load data before the user navigates to a screen</td>
+</tr>
+<tr>
+<td><strong>Cache responses</strong></td>
+<td>Use ETags and Cache-Control headers to avoid redundant requests</td>
+</tr>
+</tbody>
+</table>
+<h3>Leverage CDNs</h3>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Static asset delivery</strong></td>
+<td>Serve images, scripts, and configs from edge locations</td>
+</tr>
+<tr>
+<td><strong>API acceleration</strong></td>
+<td>Some CDNs offer API caching and edge compute</td>
+</tr>
+<tr>
+<td><strong>Geographic proximity</strong></td>
+<td>Reduces DNS, TCP, and TLS times for global users</td>
+</tr>
+</tbody>
+</table>
+<h3>Adapt to Connection Type</h3>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Detect connection type</strong></td>
+<td>Use the SDK's connection type data to adjust app behavior</td>
+</tr>
+<tr>
+<td><strong>Low-bandwidth mode</strong></td>
+<td>Reduce image quality, defer non-critical requests on slow connections</td>
+</tr>
+<tr>
+<td><strong>Offline support</strong></td>
+<td>Queue requests when offline, sync when connectivity returns</td>
+</tr>
+<tr>
+<td><strong>Progressive loading</strong></td>
+<td>Load essential content first, enrich progressively</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> Combine Dynatrace mobile monitoring data with your CDN analytics to get a complete picture of content delivery performance from edge to device.</p>
+</blockquote>
+<h2>Summary</h2>
+<p>In this notebook, we covered:</p>
+<ul>
+<li><strong>Automatic HTTP capture</strong> across iOS, Android, Flutter, and React Native platforms</li>
+<li><strong>Connection type detection</strong> and how network conditions affect request performance</li>
+<li><strong>Request timing</strong> — the phases of an HTTP request as a diagnostic framework, and what a mobile request event actually records</li>
+<li><strong>Frontend-to-backend correlation</strong> via the <code>x-dynatrace</code> header and, from OneAgent for Mobile 8.333, W3C trace context</li>
+<li><strong>DQL queries</strong> on <code>user.events</code> to retrieve, aggregate, and visualize mobile network request data</li>
+<li><strong>Slow and failed request analysis</strong> using status code grouping and time-series trends</li>
+<li><strong>Performance optimization tips</strong> covering payload reduction, round-trip minimization, CDN usage, and adaptive behavior</li>
+</ul>
+<p>Network requests are the most tangible touchpoint between your mobile app and your backend infrastructure. Monitoring them effectively ensures you can detect, diagnose, and resolve performance issues before they impact your users.</p>
+<h2>Next Steps</h2>
+<p>Continue to <strong>MOBL-08: Session Replay for Mobile</strong> to see how Session Replay reconstructs what the user did before a failed request or a crash.</p>
+<h3>Related Notebooks</h3>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Topic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MOBL-06</strong></td>
+<td>Crash Reporting &amp; ANR Detection</td>
+</tr>
+<tr>
+<td><strong>MOBL-08</strong></td>
+<td>Session Replay for Mobile</td>
+</tr>
+<tr>
+<td><strong>SPANS-01</strong></td>
+<td>Distributed Tracing Fundamentals</td>
+</tr>
+</tbody>
+</table>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications">Dynatrace Mobile App Monitoring</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-hybrid-app">Dynatrace Mobile SDK Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing">Distributed tracing (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">Dynatrace Query Language (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

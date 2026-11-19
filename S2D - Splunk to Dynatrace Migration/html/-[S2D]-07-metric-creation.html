@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S2D-07: Metric Creation from Logs</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">S2D — Splunk to Dynatrace Migration</a><span class="sep">/</span><span aria-current="page">S2D-07</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>S2D-07: Metric Creation from Logs</h1>
+<blockquote>
+<p><strong>Series:</strong> S2D — Splunk to Dynatrace Migration | <strong>Notebook:</strong> 7 of 9 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/02/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Log-based metrics can be generated by OpenPipeline during log ingest. This provides significant benefits for frequently-executed queries used in dashboards and alerts.</p>
+<p>This notebook explains when to request metric extraction and how to provide the necessary information.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#why-create-metrics-from-logs">Why Create Metrics from Logs?</a></li>
+<li><a href="#when-to-request-metric-extraction">When to Request Metric Extraction</a></li>
+<li><a href="#metric-types">Metric Types</a></li>
+<li><a href="#information-required-for-metric-request">Information Required for Metric Request</a></li>
+<li><a href="#example-metric-request">Example Metric Request</a></li>
+<li><a href="#best-practices">Best Practices</a></li>
+<li><a href="#using-log-based-metrics">Using Log-Based Metrics</a></li>
+<li><a href="#request-process">Request Process</a></li>
+<li><a href="#metric-extraction-checklist">Metric Extraction Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with OpenPipeline</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:logs:read</code>, <code>storage:buckets:read</code>, OpenPipeline access (typically platform team)</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>Completed SPL to DQL translation</td>
+</tr>
+</tbody>
+</table>
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will be able to:</p>
+<ol>
+<li>Understand the benefits of metric extraction</li>
+<li>Identify candidates for metric creation</li>
+<li>Prepare the required information for a metric request</li>
+<li>Follow best practices for metric design</li>
+</ol>
+<p><a id="why-create-metrics-from-logs"></a></p>
+<h2>Why Create Metrics from Logs?</h2>
+<p>Log-based metrics provide several advantages:</p>
+<table>
+<thead>
+<tr>
+<th>Benefit</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Decreased query cost</strong></td>
+<td>Metrics are pre-aggregated, reducing DQL processing</td>
+</tr>
+<tr>
+<td><strong>Improved query speed</strong></td>
+<td>Metrics are optimized for time-series queries</td>
+</tr>
+<tr>
+<td><strong>Increased retention</strong></td>
+<td>Metrics have longer default retention than logs</td>
+</tr>
+<tr>
+<td><strong>Reduced license usage</strong></td>
+<td>Metric queries are more efficient than log queries</td>
+</tr>
+</tbody>
+</table>
+<p><a id="when-to-request-metric-extraction"></a></p>
+<h2>When to Request Metric Extraction</h2>
+<p>Request metric creation after SPL to DQL translation is complete.</p>
+<h3>Good Candidates</h3>
+<p>Queries that:</p>
+<ul>
+<li>Generate timeseries results (<code>makeTimeseries</code> or <code>summarize</code>)</li>
+<li>Run frequently (dashboards, alerts)</li>
+<li>Have stable filter criteria</li>
+<li>Aggregate simple counts or numeric values</li>
+</ul>
+<h3>Poor Candidates</h3>
+<p>Queries that:</p>
+<ul>
+<li>Need full log content</li>
+<li>Use complex parsing logic</li>
+<li>Have frequently changing filters</li>
+<li>Are run infrequently (ad-hoc analysis)</li>
+</ul>
+<p><a id="metric-types"></a></p>
+<h2>Metric Types</h2>
+<h3>Counter Metrics</h3>
+<p>Count the number of log records matching certain criteria.</p>
+<p><strong>Use when:</strong> You want to count occurrences (errors, requests, events)</p>
+<pre><code class="language-dql">// Counter metric candidate: Error log count
+fetch logs, from:-24h
+| filter status == &quot;ERROR&quot;
+| filter matchesPhrase(k8s.deployment.name, &quot;checkout-service&quot;)
+| makeTimeseries count = count(), by:{k8s.deployment.name}, interval:1m
+</code></pre>
+<h3>Value Metrics</h3>
+<p>Track a numeric value extracted from log records.</p>
+<p><strong>Use when:</strong> You want to track response times, sizes, durations, etc.</p>
+<pre><code class="language-dql">// Value metric candidate: Response time from logs
+// response_time is parsed here at query time; for a metric it must exist at ingest (see Consider Custom Fields)
+fetch logs, from:-24h
+| parse content, &quot;DATA? 'response_time=' DOUBLE:response_time&quot;
+| filter isNotNull(response_time)
+| filter matchesPhrase(k8s.deployment.name, &quot;api-service&quot;)
+| makeTimeseries avg_response = avg(response_time), by:{k8s.deployment.name}, interval:1m
+</code></pre>
+<p><a id="information-required-for-metric-request"></a></p>
+<h2>Information Required for Metric Request</h2>
+<h3>1. Metric Type</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Counter</td>
+<td>Count of matching logs</td>
+</tr>
+<tr>
+<td>Value</td>
+<td>Numeric field from log records</td>
+</tr>
+</tbody>
+</table>
+<p>For <strong>Value</strong> metrics, specify the field containing the value (e.g., <code>response_time</code>).</p>
+<h3>2. Filter Statement</h3>
+<p>The filter portion of your query.</p>
+<p><strong>Limitations:</strong></p>
+<ul>
+<li>Must be a single continuous filter</li>
+<li>No custom parsing (<code>parse</code>) or field calculations (<code>fieldsAdd</code>)</li>
+<li>Only these functions are supported:
+<ul>
+<li><code>matchesPhrase</code></li>
+<li><code>matchesValue</code></li>
+<li><code>isNull</code></li>
+<li><code>isNotNull</code></li>
+<li>Basic operators and equality</li>
+</ul>
+</li>
+</ul>
+<h3>3. Dimensions (Split By)</h3>
+<p>The <code>by:{}</code> parameter from your <code>summarize</code> or <code>makeTimeseries</code> command.</p>
+<p>This defines how the metric will be segmented.</p>
+<p><a id="example-metric-request"></a></p>
+<h2>Example Metric Request</h2>
+<h3>Original DQL Query</h3>
+<pre><code class="language-dql">// Query to convert to metric
+fetch logs, from:-24h
+| filter status == &quot;ERROR&quot;
+| filter matchesPhrase(k8s.cluster.name, &quot;production&quot;)
+| filter matchesPhrase(k8s.namespace.name, &quot;ecommerce&quot;)
+| makeTimeseries error_count = count(), by:{k8s.deployment.name, k8s.namespace.name}, interval:1m
+</code></pre>
+<h3>Metric Request Details</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Metric Type</strong></td>
+<td>Counter</td>
+</tr>
+<tr>
+<td><strong>Filter</strong></td>
+<td><code>status == &quot;ERROR&quot; AND matchesPhrase(k8s.cluster.name, &quot;production&quot;) AND matchesPhrase(k8s.namespace.name, &quot;ecommerce&quot;)</code></td>
+</tr>
+<tr>
+<td><strong>Dimensions</strong></td>
+<td><code>k8s.deployment.name</code>, <code>k8s.namespace.name</code></td>
+</tr>
+<tr>
+<td><strong>Metric Name</strong></td>
+<td><code>log.ecommerce.error_count</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>status == &quot;ERROR&quot;</code> covers every error-or-worse level (SEVERE, ERROR, CRITICAL, ALERT, FATAL, EMERGENCY; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-api/lma-log-data-transformation">Automatic log enrichment (DT docs)</a>). Confirm with your platform team that <code>status</code> is populated before the metric-extraction stage of your pipeline; if it is not, list the levels explicitly instead.</p>
+<p><a id="best-practices"></a></p>
+<h2>Best Practices</h2>
+<h3>Keep Metrics General</h3>
+<p>Don't create multiple similar metrics for similar alerts. Consolidate by using dimensions.</p>
+<p><strong>Instead of:</strong></p>
+<ul>
+<li><code>checkout_errors</code></li>
+<li><code>payment_errors</code></li>
+<li><code>cart_errors</code></li>
+</ul>
+<p><strong>Create:</strong></p>
+<ul>
+<li><code>service_errors</code> with dimension <code>k8s.deployment.name</code></li>
+</ul>
+<h3>Avoid High-Cardinality Dimensions</h3>
+<p>Don't use unique values as dimensions:</p>
+<ul>
+<li>Transaction IDs</li>
+<li>Session IDs</li>
+<li>Request IDs</li>
+<li>Timestamps</li>
+</ul>
+<p>These create too many metric series and impact performance.</p>
+<h3>Consider Custom Fields</h3>
+<p>If your metric requires custom fields not available at ingest time:</p>
+<ol>
+<li>Request a log processing rule to extract the field first</li>
+<li>Then request the metric extraction using that field</li>
+</ol>
+<p><a id="using-log-based-metrics"></a></p>
+<h2>Using Log-Based Metrics</h2>
+<p>Once created, metrics are queried with <code>timeseries</code> instead of <code>fetch logs</code>. A counter metric is read with <code>sum()</code>: <code>avg()</code> returns the average per-data-point value, not the count.</p>
+<pre><code class="language-dql">// Query the extracted metric (after it's created)
+// Note: This is an example - metric name will depend on your configuration
+// Counter metric - use sum(); avg() returns the per-data-point value
+timeseries sum(log.ecommerce.error_count), from:-1h, by:{k8s.deployment.name}
+</code></pre>
+<p><a id="request-process"></a></p>
+<h2>Request Process</h2>
+<p>Metric extraction is typically managed by a platform or DevOps team through OpenPipeline configuration.</p>
+<h3>Steps</h3>
+<ol>
+<li>Complete SPL to DQL translation</li>
+<li>Identify queries suitable for metric extraction</li>
+<li>Document metric type, filter, and dimensions</li>
+<li>Submit request to platform team</li>
+<li>Wait for Terraform deployment (timing varies)</li>
+<li>Update dashboards/alerts to use new metric</li>
+</ol>
+<p><a id="metric-extraction-checklist"></a></p>
+<h2>Metric Extraction Checklist</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DQL query validated</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>Metric type identified (Counter/Value)</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>Filter uses only supported functions</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>Dimensions defined (no high-cardinality)</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>Metric name follows naming convention</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>Request submitted</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<h2>Next Steps</h2>
+<ul>
+<li><strong>S2D-08: Dashboard Migration</strong> - Converting Splunk dashboards</li>
+<li><strong>S2D-09: Naming Standards</strong> - Organizational conventions</li>
+</ul>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-log-processing-pipeline">tutorial-log-processing-pipeline (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-processing/lma-log-metrics">Log metrics (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/shortlink/dql-matcher-openpipeline">DQL Matcher Functions</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S2D-05: Alert Migration - Workflow-Based Alerts</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">S2D — Splunk to Dynatrace Migration</a><span class="sep">/</span><span aria-current="page">S2D-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>S2D-05: Alert Migration - Workflow-Based Alerts</h1>
+<blockquote>
+<p><strong>Series:</strong> S2D — Splunk to Dynatrace Migration | <strong>Notebook:</strong> 5 of 9 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/02/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>While Davis Anomaly Detectors are preferred for continuous monitoring, some Splunk alerts are better suited for workflow-based alerting. This notebook explains when and how to use Dynatrace Workflows for alert migration.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgMzgwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmdHcmFkUzJENSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZjE3MmEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWUyOTNiIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJhbm9tYWx5R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNjM2NmYxIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzRmNDZlNSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0id29ya2Zsb3dHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmNTllMGIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZDk3NzA2Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0ic2hhZG93UzJENSIgeD0iLTIwJSIgeT0iLTIwJSIgd2lkdGg9IjE0MCUiIGhlaWdodD0iMTQwJSI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMyIvPgogICAgPC9maWx0ZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNiZ0dyYWRTMkQ1KSIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjM1MCIgeT0iMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmOGZhZmMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSI2MDAiPldoZW4gdG8gVXNlIFdvcmtmbG93cyB2cyBBbm9tYWx5IERldGVjdG9yczwvdGV4dD4KCiAgPCEtLSBBbm9tYWx5IERldGVjdG9yIEJveCAtLT4KICA8cmVjdCB4PSIzMCIgeT0iNTAiIHdpZHRoPSIzMDAiIGhlaWdodD0iMjgwIiByeD0iMTIiIGZpbGw9InVybCgjYW5vbWFseUdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93UzJENSkiLz4KICA8dGV4dCB4PSIxODAiIHk9IjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9IjYwMCI+QW5vbWFseSBEZXRlY3RvcnM8L3RleHQ+CiAgPHRleHQgeD0iMTgwIiB5PSIxMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNjN2QyZmUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPihQcmVmZXJyZWQpPC90ZXh0PgoKICA8IS0tIEFub21hbHkgZmVhdHVyZXMgLS0+CiAgPHJlY3QgeD0iNDUiIHk9IjExNSIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIzMCIgcng9IjYiIGZpbGw9IiMxZTI5M2IiLz4KICA8dGV4dCB4PSI1NSIgeT0iMTM1IiBmaWxsPSIjMTBiOTgxIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIj7inJMgQ29udGludW91cyBtb25pdG9yaW5nIChldmVyeSBtaW51dGUpPC90ZXh0PgoKICA8cmVjdCB4PSI0NSIgeT0iMTU1IiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjMwIiByeD0iNiIgZmlsbD0iIzFlMjkzYiIvPgogIDx0ZXh0IHg9IjU1IiB5PSIxNzUiIGZpbGw9IiMxMGI5ODEiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPuKckyBEeW5hdHJhY2UgSW50ZWxsaWdlbmNlIHByb2JsZW0gY29ycmVsYXRpb248L3RleHQ+CgogIDxyZWN0IHg9IjQ1IiB5PSIxOTUiIHdpZHRoPSIyNzAiIGhlaWdodD0iMzAiIHJ4PSI2IiBmaWxsPSIjMWUyOTNiIi8+CiAgPHRleHQgeD0iNTUiIHk9IjIxNSIgZmlsbD0iIzEwYjk4MSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSI+4pyTIE5vIHdvcmtmbG93IGhvdXJzIChxdWVyaWVzIGFyZSBiaWxsZWQpPC90ZXh0PgoKICA8cmVjdCB4PSI0NSIgeT0iMjM1IiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjMwIiByeD0iNiIgZmlsbD0iIzFlMjkzYiIvPgogIDx0ZXh0IHg9IjU1IiB5PSIyNTUiIGZpbGw9IiMxMGI5ODEiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPuKckyBBdXRvLXVwZGF0aW5nIHByb2JsZW1zPC90ZXh0PgoKICA8cmVjdCB4PSI0NSIgeT0iMjc1IiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjMwIiByeD0iNiIgZmlsbD0iIzFlMjkzYiIvPgogIDx0ZXh0IHg9IjU1IiB5PSIyOTUiIGZpbGw9IiNlZjQ0NDQiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPuKclyBNYXggc2xpZGluZyB3aW5kb3c6IDYwIG1pbnV0ZXM8L3RleHQ+CgogIDwhLS0gV29ya2Zsb3cgQm94IC0tPgogIDxyZWN0IHg9IjM3MCIgeT0iNTAiIHdpZHRoPSIzMDAiIGhlaWdodD0iMjgwIiByeD0iMTIiIGZpbGw9InVybCgjd29ya2Zsb3dHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvd1MyRDUpIi8+CiAgPHRleHQgeD0iNTIwIiB5PSI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI2MDAiPldvcmtmbG93czwvdGV4dD4KICA8dGV4dCB4PSI1MjAiIHk9IjEwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZlZjNjNyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSI+KFdoZW4gTmVlZGVkKTwvdGV4dD4KCiAgPCEtLSBXb3JrZmxvdyB1c2UgY2FzZXMgLS0+CiAgPHJlY3QgeD0iMzg1IiB5PSIxMTUiIHdpZHRoPSIyNzAiIGhlaWdodD0iMzAiIHJ4PSI2IiBmaWxsPSIjMWUyOTNiIi8+CiAgPHRleHQgeD0iMzk1IiB5PSIxMzUiIGZpbGw9IiNmZWYzYzciIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPuKAoiBUaW1lZnJhbWUgPiAxIGhvdXI8L3RleHQ+CgogIDxyZWN0IHg9IjM4NSIgeT0iMTU1IiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjMwIiByeD0iNiIgZmlsbD0iIzFlMjkzYiIvPgogIDx0ZXh0IHg9IjM5NSIgeT0iMTc1IiBmaWxsPSIjZmVmM2M3IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIj7igKIgU2NoZWR1bGVkIHJ1bnMgKGUuZy4sIDYgQU0gZGFpbHkpPC90ZXh0PgoKICA8cmVjdCB4PSIzODUiIHk9IjE5NSIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIzMCIgcng9IjYiIGZpbGw9IiMxZTI5M2IiLz4KICA8dGV4dCB4PSIzOTUiIHk9IjIxNSIgZmlsbD0iI2ZlZjNjNyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSI+4oCiIEJ1c2luZXNzIGhvdXJzIG9ubHkgYWxlcnRpbmc8L3RleHQ+CgogIDxyZWN0IHg9IjM4NSIgeT0iMjM1IiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjMwIiByeD0iNiIgZmlsbD0iIzFlMjkzYiIvPgogIDx0ZXh0IHg9IjM5NSIgeT0iMjU1IiBmaWxsPSIjZmVmM2M3IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIj7igKIgUmVwb3J0LXN0eWxlIGFsZXJ0czwvdGV4dD4KCiAgPHJlY3QgeD0iMzg1IiB5PSIyNzUiIHdpZHRoPSIyNzAiIGhlaWdodD0iMzAiIHJ4PSI2IiBmaWxsPSIjMWUyOTNiIi8+CiAgPHRleHQgeD0iMzk1IiB5PSIyOTUiIGZpbGw9IiNlZjQ0NDQiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPuKclyBDb25zdW1lcyB3b3JrZmxvdyBob3VyczwvdGV4dD4KCiAgPCEtLSBEZWNpc2lvbiBGbG93IC0tPgogIDxyZWN0IHg9IjMwIiB5PSIzNDAiIHdpZHRoPSI2NDAiIGhlaWdodD0iMzAiIHJ4PSI2IiBmaWxsPSIjMWUyOTNiIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iMzYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIj5EZWNpc2lvbjogVGltZWZyYW1lIOKJpDYwbSBBTkQgcnVucyBjb250aW51b3VzbHk/IOKGkiBBbm9tYWx5IERldGVjdG9yIHwgT3RoZXJ3aXNlIOKGkiBXb3JrZmxvdzwvdGV4dD4KPC9zdmc+Cg==" alt="Workflow vs Anomaly Detector" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Feature | Anomaly Detector | Workflow |
+|---------|-----------------|----------|
+| Execution | Continuous | Scheduled |
+| Max Window | 60 minutes | Unlimited |
+| AI Integration | Davis AI | Manual logic |
+| Cost | DQL query cost per execution | Workflow hours + DQL query cost |
+For environments where SVG doesn't render
+-->
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#when-to-use-workflows-for-alerting">When to Use Workflows for Alerting</a></li>
+<li><a href="#drawbacks-of-workflow-based-alerts">Drawbacks of Workflow-Based Alerts</a></li>
+<li><a href="#basic-alerting-workflow-structure">Basic Alerting Workflow Structure</a></li>
+<li><a href="#example-workflow-query">Example Workflow Query</a></li>
+<li><a href="#event-creation-javascript">Event Creation JavaScript</a></li>
+<li><a href="#schedule-configuration">Schedule Configuration</a></li>
+<li><a href="#alternative-business-hours-with-anomaly-detectors">Alternative: Business Hours with Anomaly Detectors</a></li>
+<li><a href="#important-disclaimers">Important Disclaimers</a></li>
+<li><a href="#migration-checklist">Migration Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Workflows enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>automation:workflows:write</code>, <code>storage:logs:read</code>, <code>storage:buckets:read</code></td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>Understanding of Dynatrace Workflows</td>
+</tr>
+</tbody>
+</table>
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will be able to:</p>
+<ol>
+<li>Identify when workflows are more appropriate than anomaly detectors</li>
+<li>Structure a basic alerting workflow</li>
+<li>Configure scheduled triggers</li>
+<li>Create events from workflow results</li>
+</ol>
+<p><a id="when-to-use-workflows-for-alerting"></a></p>
+<h2>When to Use Workflows for Alerting</h2>
+<h3>Use Workflows When:</h3>
+<ol>
+<li>
+<p><strong>Query timeframe exceeds 1 hour</strong></p>
+<ul>
+<li>Anomaly Detectors have a maximum sliding window of 60 minutes</li>
+<li>Example: Alert on 7-day log volume trends</li>
+</ul>
+</li>
+<li>
+<p><strong>Alert runs on a schedule (few times per day)</strong></p>
+<ul>
+<li>Scheduled reports that happen at specific times</li>
+<li>Example: Run every weekday at 6 AM</li>
+</ul>
+</li>
+<li>
+<p><strong>Alert is disabled for extended periods</strong></p>
+<ul>
+<li>Business hours-only alerting</li>
+<li>Example: Alert every 5 minutes during 8 AM - 6 PM only</li>
+</ul>
+</li>
+<li>
+<p><strong>Alert is actually a report</strong></p>
+<ul>
+<li>Some Splunk &quot;alerts&quot; are reports that always trigger</li>
+<li>Indicators:
+<ul>
+<li>Returns multiple appended datasets</li>
+<li>Threshold of 0 for consistently large results</li>
+<li>Very large timeframes</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<h3>Use Anomaly Detectors When:</h3>
+<ul>
+<li>Continuous, real-time monitoring is needed</li>
+<li>Timeframe is ≤ 60 minutes</li>
+<li>Alert should run every minute</li>
+<li>Dynatrace Intelligence problem correlation is beneficial</li>
+</ul>
+<p><a id="drawbacks-of-workflow-based-alerts"></a></p>
+<h2>Drawbacks of Workflow-Based Alerts</h2>
+<p>Before choosing workflows, consider these limitations:</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>License consumption</strong></td>
+<td>Every standard workflow is billed per hour it exists, regardless of how often it runs; the DQL it runs is billed separately as query consumption</td>
+</tr>
+<tr>
+<td><strong>Setup effort</strong></td>
+<td>More complex than anomaly detectors</td>
+</tr>
+<tr>
+<td><strong>Event handling</strong></td>
+<td>Manual event creation required</td>
+</tr>
+<tr>
+<td><strong>Event lifetime</strong></td>
+<td><em>&quot;Problem-opening events can be refreshed and therefore kept open by sending the same payload again.&quot;</em> Timeout: <em>&quot;If not set, 15 is used.&quot;</em> It is <em>&quot;capped to a maximum of 360 minutes (6 hours)&quot;</em></td>
+</tr>
+<tr>
+<td><strong>No Dynatrace Intelligence correlation</strong></td>
+<td>Won't be correlated with other problems</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event">Ingest an event (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="basic-alerting-workflow-structure"></a></p>
+<h2>Basic Alerting Workflow Structure</h2>
+<p>A typical alerting workflow has three main components:</p>
+<h3>1. Trigger (Schedule)</h3>
+<p>Defines when the workflow runs:</p>
+<table>
+<thead>
+<tr>
+<th>Schedule Type</th>
+<th>Use Case</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fixed time</td>
+<td>Daily reports</td>
+<td>Every day at 9:00 AM</td>
+</tr>
+<tr>
+<td>Time interval</td>
+<td>Regular checks</td>
+<td>Every 10 minutes</td>
+</tr>
+<tr>
+<td>Cron</td>
+<td>Complex schedules</td>
+<td>Weekdays at 6 AM</td>
+</tr>
+</tbody>
+</table>
+<h3>2. Query (DQL Execution)</h3>
+<p>Executes the DQL query to retrieve data:</p>
+<ul>
+<li>Unlike anomaly detectors, does NOT require timeseries output</li>
+<li>Can return single aggregated values</li>
+<li>Timeframe specified in the query, not from notebook/dashboard selector</li>
+</ul>
+<h3>3. Event Creation (JavaScript)</h3>
+<p>Evaluates results and creates events if threshold exceeded:</p>
+<ul>
+<li>Extracts values from query results</li>
+<li>Compares against threshold</li>
+<li>Creates custom event with appropriate properties</li>
+</ul>
+<p><a id="example-workflow-query"></a></p>
+<h2>Example Workflow Query</h2>
+<p>Unlike Anomaly Detectors, workflow queries often return a single aggregated value:</p>
+<pre><code class="language-dql">// Workflow alert query - returns single count
+// Timeframe explicitly specified (last 7 days)
+fetch logs, from:now()-7d
+| filter status == &quot;ERROR&quot;
+| filter matchesPhrase(k8s.deployment.name, &quot;payment-service&quot;)
+| summarize error_count = count()
+</code></pre>
+<h3>Query with Dimensions</h3>
+<p>Add dimensions to provide context in the event:</p>
+<pre><code class="language-dql">// Query with dimensions for event context
+// dt.entity.cloud_application is deprecated (semantic dictionary); its Smartscape successors are not on log records yet (10/2026)
+fetch logs, from:now()-24h
+| filter status == &quot;ERROR&quot;
+| summarize error_count = count(), by:{k8s.deployment.name, k8s.namespace.name, dt.entity.cloud_application}
+| filter error_count &gt; 100
+| sort error_count desc
+</code></pre>
+<p><a id="event-creation-javascript"></a></p>
+<h2>Event Creation JavaScript</h2>
+<p>The final workflow step uses JavaScript to create events. Here's a template:</p>
+<pre><code class="language-javascript">// Event Creation Template
+import { result } from '@dynatrace-sdk/automation-utils';
+import { eventsClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+export default async function () {
+  // Get query results from previous step
+  const queryResult = await result('query_step_name');
+  const records = queryResult.records;
+
+  // Configuration
+  const THRESHOLD = 100;
+  const ALERT_TITLE = '[AppName] High Error Count';
+
+  // Check each result against threshold
+  for (const record of records) {
+    const errorCount = record.error_count;
+    const entityId = record['dt.entity.cloud_application'];
+
+    // No entity, no event. An unattributed event lands on the environment - see below.
+    if (errorCount &lt;= THRESHOLD || !entityId) continue;
+
+    await eventsClient.createEvent({
+      body: {
+        eventType: 'ERROR_EVENT',
+        title: ALERT_TITLE,
+        // Attribution. This is the line that lets the event join an existing problem.
+        entitySelector: `entityId(&quot;${entityId}&quot;)`,
+        properties: {
+          'error.count': String(errorCount),
+          'deployment.name': record['k8s.deployment.name'],
+          'team': 'checkout'
+        },
+        timeout: 15 // minutes
+      }
+    });
+  }
+}
+</code></pre>
+<p>The Run JavaScript action docs describe this retrieval pattern: <em>&quot;Use the automation-utils SDK for a concise way to retrieve a predecessor task's result&quot;</em>. If you need the execution ID, the runtime passes it as <code>executionId</code> (<em>&quot;The runtime injects workflow and task identifiers into the function parameters&quot;</em>).</p>
+<h3>Why <code>entitySelector</code> is the load-bearing line</h3>
+<p>Davis groups alerts by the entity they are <em>about</em>. Most Davis events carry <code>dt.smartscape_source.id</code> — the Smartscape entity ID of whatever the signal concerns; 84.9% did on a validation tenant over 7 days, 08/11/2026 — and the documented rule is that the same-Smartscape-entity rule groups all events sharing the same <code>dt.smartscape_source.id</code> value. Events naming the same entity inside the correlation window collapse into <strong>one</strong> problem that updates as the condition persists.</p>
+<p>On the ingest API you do not set that field directly. You attribute the event with <code>entitySelector</code>, and the event is associated with the entity it resolves. The failure mode is quiet by design: if <code>entitySelector</code> is not set, the event is associated with the environment (<code>dt.entity.environment</code>) entity — one bucket for the entire tenant. Technically attributed, useless for correlation.</p>
+<p><strong>That fallback is the whole failure, and it runs in the opposite direction from the one people expect.</strong> An event with no <code>entitySelector</code> does not become unmergeable — it becomes maximally mergeable, because one bucket for the entire tenant means every such alert names the same entity, and on a validation tenant such events collected in large problems. Measured there over 7 days to 10/12/2026, across all event sources and not only API posts, the 2,053 problems attached to the environment entity alone averaged <strong>14.7 events each</strong> (up to 633), against <strong>1.1</strong> for the 3,042 problems attached to a real entity. Not every environment-only problem comes from a missing <code>entitySelector</code>, because some integrations report against the environment themselves. An API event posted without one, though, lands there by definition. This is a structural failure rather than a sensitivity one, and no threshold change fixes it.</p>
+<p><strong>The loop is what makes this destructive.</strong> A scheduled workflow that iterates records emits one event per breaching row per run. Attributed, an hourly run against twelve breaching deployments keeps twelve problems updated — one per deployment, each naming the workload that broke. Unattributed, that same run folds all twelve into <strong>one</strong> problem on the environment entity, and every subsequent run folds into it too. You do not get an alert storm; you get a single permanently-open problem that names the whole tenant, cannot be routed to an owner, and no longer tells you which deployment is failing. This is the single most common way a migrated Splunk alert stops being useful in Dynatrace, and it does not look like a threshold problem when you go to debug it.</p>
+<h3>Getting a usable entity ID</h3>
+<p>Use an ID the query already returns; do not derive one from a display name.</p>
+<p>The dimensioned query in the previous section groups by <code>dt.entity.cloud_application</code>, which is a real entity ID (<code>CLOUD_APPLICATION-0DC6683CE35D5C10</code>) and drops straight into <code>entityId(...)</code>. The semantic dictionary marks the field <code>deprecated</code> (read 10/14/2026), but its Smartscape successors (<code>dt.smartscape.k8s_deployment</code> and its siblings) are not on log records yet, so it is still the workload ID to use here. <strong><code>k8s.deployment.name</code> is not a substitute</strong> — on the tenant this notebook was validated against, those values come back normalized with a trailing wildcard (<code>&quot;recommendationservice-*&quot;</code>, <code>&quot;cartservice-*&quot;</code>), so matching on the name is not dependable.</p>
+<p><strong>Confirm your IDs actually resolve before trusting them.</strong> The Smartscape node ID and the classic entity ID are different strings for the same workload — <code>K8S_DEPLOYMENT-184217F70116D1CD</code> and <code>CLOUD_APPLICATION-0DC6683CE35D5C10</code> — and <code>id_classic</code> is the bridge between them. Run this against your own estate:</p>
+<pre><code class="language-dql">// Do the entity IDs in your alert query resolve to real workloads?
+// A null smartscape_id means that row cannot be attributed - skip it, don't send it.
+// dt.entity.cloud_application is deprecated (semantic dictionary); its Smartscape successors are not on log records yet (10/2026)
+fetch logs, from:now()-24h
+| filter status == &quot;ERROR&quot;
+| summarize error_count = count(), by:{k8s.deployment.name, k8s.namespace.name, dt.entity.cloud_application}
+| filter error_count &gt; 100
+| lookup [smartscapeNodes &quot;K8S_DEPLOYMENT&quot;, &quot;K8S_STATEFULSET&quot;, &quot;K8S_DAEMONSET&quot;, &quot;K8S_REPLICASET&quot;, &quot;K8S_JOB&quot;, &quot;K8S_CRONJOB&quot; | fields id, id_classic],
+    sourceField: dt.entity.cloud_application, lookupField: id_classic, fields:{smartscape_id = id}
+| sort error_count desc
+| limit 5
+</code></pre>
+<p>Executed against the validation tenant over 24 hours on 11/02/2026, the top five breaching rows resolved like this:</p>
+<table>
+<thead>
+<tr>
+<th><code>k8s.deployment.name</code></th>
+<th><code>k8s.namespace.name</code></th>
+<th style="text-align:right"><code>error_count</code></th>
+<th>resolved <code>smartscape_id</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fluent-bit</code></td>
+<td><code>dynatrace-fluent-bit</code></td>
+<td style="text-align:right">1,117,049</td>
+<td><code>K8S_DAEMONSET-E24C5E76BAC4EF6B</code></td>
+</tr>
+<tr>
+<td><em>(null)</em></td>
+<td><code>online-boutique</code></td>
+<td style="text-align:right">1,086,402</td>
+<td><em>null</em></td>
+</tr>
+<tr>
+<td><code>recommendationservice-*</code></td>
+<td><code>hipstershop</code></td>
+<td style="text-align:right">196,718</td>
+<td><code>K8S_DEPLOYMENT-184217F70116D1CD</code></td>
+</tr>
+<tr>
+<td><em>(null)</em></td>
+<td><em>(null)</em></td>
+<td style="text-align:right">142,577</td>
+<td><em>null</em></td>
+</tr>
+<tr>
+<td><em>(null)</em></td>
+<td><code>kube-system</code></td>
+<td style="text-align:right">140,685</td>
+<td><em>null</em></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Three of the top five do not resolve, including the second largest.</strong> All three carry no <code>dt.entity.cloud_application</code> value, so there is nothing to look up. The lookup spans all six workload node types because a <code>dt.entity.cloud_application</code> value can map to any of them: the <code>fluent-bit</code> row resolves to a DaemonSet, not a Deployment.</p>
+<p>Skip the rows that stay null rather than sending an unattributed event for them. An event you cannot attribute is worse than no event: it lands on the environment entity, and on the validation tenant above, problems attached to the environment alone averaged 14.7 events each and named nothing actionable. No tuning will stop it. If a workload you care about lands in that group, the fix is upstream — get the workload properly monitored — not in the alerting template.</p>
+<p>To find detectors already failing this way in your tenant, AIOPS-02 §8 ranks them by firing count and shows which are unattributed; AIOPS-03 §1 covers the correlation rules themselves, and ALERT-99 §3 explains which Davis data object to count when you audit.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting">Avoid overalerting (DT docs)</a> — &quot;The same Smartscape entity rule groups all events that share the same <code>dt.smartscape_source.id</code> field value.&quot;, <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event">Ingest an event — POST /api/v2/events/ingest (DT docs)</a> — <code>entitySelector</code> is optional, and &quot;If not set, the event is associated with the environment (<code>dt.entity.environment</code>) entity.&quot; <strong>Derived:</strong> the skip-unresolvable-rows rule combines that documented environment fallback and same-entity grouping rule with the measured resolution gap in the table above.</sub></p>
+</blockquote>
+<p><a id="schedule-configuration"></a></p>
+<h2>Schedule Configuration</h2>
+<blockquote>
+<p><strong>Illustrative only.</strong> Dynatrace has no <code>schedule:</code> YAML format. Set these values in the workflow's schedule trigger, which offers Fixed time, Time interval and Cron schedule. The trigger's time zone defaults to UTC: <em>&quot;IANA time zone for the configured time. Default: UTC.&quot;</em></p>
+</blockquote>
+<h3>Fixed Time Schedule</h3>
+<p>Run at specific times:</p>
+<pre><code class="language-yaml"># Every day at 9:00 AM
+schedule:
+  type: fixed
+  time: &quot;09:00&quot;
+  timezone: &quot;America/New_York&quot;
+</code></pre>
+<h3>Interval Schedule</h3>
+<p>Run at regular intervals:</p>
+<pre><code class="language-yaml"># Every 6 hours
+schedule:
+  type: interval
+  interval: &quot;6h&quot;
+</code></pre>
+<h3>Cron Schedule</h3>
+<p>Complex scheduling with cron expressions:</p>
+<pre><code class="language-yaml"># Weekdays at 6 AM
+schedule:
+  type: cron
+  expression: &quot;0 6 * * 1-5&quot;
+  timezone: &quot;America/New_York&quot;
+</code></pre>
+<p><a id="alternative-business-hours-with-anomaly-detectors"></a></p>
+<h2>Alternative: Business Hours with Anomaly Detectors</h2>
+<p>For business hours-only alerting, consider these alternatives before using workflows:</p>
+<h3>Option A: Filter by Hour in Query</h3>
+<p>Add hour-of-day filtering to exclude off-hours. Queries run in UTC, so set the time zone explicitly. Without <code>timezone:</code>, &quot;8 AM–6 PM&quot; means 8 AM–6 PM UTC.</p>
+<p><strong>Custom-alert query</strong> (no <code>from:</code>/<code>to:</code>, per S2D-04 Step 1):</p>
+<pre><code class="language-dql">// Paste into the custom alert WITHOUT from:/to:
+fetch logs
+| filter status == &quot;ERROR&quot;
+| fieldsAdd hour = getHour(timestamp, timezone:&quot;America/New_York&quot;)
+| filter hour &gt;= 8 and hour &lt; 18
+| makeTimeseries count = count(), interval:1m
+</code></pre>
+<p>Notebook preview of the same query:</p>
+<pre><code class="language-dql">// Filter logs to business hours only (8 AM - 6 PM in YOUR time zone - set it explicitly)
+// Notebook PREVIEW: remove from:-24h when you paste it into the custom alert
+fetch logs, from:-24h
+| filter status == &quot;ERROR&quot;
+| fieldsAdd hour = getHour(timestamp, timezone:&quot;America/New_York&quot;)
+| filter hour &gt;= 8 and hour &lt; 18
+| makeTimeseries count = count(), interval:1m
+</code></pre>
+<h3>Option B: Workflow to Enable/Disable Detector</h3>
+<p>Create a workflow that enables/disables the anomaly detector on schedule:</p>
+<ol>
+<li>Morning workflow (8 AM): Enable detector</li>
+<li>Evening workflow (6 PM): Disable detector</li>
+</ol>
+<p>This preserves the benefits of Dynatrace Intelligence while limiting alert times.</p>
+<p><a id="important-disclaimers"></a></p>
+<h2>Important Disclaimers</h2>
+<ol>
+<li>
+<p><strong>This pattern raises an event rather than notifying directly</strong></p>
+<ul>
+<li>The alert then flows through Davis problem correlation and your problem-triggered notification workflows (see WFLOW and ALERT-03)</li>
+<li>A workflow <em>can</em> send email or Slack directly (<em>&quot;Automate sending out-of-the-box emails based on the events and schedules defined for your workflows.&quot;</em>), but that bypasses correlation</li>
+</ul>
+</li>
+<li>
+<p><strong>Event lifecycle is manual</strong></p>
+<ul>
+<li><em>&quot;Problem-opening events can be refreshed and therefore kept open by sending the same payload again.&quot;</em></li>
+<li>Timeout: <em>&quot;If not set, 15 is used.&quot;</em> It is <em>&quot;capped to a maximum of 360 minutes (6 hours)&quot;</em> (<a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event">Ingest an event (DT docs)</a>)</li>
+</ul>
+</li>
+<li>
+<p><strong>License considerations</strong></p>
+<ul>
+<li>Every standard workflow is billed per hour it exists, regardless of how often it runs: <em>&quot;Workflow hours are the number of hours that a workflow has existed in your environment, measured since the point of its creation.&quot;</em></li>
+<li>The DQL the workflow runs is billed separately as query consumption</li>
+<li>See <a href="https://docs.dynatrace.com/docs/shortlink/dps-automation-consumption">Workflow consumption documentation</a></li>
+</ul>
+</li>
+</ol>
+<p><a id="migration-checklist"></a></p>
+<h2>Migration Checklist</h2>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Confirm workflow is appropriate (see criteria above)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Create DQL query with explicit timeframe</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Confirm the query returns a usable entity ID per row (<code>dt.entity.*</code>), not just a name</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Configure schedule trigger</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Implement event creation logic</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Test workflow execution</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Configure notification routing</td>
+</tr>
+</tbody>
+</table>
+<h2>Next Steps</h2>
+<ul>
+<li><strong>S2D-06: ArrayMovingSum</strong> - For extending anomaly detector timeframes</li>
+<li><strong>S2D-07: Metric Creation</strong> - For performance-critical alerting queries</li>
+</ul>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/shortlink/workflows">Dynatrace Workflows</a></li>
+<li><a href="https://docs.dynatrace.com/docs/shortlink/workflows-schedules">Workflow Schedules</a></li>
+<li><a href="https://docs.dynatrace.com/docs/shortlink/dps-automation-consumption">Workflow Consumption</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action">Run JavaScript action (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions">Workflow actions (DT docs)</a></li>
+<li><a href="https://developer.dynatrace.com/develop/sdks/client-classic-environment-v2/#eventingest">Event Ingest API</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

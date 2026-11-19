@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AUTOM-01: Automation Landscape</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">AUTOM — Dynatrace Automation</a><span class="sep">/</span><span aria-current="page">AUTOM-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>AUTOM-01: Automation Landscape</h1>
+<blockquote>
+<p><strong>Series:</strong> AUTOM — Dynatrace Automation | <strong>Notebook:</strong> 1 of 9 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+</blockquote>
+<p>Dynatrace provides multiple ways to automate configuration management and operational tasks. This series covers all major automation options, helping you choose the right approach for your needs.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#overview">Automation Options Overview</a></li>
+<li><a href="#choosing-the-right-tool">Choosing the Right Tool</a></li>
+<li><a href="#decision-framework">Decision Framework</a></li>
+<li><a href="#terraform-shop">When a Terraform Shop Should Add Monaco</a></li>
+<li><a href="#first-time-setup-path">First-Time Setup Path — From Zero to GitOps Pipeline</a></li>
+<li><a href="#api-token-scopes-reference">Authentication &amp; Token Reference</a></li>
+<li><a href="#emerging-capabilities">Emerging Capabilities</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<p>Before starting this series, ensure you have:</p>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dynatrace SaaS tenant</td>
+<td>Active tenant with admin access</td>
+</tr>
+<tr>
+<td>Authentication</td>
+<td>Access token, platform token, or OAuth client (see <a href="#api-token-scopes-reference">Authentication &amp; Token Reference</a>)</td>
+</tr>
+<tr>
+<td>Basic familiarity</td>
+<td>Understanding of Dynatrace configuration concepts</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ul>
+<li>Understand all available automation options for Dynatrace</li>
+<li>Know when to use each tool or approach</li>
+<li>Be able to choose the right automation strategy for your use case</li>
+<li>Have a framework for evaluating automation approaches</li>
+</ul>
+<hr />
+<p><a id="introduction"></a></p>
+<h2>1. Introduction</h2>
+<h3>What This Series Covers</h3>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AUTOM-01</strong> (this notebook)</td>
+<td>Automation landscape overview</td>
+</tr>
+<tr>
+<td><strong>AUTOM-02</strong></td>
+<td>Settings API - REST API for configuration (incl. the repo's consolidated Settings 2.0 schema catalog)</td>
+</tr>
+<tr>
+<td><strong>AUTOM-03</strong></td>
+<td>Monaco - Configuration-as-code CLI</td>
+</tr>
+<tr>
+<td><strong>AUTOM-04</strong></td>
+<td>Terraform Provider - Infrastructure-as-code (incl. the repo's consolidated Terraform resource catalog)</td>
+</tr>
+<tr>
+<td><strong>AUTOM-05</strong></td>
+<td>Dynatrace Workflows - Event-driven automation</td>
+</tr>
+<tr>
+<td><strong>AUTOM-06</strong></td>
+<td>Dynatrace SDKs - TypeScript SDK clients; Python via the REST APIs</td>
+</tr>
+<tr>
+<td><strong>AUTOM-07</strong></td>
+<td>CI/CD Integration - GitOps patterns</td>
+</tr>
+<tr>
+<td><strong>AUTOM-08</strong></td>
+<td>Migration Automation - Bulk configuration transfer</td>
+</tr>
+<tr>
+<td><strong>AUTOM-09</strong></td>
+<td>Terraform GitOps Setup Recipe - Repo layout, state backends, lifecycle protections, team onboarding</td>
+</tr>
+<tr>
+<td><strong>AUTOM-95 LAB</strong></td>
+<td>Terraform IAM Management - Hands-on: OAuth client setup, groups + policies + boundaries + bindings, DSL discovery, bulk export, import</td>
+</tr>
+<tr>
+<td><strong>AUTOM-96 LAB</strong></td>
+<td>GitHub Actions CI/CD for Dynatrace Terraform - Hands-on: OIDC → Vault → Platform Token, environment-gated apply</td>
+</tr>
+<tr>
+<td><strong>AUTOM-97 LAB</strong></td>
+<td>Monaco Configuration-as-Code - Hands-on: install, download, validate, deploy, multi-env, GitHub Actions</td>
+</tr>
+<tr>
+<td><strong>AUTOM-98 LAB</strong></td>
+<td>Terraform for Dynatrace - Hands-on: provider config, mixed-auth, Settings 2.0, IAM, import, state, drift</td>
+</tr>
+</tbody>
+</table>
+<h3>Why Automate?</h3>
+<table>
+<thead>
+<tr>
+<th>Benefit</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Consistency</strong></td>
+<td>Same configuration across all environments</td>
+</tr>
+<tr>
+<td><strong>Repeatability</strong></td>
+<td>Deploy identical setups reliably</td>
+</tr>
+<tr>
+<td><strong>Version Control</strong></td>
+<td>Track changes in Git, enable rollbacks</td>
+</tr>
+<tr>
+<td><strong>Scale</strong></td>
+<td>Manage hundreds or thousands of configurations</td>
+</tr>
+<tr>
+<td><strong>Speed</strong></td>
+<td>Faster deployments, reduced manual effort</td>
+</tr>
+<tr>
+<td><strong>Compliance</strong></td>
+<td>Auditable changes, approval workflows</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="overview"></a></p>
+<h2>2. Automation Options Overview</h2>
+<h3>The Automation Pyramid</h3>
+<p>Dynatrace automation tools form a hierarchy from low-level APIs to high-level abstractions:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5EeW5hdHJhY2UgQXV0b21hdGlvbiBQeXJhbWlkPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPkZyb20gbG93LWxldmVsIEFQSXMgdG8gaGlnaC1sZXZlbCBhYnN0cmFjdGlvbnM8L3RleHQ+CgogIDwhLS0gUHlyYW1pZCBsYXllcnMsIGJvdHRvbSAod2lkZXN0KSB0byB0b3AgKG5hcnJvd2VzdCkgLS0+CiAgPCEtLSBMYXllciAxOiBTZXR0aW5ncyBBUEkgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSIxODAsNDMwIDc1MCw0MzAgNjcwLDM2MCAyNjAsMzYwIiBmaWxsPSIjNjM2NmYxIiBvcGFjaXR5PSIwLjg1Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIzOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmZmZmYiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI3MDAiPlNldHRpbmdzIEFQSTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2UwZTdmZiIgZm9udC1zaXplPSIxMiI+RGlyZWN0IFJFU1QgQVBJIGFjY2VzcyDCtyBmb3VuZGF0aW9uIGZvciBldmVyeXRoaW5nIGVsc2U8L3RleHQ+CgogIDwhLS0gTGF5ZXIgMjogU0RLcyAtLT4KICA8cG9seWdvbiBwb2ludHM9IjI2MCwzNjAgNjcwLDM2MCA1OTAsMjkwIDM0MCwyOTAiIGZpbGw9IiM4YjVjZjYiIG9wYWNpdHk9IjAuODUiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjMyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZmZmZiIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+RHluYXRyYWNlIFNES3M8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIzNDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlMGU3ZmYiIGZvbnQtc2l6ZT0iMTIiPlR5cGVTY3JpcHQgU0RLIGNsaWVudHMgwrcgUHl0aG9uIHZpYSBSRVNUIEFQSXM8L3RleHQ+CgogIDwhLS0gTGF5ZXIgMzogV29ya2Zsb3dzIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iMzQwLDI5MCA1OTAsMjkwIDUyMCwyMjAgNDEwLDIyMCIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC45Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIyNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmZmZmYiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPldvcmtmbG93czwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjI3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2UwZTdmZiIgZm9udC1zaXplPSIxMSI+RXZlbnQtZHJpdmVuIGF1dG9tYXRpb24gKEdlbjMpPC90ZXh0PgoKICA8IS0tIExheWVyIDQ6IE1vbmFjbyAvIFRlcnJhZm9ybSAocGVhaykgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSI0MTAsMjIwIDUyMCwyMjAgNDg1LDE0NSA0NDUsMTQ1IiBmaWxsPSIjYzRiNWZkIiBvcGFjaXR5PSIwLjk1Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIxNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMxZTI5M2IiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPk1vbmFjbzwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjE5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzM3NDE1MSIgZm9udC1zaXplPSIxMSI+VGVycmFmb3JtPC90ZXh0PgoKICA8IS0tIFNpZGUgYXJyb3cgYW5kIGxhYmVscyAtLT4KICA8dGV4dCB4PSI3OTAiIHk9IjQwMCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+TG93LWxldmVsPC90ZXh0PgogIDx0ZXh0IHg9IjgyMCIgeT0iNDE2IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5kaXJlY3QgQVBJPC90ZXh0PgogIDxsaW5lIHgxPSI4MDAiIHkxPSIzODAiIHgyPSI4MDAiIHkyPSIyMDAiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHBvbHlnb24gcG9pbnRzPSI4MDAsMTkwIDc5NCwyMDUgODA2LDIwNSIgZmlsbD0iIzk0QTNCOCIvPgogIDx0ZXh0IHg9Ijc5MCIgeT0iMTc1IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5IaWdoLWxldmVsPC90ZXh0PgogIDx0ZXh0IHg9IjgxMiIgeT0iMTkwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5kZWNsYXJhdGl2ZSBJYUM8L3RleHQ+CgogIDwhLS0gTGVnZW5kIC0tPgogIDxyZWN0IHg9IjYwIiB5PSIzODAiIHdpZHRoPSIxNjAiIGhlaWdodD0iOTAiIHJ4PSI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiLz4KICA8dGV4dCB4PSIxNDAiIHk9IjQwMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+QWJzdHJhY3Rpb24gTGF5ZXI8L3RleHQ+CiAgPHJlY3QgeD0iNzUiIHk9IjQxNCIgd2lkdGg9IjE0IiBoZWlnaHQ9IjE0IiBmaWxsPSIjYzRiNWZkIi8+CiAgPHRleHQgeD0iOTgiIHk9IjQyNSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+SGlnaCAoSWFDKTwvdGV4dD4KICA8cmVjdCB4PSI3NSIgeT0iNDM0IiB3aWR0aD0iMTQiIGhlaWdodD0iMTQiIGZpbGw9IiNhNzhiZmEiLz4KICA8dGV4dCB4PSI5OCIgeT0iNDQ1IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExIj5NZWRpdW08L3RleHQ+CiAgPHJlY3QgeD0iNzUiIHk9IjQ1NCIgd2lkdGg9IjE0IiBoZWlnaHQ9IjE0IiBmaWxsPSIjNjM2NmYxIi8+CiAgPHRleHQgeD0iOTgiIHk9IjQ2NSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+TG93IChyYXcgQVBJKTwvdGV4dD4KPC9zdmc+Cg==" alt="Automation Pyramid" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Level | Tool | Abstraction |
+|-------|------|-------------|
+| High | Terraform | Infrastructure-as-Code |
+| High | Monaco | Config-as-Code |
+| Medium | Workflows | Event-driven automation |
+| Medium | SDKs | Programmatic access |
+| Low | Settings API | Direct REST calls |
+-->
+<hr />
+<h3>Tool Comparison Matrix</h3>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Best For</th>
+<th>Learning Curve</th>
+<th>CI/CD Ready</th>
+<th>Multi-Tenant</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Settings API</strong></td>
+<td>Custom integrations, scripts</td>
+<td>Medium</td>
+<td>Manual</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Monaco</strong></td>
+<td>Config-as-code, migrations</td>
+<td>Low</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Terraform</strong></td>
+<td>IaC environments, full stack</td>
+<td>Medium</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Workflows</strong></td>
+<td>Event-driven, auto-remediation</td>
+<td>Low</td>
+<td>N/A</td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>SDKs</strong></td>
+<td>Custom apps, complex logic</td>
+<td>Medium</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5BdXRvbWF0aW9uIFRvb2wgQ29tcGFyaXNvbjwvdGV4dD4KCiAgPCEtLSBDb2x1bW4gd2lkdGhzICh0b3RhbCB+ODYwLCBsZWZ0IG1hcmdpbiA0MCk6IFRvb2wgMTMwIHwgQmVzdCBGb3IgMTUwIHwgTGVhcm5pbmcgMTAwIHwgQ0kvQ0QgMTAwIHwgU3RhdGUgMTEwIHwgVXNlIENhc2UgMjcwIC0tPgogIDwhLS0gSGVhZGVyIHJvdyAtLT4KICA8ZyBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4KICAgIDxyZWN0IHg9IjQwIiB5PSI2MiIgd2lkdGg9IjEzMCIgaGVpZ2h0PSIzOCIgZmlsbD0iIzMzNDE1NSIvPgogICAgPHRleHQgeD0iMTA1IiB5PSI4NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyI+VG9vbDwvdGV4dD4KCiAgICA8cmVjdCB4PSIxNzAiIHk9IjYyIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjM4IiBmaWxsPSIjMzM0MTU1Ii8+CiAgICA8dGV4dCB4PSIyNDUiIHk9Ijg2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIj5CZXN0IEZvcjwvdGV4dD4KCiAgICA8cmVjdCB4PSIzMjAiIHk9IjYyIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjM4IiBmaWxsPSIjMzM0MTU1Ii8+CiAgICA8dGV4dCB4PSIzNzAiIHk9Ijg2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIj5MZWFybmluZzwvdGV4dD4KCiAgICA8cmVjdCB4PSI0MjAiIHk9IjYyIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjM4IiBmaWxsPSIjMzM0MTU1Ii8+CiAgICA8dGV4dCB4PSI0NzAiIHk9Ijg2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIj5DSS9DRDwvdGV4dD4KCiAgICA8cmVjdCB4PSI1MjAiIHk9IjYyIiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjM4IiBmaWxsPSIjMzM0MTU1Ii8+CiAgICA8dGV4dCB4PSI1NzUiIHk9Ijg2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIj5TdGF0ZSBNZ210PC90ZXh0PgoKICAgIDxyZWN0IHg9IjYzMCIgeT0iNjIiIHdpZHRoPSIyNjAiIGhlaWdodD0iMzgiIGZpbGw9IiMzMzQxNTUiLz4KICAgIDx0ZXh0IHg9Ijc2MCIgeT0iODYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiPlVzZSBDYXNlPC90ZXh0PgogIDwvZz4KCiAgPCEtLSBSb3cgMTogU2V0dGluZ3MgQVBJIC0tPgogIDxnIGZvbnQtc2l6ZT0iMTIiPgogICAgPHJlY3QgeD0iNDAiIHk9IjEwMCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzYzNjZmMSIgb3BhY2l0eT0iMC4zIi8+CiAgICA8dGV4dCB4PSIxMDUiIHk9IjEzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2E1YjRmYyIgZm9udC13ZWlnaHQ9IjcwMCI+U2V0dGluZ3MgQVBJPC90ZXh0PgogICAgPHJlY3QgeD0iMTcwIiB5PSIxMDAiIHdpZHRoPSIxNTAiIGhlaWdodD0iNjAiIGZpbGw9IiMxRTI5M0IiLz4KICAgIDx0ZXh0IHg9IjI0NSIgeT0iMTM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIj5DdXN0b20gc2NyaXB0czwvdGV4dD4KICAgIDxyZWN0IHg9IjMyMCIgeT0iMTAwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMUUyOTNCIi8+CiAgICA8dGV4dCB4PSIzNzAiIHk9IjEzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2Y1OWUwYiIgZm9udC13ZWlnaHQ9IjYwMCI+TWVkaXVtPC90ZXh0PgogICAgPHJlY3QgeD0iNDIwIiB5PSIxMDAiIHdpZHRoPSIxMDAiIGhlaWdodD0iNjAiIGZpbGw9IiMxRTI5M0IiLz4KICAgIDx0ZXh0IHg9IjQ3MCIgeT0iMTM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIj5NYW51YWw8L3RleHQ+CiAgICA8cmVjdCB4PSI1MjAiIHk9IjEwMCIgd2lkdGg9IjExMCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzFFMjkzQiIvPgogICAgPHRleHQgeD0iNTc1IiB5PSIxMzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlZjQ0NDQiIGZvbnQtd2VpZ2h0PSI2MDAiPk5vbmU8L3RleHQ+CiAgICA8cmVjdCB4PSI2MzAiIHk9IjEwMCIgd2lkdGg9IjI2MCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzFFMjkzQiIvPgogICAgPHRleHQgeD0iNzYwIiB5PSIxMzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiPk9uZS1vZmYgb3BzIMK3IGN1c3RvbSBpbnRlZ3JhdGlvbnM8L3RleHQ+CiAgPC9nPgoKICA8IS0tIFJvdyAyOiBNb25hY28gLS0+CiAgPGcgZm9udC1zaXplPSIxMiI+CiAgICA8cmVjdCB4PSI0MCIgeT0iMTYwIiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMTRiOGE2IiBvcGFjaXR5PSIwLjMiLz4KICAgIDx0ZXh0IHg9IjEwNSIgeT0iMTk0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNWVlYWQ0IiBmb250LXdlaWdodD0iNzAwIj5Nb25hY288L3RleHQ+CiAgICA8cmVjdCB4PSIxNzAiIHk9IjE2MCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzFFMjkzQiIvPgogICAgPHRleHQgeD0iMjQ1IiB5PSIxOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiPkNvbmZpZy1hcy1jb2RlPC90ZXh0PgogICAgPHJlY3QgeD0iMzIwIiB5PSIxNjAiIHdpZHRoPSIxMDAiIGhlaWdodD0iNjAiIGZpbGw9IiMxRTI5M0IiLz4KICAgIDx0ZXh0IHg9IjM3MCIgeT0iMTk0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMjJjNTVlIiBmb250LXdlaWdodD0iNjAwIj5Mb3c8L3RleHQ+CiAgICA8cmVjdCB4PSI0MjAiIHk9IjE2MCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzFFMjkzQiIvPgogICAgPHRleHQgeD0iNDcwIiB5PSIxOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMyMmM1NWUiIGZvbnQtd2VpZ2h0PSI2MDAiPk5hdGl2ZTwvdGV4dD4KICAgIDxyZWN0IHg9IjUyMCIgeT0iMTYwIiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMUUyOTNCIi8+CiAgICA8dGV4dCB4PSI1NzUiIHk9IjE5NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2Y1OWUwYiIgZm9udC13ZWlnaHQ9IjYwMCI+SW1wbGljaXQ8L3RleHQ+CiAgICA8cmVjdCB4PSI2MzAiIHk9IjE2MCIgd2lkdGg9IjI2MCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzFFMjkzQiIvPgogICAgPHRleHQgeD0iNzYwIiB5PSIxOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiPlRlbmFudCBtaWdyYXRpb24gwrcgR2l0T3BzPC90ZXh0PgogIDwvZz4KCiAgPCEtLSBSb3cgMzogVGVycmFmb3JtIC0tPgogIDxnIGZvbnQtc2l6ZT0iMTIiPgogICAgPHJlY3QgeD0iNDAiIHk9IjIyMCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzhiNWNmNiIgb3BhY2l0eT0iMC4zIi8+CiAgICA8dGV4dCB4PSIxMDUiIHk9IjI1NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2M0YjVmZCIgZm9udC13ZWlnaHQ9IjcwMCI+VGVycmFmb3JtPC90ZXh0PgogICAgPHJlY3QgeD0iMTcwIiB5PSIyMjAiIHdpZHRoPSIxNTAiIGhlaWdodD0iNjAiIGZpbGw9IiMxRTI5M0IiLz4KICAgIDx0ZXh0IHg9IjI0NSIgeT0iMjU0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIj5JYUMsIGZ1bGwtc3RhY2s8L3RleHQ+CiAgICA8cmVjdCB4PSIzMjAiIHk9IjIyMCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzFFMjkzQiIvPgogICAgPHRleHQgeD0iMzcwIiB5PSIyNTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmNTllMGIiIGZvbnQtd2VpZ2h0PSI2MDAiPk1lZGl1bTwvdGV4dD4KICAgIDxyZWN0IHg9IjQyMCIgeT0iMjIwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMUUyOTNCIi8+CiAgICA8dGV4dCB4PSI0NzAiIHk9IjI1NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzIyYzU1ZSIgZm9udC13ZWlnaHQ9IjYwMCI+TmF0aXZlPC90ZXh0PgogICAgPHJlY3QgeD0iNTIwIiB5PSIyMjAiIHdpZHRoPSIxMTAiIGhlaWdodD0iNjAiIGZpbGw9IiMxRTI5M0IiLz4KICAgIDx0ZXh0IHg9IjU3NSIgeT0iMjU0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMjJjNTVlIiBmb250LXdlaWdodD0iNjAwIj5CdWlsdC1pbjwvdGV4dD4KICAgIDxyZWN0IHg9IjYzMCIgeT0iMjIwIiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMUUyOTNCIi8+CiAgICA8dGV4dCB4PSI3NjAiIHk9IjI1NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSI+TXVsdGktY2xvdWQgSWFDIMK3IHN0YXRlLW1hbmFnZWQ8L3RleHQ+CiAgPC9nPgoKICA8IS0tIFJvdyA0OiBXb3JrZmxvd3MgLS0+CiAgPGcgZm9udC1zaXplPSIxMiI+CiAgICA8cmVjdCB4PSI0MCIgeT0iMjgwIiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjZjk3MzE2IiBvcGFjaXR5PSIwLjMiLz4KICAgIDx0ZXh0IHg9IjEwNSIgeT0iMzE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmRiYTc0IiBmb250LXdlaWdodD0iNzAwIj5Xb3JrZmxvd3M8L3RleHQ+CiAgICA8cmVjdCB4PSIxNzAiIHk9IjI4MCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzFFMjkzQiIvPgogICAgPHRleHQgeD0iMjQ1IiB5PSIzMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiPkV2ZW50LWRyaXZlbjwvdGV4dD4KICAgIDxyZWN0IHg9IjMyMCIgeT0iMjgwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMUUyOTNCIi8+CiAgICA8dGV4dCB4PSIzNzAiIHk9IjMxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzIyYzU1ZSIgZm9udC13ZWlnaHQ9IjYwMCI+TG93PC90ZXh0PgogICAgPHJlY3QgeD0iNDIwIiB5PSIyODAiIHdpZHRoPSIxMDAiIGhlaWdodD0iNjAiIGZpbGw9IiMxRTI5M0IiLz4KICAgIDx0ZXh0IHg9IjQ3MCIgeT0iMzE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIj5OL0E8L3RleHQ+CiAgICA8cmVjdCB4PSI1MjAiIHk9IjI4MCIgd2lkdGg9IjExMCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzFFMjkzQiIvPgogICAgPHRleHQgeD0iNTc1IiB5PSIzMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiPk4vQTwvdGV4dD4KICAgIDxyZWN0IHg9IjYzMCIgeT0iMjgwIiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMUUyOTNCIi8+CiAgICA8dGV4dCB4PSI3NjAiIHk9IjMxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSI+QXV0by1yZW1lZGlhdGlvbiDCtyBpbmNpZGVudCByb3V0aW5nPC90ZXh0PgogIDwvZz4KCiAgPCEtLSBSb3cgNTogU0RLcyAtLT4KICA8ZyBmb250LXNpemU9IjEyIj4KICAgIDxyZWN0IHg9IjQwIiB5PSIzNDAiIHdpZHRoPSIxMzAiIGhlaWdodD0iNjAiIGZpbGw9IiMzYjgyZjYiIG9wYWNpdHk9IjAuMyIvPgogICAgPHRleHQgeD0iMTA1IiB5PSIzNzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5M2M1ZmQiIGZvbnQtd2VpZ2h0PSI3MDAiPlNES3M8L3RleHQ+CiAgICA8cmVjdCB4PSIxNzAiIHk9IjM0MCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzFFMjkzQiIvPgogICAgPHRleHQgeD0iMjQ1IiB5PSIzNzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiPkN1c3RvbSBhcHBzPC90ZXh0PgogICAgPHJlY3QgeD0iMzIwIiB5PSIzNDAiIHdpZHRoPSIxMDAiIGhlaWdodD0iNjAiIGZpbGw9IiMxRTI5M0IiLz4KICAgIDx0ZXh0IHg9IjM3MCIgeT0iMzc0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZjU5ZTBiIiBmb250LXdlaWdodD0iNjAwIj5NZWRpdW08L3RleHQ+CiAgICA8cmVjdCB4PSI0MjAiIHk9IjM0MCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzFFMjkzQiIvPgogICAgPHRleHQgeD0iNDcwIiB5PSIzNzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMyMmM1NWUiIGZvbnQtd2VpZ2h0PSI2MDAiPlllczwvdGV4dD4KICAgIDxyZWN0IHg9IjUyMCIgeT0iMzQwIiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMUUyOTNCIi8+CiAgICA8dGV4dCB4PSI1NzUiIHk9IjM3NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSI+Q3VzdG9tPC90ZXh0PgogICAgPHJlY3QgeD0iNjMwIiB5PSIzNDAiIHdpZHRoPSIyNjAiIGhlaWdodD0iNjAiIGZpbGw9IiMxRTI5M0IiLz4KICAgIDx0ZXh0IHg9Ijc2MCIgeT0iMzc0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIj5JbnRlZ3JhdGlvbiBhcHBzIMK3IGJlc3Bva2UgVUlzPC90ZXh0PgogIDwvZz4KCiAgPCEtLSBMZWdlbmQgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjQyMCIgd2lkdGg9IjQwMCIgaGVpZ2h0PSI2MCIgcng9IjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIvPgogIDx0ZXh0IHg9IjI0MCIgeT0iNDQ0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5MZWFybmluZyBDdXJ2ZTwvdGV4dD4KICA8Y2lyY2xlIGN4PSI4MCIgY3k9IjQ2NCIgcj0iNiIgZmlsbD0iIzIyYzU1ZSIvPgogIDx0ZXh0IHg9Ijk2IiB5PSI0NjgiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPkxvdzwvdGV4dD4KICA8Y2lyY2xlIGN4PSIxODAiIGN5PSI0NjQiIHI9IjYiIGZpbGw9IiNmNTllMGIiLz4KICA8dGV4dCB4PSIxOTYiIHk9IjQ2OCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+TWVkaXVtPC90ZXh0PgogIDxjaXJjbGUgY3g9IjMwMCIgY3k9IjQ2NCIgcj0iNiIgZmlsbD0iI2VmNDQ0NCIvPgogIDx0ZXh0IHg9IjMxNiIgeT0iNDY4IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExIj5IaWdoIC8gbm90IGFwcGxpY2FibGU8L3RleHQ+Cjwvc3ZnPgo=" alt="Automation Tool Comparison" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Tool | Best For | Learning Curve | CI/CD Ready | Multi-Tenant |
+|------|----------|----------------|-------------|---------------|
+| Settings API | Custom integrations, scripts | Medium | Manual | Yes |
+| Monaco | Config-as-code, migrations | Low | Yes | Yes |
+| Terraform | IaC environments, full stack | Medium | Yes | Yes |
+| Workflows | Event-driven, auto-remediation | Low | N/A | No |
+| SDKs | Custom apps, complex logic | Medium | Yes | Yes |
+For environments where SVG doesn't render
+-->
+<h3>Settings API</h3>
+<p>The foundation for all configuration automation. Direct REST API access to Dynatrace settings.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td>REST API</td>
+</tr>
+<tr>
+<td><strong>Access</strong></td>
+<td>HTTP calls with a platform token or OAuth bearer token (<code>settings:objects:read</code> / <code>settings:objects:write</code>), or a classic access token (<code>settings.read</code> / <code>settings.write</code>) where the environment still has them</td>
+</tr>
+<tr>
+<td><strong>Schema</strong></td>
+<td>JSON with schema validation</td>
+</tr>
+<tr>
+<td><strong>Use Case</strong></td>
+<td>Custom scripts, one-off operations</td>
+</tr>
+<tr>
+<td><strong>Documentation</strong></td>
+<td><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings">Settings API Reference</a> (environment API v2, <code>/api/v2/settings</code>); the platform API also has a <a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-settings-v1">Settings API</a> (<code>/platform/settings/v1</code>, platform token or OAuth only) — AUTOM-02 §2 compares them</td>
+</tr>
+</tbody>
+</table>
+<h3>Monaco</h3>
+<p>Dynatrace's official configuration-as-code CLI tool. YAML-based configuration management.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td>CLI tool</td>
+</tr>
+<tr>
+<td><strong>Configuration</strong></td>
+<td>YAML files</td>
+</tr>
+<tr>
+<td><strong>Features</strong></td>
+<td>Download, deploy (incl. <code>--dry-run</code>), delete, generate</td>
+</tr>
+<tr>
+<td><strong>Use Case</strong></td>
+<td>Config management, migrations</td>
+</tr>
+<tr>
+<td><strong>Documentation</strong></td>
+<td><a href="https://github.com/dynatrace/dynatrace-configuration-as-code">Monaco on GitHub</a></td>
+</tr>
+</tbody>
+</table>
+<h3>Terraform Provider</h3>
+<p>Dynatrace's official Terraform provider (<code>dynatrace-oss/dynatrace</code>, published as a Partner-tier provider on the Terraform Registry). Infrastructure-as-code approach.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td>Terraform provider</td>
+</tr>
+<tr>
+<td><strong>Configuration</strong></td>
+<td>HCL (HashiCorp Configuration Language)</td>
+</tr>
+<tr>
+<td><strong>Features</strong></td>
+<td>Plan, apply, destroy, state management</td>
+</tr>
+<tr>
+<td><strong>Use Case</strong></td>
+<td>IaC pipelines, environment provisioning</td>
+</tr>
+<tr>
+<td><strong>Documentation</strong></td>
+<td><a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest">Terraform Registry</a></td>
+</tr>
+</tbody>
+</table>
+<h3>Dynatrace Workflows</h3>
+<p>Built-in automation engine for event-driven actions within Dynatrace.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td>Platform feature</td>
+</tr>
+<tr>
+<td><strong>Configuration</strong></td>
+<td>UI or YAML</td>
+</tr>
+<tr>
+<td><strong>Features</strong></td>
+<td>Triggers, actions, conditions, JavaScript</td>
+</tr>
+<tr>
+<td><strong>Use Case</strong></td>
+<td>Auto-remediation, notifications, integrations</td>
+</tr>
+<tr>
+<td><strong>Documentation</strong></td>
+<td><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows">Workflows Documentation</a></td>
+</tr>
+</tbody>
+</table>
+<h3>Dynatrace SDKs</h3>
+<p>Official client libraries for programmatic access to Dynatrace APIs.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td>Client libraries</td>
+</tr>
+<tr>
+<td><strong>Languages</strong></td>
+<td>TypeScript/JavaScript (<code>@dynatrace-sdk/*</code>); Python automation calls the REST APIs directly</td>
+</tr>
+<tr>
+<td><strong>Features</strong></td>
+<td>Type-safe, auto-generated from OpenAPI</td>
+</tr>
+<tr>
+<td><strong>Use Case</strong></td>
+<td>Custom applications, complex automation</td>
+</tr>
+<tr>
+<td><strong>Documentation</strong></td>
+<td><a href="https://developer.dynatrace.com/develop/sdks/">Dynatrace SDK</a></td>
+</tr>
+</tbody>
+</table>
+<h3>dtctl</h3>
+<p>The Dynatrace command-line tool, developed in the open at <a href="https://github.com/dynatrace-oss/dtctl">dynatrace-oss/dtctl</a>. Dynatrace describes it as <em>&quot;for anybody who wants to use Dynatrace platform functionality via CLI, set up CI/CD pipelines that read or write Dynatrace data, or integrate Dynatrace with AI coding assistants.&quot;</em></p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td>CLI tool with kubectl-style verb-noun commands</td>
+</tr>
+<tr>
+<td><strong>Access</strong></td>
+<td>OAuth browser login, or a platform token where OAuth isn't possible (headless runs); credentials can also come from <code>DTCTL_ENVIRONMENT</code> / <code>DTCTL_TOKEN</code></td>
+</tr>
+<tr>
+<td><strong>Features</strong></td>
+<td>Workflows, DQL queries, dashboards and notebooks, SLOs, Settings objects, buckets, segments and more; <code>--dry-run</code>; JSON/YAML output and an agent output mode (<code>--agent</code>)</td>
+</tr>
+<tr>
+<td><strong>Use Case</strong></td>
+<td>Terminal and scripted operations, CI/CD steps, AI coding assistants</td>
+</tr>
+<tr>
+<td><strong>Scope</strong></td>
+<td>Latest Dynatrace on SaaS only; Managed has a separate tool, <code>dtmgd</code></td>
+</tr>
+<tr>
+<td><strong>Documentation</strong></td>
+<td><a href="https://docs.dynatrace.com/docs/platform/dtctl">dtctl CLI</a></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/objects/post-object">Settings API - POST an object (DT docs)</a> — <em>&quot;Platform Token / OAuth: Required scope: settings:objects:write&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic">Upgrade from classic access tokens to platform tokens (DT docs)</a> — (latest environment) <em>&quot;Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md">Dynatrace Terraform provider (Dynatrace GitHub)</a> — <em>&quot;The Dynatrace Terraform provider is officially supported by Dynatrace.&quot;</em>; Partner tier per the <a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest">Terraform Registry entry</a>, checked 10/02/2026.</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/dtctl">dtctl CLI (DT docs)</a> — <em>&quot;dtctl is compatible with Dynatrace SaaS environments only.&quot;</em>, <em>&quot;In cases where OAuth isn't possible, such as in headless environments, you can also use platform tokens.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="choosing-the-right-tool"></a></p>
+<h2>3. Choosing the Right Tool</h2>
+<h3>Use Case Mapping</h3>
+<table>
+<thead>
+<tr>
+<th>Use Case</th>
+<th>Recommended Tool</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>One-off configuration change</td>
+<td>Settings API</td>
+<td>No setup overhead — just a curl. Other tools require authoring + state</td>
+</tr>
+<tr>
+<td>Repeatable deployments</td>
+<td>Either Monaco <strong>or</strong> Terraform</td>
+<td>Both are fully capable. Monaco: one manifest → N tenants with no per-env state — pick this when the lower setup cost matters. Terraform: directory-per-env or workspaces achieves the same outcome — pick this when you're already a Terraform shop, since adding Monaco is optional (see §5)</td>
+</tr>
+<tr>
+<td>Full environment provisioning</td>
+<td>Terraform</td>
+<td>Cross-system orchestration — cloud (AWS/Azure/GCP) + Dynatrace + Git in one apply. Monaco is Dynatrace-only</td>
+</tr>
+<tr>
+<td>Auto-remediation</td>
+<td>Workflows</td>
+<td>Built-in event triggers (problem detected → action). Settings API / SDK require building event subscription yourself</td>
+</tr>
+<tr>
+<td>Custom application</td>
+<td>SDK</td>
+<td>Programmatic access — Monaco/Terraform are declarative-config tools, not application frameworks</td>
+</tr>
+<tr>
+<td>Tenant migration</td>
+<td>Monaco (target = another Dynatrace tenant) <strong>or</strong> <code>terraform-provider-dynatrace -export</code> (target = a local Terraform repo)</td>
+<td><code>monaco download</code> and the Terraform provider's <code>-export</code> both pull every config in one command. <code>terraform import</code> (the Terraform CLI feature, distinct from the provider's <code>-export</code>) is per-resource and requires authoring matching HCL first</td>
+</tr>
+<tr>
+<td>GitOps pipeline</td>
+<td>Monaco or Terraform</td>
+<td>CI/CD integration</td>
+</tr>
+<tr>
+<td>Interactive or scripted operations from a terminal, a pipeline step or an AI coding assistant</td>
+<td>dtctl</td>
+<td>One CLI across workflows, DQL, dashboards, Settings objects and more, with structured output for scripts and agents. SaaS only</td>
+</tr>
+</tbody>
+</table>
+<h3>Team Skill Considerations</h3>
+<table>
+<thead>
+<tr>
+<th>Team Background</th>
+<th>Best Fit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DevOps with Terraform experience</td>
+<td>Terraform Provider (Monaco optional — see §5)</td>
+</tr>
+<tr>
+<td>Developers comfortable with APIs</td>
+<td>Settings API or SDK</td>
+</tr>
+<tr>
+<td>SRE teams wanting GitOps</td>
+<td>Monaco</td>
+</tr>
+<tr>
+<td>Operations needing quick automation</td>
+<td>Workflows</td>
+</tr>
+<tr>
+<td>Mixed skill levels</td>
+<td>Monaco (lowest barrier)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>Feature Coverage Comparison</h3>
+<p>Not all tools support all Dynatrace features equally:</p>
+<table>
+<thead>
+<tr>
+<th>Configuration Type</th>
+<th>Settings API</th>
+<th>Monaco</th>
+<th>Terraform</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Settings 2.0 objects</td>
+<td>Full</td>
+<td>Full</td>
+<td>Full</td>
+</tr>
+<tr>
+<td>Classic config (legacy)</td>
+<td>N/A</td>
+<td>Full</td>
+<td>Full</td>
+</tr>
+<tr>
+<td>Dashboards</td>
+<td>N/A — Document API (classic dashboards: Configuration API)</td>
+<td>Full (<code>document</code> type)</td>
+<td>Full</td>
+</tr>
+<tr>
+<td>Synthetic monitors</td>
+<td>Full</td>
+<td>Full</td>
+<td>Full</td>
+</tr>
+<tr>
+<td>Alerting profiles ¹</td>
+<td>Full</td>
+<td>Full</td>
+<td>Full</td>
+</tr>
+<tr>
+<td>Management zones ¹</td>
+<td>Full</td>
+<td>Full</td>
+<td>Full</td>
+</tr>
+<tr>
+<td>Auto-tagging rules ¹</td>
+<td>Full</td>
+<td>Full</td>
+<td>Full</td>
+</tr>
+<tr>
+<td>SLOs (classic <code>builtin:monitoring.slo</code>) ¹</td>
+<td>Full</td>
+<td>Full</td>
+<td>Full</td>
+</tr>
+<tr>
+<td>Workflows</td>
+<td>N/A — Automation API</td>
+<td>Full (<code>automation</code> type)</td>
+<td>Full (<code>dynatrace_automation_workflow</code>)</td>
+</tr>
+<tr>
+<td>OpenPipeline</td>
+<td>Full</td>
+<td>Full</td>
+<td>Full</td>
+</tr>
+</tbody>
+</table>
+<p>¹ The schema behind this row is removed in Latest Dynatrace — it works until your environment upgrades. See the Settings 2.0 schema catalog in <strong>AUTOM-02</strong> for the status of each schema and its successor.</p>
+<blockquote>
+<p><strong>Note:</strong> Monaco and Terraform call the Settings API for Settings 2.0 objects and the platform APIs (Automation, Document, Grail storage) for platform resources — which is why Monaco takes a platform token or OAuth client alongside its access token. Feature parity for Settings objects depends on schema availability.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas">Monaco YAML configuration (DT docs)</a> — <em>&quot;Automation defines a workflow.&quot;</em>; <em>&quot;Document defines a dashboard, a notebook and a launchpad.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources">Monaco manage resources (DT docs)</a> — <em>&quot;a platform token or OAuth client for the Dynatrace Platform APIs, such as automation workflows, documents, and Grail buckets.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/automation_workflow.md"><code>dynatrace_automation_workflow</code> (Dynatrace GitHub)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas">Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)</a> — <em>&quot;None of the schemas on this page are visible in Latest Dynatrace.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="decision-framework"></a></p>
+<h2>4. Decision Framework</h2>
+<p>Use this flowchart to choose the right automation approach:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5BdXRvbWF0aW9uIFRvb2wgRGVjaXNpb24gRnJhbWV3b3JrPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPlRocmVlIGRlY2lzaW9uIGdhdGVzIHBpY2sgdGhlIHJpZ2h0IHRvb2wgZm9yIHRoZSBqb2I8L3RleHQ+CgogIDxkZWZzPgogICAgPG1hcmtlciBpZD0iZHRhcnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iMTAiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gU3RhcnQgLS0+CiAgPHJlY3QgeD0iNDAwIiB5PSI4NSIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI0MCIgcng9IjIwIiBmaWxsPSIjMTRiOGE2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIxMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmZmZmYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlN0YXJ0PC90ZXh0PgoKICA8IS0tIERlY2lzaW9uIDEgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSI0NjUsMTQ1IDU2MCwxOTUgNDY1LDI0NSAzNzAsMTk1IiBmaWxsPSIjM2I4MmY2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIxOTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmZmZmYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPk9uZS10aW1lPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjA3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmZmZmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj50YXNrPzwvdGV4dD4KICA8IS0tIFllcyDihpIgU2V0dGluZ3MgQVBJIC0tPgogIDxyZWN0IHg9IjY0MCIgeT0iMTc1IiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjQwIiByeD0iNCIgZmlsbD0iIzYzNjZmMSIvPgogIDx0ZXh0IHg9IjcxNSIgeT0iMjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmZmZmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5TZXR0aW5ncyBBUEk8L3RleHQ+CgogIDxsaW5lIHgxPSI1NjAiIHkxPSIxOTUiIHgyPSI2NDAiIHkyPSIxOTUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2R0YXJyKSIvPgogIDx0ZXh0IHg9IjYwMCIgeT0iMTg1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMjJjNTVlIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIj5ZZXM8L3RleHQ+CgogIDwhLS0gRGVjaXNpb24gMiAtLT4KICA8cG9seWdvbiBwb2ludHM9IjQ2NSwyNjUgNTYwLDMxNSA0NjUsMzY1IDM3MCwzMTUiIGZpbGw9IiMzYjgyZjYiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjMxMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZmZmZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+RXZlbnQtPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzI3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmZmZmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5kcml2ZW4/PC90ZXh0PgogIDxsaW5lIHgxPSI0NjUiIHkxPSIyNDUiIHgyPSI0NjUiIHkyPSIyNjUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2R0YXJyKSIvPgogIDx0ZXh0IHg9IjQ3OCIgeT0iMjYwIiBmaWxsPSIjZWY0NDQ0IiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIj5ObzwvdGV4dD4KCiAgPCEtLSBZZXMg4oaSIFRlcnJhZm9ybSAtLT4KICA8cmVjdCB4PSI2NDAiIHk9IjI5NSIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI0MCIgcng9IjQiIGZpbGw9IiM4YjVjZjYiLz4KICA8dGV4dCB4PSI3MTUiIHk9IjMyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZmZmZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+V29ya2Zsb3dzPC90ZXh0PgogIDxsaW5lIHgxPSI1NjAiIHkxPSIzMTUiIHgyPSI2NDAiIHkyPSIzMTUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2R0YXJyKSIvPgogIDx0ZXh0IHg9IjYwMCIgeT0iMzA1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMjJjNTVlIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIj5ZZXM8L3RleHQ+CgogIDwhLS0gQ3VzdG9tIGFwcD8g4oaSIFNESyAobGVmdCBicmFuY2ggZnJvbSBEZWNpc2lvbiAyKSAtLT4KICA8cmVjdCB4PSIxNDAiIHk9IjI5NSIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI0MCIgcng9IjQiIGZpbGw9IiNmNTllMGIiLz4KICA8dGV4dCB4PSIyMTUiIHk9IjMyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZmZmZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+U0RLPC90ZXh0PgogIDxsaW5lIHgxPSIzNzAiIHkxPSIzMTUiIHgyPSIyOTAiIHkyPSIzMTUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2R0YXJyKSIvPgogIDx0ZXh0IHg9IjMzMCIgeT0iMzA1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZjU5ZTBiIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIj5DdXN0b20gYXBwPC90ZXh0PgoKICA8IS0tIERlY2lzaW9uIDMgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSI0NjUsMzg1IDU2MCw0MjUgNDY1LDQ2NSAzNzAsNDI1IiBmaWxsPSIjM2I4MmY2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSI0MjMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmZmZmYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPk5lZWQgc3RhdGU8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0MzciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmZmZmYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPm1nbXQ/PC90ZXh0PgogIDxsaW5lIHgxPSI0NjUiIHkxPSIzNjUiIHgyPSI0NjUiIHkyPSIzODUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2R0YXJyKSIvPgogIDx0ZXh0IHg9IjQ3OCIgeT0iMzgwIiBmaWxsPSIjZWY0NDQ0IiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIj5ObzwvdGV4dD4KCiAgPCEtLSBZZXMg4oaSIFdvcmtmbG93cyAtLT4KICA8cmVjdCB4PSI2NDAiIHk9IjQwNSIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI0MCIgcng9IjQiIGZpbGw9IiNhNzhiZmEiLz4KICA8dGV4dCB4PSI3MTUiIHk9IjQzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZmZmZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+VGVycmFmb3JtPC90ZXh0PgogIDxsaW5lIHgxPSI1NjAiIHkxPSI0MjUiIHgyPSI2NDAiIHkyPSI0MjUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2R0YXJyKSIvPgogIDx0ZXh0IHg9IjYwMCIgeT0iNDE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMjJjNTVlIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIj5ZZXM8L3RleHQ+CgogIDwhLS0gTm8g4oaSIE1vbmFjbyAtLT4KICA8cmVjdCB4PSIxNDAiIHk9IjQwNSIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI0MCIgcng9IjQiIGZpbGw9IiMxNGI4YTYiLz4KICA8dGV4dCB4PSIyMTUiIHk9IjQzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZmZmZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+TW9uYWNvPC90ZXh0PgogIDxsaW5lIHgxPSIzNzAiIHkxPSI0MjUiIHgyPSIyOTAiIHkyPSI0MjUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2R0YXJyKSIvPgogIDx0ZXh0IHg9IjMzMCIgeT0iNDE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZWY0NDQ0IiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIj5ObzwvdGV4dD4KCiAgPCEtLSBDb25uZWN0IHN0YXJ0IHRvIGRlY2lzaW9uIDEgLS0+CiAgPGxpbmUgeDE9IjQ2NSIgeTE9IjEyNSIgeDI9IjQ2NSIgeTI9IjE0NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjZHRhcnIpIi8+CgogIDwhLS0gTGVnZW5kIC0tPgogIDxyZWN0IHg9IjQwIiB5PSI4NSIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIxMTAiIHJ4PSI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiLz4KICA8dGV4dCB4PSIxMzAiIHk9IjEwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+TGVnZW5kPC90ZXh0PgogIDxwb2x5Z29uIHBvaW50cz0iNjUsMTI2IDgwLDEzNiA2NSwxNDYgNTAsMTM2IiBmaWxsPSIjM2I4MmY2Ii8+CiAgPHRleHQgeD0iOTUiIHk9IjE0MCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+RGVjaXNpb248L3RleHQ+CiAgPHJlY3QgeD0iNTAiIHk9IjE1NSIgd2lkdGg9IjMwIiBoZWlnaHQ9IjE2IiByeD0iMyIgZmlsbD0iIzYzNjZmMSIvPgogIDx0ZXh0IHg9Ijk1IiB5PSIxNjgiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPlRvb2wgY2hvaWNlPC90ZXh0PgogIDxyZWN0IHg9IjUwIiB5PSIxNzgiIHdpZHRoPSIzMCIgaGVpZ2h0PSIxNiIgcng9IjEyIiBmaWxsPSIjMTRiOGE2Ii8+CiAgPHRleHQgeD0iOTUiIHk9IjE5MSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+U3RhcnQgLyBFbmQ8L3RleHQ+Cjwvc3ZnPgo=" alt="Decision Framework" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Question | If Yes | If No |
+|----------|--------|-------|
+| Is this a one-time task? | Settings API | Continue... |
+| Is it event-driven? | Workflows | Continue... |
+| Building a custom app? | SDK | Continue... |
+| Do you need state management or cross-system orchestration? | Terraform | Monaco |
+-->
+<hr />
+<h3>Combining Tools</h3>
+<p>These tools aren't mutually exclusive. Common combinations:</p>
+<table>
+<thead>
+<tr>
+<th>Combination</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Monaco + Workflows</td>
+<td>Deploy configs with auto-remediation</td>
+</tr>
+<tr>
+<td>Terraform + Monaco</td>
+<td>Infra provisioning + config management</td>
+</tr>
+<tr>
+<td>SDK + Settings API</td>
+<td>Custom app with direct API fallback</td>
+</tr>
+<tr>
+<td>Monaco + CI/CD</td>
+<td>GitOps config deployments</td>
+</tr>
+</tbody>
+</table>
+<h3>Anti-Patterns to Avoid</h3>
+<table>
+<thead>
+<tr>
+<th>Anti-Pattern</th>
+<th>Problem</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mixing Monaco and Terraform for same config</td>
+<td>State conflicts</td>
+<td>Choose one for each config type</td>
+</tr>
+<tr>
+<td>Manual changes alongside automation</td>
+<td>Configuration drift</td>
+<td>Use automation exclusively</td>
+</tr>
+<tr>
+<td>No version control</td>
+<td>No rollback capability</td>
+<td>Always use Git</td>
+</tr>
+<tr>
+<td>Hardcoded secrets</td>
+<td>Security risk</td>
+<td>Use environment variables or vaults</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="terraform-shop"></a></p>
+<h2>5. When a Terraform Shop Should Add Monaco</h2>
+<p><strong>Monaco is optional for Terraform shops.</strong> A confident Terraform shop can cover the full Dynatrace surface — provisioning, configuration, drift detection, multi-env promotion — without ever adopting Monaco. The Terraform provider's built-in <code>-export</code> utility (see §3 &quot;Tenant migration&quot; row and the bulk-download workflow below) removes the historical reason teams reached for Monaco as a Terraform on-ramp.</p>
+<p>This section names <strong>four specific patterns</strong> where <em>adding</em> Monaco alongside an established Terraform footprint can pay off. <strong>None are blockers.</strong> If none of these patterns describe your situation, skip this section and stay Terraform-only — that's a complete, supported path.</p>
+<p>The general guidance in §4 (Combining Tools) still applies: pick one tool per config and avoid overlap. The patterns below name the seams where Monaco genuinely earns its place — not a recommendation to adopt Monaco by default.</p>
+<h3>Four Patterns Where Monaco Wins for a Terraform Shop</h3>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Why Monaco wins</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Bulk download from an existing tenant</strong></td>
+<td>When the <em>target</em> is Terraform, the Dynatrace Terraform provider's built-in <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/terraform-cli-commands">export utility</a> (<code>terraform-provider-dynatrace -export</code>) pulls every supported resource directly into ready-to-use HCL — no Monaco intermediate, no <code>terraform import</code> resource-by-resource authoring. When the <em>target</em> is Monaco, <code>monaco download</code> is the equivalent. For Terraform shops onboarding an inherited tenant, the provider's <code>-export</code> is the on-ramp — Monaco-as-intermediate adds a manual HCL-authoring step that the provider already does for you.</td>
+</tr>
+<tr>
+<td><strong>N tenants, identical configs</strong></td>
+<td>Monaco's <code>manifest.yaml</code> lists multiple environments and deploys to all with variable substitution — no per-environment state, no workspaces. For <em>&quot;we have prod + EU-prod + APAC-prod and they should all look the same&quot;</em>, Monaco is less ceremony. Terraform workspaces can do it, but each has its own state and the divergence-over-time tax is real.</td>
+</tr>
+<tr>
+<td><strong>App-team self-service</strong></td>
+<td>Letting product teams commit Dynatrace configs alongside their app code with a CI job running <code>monaco deploy</code> on merge — no state backend per team, no state-locking infrastructure. The platform team keeps Terraform-managed shared infra; app teams get a low-floor path for their own SLOs / dashboards / management zones.</td>
+</tr>
+<tr>
+<td><strong>Bleeding-edge Settings 2.0 schemas</strong></td>
+<td>In community practice, Monaco's schema-id configs reach a new schema first, while the Terraform provider's typed resources can lag (its <code>dynatrace_generic_setting</code> resource is documented for schemas contributed by custom platform apps, so coverage of new <code>builtin:</code> schemas is not documented either way). For a config that has no typed resource yet, Monaco is a fallback — verify against the provider's current resource list first.</td>
+</tr>
+</tbody>
+</table>
+<h3>What's NOT a Good Reason for a Terraform Shop</h3>
+<table>
+<thead>
+<tr>
+<th>Reason</th>
+<th>Why it's weak</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>&quot;Monaco's YAML is nicer than HCL&quot;</em></td>
+<td>Preference, not technical. For an existing shop, stick with what works.</td>
+</tr>
+<tr>
+<td><em>&quot;Monaco doesn't need state&quot;</em></td>
+<td>True, but you'll want some equivalent (Git history at minimum) for audit. The state-less property is a benefit only when state management is genuinely a barrier (the self-service pattern above).</td>
+</tr>
+<tr>
+<td><em>&quot;Adding Monaco gives us redundancy / a backup&quot;</em></td>
+<td>Two tools managing overlapping resources is the documented anti-pattern in §4 Combining Tools. The coordination cost dwarfs the perceived resilience.</td>
+</tr>
+<tr>
+<td><em>&quot;We need Monaco to bootstrap a Terraform repo from an existing tenant&quot;</em></td>
+<td>No — the Terraform provider's own <code>-export</code> does this directly. See the bulk-download workflow below.</td>
+</tr>
+</tbody>
+</table>
+<h3>The Practical Boundary</h3>
+<p>For an experienced Terraform shop adopting Monaco selectively, the rule is <strong>boundary, not choice</strong> — each config belongs to exactly one tool, and the line runs along these natural seams:</p>
+<table>
+<thead>
+<tr>
+<th>Use Monaco for</th>
+<th>Use Terraform for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tenant cloning / bulk migration</td>
+<td>Cross-cloud orchestration (AWS / Bitbucket / Dynatrace in one apply — see AUTOM-07 §5 <em>Combined Workspace</em>)</td>
+</tr>
+<tr>
+<td>Per-app self-service configs</td>
+<td>Platform-team shared infra</td>
+</tr>
+<tr>
+<td>Bleeding-edge schemas</td>
+<td>Anything with cross-system dependencies</td>
+</tr>
+<tr>
+<td>Multi-tenant N×deploy of identical sets</td>
+<td>State-backed, dependency-graphed infra</td>
+</tr>
+<tr>
+<td>—</td>
+<td>Configs you actively manage, including drift detection (<code>terraform plan</code>; Monaco has no drift view — <code>--dry-run</code> does not contact the tenant)</td>
+</tr>
+</tbody>
+</table>
+<p>Document the boundary explicitly (in <code>DECISIONS.md</code> or your tenant runbook) so teams know which tool owns which config category — that's what prevents the anti-pattern of overlap.</p>
+<h3>When You're Doing the Bulk Download</h3>
+<p>Two paths, picked by target:</p>
+<p><strong>Target = Terraform repo (most common for a Terraform shop):</strong></p>
+<ol>
+<li><code>terraform-provider-dynatrace -export</code> — pulls every supported resource directly into HCL. Output lands in <code>DYNATRACE_TARGET_FOLDER</code> (defaults to <code>.configuration/</code>). Use <code>-flat</code> for a single directory; default is a module structure. Use <code>-list-exclusions</code> to see what's excluded by default (notably dashboards — opt in explicitly when you want them). Add <code>-admin-access</code> (requires the <code>settings:objects:admin</code> permission) so OpenPipeline resources owned by other users are exported too — without it only the current user's are.</li>
+<li>Review and clean up — the export produces <code>.flawed/</code> for deprecated configs and <code>.requires_attention/</code> (the docs page spells it <code>.required_attention</code>; AUTOM-04 § 8 quotes the utility source) for items missing essentials (e.g., credential payloads the API can't return). Triage both.</li>
+<li>Commit to Git as your <em>source-of-truth</em> baseline.</li>
+<li>From here you're on the standard Terraform workflow — <code>terraform plan</code> shows drift vs the tenant; <code>terraform apply</code> reconciles. See AUTOM-04 + AUTOM-09 for the operational layer.</li>
+</ol>
+<p><strong>Target = decision-not-yet-made (the &quot;see what's there first&quot; pattern):</strong></p>
+<ol>
+<li><code>monaco download --manifest manifest.yaml --environment &lt;tenant&gt;</code> — pulls every config to YAML. Human-readable; faster to skim than HCL.</li>
+<li>Review the YAML to understand the tenant's footprint.</li>
+<li>Decide:
+<ul>
+<li><strong>Stay on Monaco</strong> if the configs are stable and the deploy cadence is low → Monaco's lower-ceremony loop wins.</li>
+<li><strong>Switch to the Terraform provider's <code>-export</code></strong> if you're committing to Terraform → use the YAML as a checklist for what to expect in the HCL output.</li>
+</ul>
+</li>
+</ol>
+<p><strong>Don't use Monaco-download-as-Terraform-bootstrap.</strong> Monaco's YAML and the Terraform provider's HCL don't share a converter (no Dynatrace-supplied tool, and no community OSS bridge found in GitHub searches as of September 2026). Hand-authoring HCL from Monaco YAML loses to running <code>-export</code> directly.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/terraform-cli-commands">Dynatrace Terraform provider export utility (DT docs)</a> — <em>&quot;./terraform-provider-dynatrace -export -ref -exclude dynatrace_platform_slo dynatrace_automation_workflow&quot;</em>; <em>&quot;-admin-access : Export OpenPipeline resources of all owners, not just the current user's. Requires the settings:objects:admin permission.&quot;</em>; module-structure vs <code>-flat</code>; <code>.flawed</code> / <code>.requires_attention</code> triage dirs; default exclusions.</sub></li>
+<li><sub><a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/generic_setting.md"><code>dynatrace_generic_setting</code> (Dynatrace GitHub)</a> — <em>&quot;The resource <code>dynatrace_generic_setting</code> covers configuration for Schemas contributed by Custom Platform Apps&quot;</em></sub></li>
+<li><sub><a href="https://github.com/Dynatrace/dynatrace-configuration-as-code">Monaco repo README (Dynatrace GitHub)</a> — confirms Monaco and Terraform provider are separate tools; no built-in conversion. <strong>Observed 09/28/2026:</strong> GitHub repository searches for <code>monaco to terraform</code>, <code>monaco terraform dynatrace</code>, <code>dynatrace monaco convert</code> and <code>dynatrace monaco migration</code> returned no Monaco-to-Terraform converter (first checked 05/12/2026). An absence in search results is an observation, not a guarantee — re-check before relying on it.</sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="first-time-setup-path"></a></p>
+<h2>6. First-Time Setup Path — From Zero to GitOps Pipeline</h2>
+<p>Once you've picked Monaco or Terraform (per §3-§5), here's the sequenced path from &quot;no automation today&quot; to &quot;PR-driven plan-then-apply pipeline.&quot; Both paths assume the tenant already has manually-created configuration that you want to bring into source control.</p>
+<h3>Path A — Terraform target (most common for shops with existing IaC)</h3>
+<blockquote>
+<p><strong>Monaco does not appear in this path.</strong> A Terraform-only setup is complete and supported end-to-end. If you later hit one of the patterns in §5, you can selectively add Monaco alongside — but the loop below stands on its own.</p>
+</blockquote>
+<ol>
+<li><strong>Install the Terraform CLI</strong> — see <strong>AUTOM-04 §2 Getting Started</strong> for OS-specific install commands.</li>
+<li><strong>Configure the Dynatrace provider</strong> — see <strong>AUTOM-04 §3 Provider Configuration</strong>. Set <code>DYNATRACE_ENV_URL</code> + a Platform Token (<code>dt0s16</code>) for platform resources (workflows, documents, segments, buckets, OpenPipeline). Add a classic API Token (<code>dt0c01</code>) for classic resources — the provider documents that platform tokens cannot be used for them — and for the resources its v1.88.0 release moved to API-token-only (16 resources incl. synthetic and network monitors, SLOs, credentials and network zones; full list in <strong>AUTOM-04 §3</strong>). IAM resources need an OAuth client. Classic API tokens no longer exist once the environment is on Latest Dynatrace.</li>
+<li><strong>Bulk-export the tenant's existing config to HCL</strong> — run <code>terraform-provider-dynatrace -export</code> (the provider's built-in export utility — <strong>NOT</strong> <code>terraform import</code>, which is per-resource). Output lands in <code>.configuration/</code>; triage <code>.flawed/</code> (deprecated configs) and <code>.requires_attention/</code> (sensitive fields the API can't return) before committing. See <strong>AUTOM-04 §8 Next Steps</strong> for invocation details and <strong>AUTOM-01 §5 bulk-download workflow</strong> for the full triage flow.</li>
+<li><strong>Stand up the repo layout</strong> — choose single-repo (<code>modules/</code> + <code>envs/</code>) or two-repo (modules separate from consumer). See <strong>AUTOM-09 §2 Opinionated Repo Layout</strong>.</li>
+<li><strong>Configure the state backend</strong> — S3+DynamoDB, GCS, Azure Storage, or HCP Terraform. See <strong>AUTOM-09 §3 State Backend Setup</strong> for <code>backend.tf</code> examples per backend.</li>
+<li><strong>Lock down version constraints</strong> — <code>required_providers</code> + <code>~&gt;</code> constraint discipline. See <strong>AUTOM-09 §4 Provider Configuration and Version Discipline</strong>.</li>
+<li><strong>Modularize repeated patterns</strong> — start with one module per resource family (management-zone, alerting-profile, slo). See <strong>AUTOM-09 §5 Module Strategy</strong>.</li>
+<li><strong>Establish multi-environment promotion</strong> — directory-per-env with shared modules + per-env tfvars. See <strong>AUTOM-09 §6 Multi-Environment Promotion</strong>.</li>
+<li><strong>Wire up CI/CD</strong> — pick your platform and follow its recipe: <strong>AUTOM-07 §3 GitHub Actions</strong> · <strong>§4 GitLab CI/CD</strong> · <strong>§5 Bitbucket Pipelines</strong> · <strong>§6 Atlassian Bamboo</strong> · <strong>§7 Azure DevOps Pipelines</strong>. Each section covers plan-on-PR + manual-gated apply + plan-artifact reuse.</li>
+<li><strong>Add lifecycle protections + secrets discipline + onboarding</strong> before the first real prod apply. See <strong>AUTOM-09 §8 Secrets Handling</strong> · <strong>§9 Lifecycle Protections</strong> · <strong>§10 Onboarding New App Teams</strong> · <strong>§12 Operational Realities</strong> (stuck state lock, break-glass, DR).</li>
+</ol>
+<h3>Path B — Monaco target (config-only, single-tool simplicity)</h3>
+<ol>
+<li><strong>Install Monaco</strong> — see <strong>AUTOM-03 §2 Getting Started</strong>. <code>curl</code> the release binary (macOS/Linux) or download the <code>.exe</code> (Windows); there is no Homebrew formula.</li>
+<li><strong>Set environment variables</strong> — tenant URL + access token, plus a platform token or OAuth client for platform configs (workflows, documents, buckets). See <strong>AUTOM-03 §2 Environment Setup</strong>.</li>
+<li><strong>Bulk-download the tenant's existing config to YAML</strong> — <code>monaco download --manifest manifest.yaml --environment &lt;tenant&gt;</code>. See <strong>AUTOM-08 Migration Automation</strong> for the full migration flow.</li>
+<li><strong>Review and clean up</strong> — Monaco's YAML is human-readable; delete noise, parameterize sensitive values, split into logical projects. See <strong>AUTOM-03 §3 Project Structure</strong>.</li>
+<li><strong>Author your <code>manifest.yaml</code></strong> — list every environment Monaco should deploy to. Per-env values via <code>parameters</code> block. See <strong>AUTOM-03 §4 Configuration Files</strong>.</li>
+<li><strong>Commit to Git as your source-of-truth baseline.</strong></li>
+<li><strong>Wire up CI/CD</strong> — pick your platform and use the <strong>Monaco-deploy pattern</strong> from: <strong>AUTOM-07 §3 GitHub Actions</strong> · <strong>§4 GitLab CI/CD</strong> · <strong>§5.1 Bitbucket Pipelines — Monaco Deploy</strong> · <strong>§6 Atlassian Bamboo</strong> (adapt the Plan Specs YAML to call <code>monaco deploy</code> instead of <code>terraform plan/apply</code>).</li>
+<li><strong>Add review + approval discipline</strong> — Monaco doesn't have state-file locking, but pipeline-level approval gates work the same way. PR triggers <code>monaco deploy --dry-run</code> (Monaco has no <code>validate</code> command); merge to main triggers <code>monaco deploy</code> (gated by manual approval for production).</li>
+<li><strong>Plan for tool evolution</strong> — if your needs grow beyond Dynatrace-config-only, <strong>AUTOM-01 §5</strong> documents the patterns where adding Terraform alongside Monaco makes sense.</li>
+</ol>
+<h3>Common pitfalls (both paths)</h3>
+<table>
+<thead>
+<tr>
+<th>Pitfall</th>
+<th>Why it bites</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pushing a token in <code>terraform.tfvars</code> to Git</td>
+<td>Source-control leak of long-lived credentials</td>
+<td>Use <code>*.tfvars</code> in <code>.gitignore</code>; pass tokens via env vars or CI/CD secret store</td>
+</tr>
+<tr>
+<td>First <code>apply</code> without <code>prevent_destroy</code> on critical resources</td>
+<td>One bad PR can delete production management zones / IAM policies</td>
+<td>Add <code>lifecycle { prevent_destroy = true }</code> on prod resources before the first prod apply. See <strong>AUTOM-09 §9</strong></td>
+</tr>
+<tr>
+<td>Skipping the <code>.requires_attention/</code> triage after <code>-export</code></td>
+<td>Apply fails on missing credential payloads</td>
+<td>Open the <code>.requires_attention/</code> directory; fill in stub values; re-run validate; only then commit</td>
+</tr>
+<tr>
+<td>One state file across all environments</td>
+<td>dev apply can corrupt prod state</td>
+<td>Per-env state file from day 1. See <strong>AUTOM-09 §3</strong> + <strong>§6</strong></td>
+</tr>
+<tr>
+<td>Apply runs without artifact reuse from the reviewed plan</td>
+<td>The plan reviewers saw isn't what gets applied</td>
+<td>Use the plan-artifact pattern: plan publishes <code>tfplan</code> → apply subscribes to it. See <strong>AUTOM-07 §3-§7</strong> for platform-specific syntax</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md">Dynatrace Terraform provider (Dynatrace GitHub)</a> — <em>&quot;Platform tokens can't be used for IAM (Account Management) or classic resources.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases/tag/v1.88.0">Terraform provider v1.88.0 release notes (Dynatrace GitHub)</a> — <em>&quot;For these resources, an API token must be provided&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources">Monaco manage resources (DT docs)</a> — <em>&quot;Access tokens and platform tokens are not interchangeable.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic">Upgrade from classic access tokens to platform tokens (DT docs)</a> — (latest environment) <em>&quot;Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="api-token-scopes-reference"></a></p>
+<h2>7. Authentication &amp; Token Reference</h2>
+<p>Dynatrace supports three types of credentials for automation tools. Which you need depends on the tool and the resources you manage.</p>
+<h3>Token Types</h3>
+<table>
+<thead>
+<tr>
+<th>Token Type</th>
+<th>Description</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Access Token (Classic)</strong></td>
+<td>Scope-based token with explicit permissions (e.g., <code>settings.read</code>). Exists only in classic and hybrid environments — not once the environment is on Latest Dynatrace</td>
+<td>Settings API, Monaco, Terraform (settings/classic)</td>
+</tr>
+<tr>
+<td><strong>Platform Token</strong></td>
+<td>Long-lived token bound to a user's permissions; simpler to create</td>
+<td>Same as access token, but scopes are limited to user's existing permissions</td>
+</tr>
+<tr>
+<td><strong>OAuth Client</strong></td>
+<td>Client ID + secret exchanged for short-lived tokens</td>
+<td><strong>Required</strong> for account IAM resources; workflows, documents and segments accept a Platform Token or an OAuth client</td>
+</tr>
+</tbody>
+</table>
+<h3>Tool Authentication Matrix</h3>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Access/Platform Token</th>
+<th>OAuth Client</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Settings API</strong></td>
+<td>Platform token: <code>settings:objects:read</code>, <code>settings:objects:write</code> (<code>Authorization: Bearer</code>); classic access token: <code>settings.read</code>, <code>settings.write</code> (<code>Authorization: Api-Token</code>)</td>
+<td><code>settings:objects:read</code>, <code>settings:objects:write</code></td>
+<td>Direct REST calls; see AUTOM-02</td>
+</tr>
+<tr>
+<td><strong>Monaco</strong></td>
+<td>Access token: <code>DataExport</code>, <code>ReadConfig</code>, <code>WriteConfig</code>, <code>settings.read</code>, <code>settings.write</code> (<code>auth.token</code>); platform token for platform configs (<code>auth.platformToken</code>)</td>
+<td>Alternative to the platform token for platform configs (<code>auth.oAuth</code>)</td>
+<td>Workflows, documents, Grail buckets and segments need <code>platformToken</code> or <code>oAuth</code>; access and platform tokens are not interchangeable</td>
+</tr>
+<tr>
+<td><strong>Terraform</strong> (settings/classic)</td>
+<td><code>settings.read</code>, <code>settings.write</code>, <code>ReadConfig</code>, <code>WriteConfig</code></td>
+<td>N/A</td>
+<td>IaC for config objects</td>
+</tr>
+<tr>
+<td><strong>Terraform</strong> (automation/documents)</td>
+<td>Platform Token with <code>DYNATRACE_HTTP_OAUTH_PREFERENCE=true</code> (see AUTOM-04 §3)</td>
+<td><code>automation:workflows:read/write</code>, <code>document:documents:read/write</code></td>
+<td>Platform Token <strong>or</strong> OAuth</td>
+</tr>
+<tr>
+<td><strong>Terraform</strong> (account management)</td>
+<td>N/A</td>
+<td>IAM scopes + <code>DT_ACCOUNT_ID</code></td>
+<td>OAuth <strong>required</strong></td>
+</tr>
+<tr>
+<td><strong>Workflows</strong></td>
+<td>Built-in (no external token needed)</td>
+<td>N/A</td>
+<td>Platform feature</td>
+</tr>
+<tr>
+<td><strong>SDKs</strong></td>
+<td>Depends on operations performed</td>
+<td>N/A</td>
+<td>Client libraries</td>
+</tr>
+</tbody>
+</table>
+<h3>Token Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Least privilege</td>
+<td>Only grant required scopes</td>
+</tr>
+<tr>
+<td>Environment-specific</td>
+<td>Separate tokens per environment</td>
+</tr>
+<tr>
+<td>Rotation</td>
+<td>Rotate tokens regularly</td>
+</tr>
+<tr>
+<td>Secret storage</td>
+<td>Use HashiCorp Vault, AWS Secrets Manager, etc.</td>
+</tr>
+<tr>
+<td>Platform tokens</td>
+<td>Prefer over classic access tokens for simpler management</td>
+</tr>
+<tr>
+<td>OAuth for service identities</td>
+<td>Prefer OAuth clients for CI/CD service identities managing Workflows or Documents; a Platform Token also works</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Key Distinction:</strong> Both platform tokens and OAuth clients act as a user. A platform token is limited to the permissions of the user or service user it belongs to (a scope only grants access if that user already has the permission). A client-credentials OAuth client is bound to a subject user, and its tokens get the intersection of the client's scopes and that user's permissions. For CI/CD, bind either one to a service user.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/objects/post-object">Settings API - POST an object (DT docs)</a> — <em>&quot;Platform Token / OAuth: Required scope: settings:objects:write&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic">Upgrade from classic access tokens to platform tokens (DT docs)</a> — <em>&quot;platform tokens are available alongside classic access tokens&quot;</em> (hybrid); (latest environment) <em>&quot;Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources">Monaco manage resources (DT docs)</a> — access-token minimum includes <em>&quot;Access problem and event feed, metrics, and topology ( DataExport )&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients">OAuth clients (DT docs)</a> — <em>&quot;For Client credentials only: provide the Subject user email&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-mcp">Dynatrace MCP server (DT docs)</a> — <em>&quot;the effective token permissions consist of the intersection of the permissions configured on the OAuth client and the permissions of the user who created the client.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="emerging-capabilities"></a></p>
+<h2>8. Emerging Capabilities</h2>
+<h3>Dynatrace Intelligence Agents</h3>
+<p>Announced at Perform 2026, <strong>Dynatrace Intelligence</strong> is an agentic operations system that fuses deterministic and agentic AI. Intelligence Agents transform insights into autonomous outcomes across IT and business operations.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td>Agentic AI layer built into the platform</td>
+</tr>
+<tr>
+<td><strong>Capabilities</strong></td>
+<td>Autonomous SRE, security, and development agents</td>
+</tr>
+<tr>
+<td><strong>Integration</strong></td>
+<td>Works through Dynatrace Workflows for agentic workflows</td>
+</tr>
+<tr>
+<td><strong>Governance</strong></td>
+<td>Built-in guardrails for supervised or autonomous operation</td>
+</tr>
+<tr>
+<td><strong>Use Case</strong></td>
+<td>Auto-prevention, auto-remediation, auto-optimization</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Dynatrace Intelligence Agents represent a shift from rule-based automation (Workflows, Monaco, Terraform) to AI-driven autonomous operations. They complement existing tools rather than replacing them.</p>
+</blockquote>
+<h3>Dynatrace MCP Server</h3>
+<p>The <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-mcp">Dynatrace MCP Server</a> implements the Model Context Protocol (MCP), enabling AI assistants (Claude, GitHub Copilot, Amazon Q) to interact with Dynatrace using natural language.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td>Dynatrace-hosted MCP server, reached through your environment's MCP gateway URL with a platform token or OAuth bearer token (the earlier open-source local server, <code>@dynatrace-oss/dynatrace-mcp-server</code>, is deprecated)</td>
+</tr>
+<tr>
+<td><strong>Access</strong></td>
+<td>AI assistants can query problems, metrics, traces, logs, topology</td>
+</tr>
+<tr>
+<td><strong>Use Case</strong></td>
+<td>AI-assisted development, triage, incident management</td>
+</tr>
+<tr>
+<td><strong>Documentation</strong></td>
+<td><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-mcp">MCP Server Documentation</a></td>
+</tr>
+</tbody>
+</table>
+<h3>How Emerging Capabilities Fit</h3>
+<table>
+<thead>
+<tr>
+<th>Automation Maturity</th>
+<th>Approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Manual</strong></td>
+<td>Settings API, one-off scripts</td>
+</tr>
+<tr>
+<td><strong>Automated</strong></td>
+<td>Monaco, Terraform, CI/CD pipelines</td>
+</tr>
+<tr>
+<td><strong>Supervised</strong></td>
+<td>Workflows with human approval gates</td>
+</tr>
+<tr>
+<td><strong>Autonomous</strong></td>
+<td>Intelligence Agents with guardrails</td>
+</tr>
+<tr>
+<td><strong>AI-Assisted</strong></td>
+<td>MCP Server for developer and SRE tooling</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-mcp">Dynatrace MCP server (DT docs)</a> — <em>&quot;Every request to the MCP server needs a bearer token in the authorization header.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/dynatrace-oss/dynatrace-mcp">dynatrace-mcp README (Dynatrace GitHub)</a> — <em>&quot;This repository is deprecated. Version 2.1.2 was the final release — no further updates will be made.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="next-steps"></a></p>
+<h2>9. Next Steps</h2>
+<h3>Learning Path by Goal</h3>
+<table>
+<thead>
+<tr>
+<th>Your Goal</th>
+<th>Recommended Path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Quick script automation</td>
+<td>AUTOM-02 (Settings API)</td>
+</tr>
+<tr>
+<td>GitOps config management</td>
+<td>AUTOM-03 (Monaco) → AUTOM-07 (CI/CD)</td>
+</tr>
+<tr>
+<td>Full IaC environment</td>
+<td>AUTOM-04 (Terraform) → AUTOM-07 (CI/CD)</td>
+</tr>
+<tr>
+<td>Auto-remediation</td>
+<td>AUTOM-05 (Workflows)</td>
+</tr>
+<tr>
+<td>Custom application</td>
+<td>AUTOM-06 (SDKs)</td>
+</tr>
+<tr>
+<td>Tenant migration</td>
+<td>AUTOM-08 (Migration)</td>
+</tr>
+</tbody>
+</table>
+<h3>Continue the Series</h3>
+<table>
+<thead>
+<tr>
+<th>Next Notebook</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AUTOM-02: Settings API</strong></td>
+<td>Deep dive into REST API configuration</td>
+</tr>
+</tbody>
+</table>
+<h3>Additional Resources</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api">Dynatrace API Documentation</a></li>
+<li><a href="https://github.com/dynatrace/dynatrace-configuration-as-code">Monaco GitHub Repository</a></li>
+<li><a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs">Terraform Provider Documentation</a></li>
+<li><a href="https://developer.dynatrace.com/">Dynatrace Developer Portal</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/dtctl">dtctl CLI</a></li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>The automation options available for Dynatrace configuration</li>
+<li>When to use Settings API, Monaco, Terraform, Workflows, or SDKs</li>
+<li>How to choose the right tool based on your use case and team skills</li>
+<li>Best practices for combining automation tools</li>
+</ul>
+<blockquote>
+<p><strong>Key Takeaway:</strong> Choose the automation tool that matches your team's skills and your operational model. Terraform shops can stay Terraform-only (§5); in community practice, teams without IaC experience often find Monaco the lower-ceremony place to start.</p>
+</blockquote>
+<hr />
+<p><em>Continue to <strong>AUTOM-02: Settings API</strong> to learn direct REST API configuration.</em></p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

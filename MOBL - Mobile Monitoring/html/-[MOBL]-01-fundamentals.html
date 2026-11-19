@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MOBL-01: Mobile Monitoring Fundamentals</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MOBL — Mobile Monitoring</a><span class="sep">/</span><span aria-current="page">MOBL-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MOBL-01: Mobile Monitoring Fundamentals</h1>
+<blockquote>
+<p><strong>Series:</strong> MOBL — Mobile Monitoring | <strong>Notebook:</strong> 1 of 12 | <strong>Created:</strong> February 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook introduces Dynatrace mobile Real User Monitoring (RUM) -- the architecture, supported platforms, mobile entity types, and how beacon data flows from device to Grail. Whether you're a mobile developer instrumenting an app or an SRE analyzing mobile performance, this is your starting point.</p>
+<h3>OneAgent for Mobile 8.337 (April 2026): What's New</h3>
+<p>Sprint 8.337 of OneAgent for Mobile lands platform updates and developer-tooling changes that affect both new instrumentations and existing app builds.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Android 17 support</strong></td>
+<td>OneAgent Mobile now supports Android 17</td>
+<td>Verify build/test targets; no app code changes needed</td>
+</tr>
+<tr>
+<td><strong>Gradle 9.5 compatibility</strong></td>
+<td>Android Gradle plugin works with Gradle 9.5</td>
+<td>Update <code>gradle-wrapper.properties</code> if pinned to older versions</td>
+</tr>
+<tr>
+<td><strong>Swift Instrumentor: macOS 11.5+ required</strong></td>
+<td>Build-time instrumentation tool now needs newer macOS</td>
+<td><strong>Build pipeline impact</strong> — update CI runner images for iOS builds</td>
+</tr>
+<tr>
+<td><strong>Session-level RUM toggle (Android)</strong></td>
+<td>The New RUM Experience can be toggled at session start without app restart</td>
+<td>Faster A/B testing of monitoring config</td>
+</tr>
+<tr>
+<td><strong>Touch event stability fix (Android)</strong></td>
+<td>Better protection against invalid pointer states during multi-touch</td>
+<td>Reduces crashes on gesture-heavy apps</td>
+</tr>
+<tr>
+<td><strong>I/O blocking ANR fix (Android)</strong></td>
+<td>Resolved blocking I/O during startup that triggered ANR</td>
+<td>Faster perceived startup; fewer ANR reports</td>
+</tr>
+<tr>
+<td><strong>SwiftUI button + Tab/TabSection (iOS)</strong></td>
+<td>Fixed instrumentation for button labels and Tab/TabSection components</td>
+<td>Re-run instrumentor on apps that previously failed</td>
+</tr>
+<tr>
+<td><strong>Modal animation performance (iOS)</strong></td>
+<td>Fixed slow/stuttering modal presentation animations</td>
+<td>UX improvement</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Action:</strong> if your CI runs Swift Instrumentor on a macOS image older than 11.5, plan the runner-image upgrade before adopting 8.337. iOS builds otherwise still produce instrumented binaries on the prior agent.</p>
+</blockquote>
+<hr />
+<h3>OneAgent for Mobile 8.345 (August 2026)</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Gradle 9.7 compatibility</strong></td>
+<td>The Dynatrace Android Gradle plugin now supports Gradle 9.7</td>
+<td>Unblocks Android projects already on 9.7; update <code>gradle-wrapper.properties</code> if pinned</td>
+</tr>
+<tr>
+<td><strong>Android fixes (build 8.345.1)</strong></td>
+<td>ANR eliminated in Jetpack Compose instrumentation with Session Replay, and in Compose user-interaction monitoring; 5G NSA sessions no longer misreported as 4G; native crash attribution corrected across sessions</td>
+<td>If Compose + Session Replay was deferred over ANR reports, this is the build that addresses them; network-type analytics shift for 5G NSA users</td>
+</tr>
+<tr>
+<td><strong>iOS fixes (build 8.345.1)</strong></td>
+<td>User-action navigation and web-request detection improved; Session Replay stack overflow prevented; Initial Loading Action tracking corrected; iOS 27 tab-switch Session Replay fixed; a configuration-handling race condition eliminated</td>
+<td>Several affect <em>measured values</em>, not just stability — Initial Loading Action in particular, so expect a step in that metric after adoption</td>
+</tr>
+</tbody>
+</table>
+<p>Released 08/03/2026 with rollout from 08/11/2026. No Flutter, React Native, or Cordova changes in this sprint. As always with mobile, the agent version that matters is the one <strong>compiled into shipped app builds</strong> — these land as users update, not when the tenant updates.</p>
+<h3>OneAgent for Mobile 8.347 – 8.351 (August – November 2026)</h3>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Item</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>8.347</strong> (published 08/28/2026, rollout from 09/08/2026)</td>
+<td>An <strong>app start user action</strong> on every launch, and <strong>capped cold-start durations</strong></td>
+<td>Action counts rise and startup percentiles fall once instrumented builds ship; both are measurement changes, not app changes (MOBL-05 §2)</td>
+</tr>
+<tr>
+<td><strong>8.349</strong> (published 10/15/2026, rollout from 10/06/2026)</td>
+<td>Xcode 27 / iOS 27 / tvOS 27, Gradle 9.8 and Android Gradle Plugin 9.4.0 support; <strong>breaking:</strong> the debug-only certificate-validation option is removed from the Android Gradle plugin and SDK</td>
+<td>Builds that still set it fail to compile (MOBL-03 Prerequisites)</td>
+</tr>
+<tr>
+<td><strong>8.349.2</strong></td>
+<td>Fix for apps built with <strong>R8 full mode</strong>, which AGP 9.0+ turns on automatically: the Room library prevented OneAgent for Android from recording events</td>
+<td>If an AGP 9 app sends no events, move to 8.349.2 or later (MOBL-03 §6)</td>
+</tr>
+<tr>
+<td><strong>8.351</strong> (published 10/27/2026, rollout from 11/18/2026)</td>
+<td><strong>New session rules</strong> for RUM on Latest Dynatrace (below); Jetpack Compose 1.12 support; <strong>breaking:</strong> Kotlin Gradle plugin 2.2 minimum</td>
+<td>Session counts and per-session ratios change for apps on 8.351 (below); Kotlin upgrade before adopting (MOBL-03 Prerequisites)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The 8.351 session rules.</strong> Verbatim: <em>&quot;Only user actions and navigations keep a session active, a session ends after 30 minutes of inactivity, and a session still active after 8 hours ends and a new one starts. There's no longer an event limit per session; each event is assigned to the session that was active when the event started.&quot;</em> Session counts, session duration, actions per session, crash-free-session rates and bounce rate are all computed over sessions, so expect them to shift as users move to app builds on 8.351. Compare app versions before and after the agent upgrade rather than reading the change as user behaviour, and re-baseline session-based alerts. Older app builds keep the old rules until users update.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-347">What's new in OneAgent for Mobile 8.347 (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-349">What's new in OneAgent for Mobile 8.349 (DT docs)</a> — <em>&quot;R8 full mode is enabled automatically with Android Gradle Plugin 9.0 or higher.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-351">What's new in OneAgent for Mobile 8.351 (DT docs)</a> — the session rules quoted above, all re-read 11/11/2026. <strong>Derived:</strong> the list of affected session metrics follows from the new start and end rules.</sub></p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#what-is-mobile-rum">What is Mobile RUM?</a></li>
+<li><a href="#mobile-monitoring-architecture">Mobile Monitoring Architecture</a></li>
+<li><a href="#supported-platforms">Supported Platforms &amp; SDKs</a></li>
+<li><a href="#mobile-entity-types">Mobile Entity Types</a></li>
+<li><a href="#beacon-data-flow">Data Flow: Beacon to Grail</a></li>
+<li><a href="#mobile-vs-web-rum">Mobile vs Web RUM</a></li>
+<li><a href="#getting-started-checklist">Getting Started Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:smartscape:read</code> (app inventory; classic table: <code>storage:entities:read</code>), <code>storage:user.events:read</code>, <code>storage:user.sessions:read</code></td>
+</tr>
+<tr>
+<td><strong>Mobile App</strong></td>
+<td>At least one configured mobile application</td>
+</tr>
+</tbody>
+</table>
+<p><a id="what-is-mobile-rum"></a></p>
+<h2>1. What is Mobile RUM?</h2>
+<p><strong>Real User Monitoring (RUM)</strong> for mobile captures what real users experience when they interact with your native mobile applications. Unlike synthetic monitoring that simulates users, mobile RUM records actual sessions from real devices in the field.</p>
+<p>Dynatrace mobile RUM automatically captures:</p>
+<ul>
+<li><strong>User actions</strong> -- taps, swipes, screen loads, and custom actions</li>
+<li><strong>Sessions</strong> -- complete user journeys from app launch to background/close</li>
+<li><strong>Crashes and ANRs</strong> -- native crashes, unhandled exceptions, and Android Application Not Responding events</li>
+<li><strong>Network requests</strong> -- all HTTP/HTTPS calls made by the app, including response times and errors</li>
+<li><strong>Device context</strong> -- OS version, device model, carrier, connection type, battery level</li>
+</ul>
+<h3>Key Mobile Metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Description</th>
+<th>Why It Matters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>App Launch Time</strong></td>
+<td>Time from tap to first interactive screen</td>
+<td>Directly impacts user retention</td>
+</tr>
+<tr>
+<td><strong>Crash Rate</strong></td>
+<td>Percentage of sessions with a crash</td>
+<td>Top driver of app store ratings</td>
+</tr>
+<tr>
+<td><strong>User Actions per Session</strong></td>
+<td>Average number of interactions</td>
+<td>Measures engagement depth</td>
+</tr>
+<tr>
+<td><strong>Network Error Rate</strong></td>
+<td>Percentage of failed HTTP requests</td>
+<td>Indicates backend or connectivity issues</td>
+</tr>
+<tr>
+<td><strong>Session Duration</strong></td>
+<td>Average time users spend in the app</td>
+<td>Correlates with business value</td>
+</tr>
+<tr>
+<td><strong>Apdex Score</strong></td>
+<td>User satisfaction index (0-1)</td>
+<td>Single number summarizing performance</td>
+</tr>
+</tbody>
+</table>
+<p><a id="mobile-monitoring-architecture"></a></p>
+<h2>2. Mobile Monitoring Architecture</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzIwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icHVycGxlR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2MzY2ZjE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzRmNDZlNTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJsdWVHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE0OTZmZjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMGE2NGJjO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZ3JlZW5HcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIyYzU1ZTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTZhMzRhO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9InNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjEiIGR5PSIxIiBzdGREZXZpYXRpb249IjIiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0iYXJyb3ciIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzY0NzQ4YiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSIzMjAiIGZpbGw9IiNmOGY5ZmEiIHJ4PSIxMCIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjQwMCIgeT0iMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk1vYmlsZSBNb25pdG9yaW5nIEFyY2hpdGVjdHVyZTwvdGV4dD4KICA8dGV4dCB4PSI0MDAiIHk9IjQ4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkVuZC10by1lbmQgZGF0YSBwYXRoIGZyb20gbW9iaWxlIGRldmljZSB0byBEeW5hdHJhY2UgYW5hbHlzaXM8L3RleHQ+CgogIDwhLS0gQm94IDE6IE1vYmlsZSBEZXZpY2UgLS0+CiAgPHJlY3QgeD0iMjAiIHk9Ijc1IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjgwIiByeD0iMTAiIGZpbGw9InVybCgjcHVycGxlR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iODAiIHk9IjEwOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk1vYmlsZTwvdGV4dD4KICA8dGV4dCB4PSI4MCIgeT0iMTI0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGV2aWNlPC90ZXh0PgogIDx0ZXh0IHg9IjgwIiB5PSIxNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzU1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U0RLIGNhcHR1cmVzPC90ZXh0PgogIDx0ZXh0IHg9IjgwIiB5PSIxODciIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzU1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+YWN0aW9uczwvdGV4dD4KCiAgPCEtLSBBcnJvdyAxIC0tPgogIDxwYXRoIGQ9Ik0xNDAsMTE1IEwxNzUsMTE1IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KCiAgPCEtLSBCb3ggMjogQmVhY29uIEVuZHBvaW50IC0tPgogIDxyZWN0IHg9IjE4MCIgeT0iNzUiIHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIHJ4PSIxMCIgZmlsbD0idXJsKCNibHVlR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMjQwIiB5PSIxMDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CZWFjb248L3RleHQ+CiAgPHRleHQgeD0iMjQwIiB5PSIxMjQiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FbmRwb2ludDwvdGV4dD4KICA8dGV4dCB4PSIyNDAiIHk9IjE3NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5IVFRQUzwvdGV4dD4KICA8dGV4dCB4PSIyNDAiIHk9IjE4NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5iZWFjb25zPC90ZXh0PgoKICA8IS0tIEFycm93IDIgLS0+CiAgPHBhdGggZD0iTTMwMCwxMTUgTDMzNSwxMTUiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgoKICA8IS0tIEJveCAzOiBDbHVzdGVyIC8gQWN0aXZlR2F0ZSAtLT4KICA8cmVjdCB4PSIzNDAiIHk9Ijc1IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjgwIiByeD0iMTAiIGZpbGw9InVybCgjYmx1ZUdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iMTAzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q2x1c3RlciAvPC90ZXh0PgogIDx0ZXh0IHg9IjQwMCIgeT0iMTE5IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QWN0aXZlR2F0ZTwvdGV4dD4KICA8dGV4dCB4PSI0MDAiIHk9IjE3NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Qcm9jZXNzaW5nICZhbXA7PC90ZXh0PgogIDx0ZXh0IHg9IjQwMCIgeT0iMTg3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM1NTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmVucmljaG1lbnQ8L3RleHQ+CgogIDwhLS0gQXJyb3cgMyAtLT4KICA8cGF0aCBkPSJNNDYwLDExNSBMNDk1LDExNSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CgogIDwhLS0gQm94IDQ6IEdyYWlsIFN0b3JhZ2UgLS0+CiAgPHJlY3QgeD0iNTAwIiB5PSI3NSIgd2lkdGg9IjEyMCIgaGVpZ2h0PSI4MCIgcng9IjEwIiBmaWxsPSJ1cmwoI2dyZWVuR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iNTYwIiB5PSIxMDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5HcmFpbDwvdGV4dD4KICA8dGV4dCB4PSI1NjAiIHk9IjEyNCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlN0b3JhZ2U8L3RleHQ+CiAgPHRleHQgeD0iNTYwIiB5PSIxNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzU1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UXVlcnlhYmxlPC90ZXh0PgogIDx0ZXh0IHg9IjU2MCIgeT0iMTg3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM1NTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnN0b3JhZ2U8L3RleHQ+CgogIDwhLS0gQXJyb3cgNCAtLT4KICA8cGF0aCBkPSJNNjIwLDExNSBMNjU1LDExNSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CgogIDwhLS0gQm94IDU6IER5bmF0cmFjZSBVSSAtLT4KICA8cmVjdCB4PSI2NjAiIHk9Ijc1IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjgwIiByeD0iMTAiIGZpbGw9InVybCgjcHVycGxlR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iNzIwIiB5PSIxMDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EeW5hdHJhY2U8L3RleHQ+CiAgPHRleHQgeD0iNzIwIiB5PSIxMjQiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5VSTwvdGV4dD4KICA8dGV4dCB4PSI3MjAiIHk9IjE3NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EYXNoYm9hcmRzICZhbXA7PC90ZXh0PgogIDx0ZXh0IHg9IjcyMCIgeT0iMTg3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM1NTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPm5vdGVib29rczwvdGV4dD4KCiAgPCEtLSBTdGVwIG51bWJlcnMgLS0+CiAgPGNpcmNsZSBjeD0iODAiIGN5PSI2NSIgcj0iMTAiIGZpbGw9IiM2MzY2ZjEiLz4KICA8dGV4dCB4PSI4MCIgeT0iNjkiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4xPC90ZXh0PgogIDxjaXJjbGUgY3g9IjI0MCIgY3k9IjY1IiByPSIxMCIgZmlsbD0iIzE0OTZmZiIvPgogIDx0ZXh0IHg9IjI0MCIgeT0iNjkiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4yPC90ZXh0PgogIDxjaXJjbGUgY3g9IjQwMCIgY3k9IjY1IiByPSIxMCIgZmlsbD0iIzE0OTZmZiIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iNjkiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4zPC90ZXh0PgogIDxjaXJjbGUgY3g9IjU2MCIgY3k9IjY1IiByPSIxMCIgZmlsbD0iIzIyYzU1ZSIvPgogIDx0ZXh0IHg9IjU2MCIgeT0iNjkiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj40PC90ZXh0PgogIDxjaXJjbGUgY3g9IjcyMCIgY3k9IjY1IiByPSIxMCIgZmlsbD0iIzYzNjZmMSIvPgogIDx0ZXh0IHg9IjcyMCIgeT0iNjkiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj41PC90ZXh0PgoKICA8IS0tIENvbm5lY3RpbmcgYmFzZWxpbmUgLS0+CiAgPGxpbmUgeDE9IjIwIiB5MT0iMjEwIiB4Mj0iNzgwIiB5Mj0iMjEwIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMSIvPgoKICA8IS0tIFBoYXNlIGxhYmVscyAtLT4KICA8dGV4dCB4PSI4MCIgeT0iMjMwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM4ODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNhcHR1cmU8L3RleHQ+CiAgPHRleHQgeD0iMjQwIiB5PSIyMzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzg4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VHJhbnNwb3J0PC90ZXh0PgogIDx0ZXh0IHg9IjQwMCIgeT0iMjMwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM4ODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlByb2Nlc3M8L3RleHQ+CiAgPHRleHQgeD0iNTYwIiB5PSIyMzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzg4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U3RvcmU8L3RleHQ+CiAgPHRleHQgeD0iNzIwIiB5PSIyMzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzg4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QW5hbHl6ZTwvdGV4dD4KCiAgPCEtLSBMZWdlbmQgYmFyIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIyNTUiIHdpZHRoPSI3MjAiIGhlaWdodD0iNTAiIHJ4PSI2IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iMjc1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM1NTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkR5bmF0cmFjZSBNb2JpbGUgUlVNIGNhcHR1cmVzIHJlYWwgdXNlciBpbnRlcmFjdGlvbnMgYW5kIGRlbGl2ZXJzIHRoZW0gdG8gR3JhaWwgZm9yIGFuYWx5c2lzLjwvdGV4dD4KICA8Y2lyY2xlIGN4PSI4MCIgY3k9IjI5MyIgcj0iNiIgZmlsbD0iIzYzNjZmMSIvPgogIDx0ZXh0IHg9Ijk1IiB5PSIyOTciIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+TW9iaWxlIC8gVUk8L3RleHQ+CiAgPGNpcmNsZSBjeD0iMjAwIiBjeT0iMjkzIiByPSI2IiBmaWxsPSIjMTQ5NmZmIi8+CiAgPHRleHQgeD0iMjE1IiB5PSIyOTciIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+UHJvY2Vzc2luZzwvdGV4dD4KICA8Y2lyY2xlIGN4PSIzMjAiIGN5PSIyOTMiIHI9IjYiIGZpbGw9IiMyMmM1NWUiLz4KICA8dGV4dCB4PSIzMzUiIHk9IjI5NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5TdG9yYWdlPC90ZXh0PgogIDxjaXJjbGUgY3g9IjQyMCIgY3k9IjI5MyIgcj0iNiIgZmlsbD0iIzY0NzQ4YiIvPgogIDx0ZXh0IHg9IjQzNSIgeT0iMjk3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPkRhdGEgZmxvdzwvdGV4dD4KPC9zdmc+Cg==" alt="Mobile Monitoring Architecture" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Component | Role |
+|-----------|------|
+| Mobile SDK | Embedded in the app; captures user actions, crashes, network requests |
+| Beacon Endpoint | HTTPS endpoint that receives beacon payloads from mobile devices |
+| Cluster / ActiveGate | Processes, enriches, and routes beacon data |
+| Grail Storage | Long-term storage for all mobile telemetry data |
+| Dynatrace UI | Dashboards, notebooks, and analysis tools for mobile data |
+For environments where SVG doesn't render
+-->
+<h3>How It Works</h3>
+<ol>
+<li><strong>SDK embedded in app</strong> -- The Dynatrace mobile SDK is integrated into your app during the build process. It hooks into lifecycle events, network layers, and crash handlers automatically.</li>
+<li><strong>Collects telemetry</strong> -- As users interact with the app, the SDK captures user actions (taps, screen loads), network requests (URL, status code, duration), crashes (stack traces, thread state), and device context.</li>
+<li><strong>Sends beacons</strong> -- Captured data is packaged into compressed beacon payloads and sent to the Dynatrace beacon endpoint over HTTPS. Beacons are batched and buffered for efficiency.</li>
+<li><strong>Processed by cluster</strong> -- The cluster (or ActiveGate) receives beacons, validates them, enriches with server-side correlation data, and normalizes fields.</li>
+<li><strong>Stored in Grail</strong> -- Processed mobile data is stored in Grail, making it queryable via DQL alongside logs, spans, metrics, and other telemetry.</li>
+<li><strong>Analyzed in UI</strong> -- Use Dynatrace dashboards, notebooks, and the mobile app overview to visualize performance, detect regressions, and drill into individual sessions.</li>
+</ol>
+<p><a id="supported-platforms"></a></p>
+<h2>3. Supported Platforms &amp; SDKs</h2>
+<p>Dynatrace provides native SDKs for all major mobile platforms and cross-platform frameworks:</p>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>SDK</th>
+<th>Language</th>
+<th>Auto-Instrumentation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>iOS</td>
+<td>Dynatrace iOS Agent</td>
+<td>Swift, Objective-C</td>
+<td>UIKit (runtime), SwiftUI (build-time <code>DTSwiftInstrumentor</code>)</td>
+</tr>
+<tr>
+<td>Android</td>
+<td>Dynatrace Android Agent</td>
+<td>Kotlin, Java</td>
+<td>Activities, Fragments, Jetpack Compose (plugin 8.271+)</td>
+</tr>
+<tr>
+<td>Flutter</td>
+<td>dynatrace_flutter_plugin</td>
+<td>Dart</td>
+<td>Navigation, HTTP</td>
+</tr>
+<tr>
+<td>React Native</td>
+<td>@dynatrace/react-native-plugin</td>
+<td>JavaScript/TypeScript</td>
+<td>Navigation, Fetch/XHR</td>
+</tr>
+<tr>
+<td>Cordova</td>
+<td>@dynatrace/cordova-plugin</td>
+<td>JavaScript</td>
+<td>WebView-based</td>
+</tr>
+<tr>
+<td>.NET MAUI</td>
+<td>Dynatrace.OneAgent.MAUI</td>
+<td>C#</td>
+<td>Platform views</td>
+</tr>
+<tr>
+<td>Xamarin</td>
+<td>Dynatrace.OneAgent.Xamarin -- <strong>end of support May 2025</strong>; migrate to .NET MAUI</td>
+<td>C#</td>
+<td>Platform views</td>
+</tr>
+</tbody>
+</table>
+<h3>SDK Integration Methods</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Auto-instrumentation</strong></td>
+<td>SDK automatically captures lifecycle events, network calls, and crashes</td>
+<td>Most applications; fastest setup</td>
+</tr>
+<tr>
+<td><strong>Manual instrumentation</strong></td>
+<td>Developer explicitly starts/ends actions and reports values</td>
+<td>Custom user actions, business events</td>
+</tr>
+<tr>
+<td><strong>Hybrid</strong></td>
+<td>Auto-instrumentation + manual calls for custom events</td>
+<td>Best of both worlds</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Auto-instrumentation coverage varies by platform and mechanism. UIKit and Android Views are instrumented at runtime/bytecode level; SwiftUI needs the build-time SwiftUI instrumentor (MOBL-02 §5); Jetpack Compose is auto-instrumented by default from Android Gradle plugin 8.271 (MOBL-03 §5).</p>
+</blockquote>
+<p><a id="mobile-entity-types"></a></p>
+<h2>4. Mobile Entity Types</h2>
+<p>Dynatrace models mobile monitoring data using specific entity types and data objects:</p>
+<table>
+<thead>
+<tr>
+<th>Entity Type</th>
+<th>DQL Identifier</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mobile Application</td>
+<td>Classic: <code>dt.entity.mobile_application</code> — Smartscape: <code>smartscapeNodes &quot;FRONTEND&quot;</code> filtered on <code>frontend.type == &quot;mobile&quot;</code></td>
+<td>The configured mobile app (iOS, Android, or hybrid)</td>
+</tr>
+<tr>
+<td>User Action</td>
+<td><code>user.events</code> with <code>characteristics.has_user_action</code></td>
+<td>Tap, swipe, screen load, or custom action</td>
+</tr>
+<tr>
+<td>Session</td>
+<td><code>user.sessions</code> (one record per session)</td>
+<td>User session container linking all actions in a visit</td>
+</tr>
+<tr>
+<td>Network Request</td>
+<td><code>user.events</code> with <code>characteristics.has_request</code></td>
+<td>HTTP request initiated by the mobile app</td>
+</tr>
+<tr>
+<td>Crash</td>
+<td><code>user.events</code> with <code>characteristics.has_crash</code> (ANR: <code>characteristics.has_anr</code>)</td>
+<td>Native crash, ANR, or unhandled exception</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Mobile user actions, requests, crashes and ANRs are stored as events in the Grail <code>user.events</code> store, and sessions in <code>user.sessions</code> -- not as traditional entities, and <strong>not</strong> as business events. On <code>user.events</code>, <code>in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;})</code> separates mobile from web events; <code>user.sessions</code> still needs the legacy <code>dt.rum.application.type == &quot;mobile&quot;</code> (MOBL-10 §1 explains why, and what to check first). The mobile application entity represents the configured app itself.</p>
+</blockquote>
+<blockquote>
+<p><strong>Correction (09/28/2026).</strong> Earlier revisions of this table said actions, sessions and requests are business events (<code>bizevents</code>). That data model does not exist; see MOBL-10 §1 for the mapping and the semantic-dictionary evidence.</p>
+</blockquote>
+<blockquote>
+<p><strong>Correction (07/30/2026).</strong> Earlier revisions of this notebook named the mobile application entity <code>dt.entity.device_application</code> in prose. <strong>That entity type does not exist.</strong> <code>verify_dql</code> reports <code>The entity type dt.entity.device_application wasn't found</code> — and then still reports the statement valid, so the query runs and returns zero rows, which is indistinguishable from &quot;this environment has no mobile applications&quot;. The only <code>device_application</code> types that exist are <code>dt.entity.device_application_method</code> and <code>dt.entity.device_application_method_group</code> (RUM action-level types, not the app). The correct classic type is <strong><code>dt.entity.mobile_application</code></strong>, which every code cell in this notebook already used — the error was confined to the narrative. Treat a <code>wasn't found</code> warning from <code>verify_dql</code> as a blocking failure, not advice.</p>
+</blockquote>
+<h3>Querying Mobile App Entities</h3>
+<p>Two surfaces answer this question, and <strong>Smartscape is now the preferred one</strong>. SaaS 1.344 (released 07/27/2026, with a <strong>staged tenant rollout from 07/29/2026</strong>) migrated the Digital Experience apps — Experience Vitals, Users &amp; Sessions, Error Inspector, Synthetic — so that their queries and filters &quot;primarily use <code>dt.smartscape.*</code> entities, instead of <code>dt.entity.*</code> and <code>dt.rum.application.*</code>&quot;. Verify 1.344 has reached your tenant before relying on the UI change; the <code>FRONTEND</code> node type itself is queryable via DQL independently of it.</p>
+<p>The classic <code>fetch dt.entity.mobile_application</code> table <strong>still exists and still returns rows</strong> — unlike some deprecated entity types, this one has not gone hollow. It remains a genuine fallback for tenants awaiting 1.344 and for saved queries still in circulation.</p>
+<p>The following query lists all configured mobile applications in your environment:</p>
+<pre><code class="language-dql">// List all configured mobile applications
+// PREFERRED — Smartscape. Mobile and web applications share the FRONTEND node type;
+// frontend.type is the discriminator, so the filter is mandatory for a mobile-only list.
+// id_classic carries the MOBILE_APPLICATION-* id, which joins back to unmigrated queries.
+smartscapeNodes &quot;FRONTEND&quot;
+| filter frontend.type == &quot;mobile&quot;
+| fields name, id, id_classic, tags
+| sort name asc
+
+// FALLBACK (classic surface — still functional, keep while SaaS 1.344 rolls out):
+// fetch dt.entity.mobile_application
+// | fields entity.name, id, tags
+// | sort entity.name asc
+</code></pre>
+<p><a id="beacon-data-flow"></a></p>
+<h2>5. Data Flow: Beacon to Grail</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgMzcwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYlB1cnBsZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNjM2NmYxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM0ZjQ2ZTU7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiQmx1ZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTQ5NmZmO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwYTY0YmM7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiR3JlZW5HcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIyYzU1ZTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTZhMzRhO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYk9yYW5nZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZjk3MzE2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlYTU4MGM7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0iYlNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjEiIGR5PSIxIiBzdGREZXZpYXRpb249IjIiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0iYkFycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI3MDAiIGhlaWdodD0iMzcwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSIzNTAiIHk9IjI2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CZWFjb24gRGF0YSBGbG93OiBEZXZpY2UgdG8gR3JhaWw8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSI0MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Ib3cgYSB1c2VyIGludGVyYWN0aW9uIGJlY29tZXMgcXVlcnlhYmxlIGRhdGE8L3RleHQ+CgogIDwhLS0gUm93IDEgem9uZSBsYWJlbCAtLT4KICA8dGV4dCB4PSIyNiIgeT0iMTEwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM4ODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIHRyYW5zZm9ybT0icm90YXRlKC05MCwyNiwxMTApIj5EZXZpY2U8L3RleHQ+CgogIDwhLS0gU3RlcCAxOiBVc2VyIEludGVyYWN0aW9uIC0tPgogIDxyZWN0IHg9IjQyIiB5PSI2MCIgd2lkdGg9IjE5MCIgaGVpZ2h0PSI0OCIgcng9IjgiIGZpbGw9InVybCgjYlB1cnBsZUdyYWQpIiBmaWx0ZXI9InVybCgjYlNoYWRvdykiLz4KICA8Y2lyY2xlIGN4PSI1NyIgY3k9Ijg0IiByPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjI1KSIvPgogIDx0ZXh0IHg9IjU3IiB5PSI4OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjE8L3RleHQ+CiAgPHRleHQgeD0iMTQ3IiB5PSI4MSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlVzZXIgSW50ZXJhY3Rpb248L3RleHQ+CiAgPHRleHQgeD0iMTQ3IiB5PSI5OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuODUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5UYXAsIHN3aXBlLCBhcHAgc3RhcnQ8L3RleHQ+CgogIDwhLS0gQXJyb3cgMS0yIC0tPgogIDxwYXRoIGQ9Ik0yMzIsODQgTDI1Myw4NCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYkFycm93KSIvPgoKICA8IS0tIFN0ZXAgMjogU0RLIENhcHR1cmVzIC0tPgogIDxyZWN0IHg9IjI1NSIgeT0iNjAiIHdpZHRoPSIxOTAiIGhlaWdodD0iNDgiIHJ4PSI4IiBmaWxsPSJ1cmwoI2JCbHVlR3JhZCkiIGZpbHRlcj0idXJsKCNiU2hhZG93KSIvPgogIDxjaXJjbGUgY3g9IjI3MCIgY3k9Ijg0IiByPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjI1KSIvPgogIDx0ZXh0IHg9IjI3MCIgeT0iODgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4yPC90ZXh0PgogIDx0ZXh0IHg9IjM2MCIgeT0iODEiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TREsgQ2FwdHVyZXM8L3RleHQ+CiAgPHRleHQgeD0iMzYwIiB5PSI5OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuODUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BY3Rpb24sIHRpbWluZywgY29udGV4dDwvdGV4dD4KCiAgPCEtLSBBcnJvdyAyLTMgLS0+CiAgPHBhdGggZD0iTTQ0NSw4NCBMNDY2LDg0IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNiQXJyb3cpIi8+CgogIDwhLS0gU3RlcCAzOiBCZWFjb24gQ3JlYXRlZCAtLT4KICA8cmVjdCB4PSI0NjgiIHk9IjYwIiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjQ4IiByeD0iOCIgZmlsbD0idXJsKCNiQmx1ZUdyYWQpIiBmaWx0ZXI9InVybCgjYlNoYWRvdykiLz4KICA8Y2lyY2xlIGN4PSI0ODMiIGN5PSI4NCIgcj0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4yNSkiLz4KICA8dGV4dCB4PSI0ODMiIHk9Ijg4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MzwvdGV4dD4KICA8dGV4dCB4PSI1NzMiIHk9IjgxIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QmVhY29uIENyZWF0ZWQ8L3RleHQ+CiAgPHRleHQgeD0iNTczIiB5PSI5OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuODUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5QYXlsb2FkIGJhdGNoZWQ8L3RleHQ+CgogIDwhLS0gRGl2aWRlciBsaW5lIGJldHdlZW4gcm93cyAtLT4KICA8bGluZSB4MT0iNDIiIHkxPSIxMzMiIHgyPSI2NTgiIHkyPSIxMzMiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIxIiBzdHJva2UtZGFzaGFycmF5PSI0LDMiLz4KCiAgPCEtLSBDb25uZWN0aW5nIGFycm93IGZyb20gcm93IDEgdG8gcm93IDIgKHN0ZXAgMyBkb3duIHRvIHN0ZXAgNCkgLS0+CiAgPHBhdGggZD0iTTU2MywxMDggTDU2MywxMzAgTDM1MCwxMzAgTDM1MCwxNDIgTDEzNywxNDIgTDEzNywxNTgiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2JBcnJvdykiIHN0cm9rZS1kYXNoYXJyYXk9IjUsMyIvPgoKICA8IS0tIFJvdyAyIHpvbmUgbGFiZWxzIC0tPgogIDx0ZXh0IHg9IjI2IiB5PSIxOTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzg4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgdHJhbnNmb3JtPSJyb3RhdGUoLTkwLDI2LDE5MCkiPk5ldHdvcmsgLyBTZXJ2ZXI8L3RleHQ+CgogIDwhLS0gU3RlcCA0OiBOZXR3b3JrIFNlbmQgLS0+CiAgPHJlY3QgeD0iNDIiIHk9IjE2MiIgd2lkdGg9IjE5MCIgaGVpZ2h0PSI0OCIgcng9IjgiIGZpbGw9InVybCgjYk9yYW5nZUdyYWQpIiBmaWx0ZXI9InVybCgjYlNoYWRvdykiLz4KICA8Y2lyY2xlIGN4PSI1NyIgY3k9IjE4NiIgcj0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4yNSkiLz4KICA8dGV4dCB4PSI1NyIgeT0iMTkwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+NDwvdGV4dD4KICA8dGV4dCB4PSIxNDciIHk9IjE4MyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5ldHdvcmsgU2VuZDwvdGV4dD4KICA8dGV4dCB4PSIxNDciIHk9IjIwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuODUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5IVFRQUyBQT1NUIHRvIGVuZHBvaW50PC90ZXh0PgoKICA8IS0tIEFycm93IDQtNSAtLT4KICA8cGF0aCBkPSJNMjMyLDE4NiBMMjUzLDE4NiIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYkFycm93KSIvPgoKICA8IS0tIFN0ZXAgNTogU2VydmVyIFByb2Nlc3NpbmcgLS0+CiAgPHJlY3QgeD0iMjU1IiB5PSIxNjIiIHdpZHRoPSIxOTAiIGhlaWdodD0iNDgiIHJ4PSI4IiBmaWxsPSJ1cmwoI2JCbHVlR3JhZCkiIGZpbHRlcj0idXJsKCNiU2hhZG93KSIvPgogIDxjaXJjbGUgY3g9IjI3MCIgY3k9IjE4NiIgcj0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4yNSkiLz4KICA8dGV4dCB4PSIyNzAiIHk9IjE5MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjU8L3RleHQ+CiAgPHRleHQgeD0iMzYwIiB5PSIxODMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TZXJ2ZXIgUHJvY2Vzc2luZzwvdGV4dD4KICA8dGV4dCB4PSIzNjAiIHk9IjIwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuODUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FbnJpY2htZW50LCBzeW1ib2xpY2F0aW9uPC90ZXh0PgoKICA8IS0tIEFycm93IDUtNiAtLT4KICA8cGF0aCBkPSJNNDQ1LDE4NiBMNDY2LDE4NiIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYkFycm93KSIvPgoKICA8IS0tIFN0ZXAgNjogR3JhaWwgU3RvcmFnZSAtLT4KICA8cmVjdCB4PSI0NjgiIHk9IjE2MiIgd2lkdGg9IjE5MCIgaGVpZ2h0PSI0OCIgcng9IjgiIGZpbGw9InVybCgjYkdyZWVuR3JhZCkiIGZpbHRlcj0idXJsKCNiU2hhZG93KSIvPgogIDxjaXJjbGUgY3g9IjQ4MyIgY3k9IjE4NiIgcj0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4yNSkiLz4KICA8dGV4dCB4PSI0ODMiIHk9IjE5MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjY8L3RleHQ+CiAgPHRleHQgeD0iNTczIiB5PSIxODMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5HcmFpbCBTdG9yYWdlPC90ZXh0PgogIDx0ZXh0IHg9IjU3MyIgeT0iMjAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlF1ZXJ5YWJsZSB2aWEgRFFMPC90ZXh0PgoKICA8IS0tIERldGFpbCBib3hlcyBiZWxvdyBlYWNoIHN0ZXAgLS0+CiAgPCEtLSBEZXZpY2UgcGhhc2UgZGV0YWlscyAtLT4KICA8cmVjdCB4PSI0MiIgeT0iMjMwIiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjY4IiByeD0iNiIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIxMzciIHk9IjI0NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzRmNDZlNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U3RlcHMgMS0zOiBPbiBEZXZpY2U8L3RleHQ+CiAgPHRleHQgeD0iMTM3IiB5PSIyNjMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjNTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BdXRvLWluc3RydW1lbnRlZCBieSBTREs8L3RleHQ+CiAgPHRleHQgeD0iMTM3IiB5PSIyNzciIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjNTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CYXRjaGVkIGZvciBlZmZpY2llbmN5PC90ZXh0PgogIDx0ZXh0IHg9IjEzNyIgeT0iMjkxIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzU1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2Vzc2lvbiAmYW1wOyBkZXZpY2UgY29udGV4dCBhZGRlZDwvdGV4dD4KCiAgPCEtLSBOZXR3b3JrIHBoYXNlIGRldGFpbHMgLS0+CiAgPHJlY3QgeD0iMjU1IiB5PSIyMzAiIHdpZHRoPSIxOTAiIGhlaWdodD0iNjgiIHJ4PSI2IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iMjQ3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZWE1ODBjIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TdGVwIDQ6IE5ldHdvcms8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSIyNjMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjNTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Db21wcmVzc2VkIEhUVFBTIFBPU1Q8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSIyNzciIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjNTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5SZXRyeSBvbiBmYWlsdXJlPC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iMjkxIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzU1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q29uZmlndXJhYmxlIGVuZHBvaW50PC90ZXh0PgoKICA8IS0tIFNlcnZlciBwaGFzZSBkZXRhaWxzIC0tPgogIDxyZWN0IHg9IjQ2OCIgeT0iMjMwIiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjY4IiByeD0iNiIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI1NjMiIHk9IjI0NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzE2YTM0YSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U3RlcHMgNS02OiBTZXJ2ZXI8L3RleHQ+CiAgPHRleHQgeD0iNTYzIiB5PSIyNjMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjNTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5DcmFzaCBzeW1ib2xpY2F0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjU2MyIgeT0iMjc3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzU1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RW50aXR5IGVucmljaG1lbnQ8L3RleHQ+CiAgPHRleHQgeD0iNTYzIiB5PSIyOTEiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjNTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TdG9yZWQgaW4gR3JhaWwgZm9yIERRTDwvdGV4dD4KCiAgPCEtLSBMZWdlbmQgYmFyIC0tPgogIDxyZWN0IHg9IjEyMCIgeT0iMzE4IiB3aWR0aD0iNDYwIiBoZWlnaHQ9IjMwIiByeD0iNiIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8Y2lyY2xlIGN4PSIxNDUiIGN5PSIzMzMiIHI9IjYiIGZpbGw9IiM2MzY2ZjEiLz4KICA8dGV4dCB4PSIxNTgiIHk9IjMzNyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5Vc2VyIGFjdGlvbjwvdGV4dD4KICA8Y2lyY2xlIGN4PSIyNDUiIGN5PSIzMzMiIHI9IjYiIGZpbGw9IiMxNDk2ZmYiLz4KICA8dGV4dCB4PSIyNTgiIHk9IjMzNyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5TREsgLyBTZXJ2ZXI8L3RleHQ+CiAgPGNpcmNsZSBjeD0iMzU1IiBjeT0iMzMzIiByPSI2IiBmaWxsPSIjZjk3MzE2Ii8+CiAgPHRleHQgeD0iMzY4IiB5PSIzMzciIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+TmV0d29yazwvdGV4dD4KICA8Y2lyY2xlIGN4PSI0NDUiIGN5PSIzMzMiIHI9IjYiIGZpbGw9IiMyMmM1NWUiLz4KICA8dGV4dCB4PSI0NTgiIHk9IjMzNyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5TdG9yYWdlPC90ZXh0Pgo8L3N2Zz4K" alt="Beacon Data Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Stage | Description |
+|------|-------|-------------|
+| 1 | User Interaction | User taps a button, loads a screen, or triggers a network request |
+| 2 | SDK Capture | The Dynatrace SDK captures the action with timing, context, and metadata |
+| 3 | Beacon Creation | Captured data is serialized into a compressed beacon payload |
+| 4 | Beacon Transmission | Beacon is sent to the Dynatrace beacon endpoint over HTTPS |
+| 5 | Processing & Enrichment | Cluster processes the beacon, correlates with server-side data, enriches fields |
+| 6 | Grail Storage | Processed data is stored in Grail for querying via DQL |
+For environments where SVG doesn't render
+-->
+<h3>Beacon Lifecycle Details</h3>
+<p><strong>Batching:</strong> The SDK does not send a beacon for every individual action. Instead, it batches multiple events into a single beacon payload to reduce network overhead and battery consumption.</p>
+<p><strong>Offline Buffering:</strong> When the device has no network connectivity, the SDK buffers monitoring data locally and sends it once connectivity is restored. The buffer is bounded by the agent, so a long offline period can still lose data — treat the buffer as protection against short gaps (a subway ride, a dead zone), not as a guarantee.</p>
+<p><strong>Compression:</strong> Beacon payloads are compressed before transmission to minimize bandwidth usage, which is especially important for users on metered cellular connections.</p>
+<p><strong>Session Correlation:</strong> Each beacon includes a session ID that links all actions from a single user visit. The cluster uses this to reconstruct the full session timeline.</p>
+<h3>Counting Mobile Applications by Name</h3>
+<p>Use the following query to see a summary of your configured mobile applications:</p>
+<pre><code class="language-dql">// Count mobile applications by name
+// PREFERRED — Smartscape. Grouping by name preserves the per-app breakdown; drop the
+// filter and group by frontend.type instead to see the mobile-vs-web split in one pass.
+smartscapeNodes &quot;FRONTEND&quot;
+| filter frontend.type == &quot;mobile&quot;
+| summarize app_count = count(), by:{name}
+| sort app_count desc
+
+// FALLBACK (classic surface — still functional):
+// fetch dt.entity.mobile_application
+// | summarize app_count = count(), by:{entity.name}
+// | sort app_count desc
+</code></pre>
+<p><a id="mobile-vs-web-rum"></a></p>
+<h2>6. Mobile vs Web RUM</h2>
+<blockquote>
+<p><strong>Mobile sessions gain bounce classification (SaaS 1.346 — staged rollout from 08/25/2026).</strong> Mobile sessions are now classified as bounces using the <strong>same definition already applied to web sessions</strong>, which removes one of the mobile-vs-web asymmetries this section documents: bounce rate becomes comparable across both surfaces rather than web-only. It carries a hard floor — <strong>Mobile agent 8.343+</strong> — so an app on an older agent will not produce the classification regardless of tenant version. Check your app's shipped agent version, not just the tenant, before reporting on it.</p>
+<p><sub>Source: <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-346">What's new in Dynatrace SaaS 1.346 (DT docs)</a></sub></p>
+</blockquote>
+<p>Understanding the differences between mobile and web RUM helps you choose the right approach and set correct expectations for each platform:</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Mobile RUM</th>
+<th>Web RUM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Entity type</strong></td>
+<td>Classic <code>dt.entity.mobile_application</code> → Smartscape <code>FRONTEND</code> with <code>frontend.type == &quot;mobile&quot;</code></td>
+<td>Classic <code>dt.entity.application</code> → Smartscape <code>FRONTEND</code> with <code>frontend.type == &quot;web&quot;</code></td>
+</tr>
+<tr>
+<td><strong>Instrumentation</strong></td>
+<td>Native SDK embedded in app binary</td>
+<td>JavaScript tag injected into page</td>
+</tr>
+<tr>
+<td><strong>Crash detection</strong></td>
+<td>Native crash, ANR, unhandled exception</td>
+<td>JavaScript errors, promise rejections</td>
+</tr>
+<tr>
+<td><strong>Network monitoring</strong></td>
+<td>All HTTP/HTTPS calls from the app</td>
+<td>XHR, Fetch API calls</td>
+</tr>
+<tr>
+<td><strong>Session replay</strong></td>
+<td>Screen recording (visual replay)</td>
+<td>DOM replay (HTML reconstruction)</td>
+</tr>
+<tr>
+<td><strong>Offline capability</strong></td>
+<td>Beacon buffering (data saved locally)</td>
+<td>No (requires active connectivity)</td>
+</tr>
+<tr>
+<td><strong>Distribution</strong></td>
+<td>App stores (Apple App Store, Google Play)</td>
+<td>Web deployment (CDN, server)</td>
+</tr>
+<tr>
+<td><strong>Update cycle</strong></td>
+<td>Users must update the app</td>
+<td>Instant (server-side deployment)</td>
+</tr>
+<tr>
+<td><strong>Device diversity</strong></td>
+<td>Thousands of device/OS combinations</td>
+<td>Browser/OS combinations</td>
+</tr>
+<tr>
+<td><strong>Performance factors</strong></td>
+<td>CPU, memory, battery, network type</td>
+<td>Browser rendering, network latency</td>
+</tr>
+</tbody>
+</table>
+<h3>The Entity Model Converged (SaaS 1.344)</h3>
+<p>On the classic surface mobile and web applications were two different entity types. On Smartscape they are <strong>one node type</strong>: <code>FRONTEND</code>. The distinguishing field is <code>frontend.type</code> (<code>&quot;mobile&quot;</code> / <code>&quot;web&quot;</code>) — not the node type. There is <strong>no <code>dt.smartscape.mobile_application</code></strong> and no <code>dt.smartscape.application</code>; both classic types map onto the single model <code>dt.smartscape.frontend</code>, titled <em>Digital Experience Frontend</em>.</p>
+<p>SaaS 1.344 (released 07/27/2026 — <strong>staged tenant rollout from 07/29/2026</strong>) is what promotes this to the primary surface: the Digital Experience apps moved their queries and filters onto <code>dt.smartscape.*</code> entities. Verify 1.344 has reached your tenant before depending on that; the node type is already queryable regardless, and the classic entity tables keep working either way.</p>
+<p>What this changes in practice:</p>
+<ul>
+<li><strong>One inventory query covers both platforms.</strong> <code>smartscapeNodes &quot;FRONTEND&quot; | summarize apps = count(), by:{frontend.type}</code> returns the mobile/web split in a single pass — no union of two entity tables.</li>
+<li><strong>Filtering on <code>frontend.type</code> is mandatory in mobile-only queries.</strong> Omit it and a &quot;list my mobile apps&quot; query silently includes every web application as well. There is no error to warn you.</li>
+<li><strong><code>frontend.type</code> is not listed in the model's own <code>fields</code> array</strong>, yet it exists and filters correctly. The Semantic Dictionary field list is an index, not a completeness guarantee — do not conclude a field is missing because it isn't enumerated.</li>
+<li><strong><code>id_classic</code> is the migration bridge.</strong> Every <code>FRONTEND</code> node carries its classic id (<code>MOBILE_APPLICATION-*</code> or <code>APPLICATION-*</code>), so half-migrated query sets can be joined during the transition.</li>
+</ul>
+<h3>Key Implications</h3>
+<ul>
+<li><strong>Version fragmentation:</strong> Mobile apps have multiple versions in the wild simultaneously. Your DQL queries should account for <code>app.version</code> when analyzing performance.</li>
+<li><strong>Offline data gaps:</strong> Data from a device that was offline arrives late, when it reconnects. Recent time windows can still fill in after you first query them — re-check before treating a dip in the last hour as real.</li>
+<li><strong>Platform-specific issues:</strong> iOS and Android have different crash signatures, lifecycle events, and performance characteristics. Analyze them separately when troubleshooting.</li>
+</ul>
+<p><a id="getting-started-checklist"></a></p>
+<h2>7. Getting Started Checklist</h2>
+<p>Follow these steps to set up mobile monitoring for your application:</p>
+<ol>
+<li>
+<p><strong>Create a mobile frontend</strong> -- create the frontend in <strong>Experience Vitals</strong> with the Frontend creation wizard. A frontend already monitored with RUM Classic needs <strong>RUM</strong> turned on in its <strong>Settings &gt; Enablement and cost control</strong>. The Grail <code>user.events</code> / <code>user.sessions</code> queries throughout this series read the data RUM sends; MOBL-02 / MOBL-03 have the step-by-step.</p>
+</li>
+<li>
+<p><strong>Integrate the SDK</strong> -- Add the Dynatrace mobile SDK to your app's build system (CocoaPods/SPM for iOS, Gradle for Android, npm for React Native/Flutter). Follow the platform-specific setup guide.</p>
+</li>
+<li>
+<p><strong>Configure the app ID and beacon URL</strong> -- Set the application ID and beacon endpoint URL provided by Dynatrace in your SDK configuration file.</p>
+</li>
+<li>
+<p><strong>Build and test</strong> -- Build the app with the SDK integrated, launch it on a test device, and verify that sessions appear in the Dynatrace UI within a few minutes.</p>
+</li>
+<li>
+<p><strong>Verify data in Grail</strong> -- Use DQL to confirm that mobile telemetry is flowing into Grail. Run the entity query below to check your app appears.</p>
+</li>
+<li>
+<p><strong>Configure user action naming rules</strong> -- Customize how user actions are named in Dynatrace to make them meaningful for your team (e.g., &quot;Tap on Checkout&quot; instead of generic &quot;Touch on Button&quot;).</p>
+</li>
+<li>
+<p><strong>Set up crash symbolication</strong> -- Upload dSYM files (iOS) or ProGuard/R8 mapping files (Android) so that crash stack traces show human-readable class and method names.</p>
+</li>
+<li>
+<p><strong>Enable session replay (optional)</strong> -- Turn on mobile session replay to capture visual recordings of user sessions for debugging UI issues.</p>
+</li>
+<li>
+<p><strong>Define custom actions (optional)</strong> -- Use the SDK API to report custom user actions and business events that are specific to your app's workflow.</p>
+</li>
+<li>
+<p><strong>Create dashboards and alerts</strong> -- Build dashboards for crash rate, app launch time, and network errors. For alerting, use <strong>Davis anomaly detectors</strong> rather than classic alerting profiles: <code>builtin:alerting.profile</code> is flagged blocked at upgrade, so a checklist that ends there leaves you building something with an expiry. See ALERT-01 for the target architecture and MOBL-11 §5 for a mobile crash-rate detector.</p>
+</li>
+</ol>
+<h3>Verify Your Mobile App Configuration</h3>
+<p>Run this query to confirm your mobile applications are configured and visible in Dynatrace:</p>
+<pre><code class="language-dql">// Mobile app inventory overview
+// PREFERRED — Smartscape
+smartscapeNodes &quot;FRONTEND&quot;
+| filter frontend.type == &quot;mobile&quot;
+| fields name, id, id_classic, lifetime, tags
+| sort name asc
+| limit 20
+
+// FALLBACK (classic surface — still functional):
+// fetch dt.entity.mobile_application
+// | fields entity.name, id, lifetime, tags
+// | sort entity.name asc
+// | limit 20
+</code></pre>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li><strong>What mobile RUM is</strong> and the key metrics it captures (app launch time, crash rate, user actions per session, network error rate)</li>
+<li><strong>Mobile monitoring architecture</strong> -- how the SDK, beacon endpoint, cluster, and Grail work together</li>
+<li><strong>Supported platforms</strong> -- iOS, Android, Flutter, React Native, Cordova, and .NET MAUI (Xamarin is past end of support)</li>
+<li><strong>Mobile entity types</strong> -- the <code>FRONTEND</code> Smartscape node filtered on <code>frontend.type == &quot;mobile&quot;</code> (preferred), or classic <code>dt.entity.mobile_application</code> (still functional) -- <strong>never</strong> <code>dt.entity.device_application</code>, which does not exist -- plus <code>user.events</code> / <code>user.sessions</code> for actions, sessions, requests, and crashes</li>
+<li><strong>Why mobile and web share one node type</strong> -- Smartscape collapsed both classic application entities into <code>FRONTEND</code>, discriminated by <code>frontend.type</code>, with <code>id_classic</code> bridging back to classic ids</li>
+<li><strong>Beacon data flow</strong> -- batching, offline buffering, compression, and session correlation</li>
+<li><strong>Mobile vs Web RUM differences</strong> -- entity types, instrumentation methods, offline capability, and platform-specific considerations</li>
+<li><strong>Getting started steps</strong> -- from SDK integration through dashboard creation</li>
+</ul>
+<hr />
+<h2>Next Steps</h2>
+<p>Continue to <strong>MOBL-02: iOS SDK Setup (Swift &amp; SwiftUI)</strong> to learn:</p>
+<ul>
+<li>Creating a mobile app configuration and installing the iOS SDK (SPM or CocoaPods)</li>
+<li>Configuring <code>Info.plist</code> for auto-start and crash reporting</li>
+<li>UIKit auto-instrumentation and SwiftUI instrumentation with <code>DTSwiftInstrumentor</code></li>
+<li>Verifying data flow with DQL</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ORGNZ-05: Bucket-Level Access Control</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ORGNZ — Organize Data: Buckets, Segments, Security</a><span class="sep">/</span><span aria-current="page">ORGNZ-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ORGNZ-05: Bucket-Level Access Control</h1>
+<blockquote>
+<p><strong>Series:</strong> ORGNZ — Organize Data: Buckets, Segments, Security | <strong>Notebook:</strong> 5 of 10 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/07/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Bucket-level access control provides a straightforward way to isolate data by team, application, or business unit. By granting permissions to specific buckets, you can ensure teams only access data relevant to their responsibilities.</p>
+<blockquote>
+<p><strong>Canonical pattern (when bucket-level access fits):</strong> Bucket-level access works well in specific scenarios — <strong>compliance separation</strong> (PCI/HIPAA), <strong>retention isolation</strong> (different retention requirements naturally produce distinct buckets), <strong>retention-cost allocation</strong> (billing a cost center for the data it retains — Dynatrace: <em>&quot;You can use buckets to help allocate retention costs, so that the appropriate cost center is billed for their retained telemetry data.&quot;</em> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data">Partition data (DT docs)</a>; other costs are allocated with <code>dt.cost.*</code> fields), or <strong>hostile multi-tenancy</strong> (strict cross-tenant isolation). For general team-scoped data access without one of those scenarios, <strong><code>dt.security_context</code> + record-level permissions</strong> (covered in <strong>ORGNZ-06</strong>) is usually the simpler choice — it scales beyond the custom-bucket limit and is mutable without re-routing ingest. See <strong>IAM-04: Policy Authoring and Management</strong> § 5 <em>Choosing Between Patterns</em> (Patterns 3 and 9 cover the bucket-based scenarios) for the canonical scenario gating. The patterns below teach bucket-level mechanics for when the scenario fits.</p>
+</blockquote>
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS environment with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:bucket-definitions:read</code>, <code>storage:logs:read</code></td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>Completed ORGNZ-04 (Permissions in Grail)</td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>At least 1 hour of log data</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#bucket-permission-fundamentals">Bucket Permission Fundamentals</a></li>
+<li><a href="#policy-examples">Policy Examples</a></li>
+<li><a href="#team-isolation-pattern">Team Isolation Pattern</a></li>
+<li><a href="#default-buckets-policy">Default Buckets Policy</a></li>
+<li><a href="#verifying-bucket-access">Verifying Bucket Access</a></li>
+<li><a href="#best-practices">Best Practices</a></li>
+<li><a href="#when-bucket-level-isnt-enough">When Bucket-Level Isn't Enough</a></li>
+</ol>
+<hr />
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ul>
+<li>Create IAM policies for bucket-level access</li>
+<li>Use bucket naming patterns in policies</li>
+<li>Implement team isolation using buckets</li>
+<li>Understand bucket permission best practices</li>
+</ul>
+<p><a id="bucket-permission-fundamentals"></a></p>
+<h2>Bucket Permission Fundamentals</h2>
+<h3>Required Permissions</h3>
+<p>All bucket access policies must start with <code>storage:buckets:read</code>:</p>
+<pre><code>ALLOW storage:buckets:read WHERE &lt;condition&gt;;
+ALLOW storage:logs:read;  // Then allow table access
+</code></pre>
+<h3>Two-Step Pattern</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Purpose</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. Bucket access</td>
+<td>Define which buckets</td>
+<td><code>storage:buckets:read WHERE bucket-name = 'x'</code></td>
+</tr>
+<tr>
+<td>2. Table access</td>
+<td>Define which data types</td>
+<td><code>storage:logs:read</code>, <code>storage:metrics:read</code></td>
+</tr>
+</tbody>
+</table>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3NjAgNTA1IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnMDUiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMGYxNzJhIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzFlMjkzYiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CgogIDxyZWN0IHdpZHRoPSI3NjAiIGhlaWdodD0iNTA1IiBmaWxsPSJ1cmwoI2JnMDUpIi8+CgogIDwhLS0gTGVmdCBsYWJlbCBiYW5kIHNlcGFyYXRvciAtLT4KICA8bGluZSB4MT0iOTAiIHkxPSIwIiB4Mj0iOTAiIHkyPSI1MDUiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CgogIDwhLS0gUm93IGxhYmVscyAtLT4KICA8dGV4dCB4PSI0NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NGEzYjgiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPlRhYmxlczwvdGV4dD4KICA8dGV4dCB4PSI0NSIgeT0iMTIxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5EZWZhdWx0PC90ZXh0PgogIDx0ZXh0IHg9IjQ1IiB5PSIxMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NGEzYjgiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPkJ1Y2tldDwvdGV4dD4KICA8dGV4dCB4PSI0NSIgeT0iMzQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5DdXN0b208L3RleHQ+CiAgPHRleHQgeD0iNDUiIHk9IjM1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0YTNiOCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+QnVja2V0czwvdGV4dD4KCiAgPCEtLSBab25lIDE6IEFjY2VzcyBHcmFudGVkIChkZWZhdWx0ICsgc2hhcmVkKSB5PTk1IHRvIHk9MjU3IC0tPgogIDxyZWN0IHg9IjEwMiIgeT0iOTUiIHdpZHRoPSI1NzAiIGhlaWdodD0iMTYyIiByeD0iNiIgZmlsbD0iIzczYmUyOCIgZmlsbC1vcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M2JlMjgiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtZGFzaGFycmF5PSI4LDUiLz4KICA8IS0tIFpvbmUgMjogTm8gQWNjZXNzIHk9MjYyIHRvIHk9NDE0IC0tPgogIDxyZWN0IHg9IjEwMiIgeT0iMjYyIiB3aWR0aD0iNTcwIiBoZWlnaHQ9IjE1MiIgcng9IjYiIGZpbGw9IiNkZTM1MGIiIGZpbGwtb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjZGUzNTBiIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iOCw1Ii8+CiAgPCEtLSBab25lIDM6IEFjY2VzcyBHcmFudGVkIChpbmZyYSkgeT00MTkgdG8geT01MDEgLS0+CiAgPHJlY3QgeD0iMTAyIiB5PSI0MTkiIHdpZHRoPSI1NzAiIGhlaWdodD0iODIiIHJ4PSI2IiBmaWxsPSIjNzNiZTI4IiBmaWxsLW9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczYmUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1kYXNoYXJyYXk9IjgsNSIvPgoKICA8IS0tIFJpZ2h0LXNpZGUgem9uZSBsYWJlbHMgKHJvdGF0ZWQpIC0tPgogIDx0ZXh0IHg9IjY4NiIgeT0iMTc2IiB0cmFuc2Zvcm09InJvdGF0ZSgtOTAgNjg2IDE3NikiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NmVmYWMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPkFjY2VzcyBHcmFudGVkPC90ZXh0PgogIDx0ZXh0IHg9IjY4NiIgeT0iMzM4IiB0cmFuc2Zvcm09InJvdGF0ZSgtOTAgNjg2IDMzOCkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmY2E1YTUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPk5vIEFjY2VzczwvdGV4dD4KICA8dGV4dCB4PSI2ODYiIHk9IjQ2MCIgdHJhbnNmb3JtPSJyb3RhdGUoLTkwIDY4NiA0NjApIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZlZmFjIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5BY2Nlc3MgR3JhbnRlZDwvdGV4dD4KCiAgPCEtLSBEYXNoZWQgc2VwYXJhdG9yIGJldHdlZW4gRGVmYXVsdCBhbmQgQ3VzdG9tIHJvd3MgLS0+CiAgPGxpbmUgeDE9IjkwIiB5MT0iMTY4IiB4Mj0iNjcyIiB5Mj0iMTY4IiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2UtZGFzaGFycmF5PSI2LDQiLz4KCiAgPCEtLSDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZAgLS0+CiAgPCEtLSBDb2x1bW4gaGVhZGVyIHRleHQg4oCUIEFCT1ZFIGljb24gKHk9MTgpICAgICAgICAgICAgICAgICAgICAtLT4KICA8IS0tIOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkCAtLT4KICA8dGV4dCB4PSIyMDAiIHk9IjE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTNjNWZkIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5sb2dzPC90ZXh0PgogIDx0ZXh0IHg9IjM5MCIgeT0iMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5M2M1ZmQiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPmV2ZW50czwvdGV4dD4KICA8dGV4dCB4PSI1ODAiIHk9IjE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTNjNWZkIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5zcGFuczwvdGV4dD4KCiAgPCEtLSDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZAgLS0+CiAgPCEtLSBEQiBpY29ucyDigJQgdG9wIGVsbGlwc2UgY3k9NDIgKGljb24gdG9wIHk9MzMsIDE1cHggZ2FwKSAgICAtLT4KICA8IS0tIOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkCAtLT4KCiAgPCEtLSBsb2dzIGljb24gKGN4PTIwMCkgLS0+CiAgPHJlY3QgeD0iMTcyIiB5PSI0MiIgd2lkdGg9IjU2IiBoZWlnaHQ9IjM2IiBmaWxsPSIjMTcyNTU0Ii8+CiAgPGxpbmUgeDE9IjE3MiIgeTE9IjQyIiB4Mj0iMTcyIiB5Mj0iNzgiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjIyOCIgeTE9IjQyIiB4Mj0iMjI4IiB5Mj0iNzgiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGVsbGlwc2UgY3g9IjIwMCIgY3k9IjQyIiByeD0iMjgiIHJ5PSI5IiBmaWxsPSIjMWU0MGFmIiBzdHJva2U9IiM2MGE1ZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxlbGxpcHNlIGN4PSIyMDAiIGN5PSI2MCIgcng9IjI4IiByeT0iOSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjBhNWZhIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDxlbGxpcHNlIGN4PSIyMDAiIGN5PSI3OCIgcng9IjI4IiByeT0iOSIgZmlsbD0iIzE3MjU1NCIgc3Ryb2tlPSIjNjBhNWZhIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iMjAwIiB5MT0iODciIHgyPSIyMDAiIHkyPSI0OTAiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KCiAgPCEtLSBldmVudHMgaWNvbiAoY3g9MzkwKSAtLT4KICA8cmVjdCB4PSIzNjIiIHk9IjQyIiB3aWR0aD0iNTYiIGhlaWdodD0iMzYiIGZpbGw9IiMxNzI1NTQiLz4KICA8bGluZSB4MT0iMzYyIiB5MT0iNDIiIHgyPSIzNjIiIHkyPSI3OCIgc3Ryb2tlPSIjNjBhNWZhIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iNDE4IiB5MT0iNDIiIHgyPSI0MTgiIHkyPSI3OCIgc3Ryb2tlPSIjNjBhNWZhIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8ZWxsaXBzZSBjeD0iMzkwIiBjeT0iNDIiIHJ4PSIyOCIgcnk9IjkiIGZpbGw9IiMxZTQwYWYiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGVsbGlwc2UgY3g9IjM5MCIgY3k9IjYwIiByeD0iMjgiIHJ5PSI5IiBmaWxsPSJub25lIiBzdHJva2U9IiM2MGE1ZmEiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPGVsbGlwc2UgY3g9IjM5MCIgY3k9Ijc4IiByeD0iMjgiIHJ5PSI5IiBmaWxsPSIjMTcyNTU0IiBzdHJva2U9IiM2MGE1ZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSIzOTAiIHkxPSI4NyIgeDI9IjM5MCIgeTI9IjQ5MCIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEuMiIvPgoKICA8IS0tIHNwYW5zIGljb24gKGN4PTU4MCkgLS0+CiAgPHJlY3QgeD0iNTUyIiB5PSI0MiIgd2lkdGg9IjU2IiBoZWlnaHQ9IjM2IiBmaWxsPSIjMTcyNTU0Ii8+CiAgPGxpbmUgeDE9IjU1MiIgeTE9IjQyIiB4Mj0iNTUyIiB5Mj0iNzgiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjYwOCIgeTE9IjQyIiB4Mj0iNjA4IiB5Mj0iNzgiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGVsbGlwc2UgY3g9IjU4MCIgY3k9IjQyIiByeD0iMjgiIHJ5PSI5IiBmaWxsPSIjMWU0MGFmIiBzdHJva2U9IiM2MGE1ZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxlbGxpcHNlIGN4PSI1ODAiIGN5PSI2MCIgcng9IjI4IiByeT0iOSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjBhNWZhIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDxlbGxpcHNlIGN4PSI1ODAiIGN5PSI3OCIgcng9IjI4IiByeT0iOSIgZmlsbD0iIzE3MjU1NCIgc3Ryb2tlPSIjNjBhNWZhIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iNTgwIiB5MT0iODciIHgyPSI1ODAiIHkyPSI0OTAiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KCiAgPCEtLSDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZAgLS0+CiAgPCEtLSBaT05FIDEgcm93IEEg4oCUIERlZmF1bHQgYnVja2V0cyAodG9wX3k9MTAzLCB0ZWFsL2FjdGl2ZSkgICAtLT4KICA8IS0tIOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkCAtLT4KCiAgPCEtLSBkZWZhdWx0X2xvZ3MgLS0+CiAgPGVsbGlwc2UgY3g9IjIwMCIgY3k9IjEwMyIgcng9IjI0IiByeT0iNyIgZmlsbD0iIzBlNzQ5MCIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cGF0aCBkPSJNMTc2IDEwMyBRMjAwIDExMCAyMjQgMTAzIEwyMjAgMTQxIFEyMDAgMTQ4IDE4MCAxNDEgWiIgZmlsbD0iIzBjMmQzYSIvPgogIDxsaW5lIHgxPSIxNzYiIHkxPSIxMDMiIHgyPSIxODAiIHkyPSIxNDEiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjIyNCIgeTE9IjEwMyIgeDI9IjIyMCIgeTI9IjE0MSIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8ZWxsaXBzZSBjeD0iMjAwIiBjeT0iMTQxIiByeD0iMjAiIHJ5PSI2IiBmaWxsPSIjMGMyZDNhIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxlbGxpcHNlIGN4PSIyMDAiIGN5PSIxMDMiIHJ4PSIyNCIgcnk9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMjAwIiB5PSIxNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNhNWYzZmMiIGZvbnQtc2l6ZT0iMTAiPmRlZmF1bHRfbG9nczwvdGV4dD4KCiAgPCEtLSBkZWZhdWx0X2V2ZW50cyAtLT4KICA8ZWxsaXBzZSBjeD0iMzkwIiBjeT0iMTAzIiByeD0iMjQiIHJ5PSI3IiBmaWxsPSIjMGU3NDkwIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxwYXRoIGQ9Ik0zNjYgMTAzIFEzOTAgMTEwIDQxNCAxMDMgTDQxMCAxNDEgUTM5MCAxNDggMzcwIDE0MSBaIiBmaWxsPSIjMGMyZDNhIi8+CiAgPGxpbmUgeDE9IjM2NiIgeTE9IjEwMyIgeDI9IjM3MCIgeTI9IjE0MSIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iNDE0IiB5MT0iMTAzIiB4Mj0iNDEwIiB5Mj0iMTQxIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxlbGxpcHNlIGN4PSIzOTAiIGN5PSIxNDEiIHJ4PSIyMCIgcnk9IjYiIGZpbGw9IiMwYzJkM2EiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGVsbGlwc2UgY3g9IjM5MCIgY3k9IjEwMyIgcng9IjI0IiByeT0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIzOTAiIHk9IjE1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2E1ZjNmYyIgZm9udC1zaXplPSIxMCI+ZGVmYXVsdF9ldmVudHM8L3RleHQ+CgogIDwhLS0gZGVmYXVsdF9zcGFucyAtLT4KICA8ZWxsaXBzZSBjeD0iNTgwIiBjeT0iMTAzIiByeD0iMjQiIHJ5PSI3IiBmaWxsPSIjMGU3NDkwIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxwYXRoIGQ9Ik01NTYgMTAzIFE1ODAgMTEwIDYwNCAxMDMgTDYwMCAxNDEgUTU4MCAxNDggNTYwIDE0MSBaIiBmaWxsPSIjMGMyZDNhIi8+CiAgPGxpbmUgeDE9IjU1NiIgeTE9IjEwMyIgeDI9IjU2MCIgeTI9IjE0MSIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iNjA0IiB5MT0iMTAzIiB4Mj0iNjAwIiB5Mj0iMTQxIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxlbGxpcHNlIGN4PSI1ODAiIGN5PSIxNDEiIHJ4PSIyMCIgcnk9IjYiIGZpbGw9IiMwYzJkM2EiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGVsbGlwc2UgY3g9IjU4MCIgY3k9IjEwMyIgcng9IjI0IiByeT0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI1ODAiIHk9IjE1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2E1ZjNmYyIgZm9udC1zaXplPSIxMCI+ZGVmYXVsdF9zcGFuczwvdGV4dD4KCiAgPCEtLSDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZAgLS0+CiAgPCEtLSBaT05FIDEgcm93IEIg4oCUIFNoYXJlZCBjdXN0b20gYnVja2V0cyAodG9wX3k9MTgyLCB0ZWFsKSAgICAtLT4KICA8IS0tIOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkCAtLT4KCiAgPCEtLSBsb2dzX3NoYXJlZCAtLT4KICA8ZWxsaXBzZSBjeD0iMjAwIiBjeT0iMTgyIiByeD0iMjQiIHJ5PSI3IiBmaWxsPSIjMGU3NDkwIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxwYXRoIGQ9Ik0xNzYgMTgyIFEyMDAgMTg5IDIyNCAxODIgTDIyMCAyMjAgUTIwMCAyMjcgMTgwIDIyMCBaIiBmaWxsPSIjMGMyZDNhIi8+CiAgPGxpbmUgeDE9IjE3NiIgeTE9IjE4MiIgeDI9IjE4MCIgeTI9IjIyMCIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iMjI0IiB5MT0iMTgyIiB4Mj0iMjIwIiB5Mj0iMjIwIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxlbGxpcHNlIGN4PSIyMDAiIGN5PSIyMjAiIHJ4PSIyMCIgcnk9IjYiIGZpbGw9IiMwYzJkM2EiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGVsbGlwc2UgY3g9IjIwMCIgY3k9IjE4MiIgcng9IjI0IiByeT0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIyMDAiIHk9IjIzNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2E1ZjNmYyIgZm9udC1zaXplPSIxMCI+bG9nc19zaGFyZWQ8L3RleHQ+CgogIDwhLS0gZXZlbnRzX3NoYXJlZCAtLT4KICA8ZWxsaXBzZSBjeD0iMzkwIiBjeT0iMTgyIiByeD0iMjQiIHJ5PSI3IiBmaWxsPSIjMGU3NDkwIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxwYXRoIGQ9Ik0zNjYgMTgyIFEzOTAgMTg5IDQxNCAxODIgTDQxMCAyMjAgUTM5MCAyMjcgMzcwIDIyMCBaIiBmaWxsPSIjMGMyZDNhIi8+CiAgPGxpbmUgeDE9IjM2NiIgeTE9IjE4MiIgeDI9IjM3MCIgeTI9IjIyMCIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iNDE0IiB5MT0iMTgyIiB4Mj0iNDEwIiB5Mj0iMjIwIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxlbGxpcHNlIGN4PSIzOTAiIGN5PSIyMjAiIHJ4PSIyMCIgcnk9IjYiIGZpbGw9IiMwYzJkM2EiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGVsbGlwc2UgY3g9IjM5MCIgY3k9IjE4MiIgcng9IjI0IiByeT0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIzOTAiIHk9IjIzNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2E1ZjNmYyIgZm9udC1zaXplPSIxMCI+ZXZlbnRzX3NoYXJlZDwvdGV4dD4KCiAgPCEtLSBzcGFuc19zaGFyZWQgLS0+CiAgPGVsbGlwc2UgY3g9IjU4MCIgY3k9IjE4MiIgcng9IjI0IiByeT0iNyIgZmlsbD0iIzBlNzQ5MCIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cGF0aCBkPSJNNTU2IDE4MiBRNTgwIDE4OSA2MDQgMTgyIEw2MDAgMjIwIFE1ODAgMjI3IDU2MCAyMjAgWiIgZmlsbD0iIzBjMmQzYSIvPgogIDxsaW5lIHgxPSI1NTYiIHkxPSIxODIiIHgyPSI1NjAiIHkyPSIyMjAiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjYwNCIgeTE9IjE4MiIgeDI9IjYwMCIgeTI9IjIyMCIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8ZWxsaXBzZSBjeD0iNTgwIiBjeT0iMjIwIiByeD0iMjAiIHJ5PSI2IiBmaWxsPSIjMGMyZDNhIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxlbGxpcHNlIGN4PSI1ODAiIGN5PSIxODIiIHJ4PSIyNCIgcnk9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNTgwIiB5PSIyMzciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNhNWYzZmMiIGZvbnQtc2l6ZT0iMTAiPnNwYW5zX3NoYXJlZDwvdGV4dD4KCiAgPCEtLSDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZAgLS0+CiAgPCEtLSBaT05FIDIgcm93IEMg4oCUIERlbGl2ZXJ5IGJ1Y2tldHMgKHRvcF95PTI3MCwgZ3JleS9pbmFjdGl2ZSkgLS0+CiAgPCEtLSDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZAgLS0+CgogIDwhLS0gbG9nc19kZWxpdmVyeSAtLT4KICA8ZWxsaXBzZSBjeD0iMjAwIiBjeT0iMjcwIiByeD0iMjQiIHJ5PSI3IiBmaWxsPSIjMzM0MTU1IiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPHBhdGggZD0iTTE3NiAyNzAgUTIwMCAyNzcgMjI0IDI3MCBMMjIwIDMwOCBRMjAwIDMxNSAxODAgMzA4IFoiIGZpbGw9IiMxZTI5M2IiLz4KICA8bGluZSB4MT0iMTc2IiB5MT0iMjcwIiB4Mj0iMTgwIiB5Mj0iMzA4IiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPGxpbmUgeDE9IjIyNCIgeTE9IjI3MCIgeDI9IjIyMCIgeTI9IjMwOCIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDxlbGxpcHNlIGN4PSIyMDAiIGN5PSIzMDgiIHJ4PSIyMCIgcnk9IjYiIGZpbGw9IiMxZTI5M2IiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8ZWxsaXBzZSBjeD0iMjAwIiBjeT0iMjcwIiByeD0iMjQiIHJ5PSI3IiBmaWxsPSJub25lIiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPHRleHQgeD0iMjAwIiB5PSIzMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OGIiIGZvbnQtc2l6ZT0iMTAiPmxvZ3NfZGVsaXZlcnk8L3RleHQ+CgogIDwhLS0gZXZlbnRzX2RlbGl2ZXJ5IC0tPgogIDxlbGxpcHNlIGN4PSIzOTAiIGN5PSIyNzAiIHJ4PSIyNCIgcnk9IjciIGZpbGw9IiMzMzQxNTUiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8cGF0aCBkPSJNMzY2IDI3MCBRMzkwIDI3NyA0MTQgMjcwIEw0MTAgMzA4IFEzOTAgMzE1IDM3MCAzMDggWiIgZmlsbD0iIzFlMjkzYiIvPgogIDxsaW5lIHgxPSIzNjYiIHkxPSIyNzAiIHgyPSIzNzAiIHkyPSIzMDgiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8bGluZSB4MT0iNDE0IiB5MT0iMjcwIiB4Mj0iNDEwIiB5Mj0iMzA4IiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPGVsbGlwc2UgY3g9IjM5MCIgY3k9IjMwOCIgcng9IjIwIiByeT0iNiIgZmlsbD0iIzFlMjkzYiIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDxlbGxpcHNlIGN4PSIzOTAiIGN5PSIyNzAiIHJ4PSIyNCIgcnk9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8dGV4dCB4PSIzOTAiIHk9IjMyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4YiIgZm9udC1zaXplPSIxMCI+ZXZlbnRzX2RlbGl2ZXJ5PC90ZXh0PgoKICA8IS0tIHNwYW5zX2RlbGl2ZXJ5IC0tPgogIDxlbGxpcHNlIGN4PSI1ODAiIGN5PSIyNzAiIHJ4PSIyNCIgcnk9IjciIGZpbGw9IiMzMzQxNTUiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8cGF0aCBkPSJNNTU2IDI3MCBRNTgwIDI3NyA2MDQgMjcwIEw2MDAgMzA4IFE1ODAgMzE1IDU2MCAzMDggWiIgZmlsbD0iIzFlMjkzYiIvPgogIDxsaW5lIHgxPSI1NTYiIHkxPSIyNzAiIHgyPSI1NjAiIHkyPSIzMDgiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8bGluZSB4MT0iNjA0IiB5MT0iMjcwIiB4Mj0iNjAwIiB5Mj0iMzA4IiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPGVsbGlwc2UgY3g9IjU4MCIgY3k9IjMwOCIgcng9IjIwIiByeT0iNiIgZmlsbD0iIzFlMjkzYiIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDxlbGxpcHNlIGN4PSI1ODAiIGN5PSIyNzAiIHJ4PSIyNCIgcnk9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8dGV4dCB4PSI1ODAiIHk9IjMyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4YiIgZm9udC1zaXplPSIxMCI+c3BhbnNfZGVsaXZlcnk8L3RleHQ+CgogIDwhLS0g4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQIC0tPgogIDwhLS0gWk9ORSAyIHJvdyBEIOKAlCBBY2NvdW50aW5nIGJ1Y2tldHMgKHRvcF95PTM0MCwgZ3JleSkgICAgICAgLS0+CiAgPCEtLSDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZAgLS0+CgogIDwhLS0gbG9nc19hY2NvdW50aW5nIC0tPgogIDxlbGxpcHNlIGN4PSIyMDAiIGN5PSIzNDAiIHJ4PSIyNCIgcnk9IjciIGZpbGw9IiMzMzQxNTUiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8cGF0aCBkPSJNMTc2IDM0MCBRMjAwIDM0NyAyMjQgMzQwIEwyMjAgMzc4IFEyMDAgMzg1IDE4MCAzNzggWiIgZmlsbD0iIzFlMjkzYiIvPgogIDxsaW5lIHgxPSIxNzYiIHkxPSIzNDAiIHgyPSIxODAiIHkyPSIzNzgiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8bGluZSB4MT0iMjI0IiB5MT0iMzQwIiB4Mj0iMjIwIiB5Mj0iMzc4IiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPGVsbGlwc2UgY3g9IjIwMCIgY3k9IjM3OCIgcng9IjIwIiByeT0iNiIgZmlsbD0iIzFlMjkzYiIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDxlbGxpcHNlIGN4PSIyMDAiIGN5PSIzNDAiIHJ4PSIyNCIgcnk9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8dGV4dCB4PSIyMDAiIHk9IjM5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4YiIgZm9udC1zaXplPSIxMCI+bG9nc19hY2NvdW50aW5nPC90ZXh0PgoKICA8IS0tIGV2ZW50c19hY2NvdW50aW5nIC0tPgogIDxlbGxpcHNlIGN4PSIzOTAiIGN5PSIzNDAiIHJ4PSIyNCIgcnk9IjciIGZpbGw9IiMzMzQxNTUiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8cGF0aCBkPSJNMzY2IDM0MCBRMzkwIDM0NyA0MTQgMzQwIEw0MTAgMzc4IFEzOTAgMzg1IDM3MCAzNzggWiIgZmlsbD0iIzFlMjkzYiIvPgogIDxsaW5lIHgxPSIzNjYiIHkxPSIzNDAiIHgyPSIzNzAiIHkyPSIzNzgiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8bGluZSB4MT0iNDE0IiB5MT0iMzQwIiB4Mj0iNDEwIiB5Mj0iMzc4IiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPGVsbGlwc2UgY3g9IjM5MCIgY3k9IjM3OCIgcng9IjIwIiByeT0iNiIgZmlsbD0iIzFlMjkzYiIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDxlbGxpcHNlIGN4PSIzOTAiIGN5PSIzNDAiIHJ4PSIyNCIgcnk9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8dGV4dCB4PSIzOTAiIHk9IjM5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4YiIgZm9udC1zaXplPSIxMCI+ZXZlbnRzX2FjY291bnRpbmc8L3RleHQ+CgogIDwhLS0gc3BhbnNfYWNjb3VudGluZyAtLT4KICA8ZWxsaXBzZSBjeD0iNTgwIiBjeT0iMzQwIiByeD0iMjQiIHJ5PSI3IiBmaWxsPSIjMzM0MTU1IiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPHBhdGggZD0iTTU1NiAzNDAgUTU4MCAzNDcgNjA0IDM0MCBMNjAwIDM3OCBRNTgwIDM4NSA1NjAgMzc4IFoiIGZpbGw9IiMxZTI5M2IiLz4KICA8bGluZSB4MT0iNTU2IiB5MT0iMzQwIiB4Mj0iNTYwIiB5Mj0iMzc4IiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPGxpbmUgeDE9IjYwNCIgeTE9IjM0MCIgeDI9IjYwMCIgeTI9IjM3OCIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDxlbGxpcHNlIGN4PSI1ODAiIGN5PSIzNzgiIHJ4PSIyMCIgcnk9IjYiIGZpbGw9IiMxZTI5M2IiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8ZWxsaXBzZSBjeD0iNTgwIiBjeT0iMzQwIiByeD0iMjQiIHJ5PSI3IiBmaWxsPSJub25lIiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPHRleHQgeD0iNTgwIiB5PSIzOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OGIiIGZvbnQtc2l6ZT0iMTAiPnNwYW5zX2FjY291bnRpbmc8L3RleHQ+CgogIDwhLS0g4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQIC0tPgogIDwhLS0gWk9ORSAzIHJvdyBFIOKAlCBJbmZyYSBidWNrZXRzICh0b3BfeT00MjcsIHRlYWwvYWN0aXZlKSAgICAgLS0+CiAgPCEtLSDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZAgLS0+CgogIDwhLS0gbG9nc19pbmZyYSAtLT4KICA8ZWxsaXBzZSBjeD0iMjAwIiBjeT0iNDI3IiByeD0iMjQiIHJ5PSI3IiBmaWxsPSIjMGU3NDkwIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxwYXRoIGQ9Ik0xNzYgNDI3IFEyMDAgNDM0IDIyNCA0MjcgTDIyMCA0NjUgUTIwMCA0NzIgMTgwIDQ2NSBaIiBmaWxsPSIjMGMyZDNhIi8+CiAgPGxpbmUgeDE9IjE3NiIgeTE9IjQyNyIgeDI9IjE4MCIgeTI9IjQ2NSIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iMjI0IiB5MT0iNDI3IiB4Mj0iMjIwIiB5Mj0iNDY1IiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxlbGxpcHNlIGN4PSIyMDAiIGN5PSI0NjUiIHJ4PSIyMCIgcnk9IjYiIGZpbGw9IiMwYzJkM2EiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGVsbGlwc2UgY3g9IjIwMCIgY3k9IjQyNyIgcng9IjI0IiByeT0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIyMDAiIHk9IjQ4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2E1ZjNmYyIgZm9udC1zaXplPSIxMCI+bG9nc19pbmZyYTwvdGV4dD4KCiAgPCEtLSBldmVudHNfaW5mcmEgLS0+CiAgPGVsbGlwc2UgY3g9IjM5MCIgY3k9IjQyNyIgcng9IjI0IiByeT0iNyIgZmlsbD0iIzBlNzQ5MCIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cGF0aCBkPSJNMzY2IDQyNyBRMzkwIDQzNCA0MTQgNDI3IEw0MTAgNDY1IFEzOTAgNDcyIDM3MCA0NjUgWiIgZmlsbD0iIzBjMmQzYSIvPgogIDxsaW5lIHgxPSIzNjYiIHkxPSI0MjciIHgyPSIzNzAiIHkyPSI0NjUiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjQxNCIgeTE9IjQyNyIgeDI9IjQxMCIgeTI9IjQ2NSIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8ZWxsaXBzZSBjeD0iMzkwIiBjeT0iNDY1IiByeD0iMjAiIHJ5PSI2IiBmaWxsPSIjMGMyZDNhIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxlbGxpcHNlIGN4PSIzOTAiIGN5PSI0MjciIHJ4PSIyNCIgcnk9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMzkwIiB5PSI0ODIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNhNWYzZmMiIGZvbnQtc2l6ZT0iMTAiPmV2ZW50c19pbmZyYTwvdGV4dD4KCiAgPCEtLSBzcGFuc19pbmZyYSAtLT4KICA8ZWxsaXBzZSBjeD0iNTgwIiBjeT0iNDI3IiByeD0iMjQiIHJ5PSI3IiBmaWxsPSIjMGU3NDkwIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxwYXRoIGQ9Ik01NTYgNDI3IFE1ODAgNDM0IDYwNCA0MjcgTDYwMCA0NjUgUTU4MCA0NzIgNTYwIDQ2NSBaIiBmaWxsPSIjMGMyZDNhIi8+CiAgPGxpbmUgeDE9IjU1NiIgeTE9IjQyNyIgeDI9IjU2MCIgeTI9IjQ2NSIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iNjA0IiB5MT0iNDI3IiB4Mj0iNjAwIiB5Mj0iNDY1IiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxlbGxpcHNlIGN4PSI1ODAiIGN5PSI0NjUiIHJ4PSIyMCIgcnk9IjYiIGZpbGw9IiMwYzJkM2EiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGVsbGlwc2UgY3g9IjU4MCIgY3k9IjQyNyIgcng9IjI0IiByeT0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI1ODAiIHk9IjQ4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2E1ZjNmYyIgZm9udC1zaXplPSIxMCI+c3BhbnNfaW5mcmE8L3RleHQ+Cgo8L3N2Zz4K" alt="Bucket Access Tiers — Multi-Signal View" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Zone | Buckets (logs / events / spans) | Access |
+|------|---------------------------------|--------|
+| Default | default_logs, default_events, default_spans | Granted |
+| Custom shared | logs_shared, events_shared, spans_shared | Granted |
+| Custom delivery/accounting | logs_delivery, logs_accounting, events_delivery, events_accounting, spans_delivery, spans_accounting | No Access |
+| Custom infra | logs_infra_cloud, logs_infra_esxi, events_infra, spans_infra | Granted |
+-->
+<p><a id="policy-examples"></a></p>
+<h2>Policy Examples</h2>
+<h3>Example 1: Single Bucket Access</h3>
+<p>Grant a team access to their specific bucket:</p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;platform-team-logs-access&quot;,
+  &quot;description&quot;: &quot;Platform team can access platform logs bucket&quot;,
+  &quot;statementQuery&quot;: &quot;ALLOW storage:buckets:read WHERE storage:bucket-name = 'team_platform_logs'; ALLOW storage:logs:read;&quot;,
+  &quot;tags&quot;: [&quot;team:platform&quot;]
+}
+</code></pre>
+<h3>Example 2: Multiple Buckets with IN Operator</h3>
+<p>Grant access to a list of specific buckets:</p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;finance-multi-bucket-access&quot;,
+  &quot;description&quot;: &quot;Finance team can access multiple buckets&quot;,
+  &quot;statementQuery&quot;: &quot;ALLOW storage:buckets:read WHERE storage:bucket-name IN ('finance_logs', 'finance_events', 'finance_audit'); ALLOW storage:logs:read, storage:events:read;&quot;,
+  &quot;tags&quot;: [&quot;team:finance&quot;]
+}
+</code></pre>
+<h3>Example 3: Bucket Name Pattern with STARTSWITH</h3>
+<p>Grant access to all buckets matching a prefix:</p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;prod-infrastructure-access&quot;,
+  &quot;description&quot;: &quot;Access to all production infrastructure buckets&quot;,
+  &quot;statementQuery&quot;: &quot;ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH 'prod_infra_'; ALLOW storage:logs:read, storage:metrics:read, storage:spans:read;&quot;,
+  &quot;tags&quot;: [&quot;env:production&quot;]
+}
+</code></pre>
+<h3>Example 4: Bucket Pattern with MATCH</h3>
+<p>Use pattern matching for complex bucket names:</p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;database-team-access&quot;,
+  &quot;description&quot;: &quot;Database team can access any database-related bucket&quot;,
+  &quot;statementQuery&quot;: &quot;ALLOW storage:buckets:read WHERE storage:bucket-name MATCH ('*-database-*'); ALLOW storage:logs:read;&quot;,
+  &quot;tags&quot;: [&quot;team:database&quot;]
+}
+</code></pre>
+<p><a id="team-isolation-pattern"></a></p>
+<h2>Team Isolation Pattern</h2>
+<blockquote>
+<p><strong>When this approach fits:</strong> team isolation via dedicated buckets is well-suited to scenarios where each team's data already needs its own bucket for compliance, retention, or hard-cost-attribution reasons. For routine per-team scoping without one of those reasons, <strong><code>dt.security_context</code> parameterization</strong> (one policy template, bound per team — see <strong>ORGNZ-06</strong> and <strong>IAM-04 Pattern 2</strong>) is usually simpler and avoids the custom-bucket limit. The pattern below applies once you've decided buckets are the right tool for your team-isolation scenario.</p>
+</blockquote>
+<h3>Architecture</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgMzgwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmdHcmFkNSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZjE3MmEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWUyOTNiIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ0ZWFtQUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyNTYzZWIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InRlYW1CR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzA1OTY2OSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icG9saWN5R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojOGI1Y2Y2Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdjM2FlZCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYnVja2V0R3JhZDUiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y1OWUwYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkOTc3MDYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJzaGFkb3c1IiB4PSItMjAlIiB5PSItMjAlIiB3aWR0aD0iMTQwJSIgaGVpZ2h0PSIxNDAlIj4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMiIgZHk9IjIiIHN0ZERldmlhdGlvbj0iMyIgZmxvb2Qtb3BhY2l0eT0iMC4zIi8+CiAgICA8L2ZpbHRlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2JnR3JhZDUpIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iMzUwIiB5PSIzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2Y4ZmFmYyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9IjYwMCI+VGVhbSBJc29sYXRpb24gd2l0aCBCdWNrZXQtTGV2ZWwgQWNjZXNzPC90ZXh0PgoKICA8IS0tIFBsYXRmb3JtIFRlYW0gQ29sdW1uIC0tPgogIDx0ZXh0IHg9IjE3NSIgeT0iNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2MGE1ZmEiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI2MDAiPlBsYXRmb3JtIFRlYW08L3RleHQ+CgogIDxyZWN0IHg9Ijc1IiB5PSI3NSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI1MCIgcng9IjgiIGZpbGw9InVybCgjdGVhbUFHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdzUpIi8+CiAgPHRleHQgeD0iMTc1IiB5PSIxMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIj4KICAgIDx0c3BhbiB4PSIxNzUiIGR5PSIwIj5Vc2VyczwvdHNwYW4+CiAgPC90ZXh0PgogIDx0ZXh0IHg9IjE3NSIgeT0iMTE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYmZkYmZlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj4oUGxhdGZvcm0gRW5naW5lZXJzKTwvdGV4dD4KCiAgPGxpbmUgeDE9IjE3NSIgeTE9IjEyNSIgeDI9IjE3NSIgeTI9IjE1NSIgc3Ryb2tlPSIjM2I4MmY2IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cG9seWdvbiBwb2ludHM9IjE3NSwxNjUgMTY4LDE1NSAxODIsMTU1IiBmaWxsPSIjM2I4MmY2Ii8+CgogIDxyZWN0IHg9Ijc1IiB5PSIxNzAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNzAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3BvbGljeUdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93NSkiLz4KICA8dGV4dCB4PSIxNzUiIHk9IjE5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPklBTSBQb2xpY3k8L3RleHQ+CiAgPHRleHQgeD0iMTc1IiB5PSIyMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOWQ1ZmYiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOSI+YnVja2V0LW5hbWUgU1RBUlRTV0lUSDwvdGV4dD4KICA8dGV4dCB4PSIxNzUiIHk9IjIzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2M0YjVmZCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI5Ij4ndGVhbV9wbGF0Zm9ybV8nPC90ZXh0PgoKICA8bGluZSB4MT0iMTc1IiB5MT0iMjQwIiB4Mj0iMTc1IiB5Mj0iMjcwIiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxwb2x5Z29uIHBvaW50cz0iMTc1LDI4MCAxNjgsMjcwIDE4MiwyNzAiIGZpbGw9IiNmNTllMGIiLz4KCiAgPHJlY3QgeD0iNzUiIHk9IjI4NSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI2MCIgcng9IjgiIGZpbGw9InVybCgjYnVja2V0R3JhZDUpIiBmaWx0ZXI9InVybCgjc2hhZG93NSkiLz4KICA8dGV4dCB4PSIxNzUiIHk9IjMxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPnRlYW1fcGxhdGZvcm1fbG9nczwvdGV4dD4KICA8dGV4dCB4PSIxNzUiIHk9IjMzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZlZjNjNyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+KEluZnJhc3RydWN0dXJlIGxvZ3MpPC90ZXh0PgoKICA8IS0tIENoZWNrb3V0IFRlYW0gQ29sdW1uIC0tPgogIDx0ZXh0IHg9IjUyNSIgeT0iNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMzNGQzOTkiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI2MDAiPkNoZWNrb3V0IFRlYW08L3RleHQ+CgogIDxyZWN0IHg9IjQyNSIgeT0iNzUiIHdpZHRoPSIyMDAiIGhlaWdodD0iNTAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3RlYW1CR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3c1KSIvPgogIDx0ZXh0IHg9IjUyNSIgeT0iMTAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiI+CiAgICA8dHNwYW4geD0iNTI1IiBkeT0iMCI+VXNlcnM8L3RzcGFuPgogIDwvdGV4dD4KICA8dGV4dCB4PSI1MjUiIHk9IjExNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2E3ZjNkMCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+KENoZWNrb3V0IERldmVsb3BlcnMpPC90ZXh0PgoKICA8bGluZSB4MT0iNTI1IiB5MT0iMTI1IiB4Mj0iNTI1IiB5Mj0iMTU1IiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxwb2x5Z29uIHBvaW50cz0iNTI1LDE2NSA1MTgsMTU1IDUzMiwxNTUiIGZpbGw9IiMxMGI5ODEiLz4KCiAgPHJlY3QgeD0iNDI1IiB5PSIxNzAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNzAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3BvbGljeUdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93NSkiLz4KICA8dGV4dCB4PSI1MjUiIHk9IjE5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPklBTSBQb2xpY3k8L3RleHQ+CiAgPHRleHQgeD0iNTI1IiB5PSIyMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOWQ1ZmYiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOSI+YnVja2V0LW5hbWUgU1RBUlRTV0lUSDwvdGV4dD4KICA8dGV4dCB4PSI1MjUiIHk9IjIzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2M0YjVmZCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI5Ij4ndGVhbV9jaGVja291dF8nPC90ZXh0PgoKICA8bGluZSB4MT0iNTI1IiB5MT0iMjQwIiB4Mj0iNTI1IiB5Mj0iMjcwIiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxwb2x5Z29uIHBvaW50cz0iNTI1LDI4MCA1MTgsMjcwIDUzMiwyNzAiIGZpbGw9IiNmNTllMGIiLz4KCiAgPHJlY3QgeD0iNDI1IiB5PSIyODUiIHdpZHRoPSIyMDAiIGhlaWdodD0iNjAiIHJ4PSI4IiBmaWxsPSJ1cmwoI2J1Y2tldEdyYWQ1KSIgZmlsdGVyPSJ1cmwoI3NoYWRvdzUpIi8+CiAgPHRleHQgeD0iNTI1IiB5PSIzMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj50ZWFtX2NoZWNrb3V0X2xvZ3M8L3RleHQ+CiAgPHRleHQgeD0iNTI1IiB5PSIzMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZWYzYzciIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPihBcHBsaWNhdGlvbiBsb2dzKTwvdGV4dD4KCiAgPCEtLSBEaXZpZGVyIC0tPgogIDxsaW5lIHgxPSIzNTAiIHkxPSI1NSIgeDI9IjM1MCIgeTI9IjM1MCIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjgsNCIvPgoKICA8IS0tIFggbWFya3Mgc2hvd2luZyBpc29sYXRpb24gLS0+CiAgPHRleHQgeD0iMzUwIiB5PSIzMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlZjQ0NDQiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSJib2xkIj7inJU8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSIzNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPk5vIGNyb3NzLWFjY2VzczwvdGV4dD4KPC9zdmc+Cg==" alt="Team Isolation Architecture" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Team | Policy | Bucket |
+|------|--------|--------|
+| Platform | bucket-name = 'team_platform_*' | team_platform_logs |
+| Checkout | bucket-name = 'team_checkout_*' | team_checkout_logs |
+For environments where SVG doesn't render
+-->
+<h3>Implementation</h3>
+<p><strong>Step 1: Create team buckets</strong></p>
+<pre><code>team_platform_logs
+team_checkout_logs
+team_payments_logs
+</code></pre>
+<p><strong>Step 2: Assign buckets in OpenPipeline</strong></p>
+<p>In the log pipeline's <strong>Storage</strong> stage, add one <strong>Bucket assignment</strong> processor per team. Each has a DQL matcher, and the stage applies the first processor that matches:</p>
+<table>
+<thead>
+<tr>
+<th>Matching condition (DQL)</th>
+<th>Bucket</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>matchesValue(dt.host_group.id, &quot;platform-*&quot;)</code></td>
+<td><code>team_platform_logs</code></td>
+</tr>
+<tr>
+<td><code>k8s.namespace.name == &quot;checkout&quot;</code></td>
+<td><code>team_checkout_logs</code></td>
+</tr>
+</tbody>
+</table>
+<p>Match on a field your logs actually carry. <code>service.name</code> is an OpenTelemetry resource attribute: on the validation tenant (10/12/2026) it was set on 7,521 of 784,813 logs in an hour (about 1%), against 765,062 (97%) for <code>k8s.namespace.name</code>. A matcher on <code>service.name</code> would leave most checkout logs in the default bucket, and nothing would error. Run the field-coverage check in <strong>ORGNZ-10 § 3</strong> before choosing.</p>
+<p>See <strong>ORGNZ-03 § Routing Data to Buckets</strong> for how the Storage stage works and which matcher functions to use.</p>
+<p><strong>Step 3: Create IAM policies per team</strong></p>
+<pre><code>// Platform team policy
+ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH &quot;team_platform_&quot;;
+ALLOW storage:logs:read;
+
+// Checkout team policy
+ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH &quot;team_checkout_&quot;;
+ALLOW storage:logs:read;
+</code></pre>
+<p><a id="default-buckets-policy"></a></p>
+<h2>Default Buckets Policy</h2>
+<h3>Standard Default Access</h3>
+<p>For users who need access to all default buckets:</p>
+<pre><code>ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH &quot;default_&quot;;
+ALLOW storage:events:read, storage:logs:read, storage:metrics:read, 
+      storage:entities:read, storage:bizevents:read, storage:spans:read;
+</code></pre>
+<h3>Default Plus Custom Buckets</h3>
+<pre><code>ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH &quot;default_&quot;;
+ALLOW storage:buckets:read WHERE storage:bucket-name = &quot;audit_logs_365d&quot;;
+ALLOW storage:logs:read, storage:metrics:read, storage:spans:read;
+</code></pre>
+<p><a id="verifying-bucket-access"></a></p>
+<h2>Verifying Bucket Access</h2>
+<h3>DQL: Verifying Bucket Access</h3>
+<p>Confirm you can read from the expected buckets:</p>
+<pre><code class="language-dql">// Verify bucket access — check data distribution across buckets you can read
+fetch logs, from:-1h
+| summarize count = count(), by:{dt.system.bucket}
+| sort count desc
+</code></pre>
+<p><a id="best-practices"></a></p>
+<h2>Best Practices</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Use consistent bucket naming</td>
+<td>Enables pattern-based policies</td>
+</tr>
+<tr>
+<td>Assign policies to groups, not users</td>
+<td>Easier management, consistent access</td>
+</tr>
+<tr>
+<td>Document all policies</td>
+<td>Audit trail and governance</td>
+</tr>
+<tr>
+<td>Test policies with sample users</td>
+<td>Prevent access issues</td>
+</tr>
+<tr>
+<td>Use STARTSWITH for team prefixes</td>
+<td>Future-proof for new buckets</td>
+</tr>
+<tr>
+<td>Combine with record-level for scale</td>
+<td>Bucket limits (250 by default from SaaS 1.346; 80 before) may not suffice</td>
+</tr>
+</tbody>
+</table>
+<p><a id="when-bucket-level-isnt-enough"></a></p>
+<h2>When Bucket-Level Isn't Enough</h2>
+<p>Bucket-level access has limitations:</p>
+<table>
+<thead>
+<tr>
+<th>Limitation</th>
+<th>Alternative</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Custom-bucket limit (250 by default from SaaS 1.346; 80 before)</td>
+<td>Use security context for finer granularity</td>
+</tr>
+<tr>
+<td>Shared data needs</td>
+<td>Use record-level permissions</td>
+</tr>
+<tr>
+<td>Dynamic team membership</td>
+<td>Use security context mapped to tags</td>
+</tr>
+<tr>
+<td>Hiding sensitive fields</td>
+<td>Use fieldsets (<code>storage:fieldsets:read</code>) — see ORGNZ-07</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Bucket limit (SaaS 1.346):</strong> the default custom-bucket limit per environment is <strong>250</strong> (previously 80). SaaS 1.346 began its staged tenant rollout on 08/25/2026; a tenant still below 1.346 keeps the 80 default. The increase-on-request path is unchanged: roughly one additional bucket per 10 GB of daily ingest, with requests above 1,000 buckets reviewed by Dynatrace support. Not every page has caught up: the upgrade best-practice pages (published 08/24/2026) still state 80, while <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data">Use Grail buckets to partition data (DT docs)</a> now states <em>&quot;you can configure up to 250 custom buckets by default&quot;</em> (re-read 10/25/2026) and the newer <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data">How to organize your data stored in Grail (DT docs)</a> (updated 09/22/2026) states <em>&quot;The default limit per environment is 250 custom buckets.&quot;</em> (read 10/14/2026).</p>
+</blockquote>
+<p>See <strong>ORGNZ-06</strong> and <strong>ORGNZ-07</strong> for advanced permission patterns.</p>
+<h2>Next Steps</h2>
+<p>Continue with the ORGNZ series:</p>
+<ul>
+<li><strong>ORGNZ-06</strong>: Security Context</li>
+</ul>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from Dynatrace documentation and enterprise best practices. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

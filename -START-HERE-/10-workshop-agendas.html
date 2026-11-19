@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workshop Agendas — Sample Plans</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../">Best Practice Notebooks</a><span class="sep">/</span><a href="./">Start here</a><span class="sep">/</span><span aria-current="page">Workshop Agendas — Sample Plans</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1 id="workshop-agendas--sample-plans">Workshop Agendas — Sample Plans</h1>
+<blockquote>
+<p><strong>Purpose:</strong> Reference plans for 1-day, 3-day, and 5-day partner or SI workshops built from the topic series. Each agenda is a starting point — adapt timing, depth, and exercises based on the customer's situation and your team's expertise.
+<strong>Last Updated:</strong> 07/23/2026</p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj5Xb3Jrc2hvcCBBZ2VuZGEgQ29tcGFyaXNvbjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4xLWRheSBpbnRlbnNpdmUgwrcgMy1kYXkgYm9vdGNhbXAgwrcgNS1kYXkgbWlncmF0aW9uIHdvcmtzaG9wPC90ZXh0PgogIDxyZWN0IHg9IjQwIiB5PSI3NSIgd2lkdGg9IjI3MCIgaGVpZ2h0PSI0MCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xNSIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSIxNzUiIHk9Ijk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj4xLURheTwvdGV4dD4KICA8dGV4dCB4PSIxNzUiIHk9IjExMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+Rm91bmRhdGlvbiBRdWlja3N0YXJ0PC90ZXh0PgogIDxyZWN0IHg9IjMzMCIgeT0iNzUiIHdpZHRoPSIyNzAiIGhlaWdodD0iNDAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMTUiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSI5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+My1EYXk8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIxMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPk5ldCBOZXcgQm9vdGNhbXA8L3RleHQ+CiAgPHJlY3QgeD0iNjIwIiB5PSI3NSIgd2lkdGg9IjI3MCIgaGVpZ2h0PSI0MCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4xNSIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI3NTUiIHk9Ijk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj41LURheTwvdGV4dD4KICA8dGV4dCB4PSI3NTUiIHk9IjExMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+TWlncmF0aW9uIFdvcmtzaG9wPC90ZXh0PgogIDxyZWN0IHg9IjQwIiB5PSIxMjUiIHdpZHRoPSIyNzAiIGhlaWdodD0iMzIwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA1IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8dGV4dCB4PSIxNzUiIHk9IjE0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+QXVkaWVuY2U6IEN1c3RvbWVyIHRlYW0gKG1peGVkKTwvdGV4dD4KICA8dGV4dCB4PSIxNzUiIHk9IjE3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+VGVuYW50IHRvdXI8L3RleHQ+CiAgPHRleHQgeD0iMTc1IiB5PSIxOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlRhZ2dpbmcgc3RyYXRlZ3kgZGVjaXNpb248L3RleHQ+CiAgPHRleHQgeD0iMTc1IiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPklBTSBtb2RlbCBkZWNpc2lvbjwvdGV4dD4KICA8dGV4dCB4PSIxNzUiIHk9IjIzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+QnVja2V0IHN0cmF0ZWd5IGRlY2lzaW9uPC90ZXh0PgogIDx0ZXh0IHg9IjE3NSIgeT0iMjUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5BZ2VudC9BRyBkZXBsb3ltZW50IHBsYW48L3RleHQ+CiAgPHRleHQgeD0iMTc1IiB5PSIyNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkZpcnN0LWRvbWFpbiBwaWNrPC90ZXh0PgogIDx0ZXh0IHg9IjE3NSIgeT0iMjkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj40LXdlZWsgcm9hZG1hcDwvdGV4dD4KICA8bGluZSB4MT0iNjAiIHkxPSIzMDUiIHgyPSIyOTAiIHkyPSIzMDUiIHN0cm9rZT0iIzFFMjkzQiIvPgogIDx0ZXh0IHg9IjE3NSIgeT0iMzMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5PdXRjb21lOjwvdGV4dD4KICA8dGV4dCB4PSIxNzUiIHk9IjM1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+Rm91bmRhdGlvbiBkZWNpc2lvbiBsb2c8L3RleHQ+CiAgPHRleHQgeD0iMTc1IiB5PSIzNjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPisgNC13ZWVrIHJvYWRtYXA8L3RleHQ+CiAgPHRleHQgeD0iMTc1IiB5PSIzOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPldoZW4gdG8gdXNlOjwvdGV4dD4KICA8dGV4dCB4PSIxNzUiIHk9IjQxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+TmV3IHRlbmFudCwgYWxpZ25tZW50PC90ZXh0PgogIDx0ZXh0IHg9IjE3NSIgeT0iNDMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj53b3Jrc2hvcCBiZWZvcmUga2lja29mZjwvdGV4dD4KICA8cmVjdCB4PSIzMzAiIHk9IjEyNSIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIzMjAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDUiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTQ4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5BdWRpZW5jZTogSW1wbGVtZW50YXRpb24gdGVhbTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjE3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+RGF5IDE6IEZvdW5kYXRpb248L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIxOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPiAgSUFNLCB0YWdnaW5nLCBhZ2VudHM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIyMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkRheSAyOiBGaXJzdCBkb21haW48L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIyMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPiAgQnVja2V0cyArIEs4UyBkZWVwIGRpdmU8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIyNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkRheSAzOiBPcGVyYXRpb25hbGl6ZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+ICBEQVNIICsgV0ZMT1cgKyBBSU9QUyBpbnRybzwvdGV4dD4KICA8bGluZSB4MT0iMzUwIiB5MT0iMzA1IiB4Mj0iNTgwIiB5Mj0iMzA1IiBzdHJva2U9IiMxRTI5M0IiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjMzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+T3V0Y29tZTo8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIzNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPk9wZXJhdGlvbmFsIHRlbmFudCArPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5maXJzdC1kb21haW4gY292ZXJhZ2UgKzwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjM4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+YmFzaWMgZGFzaGJvYXJkcy9hbGVydHM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0MDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPldoZW4gdG8gdXNlOjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+TmV0IG5ldywgaGFuZHMtb248L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0NDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmltcGxlbWVudGF0aW9uIHRlYW08L3RleHQ+CiAgPHJlY3QgeD0iNjIwIiB5PSIxMjUiIHdpZHRoPSIyNzAiIGhlaWdodD0iMzIwIiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjA1IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8dGV4dCB4PSI3NTUiIHk9IjE0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+QXVkaWVuY2U6IE1pZ3JhdGlvbiB0ZWFtPC90ZXh0PgogIDx0ZXh0IHg9Ijc1NSIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5EYXkgMTogRm91bmRhdGlvbiArIHByZS1mbGlnaHQ8L3RleHQ+CiAgPHRleHQgeD0iNzU1IiB5PSIxOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkRheSAyOiBEZXNpZ24gKyB0cmFuc2xhdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI3NTUiIHk9IjIxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+ICBwcmltZXIgKE5SUUzihpJEUUwvU1BM4oaSRFFMKTwvdGV4dD4KICA8dGV4dCB4PSI3NTUiIHk9IjIzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+RGF5IDM6IENvbXBvbmVudCBtaWdyYXRpb248L3RleHQ+CiAgPHRleHQgeD0iNzU1IiB5PSIyNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPiAgaGFuZHMtb24gKHN5bnRoZXRpY3MsIGxvZ3MpPC90ZXh0PgogIDx0ZXh0IHg9Ijc1NSIgeT0iMjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5EYXkgNDogVmFsaWRhdGlvbiArIGN1dG92ZXI8L3RleHQ+CiAgPHRleHQgeD0iNzU1IiB5PSIyOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkRheSA1OiBBdXRvbWF0aW9uICsgbWF0dXJpdHk8L3RleHQ+CiAgPGxpbmUgeDE9IjY0MCIgeTE9IjMxMCIgeDI9Ijg3MCIgeTI9IjMxMCIgc3Ryb2tlPSIjMUUyOTNCIi8+CiAgPHRleHQgeD0iNzU1IiB5PSIzMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPk91dGNvbWU6PC90ZXh0PgogIDx0ZXh0IHg9Ijc1NSIgeT0iMzU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5WYWxpZGF0ZWQgZGVzaWduICsgdHJhbnNsYXRpb248L3RleHQ+CiAgPHRleHQgeD0iNzU1IiB5PSIzNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmJhY2tsb2cgKyBjdXRvdmVyIHJ1bmJvb2s8L3RleHQ+CiAgPHRleHQgeD0iNzU1IiB5PSIzOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPldoZW4gdG8gdXNlOjwvdGV4dD4KICA8dGV4dCB4PSI3NTUiIHk9IjQxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+VG9vbCBtaWdyYXRpb24gKE5SL1NwbHVuay88L3RleHQ+CiAgPHRleHQgeD0iNzU1IiB5PSI0MzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlN1bW8pIGVuZC10by1lbmQ8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0NzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTEiPkFkYXB0IHRpbWluZyBmb3IgYXVkaWVuY2U6IHRlY2huaWNhbCB0ZWFtcyBtb3ZlIGZhc3RlciBvbiBjb25jZXB0cywgc2xvd2VyIG9uIGhhbmRzLW9uPC90ZXh0Pgo8L3N2Zz4K" alt="Workshop Agenda Comparison" /></p>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#how-to-use-these-agendas">How to Use These Agendas</a></li>
+<li><a href="#1-day-foundation-quickstart">1-Day: Foundation Quickstart</a></li>
+<li><a href="#3-day-net-new-bootcamp">3-Day: Net New Bootcamp</a></li>
+<li><a href="#5-day-migration-workshop">5-Day: Migration Workshop</a></li>
+<li><a href="#choosing-the-right-agenda">Choosing the Right Agenda</a></li>
+<li><a href="#hands-on-lab-inventory">Hands-On Lab Inventory</a></li>
+</ol>
+<hr />
+<h2 id="how-to-use-these-agendas">How to Use These Agendas</h2>
+<p>These agendas assume:</p>
+<ul>
+<li>A facilitator who knows Dynatrace and has read the relevant topic series in advance</li>
+<li>A customer team available for the duration</li>
+<li>Pre-work distributed 1–2 weeks ahead so the customer brings prerequisites (cloud account, sample app, etc.)</li>
+<li>A working tenant available — sandbox for greenfield workshops, customer's tenant for migration workshops</li>
+</ul>
+<p>Each session block lists the topic series and notebooks to discuss, plus suggested hands-on activities. Adjust timing for your audience: technical teams move faster on concepts and slower on hands-on; executives need more context-setting and less depth.</p>
+<hr />
+<h2 id="1-day-foundation-quickstart">1-Day: Foundation Quickstart</h2>
+<p><strong>Audience:</strong> A new customer's team about to begin Dynatrace adoption. Half technical (architects, ops leads) and half decision-makers (manager, product owner).</p>
+<p><strong>Goal:</strong> Align on foundation choices (IAM model, tagging strategy, bucket strategy) so implementation can begin with confidence. Decisions made in the workshop unblock the next 2–3 weeks of implementation work.</p>
+<p><strong>Pre-work:</strong> Customer team reads <a href="./">README</a> front door + <a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a> notebook 01 (First Steps) before the workshop.</p>
+<table>
+<thead>
+<tr>
+<th>Time</th>
+<th>Session</th>
+<th>Reading</th>
+<th>Activity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>09:00–09:30</td>
+<td>Welcome and tenant tour</td>
+<td><a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a> — notebook 01</td>
+<td>Live tour of customer's tenant; navigate the Apps menu, dashboards, query data</td>
+</tr>
+<tr>
+<td>09:30–10:30</td>
+<td>Tagging strategy decision</td>
+<td><a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a> — entries 01 (host groups), 02 (tagging strategy); <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> — notebook 01</td>
+<td>Whiteboard exercise: customer maps their applications/teams to a tagging schema</td>
+</tr>
+<tr>
+<td>10:45–12:00</td>
+<td>IAM model decision</td>
+<td><a href="../IAM%20-%20IAM%20Administration/">IAM</a> — notebooks 01 (governance), 03 (group architecture), 04 (policy authoring)</td>
+<td>Whiteboard exercise: customer designs their group hierarchy and identifies first 3–5 policies</td>
+</tr>
+<tr>
+<td>13:00–14:30</td>
+<td>Bucket strategy decision</td>
+<td><a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> — notebooks 02 (understanding buckets), 03 (bucket strategy), 06 (security_context)</td>
+<td>Whiteboard exercise: identify which data needs bucket-level separation (compliance, retention) vs. which uses security_context</td>
+</tr>
+<tr>
+<td>14:45–15:45</td>
+<td>Agent and ActiveGate deployment plan</td>
+<td><a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a> — notebooks 03 (ActiveGate), 05 (OneAgent)</td>
+<td>Map customer's environments to deployment topology; identify first wave</td>
+</tr>
+<tr>
+<td>15:45–16:30</td>
+<td>First-domain pick and roadmap</td>
+<td><a href="06-domain-enablement.html">Domain Enablement Module</a></td>
+<td>Customer commits to first domain (typically <a href="../K8S%20-%20Kubernetes%20Monitoring/">K8S</a> or <a href="../CLOUD%20-%20Cloud%20Provider%20Integrations/">CLOUD</a>) and sets a 4-week milestone</td>
+</tr>
+<tr>
+<td>16:30–17:00</td>
+<td>Wrap-up and action plan</td>
+<td><a href="./">README</a>, <a href="05-foundation.html">Foundation Module</a></td>
+<td>Document decisions; assign owners; schedule first follow-up in 2 weeks</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Outcome:</strong> Customer leaves with a documented Foundation decision log and a 4-week roadmap.</p>
+<hr />
+<h2 id="3-day-net-new-bootcamp">3-Day: Net New Bootcamp</h2>
+<p><strong>Audience:</strong> Customer's primary observability team (4–8 people), including at least one architect, one ops engineer, and one developer.</p>
+<p><strong>Goal:</strong> Take a customer from a fresh tenant through Foundation, first domain, and light operationalize — with hands-on configuration. The team leaves capable of operating the tenant.</p>
+<p><strong>Pre-work:</strong> <a href="./">README</a> front door; <a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a> notebooks 01–02; tenant provisioned with admin access for the team.</p>
+<h3 id="day-1--foundation">Day 1 — Foundation</h3>
+<table>
+<thead>
+<tr>
+<th>Time</th>
+<th>Session</th>
+<th>Reading</th>
+<th>Activity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>09:00–10:00</td>
+<td>Tenant tour and orientation</td>
+<td><a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a> — notebooks 01, 07</td>
+<td>Live tenant tour</td>
+</tr>
+<tr>
+<td>10:00–11:30</td>
+<td>IAM and SSO setup</td>
+<td><a href="../IAM%20-%20IAM%20Administration/">IAM</a> — notebooks 02 (SSO), 03 (groups), 04 (policy authoring)</td>
+<td>Hands-on: configure SSO and create first 3 groups with policies</td>
+</tr>
+<tr>
+<td>13:00–14:30</td>
+<td>Tagging and host groups</td>
+<td><a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a> — entries 01, 02; <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> — notebook 01</td>
+<td>Hands-on: design and apply tag schema</td>
+</tr>
+<tr>
+<td>14:45–16:30</td>
+<td>Agent rollout</td>
+<td><a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a> — notebooks 03 (ActiveGate), 05 (OneAgent)</td>
+<td>Hands-on: deploy ActiveGate; install OneAgent on 5–10 hosts</td>
+</tr>
+<tr>
+<td>16:30–17:00</td>
+<td>Day 1 review</td>
+<td>—</td>
+<td>Q&amp;A; document open issues</td>
+</tr>
+</tbody>
+</table>
+<h3 id="day-2--bucket-strategy--first-domain">Day 2 — Bucket Strategy + First Domain</h3>
+<table>
+<thead>
+<tr>
+<th>Time</th>
+<th>Session</th>
+<th>Reading</th>
+<th>Activity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>09:00–10:30</td>
+<td>Bucket strategy and security_context</td>
+<td><a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> — notebooks 02, 03, 06; <a href="05-foundation.html">Foundation Module</a></td>
+<td>Decide bucket strategy and security_context schema</td>
+</tr>
+<tr>
+<td>10:30–12:00</td>
+<td>First-domain selection</td>
+<td><a href="06-domain-enablement.html">Domain Enablement Module</a></td>
+<td>Customer picks first domain — typically <a href="../K8S%20-%20Kubernetes%20Monitoring/">K8S</a> (if Kubernetes in scope)</td>
+</tr>
+<tr>
+<td>13:00–14:30</td>
+<td>First-domain deep dive (e.g., K8S)</td>
+<td><a href="../K8S%20-%20Kubernetes%20Monitoring/">K8S</a> — notebooks 01, 02 (DynaKube), 04 (cluster monitoring)</td>
+<td>Hands-on: deploy DynaKube on a dev cluster</td>
+</tr>
+<tr>
+<td>14:45–16:30</td>
+<td>First-domain expansion</td>
+<td><a href="../K8S%20-%20Kubernetes%20Monitoring/">K8S</a> — notebooks 05 (workload), 06 (namespace), 14 ([LAB] deployment guide)</td>
+<td>Hands-on: configure workload monitoring; explore data</td>
+</tr>
+<tr>
+<td>16:30–17:00</td>
+<td>Day 2 review</td>
+<td>—</td>
+<td>Q&amp;A</td>
+</tr>
+</tbody>
+</table>
+<h3 id="day-3--light-operationalize">Day 3 — Light Operationalize</h3>
+<table>
+<thead>
+<tr>
+<th>Time</th>
+<th>Session</th>
+<th>Reading</th>
+<th>Activity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>09:00–10:30</td>
+<td>Dashboards</td>
+<td><a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a> — notebooks 01 (fundamentals), 02 (hierarchy), 04 (operations)</td>
+<td>Hands-on: build operations dashboard for the deployed K8s workload</td>
+</tr>
+<tr>
+<td>10:30–12:00</td>
+<td>Alerting basics</td>
+<td><a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a> — notebooks 01 (fundamentals), 02 (triggers), 03 (notification basics)</td>
+<td>Hands-on: configure first alert and notification</td>
+</tr>
+<tr>
+<td>13:00–14:30</td>
+<td>Davis intelligence intro</td>
+<td><a href="../AIOPS%20-%20Dynatrace%20Intelligence/">AIOPS</a> — notebooks 01 (overview), 02 (anomaly detection), 03 (problems)</td>
+<td>Show Davis at work on the live tenant</td>
+</tr>
+<tr>
+<td>14:45–16:00</td>
+<td>Operationalize roadmap</td>
+<td><a href="07-operationalize.html">Operationalize Module</a></td>
+<td>Build a 6-week roadmap covering full DASH, WFLOW, and intro AUTOM</td>
+</tr>
+<tr>
+<td>16:00–17:00</td>
+<td>Wrap-up and 30/60/90-day plan</td>
+<td><a href="./">README</a>, <a href="08-maturity.html">Maturity Module</a></td>
+<td>Document plan; schedule follow-ups</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Outcome:</strong> Customer's tenant is operational with first-domain coverage, basic dashboards and alerts, and a documented roadmap.</p>
+<hr />
+<h2 id="5-day-migration-workshop">5-Day: Migration Workshop</h2>
+<p><strong>Audience:</strong> Customer's migration team (6–12 people) plus 1–2 partner engineers. Covers a tool migration end-to-end at workshop pace; the actual migration unfolds over months afterward, but the workshop produces design and a translation backlog.</p>
+<p><strong>Goal:</strong> For a customer migrating from another tool (typically New Relic, Splunk, or Sumo Logic), produce: tenant design, IAM/ORGNZ decisions, translation backlog, and validated migration approach for at least one application portfolio.</p>
+<p><strong>Pre-work:</strong> <a href="./">README</a>, <a href="01-net-new.html">Doorway 1 — Net New</a> sub-path matching the source tool, customer's source-tool inventory.</p>
+<p>This agenda uses <strong>From New Relic</strong> as the example. Adapt for Splunk by substituting <a href="../S2D%20-%20Splunk%20to%20Dynatrace%20Migration/">S2D</a> and for Sumo Logic by substituting <a href="../SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/">SL2DT</a>.</p>
+<h3 id="day-1--foundation--pre-flight">Day 1 — Foundation + Pre-Flight</h3>
+<table>
+<thead>
+<tr>
+<th>Time</th>
+<th>Session</th>
+<th>Reading</th>
+<th>Activity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>09:00–10:30</td>
+<td>Tenant prerequisites</td>
+<td><a href="../NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/">NR2DT</a> — notebook 00 (Step 0 prerequisites)</td>
+<td>Confirm tenant, region, account hierarchy</td>
+</tr>
+<tr>
+<td>10:30–12:00</td>
+<td>Discover phase</td>
+<td><a href="../NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/">NR2DT</a> — notebook 01 (discover); <a href="../NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/">NRLC</a> — notebook 01 (platform comparison)</td>
+<td>Customer presents NR inventory; team identifies gaps</td>
+</tr>
+<tr>
+<td>13:00–14:30</td>
+<td>IAM, tagging, bucket decisions</td>
+<td><a href="05-foundation.html">Foundation Module</a></td>
+<td>Whiteboard exercise: align on Foundation choices</td>
+</tr>
+<tr>
+<td>14:45–16:30</td>
+<td>Strategize</td>
+<td><a href="../NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/">NR2DT</a> — notebook 02 (strategize)</td>
+<td>Cutover approach: Big-bang vs phased; pilot app selection</td>
+</tr>
+<tr>
+<td>16:30–17:00</td>
+<td>Day 1 review</td>
+<td>—</td>
+<td>Document decisions</td>
+</tr>
+</tbody>
+</table>
+<h3 id="day-2--design--translation-primer">Day 2 — Design + Translation Primer</h3>
+<table>
+<thead>
+<tr>
+<th>Time</th>
+<th>Session</th>
+<th>Reading</th>
+<th>Activity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>09:00–10:30</td>
+<td>Design</td>
+<td><a href="../NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/">NR2DT</a> — notebook 03 (design)</td>
+<td>Tenant architecture design session</td>
+</tr>
+<tr>
+<td>10:30–12:00</td>
+<td>NRQL → DQL</td>
+<td><a href="../NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/">NRLC</a> — notebook 02 (NRQL → DQL); <a href="../NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/">NR2DT</a> — notebook 04 (translate)</td>
+<td>Hands-on: translate 5 representative NRQL queries to DQL</td>
+</tr>
+<tr>
+<td>13:00–14:30</td>
+<td>Dashboards approach</td>
+<td><a href="../NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/">NRLC</a> — notebook 03 (dashboard migration); <a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a> — notebooks 01, 02</td>
+<td>Hands-on: rebuild one NR dashboard in Dynatrace</td>
+</tr>
+<tr>
+<td>14:45–16:30</td>
+<td>Alerts and workflows approach</td>
+<td><a href="../NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/">NRLC</a> — notebook 04 (alert/workflow); <a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a> — notebooks 01, 02</td>
+<td>Hands-on: rebuild one NR alert as a Dynatrace workflow</td>
+</tr>
+<tr>
+<td>16:30–17:00</td>
+<td>Day 2 review</td>
+<td>—</td>
+<td>Document decisions</td>
+</tr>
+</tbody>
+</table>
+<h3 id="day-3--component-migration-hands-on">Day 3 — Component Migration Hands-On</h3>
+<table>
+<thead>
+<tr>
+<th>Time</th>
+<th>Session</th>
+<th>Reading</th>
+<th>Activity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>09:00–10:30</td>
+<td>Synthetics migration</td>
+<td><a href="../NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/">NRLC</a> — notebook 05 (synthetic monitor migration); <a href="../SYNTH%20-%20Synthetic%20Monitoring/">SYNTH</a> — notebooks 01, 02, 03</td>
+<td>Hands-on: rebuild one NR synthetic in Dynatrace</td>
+</tr>
+<tr>
+<td>10:30–12:00</td>
+<td>SLOs and workloads</td>
+<td><a href="../NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/">NRLC</a> — notebook 06 (SLO/workload migration)</td>
+<td>Hands-on: rebuild one SLO</td>
+</tr>
+<tr>
+<td>13:00–14:30</td>
+<td>Logs migration</td>
+<td><a href="../NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/">NRLC</a> — notebook 07 (logs/tags/drops); <a href="../OPLOGS%20-%20OpenPipeline%20Logs/">OPLOGS</a> — notebooks 01–04</td>
+<td>Hands-on: configure log forwarding for one source</td>
+</tr>
+<tr>
+<td>14:45–16:30</td>
+<td>Component-level translation backlog</td>
+<td><a href="../NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/">NRLC</a> — full series</td>
+<td>Build the translation backlog: dashboards, alerts, monitors, logs by app</td>
+</tr>
+<tr>
+<td>16:30–17:00</td>
+<td>Day 3 review</td>
+<td>—</td>
+<td>Document backlog</td>
+</tr>
+</tbody>
+</table>
+<h3 id="day-4--validation--operationalize">Day 4 — Validation + Operationalize</h3>
+<table>
+<thead>
+<tr>
+<th>Time</th>
+<th>Session</th>
+<th>Reading</th>
+<th>Activity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>09:00–10:30</td>
+<td>Validation approach</td>
+<td><a href="../NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/">NR2DT</a> — notebook 08 (validate); <a href="../NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/">NRLC</a> — notebook 08 (validation, diff, rollback)</td>
+<td>Build validation plan for the pilot app</td>
+</tr>
+<tr>
+<td>10:30–12:00</td>
+<td>Cutover and decommission planning</td>
+<td><a href="../NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/">NR2DT</a> — notebook 09 (cutover, rollback, decommission)</td>
+<td>Build cutover runbook for the pilot</td>
+</tr>
+<tr>
+<td>13:00–14:30</td>
+<td>DASH operations dashboards</td>
+<td><a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a> — notebooks 03 (executive), 04 (operations), 05 (engineering)</td>
+<td>Hands-on: build executive dashboard for the migration program</td>
+</tr>
+<tr>
+<td>14:45–16:30</td>
+<td>WFLOW notification routing</td>
+<td><a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a> — notebooks 04 (routing), 05 (incident management)</td>
+<td>Hands-on: configure notification routing matching customer's on-call structure</td>
+</tr>
+<tr>
+<td>16:30–17:00</td>
+<td>Day 4 review</td>
+<td>—</td>
+<td>Document validation plan and cutover runbook</td>
+</tr>
+</tbody>
+</table>
+<h3 id="day-5--automation--maturity-roadmap">Day 5 — Automation + Maturity Roadmap</h3>
+<table>
+<thead>
+<tr>
+<th>Time</th>
+<th>Session</th>
+<th>Reading</th>
+<th>Activity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>09:00–10:30</td>
+<td>AUTOM — config as code</td>
+<td><a href="../AUTOM%20-%20Dynatrace%20Automation/">AUTOM</a> — notebooks 01 (landscape), 02 (Settings API), 03 or 04 (Monaco or Terraform — pick one)</td>
+<td>Hands-on: define one dashboard in code</td>
+</tr>
+<tr>
+<td>10:30–12:00</td>
+<td>AUTOM — CI/CD integration</td>
+<td><a href="../AUTOM%20-%20Dynatrace%20Automation/">AUTOM</a> — notebooks 05 (workflows-as-code), 07 (CI/CD)</td>
+<td>Hands-on: pipeline that deploys Dynatrace config</td>
+</tr>
+<tr>
+<td>13:00–14:30</td>
+<td>AIOPS — Davis intelligence</td>
+<td><a href="../AIOPS%20-%20Dynatrace%20Intelligence/">AIOPS</a> — notebooks 02 (anomaly), 03 (problems), 06 (agentic)</td>
+<td>Demo Davis on the migrating tenant</td>
+</tr>
+<tr>
+<td>14:45–15:30</td>
+<td>Toolchain reference</td>
+<td><a href="../NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/">NRLC</a> — notebook 09 (toolchain reference)</td>
+<td>Document tooling: NRQL → DQL translator, asset inventory tool, validation diff tool</td>
+</tr>
+<tr>
+<td>15:30–16:30</td>
+<td>Maturity roadmap</td>
+<td><a href="08-maturity.html">Maturity Module</a>; <a href="../ADOPT%20-%20Observability%20Adoption%20&amp;%20Maturity/">ADOPT</a> — notebooks 02, 05</td>
+<td>Build 6-month optimization roadmap post-cutover</td>
+</tr>
+<tr>
+<td>16:30–17:00</td>
+<td>Wrap-up and next steps</td>
+<td><a href="./">README</a></td>
+<td>Document; schedule weekly follow-ups for the migration program</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Outcome:</strong> Customer leaves with: validated tenant design, translation backlog for the in-scope component types, hands-on confidence with translation tooling, validation plan for one pilot app, cutover runbook, automation foundations, and a 6-month roadmap.</p>
+<hr />
+<h2 id="choosing-the-right-agenda">Choosing the Right Agenda</h2>
+<table>
+<thead>
+<tr>
+<th>Customer situation</th>
+<th>Recommended agenda</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Net new tenant, no migration, small team</td>
+<td><a href="#1-day-foundation-quickstart">1-Day Foundation Quickstart</a> followed by self-paced reading</td>
+</tr>
+<tr>
+<td>Net new tenant, no migration, full implementation team</td>
+<td><a href="#3-day-net-new-bootcamp">3-Day Net New Bootcamp</a></td>
+</tr>
+<tr>
+<td>Migration from another tool (NR/Splunk/Sumo)</td>
+<td><a href="#5-day-migration-workshop">5-Day Migration Workshop</a></td>
+</tr>
+<tr>
+<td>Existing customer adding a domain</td>
+<td>Half-day domain workshop using the relevant entry from <a href="06-domain-enablement.html">Domain Enablement Module</a></td>
+</tr>
+<tr>
+<td>Existing customer maturing operations</td>
+<td>2-day operationalize bootcamp using <a href="07-operationalize.html">Operationalize Module</a></td>
+</tr>
+<tr>
+<td>Deployment migration (M2S, S2S)</td>
+<td><a href="#5-day-migration-workshop">5-Day Migration Workshop</a> substituting M2S or S2S series</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="hands-on-lab-inventory">Hands-On Lab Inventory</h2>
+<p>When a workshop calls for hands-on, the following LAB notebooks are available:</p>
+<table>
+<thead>
+<tr>
+<th>Series</th>
+<th>Lab Notebook</th>
+<th>Use For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="../AUTOM%20-%20Dynatrace%20Automation/">AUTOM</a></td>
+<td>Notebook 03 [LAB] Monaco</td>
+<td>AUTOM workshop — Monaco hands-on</td>
+</tr>
+<tr>
+<td><a href="../AUTOM%20-%20Dynatrace%20Automation/">AUTOM</a></td>
+<td>Notebook 04 [LAB] Terraform</td>
+<td>AUTOM workshop — Terraform hands-on</td>
+</tr>
+<tr>
+<td><a href="../K8S%20-%20Kubernetes%20Monitoring/">K8S</a></td>
+<td>Notebook 14 [LAB] Deployment Guide</td>
+<td>K8S workshop — DynaKube deployment hands-on</td>
+</tr>
+<tr>
+<td><a href="../IAM%20-%20IAM%20Administration/">IAM</a></td>
+<td>Notebook 11 [WORKSHOP] Policy Persona</td>
+<td>IAM workshop — policy design hands-on</td>
+</tr>
+</tbody>
+</table>
+<p>For other domains, build hands-on activities from the customer's own tenant — for example, for SPANS, instrument the customer's pilot service and run live queries.</p>
+<hr />
+<blockquote>
+<p><em>This playbook was AI-generated from community-submitted and publicly available sources. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></p>
+</blockquote>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

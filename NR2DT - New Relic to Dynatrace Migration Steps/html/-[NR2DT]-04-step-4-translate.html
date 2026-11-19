@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NR2DT-04: Step 4 — Translate</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">NR2DT — New Relic to Dynatrace Migration Steps</a><span class="sep">/</span><span aria-current="page">NR2DT-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>NR2DT-04: Step 4 — Translate</h1>
+<blockquote>
+<p><strong>Series:</strong> NR2DT — New Relic to Dynatrace Migration Steps | <strong>Notebook:</strong> 4 of 10 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 10/31/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Goal of this step:</strong> convert every NRQL query in the inventory to DQL. Auto-translate HIGH; review MEDIUM; hand-translate LOW. Resolve every gap before any artifact migrates.</p>
+<p>Procedural — see <strong>NRLC-02</strong> for the compiler architecture, the 292 patterns, and confidence theory.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#outputs">What You'll Produce</a></li>
+<li><a href="#translate">Run the Translator</a></li>
+<li><a href="#medium">Review MEDIUM Confidence</a></li>
+<li><a href="#low">Hand-Translate LOW Confidence</a></li>
+<li><a href="#validate">Validate Translated DQL</a></li>
+<li><a href="#gate">Step Exit Criteria</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Migration lead + assigned engineer for this step</td>
+</tr>
+<tr>
+<td><strong>Completed</strong></td>
+<td>NR2DT-03 — Design</td>
+</tr>
+<tr>
+<td><strong>Format</strong></td>
+<td>Procedural step — use as a runbook; defer to NRLC for depth</td>
+</tr>
+<tr>
+<td><strong>NRLC deep dives</strong></td>
+<td>NRLC-02 (NRQL→DQL Translation deep dive)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="outputs"></a></p>
+<h2>1. What You'll Produce</h2>
+<table>
+<thead>
+<tr>
+<th>Artifact</th>
+<th>Format</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>translated-queries.csv</code></td>
+<td>CSV</td>
+<td>All queries with final DQL + confidence</td>
+</tr>
+<tr>
+<td><code>manual-translations.md</code></td>
+<td>Markdown</td>
+<td>LOW-confidence hand-translations with rationale</td>
+</tr>
+<tr>
+<td><code>dql-validation-report.md</code></td>
+<td>Markdown</td>
+<td>Tier 1 syntax validation results</td>
+</tr>
+<tr>
+<td><code>translation-coverage.md</code></td>
+<td>Markdown</td>
+<td>% of queries translated; remaining gaps</td>
+</tr>
+</tbody>
+</table>
+<p><a id="translate"></a></p>
+<h2>2. Run the Translator</h2>
+<pre><code class="language-bash"># Re-run translation against the latest inventory (Step 1 produced inventory/all-nrql.csv)
+python3 migrate.py batch --file inventory/all-nrql.csv --output translated-queries.csv
+</code></pre>
+<p>Output columns — exactly four: <code>nrql</code>, <code>dql</code>, <code>confidence</code> (HIGH / MEDIUM / LOW, or <code>FAILED</code> when the query did not compile, in which case the <code>dql</code> cell holds the error), <code>warnings</code>. Use <code>batch</code> for the CSV: <code>compile</code> has no <code>--report</code> option (it accepts only <code>--interactive</code>, <code>--file</code>, <code>--output</code> and <code>--validate</code>) and writes DQL text, not a CSV.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py">migrate.py @ 78cbfce (tool repo, GitHub)</a>, read 10/05/2026.</sub></p>
+</blockquote>
+<p><strong>Sort by confidence ascending</strong> — attack LOW first, then MEDIUM, save HIGH for sample-validate.</p>
+<p><a id="medium"></a></p>
+<h2>3. Review MEDIUM Confidence</h2>
+<p>MEDIUM means the translation is structurally correct but has edge cases worth verifying. Common review checklist:</p>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>What to verify</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>COMPARE WITH</code></td>
+<td>Time alignment correct; append produces the expected shape</td>
+</tr>
+<tr>
+<td>Subquery via <code>lookup</code></td>
+<td>Lookup target exists as queryable Grail data</td>
+</tr>
+<tr>
+<td><code>SLIDE BY</code></td>
+<td>The compiler emits <code>rolling()</code>, which does not exist in DQL; rewrite by hand per NRLC-02</td>
+</tr>
+<tr>
+<td>Nested <code>if()</code> in <code>FACET CASES</code></td>
+<td>Nested DQL emits the right structure</td>
+</tr>
+<tr>
+<td>Custom event types</td>
+<td>Source mapping (FROM → fetch) correct</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Process:</strong> mark each MEDIUM as APPROVED or NEEDS-WORK in the CSV. NEEDS-WORK becomes a hand-translation.</p>
+<p><a id="low"></a></p>
+<h2>4. Hand-Translate LOW Confidence</h2>
+<p>LOW translations contain TODO markers or are missing entirely. Common causes:</p>
+<table>
+<thead>
+<tr>
+<th>Cause</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>apdex(field, t:N)</code></td>
+<td>Configure DT Apdex via custom DQL or use Dynatrace Intelligence SLO</td>
+</tr>
+<tr>
+<td><code>funnel(...)</code></td>
+<td>Reformulate as nested <code>append</code>/<code>lookup</code> chain</td>
+</tr>
+<tr>
+<td><code>cohort(...)</code></td>
+<td>No DT equivalent — reformulate the requirement</td>
+</tr>
+<tr>
+<td>Custom event type with no source mapping</td>
+<td>Add ingest mapping via OpenPipeline first</td>
+</tr>
+</tbody>
+</table>
+<p>Document each hand-translation in <code>manual-translations.md</code> with the source NRQL, the new DQL, and the rationale.</p>
+<p>If a query can't be translated and the requirement can't be reformulated, document it as <strong>deferred</strong> — it joins the gap analysis from Step 1.</p>
+<p><a id="validate"></a></p>
+<h2>5. Validate Translated DQL</h2>
+<p>Tier 1 syntax validation — confirm every final DQL query parses against the target tenant.</p>
+<p>The tool helps only partly. <code>compile --file</code> takes the <strong>NRQL</strong> list (one query per line), not the CSV of translated DQL — fed the CSV, it compiles the header and every DQL row as if they were NRQL:</p>
+<pre><code class="language-bash">python3 migrate.py compile --file inventory/all-nrql.txt --output translated.dql
+</code></pre>
+<p>It prints a succeeded / failed count and writes each query as <code>-- Original: &lt;nrql&gt;</code> followed by its DQL (or <code>-- Error:</code>). It does <strong>not</strong> live-validate in file mode — <code>--validate</code> is honoured only for a single query — and there is no auto-fixer on this path. Check one query against the live tenant with:</p>
+<pre><code class="language-bash">python3 migrate.py compile --validate &quot;SELECT count(*) FROM Transaction&quot;
+</code></pre>
+<p>For the full set, run each final DQL query (including reviewed-MEDIUM and hand-translated ones from the CSV) in the target tenant — in a notebook, or with <code>dtctl verify query</code> — and record pass / fail in <code>dql-validation-report.md</code>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py">migrate.py @ 78cbfce (tool repo, GitHub)</a>, read 10/05/2026.</sub></p>
+</blockquote>
+<p><strong>Tier 2 tenant validation</strong> (referenced metrics/entities/buckets exist) runs in Step 8 before each component imports.</p>
+<p><a id="gate"></a></p>
+<h2>6. Step Exit Criteria</h2>
+<p><strong>S4 — Translation Complete</strong></p>
+<ul>
+<li>[ ] Every query has a final DQL (auto, reviewed-MEDIUM, or hand-translated)</li>
+<li>[ ] All translations pass Tier 1 syntax validation</li>
+<li>[ ] LOW-confidence count is 0 (all triaged)</li>
+<li>[ ] <code>manual-translations.md</code> documents every LOW resolution</li>
+<li>[ ] Deferred queries documented with deferred-rationale</li>
+</ul>
+<p><strong>Next step:</strong> <strong>NR2DT-05 — Migrate Dashboards &amp; Alerts</strong>.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources, including the open-source <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities">NewRelic-to-Dynatrace-Migration-Utilities</a>, <a href="https://github.com/timstewart-dynatrace/nrql-engine">nrql-engine</a>, and <a href="https://github.com/timstewart-dynatrace/nrql-translator">nrql-translator</a> projects. This notebook series is not officially supported by Dynatrace or New Relic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://docs.newrelic.com">New Relic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

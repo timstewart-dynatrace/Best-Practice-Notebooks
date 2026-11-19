@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SL2DT-02: Assessment &amp; Inventory</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SL2DT — Sumo Logic to Dynatrace</a><span class="sep">/</span><span aria-current="page">SL2DT-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SL2DT-02: Assessment &amp; Inventory</h1>
+<blockquote>
+<p><strong>Series:</strong> SL2DT — Sumo Logic to Dynatrace | <strong>Notebook:</strong> 2 of 11 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 10/27/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Goal of this step:</strong> produce a complete inventory of the source Sumo Logic account and a cut-scope decision artifact before any migration work begins. The cut-scope decision is the single biggest cost driver — get it right here and the rest of the migration is proportional to actual business value.</p>
+<p>Everything downstream (SL2DT-03 ingest design, SL2DT-04 translation pass, SL2DT-05 monitors, SL2DT-06 dashboards) depends on the inventory and taxonomy maps produced in this notebook.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#outputs">What You'll Produce</a></li>
+<li><a href="#access">Prerequisites &amp; Access</a></li>
+<li><a href="#inventory">Pull the Sumo Inventory</a></li>
+<li><a href="#audit">Pull the Audit Log — Usage-Based Cut Scope</a></li>
+<li><a href="#taxonomy">Map <code>_sourceCategory</code> Taxonomy</a></li>
+<li><a href="#collectors">Inventory Collectors &amp; Ingest Paths</a></li>
+<li><a href="#fers">Inventory FERs (Field Extraction Rules)</a></li>
+<li><a href="#rbac">Inventory Roles &amp; Users</a></li>
+<li><a href="#cut">Cut-Scope Decision Workshop</a></li>
+<li><a href="#gate">Step Exit Criteria</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Migration lead + Sumo admin</td>
+</tr>
+<tr>
+<td><strong>Format</strong></td>
+<td>Procedural — produce six artifacts checked into migration repo</td>
+</tr>
+<tr>
+<td><strong>Sumo access</strong></td>
+<td>Admin role, access key + access ID generated</td>
+</tr>
+<tr>
+<td><strong>Dynatrace access</strong></td>
+<td>Not required yet — SL2DT-03 onward</td>
+</tr>
+<tr>
+<td><strong>Prior reading</strong></td>
+<td>SL2DT-01 for strategy and cut-scope framework</td>
+</tr>
+</tbody>
+</table>
+<p><a id="outputs"></a></p>
+<h2>1. What You'll Produce</h2>
+<p>By the end of this step, commit these artifacts:</p>
+<table>
+<thead>
+<tr>
+<th>Artifact</th>
+<th>Format</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>inventory/dashboards.json</code></td>
+<td>JSON</td>
+<td>Every dashboard, panels, queries</td>
+</tr>
+<tr>
+<td><code>inventory/monitors.json</code></td>
+<td>JSON</td>
+<td>Every monitor, threshold config, action</td>
+</tr>
+<tr>
+<td><code>inventory/searches.json</code></td>
+<td>JSON</td>
+<td>Saved searches + scheduled searches</td>
+</tr>
+<tr>
+<td><code>inventory/fers.json</code></td>
+<td>JSON</td>
+<td>Field Extraction Rules</td>
+</tr>
+<tr>
+<td><code>inventory/collectors.json</code></td>
+<td>JSON</td>
+<td>Collector + source inventory</td>
+</tr>
+<tr>
+<td><code>inventory/roles.json</code> + <code>users.json</code></td>
+<td>JSON</td>
+<td>RBAC model</td>
+</tr>
+<tr>
+<td><code>inventory/audit-usage.csv</code></td>
+<td>CSV</td>
+<td>Usage data — last access per asset</td>
+</tr>
+<tr>
+<td><code>taxonomy-map.md</code></td>
+<td>Markdown</td>
+<td><code>_sourceCategory</code> → bucket/attribute/tag decision</td>
+</tr>
+<tr>
+<td><code>cut-scope.md</code></td>
+<td>Markdown</td>
+<td>Per-asset migrate/retire/cut decision + owner signoff</td>
+</tr>
+<tr>
+<td><code>inventory-report.md</code></td>
+<td>Markdown</td>
+<td>Executive summary — counts, cut-scope %, risk register</td>
+</tr>
+</tbody>
+</table>
+<p>These gate SL2DT-03. Do not proceed without cut-scope signoff.</p>
+<p><a id="access"></a></p>
+<h2>2. Prerequisites &amp; Access</h2>
+<h3>Sumo Access Keys</h3>
+<p>In Sumo Admin → Security → Access Keys, create a pair with admin scope (for inventory + audit log). Do <strong>not</strong> reuse user credentials.</p>
+<pre><code class="language-bash">export SUMO_ACCESS_ID=&quot;...&quot;
+export SUMO_ACCESS_KEY=&quot;...&quot;
+export SUMO_REGION=&quot;us2&quot;   # or us1, eu, au, jp, in, de, ca, fed
+</code></pre>
+<p>Region maps to the API base URL:</p>
+<table>
+<thead>
+<tr>
+<th>Region</th>
+<th>API base</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>us1</td>
+<td><code>https://api.sumologic.com</code></td>
+</tr>
+<tr>
+<td>us2</td>
+<td><code>https://api.us2.sumologic.com</code></td>
+</tr>
+<tr>
+<td>eu</td>
+<td><code>https://api.eu.sumologic.com</code></td>
+</tr>
+<tr>
+<td>au</td>
+<td><code>https://api.au.sumologic.com</code></td>
+</tr>
+<tr>
+<td>...</td>
+<td>see Sumo docs for full list</td>
+</tr>
+</tbody>
+</table>
+<p>Set <code>SUMO_API</code> once from the region — us1 has no region label in its host — and use it in every call below:</p>
+<pre><code class="language-bash">if [ &quot;$SUMO_REGION&quot; = &quot;us1&quot; ]; then
+  export SUMO_API=&quot;https://api.sumologic.com&quot;
+else
+  export SUMO_API=&quot;https://api.$SUMO_REGION.sumologic.com&quot;
+fi
+</code></pre>
+<p>Auth: <code>Authorization: Basic &lt;base64(access_id:access_key)&gt;</code></p>
+<h3>Migration Repo</h3>
+<pre><code class="language-bash">mkdir sumo-migration &amp;&amp; cd sumo-migration
+git init
+mkdir inventory
+echo &quot;SUMO_ACCESS_ID=&quot; &gt; .env.example
+echo &quot;SUMO_ACCESS_KEY=&quot; &gt;&gt; .env.example
+echo &quot;SUMO_REGION=us2&quot; &gt;&gt; .env.example
+cp .env.example .env  # populate
+echo &quot;.env&quot; &gt; .gitignore
+</code></pre>
+<p><a id="inventory"></a></p>
+<h2>3. Pull the Sumo Inventory</h2>
+<p>Pull each asset class via the Sumo API. Save each to <code>inventory/&lt;type&gt;.json</code>.</p>
+<p><strong>List endpoints are paginated.</strong> Dashboards, FERs, roles and users return one page at a time with a <code>next</code> token; pass it back as <code>token=&lt;next&gt;</code> until it comes back empty. The single-call examples below fetch the first page only — loop them for a real account.</p>
+<h3>3.1 Dashboards</h3>
+<pre><code class="language-bash"># List dashboards (paginated)
+curl -u &quot;$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY&quot; \
+  &quot;$SUMO_API/api/v2/dashboards?limit=200&quot; \
+  &gt; inventory/dashboards-list.json
+
+# For each, fetch full definition (requires dashboard ID)
+mkdir -p inventory/dashboards
+jq -r '.dashboards[].id' inventory/dashboards-list.json | while read id; do
+  curl -u &quot;$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY&quot; \
+    &quot;$SUMO_API/api/v2/dashboards/$id&quot; \
+    &gt; &quot;inventory/dashboards/$id.json&quot;
+done
+</code></pre>
+<h3>3.2 Monitors</h3>
+<p><code>GET /api/v1/monitors</code> is a <em>bulk read by ID</em> (<code>ids</code> is required), not a list. Start from the root of the monitor library and walk its <code>children</code>:</p>
+<pre><code class="language-bash">curl -u &quot;$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY&quot; \
+  &quot;$SUMO_API/api/v1/monitors/root&quot; \
+  &gt; inventory/monitors.json
+</code></pre>
+<p><code>children</code> lists summaries only. Fetch each monitor's full definition (queries, triggers) by ID — and nested folders the same way, until no folders remain — into <code>inventory/monitors/</code>, which SL2DT-04 reads:</p>
+<pre><code class="language-bash">mkdir -p inventory/monitors
+jq -r '.children[] | select(.contentType == &quot;Monitor&quot;) | .id' inventory/monitors.json | while read id; do
+  curl -u &quot;$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY&quot; \
+    &quot;$SUMO_API/api/v1/monitors?ids=$id&quot; \
+    &gt; &quot;inventory/monitors/$id.json&quot;
+done
+</code></pre>
+<p><code>/api/v1/monitors/search?query=…</code> finds monitors anywhere in the tree when walking folders is impractical.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://api.sumologic.com/docs/sumologic-api.yaml">Sumo Logic API — OpenAPI spec (Sumo Logic)</a>.</sub></p>
+</blockquote>
+<h3>3.3 Saved &amp; Scheduled Searches</h3>
+<pre><code class="language-bash"># Saved searches live in user/folder content hierarchy
+curl -u &quot;$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY&quot; \
+  &quot;$SUMO_API/api/v2/content/folders/personal&quot; \
+  &gt; inventory/content-personal.json
+
+# Walk folder tree, save each search. Scheduled searches have a `searchSchedule` field.
+</code></pre>
+<h3>3.4 FERs, Collectors, Partitions, Roles, Users</h3>
+<pre><code class="language-bash">curl -u &quot;$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY&quot; \
+  &quot;$SUMO_API/api/v1/extractionRules&quot; \
+  &gt; inventory/fers.json
+
+curl -u &quot;$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY&quot; \
+  &quot;$SUMO_API/api/v1/collectors&quot; \
+  &gt; inventory/collectors.json
+
+curl -u &quot;$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY&quot; \
+  &quot;$SUMO_API/api/v1/partitions&quot; \
+  &gt; inventory/partitions.json
+
+curl -u &quot;$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY&quot; \
+  &quot;$SUMO_API/api/v1/roles&quot; \
+  &gt; inventory/roles.json
+
+curl -u &quot;$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY&quot; \
+  &quot;$SUMO_API/api/v1/users&quot; \
+  &gt; inventory/users.json
+</code></pre>
+<h3>3.5 Summary Counts</h3>
+<p>Record these numbers — they drive the wave plan in SL2DT-01:</p>
+<pre><code class="language-bash">echo &quot;Dashboards:  $(jq '.dashboards | length' inventory/dashboards-list.json)&quot;
+echo &quot;Monitors:    $(jq '[.. | objects | select(.contentType? == &quot;Monitor&quot;)] | length' inventory/monitors.json)&quot;
+echo &quot;FERs:        $(jq '.data | length' inventory/fers.json)&quot;
+echo &quot;Collectors:  $(jq '.collectors | length' inventory/collectors.json)&quot;
+echo &quot;Partitions:  $(jq '.data | length' inventory/partitions.json)&quot;
+echo &quot;Roles:       $(jq '.data | length' inventory/roles.json)&quot;
+echo &quot;Users:       $(jq '.data | length' inventory/users.json)&quot;
+</code></pre>
+<p><a id="audit"></a></p>
+<h2>4. Pull the Audit Log — Usage-Based Cut Scope</h2>
+<p><strong>The cut-scope decision depends on this data.</strong> Pull the last 90 days of audit events that show dashboard/monitor access.</p>
+<p>Sumo stores audit events in the <strong>Audit Event Index</strong>, searched as <code>_index=sumologic_audit_events</code> — <em>&quot;Make sure to enter the query exactly as shown. Changing any part of the query renders it ineffective.&quot;</em> Narrow to a feature with <code>_sourceCategory</code> after that scope. Query via the Search Job API:</p>
+<pre><code class="language-bash"># Create search job
+curl -X POST -u &quot;$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  &quot;$SUMO_API/api/v1/search/jobs&quot; \
+  -d '{
+    &quot;query&quot;: &quot;_index=sumologic_audit_events&quot;,
+    &quot;from&quot;: &quot;2026-01-21T00:00:00Z&quot;,
+    &quot;to&quot;:   &quot;2026-04-21T00:00:00Z&quot;,
+    &quot;timeZone&quot;: &quot;UTC&quot;
+  }'
+
+# Poll, then download messages. See Sumo API docs for job polling protocol.
+</code></pre>
+<p><strong>Check what your account records before relying on view counts.</strong> The event index documents changes to content; it is not a page-view log. Confirm which event names, if any, record dashboard and monitor <em>views</em> in your account. Where views are not recorded, fall back on the Search Audit Index (who ran which queries) and owner interviews for the cut-scope decision.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://www.sumologic.com:443/help/docs/manage/security/audit-indexes/audit-event-index/">Audit Event Index (Sumo Logic docs)</a>.</sub></p>
+</blockquote>
+<p>Export to CSV:</p>
+<table>
+<thead>
+<tr>
+<th>dashboard_id</th>
+<th>dashboard_name</th>
+<th>unique_users_90d</th>
+<th>last_accessed</th>
+<th>access_count_90d</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>abc123</td>
+<td>&quot;Prod API Overview&quot;</td>
+<td>12</td>
+<td>2026-04-20</td>
+<td>847</td>
+</tr>
+<tr>
+<td>def456</td>
+<td>&quot;Old Migration Dash&quot;</td>
+<td>0</td>
+<td>—</td>
+<td>0</td>
+</tr>
+<tr>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+</tr>
+</tbody>
+</table>
+<h3>Classification Rules</h3>
+<p>Based on last-90-day data:</p>
+<table>
+<thead>
+<tr>
+<th>Classification</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Migrate</strong></td>
+<td>Last accessed ≤ 30d AND unique_users_90d ≥ 2</td>
+</tr>
+<tr>
+<td><strong>Migrate-on-request</strong></td>
+<td>Last accessed 31–90d OR unique_users_90d == 1</td>
+</tr>
+<tr>
+<td><strong>Cut</strong></td>
+<td>Not accessed in 90d+</td>
+</tr>
+<tr>
+<td><strong>Retire</strong></td>
+<td>Team dissolved / owner gone / superseded</td>
+</tr>
+</tbody>
+</table>
+<p>Typical outcome: 20–30% migrate, 10–20% migrate-on-request, 40–60% cut, 5–10% retire. Your mileage will vary — a regulated-industry customer may have compliance constraints requiring 100% audit-trail-preservation.</p>
+<p><a id="taxonomy"></a></p>
+<h2>5. Map <code>_sourceCategory</code> Taxonomy</h2>
+<p>Pull distinct <code>_sourceCategory</code> values and their volumes:</p>
+<pre><code class="language-sumoql">*
+| count by _sourceCategory
+| sort by _count desc
+</code></pre>
+<p>Export to CSV. For each top-100 <code>_sourceCategory</code> value, decide:</p>
+<ol>
+<li><strong>Bucket mapping</strong> — which Dynatrace Grail bucket does this belong to?</li>
+<li><strong>Attribute preservation</strong> — is the <code>_sourceCategory</code> value itself queryable post-migration (yes, via OpenPipeline enrichment)?</li>
+<li><strong>Retention tier</strong> — what retention period applies?</li>
+</ol>
+<p>Output: <code>taxonomy-map.md</code></p>
+<pre><code class="language-markdown">| _sourceCategory Pattern | Target Bucket | Retention | Notes |
+|-------------------------|----------------|-----------|-------|
+| prod/api/* | custom_logs_prod | 90d | High-volume, regulated |
+| prod/web/* | custom_logs_prod | 90d | |
+| prod/db/* | custom_logs_prod_db | 180d | Compliance hold |
+| preprod/* | custom_logs_preprod | 30d | Low retention |
+| dev/* | custom_logs_dev | 7d | Dev-only |
+| audit/* | audit_logs | 365d | Compliance |
+</code></pre>
+<p><strong>Decision framework — three strategies:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Pick when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A — Bucket-primary</strong></td>
+<td>Retention/cost tiers differ per scope; IAM boundaries align with scope</td>
+</tr>
+<tr>
+<td><strong>B — Attribute-primary</strong></td>
+<td>Retention uniform; query-time grouping more important than isolation</td>
+</tr>
+<tr>
+<td><strong>C — Entity-tag</strong></td>
+<td><code>_sourceCategory</code> tracks host/app ownership (not content type)</td>
+</tr>
+</tbody>
+</table>
+<p>Most customers end up with <strong>A + B</strong>: bucket for coarse isolation, attribute preservation for query-time grouping. See SL2DT-03 for implementation.</p>
+<p><a id="collectors"></a></p>
+<h2>6. Inventory Collectors &amp; Ingest Paths</h2>
+<p>Every Sumo Collector needs a Dynatrace ingest equivalent. Classify each:</p>
+<table>
+<thead>
+<tr>
+<th>Collector Type</th>
+<th>Dynatrace Target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Installed (Linux/Windows host)</td>
+<td>OneAgent (auto-instruments logs + metrics + processes)</td>
+</tr>
+<tr>
+<td>Hosted (log upload endpoint)</td>
+<td>OpenPipeline HTTP endpoint</td>
+</tr>
+<tr>
+<td>Hosted (syslog listener)</td>
+<td>ActiveGate syslog ingestion, or an OTel Collector <code>syslog</code> receiver (SL2DT-03 §6)</td>
+</tr>
+<tr>
+<td>Hosted (AWS CloudWatch)</td>
+<td>Dynatrace AWS Clouds app (native integration)</td>
+</tr>
+<tr>
+<td>Hosted (Azure EventHub)</td>
+<td>Dynatrace Azure cloud integration</td>
+</tr>
+<tr>
+<td>Hosted (Microsoft Office 365 Audit Source)</td>
+<td>Office 365 Management Activity API collector (<strong>FAQ-27</strong>); for the <em>Azure AD</em> content type, Entra ID through Azure log forwarding instead</td>
+</tr>
+<tr>
+<td>Hosted (GCP Pub/Sub)</td>
+<td>Dynatrace GCP cloud integration</td>
+</tr>
+<tr>
+<td>Hosted (Kubernetes)</td>
+<td>DynaKube + OneAgent + log module</td>
+</tr>
+<tr>
+<td>Hosted (HTTP source)</td>
+<td>OpenPipeline HTTP endpoint or OTel HTTP receiver</td>
+</tr>
+<tr>
+<td>Installed — Telegraf metrics output</td>
+<td><em>Metric path</em> — target chosen in <strong>SL2DT-10</strong></td>
+</tr>
+<tr>
+<td>Hosted (metrics source / StatsD / Graphite)</td>
+<td><em>Metric path</em> — target chosen in <strong>SL2DT-10</strong></td>
+</tr>
+<tr>
+<td>Hosted (Prometheus scrape)</td>
+<td><em>Metric path</em> — target chosen in <strong>SL2DT-10</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Office 365 Audit Sources map to content types.</strong> Sumo's source <em>&quot;uses Webhook based integration with the Microsoft Office 365 Management Activity API&quot;</em>, and <em>&quot;A single Office 365 Audit Source is limited to collecting audit logs of a single content type.&quot;</em> FAQ-27's collector polls the same API with one checkpoint per content type, so each Sumo source becomes one content type in the collector.</p>
+<p><sub><strong>Sources:</strong> <a href="https://www.sumologic.com/help/docs/send-data/hosted-collectors/microsoft-source/ms-office-audit-source/">Microsoft Office 365 Audit Source (Sumo Logic Docs)</a>.</sub></p>
+</blockquote>
+<p>For each collector, document:</p>
+<ul>
+<li>Source format (JSON, plain text, structured)</li>
+<li>Typical volume (MB/day)</li>
+<li>Parse rules applied (FER references)</li>
+<li>Owning team</li>
+<li>Retention policy</li>
+</ul>
+<p><strong>Output:</strong> <code>inventory/collectors-mapping.md</code> — one row per collector with target.</p>
+<blockquote>
+<p><strong>Metrics run on a parallel track.</strong> The rows marked <em>metric path</em> are covered by <strong>SL2DT-10: Migrating Telegraf-Collected Metrics</strong> — inventory them here, but choose their ingest path and map their metric keys there. Metric keys change shape at the boundary on every available path, so that mapping cannot be deferred to cutover.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-syslog">Syslog ingestion (DT docs)</a> — <em>&quot;ActiveGate uses an embedded Dynatrace OpenTelemetry Collector instance&quot;</em>.</sub></p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5TdW1vIENvbGxlY3RvciDihpIgRHluYXRyYWNlIEluZ2VzdCBNYXBwaW5nPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPk9uZSBTdW1vIGNvbGxlY3RvciB0eXBlIOKGkiBvbmUgRHluYXRyYWNlIGluZ2VzdCBwYXRoPC90ZXh0PgoKICA8IS0tIEFycm93IG1hcmtlciAtLT4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFycm93IiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIENvbHVtbiBoZWFkZXJzIC0tPgogIDx0ZXh0IHg9IjE4MCIgeT0iMTAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkZCODAwIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5TdW1vIENvbGxlY3RvciBUeXBlPC90ZXh0PgogIDx0ZXh0IHg9Ijc1MCIgeT0iMTAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMTQ5NkZGIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5EeW5hdHJhY2UgSW5nZXN0IFBhdGg8L3RleHQ+CgogIDwhLS0gU291cmNlIHNpZGUgY29udGFpbmVyIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIxMTUiIHdpZHRoPSIyODAiIGhlaWdodD0iMzQwIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgoKICA8IS0tIFRhcmdldCBzaWRlIGNvbnRhaW5lciAtLT4KICA8cmVjdCB4PSI2MTAiIHk9IjExNSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIzNDAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CgogIDwhLS0gUm93IDE6IEluc3RhbGxlZCBMaW51eC9XaW5kb3dzIOKGkiBPbmVBZ2VudCAtLT4KICA8cmVjdCB4PSI1NSIgeT0iMTM1IiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIxNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkluc3RhbGxlZCBDb2xsZWN0b3I8L3RleHQ+CiAgPHRleHQgeD0iMTgwIiB5PSIxNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkxpbnV4IC8gV2luZG93cyBob3N0PC90ZXh0PgoKICA8cmVjdCB4PSI2MjUiIHk9IjEzNSIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI1MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc1MCIgeT0iMTU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5PbmVBZ2VudDwvdGV4dD4KICA8dGV4dCB4PSI3NTAiIHk9IjE3NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+QXV0by1pbnN0cnVtZW50cyBsb2dzL21ldHJpY3MvUEc8L3RleHQ+CgogIDxsaW5lIHgxPSIzMDUiIHkxPSIxNjAiIHgyPSI2MjUiIHkyPSIxNjAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CgogIDwhLS0gUm93IDI6IFN5c2xvZyDihpIgQWN0aXZlR2F0ZS9PVGVsIC0tPgogIDxyZWN0IHg9IjU1IiB5PSIxOTUiIHdpZHRoPSIyNTAiIGhlaWdodD0iNTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjYiLz4KICA8dGV4dCB4PSIxODAiIHk9IjIxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+SG9zdGVkIOKAlCBTeXNsb2c8L3RleHQ+CiAgPHRleHQgeD0iMTgwIiB5PSIyMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlRDUC9VRFAgNTE0LzU1MTQ8L3RleHQ+CgogIDxyZWN0IHg9IjYyNSIgeT0iMTk1IiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzUwIiB5PSIyMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkFjdGl2ZUdhdGUgLyBPVGVsIENvbGxlY3RvcjwvdGV4dD4KICA8dGV4dCB4PSI3NTAiIHk9IjIzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+U3lzbG9nIHJlY2VpdmVyPC90ZXh0PgoKICA8bGluZSB4MT0iMzA1IiB5MT0iMjIwIiB4Mj0iNjI1IiB5Mj0iMjIwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgoKICA8IS0tIFJvdyAzOiBIVFRQIOKGkiBPcGVuUGlwZWxpbmUgLS0+CiAgPHJlY3QgeD0iNTUiIHk9IjI1NSIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI1MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiByeD0iNiIvPgogIDx0ZXh0IHg9IjE4MCIgeT0iMjc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5Ib3N0ZWQg4oCUIEhUVFA8L3RleHQ+CiAgPHRleHQgeD0iMTgwIiB5PSIyOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkpTT04gdXBsb2FkIGVuZHBvaW50PC90ZXh0PgoKICA8cmVjdCB4PSI2MjUiIHk9IjI1NSIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI1MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc1MCIgeT0iMjc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5PcGVuUGlwZWxpbmUgSFRUUDwvdGV4dD4KICA8dGV4dCB4PSI3NTAiIHk9IjI5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+L2FwaS92Mi9sb2dzL2luZ2VzdDwvdGV4dD4KCiAgPGxpbmUgeDE9IjMwNSIgeTE9IjI4MCIgeDI9IjYyNSIgeTI9IjI4MCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KCiAgPCEtLSBSb3cgNDogQVdTIOKGkiBBV1MgQ2xvdWRzIGFwcCAtLT4KICA8cmVjdCB4PSI1NSIgeT0iMzE1IiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIzMzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkhvc3RlZCDigJQgQVdTIENsb3VkV2F0Y2g8L3RleHQ+CiAgPHRleHQgeD0iMTgwIiB5PSIzNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkxvZ3MgKyBFdmVudEJyaWRnZTwvdGV4dD4KCiAgPHJlY3QgeD0iNjI1IiB5PSIzMTUiIHdpZHRoPSIyNTAiIGhlaWdodD0iNTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgcng9IjYiLz4KICA8dGV4dCB4PSI3NTAiIHk9IjMzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+QVdTIENsb3VkcyBBcHA8L3RleHQ+CiAgPHRleHQgeD0iNzUwIiB5PSIzNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk5hdGl2ZSBwdXNoLCBubyBBY3RpdmVHYXRlPC90ZXh0PgoKICA8bGluZSB4MT0iMzA1IiB5MT0iMzQwIiB4Mj0iNjI1IiB5Mj0iMzQwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgoKICA8IS0tIFJvdyA1OiBLOHMg4oaSIER5bmFLdWJlIC0tPgogIDxyZWN0IHg9IjU1IiB5PSIzNzUiIHdpZHRoPSIyNTAiIGhlaWdodD0iNTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjYiLz4KICA8dGV4dCB4PSIxODAiIHk9IjM5OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+SG9zdGVkIOKAlCBLdWJlcm5ldGVzPC90ZXh0PgogIDx0ZXh0IHg9IjE4MCIgeT0iNDE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5GbHVlbnRCaXQgLyBEYWVtb25TZXQ8L3RleHQ+CgogIDxyZWN0IHg9IjYyNSIgeT0iMzc1IiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzUwIiB5PSIzOTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkR5bmFLdWJlIE9wZXJhdG9yPC90ZXh0PgogIDx0ZXh0IHg9Ijc1MCIgeT0iNDE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Mb2cgbW9kdWxlICsgT25lQWdlbnQ8L3RleHQ+CgogIDxsaW5lIHgxPSIzMDUiIHkxPSI0MDAiIHgyPSI2MjUiIHkyPSI0MDAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CgogIDwhLS0gQ2VudGVyIGxhYmVsIC0tPgogIDxyZWN0IHg9IjM2MCIgeT0iMjQ1IiB3aWR0aD0iMjEwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMiIgcng9IjYiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjI2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+T3BlblBpcGVsaW5lPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5QYXJzZSDCtyBFbnJpY2ggwrcgUm91dGU8L3RleHQ+CgogIDwhLS0gQm90dG9tIG5vdGUgLS0+CiAgPGxpbmUgeDE9IjQwIiB5MT0iNDcwIiB4Mj0iODkwIiB5Mj0iNDcwIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5QcmVmZXIgbmF0aXZlIGNsb3VkIGludGVncmF0aW9ucyBvdmVyIGN1c3RvbSBleHBvcnRlcnMgwrcgU0wyRFQtMDMgZm9yIGRlcGxveW1lbnQgZGV0YWlsczwvdGV4dD4KPC9zdmc+Cg==" alt="Sumo Collector → Dynatrace Ingest Mapping" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Sumo Collector | DT Ingest Path | Notes |
+|----------------|----------------|-------|
+| Installed — Host | OneAgent | Auto-instruments |
+| Hosted — Syslog | ActiveGate / OTel Collector | Syslog receiver |
+| Hosted — HTTP | OpenPipeline HTTP | Direct ingest |
+| Hosted — AWS | AWS Clouds app | Native |
+| Hosted — Azure | Azure integration | Native |
+| Hosted — K8s | DynaKube + logs | Operator-managed |
+For environments where SVG doesn't render
+-->
+<p><a id="fers"></a></p>
+<h2>7. Inventory FERs (Field Extraction Rules)</h2>
+<p>FERs are parse rules applied at ingest. Every FER becomes an OpenPipeline processor.</p>
+<p>For each FER, record:</p>
+<ul>
+<li>Scope (which <code>_sourceCategory</code> pattern does it match)</li>
+<li>Parse expression (Sumo regex syntax)</li>
+<li>Output fields (which fields it extracts)</li>
+<li>Target OpenPipeline pipeline (based on <code>_sourceCategory</code> → bucket mapping)</li>
+</ul>
+<p><strong>Output:</strong> <code>inventory/fers-mapping.md</code></p>
+<pre><code class="language-markdown">| FER Name | Scope | Parse Expression | Output Fields | Target DT Pipeline |
+|----------|-------|------------------|---------------|---------------------|
+| api-parse-req | prod/api/* | `(?&lt;method&gt;\w+) (?&lt;path&gt;\S+) (?&lt;status&gt;\d+)` | method, path, status | logs_prod_pipeline |
+| audit-parse | audit/* | ... | user, action, target | audit_pipeline |
+</code></pre>
+<p>The translation work happens in SL2DT-03 (OpenPipeline implementation) and SL2DT-04 (DPL pattern conversion from Sumo regex).</p>
+<p><a id="rbac"></a></p>
+<h2>8. Inventory Roles &amp; Users</h2>
+<p>Pull Sumo's role inventory. For each role:</p>
+<ul>
+<li>Name + description</li>
+<li>Search filter (<code>_sourceCategory=prod/*</code>, etc.) — this maps to bucket filter in DT</li>
+<li>Capabilities (view, manage dashboards, manage monitors, admin) — maps to IAM policy permissions</li>
+<li>Assigned users count</li>
+</ul>
+<p><strong>Output:</strong> <code>inventory/rbac-mapping.md</code></p>
+<pre><code class="language-markdown">| Sumo Role | Search Filter | Capabilities | User Count | Target DT Group | Target DT Policy |
+|-----------|---------------|--------------|------------|-----------------|-------------------|
+| prod-readers | _sourceCategory=prod/* | Read-only | 82 | g-prod-readers | p-prod-read (bucket: custom_logs_prod) |
+| prod-admins | _sourceCategory=prod/* | Full | 6 | g-prod-admins | p-prod-admin |
+| app-team-api | _sourceCategory=prod/api/* | Read + dashboard mgmt | 28 | g-app-team-api | p-app-team-api |
+</code></pre>
+<p>SSO mapping: if Sumo uses SSO (SAML / OIDC), the same IdP can feed Platform IAM Group assignments. Document SSO config in <code>inventory/sso-config.md</code>.</p>
+<p>See SL2DT-07 for full IAM translation.</p>
+<p><a id="cut"></a></p>
+<h2>9. Cut-Scope Decision Workshop</h2>
+<p>Run a structured workshop with each team owner. Present:</p>
+<ol>
+<li>Their dashboards/monitors with usage data</li>
+<li>Cut-scope classification (migrate / migrate-on-request / cut / retire)</li>
+<li>Required signoff per classification</li>
+</ol>
+<h3>Workshop Format</h3>
+<ul>
+<li>90 minutes per team (larger teams may need 2–3 sessions)</li>
+<li>Pre-read: team-specific <code>cut-scope-{team}.md</code> with sorted usage table</li>
+<li>In-session: walk through exception list, capture decisions</li>
+<li>Post-session: owner signs committed list</li>
+</ul>
+<h3>Decision Capture</h3>
+<pre><code class="language-markdown"># Cut Scope — Team: Payments Platform
+
+## Signed off by: Jane Doe (Team Lead) on 2026-04-25
+
+### Migrate (12)
+- dashboard_id_1 — &quot;Payments API Overview&quot;
+- monitor_id_2 — &quot;Failed Transactions &gt; 100/min&quot;
+- ...
+
+### Migrate-on-request (5) — revisit Wave 4
+- dashboard_id_7 — &quot;Old QA Dashboard&quot; (owner: &quot;maybe useful, revisit before Wave 4&quot;)
+- ...
+
+### Cut (34)
+- dashboard_id_11 — &quot;Superseded by DataDog POC&quot; (not accessed in 6mo)
+- ...
+
+### Retire (2)
+- monitor_id_55 — Legacy card network integration (deprecated 2024)
+- ...
+</code></pre>
+<p>Commit these to the migration repo. This is the audit trail for every decision.</p>
+<h3>Aggregate Metrics</h3>
+<p>Roll up across teams:</p>
+<table>
+<thead>
+<tr>
+<th>Team</th>
+<th>Total Assets</th>
+<th>Migrate</th>
+<th>Migrate-on-request</th>
+<th>Cut</th>
+<th>Retire</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Payments</td>
+<td>53</td>
+<td>12</td>
+<td>5</td>
+<td>34</td>
+<td>2</td>
+</tr>
+<tr>
+<td>Identity</td>
+<td>41</td>
+<td>14</td>
+<td>7</td>
+<td>18</td>
+<td>2</td>
+</tr>
+<tr>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>2,847</strong></td>
+<td><strong>612</strong></td>
+<td><strong>241</strong></td>
+<td><strong>1,732</strong></td>
+<td><strong>262</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Present aggregate to the executive sponsor. This is the basis for the migration budget.</p>
+<p><a id="gate"></a></p>
+<h2>10. Step Exit Criteria</h2>
+<p><strong>G2 — Inventory + Cut-Scope Complete</strong></p>
+<p>All must be true:</p>
+<ul>
+<li>[ ] All 6 inventory JSON files written + committed</li>
+<li>[ ] <code>audit-usage.csv</code> pulled for last 90 days</li>
+<li>[ ] <code>taxonomy-map.md</code> populated with top-100 <code>_sourceCategory</code> → target bucket mappings</li>
+<li>[ ] <code>cut-scope.md</code> signed off by every team owner</li>
+<li>[ ] Aggregate cut-scope metrics presented to sponsor</li>
+<li>[ ] <code>inventory-report.md</code> includes: counts, cut %, risks, timeline implications</li>
+</ul>
+<p>If any check fails, do not proceed to SL2DT-03. Fix the gap first.</p>
+<p><strong>Next step:</strong> <strong>SL2DT-03 — Log Ingest Architecture</strong> (bucket design, OneAgent + OTel + OpenPipeline deployment, FER → processor conversion).</p>
+<hr />
+<p><a id="references"></a></p>
+<h2>11. References</h2>
+<h3>Sumo Logic — inventory APIs</h3>
+<ul>
+<li><a href="https://www.sumologic.com:443/help/docs/api/">Sumo Logic API (Sumo Logic docs)</a></li>
+<li><a href="https://www.sumologic.com:443/help/docs/search/search-query-language/search-operators/">Sumo Logic search operators (Sumo Logic docs)</a></li>
+<li><a href="https://www.sumologic.com:443/help/docs/alerts/monitors/">Sumo Logic monitors (Sumo Logic docs)</a></li>
+<li><a href="https://www.sumologic.com:443/help/docs/dashboards/">Sumo Logic dashboards (Sumo Logic docs)</a></li>
+<li><a href="https://www.sumologic.com:443/help/docs/manage/users-roles/">Sumo Logic users and roles (Sumo Logic docs)</a></li>
+</ul>
+<h3>Dynatrace — target-side capabilities for sizing assessment</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline">OpenPipeline (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail">Grail (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management">Identity and access management (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://www.sumologic.com:443/help/docs/">Sumo Logic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

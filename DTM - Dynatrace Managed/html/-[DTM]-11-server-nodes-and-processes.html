@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTM-11: Server Nodes and Processes</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DTM — Dynatrace Managed</a><span class="sep">/</span><span aria-current="page">DTM-11</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DTM-11: Server Nodes and Processes</h1>
+<blockquote>
+<p><strong>Series:</strong> DTM — Dynatrace Managed | <strong>Reference:</strong> 11 — Server Nodes and Processes | <strong>Created:</strong> September 2026 | <strong>Last Updated:</strong> 11/10/2026</p>
+</blockquote>
+<blockquote>
+<p><strong>Dynatrace Classic only.</strong> This series applies to <strong>Dynatrace Managed</strong>, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Layer 1 of the DTM-10 health model asks the most basic question: <strong>is every node up, and is every service on each node running?</strong> Every other layer depends on the answer. A stopped Cassandra shows up as a storage problem, and a blocked port shows up as a connectivity problem, but both are node problems first.</p>
+<p>This notebook covers how to see node and process state (in the Cluster Management Console, through the Cluster API, and on the node itself), how the services depend on each other, how to stop and restart them without losing redundancy, which node-level events reach you and which don't, and what to check when a node looks unhealthy.</p>
+<p><strong>What you'll learn:</strong></p>
+<ul>
+<li>The two authoritative views of node state, and the one field the API documents</li>
+<li>The read-only commands that check every service and firewall rule on a node</li>
+<li>Why services must start in a fixed order, and the health gates between steps</li>
+<li>Why <code>dynatrace.sh</code> is the wrong tool to stop a node in a 3+ node cluster</li>
+<li>Which node and process events never email you</li>
+<li>The memory, time and network conditions that quietly take a node out</li>
+</ul>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#node-inventory">Node Inventory and Operation State</a></li>
+<li><a href="#process-checks">Process Checks on a Node</a></li>
+<li><a href="#start-order">Service Dependencies and Start Order</a></li>
+<li><a href="#safe-restart">Stopping and Restarting Safely</a></li>
+<li><a href="#node-events">Node and Process Events — What Emails You</a></li>
+<li><a href="#memory-time">Memory and Time</a></li>
+<li><a href="#inter-node-network">Inter-Node Network</a></li>
+<li><a href="#triage">When a Node Looks Unhealthy</a></li>
+<li><a href="#doc-gaps">What the Documentation Does Not Say</a></li>
+<li><a href="#recommendation">Recommended Approach</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace deployment</strong></td>
+<td>A self-hosted <strong>Dynatrace Managed</strong> cluster. Nothing in this series applies to Dynatrace SaaS.</td>
+</tr>
+<tr>
+<td><strong>Access</strong></td>
+<td>Cluster Management Console (CMC) administrator access; root (or <code>sudo</code>) on the cluster nodes; for the Cluster API, a cluster API token with the <code>ServiceProviderAPI</code> permission</td>
+</tr>
+<tr>
+<td><strong>Query language</strong></td>
+<td>None. Managed has no Grail, so this series has <strong>no DQL cells</strong>. Every check is a CMC view, a cluster event, a node command, or a Cluster API call</td>
+</tr>
+<tr>
+<td><strong>Read first</strong></td>
+<td>DTM-10 — the node components and the five-layer health model</td>
+</tr>
+<tr>
+<td><strong>Version basis</strong></td>
+<td>Written against the Managed documentation read 09/28/2026</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<ul>
+<li><strong>Two views of node state.</strong> CMC <strong>Deployment status</strong> is for people. <code>GET /api/v1.0/onpremise/cluster</code> is for automation, and its <code>operationState</code> field is the only node state the API documents. <code>RUNNING</code> is the only value the docs show; a Dynatrace product manager has posted the full list of 12 (§2).</li>
+<li><strong><code>dynatrace.sh status</code> and <code>check</code> are your on-node health check.</strong> Between them they cover the seven Dynatrace services, the firewall rules, and the listening ports.</li>
+<li><strong>Services start in a fixed order</strong>: firewall → Elasticsearch → Cassandra → Server → everything else. Each storage layer must be healthy on every node before the next one starts.</li>
+<li><strong>Whole cluster or one node — different procedures.</strong> At three or more nodes, starting or stopping the <em>whole</em> cluster uses the gated cluster procedure. Maintenance on <em>one</em> node uses <code>dynatrace.sh stop</code> / <code>start</code> on that node only, as the OS-patch page documents (§5.1 records where the docs pages differ).</li>
+<li><strong>Planned work goes one node at a time.</strong> That applies to OS patches, updates, removals and IP changes. Three copies of the data survive one missing node. A Dynatrace blog says five or more nodes tolerate two; the docs make no such statement.</li>
+<li><strong>Most node and process events never email you.</strong> A component going down, memory emergency mode, clock drift and a node that can't receive agent traffic all appear only in the CMC <strong>Events</strong> list and in Mission Control.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/dynatrace-api/cluster-api/cluster-api-v1/cluster-v1/get-cluster-info-known-servers">Get cluster information about known cluster nodes (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/start-stop-restart-node">Start/stop/restart a node (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/start-stop-restart-cluster">Start/stop/restart a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/apply-operating-system-patches-to-a-node">Apply OS patches to a node (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="node-inventory"></a></p>
+<h2>2. Node Inventory and Operation State</h2>
+<h3>2.1 In the Cluster Management Console</h3>
+<p><em>&quot;Deployment status provides an overview of your Cluster infrastructure.&quot;</em> Expand a node's row for its details. Dead nodes don't vanish at once: <em>&quot;Dynatrace Managed shows dead and removed nodes for seven days&quot;</em>. A node that dropped out overnight is therefore still visible in the morning.</p>
+<h3>2.2 Through the Cluster API</h3>
+<p>All four calls below are v1 and need the <code>ServiceProviderAPI</code> permission. DTM-10 §6.4 shows the request format.</p>
+<table>
+<thead>
+<tr>
+<th>Call</th>
+<th>Returns</th>
+<th>Fields that matter for health</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /api/v1.0/onpremise/cluster</code></td>
+<td><em>&quot;cluster information about known nodes&quot;</em></td>
+<td><code>id</code>, <code>operationState</code>, <code>buildVersion</code>, <code>jvmInfo</code>, <code>osInfo</code></td>
+</tr>
+<tr>
+<td><code>GET /api/v1.0/onpremise/cluster/configuration</code></td>
+<td><em>&quot;the cluster nodes configuration&quot;</em></td>
+<td><code>id</code>, <code>ipAddress</code>, <code>webUI</code>, <code>agent</code>, <code>datacenter</code></td>
+</tr>
+<tr>
+<td><code>GET /api/v1.0/onpremise/cluster/configuration/status</code></td>
+<td><em>&quot;the current configuration status for cluster nodes&quot;</em></td>
+<td><code>state</code>, with per-step states for <code>DOMAIN_UPDATE</code>, <code>OPERATION_STATE</code>, <code>AGENT_TRAFFIC</code>, <code>WEB_UI</code></td>
+</tr>
+<tr>
+<td><code>GET /api/v1.0/cluster/maintenance</code></td>
+<td><em>&quot;details about the current cluster maintenance state&quot;</em></td>
+<td><code>reason</code> — the only documented value is <code>IP_MIGRATION</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The full list of states.</strong> The docs show only <code>RUNNING</code>. In 2020 a Dynatrace product manager posted the whole list on the Dynatrace community (<a href="https://community.dynatrace.com/t/state-of-nodes/19542/1">state of nodes (Dynatrace community)</a>). It is a community source, not documentation, so treat it as community practice and confirm against your own cluster:</p>
+<table>
+<thead>
+<tr>
+<th><code>operationState</code></th>
+<th>Meaning, as posted</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>OFFLINE</code></td>
+<td>Initial — server not running</td>
+</tr>
+<tr>
+<td><code>STARTUP</code></td>
+<td>Startup in progress</td>
+</tr>
+<tr>
+<td><code>STARTUP_CANCELED</code></td>
+<td>Startup canceled due to a severe problem</td>
+</tr>
+<tr>
+<td><code>RUNNING</code></td>
+<td>Fully operational, accepts all data, fully visible</td>
+</tr>
+<tr>
+<td><code>RUNNING_FORSAKEN</code></td>
+<td>Fully operational but invisible to all agents</td>
+</tr>
+<tr>
+<td><code>SHUTDOWN_PHASED_OUT</code></td>
+<td>Before shutdown — still processing, no longer visible to agents</td>
+</tr>
+<tr>
+<td><code>SHUTDOWN</code></td>
+<td>Shutdown in progress</td>
+</tr>
+<tr>
+<td><code>EMERGENCY</code></td>
+<td>An emergency situation, for example low memory</td>
+</tr>
+<tr>
+<td><code>STARTUP_SUSPENDED</code></td>
+<td>Basic startup finished, but not connected to the cluster or database</td>
+</tr>
+<tr>
+<td><code>DATABASE_DISCONNECTED</code></td>
+<td>Database disconnected during runtime</td>
+</tr>
+<tr>
+<td><code>UNDEFINED</code></td>
+<td>Not known</td>
+</tr>
+<tr>
+<td><code>SHUTDOWN_IMMINENT</code></td>
+<td>The state before <code>SHUTDOWN_PHASED_OUT</code></td>
+</tr>
+</tbody>
+</table>
+<p>Two practical readings: <code>RUNNING_FORSAKEN</code> is a node that is up but receiving no agent traffic, and in community practice <code>EMERGENCY</code> is read alongside the heap-memory emergency events (§7.1) — the post describes it only as <em>an emergency situation, e.g. low memory</em>. The same answer names <code>/rest/state</code> (no authentication) as a lightweight status check for synthetic monitoring.</p>
+<p>Three uses for these calls — this series' checks built on documented fields, not documented alert rules:</p>
+<ol>
+<li><strong>Node down.</strong> Alert when any node's <code>operationState</code> is not <code>RUNNING</code>, <em>and</em> when the number of nodes returned is lower than your cluster size.</li>
+<li><strong>Version drift.</strong> Every node should report the same <code>buildVersion</code>. A node left on an older build after an update is a node to look at.</li>
+<li><strong>Traffic flags.</strong> The <code>configuration</code> call shows, per node, whether it serves the web UI (<code>webUI</code>) and accepts OneAgent traffic (<code>agent</code>). A node that looks idle may simply have had agent traffic disabled (§5.3). Check this before diagnosing load.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console">Cluster Management Console (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/remove-a-cluster-node">Remove a cluster node (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/dynatrace-api/cluster-api/cluster-api-v1/cluster-v1/get-cluster-info-known-servers">Get cluster information about known cluster nodes (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/dynatrace-api/cluster-api/cluster-api-v1/cluster-v1/get-cluster-nodes-configuration">Get cluster nodes configuration (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/dynatrace-api/cluster-api/cluster-api-v1/cluster-v1/get-cluster-nodes-configuration-current-status">Get cluster nodes configuration current status (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/dynatrace-api/cluster-api/cluster-api-v1/cluster-v1/get-cluster-maintenance">Get cluster maintenance (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="process-checks"></a></p>
+<h2>3. Process Checks on a Node</h2>
+<p>Every node carries the control script <code>dynatrace.sh</code>: <em>&quot;By default, the script is located at /opt/dynatrace-managed/launcher/ .&quot;</em> It takes six actions, <em>&quot;( start , stop , restart , status , check , pid )&quot;</em>. Three of them only report and change nothing:</p>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>status</code></td>
+<td><em>&quot;Displays a list of Dynatrace required services and the status of each, including detailed information about each service&quot;</em></td>
+</tr>
+<tr>
+<td><code>check</code></td>
+<td><em>&quot;Checks the status of iptables rules and the processes for Nodekeeper, Cassandra, Elasticsearch, ActiveGate, Watcher, and NGINX.&quot;</em></td>
+</tr>
+<tr>
+<td><code>pid</code></td>
+<td><em>&quot;Displays the process ID for all Dynatrace required services that were started with the dynatrace.sh script.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-bash">sudo /opt/dynatrace-managed/launcher/dynatrace.sh status
+sudo /opt/dynatrace-managed/launcher/dynatrace.sh check
+</code></pre>
+<p>A healthy node ends <code>status</code> with <em>&quot;All services are OK&quot;</em>, and ends <code>check</code> with <em>&quot;All rules are active.&quot;</em> and <em>&quot;All processes are OK&quot;</em>. <code>status</code> walks these systemd units, in the order the docs print them:</p>
+<table>
+<thead>
+<tr>
+<th>systemd unit</th>
+<th>Description (as printed)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dynatrace-firewall.service</code></td>
+<td>Dynatrace Firewall settings</td>
+</tr>
+<tr>
+<td><code>dynatrace-nodekeeper.service</code></td>
+<td>Dynatrace Nodekeeper</td>
+</tr>
+<tr>
+<td><code>dynatrace-cassandra.service</code></td>
+<td>Dynatrace Cassandra</td>
+</tr>
+<tr>
+<td><code>dynatrace-elasticsearch.service</code></td>
+<td>Dynatrace Elasticsearch</td>
+</tr>
+<tr>
+<td><code>dynatrace-server.service</code></td>
+<td>Dynatrace Server</td>
+</tr>
+<tr>
+<td><code>dynatrace-security-gateway.service</code></td>
+<td>Dynatrace Active Gate</td>
+</tr>
+<tr>
+<td><code>dynatrace-nginx.service</code></td>
+<td>Dynatrace NGINX</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>check</code> example also lists the local port each process should hold: Nodekeeper <code>8018</code>, Cassandra <code>9042</code>, Elasticsearch <code>9200</code>/<code>9300</code>, Server <code>8021</code>, ActiveGate <code>8443</code>, NGINX <code>8022</code>. In community practice, a process that is running but not listening points to a port conflict or a firewall rule rather than a crash — confirm in the node's logs.</p>
+<blockquote>
+<p><strong>Read the example output with care.</strong> The node-script page shows <em>Updated on Oct 22, 2026</em> (read 11/10/2026), but its sample output still shows log paths under <code>/var/opt/managed/</code>, while current installs use <code>/var/opt/dynatrace-managed/</code>. Trust the commands, not the sample paths.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/start-stop-restart-node">Start/stop/restart a node (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-cluster-installation-parameters">Managed Cluster installation parameters (DT docs)</a> — default data root <code>/var/opt/dynatrace-managed</code>.</sub></p>
+</blockquote>
+<p><a id="start-order"></a></p>
+<h2>4. Service Dependencies and Start Order</h2>
+<p><em>&quot;Dynatrace Managed software consists of a number of Dynatrace services that are dependent on each other and should be stopped or started in a particular order.&quot;</em> The Server needs both data stores, and each data store needs a quorum of its peers. So the order is fixed, and it has checkpoints.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+U3RhcnRpbmcgYW5kIFN0b3BwaW5nIGEgMysgTm9kZSBDbHVzdGVyPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPlNlcnZpY2VzIGRlcGVuZCBvbiBlYWNoIG90aGVyIOKAlCBlYWNoIGxheWVyIG11c3QgYmUgaGVhbHRoeSBvbiBldmVyeSBub2RlIGJlZm9yZSB0aGUgbmV4dCBvbmUgc3RhcnRzPC90ZXh0PgogIDx0ZXh0IHg9IjIwIiB5PSI5MiIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+U3RhcnQgdXA8L3RleHQ+CgogIDxyZWN0IHg9IjIwIiB5PSIxMDQiIHdpZHRoPSIxNjAiIGhlaWdodD0iOTYiIGZpbGw9IiM2NDc0OEIiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTAwIiB5PSIxMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjEuIEZpcmV3YWxsPC90ZXh0PgogIDxyZWN0IHg9IjMwIiB5PSIxNDAiIHdpZHRoPSIxNDAiIGhlaWdodD0iMjQiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgcng9IjYiLz4KICA8dGV4dCB4PSIxMDAiIHk9IjE1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgTWVubG8sIG1vbm9zcGFjZSI+ZmlyZXdhbGwuc2ggc3RhcnQ8L3RleHQ+CiAgPHRleHQgeD0iMTAwIiB5PSIxODYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmVhY2ggbm9kZTwvdGV4dD4KICA8cmVjdCB4PSIxOTgiIHk9IjEwNCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI5NiIgZmlsbD0iIzIyRDNFRSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIyNzgiIHk9IjEyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+Mi4gRWxhc3RpY3NlYXJjaDwvdGV4dD4KICA8cmVjdCB4PSIyMDgiIHk9IjE0MCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIyNCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiByeD0iNiIvPgogIDx0ZXh0IHg9IjI3OCIgeT0iMTU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEwIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBNZW5sbywgbW9ub3NwYWNlIj5lbGFzdGljc2VhcmNoLnNoIHN0YXJ0PC90ZXh0PgogIDx0ZXh0IHg9IjI3OCIgeT0iMTg2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5hbGwgbm9kZXMgdG9nZXRoZXI8L3RleHQ+CiAgPHJlY3QgeD0iMzc2IiB5PSIxMDQiIHdpZHRoPSIxNjAiIGhlaWdodD0iOTYiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDU2IiB5PSIxMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjMuIENhc3NhbmRyYTwvdGV4dD4KICA8cmVjdCB4PSIzODYiIHk9IjE0MCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIyNCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ1NiIgeT0iMTU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBNZW5sbywgbW9ub3NwYWNlIj5jYXNzYW5kcmEuc2ggc3RhcnQ8L3RleHQ+CiAgPHRleHQgeD0iNDU2IiB5PSIxODYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmFsbCBub2RlcyB0b2dldGhlcjwvdGV4dD4KICA8cmVjdCB4PSI1NTQiIHk9IjEwNCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI5NiIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI2MzQiIHk9IjEyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+NC4gU2VydmVyPC90ZXh0PgogIDxyZWN0IHg9IjU2NCIgeT0iMTQwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjI0IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNjM0IiB5PSIxNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIE1lbmxvLCBtb25vc3BhY2UiPnNlcnZlci5zaCBzdGFydDwvdGV4dD4KICA8dGV4dCB4PSI2MzQiIHk9IjE4NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YWxsIG5vZGVzIMK3IHVwIHRvIH4xMCBtaW48L3RleHQ+CiAgPHJlY3QgeD0iNzMyIiB5PSIxMDQiIHdpZHRoPSIxNjAiIGhlaWdodD0iOTYiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iODEyIiB5PSIxMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjUuIEV2ZXJ5dGhpbmcgZWxzZTwvdGV4dD4KICA8cmVjdCB4PSI3NDIiIHk9IjE0MCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIyNCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiByeD0iNiIvPgogIDx0ZXh0IHg9IjgxMiIgeT0iMTU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBNZW5sbywgbW9ub3NwYWNlIj5keW5hdHJhY2Uuc2ggc3RhcnQ8L3RleHQ+CiAgPHRleHQgeD0iODEyIiB5PSIxODYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmVhY2ggbm9kZTwvdGV4dD4KICA8bGluZSB4MT0iMTgyIiB5MT0iMTUyIiB4Mj0iMTk2IiB5Mj0iMTUyIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgogIDxsaW5lIHgxPSIzNjAiIHkxPSIxNTIiIHgyPSIzNzQiIHkyPSIxNTIiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CiAgPGxpbmUgeDE9IjUzOCIgeTE9IjE1MiIgeDI9IjU1MiIgeTI9IjE1MiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KICA8bGluZSB4MT0iNzE2IiB5MT0iMTUyIiB4Mj0iNzMwIiB5Mj0iMTUyIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgogIDxsaW5lIHgxPSIyNzgiIHkxPSIyMDIiIHgyPSIyNzgiIHkyPSIyMTQiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CiAgPHJlY3QgeD0iMTk4IiB5PSIyMTYiIHdpZHRoPSIxNjAiIGhlaWdodD0iNzgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjYiLz4KICA8dGV4dCB4PSIyNzgiIHk9IjIzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+R2F0ZSBiZWZvcmUgc3RlcCAzPC90ZXh0PgogIDx0ZXh0IHg9IjI3OCIgeT0iMjU0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5fY2x1c3Rlci9oZWFsdGg6PC90ZXh0PgogIDx0ZXh0IHg9IjI3OCIgeT0iMjY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5hY3RpdmUgc2hhcmRzIDEwMCUsPC90ZXh0PgogIDx0ZXh0IHg9IjI3OCIgeT0iMjg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5ub2RlIGNvdW50ID0gY2x1c3RlciBzaXplPC90ZXh0PgogIDxsaW5lIHgxPSI0NTYiIHkxPSIyMDIiIHgyPSI0NTYiIHkyPSIyMTQiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CiAgPHJlY3QgeD0iMzc2IiB5PSIyMTYiIHdpZHRoPSIxNjAiIGhlaWdodD0iNzgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjYiLz4KICA8dGV4dCB4PSI0NTYiIHk9IjIzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+R2F0ZSBiZWZvcmUgc3RlcCA0PC90ZXh0PgogIDx0ZXh0IHg9IjQ1NiIgeT0iMjU0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5jYXNzYW5kcmEtbm9kZXRvb2wuc2g8L3RleHQ+CiAgPHRleHQgeD0iNDU2IiB5PSIyNjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnN0YXR1czogZXZlcnkgbm9kZSBVTjwvdGV4dD4KICA8cmVjdCB4PSI1NTQiIHk9IjIxNiIgd2lkdGg9IjMzOCIgaGVpZ2h0PSI3OCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiByeD0iNiIvPgogIDx0ZXh0IHg9IjcyMyIgeT0iMjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5GZXdlciB0aGFuIDMgbm9kZXM/PC90ZXh0PgogIDx0ZXh0IHg9IjcyMyIgeT0iMjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5keW5hdHJhY2Uuc2ggc3RhcnQgfCBzdG9wIHwgcmVzdGFydCBvbiBlYWNoIG5vZGU8L3RleHQ+CiAgPHRleHQgeD0iNzIzIiB5PSIyNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnJ1bnMgZXZlcnkgc2VydmljZSAiaW4gdGhlIHJlY29tbWVuZGVkIG9yZGVyIjwvdGV4dD4KCiAgPHRleHQgeD0iMjAiIHk9IjMzNiIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+U2h1dCBkb3duPC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSIzNDgiIHdpZHRoPSIzMDAiIGhlaWdodD0iOTYiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTcwIiB5PSIzNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjEuIFN0b3AgdGhlIFNlcnZlcjwvdGV4dD4KICA8cmVjdCB4PSIzNCIgeT0iMzg0IiB3aWR0aD0iMjcyIiBoZWlnaHQ9IjI0IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTcwIiB5PSI0MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIE1lbmxvLCBtb25vc3BhY2UiPnNlcnZlci5zaCBzdG9wPC90ZXh0PgogIDx0ZXh0IHg9IjE3MCIgeT0iNDMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5vbiBldmVyeSBub2RlPC90ZXh0PgogIDxsaW5lIHgxPSIzMjIiIHkxPSIzOTYiIHgyPSIzNTIiIHkyPSIzOTYiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CiAgPHJlY3QgeD0iMzU2IiB5PSIzNDgiIHdpZHRoPSIyMTAiIGhlaWdodD0iOTYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjYiLz4KICA8dGV4dCB4PSI0NjEiIHk9IjM3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+R2F0ZTwvdGV4dD4KICA8dGV4dCB4PSI0NjEiIHk9IjM5NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+c2VydmVyLnNoIHN0YXR1cyBzaG93cyBldmVyeTwvdGV4dD4KICA8dGV4dCB4PSI0NjEiIHk9IjQxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+c2VydmVyIHByb2Nlc3MgYXMgbm90IHJ1bm5pbmc8L3RleHQ+CiAgPGxpbmUgeDE9IjU2OCIgeTE9IjM5NiIgeDI9IjU4OCIgeTI9IjM5NiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KICA8cmVjdCB4PSI1OTIiIHk9IjM0OCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSI5NiIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI3NDIiIHk9IjM3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+Mi4gU3RvcCBldmVyeXRoaW5nIGVsc2U8L3RleHQ+CiAgPHJlY3QgeD0iNjA2IiB5PSIzODQiIHdpZHRoPSIyNzIiIGhlaWdodD0iMjQiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgcng9IjYiLz4KICA8dGV4dCB4PSI3NDIiIHk9IjQwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgTWVubG8sIG1vbm9zcGFjZSI+ZHluYXRyYWNlLnNoIHN0b3A8L3RleHQ+CiAgPHRleHQgeD0iNzQyIiB5PSI0MzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm9uZSBub2RlIGF0IGEgdGltZTwvdGV4dD4KCiAgPGxpbmUgeDE9IjQwIiB5MT0iNDcwIiB4Mj0iODkwIiB5Mj0iNDcwIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEwIj5TY3JpcHRzIGxpdmUgaW4gL29wdC9keW5hdHJhY2UtbWFuYWdlZC9sYXVuY2hlci8gKG5vZGV0b29sIGluIC9vcHQvZHluYXRyYWNlLW1hbmFnZWQvdXRpbHMvKS4gU291cmNlOiBTdGFydC9zdG9wL3Jlc3RhcnQgYSBjbHVzdGVyIGFuZCBhIG5vZGUgKERUIGRvY3MsIHJlYWQgMDkvMjgvMjAyNik8L3RleHQ+Cjwvc3ZnPgo=" alt="Starting and Stopping a 3+ Node Cluster" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Phase | Step | Command | Scope | Gate before next step |
+|-------|------|---------|-------|-----------------------|
+| Start | 1 Firewall | firewall.sh start | each node | — |
+| Start | 2 Elasticsearch | elasticsearch.sh start | all nodes together | _cluster/health: active shards 100%, node count = cluster size |
+| Start | 3 Cassandra | cassandra.sh start | all nodes together | cassandra-nodetool.sh status: every node UN |
+| Start | 4 Server | server.sh start | all nodes, up to ~10 min | all server processes up |
+| Start | 5 Everything else | dynatrace.sh start | each node | — |
+| Stop | 1 Server | server.sh stop | every node | server.sh status: not running |
+| Stop | 2 Everything else | dynatrace.sh stop | one node at a time | — |
+| < 3 nodes | dynatrace.sh start/stop/restart | per node | — | script handles the order |
+For environments where SVG doesn't render
+-->
+<p><strong>Start-up, for clusters of three or more nodes.</strong> Run steps 2 to 4 on every node <em>&quot;as simultaneously as possible&quot;</em>:</p>
+<ol>
+<li><strong>Firewall</strong>, on each node: <code>sudo /opt/dynatrace-managed/launcher/firewall.sh start</code></li>
+<li><strong>Elasticsearch</strong>, on every node together: <code>sudo /opt/dynatrace-managed/launcher/elasticsearch.sh start</code>. Then check it:<pre><code class="language-bash">curl -X GET &quot;localhost:9200/_cluster/health?wait_for_status=yellow&amp;timeout=50s&amp;pretty&quot;
+</code></pre>
+</li>
+<li><strong>Cassandra</strong>, on every node together: <code>sudo /opt/dynatrace-managed/launcher/cassandra.sh start</code>. Then check it:<pre><code class="language-bash">sudo /opt/dynatrace-managed/utils/cassandra-nodetool.sh status
+</code></pre>
+</li>
+<li><strong>Server</strong>, on every node together: <code>sudo /opt/dynatrace-managed/launcher/server.sh start</code></li>
+<li><strong>Everything else</strong>, on each node once all server processes are up: <code>sudo /opt/dynatrace-managed/launcher/dynatrace.sh start</code></li>
+</ol>
+<p>The two gates are what make the order safe:</p>
+<ul>
+<li><strong>After Elasticsearch:</strong> <em>&quot;Verify that active_shards_percent_as_number is 100 percent and number_of_nodes equals the number of nodes in the Managed Cluster.&quot;</em></li>
+<li><strong>After Cassandra:</strong> <em>&quot;Verify that all nodes display UN before proceeding to the next step.&quot;</em></li>
+</ul>
+<p>Then allow for the Server's start time: <em>&quot;A node can take up to about 10 minutes to fully start.&quot;</em></p>
+<p><strong>Shut-down, for clusters of three or more nodes.</strong> Stop the Server everywhere first, and stop the rest only <em>&quot;When all server processes are fully shut down and a status check shows them as not running&quot;</em>. Do that <em>&quot;on each existing node, one node at a time&quot;</em>:</p>
+<ol>
+<li><strong>Server</strong>, on every node: <code>sudo /opt/dynatrace-managed/launcher/server.sh stop</code>, then confirm with <code>sudo /opt/dynatrace-managed/launcher/server.sh status</code></li>
+<li><strong>Everything else</strong>, one node at a time, once no server process is running: <code>sudo /opt/dynatrace-managed/launcher/dynatrace.sh stop</code></li>
+</ol>
+<blockquote>
+<p><strong>About the paths above.</strong> The docs print these commands as <code>./opt/dynatrace-managed/...</code>, a relative path that only works from <code>/</code>, and in one place as <code>../launcher/dynatrace.sh</code>. The commands above use the absolute path. The same scripts are called in the same order.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/start-stop-restart-cluster">Start/stop/restart a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/start-stop-restart-node">Start/stop/restart a node (DT docs)</a>. <strong>Derived:</strong> the absolute-path form normalizes the docs' relative paths; the scripts and their order are unchanged.</sub></p>
+</blockquote>
+<p><a id="safe-restart"></a></p>
+<h2>5. Stopping and Restarting Safely</h2>
+<h3>5.1 Pick the procedure by cluster size</h3>
+<table>
+<thead>
+<tr>
+<th>Cluster size</th>
+<th>Procedure</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fewer than 3 nodes</td>
+<td><code>dynatrace.sh start</code> / <code>stop</code> / <code>restart</code> on each node. It <em>&quot;Starts all Dynatrace Managed required services in the recommended order.&quot;</em></td>
+</tr>
+<tr>
+<td>3 or more nodes</td>
+<td>The cluster procedure in §4: <em>&quot;For Managed Clusters with three or more nodes, go to Start/stop/restart a Managed Cluster.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Where the docs pages differ — and how to read them together.</strong> The node page above reserves <code>dynatrace.sh</code> for clusters of fewer than three nodes. But <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/apply-operating-system-patches-to-a-node">Apply OS patches to a node (DT docs)</a>, the documented single-node maintenance procedure, has you run <code>dynatrace.sh stop</code>, patch, and start again, <em>&quot;one node at a time&quot;</em>, with no cluster-size limit: <em>&quot;Use the official dynatrace.sh command with a parameter to start, stop, or restart the Dynatrace services in the required order.&quot;</em> Read together: use the <strong>cluster procedure</strong> to start or stop the <strong>whole</strong> cluster, and <code>dynatrace.sh</code> on <strong>one node at a time</strong> for single-node maintenance, with every other node healthy first. On the Dynatrace community, a Dynatrace product manager described the same one-at-a-time restart, and a per-node <strong>Restart</strong> button in the CMC (Deployment status → Cluster nodes → a node) (<a href="https://community.dynatrace.com/t/how-to-restart-dynatrace-nodes-on-the-cluster/20505">How to restart Dynatrace nodes on the cluster (Dynatrace community)</a>, 2020).</p>
+<p>The docs also say that below three nodes the cluster is exposed during maintenance: <em>&quot;If your Managed Cluster consists of fewer than three nodes, Dynatrace Managed will not be accessible during the update process.&quot;</em></p>
+<h3>5.2 Planned work on one node: one at a time</h3>
+<p>Every documented node operation carries the same rule:</p>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>What the docs say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OS patches</td>
+<td><em>&quot;Apply the node operating system update or patch to one node at a time.&quot;</em> After a reboot, the node restarts, <em>&quot;after which the Dynatrace services resume automatically unless explicitly stopped.&quot;</em></td>
+</tr>
+<tr>
+<td>Manual update</td>
+<td><em>&quot;Since the node that you update isn't operating, it's crucial that you manually update one node at a time.&quot;</em></td>
+</tr>
+<tr>
+<td>Removing a node</td>
+<td><em>&quot;Remove no more than one node at a time. To avoid data loss, allow 24 hours before removing any subsequent nodes.&quot;</em> Before removing, <em>&quot;it's recommended that you wait for at least the duration of the transaction storage data retention period (up to 35 days)&quot;</em>, because that data isn't replicated. Afterwards, <em>&quot;you must wait 72 hours before installing a new node on a host that shares the same IP&quot;</em></td>
+</tr>
+<tr>
+<td>Changing a node's IP</td>
+<td><em>&quot;your cluster must have at least three nodes&quot;</em>, and <em>&quot;No, you can change only one node at a time.&quot;</em></td>
+</tr>
+<tr>
+<td>Adding a node</td>
+<td><em>&quot;You can't add more Cluster nodes until synchronization completes.&quot;</em> <code>cassandra-nodetool.sh status</code> shows a joining node as <code>UJ</code></td>
+</tr>
+</tbody>
+</table>
+<p>The reason is the copy count from DTM-10: <em>&quot;Dynatrace Managed continues to operate after the loss of one node.&quot;</em> A second node out, whether planned or not, leaves the cluster below what it was built to tolerate. Before taking a node down, confirm that every other node is healthy (§2, §3).</p>
+<h3>5.3 Draining a node without stopping it</h3>
+<p>To stop a node processing monitoring data without removing it, use the first step of the removal flow: <em>&quot;Select Disable OneAgent traffic to stop monitoring data processing on the node. If you want to temporarily exclude the node from a cluster, stop here and enable the node later.&quot;</em> Disabling OneAgent traffic sets the node to <em>&quot;idle mode&quot;</em>, and the docs give two ways to do it: <em>&quot;To configure OneAgent traffic or web UI traffic on a Cluster node, follow the steps for the Cluster Management Console or the Cluster REST API.&quot;</em> The API route is <code>POST /api/v1.0/onpremise/cluster/configuration</code>, which <em>&quot;configures cluster nodes responsibilities&quot;</em> through each node's <code>agent</code> and <code>webUI</code> flags. While agent traffic is off, the node's <code>agent</code> flag in <code>GET /onpremise/cluster/configuration</code> should therefore read <code>false</code>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/operation/start-stop-restart-node">Start/stop/restart a node (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/start-stop-restart-cluster">Start/stop/restart a cluster (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/operation/apply-operating-system-patches-to-a-node">Apply OS patches to a node (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/update-cluster">Update a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/remove-a-cluster-node">Remove a cluster node (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/operation/ip-reconfiguration">Reconfigure a node's IP address (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/add-cluster-node">Add a cluster node (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability">Single-cluster high availability (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/dynatrace-api/cluster-api/cluster-api-v1/cluster-v1/post-cluster-nodes-responsibilities">Post cluster nodes responsibilities (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-capabilities">Configure Cluster capabilities (DT docs)</a></sub></li>
+<li><sub><strong>Derived:</strong> <code>agent: false</code> while traffic is off combines the capabilities page's two routes to one setting (CMC <em>Disable OneAgent traffic</em>, or the <code>agent</code> flag on <code>POST</code>) with the same <code>agent</code> field in the <code>GET</code> response</sub></li>
+</ul>
+</blockquote>
+<p><a id="node-events"></a></p>
+<h2>6. Node and Process Events — What Emails You</h2>
+<p>The event-notifications page gives each event an <strong>Email notification</strong> column (Yes / No / Configurable) and an <strong>MC notification</strong> column. Every row below goes to Mission Control. Only some of them email you:</p>
+<table>
+<thead>
+<tr>
+<th>Event (as the docs print it)</th>
+<th>Severity</th>
+<th>Emailed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>&quot;Host is down.&quot;</em></td>
+<td>WARNING / SEVERE</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><em>&quot;Node is down - %s.&quot;</em></td>
+<td>WARNING</td>
+<td>Yes, <em>&quot;if happened outside of the upgrade procedure&quot;</em></td>
+</tr>
+<tr>
+<td><em>&quot;Node is up - %s.&quot;</em> / <em>&quot;Host is up.&quot;</em></td>
+<td>INFO</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><em>&quot;Storage volume for Dynatrace Managed log files is running out of space on {0}.&quot;</em></td>
+<td>SEVERE</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><em>&quot;Your Dynatrace Managed cluster node {0} is undersized!&quot;</em></td>
+<td>SEVERE</td>
+<td>Configurable</td>
+</tr>
+<tr>
+<td><em>&quot;<component name> is down.&quot;</em></td>
+<td>SEVERE</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><em>&quot;A cluster node can't receive OneAgent traffic.&quot;</em></td>
+<td>SEVERE</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><em>&quot;Heap memory: Server %d started memory emergency mode.&quot;</em></td>
+<td>SEVERE</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><em>&quot;Heap memory: Server %d triggered a hard memory cleanup action.&quot;</em></td>
+<td>SEVERE</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><em>&quot;Insufficient system privileges on %s.&quot;</em></td>
+<td>SEVERE</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><em>&quot;The node with id %s is not properly configured.&quot;</em> — the node was shut down because its storage partition is smaller than the other nodes' (DTM-10 §3)</td>
+<td>SEVERE</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><em>&quot;Dynatrace Managed has stopped collecting monitored data&quot;</em></td>
+<td>SEVERE</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><em>&quot;Could not detect %s activity on %s%s.&quot;</em></td>
+<td>SEVERE</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><em>&quot;Node cannot read and write to directory: '%s'.&quot;</em></td>
+<td>WARNING</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><em>&quot;Cassandra node connection lost ( %d times in the last hour).&quot;</em></td>
+<td>WARNING</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><em>&quot;Server time of server %d is out of sync. Time difference %d milliseconds. Please enable NTP on all cluster nodes.&quot;</em></td>
+<td>not shown</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><em>&quot;Server %d shutdown initiated.&quot;</em> / <em>&quot;Server %d startup completed. (Version: %s ).&quot;</em></td>
+<td>INFO</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><em>Server %d joined / left cluster … %d times last hour</em> — a node flapping in and out</td>
+<td>INFO</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><em>Disabling / Enabling OneAgent traffic at …</em> — a drain started or ended (§5.3)</td>
+<td>WARNING / INFO</td>
+<td><strong>No</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>What this means in practice.</strong> A whole node or host going down emails you. A single component failing inside a node that is still up, such as a stopped Cassandra, an overloaded Server or a directory it cannot write to, does not. (A log volume running out of space is the exception: that event does email.) Those events surface only in CMC <strong>Events</strong>. The node-level checks in §2 and §3 therefore have to run on a schedule rather than wait for an email.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a> — rows from the CLUSTER_LIFECYCLE, SERVER_LIFECYCLE, CASSANDRA and TENANT_LIFECYCLE tables, read 11/10/2026.</sub></p>
+</blockquote>
+<p><a id="memory-time"></a></p>
+<h2>7. Memory and Time</h2>
+<h3>7.1 Memory</h3>
+<p>The sizing rules come first: <em>&quot;CPU and RAM must be exclusively available for Dynatrace.&quot;</em> <em>&quot;Hosts must have at least 32 GB RAM.&quot;</em> With Log Monitoring, <em>&quot;All Cluster nodes must have at least 64 GB total RAM.&quot;</em> A node sharing its host with other workloads breaks the first rule before any event fires.</p>
+<p>The Server reports heap pressure through four events, from mildest to worst: a <em>soft</em> cleanup, a <em>hard</em> cleanup, entering <em>emergency mode</em>, and ending it (<em>&quot;Heap memory: Server %d ended memory emergency mode.&quot;</em>). None of them email you (§6). What emergency mode actually does to processing is not documented. In community practice, any hard cleanup or emergency-mode event is treated as a capacity signal — take it to DTM-15.</p>
+<p>To compare heap across nodes, use <code>GET /api/v1.0/onpremise/cluster</code>: each node's <code>jvmInfo</code> carries its JVM settings, and the docs' example includes <code>maxHeap</code>. Memory also caps throughput. <em>&quot;Dynatrace Managed environments can process a limited number of service calls per minute (depending on the node CPU amount and memory availability)&quot;</em>. Past that limit, adaptive load reduction starts dropping traces (DTM-10 §7).</p>
+<h3>7.2 Time</h3>
+<p>Multi-node clusters have two clock rules. All nodes must <em>&quot;Synchronize with NTP&quot;</em> and <em>&quot;Be in the same time zone&quot;</em>. Drift is reported as <em>&quot;Server time of server %d is out of sync. Time difference %d milliseconds. Please enable NTP on all cluster nodes.&quot;</em> That event is not emailed either. Put NTP monitoring on the hosts themselves rather than relying on the cluster to report it.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements">Hardware requirements (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/dynatrace-api/cluster-api/cluster-api-v1/cluster-v1/get-cluster-info-known-servers">Get cluster information about known cluster nodes (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/adaptive-traffic-management-managed">Adaptive traffic management for Managed (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="inter-node-network"></a></p>
+<h2>8. Inter-Node Network</h2>
+<p>In community practice, a node that can't reach its peers looks unhealthy from every angle — Cassandra connection-lost events (§6), missing Elasticsearch shards, possibly the node dropping out of the cluster — even though every process on it is running. The docs are direct about the requirement: <em>&quot;Configure your firewall to open the following Dynatrace Managed ports for bi-directional communication, including between all Cluster nodes in a typical Managed deployment.&quot;</em></p>
+<table>
+<thead>
+<tr>
+<th>Port</th>
+<th>Used by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>443</td>
+<td>Web UI, OneAgent, REST API (routed to local 8022)</td>
+</tr>
+<tr>
+<td>5701–5710</td>
+<td>Hazelcast</td>
+</tr>
+<tr>
+<td>5711, 8018</td>
+<td>Nodekeeper</td>
+</tr>
+<tr>
+<td>7000, 7001, 9042</td>
+<td>Cassandra-based storage</td>
+</tr>
+<tr>
+<td>7199</td>
+<td>Cassandra JMX</td>
+</tr>
+<tr>
+<td>8019</td>
+<td>Upgrade UI</td>
+</tr>
+<tr>
+<td>8020</td>
+<td>Dynatrace Server (HTTP)</td>
+</tr>
+<tr>
+<td>8021</td>
+<td>Dynatrace Server (HTTPS)</td>
+</tr>
+<tr>
+<td>8022</td>
+<td>NGINX (HTTPS), target of the port 443 routing rule</td>
+</tr>
+<tr>
+<td>8443</td>
+<td>OneAgent monitoring data and inter-node traffic</td>
+</tr>
+<tr>
+<td>9200, 9300</td>
+<td>Elasticsearch</td>
+</tr>
+<tr>
+<td>9998</td>
+<td>Embedded ActiveGate</td>
+</tr>
+</tbody>
+</table>
+<p>Two related rules: all nodes must <em>&quot;Have a network latency between nodes of 10 ms or less&quot;</em>, and the node firewall itself is a Dynatrace service (<code>dynatrace-firewall.service</code>, started first in §4). If <code>dynatrace.sh check</code> reports that its rules aren't active, fix that before anything else.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/cluster-node-ports">Cluster node ports (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements">Hardware requirements (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/start-stop-restart-node">Start/stop/restart a node (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="triage"></a></p>
+<h2>9. When a Node Looks Unhealthy</h2>
+<p>No Managed Cluster troubleshooting page turned up in a 09/28/2026 read of the <code>/managed/managed-cluster/</code> tree, so the order below is this series' own. It checks the cheapest and most common causes first:</p>
+<ol>
+<li><strong>Is the host up?</strong> A <em>&quot;Host is down.&quot;</em> event, or no response at all, is a host or network problem, not a Dynatrace one.</li>
+<li><strong>Which service is down?</strong> <code>dynatrace.sh status</code> names the unit. Look up that component's layer: Cassandra in DTM-12, Elasticsearch in DTM-13.</li>
+<li><strong>Are the rules and ports right?</strong> <code>dynatrace.sh check</code>, plus the inter-node port list in §8.</li>
+<li><strong>Can it write to disk — and is its partition the same size as the others'?</strong> <em>&quot;Node cannot read and write to directory&quot;</em> and the log-volume event point to storage (DTM-12, DTM-13). <em>&quot;The node with id %s is not properly configured.&quot;</em> means the node was shut down because its storage partition is undersized: <em>&quot;All Managed Cluster nodes must have the same partition size for dynatrace-storage.&quot;</em> Resize it, then restart the node.</li>
+<li><strong>Are clocks in sync?</strong> Look for the out-of-sync event (§7.2).</li>
+<li><strong>What changed?</strong> Read CMC <strong>Events</strong> around the time the node went bad, including the events that were never emailed.</li>
+<li><strong>Escalate with evidence.</strong> Collect a diagnostic archive and open a support case.</li>
+</ol>
+<p><strong>Diagnostic archive.</strong> In the CMC, <em>&quot;On the Dynatrace Managed Home page, open the menu (three dots) and select Run Cluster diagnostics.&quot;</em>. <em>&quot;By default, seven days of data is collected for analysis.&quot;</em>, packed into a <code>SupportArchive&lt;ID&gt;</code> ZIP with per-node folders (<code>autoupdater</code>, <code>config</code>, <code>log</code>, <code>managed-logs</code>, <code>nginx-error-logs</code>). Download it promptly: <em>&quot;all diagnostic data is deleted automatically after 30 days&quot;</em>.</p>
+<p><strong>Log locations the docs actually give:</strong> <code>/var/opt/dynatrace-managed/log/elasticsearch/*</code> and <code>/var/opt/dynatrace-managed/log/cassandra/*</code>, plus <code>/var/log/dynatrace/install.log</code> for installer operations. The docs name further logs (<code>nodekeeper.0.0.log</code>, <code>server.log</code>) without their directories. The diagnostic archive collects them for you.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/diagnostic-archives-for-managed-installations">Diagnostic archives for Managed installations (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/failover">Multi-data center failover (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/ip-reconfiguration">Reconfigure a node's IP address (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/adaptive-data-retention">Adaptive data retention (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="doc-gaps"></a></p>
+<h2>10. What the Documentation Does Not Say</h2>
+<p>Searched for in the Managed documentation on 09/28/2026 and <strong>not found</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Gap</th>
+<th>Working assumption in this notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>An official list of <code>operationState</code> values</td>
+<td>A community-posted list of 12 exists (§2); treat anything other than <code>RUNNING</code> as unhealthy</td>
+</tr>
+<tr>
+<td>What &quot;memory emergency mode&quot; does to processing</td>
+<td>The community-posted <code>EMERGENCY</code> state describes it only as <em>an emergency situation, e.g. low memory</em> (§2); treat it as a capacity alarm (DTM-15)</td>
+</tr>
+<tr>
+<td>A Managed troubleshooting page, or the directories of <code>server.log</code> and the Nodekeeper logs (the one Server-side path found is <code>&lt;datastore_dir&gt;/log/server/audit.rest.proxy.log</code>, on the Mission Control data-exchange page)</td>
+<td>Use the diagnostic archive</td>
+</tr>
+<tr>
+<td>A dedicated &quot;disable node&quot; API</td>
+<td>The documented route is the <code>agent</code> / <code>webUI</code> flags on the configuration endpoint (§5.3)</td>
+</tr>
+</tbody>
+</table>
+<p>Two documentation quirks to be aware of. The <code>get-cluster-nodes-configuration-current-status</code> page's own <code>curl</code> example calls <code>/configuration</code>, while its Request URL is <code>/configuration/status</code> (use the latter). The node-script page's sample output predates the current install paths (§3).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/dynatrace-api/cluster-api/cluster-api-v1/cluster-v1/get-cluster-nodes-configuration-current-status">Get cluster nodes configuration current status (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/dynatrace-api/cluster-api/cluster-api-v1/cluster-v1/get-cluster-info-known-servers">Get cluster information about known cluster nodes (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-data-exchange">Mission Control data exchange (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-capabilities">Configure Cluster capabilities (DT docs)</a>. <strong>Observed 09/28/2026:</strong> none of the five gaps then listed was filled; the single-node restart gap was removed on 10/14/2026 because the OS-patch page documents it (§5.1). The four remaining gaps are not filled anywhere in the 140 pages under <code>/managed/managed-cluster/</code> and <code>/managed/dynatrace-api/cluster-api/</code> (crawled and searched for <code>operationState</code> values, restart procedures, <code>emergency</code>, log paths and troubleshooting pages).</sub></p>
+</blockquote>
+<p><a id="recommendation"></a></p>
+<h2>11. Recommended Approach</h2>
+<ol>
+<li><strong>Poll the API from outside the cluster</strong> every few minutes. Alert on any node not <code>RUNNING</code>, on a node count below your cluster size, and on mismatched <code>buildVersion</code>.</li>
+<li><strong>Run <code>dynatrace.sh status</code> and <code>check</code> on every node on a schedule</strong>, and alert on anything other than <em>All services are OK</em> / <em>All processes are OK</em> / <em>All rules are active</em>. This is how you catch the component failures the cluster never emails about.</li>
+<li><strong>Monitor NTP and inter-node reachability on the hosts themselves.</strong> The cluster reports clock drift only through a non-emailed event.</li>
+<li><strong>Document the start and stop procedure for <em>your</em> cluster size</strong> before you need it. At 3+ nodes, starting or stopping the whole cluster means the gated cluster procedure; maintenance on one node uses <code>dynatrace.sh stop</code> / <code>start</code> on that node only (§5.1).</li>
+<li><strong>Enforce one node at a time</strong> for every planned operation, and confirm the others are healthy before starting.</li>
+<li><strong>Read CMC Events weekly</strong>, and immediately after any node incident.</li>
+</ol>
+<p><a id="summary"></a></p>
+<h2>12. Summary and Next Steps</h2>
+<p>Node health is two questions. Is every node present and <code>RUNNING</code>? Is every service on it up, listening, and behind active firewall rules? The API and CMC answer the first; <code>dynatrace.sh status</code> and <code>check</code> answer the second. Services start in a gated order, and in clusters of three or more nodes they are stopped with the cluster procedure. Planned work always goes one node at a time. Most process-level failures never email you, so these checks have to run on a schedule.</p>
+<p><strong>Next in the series:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Layer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DTM-12: Cassandra Metrics Store Health</td>
+<td>2 — Storage</td>
+</tr>
+<tr>
+<td>DTM-13: Elasticsearch Store Health</td>
+<td>2 — Storage</td>
+</tr>
+<tr>
+<td>DTM-15: Capacity and Scaling</td>
+<td>3 — Capacity (where memory-pressure events lead)</td>
+</tr>
+<tr>
+<td>DTM-14: Cluster ActiveGates and Mission Control Connectivity</td>
+<td>4 — Connectivity</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/managed">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K8S-07: Kubernetes Events and Log Ingestion</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">K8S — Kubernetes Monitoring</a><span class="sep">/</span><span aria-current="page">K8S-07</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>K8S-07: Kubernetes Events and Log Ingestion</h1>
+<blockquote>
+<p><strong>Series:</strong> K8S — Kubernetes Monitoring | <strong>Notebook:</strong> 7 of 14 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/15/2026</p>
+</blockquote>
+<h2>Capturing and Analyzing Kubernetes Events and Logs</h2>
+<p>Kubernetes events and container logs provide crucial insights for debugging and operational awareness. This notebook covers event monitoring, log ingestion configuration, and analysis patterns in Dynatrace.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#kubernetes-events-overview">Kubernetes Events Overview</a></li>
+<li><a href="#event-ingestion-configuration">Event Ingestion Configuration</a></li>
+<li><a href="#container-log-collection">Container Log Collection</a></li>
+<li><a href="#openpipeline-for-k8s-logs">OpenPipeline for K8s Logs</a></li>
+<li><a href="#event-analysis-patterns">Event Analysis Patterns</a></li>
+<li><a href="#log-analysis-patterns">Log Analysis Patterns</a></li>
+<li><a href="#alerting-on-events-and-logs">Alerting on Events and Logs</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with log ingestion enabled</td>
+</tr>
+<tr>
+<td><strong>DynaKube</strong></td>
+<td>ActiveGate with <code>kubernetes-monitoring</code></td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:logs:read</code>, <code>storage:events:read</code>; Settings write access to change Kubernetes monitoring settings</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>K8S-01 Fundamentals</td>
+</tr>
+</tbody>
+</table>
+<p><a id="kubernetes-events-overview"></a></p>
+<h2>1. Kubernetes Events Overview</h2>
+<h3>Event Types</h3>
+<p>Kubernetes events are first-class objects that record what happened in the cluster.</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Description</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Normal</strong></td>
+<td>Routine operations</td>
+<td>Scheduled, Pulled, Created</td>
+</tr>
+<tr>
+<td><strong>Warning</strong></td>
+<td>Potential issues</td>
+<td>FailedScheduling, BackOff, Unhealthy</td>
+</tr>
+</tbody>
+</table>
+<h3>Event Sources</h3>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Events Generated</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Scheduler</strong></td>
+<td>Scheduling decisions, failures</td>
+</tr>
+<tr>
+<td><strong>Kubelet</strong></td>
+<td>Pod lifecycle, probe results</td>
+</tr>
+<tr>
+<td><strong>Controller Manager</strong></td>
+<td>ReplicaSet scaling, Deployment rollouts</td>
+</tr>
+<tr>
+<td><strong>Custom Controllers</strong></td>
+<td>CRD reconciliation events</td>
+</tr>
+</tbody>
+</table>
+<h3>Event Lifecycle</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImV2ZW50R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojRkZCODAwIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Q5NzcwNiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZXRjZEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I0E3OEJGQSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3QzNBRUQiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImluZ2VzdEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIyRDNFRSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwODkxYjIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InBpcGVsaW5lR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojQTc4QkZBIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdDM0FFRCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhaWxHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNDk2RkYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWU0YTllIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJsb2dHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3M0JFMjgiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTZhMzRhIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0ic2hhZG93IiB4PSItMjAlIiB5PSItMjAlIiB3aWR0aD0iMTQwJSIgaGVpZ2h0PSIxNDAlIj4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMCIgZHk9IjIiIHN0ZERldmlhdGlvbj0iMiIgZmxvb2QtY29sb3I9IiMwMDAiIGZsb29kLW9wYWNpdHk9IjAuMyIvPgogICAgPC9maWx0ZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd1doaXRlIiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM5NEEzQjgiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyb3dSZWQiIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iI0RFMzUwQiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5LdWJlcm5ldGVzIEV2ZW50cyBhbmQgTG9ncyBGbG93IHRvIER5bmF0cmFjZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5Ud28gcGFyYWxsZWwgaW5nZXN0aW9uIHBhdGhzOiBldmVudHMgKGV0Y2Qg4oaSIEFHIOKGkiBHcmFpbCkgYW5kIGNvbnRhaW5lciBsb2dzIChzdGRvdXQg4oaSIE9wZW5QaXBlbGluZSDihpIgR3JhaWwpPC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PT09PSBUT1AgUk9XOiBLdWJlcm5ldGVzIEV2ZW50cyA9PT09PT09PT09PT09PT0gLS0+CiAgPHRleHQgeD0iNTAiIHk9IjEwMCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+S3ViZXJuZXRlcyBFdmVudHMgUGF0aDwvdGV4dD4KICA8bGluZSB4MT0iNTAiIHkxPSIxMDgiIHgyPSI4ODAiIHkyPSIxMDgiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CgogIDwhLS0gRXZlbnQgQ3JlYXRlZCAtLT4KICA8cmVjdCB4PSI1MCIgeT0iMTI1IiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjcwIiByeD0iOCIgZmlsbD0idXJsKCNldmVudEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjEyMCIgeT0iMTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5FdmVudCBDcmVhdGVkPC90ZXh0PgogIDx0ZXh0IHg9IjEyMCIgeT0iMTc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIj5zY2hlZHVsaW5nLCBwcm9iZXM8L3RleHQ+CgogIDxsaW5lIHgxPSIxOTUiIHkxPSIxNjAiIHgyPSIyMjAiIHkyPSIxNjAiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93V2hpdGUpIi8+CgogIDwhLS0gU3RvcmVkIGluIGV0Y2QgLS0+CiAgPHJlY3QgeD0iMjI1IiB5PSIxMjUiIHdpZHRoPSIxNDAiIGhlaWdodD0iNzAiIHJ4PSI4IiBmaWxsPSJ1cmwoI2V0Y2RHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIyOTUiIHk9IjE1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+ZXRjZDwvdGV4dD4KICA8dGV4dCB4PSIyOTUiIHk9IjE3NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMSI+RGVmYXVsdCAxaCBUVEw8L3RleHQ+CgogIDwhLS0gRm9yayBwb2ludCAtLT4KICA8bGluZSB4MT0iMzcwIiB5MT0iMTYwIiB4Mj0iMzk1IiB5Mj0iMTYwIiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMiIvPgoKICA8IS0tIFVwcGVyIGZvcms6IFRUTCBleHBpcmVzIOKGkiBEZWxldGVkIChyZWQpIC0tPgogIDxsaW5lIHgxPSIzOTUiIHkxPSIxNjAiIHgyPSIzOTUiIHkyPSIxMjUiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjM5NSIgeTE9IjEyNSIgeDI9IjQ0NSIgeTI9IjEyNSIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dSZWQpIi8+CiAgPHRleHQgeD0iNDQ0IiB5PSIxMDEiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiPlRUTCBleHBpcmVzPC90ZXh0PgoKICA8cmVjdCB4PSI0NTAiIHk9IjEwNSIgd2lkdGg9IjEyMCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI1MTAiIHk9IjEzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+RGVsZXRlZDwvdGV4dD4KCiAgPCEtLSBMb3dlciBmb3JrOiBEeW5hdHJhY2UgaW5nZXN0cyAtLT4KICA8bGluZSB4MT0iMzk1IiB5MT0iMTYwIiB4Mj0iMzk1IiB5Mj0iMTk1IiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSIzOTUiIHkxPSIxOTUiIHgyPSI0NDUiIHkyPSIxOTUiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93V2hpdGUpIi8+CiAgPHRleHQgeD0iNDQzIiB5PSIyMTQiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmluZ2VzdHMgdmlhIEFHPC90ZXh0PgoKICA8IS0tIER5bmF0cmFjZSBJbmdlc3RzIC0tPgogIDxyZWN0IHg9IjQ1MCIgeT0iMTYwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjcwIiByeD0iOCIgZmlsbD0idXJsKCNpbmdlc3RHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSI1MzAiIHk9IjE5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+RHluYXRyYWNlIEluZ2VzdHM8L3RleHQ+CiAgPHRleHQgeD0iNTMwIiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTEiPkFHIGt1YmVybmV0ZXMtbW9uaXRvcmluZzwvdGV4dD4KCiAgPGxpbmUgeDE9IjYxNSIgeTE9IjE5NSIgeDI9IjY0MCIgeTI9IjE5NSIgc3Ryb2tlPSIjOTRBM0I4IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dXaGl0ZSkiLz4KCiAgPCEtLSBHcmFpbCAoZXZlbnRzIGJ1Y2tldCkgLS0+CiAgPHJlY3QgeD0iNjQ1IiB5PSIxNjAiIHdpZHRoPSIxNjAiIGhlaWdodD0iNzAiIHJ4PSI4IiBmaWxsPSJ1cmwoI2dyYWlsR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iNzI1IiB5PSIxOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkdyYWlsIChldmVudHMpPC90ZXh0PgogIDx0ZXh0IHg9IjcyNSIgeT0iMjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjExIj4zNSBkYXlzIGJ5IGRlZmF1bHQ8L3RleHQ+CgogIDxyZWN0IHg9IjgxNSIgeT0iMTcwIiB3aWR0aD0iNzAiIGhlaWdodD0iNTAiIHJ4PSI2IiBmaWxsPSIjMGM0YTZlIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iODUwIiB5PSIxOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkRRTDwvdGV4dD4KICA8dGV4dCB4PSI4NTAiIHk9IjIxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMCI+ZmV0Y2ggZXZlbnRzPC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PT09PSBCT1RUT00gUk9XOiBDb250YWluZXIgTG9ncyA9PT09PT09PT09PT09PT0gLS0+CiAgPHRleHQgeD0iNTAiIHk9IjI3MCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+Q29udGFpbmVyIExvZ3MgUGF0aDwvdGV4dD4KICA8bGluZSB4MT0iNTAiIHkxPSIyNzgiIHgyPSI4ODAiIHkyPSIyNzgiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CgogIDwhLS0gTG9nIEluZ2VzdCAtLT4KICA8cmVjdCB4PSI1MCIgeT0iMjk1IiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjcwIiByeD0iOCIgZmlsbD0idXJsKCNsb2dHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIxMjAiIHk9IjMyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+TG9nIEluZ2VzdDwvdGV4dD4KICA8dGV4dCB4PSIxMjAiIHk9IjM0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+Y29udGFpbmVyIHN0ZG91dCAvIHN0ZGVycjwvdGV4dD4KCiAgPGxpbmUgeDE9IjE5NSIgeTE9IjMzMCIgeDI9IjIyMCIgeTI9IjMzMCIgc3Ryb2tlPSIjOTRBM0I4IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dXaGl0ZSkiLz4KCiAgPCEtLSBPcGVuUGlwZWxpbmUgUm91dGluZyAtLT4KICA8cmVjdCB4PSIyMjUiIHk9IjI5NSIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI3MCIgcng9IjgiIGZpbGw9InVybCgjcGlwZWxpbmVHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIzMTUiIHk9IjMyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+T3BlblBpcGVsaW5lIFJvdXRpbmc8L3RleHQ+CiAgPHRleHQgeD0iMzE1IiB5PSIzNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTEiPk1hdGNoIHJ1bGVzLCBzZXZlcml0eSw8L3RleHQ+CiAgPHRleHQgeD0iMzE1IiB5PSIzNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTEiPms4cy5uYW1lc3BhY2UsIHNvdXJjZTwvdGV4dD4KCiAgPGxpbmUgeDE9IjQxMCIgeTE9IjMzMCIgeDI9IjQzNSIgeTI9IjMzMCIgc3Ryb2tlPSIjOTRBM0I4IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dXaGl0ZSkiLz4KCiAgPCEtLSBQcm9jZXNzaW5nIC0tPgogIDxyZWN0IHg9IjQ0MCIgeT0iMjk1IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjcwIiByeD0iOCIgZmlsbD0idXJsKCNwaXBlbGluZUdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjUzMCIgeT0iMzIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5Qcm9jZXNzaW5nPC90ZXh0PgogIDx0ZXh0IHg9IjUzMCIgeT0iMzQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjExIj5QYXJzZSArIGV4dHJhY3QgZmllbGRzPC90ZXh0PgogIDx0ZXh0IHg9IjUzMCIgeT0iMzU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjExIj5Ecm9wIGRlYnVnLCBtYXNrIFBJSTwvdGV4dD4KCiAgPGxpbmUgeDE9IjYyNSIgeTE9IjMzMCIgeDI9IjY1MCIgeTI9IjMzMCIgc3Ryb2tlPSIjOTRBM0I4IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dXaGl0ZSkiLz4KCiAgPCEtLSBTdG9yYWdlIGluIEdyYWlsIC0tPgogIDxyZWN0IHg9IjY1NSIgeT0iMjk1IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjcwIiByeD0iOCIgZmlsbD0idXJsKCNncmFpbEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjczNSIgeT0iMzI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5HcmFpbCAobG9ncyBidWNrZXQpPC90ZXh0PgogIDx0ZXh0IHg9IjczNSIgeT0iMzQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjExIj5idWNrZXQgc2V0IGJ5IHRoZSBwaXBlbGluZTwvdGV4dD4KCiAgPCEtLSBCb3R0b20gZ3VpZGFuY2UgYmFyIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIzOTUiIHdpZHRoPSI4NTAiIGhlaWdodD0iODUiIHJ4PSI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNTUiIHk9IjQxOCIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+V2h5IGJvdGggcGF0aHMgbWF0dGVyPC90ZXh0PgogIDx0ZXh0IHg9IjU1IiB5PSI0NDAiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPuKAoiBFdmVudHMgYW5zd2VyICJ3aGF0IGhhcHBlbmVkIiAoRmFpbGVkU2NoZWR1bGluZywgQmFja09mZiwgVW5oZWFsdGh5KSDigJQgdXNlZnVsIGZvciBvdXRhZ2UgZm9yZW5zaWNzPC90ZXh0PgogIDx0ZXh0IHg9IjU1IiB5PSI0NTgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPuKAoiBMb2dzIGFuc3dlciAid2hhdCB0aGUgYXBwIHNhaWQiIOKAlCBsaW5lLWxldmVsIGVycm9ycyBhbmQgcmVxdWVzdCB0cmFjZXM8L3RleHQ+CiAgPHRleHQgeD0iNTUiIHk9IjQ3NiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RFFMOiBmZXRjaCBldmVudHMg4oaUIEs4cyBldmVudHM7IGZldGNoIGxvZ3Mg4oaUIGNvbnRhaW5lciBvdXRwdXQuIENvcnJlbGF0ZSB2aWEgazhzLm5hbWVzcGFjZS5uYW1lICsgazhzLnBvZC5uYW1lICsgdGltZXN0YW1wLjwvdGV4dD4KPC9zdmc+Cg==" alt="Kubernetes Events &amp; Logs Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Description |
+|-------|-------------|
+| Event Created | Kubernetes generates event |
+| Stored in etcd | Event persisted temporarily |
+| TTL expires (1h) | Event deleted from etcd |
+| Dynatrace Ingests | Captured before deletion |
+| Persisted in Grail | Bucket `default_davis_k8s_ops_events`, 35 days by default |
+
+**Key:** Kubernetes keeps events for 1 hour by default (`--event-ttl`); Dynatrace keeps the ingested copy for the bucket's retention.
+For environments where SVG doesn't render
+-->
+<p><strong>Important:</strong> Kubernetes events are short-lived. Dynatrace captures them for long-term storage and analysis. On the validation tenant (10/02/2026) they were stored in the <code>default_davis_k8s_ops_events</code> bucket, retention 35 days — check <code>fetch dt.system.buckets</code> for your own.</p>
+<p><a id="event-ingestion-configuration"></a></p>
+<h2>2. Event Ingestion Configuration</h2>
+<h3>ActiveGate Kubernetes Monitoring</h3>
+<p>Events are read from the Kubernetes API by the ActiveGate with the <code>kubernetes-monitoring</code> capability:</p>
+<pre><code class="language-yaml">spec:
+  activeGate:
+    capabilities:
+      - kubernetes-monitoring
+      - routing
+</code></pre>
+<h3>Event Filtering</h3>
+<p>Which events are ingested is a <strong>Kubernetes monitoring setting</strong> on the cluster's connection (Kubernetes app → cluster → Settings), not a DynaKube field:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Monitor events</strong></td>
+<td><em>&quot;All events are monitored unless event filters are specified. All ingested events are subject to licensing by default.&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Filter events</strong></td>
+<td><em>&quot;Include only events specified by Events Field Selectors&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Events field selectors</strong></td>
+<td>Kubernetes field-selector expressions, for example <code>type=Warning</code> or <code>involvedObject.namespace=checkout</code></td>
+</tr>
+<tr>
+<td><strong>Include important events</strong></td>
+<td><em>&quot;Automatically include all events that are relevant for Davis&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<h3>Recommended Configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Use Case</th>
+<th>Configuration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Full visibility</strong></td>
+<td>Monitor events on, no filters</td>
+</tr>
+<tr>
+<td><strong>Warning focus</strong></td>
+<td>Filter events on, field selector <code>type=Warning</code>, Include important events on</td>
+</tr>
+<tr>
+<td><strong>Cost control</strong></td>
+<td>As above, plus field selectors limited to the namespaces you need</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-cloud-kubernetes-monitoring">Kubernetes monitoring settings schema (DT docs)</a> — <em>&quot;Automatically include all events that are relevant for Davis&quot;</em>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Recent Kubernetes events
+// Data object corrected 08/12/2026. Kubernetes events are NOT logs. This cell scraped
+// `fetch logs` for `log.source` containing &quot;kubernetes&quot; or for content substrings like &quot;BackOff&quot; —
+// no log.source matches, and kubelet event text is not in the log stream, so it returned nothing
+// while the cluster emitted 231,296 Kubernetes event records in the same window.
+// They arrive as `fetch events | filter event.provider == &quot;KUBERNETES_EVENT&quot;`, STRUCTURED:
+//   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
+//                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
+//   dt.kubernetes.event.message           the human-readable text
+//   status                                &quot;WARN&quot; for Kubernetes Warning events, &quot;INFO&quot; for Normal
+//   dt.kubernetes.event.involved_object.kind / .name
+//   dt.kubernetes.event.count / .first_seen / .last_seen
+//   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
+// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT &quot;Warning&quot;. The Warning/Normal
+// split is in status (&quot;WARN&quot; / &quot;INFO&quot;). dt.kubernetes.event.important was &quot;true&quot; on all 204,078
+// event records over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
+//   fetch events, from:-24h | filter event.provider == &quot;KUBERNETES_EVENT&quot;
+//   | summarize n = countDistinctExact(event.id), by:{dt.kubernetes.event.reason} | sort n desc
+// Each open event is re-written about every 5 min under the same event.id with a cumulative
+// dt.kubernetes.event.count — count events with countDistinctExact(event.id), never count().
+fetch events, from:-1h
+| filter event.provider == &quot;KUBERNETES_EVENT&quot;
+| fields timestamp, k8s.cluster.name, k8s.namespace.name, dt.kubernetes.event.reason, dt.kubernetes.event.message
+| sort timestamp desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// Warning-class events only
+// Data object corrected 08/12/2026. Kubernetes events are NOT logs. This cell scraped
+// `fetch logs` for `log.source` containing &quot;kubernetes&quot; or for content substrings like &quot;BackOff&quot; —
+// no log.source matches, and kubelet event text is not in the log stream, so it returned nothing
+// while the cluster emitted 231,296 Kubernetes event records in the same window.
+// They arrive as `fetch events | filter event.provider == &quot;KUBERNETES_EVENT&quot;`, STRUCTURED:
+//   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
+//                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
+//   dt.kubernetes.event.message           the human-readable text
+//   status                                &quot;WARN&quot; for Kubernetes Warning events, &quot;INFO&quot; for Normal
+//   dt.kubernetes.event.involved_object.kind / .name
+//   dt.kubernetes.event.count / .first_seen / .last_seen
+//   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
+// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT &quot;Warning&quot;. The Warning/Normal
+// split is in status (&quot;WARN&quot; / &quot;INFO&quot;). dt.kubernetes.event.important was &quot;true&quot; on all 204,078
+// event records over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
+//   fetch events, from:-24h | filter event.provider == &quot;KUBERNETES_EVENT&quot;
+//   | summarize n = countDistinctExact(event.id), by:{dt.kubernetes.event.reason} | sort n desc
+// Each open event is re-written about every 5 min under the same event.id with a cumulative
+// dt.kubernetes.event.count — count events with countDistinctExact(event.id), never count().
+fetch events, from:-1h
+| filter event.provider == &quot;KUBERNETES_EVENT&quot;
+| filter status == &quot;WARN&quot;
+| summarize events = countDistinctExact(event.id), by:{dt.kubernetes.event.reason, k8s.namespace.name}
+| sort events desc
+| limit 25
+</code></pre>
+<p><a id="container-log-collection"></a></p>
+<h2>3. Container Log Collection</h2>
+<h3>Log Collection Methods</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Source</th>
+<th>Configuration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OneAgent Log module</strong> (full-stack)</td>
+<td>Container stdout/stderr</td>
+<td>Included in the host OneAgent; add <code>spec.logMonitoring: {}</code></td>
+</tr>
+<tr>
+<td><strong>Kubernetes Log module</strong> (no host OneAgent)</td>
+<td>Container stdout/stderr</td>
+<td>DaemonSet deployed by the Operator from <code>spec.logMonitoring</code></td>
+</tr>
+<tr>
+<td><strong>Fluent Bit / other forwarders</strong></td>
+<td>Any file or stream</td>
+<td>Log ingest API or OTLP endpoint</td>
+</tr>
+</tbody>
+</table>
+<h3>What the Log modules collect</h3>
+<p><em>&quot;It only captures logs that are written to the container's <strong>stdout</strong>/<strong>stderr</strong> streams.&quot;</em> Logs an application writes to files inside the container need a forwarder or a custom log source.</p>
+<h3>Log Attributes</h3>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Source</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>k8s.namespace.name</code></td>
+<td>Container metadata</td>
+<td><code>checkout</code></td>
+</tr>
+<tr>
+<td><code>k8s.pod.name</code></td>
+<td>Container metadata</td>
+<td><code>checkout-api-abc123</code></td>
+</tr>
+<tr>
+<td><code>k8s.container.name</code></td>
+<td>Container metadata</td>
+<td><code>api</code></td>
+</tr>
+<tr>
+<td><code>k8s.workload.name</code></td>
+<td>Container metadata</td>
+<td><code>checkout-api</code></td>
+</tr>
+<tr>
+<td><code>k8s.cluster.name</code></td>
+<td>Container metadata</td>
+<td><code>prod-eu-1</code></td>
+</tr>
+<tr>
+<td><code>loglevel</code></td>
+<td>Parsed from content</td>
+<td><code>ERROR</code>, <code>WARN</code>, <code>INFO</code></td>
+</tr>
+</tbody>
+</table>
+<h3>DynaKube Log Configuration</h3>
+<pre><code class="language-yaml">spec:
+  logMonitoring: {}
+  templates:
+    logMonitoring:            # only for the standalone Kubernetes Log module
+      imageRef:
+        repository: public.ecr.aws/dynatrace/dynatrace-logmodule
+        tag: &lt;tag&gt;
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/k8s-log-monitoring">Kubernetes log monitoring (DT docs)</a> — <em>&quot;It only captures logs that are written to the container's <strong>stdout</strong>/<strong>stderr</strong> streams.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Container logs by namespace
+fetch logs, from:-1h
+| filter isNotNull(k8s.namespace.name)
+| summarize logCount = count(), by:{k8s.namespace.name}
+| sort logCount desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Error logs with Kubernetes context
+fetch logs, from:-1h
+| filter loglevel == &quot;ERROR&quot; or loglevel == &quot;SEVERE&quot;
+| filter isNotNull(k8s.namespace.name)
+| fields timestamp, k8s.namespace.name, k8s.pod.name, content
+| sort timestamp desc
+| limit 30
+</code></pre>
+<p><a id="openpipeline-for-k8s-logs"></a></p>
+<h2>4. OpenPipeline for K8s Logs</h2>
+<h3>Log Processing Pipeline</h3>
+<p>OpenPipeline processes logs between ingest and storage. A record arrives at an ingest source, <strong>dynamic routing</strong> sends it to a pipeline whose matcher it satisfies, the pipeline's <strong>processing</strong> stage transforms it, and the <strong>storage</strong> stage assigns its bucket. Pipelines are configured in the OpenPipeline settings (UI, Settings API or Monaco), not as YAML in the cluster.</p>
+<h3>Common Processing Rules</h3>
+<table>
+<thead>
+<tr>
+<th>Processor</th>
+<th>Use Case</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>DQL</strong></td>
+<td>Extract fields</td>
+<td><code>parse content, &quot;JSON:parsed&quot;</code></td>
+</tr>
+<tr>
+<td><strong>Fields rename / remove</strong></td>
+<td>Tidy fields</td>
+<td>Drop a high-cardinality attribute</td>
+</tr>
+<tr>
+<td><strong>Masking</strong> (DQL <code>replacePattern</code>)</td>
+<td>Remove sensitive data</td>
+<td>Card numbers, tokens</td>
+</tr>
+<tr>
+<td><strong>Drop record</strong></td>
+<td>Drop logs</td>
+<td>Debug logs from noisy namespaces</td>
+</tr>
+<tr>
+<td><strong>Storage assignment</strong></td>
+<td>Choose the bucket</td>
+<td>Retention by namespace or team</td>
+</tr>
+</tbody>
+</table>
+<h3>Example: route Kubernetes logs and parse JSON</h3>
+<ul>
+<li><strong>Routing matcher:</strong> <code>isNotNull(k8s.namespace.name)</code></li>
+<li><strong>Processing — DQL processor, matcher <code>startsWith(content, &quot;{&quot;)</code>:</strong></li>
+</ul>
+<pre><code class="language-dql">parse content, &quot;JSON:parsed&quot;
+| fieldsFlatten parsed
+</code></pre>
+<h3>Example: drop debug logs</h3>
+<ul>
+<li><strong>Processing — Drop record processor, matcher:</strong> <code>loglevel == &quot;DEBUG&quot;</code></li>
+</ul>
+<p>Building, testing and ordering pipelines is covered in the OPLOGS series.</p>
+<p><a id="event-analysis-patterns"></a></p>
+<h2>5. Event Analysis Patterns</h2>
+<h3>Key Event Reasons to Monitor</h3>
+<table>
+<thead>
+<tr>
+<th>Reason</th>
+<th>Meaning</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>FailedScheduling</strong></td>
+<td>Pod can't be scheduled</td>
+<td>Check resource availability</td>
+</tr>
+<tr>
+<td><strong>FailedMount</strong></td>
+<td>Volume mount failed</td>
+<td>Check PV/PVC config</td>
+</tr>
+<tr>
+<td><strong>BackOff</strong></td>
+<td>Container restart backoff</td>
+<td>Check logs, fix crash</td>
+</tr>
+<tr>
+<td><strong>Unhealthy</strong></td>
+<td>Probe failed</td>
+<td>Check probe config, app health</td>
+</tr>
+<tr>
+<td><strong>Evicted</strong></td>
+<td>Pod evicted from node</td>
+<td>Check node pressure</td>
+</tr>
+<tr>
+<td><strong>OOM kill</strong></td>
+<td>Container exceeded its memory limit</td>
+<td>Not an event reason — read the <code>dt.kubernetes.container.oom_kills</code> metric (K8S-04 §5)</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Failed scheduling events
+// Data object corrected 08/12/2026. Kubernetes events are NOT logs. This cell scraped
+// `fetch logs` for `log.source` containing &quot;kubernetes&quot; or for content substrings like &quot;BackOff&quot; —
+// no log.source matches, and kubelet event text is not in the log stream, so it returned nothing
+// while the cluster emitted 231,296 Kubernetes event records in the same window.
+// They arrive as `fetch events | filter event.provider == &quot;KUBERNETES_EVENT&quot;`, STRUCTURED:
+//   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
+//                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
+//   dt.kubernetes.event.message           the human-readable text
+//   status                                &quot;WARN&quot; for Kubernetes Warning events, &quot;INFO&quot; for Normal
+//   dt.kubernetes.event.involved_object.kind / .name
+//   dt.kubernetes.event.count / .first_seen / .last_seen
+//   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
+// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT &quot;Warning&quot;. The Warning/Normal
+// split is in status (&quot;WARN&quot; / &quot;INFO&quot;). dt.kubernetes.event.important was &quot;true&quot; on all 204,078
+// event records over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
+//   fetch events, from:-24h | filter event.provider == &quot;KUBERNETES_EVENT&quot;
+//   | summarize n = countDistinctExact(event.id), by:{dt.kubernetes.event.reason} | sort n desc
+// Each open event is re-written about every 5 min under the same event.id with a cumulative
+// dt.kubernetes.event.count — count events with countDistinctExact(event.id), never count().
+fetch events, from:-7d
+| filter event.provider == &quot;KUBERNETES_EVENT&quot;
+| filter dt.kubernetes.event.reason == &quot;FailedScheduling&quot;
+| fields timestamp, k8s.namespace.name, dt.kubernetes.event.involved_object.name, dt.kubernetes.event.message
+| sort timestamp desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Restart back-off events (BackOff, BackoffLimitExceeded)
+// CrashLoopBackOff is not a reason of its own: it appears in the message text of BackOff events.
+// For restart counts, use the dt.kubernetes.container.restarts metric (K8S-05 §2).
+// Data object corrected 08/12/2026. Kubernetes events are NOT logs. This cell scraped
+// `fetch logs` for `log.source` containing &quot;kubernetes&quot; or for content substrings like &quot;BackOff&quot; —
+// no log.source matches, and kubelet event text is not in the log stream, so it returned nothing
+// while the cluster emitted 231,296 Kubernetes event records in the same window.
+// They arrive as `fetch events | filter event.provider == &quot;KUBERNETES_EVENT&quot;`, STRUCTURED:
+//   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
+//                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
+//   dt.kubernetes.event.message           the human-readable text
+//   status                                &quot;WARN&quot; for Kubernetes Warning events, &quot;INFO&quot; for Normal
+//   dt.kubernetes.event.involved_object.kind / .name
+//   dt.kubernetes.event.count / .first_seen / .last_seen
+//   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
+// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT &quot;Warning&quot;. The Warning/Normal
+// split is in status (&quot;WARN&quot; / &quot;INFO&quot;). dt.kubernetes.event.important was &quot;true&quot; on all 204,078
+// event records over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
+//   fetch events, from:-24h | filter event.provider == &quot;KUBERNETES_EVENT&quot;
+//   | summarize n = countDistinctExact(event.id), by:{dt.kubernetes.event.reason} | sort n desc
+// Each open event is re-written about every 5 min under the same event.id with a cumulative
+// dt.kubernetes.event.count — count events with countDistinctExact(event.id), never count().
+fetch events, from:-24h
+| filter event.provider == &quot;KUBERNETES_EVENT&quot;
+| filter in(dt.kubernetes.event.reason, {&quot;BackOff&quot;, &quot;BackoffLimitExceeded&quot;})
+| summarize events = countDistinctExact(event.id), by:{k8s.namespace.name, dt.kubernetes.event.involved_object.name}
+| sort events desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Volume mount and storage failures
+// Data object corrected 08/12/2026. Kubernetes events are NOT logs. This cell scraped
+// `fetch logs` for `log.source` containing &quot;kubernetes&quot; or for content substrings like &quot;BackOff&quot; —
+// no log.source matches, and kubelet event text is not in the log stream, so it returned nothing
+// while the cluster emitted 231,296 Kubernetes event records in the same window.
+// They arrive as `fetch events | filter event.provider == &quot;KUBERNETES_EVENT&quot;`, STRUCTURED:
+//   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
+//                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
+//   dt.kubernetes.event.message           the human-readable text
+//   status                                &quot;WARN&quot; for Kubernetes Warning events, &quot;INFO&quot; for Normal
+//   dt.kubernetes.event.involved_object.kind / .name
+//   dt.kubernetes.event.count / .first_seen / .last_seen
+//   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
+// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT &quot;Warning&quot;. The Warning/Normal
+// split is in status (&quot;WARN&quot; / &quot;INFO&quot;). dt.kubernetes.event.important was &quot;true&quot; on all 204,078
+// event records over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
+//   fetch events, from:-24h | filter event.provider == &quot;KUBERNETES_EVENT&quot;
+//   | summarize n = countDistinctExact(event.id), by:{dt.kubernetes.event.reason} | sort n desc
+// Each open event is re-written about every 5 min under the same event.id with a cumulative
+// dt.kubernetes.event.count — count events with countDistinctExact(event.id), never count().
+fetch events, from:-7d
+| filter event.provider == &quot;KUBERNETES_EVENT&quot;
+| filter in(dt.kubernetes.event.reason, {&quot;FailedMount&quot;, &quot;FailedAttachVolume&quot;, &quot;FreeDiskSpaceFailed&quot;, &quot;EvictionThresholdMet&quot;})
+| fields timestamp, k8s.namespace.name, dt.kubernetes.event.reason, dt.kubernetes.event.message
+| sort timestamp desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Event frequency by reason (last 24h)
+// Data object corrected 08/12/2026. Kubernetes events are NOT logs. This cell scraped
+// `fetch logs` for `log.source` containing &quot;kubernetes&quot; or for content substrings like &quot;BackOff&quot; —
+// no log.source matches, and kubelet event text is not in the log stream, so it returned nothing
+// while the cluster emitted 231,296 Kubernetes event records in the same window.
+// They arrive as `fetch events | filter event.provider == &quot;KUBERNETES_EVENT&quot;`, STRUCTURED:
+//   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
+//                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
+//   dt.kubernetes.event.message           the human-readable text
+//   status                                &quot;WARN&quot; for Kubernetes Warning events, &quot;INFO&quot; for Normal
+//   dt.kubernetes.event.involved_object.kind / .name
+//   dt.kubernetes.event.count / .first_seen / .last_seen
+//   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
+// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT &quot;Warning&quot;. The Warning/Normal
+// split is in status (&quot;WARN&quot; / &quot;INFO&quot;). dt.kubernetes.event.important was &quot;true&quot; on all 204,078
+// event records over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
+//   fetch events, from:-24h | filter event.provider == &quot;KUBERNETES_EVENT&quot;
+//   | summarize n = countDistinctExact(event.id), by:{dt.kubernetes.event.reason} | sort n desc
+// Each open event is re-written about every 5 min under the same event.id with a cumulative
+// dt.kubernetes.event.count — count events with countDistinctExact(event.id), never count().
+fetch events, from:-24h
+| filter event.provider == &quot;KUBERNETES_EVENT&quot;
+| summarize events = countDistinctExact(event.id), by:{dt.kubernetes.event.reason, status}
+| sort events desc
+| limit 25
+</code></pre>
+<p><a id="log-analysis-patterns"></a></p>
+<h2>6. Log Analysis Patterns</h2>
+<h3>Error Log Investigation</h3>
+<pre><code class="language-dql">// Pattern: Find errors with full context
+fetch logs, from:-1h
+// status == &quot;ERROR&quot; also counts SEVERE, CRITICAL and FATAL logs; loglevel == &quot;ERROR&quot; misses them
+| filter status == &quot;ERROR&quot;
+| filter k8s.namespace.name == &quot;checkout&quot;
+| fields timestamp, k8s.pod.name, content
+| sort timestamp desc
+| limit 50
+</code></pre>
+<h3>Log Volume Analysis</h3>
+<pre><code class="language-dql">// Pattern: Identify noisy pods
+fetch logs, from:-1h
+| summarize count = count(), by:{k8s.pod.name}
+| sort count desc
+| limit 10
+</code></pre>
+<h3>Exception Tracking</h3>
+<pre><code class="language-dql">// Pattern: Find stack traces
+fetch logs, from:-1h
+| filter matchesPhrase(content, &quot;Exception&quot;) or matchesPhrase(content, &quot;Traceback&quot;)
+| fields timestamp, k8s.namespace.name, content
+| sort timestamp desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Log volume by pod (find noisy pods)
+fetch logs, from: now() - 1h
+| filter isNotNull(k8s.pod.name)
+| summarize logCount = count(), by:{k8s.pod.name}
+| sort logCount desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Exception and error messages
+fetch logs, from:-1h
+| filter matchesPhrase(content, &quot;Exception&quot;) or matchesPhrase(content, &quot;error&quot;) or matchesPhrase(content, &quot;failed&quot;)
+| filter isNotNull(k8s.namespace.name)
+| fields timestamp, k8s.namespace.name, k8s.pod.name, content
+| sort timestamp desc
+| limit 30
+</code></pre>
+<pre><code class="language-dql">// Log level distribution by namespace
+fetch logs, from: now() - 1h
+| filter isNotNull(k8s.namespace.name) and loglevel != &quot;NONE&quot;
+| summarize count = count(), by:{k8s.namespace.name, loglevel}
+| sort count desc
+| limit 30
+</code></pre>
+<p><a id="alerting-on-events-and-logs"></a></p>
+<h2>7. Alerting on Events and Logs</h2>
+<h3>Event-Based Alerts</h3>
+<table>
+<thead>
+<tr>
+<th>Alert</th>
+<th>Condition</th>
+<th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Failed Scheduling</strong></td>
+<td>FailedScheduling events &gt; 5 in 10 min</td>
+<td>Warning</td>
+</tr>
+<tr>
+<td><strong>Crash Loop</strong></td>
+<td>BackOff events (reason <code>BackOff</code>)</td>
+<td>Warning</td>
+</tr>
+<tr>
+<td><strong>OOM Kills</strong></td>
+<td><code>dt.kubernetes.container.oom_kills</code> &gt; 0 (a metric, not an event)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td><strong>Volume Failures</strong></td>
+<td>FailedMount events</td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<h3>Log-Based Alerts</h3>
+<table>
+<thead>
+<tr>
+<th>Alert</th>
+<th>Condition</th>
+<th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Error Spike</strong></td>
+<td>Error log count &gt; baseline</td>
+<td>Warning</td>
+</tr>
+<tr>
+<td><strong>Critical Errors</strong></td>
+<td>Specific error patterns</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td><strong>No Logs</strong></td>
+<td>Log volume drops to 0</td>
+<td>Warning</td>
+</tr>
+</tbody>
+</table>
+<h3>Custom alerts on logs and events</h3>
+<p>Build the alert as a <strong>custom alert on a DQL query</strong> — a <code>makeTimeseries</code> count of matching log records or Kubernetes events — with a static threshold or an adaptive baseline. Where you create it depends on your tenant version: <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones.&quot;</em> SaaS 1.344 rolls out to tenants in stages; on earlier versions the <strong>Anomaly Detection</strong> app is where custom alerts are created. ALERT-02 covers choosing the detector, and ALERT-03 routing the problem it raises.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app">Anomaly Detection (DT docs)</a> — <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings.&quot;</em></sub></p>
+</blockquote>
+<h2>Next Steps</h2>
+<p>With event and log monitoring configured, proceed to:</p>
+<table>
+<thead>
+<tr>
+<th>Next Notebook</th>
+<th>Topic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>K8S-08: DQL for Kubernetes</strong></td>
+<td>Advanced query patterns</td>
+</tr>
+<tr>
+<td><strong>K8S-09: Troubleshooting</strong></td>
+<td>Debugging K8s monitoring</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Kubernetes event types and sources</li>
+<li>Event ingestion: the ActiveGate <code>kubernetes-monitoring</code> capability in the DynaKube, and event filtering in the cluster's Kubernetes monitoring settings</li>
+<li>Container log collection methods</li>
+<li>OpenPipeline for log processing</li>
+<li>Event analysis patterns for common issues</li>
+<li>Log analysis patterns for debugging</li>
+<li>Alerting strategies for events and logs</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/k8s-log-monitoring">Kubernetes log monitoring (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s">Set up Dynatrace on Kubernetes (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs">Logs (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-processing/lma-openpipeline">Log processing with OpenPipeline (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline">OpenPipeline (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/kubernetes-app">Kubernetes app — events view (DT docs)</a></li>
+<li><a href="https://github.com/Dynatrace/dynatrace-operator/releases">Dynatrace Operator releases (Dynatrace GitHub)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

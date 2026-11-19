@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DBMON-99: Best Practice Summary</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DBMON — Database Monitoring</a><span class="sep">/</span><span aria-current="page">DBMON-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DBMON-99: Best Practice Summary</h1>
+<blockquote>
+<p><strong>Series:</strong> DBMON — Database Monitoring | <strong>Notebook:</strong> 7 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook consolidates every actionable best practice for Dynatrace database monitoring extracted from the DBMON series (notebooks 01 through 06). It covers SQL databases, NoSQL databases, caches, message brokers, query analysis, dashboards, and alerting. Each best practice is definitive: it specifies exactly what to configure, what threshold to set, and what priority to assign.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#oneagent-instrumentation">OneAgent Instrumentation</a></li>
+<li><a href="#activegate-extensions">ActiveGate Extensions</a></li>
+<li><a href="#span-attribute-coverage">Span Attribute Coverage</a></li>
+<li><a href="#sql-database-monitoring">SQL Database Monitoring</a></li>
+<li><a href="#nosql-database-monitoring">NoSQL Database Monitoring</a></li>
+<li><a href="#cache-monitoring">Cache Monitoring (Redis / Memcached)</a></li>
+<li><a href="#message-broker-monitoring">Message Broker Monitoring (Kafka / RabbitMQ)</a></li>
+<li><a href="#search-engine-monitoring">Search Engine Monitoring (Elasticsearch)</a></li>
+<li><a href="#query-analysis-and-optimization">Query Analysis and Optimization</a></li>
+<li><a href="#dashboards-and-kpis">Dashboards and KPIs</a></li>
+<li><a href="#alerting-thresholds">Alerting Thresholds</a></li>
+<li><a href="#slo-definitions">SLO Definitions</a></li>
+<li><a href="#dql-query-standards">DQL Query Standards</a></li>
+<li><a href="#see-also">Where to Go Deeper — Topic Series Map</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS with Grail (Managed has no Grail, so these DQL cells do not run there)</td>
+</tr>
+<tr>
+<td><strong>OneAgent</strong></td>
+<td>Deployed on all application hosts making database, cache, and messaging calls</td>
+</tr>
+<tr>
+<td><strong>ActiveGate</strong></td>
+<td>Environment ActiveGate for Extensions 2.0 (remote DB metrics), or — SQL extensions only, Dynatrace 1.346+ (staged rollout; verify it has reached your tenant) — SQL Extension Executor on Kubernetes via Dynatrace Operator 1.8+</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:spans:read</code>, <code>storage:entities:read</code>, <code>storage:metrics:read</code></td>
+</tr>
+<tr>
+<td><strong>Prior Reading</strong></td>
+<td>DBMON-01 through DBMON-06 for full context</td>
+</tr>
+</tbody>
+</table>
+<p><a id="oneagent-instrumentation"></a></p>
+<h2>1. OneAgent Instrumentation</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Deploy OneAgent on every host that makes database calls</td>
+<td>OneAgent installed on all application servers, not just database servers</td>
+<td><strong>Critical</strong></td>
+<td>Deployment</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Enable deep code-level instrumentation</td>
+<td>OneAgent auto-instruments JDBC, ADO.NET, and native database drivers by default; do not disable</td>
+<td><strong>Critical</strong></td>
+<td>Deployment</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Verify <code>db.system</code> attribute is populated</td>
+<td>Run <code>fetch spans, from:-1h | filter isNotNull(db.system) | summarize count(), by:{db.system}</code> — every expected technology must appear</td>
+<td><strong>Critical</strong></td>
+<td>Validation</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Verify <code>db.query.text</code> capture</td>
+<td>Confirm statements appear in <code>db.query.text</code> (parameterized SQL keeps its placeholders; <code>WHERE</code>-clause literals are masked). It is not on every DB span — 58% of SQL Server and 0% of Redis spans on the validation tenant — so check coverage before grouping on it</td>
+<td><strong>Critical</strong></td>
+<td>Validation</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Confirm <code>db.namespace</code> is present</td>
+<td>Run <code>filter isNotNull(db.namespace)</code> on spans; missing values indicate driver-level gaps</td>
+<td><strong>Recommended</strong></td>
+<td>Validation</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Ensure <code>server.address</code> and <code>server.port</code> resolve</td>
+<td>These fields must contain the actual database endpoint, not <code>localhost</code> or <code>127.0.0.1</code> when the DB is remote</td>
+<td><strong>Recommended</strong></td>
+<td>Validation</td>
+</tr>
+</tbody>
+</table>
+<p><a id="activegate-extensions"></a></p>
+<h2>2. ActiveGate Extensions</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>7</td>
+<td>Build new database integrations on Extensions 2.0</td>
+<td>Extensions 2.0 is the current extensions framework; Extensions Framework 1.0 reached end of support on 2025-03-31 (Python EF1.0: 2024-10-31). JMX and PMI EF1.0 extensions were the exception, supported past March 2025 as deprecated; they now have their own end-of-support date of <strong>July 1, 2027</strong> for SaaS environments. The SQL / Prometheus / SNMP data sources these extensions use run on an <strong>Environment (host-based) ActiveGate</strong>, the working path; SQL extensions (Oracle, SQL Server, PostgreSQL, MySQL/MariaDB, SAP HANA, Db2, Generic JDBC) can alternatively run on <strong>SQL Extension Executor pods in Kubernetes</strong> via Dynatrace Operator 1.8+, from Dynatrace 1.346 — a staged rollout, so verify it has reached your tenant; until then the Environment ActiveGate remains the working path</td>
+<td><strong>Critical</strong></td>
+<td>Deployment</td>
+</tr>
+<tr>
+<td>7b</td>
+<td>Extensions are YAML-defined with optional Python data sources</td>
+<td>YAML package executed by EEC; built-in SQL/Prometheus/SNMP data sources cover most cases; Python data source is for custom logic only — not required by default</td>
+<td><strong>Recommended</strong></td>
+<td>Architecture</td>
+</tr>
+<tr>
+<td>7c</td>
+<td>Route extension logs to the <code>default_database_monitoring</code> bucket</td>
+<td>Default destination for extension log output; reference this bucket name in IAM policies for DB-team access scoping (see ORGNZ-02 + IAM-04/05)</td>
+<td><strong>Recommended</strong></td>
+<td>IAM/Bucket</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Install PostgreSQL extension</td>
+<td>Captures: connections, transactions/sec, tuple operations, table/index sizes, lock waits, replication lag</td>
+<td><strong>Recommended</strong></td>
+<td>Extension</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Install MySQL extension</td>
+<td>Captures: connections, queries/sec, buffer pool hit ratio, InnoDB row ops, slow queries</td>
+<td><strong>Recommended</strong></td>
+<td>Extension</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Install MS SQL Server extension</td>
+<td>Captures: batch requests/sec, page life expectancy, buffer cache hit ratio, deadlocks, wait stats</td>
+<td><strong>Recommended</strong></td>
+<td>Extension</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Install Oracle extension</td>
+<td>Captures: sessions, tablespace usage, SGA/PGA memory, redo log waits, library cache hit ratio</td>
+<td><strong>Recommended</strong></td>
+<td>Extension</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Install MongoDB extension</td>
+<td>Captures: connections, operations/sec, document metrics, replica set health, storage engine stats</td>
+<td><strong>Recommended</strong></td>
+<td>Extension</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Set extension polling interval to 60 seconds</td>
+<td>Default polling; do not exceed 300s or real-time visibility degrades</td>
+<td><strong>Recommended</strong></td>
+<td>Configuration</td>
+</tr>
+</tbody>
+</table>
+<h3>Dynatrace Databases App</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>13b</td>
+<td>Use the Databases app for first-pass triage</td>
+<td>The docs list vendors <em>&quot;such as PostgreSQL, MySQL, MSSQL, Oracle, MariaDB, and HanaDB&quot;</em>, and <em>&quot;Health highlights instances with critical, warning, or no active alerts&quot;</em> — check it before running manual DQL analysis (per instance, the docs also define a weighted 0–100 health score)</td>
+<td><strong>Recommended</strong></td>
+<td>Triage</td>
+</tr>
+<tr>
+<td>13c</td>
+<td>Use the app's execution-plan visualization as a first pass, not a replacement</td>
+<td>Normalizes execution plans across PostgreSQL, MySQL, and SQL Server; fall back to the ActiveGate extension metrics above (rows 8-11) and the DQL patterns in DBMON-02/05 for deep-dive analysis the app's UI doesn't cover</td>
+<td><strong>Recommended</strong></td>
+<td>Diagnostics</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/extensions">Extensions (DT docs)</a> — the Extensions 2.0 framework and the EEC execution model, <a href="https://docs.dynatrace.com/docs/ingest-from/extensions/supported-extensions/data-sources">Extension data sources (DT docs)</a> — the built-in SQL / Prometheus / SNMP data sources and the optional Python data source, <a href="https://docs.dynatrace.com/docs/ingest-from/extensions/kubernetes">Run SQL extensions on Kubernetes (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/extend-observability-k8s/sql-database-extensions">Enable Dynatrace SQL database extensions (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-337">What's new in Dynatrace SaaS 1.337 (DT docs)</a> — the <code>default_database_monitoring</code> bucket, <a href="https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news">End-of-support announcements (DT docs)</a> — lists <em>&quot;Dynatrace Extension Framework 1.0&quot;</em> under the 2025-03-31 end-of-support date and <em>&quot;Dynatrace Extension Framework 1.0 (Python 3.8)&quot;</em> under 2024-10-31, with the note <em>&quot;Note that JMX and PMI Extensions Framework 1.0 are supported past March 2025 but are deprecated&quot;</em>, re-read 09/28/2026, <a href="https://docs.dynatrace.com/docs/ingest-from/extensions/end-of-support/jmx-pmi-ef1-deprecation">EF1 JMX and PMI extensions end of support (DT docs)</a> — <em>&quot;As of July 1, 2027, all Extension Framework 1.0 JMX and PMI extensions will be out of support for SaaS Environments&quot;</em>, <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/concepts/health-score-overview">Database health score overview (DT docs)</a> — <em>&quot;The health score is the weighted average of all checks.&quot;</em></sub></p>
+</blockquote>
+<p><a id="span-attribute-coverage"></a></p>
+<h2>3. Span Attribute Coverage</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>14</td>
+<td>Validate all six core DB span attributes</td>
+<td>Every database span must carry: <code>db.system</code>, <code>db.query.text</code>, <code>db.operation.name</code>, <code>db.namespace</code>, <code>server.address</code>, <code>server.port</code></td>
+<td><strong>Critical</strong></td>
+<td>Data Quality</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Check for NULL fields periodically</td>
+<td>Run <code>filter isNotNull(db.operation.name)</code> — NULL can mean the instrumentation carries the command in another field (<code>code.function</code> for OneAgent MongoDB, <code>span.name</code> for OTel Redis) rather than a driver fault; check those before investigating the driver version</td>
+<td><strong>Recommended</strong></td>
+<td>Data Quality</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Verify span.kind is client for outgoing DB calls</td>
+<td>All database spans from the calling application must have <code>span.kind == &quot;client&quot;</code> (lowercase)</td>
+<td><strong>Recommended</strong></td>
+<td>Data Quality</td>
+</tr>
+<tr>
+<td>17</td>
+<td>For Kafka, verify <code>messaging.system</code> attribute</td>
+<td>Kafka spans use <code>messaging.system</code> (not <code>db.system</code>); confirm <code>messaging.destination.name</code>, <code>messaging.operation.type</code>, and <code>messaging.consumer.group.name</code> are populated</td>
+<td><strong>Critical</strong></td>
+<td>Data Quality</td>
+</tr>
+<tr>
+<td>18</td>
+<td>For RabbitMQ, verify <code>messaging.system</code> attribute</td>
+<td>RabbitMQ spans use <code>messaging.system</code> (not <code>db.system</code>); confirm <code>messaging.destination.name</code> is populated</td>
+<td><strong>Critical</strong></td>
+<td>Data Quality</td>
+</tr>
+</tbody>
+</table>
+<p><a id="sql-database-monitoring"></a></p>
+<h2>4. SQL Database Monitoring</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>19</td>
+<td>Set slow query threshold for SQL databases</td>
+<td><strong>500ms</strong> — any SQL query exceeding <code>duration &gt; 500ms</code> is classified as slow</td>
+<td><strong>Critical</strong></td>
+<td>Threshold</td>
+</tr>
+<tr>
+<td>20</td>
+<td>Track read/write ratio</td>
+<td>Classify SQL from the statement text, not <code>db.operation.name</code>: batched writes are named after their first keyword (<code>SET</code>), <code>PREPARE</code> / <code>RESULTSET</code> repeat a statement's text, and <code>CONNECT</code> / <code>COMMIT</code> are not statements</td>
+<td><strong>Recommended</strong></td>
+<td>Analysis</td>
+</tr>
+<tr>
+<td>21</td>
+<td>Rank queries by total execution time, not average</td>
+<td>Sort by <code>total_time_ms = sum(duration)</code> to find highest-impact patterns regardless of individual speed</td>
+<td><strong>Critical</strong></td>
+<td>Optimization</td>
+</tr>
+<tr>
+<td>22</td>
+<td>Monitor response time distribution using latency tiers</td>
+<td>Bucket into: <code>&lt;1ms</code>, <code>1-10ms</code>, <code>10-100ms</code>, <code>100ms-1s</code>, <code>&gt;1s</code> — track tier distribution over time</td>
+<td><strong>Recommended</strong></td>
+<td>Analysis</td>
+</tr>
+<tr>
+<td>23</td>
+<td>Baseline P50, P95, P99 over 24 hours</td>
+<td>Run hourly percentile query on <code>duration</code> for each <code>db.system</code>; this is your performance reference point</td>
+<td><strong>Critical</strong></td>
+<td>Baseline</td>
+</tr>
+<tr>
+<td>24</td>
+<td>Monitor vendor-specific patterns</td>
+<td>PostgreSQL: vacuum/lock contention; MySQL: buffer pool/replication lag; MSSQL: page life expectancy/deadlocks; Oracle: tablespace/SGA</td>
+<td><strong>Recommended</strong></td>
+<td>Vendor</td>
+</tr>
+<tr>
+<td>25</td>
+<td>Track errors by the recorded exception</td>
+<td>Group <code>span.status_code == &quot;error&quot;</code> spans by the exception recorded in <code>span.events</code> (<code>exception.type</code>, <code>exception.message</code>) to distinguish connection timeouts, pool exhaustion, deadlocks, and constraint violations; <code>span.status_message</code> is experimental and often empty</td>
+<td><strong>Critical</strong></td>
+<td>Error Handling</td>
+</tr>
+</tbody>
+</table>
+<h3>Sprint-1.338 Update (May 2026)</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>25b</td>
+<td>Use DQL <code>timeseries</code> for table/index metrics — classic ingest is blocked</td>
+<td>Classic ingest is blocked for <code>postgres.tables.*</code>, <code>postgres.indexes.*</code>, <code>mysql.tables.*</code> and <code>mysql.indexes.*</code> (SaaS 1.338) — <em>&quot;Ingested metrics with these keys are only available in Grail.&quot;</em> Query them with DQL <code>timeseries</code>.</td>
+<td><strong>Critical</strong></td>
+<td>API/Migration</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-338">What's new in Dynatrace SaaS 1.338 (DT docs)</a> — <em>&quot;To prevent dimension cardinality explosion for the latest versions of the database extensions&quot;</em>, and <em>&quot;Ingested metrics with these keys are only available in Grail.&quot;</em></sub></p>
+</blockquote>
+<p><em>In community practice these thresholds are the values teams converge on as starting points — Dynatrace publishes none of them. Treat each as a first guess to tune against your own baseline, not a recommended setting.</em></p>
+<p><a id="nosql-database-monitoring"></a></p>
+<h2>5. NoSQL Database Monitoring</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>26</td>
+<td>Set slow query threshold for NoSQL databases</td>
+<td><strong>100ms</strong> for MongoDB; <strong>300ms</strong> critical threshold for all NoSQL</td>
+<td><strong>Critical</strong></td>
+<td>Threshold</td>
+</tr>
+<tr>
+<td>27</td>
+<td>Monitor MongoDB by collection</td>
+<td>Group by <code>db.collection.name</code> in addition to <code>db.namespace</code> — collection-level granularity reveals hot spots</td>
+<td><strong>Critical</strong></td>
+<td>MongoDB</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Track DynamoDB Scan-to-Query ratio</td>
+<td><code>Scan</code> operations read every item in the table; ratio must be Query-dominated; any high Scan count signals missing Global Secondary Indexes</td>
+<td><strong>Critical</strong></td>
+<td>DynamoDB</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Set Cassandra slow threshold at 200ms</td>
+<td><code>filter duration &gt; 200ms</code> — Cassandra operations exceeding 200ms indicate partition hotspots or cross-DC reads</td>
+<td><strong>Recommended</strong></td>
+<td>Cassandra</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Monitor Cosmos DB by operation and error rate</td>
+<td>Track <code>ReadItem</code>, <code>CreateItem</code>, <code>Query</code>, <code>ReplaceItem</code> separately; errors indicate RU throttling (HTTP 429)</td>
+<td><strong>Recommended</strong></td>
+<td>Cosmos DB</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Classify NoSQL read/write operations correctly</td>
+<td>Use <code>coalesce(db.operation.name, code.function)</code> (OneAgent MongoDB leaves <code>db.operation.name</code> empty); READ: <code>find</code>, <code>count</code>, <code>aggregate</code>, <code>getMore</code>, <code>Query</code>, <code>Scan</code>, <code>GetItem</code>, <code>SELECT</code>, <code>ReadItem</code>, <code>get</code>, <code>search</code>; WRITE: an explicit insert/update/delete/put list; anything else OTHER</td>
+<td><strong>Recommended</strong></td>
+<td>Analysis</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Run cross-database comparison</td>
+<td>Compare <code>total_calls</code>, <code>avg_ms</code>, <code>p95_ms</code>, <code>error_rate_pct</code> across all NoSQL systems in a single query for unified health view</td>
+<td><strong>Recommended</strong></td>
+<td>Analysis</td>
+</tr>
+</tbody>
+</table>
+<p><a id="cache-monitoring"></a></p>
+<h2>6. Cache Monitoring (Redis / Memcached)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>33</td>
+<td>Set Redis slow command threshold at 5ms</td>
+<td><code>filter duration &gt; 5ms</code> — Redis operations should complete in microseconds; anything over 5ms is abnormal</td>
+<td><strong>Critical</strong></td>
+<td>Threshold</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Monitor Redis read/write balance</td>
+<td>READ: <code>GET</code>, <code>MGET</code>, <code>HGET</code>, <code>HGETALL</code>, <code>LRANGE</code>, <code>SMEMBERS</code>, <code>ZRANGE</code>; WRITE: <code>SET</code>, <code>MSET</code>, <code>HSET</code>, <code>HMSET</code>, <code>LPUSH</code>, <code>RPUSH</code>, <code>SADD</code>, <code>ZADD</code>, <code>DEL</code>, <code>EXPIRE</code>; read the command from <code>coalesce(db.operation.name, span.name)</code></td>
+<td><strong>Recommended</strong></td>
+<td>Analysis</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Alert on Redis latency spikes</td>
+<td>Track <code>p95_us</code> (microseconds) over time at 5m intervals; any sustained increase above 5000us (5ms) triggers investigation</td>
+<td><strong>Critical</strong></td>
+<td>Alerting</td>
+</tr>
+<tr>
+<td>36</td>
+<td>Watch for expensive Redis commands</td>
+<td><code>KEYS *</code>, <code>SMEMBERS</code> on large sets, <code>LRANGE</code> with large ranges cause latency spikes — flag any occurrence</td>
+<td><strong>Critical</strong></td>
+<td>Anti-Pattern</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Report cache metrics in microseconds, not milliseconds</td>
+<td>Redis and Memcached latency is sub-millisecond; use <code>avg(duration) / 1us</code> for microsecond precision (dividing a duration by a plain number leaves it a duration)</td>
+<td><strong>Recommended</strong></td>
+<td>Reporting</td>
+</tr>
+</tbody>
+</table>
+<h3>.NET Redis Client Coverage — OneAgent 1.337 and 1.343</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>37b</td>
+<td>Confirm StackExchange.Redis instrumentation on .NET workloads</td>
+<td>OneAgent 1.337 added StackExchange.Redis coverage for .NET applications. Verify your .NET services produce <code>db.system == &quot;redis&quot;</code> spans.</td>
+<td><strong>Recommended</strong></td>
+<td>Coverage</td>
+</tr>
+<tr>
+<td>37c</td>
+<td>Confirm ServiceStack.Redis instrumentation on .NET workloads</td>
+<td>Forthcoming / rolling out with <strong>OneAgent 1.343</strong> (released 07/28/2026): tracing support added for <strong>ServiceStack.Redis</strong> in .NET applications. Rollout is <strong>per agent fleet, not per tenant</strong> — <strong>verify the OneAgent version installed on the hosts concerned</strong> (the tenant version is not the agent version), then confirm those services produce <code>db.system == &quot;redis&quot;</code> spans. On <strong>OneAgent 1.342 and earlier</strong> only StackExchange.Redis is auto-instrumented, and ServiceStack.Redis calls produce no database spans</td>
+<td><strong>Recommended</strong></td>
+<td>Coverage</td>
+</tr>
+</tbody>
+</table>
+<p><em>In community practice these thresholds are the values teams converge on as starting points — Dynatrace publishes none of them. Treat each as a first guess to tune against your own baseline, not a recommended setting.</em></p>
+<p><a id="message-broker-monitoring"></a></p>
+<h2>7. Message Broker Monitoring (Kafka / RabbitMQ)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>38</td>
+<td>Track Kafka throughput by topic</td>
+<td>Group by <code>messaging.destination.name</code> and <code>messaging.operation.type</code> (Dynatrace's dictionary: <code>publish</code>, <code>receive</code>, <code>process</code>, <code>peek</code>; newer OpenTelemetry producers send <code>send</code>) at 5m intervals</td>
+<td><strong>Critical</strong></td>
+<td>Kafka</td>
+</tr>
+<tr>
+<td>39</td>
+<td>Monitor Kafka consumer group processing latency</td>
+<td>Group by <code>messaging.consumer.group.name</code> and <code>messaging.destination.name</code>; track <code>avg_ms</code> and <code>p95_ms</code> per group</td>
+<td><strong>Critical</strong></td>
+<td>Kafka</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Detect Kafka consumer errors</td>
+<td>Filter <code>span.status_code == &quot;error&quot;</code> on <code>messaging.operation.type == &quot;process&quot;</code> spans; any sustained errors indicate poisoned messages or deserialization failures</td>
+<td><strong>Critical</strong></td>
+<td>Kafka</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Track RabbitMQ publish/consume rate per queue</td>
+<td>Group by <code>messaging.destination.name</code> and <code>messaging.operation.type</code>; a publish rate exceeding consume rate signals backpressure</td>
+<td><strong>Critical</strong></td>
+<td>RabbitMQ</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Monitor RabbitMQ message throughput trend</td>
+<td>Use <code>makeTimeseries</code> at 5m intervals grouped by <code>messaging.operation.type</code> to detect throughput drops</td>
+<td><strong>Recommended</strong></td>
+<td>RabbitMQ</td>
+</tr>
+</tbody>
+</table>
+<p><a id="search-engine-monitoring"></a></p>
+<h2>8. Search Engine Monitoring (Elasticsearch)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>43</td>
+<td>Set Elasticsearch slow query threshold at 200ms</td>
+<td><code>filter duration &gt; 200ms</code> for search operations; indexing operations use a separate threshold</td>
+<td><strong>Recommended</strong></td>
+<td>Threshold</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Break down Elasticsearch operations by type</td>
+<td>Track <code>db.operation.name</code> (search, index, bulk, delete) separately; search latency and indexing throughput have different SLOs</td>
+<td><strong>Recommended</strong></td>
+<td>Analysis</td>
+</tr>
+<tr>
+<td>45</td>
+<td>Include OpenSearch in all Elasticsearch queries</td>
+<td>Always filter <code>in(db.system, {&quot;elasticsearch&quot;, &quot;opensearch&quot;})</code> — treat both identically</td>
+<td><strong>Recommended</strong></td>
+<td>Compatibility</td>
+</tr>
+</tbody>
+</table>
+<p><a id="query-analysis-and-optimization"></a></p>
+<h2>9. Query Analysis and Optimization</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>46</td>
+<td>Detect N+1 queries</td>
+<td>Group spans by <code>trace.id</code> and <code>db.query.text</code>; any pattern with <code>calls_per_trace &gt;= 10</code> is an N+1 candidate; &gt;= 50 is confirmed N+1</td>
+<td><strong>Critical</strong></td>
+<td>Anti-Pattern</td>
+</tr>
+<tr>
+<td>47</td>
+<td>Fix N+1 by batching</td>
+<td>Replace N individual queries with a single batch query using <code>IN</code> clauses or JOINs</td>
+<td><strong>Critical</strong></td>
+<td>Remediation</td>
+</tr>
+<tr>
+<td>48</td>
+<td>Detect missing indexes heuristically</td>
+<td>SELECT queries with <code>call_count &gt;= 50</code> AND <code>avg_ms &gt; 10</code> AND high <code>stddev_ms / avg_ms</code> ratio are index candidates</td>
+<td><strong>Recommended</strong></td>
+<td>Optimization</td>
+</tr>
+<tr>
+<td>49</td>
+<td>Detect queries getting slower over time</td>
+<td>Run 24h <code>makeTimeseries</code> of <code>avg(duration)</code> by <code>db.system</code> at 1h intervals; rising trend signals index degradation or table growth</td>
+<td><strong>Recommended</strong></td>
+<td>Trend</td>
+</tr>
+<tr>
+<td>50</td>
+<td>Flag dynamic SQL / poor parameterization</td>
+<td>Count one-off query patterns (<code>call_count == 1</code>); high count per <code>db.system</code> means queries are not parameterized, preventing plan caching</td>
+<td><strong>Recommended</strong></td>
+<td>Anti-Pattern</td>
+</tr>
+<tr>
+<td>51</td>
+<td>Prioritize optimization by total time impact</td>
+<td>Sort query patterns by <code>total_time_ms = sum(duration)</code>, not by <code>avg_ms</code> — a fast query called 1M times has more impact than a slow query called once</td>
+<td><strong>Critical</strong></td>
+<td>Optimization</td>
+</tr>
+<tr>
+<td>52</td>
+<td>Use the tail ratio to detect outliers</td>
+<td>Calculate <code>p99_ms / p50_ms</code>; a ratio above 10 indicates severe tail latency requiring investigation</td>
+<td><strong>Recommended</strong></td>
+<td>Analysis</td>
+</tr>
+<tr>
+<td>53</td>
+<td>Monitor connection pool pressure</td>
+<td>Track <code>countIf(span.status_code == &quot;error&quot;)</code> grouped by <code>dt.service.name</code> and <code>server.address</code>; connection refused or timeout errors indicate pool exhaustion</td>
+<td><strong>Critical</strong></td>
+<td>Connection Pool</td>
+</tr>
+<tr>
+<td>54</td>
+<td>Track error rate trend over 6h at 5m intervals</td>
+<td>Use <code>makeTimeseries</code> with <code>total</code> and <code>errors</code> counts; a rising error trend within 30 minutes demands immediate action</td>
+<td><strong>Critical</strong></td>
+<td>Error Handling</td>
+</tr>
+</tbody>
+</table>
+<p><a id="dashboards-and-kpis"></a></p>
+<h2>10. Dashboards and KPIs</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>55</td>
+<td>Build a unified health overview tile</td>
+<td>Single query: group by <code>db.system</code>, show <code>total_calls</code>, <code>avg_ms</code>, <code>p95_ms</code>, <code>error_rate_pct</code>, <code>slow_rate_pct</code></td>
+<td><strong>Critical</strong></td>
+<td>Dashboard</td>
+</tr>
+<tr>
+<td>56</td>
+<td>Include a &quot;total database calls&quot; single-value tile</td>
+<td><code>fetch spans, from:-1h | filter isNotNull(db.system) | summarize total_db_calls = count()</code></td>
+<td><strong>Critical</strong></td>
+<td>Dashboard</td>
+</tr>
+<tr>
+<td>57</td>
+<td>Add &quot;top 10 heaviest services&quot; table tile</td>
+<td>Group by <code>dt.service.name</code> with <code>call_count</code>, <code>avg_ms</code>, <code>error_count</code> (<code>dt.entity.service</code> is deprecated in the semantic dictionary)</td>
+<td><strong>Critical</strong></td>
+<td>Dashboard</td>
+</tr>
+<tr>
+<td>58</td>
+<td>Show P50 vs P95 vs P99 trend chart</td>
+<td>6h timeseries at 5m intervals; three lines on one chart reveals tail latency divergence</td>
+<td><strong>Critical</strong></td>
+<td>Dashboard</td>
+</tr>
+<tr>
+<td>59</td>
+<td>Add read vs write ratio trend tile</td>
+<td>Classify operations into READ / WRITE / OTHER (rule 20); 6h timeseries at 5m intervals</td>
+<td><strong>Recommended</strong></td>
+<td>Dashboard</td>
+</tr>
+<tr>
+<td>60</td>
+<td>Add queries-per-minute trend by db.system</td>
+<td>6h timeseries at 1m intervals; used for throughput anomaly detection</td>
+<td><strong>Recommended</strong></td>
+<td>Dashboard</td>
+</tr>
+<tr>
+<td>61</td>
+<td>Add today-vs-yesterday volume comparison</td>
+<td>Use <code>append</code> pattern: <code>from:-24h</code> for today, <code>from:-48h, to:-24h</code> for yesterday</td>
+<td><strong>Recommended</strong></td>
+<td>Dashboard</td>
+</tr>
+<tr>
+<td>62</td>
+<td>Include slow query detail table</td>
+<td>Last 15m, <code>duration &gt; 500ms</code>, fields: start_time, db.system, db.namespace, db.query.text, duration_ms, service_name</td>
+<td><strong>Critical</strong></td>
+<td>Dashboard</td>
+</tr>
+</tbody>
+</table>
+<p><a id="alerting-thresholds"></a></p>
+<h2>11. Alerting Thresholds</h2>
+<h3>Error Rate Alerts</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>63</td>
+<td>Alert on error rate &gt; 5% for 5 minutes</td>
+<td>Severity: <strong>Critical</strong> — immediate page</td>
+<td><strong>Critical</strong></td>
+<td>Alert</td>
+</tr>
+<tr>
+<td>64</td>
+<td>Alert on error rate &gt; 1% for 15 minutes</td>
+<td>Severity: <strong>Warning</strong> — notification</td>
+<td><strong>Critical</strong></td>
+<td>Alert</td>
+</tr>
+<tr>
+<td>65</td>
+<td>Alert on any connection refused error</td>
+<td>Severity: <strong>Critical</strong> — immediate page; zero tolerance for connection failures</td>
+<td><strong>Critical</strong></td>
+<td>Alert</td>
+</tr>
+<tr>
+<td>66</td>
+<td>Alert on deadlocks from the engine side</td>
+<td>Severity: <strong>Warning</strong> — notification; use the Databases app's lock and wait metrics, since spans see a deadlock only as the victim session's error (DBMON-06)</td>
+<td><strong>Recommended</strong></td>
+<td>Alert</td>
+</tr>
+</tbody>
+</table>
+<h3>Slow Query Alerts (P95 Thresholds)</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>67</td>
+<td>SQL Warning threshold</td>
+<td>P95 &gt; <strong>200ms</strong> over 5-minute window</td>
+<td><strong>Critical</strong></td>
+<td>Alert</td>
+</tr>
+<tr>
+<td>68</td>
+<td>SQL Critical threshold</td>
+<td>P95 &gt; <strong>500ms</strong> over 5-minute window</td>
+<td><strong>Critical</strong></td>
+<td>Alert</td>
+</tr>
+<tr>
+<td>69</td>
+<td>NoSQL Warning threshold</td>
+<td>P95 &gt; <strong>100ms</strong> over 5-minute window</td>
+<td><strong>Critical</strong></td>
+<td>Alert</td>
+</tr>
+<tr>
+<td>70</td>
+<td>NoSQL Critical threshold</td>
+<td>P95 &gt; <strong>300ms</strong> over 5-minute window</td>
+<td><strong>Critical</strong></td>
+<td>Alert</td>
+</tr>
+<tr>
+<td>71</td>
+<td>Cache (Redis/Memcached) Warning threshold</td>
+<td>P95 &gt; <strong>5ms</strong> over 5-minute window</td>
+<td><strong>Critical</strong></td>
+<td>Alert</td>
+</tr>
+<tr>
+<td>72</td>
+<td>Cache (Redis/Memcached) Critical threshold</td>
+<td>P95 &gt; <strong>20ms</strong> over 5-minute window</td>
+<td><strong>Critical</strong></td>
+<td>Alert</td>
+</tr>
+<tr>
+<td>73</td>
+<td>Elasticsearch Warning threshold</td>
+<td>P95 &gt; <strong>500ms</strong> over 5-minute window</td>
+<td><strong>Recommended</strong></td>
+<td>Alert</td>
+</tr>
+<tr>
+<td>74</td>
+<td>Elasticsearch Critical threshold</td>
+<td>P95 &gt; <strong>2000ms</strong> over 5-minute window</td>
+<td><strong>Recommended</strong></td>
+<td>Alert</td>
+</tr>
+</tbody>
+</table>
+<h3>Throughput Alerts</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>75</td>
+<td>Alert on throughput drop &gt; 50% vs 7-day average</td>
+<td>Compare current queries/min to 7-day baseline; sudden drop indicates upstream failure or connectivity loss</td>
+<td><strong>Critical</strong></td>
+<td>Alert</td>
+</tr>
+<tr>
+<td>76</td>
+<td>Alert on slow query count &gt; 10 per 5-minute window</td>
+<td>Sustained slow query volume indicates systemic degradation, not a one-off outlier</td>
+<td><strong>Recommended</strong></td>
+<td>Alert</td>
+</tr>
+</tbody>
+</table>
+<p><a id="slo-definitions"></a></p>
+<h2>12. SLO Definitions</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>77</td>
+<td>Define availability SLO</td>
+<td><strong>99.9%</strong> of database calls succeed, measured over a 24h rolling window as <code>count() - countIf(span.status_code == &quot;error&quot;)</code> — <code>span.status_code</code> is null on successful spans, so a <code>!= &quot;error&quot;</code> comparison counts nothing</td>
+<td><strong>Critical</strong></td>
+<td>SLO</td>
+</tr>
+<tr>
+<td>78</td>
+<td>Define latency SLO</td>
+<td><strong>95%</strong> of calls complete under the vendor-specific P95 threshold (SQL: 500ms, NoSQL: 300ms, Cache: 20ms, Search: 2000ms)</td>
+<td><strong>Critical</strong></td>
+<td>SLO</td>
+</tr>
+<tr>
+<td>79</td>
+<td>Define throughput SLO</td>
+<td>No more than <strong>50% drop</strong> from 7-day baseline queries/min</td>
+<td><strong>Recommended</strong></td>
+<td>SLO</td>
+</tr>
+<tr>
+<td>80</td>
+<td>Measure SLO compliance hourly</td>
+<td>Run <code>makeTimeseries</code> at 1h intervals with <code>total</code> and <code>errors</code>/<code>under_threshold</code> counts per <code>db.system</code></td>
+<td><strong>Critical</strong></td>
+<td>SLO</td>
+</tr>
+<tr>
+<td>81</td>
+<td>Track SLO budget burn rate</td>
+<td>If 24h availability drops below 99.9%, calculate remaining error budget: <code>(1 - 0.999) * total_calls - error_count</code></td>
+<td><strong>Recommended</strong></td>
+<td>SLO</td>
+</tr>
+</tbody>
+</table>
+<p><a id="dql-query-standards"></a></p>
+<h2>13. DQL Query Standards</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>82</td>
+<td>Always specify a time range on fetch</td>
+<td><code>fetch spans, from:-1h</code> — never omit <code>from:</code> on span queries; default 2h scan is excessive</td>
+<td><strong>Critical</strong></td>
+<td>DQL</td>
+</tr>
+<tr>
+<td>83</td>
+<td>Filter on <code>isNotNull(db.system)</code> first</td>
+<td>This is the primary filter to isolate database spans; apply immediately after <code>fetch</code></td>
+<td><strong>Critical</strong></td>
+<td>DQL</td>
+</tr>
+<tr>
+<td>84</td>
+<td>Use named parameters in functions</td>
+<td><code>round(value, decimals: 2)</code>, <code>if(cond, then: &quot;x&quot;, else: &quot;y&quot;)</code> — positional parameters cause errors</td>
+<td><strong>Critical</strong></td>
+<td>DQL</td>
+</tr>
+<tr>
+<td>85</td>
+<td>Alias all aggregations</td>
+<td><code>summarize c = count()</code>, not <code>summarize count()</code> — unaliased aggregations get a generated name (<code>count()</code>) that must be backtick-quoted to reference; <code>sort count() desc</code> without backticks fails</td>
+<td><strong>Critical</strong></td>
+<td>DQL</td>
+</tr>
+<tr>
+<td>86</td>
+<td>Use duration arithmetic (NOT nanosecond constants)</td>
+<td>Write <code>duration / 1ms</code>, <code>duration / 1s</code>, <code>(t2-t1) / 1m</code> — divide a duration by another duration to get a unitless number. Never <code>duration / 1000000.0</code>; never <code>toLong(duration) / 1ms</code> (long/duration fails type-check). Per <code>dt-dql-essentials</code>.</td>
+<td><strong>Critical</strong></td>
+<td>DQL</td>
+</tr>
+<tr>
+<td>87</td>
+<td>Show service names, not IDs</td>
+<td>On spans, group by <code>dt.service.name</code> (stable). Where you hold a Smartscape ID, <code>getNodeName(dt.smartscape.service)</code> resolves it; <code>entityName(dt.entity.service, …)</code> is the classic form and <code>dt.entity.service</code> is deprecated. Never show raw entity IDs in dashboards.</td>
+<td><strong>Recommended</strong></td>
+<td>DQL</td>
+</tr>
+<tr>
+<td>88</td>
+<td>Filter early, sort last</td>
+<td>Apply <code>filter</code> immediately after <code>fetch</code>; apply <code>sort</code> only after <code>summarize</code>; never <code>sort</code> right after <code>fetch</code></td>
+<td><strong>Critical</strong></td>
+<td>DQL</td>
+</tr>
+<tr>
+<td>89</td>
+<td>Use <code>countIf()</code> for conditional aggregation</td>
+<td><code>errors = countIf(span.status_code == &quot;error&quot;)</code> inside <code>summarize</code> — do not use separate filter + count</td>
+<td><strong>Recommended</strong></td>
+<td>DQL</td>
+</tr>
+<tr>
+<td>90</td>
+<td>Calculate error rate with safe division</td>
+<td><code>error_rate_pct = round((toDouble(error_count) / toDouble(total_calls)) * 100, decimals: 2)</code> — use <code>toDouble()</code> to avoid integer truncation</td>
+<td><strong>Recommended</strong></td>
+<td>DQL</td>
+</tr>
+</tbody>
+</table>
+<h3>Modern DQL standards (added 2026-05-07)</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>91</td>
+<td>Use <code>event.status</code> / <code>event.start</code> / <code>event.end</code> on <code>dt.davis.problems</code></td>
+<td>NOT <code>status</code> / <code>end_time</code> (recurring authoring bug). Status values are <code>&quot;ACTIVE&quot;</code> and <code>&quot;CLOSED&quot;</code> (not <code>&quot;OPEN&quot;</code>). For duration: <code>(event.end - event.start) / 1m</code> (NOT <code>event.end - timestamp</code> — <code>timestamp</code> is record-write time, not problem-open time).</td>
+<td><strong>Critical</strong></td>
+<td>DQL</td>
+</tr>
+<tr>
+<td>92</td>
+<td>Prefer <code>smartscapeNodes &quot;&lt;TYPE&gt;&quot;</code> for new entity queries</td>
+<td>Modern Smartscape topology query: <code>smartscapeNodes &quot;SERVICE&quot;</code>, <code>smartscapeNodes &quot;HOST&quot;</code>, etc. Legacy <code>fetch dt.entity.&lt;type&gt;</code> still works on hybrid tenants but is deprecated.</td>
+<td><strong>Recommended</strong></td>
+<td>DQL</td>
+</tr>
+<tr>
+<td>93</td>
+<td>Wrap multiple <code>summarize</code> aggregations in <code>{}</code></td>
+<td>When summarizing 2+ aggregations, wrap them: <code>summarize { a = count(), b = avg(x) }, by: {field}</code>. Unwrapped aggregations combined with <code>by:</code> raise a <code>PARAMETERS_SHOULD_BE_GROUPED</code> INFO notification; without <code>by:</code> they raise none (tenant-verified 10/14/2026). The query runs either way — wrap them for consistency.</td>
+<td><strong>Recommended</strong></td>
+<td>DQL</td>
+</tr>
+</tbody>
+</table>
+<p><a id="see-also"></a></p>
+<h2>14. Where to Go Deeper — Topic Series Map</h2>
+<p>DBMON covers database monitoring foundations. These topic series cover adjacent domains in depth:</p>
+<table>
+<thead>
+<tr>
+<th>Domain</th>
+<th>Topic Series</th>
+<th>Notebooks</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Distributed tracing &amp; spans</strong> (DB spans live here)</td>
+<td>SPANS</td>
+<td>9</td>
+</tr>
+<tr>
+<td><strong>OpenPipeline log processing</strong></td>
+<td>OPLOGS</td>
+<td>9</td>
+</tr>
+<tr>
+<td><strong>OpenPipeline beyond logs (metrics from spans)</strong></td>
+<td>OPIPE</td>
+<td>8</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Intelligence (Davis anomaly detection on DB metrics)</strong></td>
+<td>AIOPS</td>
+<td>8</td>
+</tr>
+<tr>
+<td><strong>Workflows &amp; alert notifications</strong> (DB alert routing)</td>
+<td>WFLOW</td>
+<td>12</td>
+</tr>
+<tr>
+<td><strong>Dashboard strategy &amp; executive reporting</strong></td>
+<td>DASH</td>
+<td>8</td>
+</tr>
+<tr>
+<td><strong>Bucket strategy</strong> (<code>default_database_monitoring</code> and custom DB buckets)</td>
+<td>ORGNZ</td>
+<td>11</td>
+</tr>
+<tr>
+<td><strong>IAM administration</strong> (bucket-scoped policies for DB-team access)</td>
+<td>IAM</td>
+<td>16</td>
+</tr>
+<tr>
+<td><strong>Tagging strategy</strong> (host-group + ownership tagging for DBs)</td>
+<td>FAQ-01, FAQ-02</td>
+<td>2+</td>
+</tr>
+<tr>
+<td><strong>Configuration automation</strong> (Monaco/Terraform for extension deployment)</td>
+<td>AUTOM</td>
+<td>14</td>
+</tr>
+<tr>
+<td><strong>OpenTelemetry integration</strong> (OTel-instrumented DBs)</td>
+<td>OTEL</td>
+<td>9</td>
+</tr>
+<tr>
+<td><strong>Cloud DB integrations</strong> (RDS, Aurora, Cosmos DB, Cloud SQL)</td>
+<td>CLOUD</td>
+<td>9</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

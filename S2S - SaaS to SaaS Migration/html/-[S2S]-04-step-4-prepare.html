@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S2S-04: Step 4 — Prepare: Export and Pre-Stage</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">S2S — SaaS to SaaS Migration</a><span class="sep">/</span><span aria-current="page">S2S-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>S2S-04: Step 4 — Prepare: Export and Pre-Stage</h1>
+<blockquote>
+<p><strong>Series:</strong> S2S — SaaS to SaaS Migration | <strong>Notebook:</strong> 4 of 9 | <strong>Phase:</strong> Upgrade | <strong>Step:</strong> Prepare | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/24/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>With the target tenant architecture designed (Step 3), this step builds the foundation. Preparation is the longest step in any SaaS-to-SaaS migration — it involves exporting configuration from the source tenant, provisioning the target tenant, deploying IAM, installing ActiveGates, preparing Kubernetes operators, and freezing the source tenant to prevent drift during execution.</p>
+<p>Every task in this notebook must be completed and validated before Step 5 (Execute) begins. Skipping preparation tasks is the primary cause of migration rollbacks.</p>
+<h3>S2S Migration Framework</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Steps</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plan</td>
+<td>1. Discover → 2. Strategize → 3. Design</td>
+<td>Understand what exists, choose approach, design target</td>
+</tr>
+<tr>
+<td><strong>Upgrade</strong></td>
+<td><strong>4. Prepare</strong> → 5. Execute → 6. Integrate</td>
+<td>Build target, move config, connect integrations</td>
+</tr>
+<tr>
+<td>Run</td>
+<td>7. Expand → 8. Enable → 9. Optimize</td>
+<td>Roll out agents, enable teams, tune and decommission</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>You are here: Step 4 — Prepare.</strong> You have designed the target architecture (Step 3). Now you export configuration, provision the target tenant, and stage all prerequisites before execution begins.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#target-tenant-provisioning">Target Tenant Provisioning</a></li>
+<li><a href="#sso-and-iam-setup">SSO and IAM Setup</a></li>
+<li><a href="#monaco-bulk-export">Monaco Bulk Export</a></li>
+<li><a href="#activegate-provisioning">ActiveGate Provisioning</a></li>
+<li><a href="#kubernetes-operator-preparation">Kubernetes Operator Preparation</a></li>
+<li><a href="#configuration-freeze">Configuration Freeze</a></li>
+<li><a href="#rollback-procedure">Rollback Procedure</a></li>
+<li><a href="#step-completion-checklist">Step Completion Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Step 3 Complete</strong></td>
+<td>Target tenant architecture designed — IAM, buckets, OpenPipeline, deployment order documented</td>
+</tr>
+<tr>
+<td><strong>Source Tenant Access</strong></td>
+<td>Admin access with <code>ReadConfig</code>, <code>settings.read</code>, <code>activeGates.read</code> scopes</td>
+</tr>
+<tr>
+<td><strong>Target Tenant Provisioned</strong></td>
+<td>Dynatrace SaaS environment with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Monaco CLI</strong></td>
+<td><code>monaco v2.x</code> installed and configured</td>
+</tr>
+<tr>
+<td><strong>Terraform</strong></td>
+<td><code>terraform &gt;= 1.0</code> with Dynatrace provider <code>~&gt; 1.91</code></td>
+</tr>
+<tr>
+<td><strong>Helm</strong></td>
+<td><code>helm &gt;= 3.x</code> for Kubernetes operator deployment</td>
+</tr>
+<tr>
+<td><strong>Change Window</strong></td>
+<td>Approved change window for configuration freeze</td>
+</tr>
+</tbody>
+</table>
+<h3>Order of Operations</h3>
+<p>This notebook covers <strong>operations 1–3</strong> of the Upgrade phase:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Operation</th>
+<th>Section</th>
+<th>Dependency</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1</strong></td>
+<td><strong>Provision target tenant and configure SSO/IAM</strong></td>
+<td>Sections 1–2</td>
+<td>Step 3 design deliverables</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td><strong>Export configuration from source tenant</strong></td>
+<td>Section 3</td>
+<td>Source tenant access</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td><strong>Deploy ActiveGates and prepare K8s operators</strong></td>
+<td>Sections 4–5</td>
+<td>Target tenant provisioned</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Import configuration to target tenant</td>
+<td>Step 5</td>
+<td>Operations 1–3 complete</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Redirect agents to target tenant</td>
+<td>Step 5</td>
+<td>Configuration imported</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Validate data flow in target tenant</td>
+<td>Step 5</td>
+<td>Agents redirected</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Reconnect cloud integrations</td>
+<td>Step 6</td>
+<td>Agents reporting</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Migrate dashboards, workflows, and extensions</td>
+<td>Step 6</td>
+<td>Integrations connected</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Bold</strong> operations are covered in this notebook. Operations 4–8 are covered in Steps 5 and 6.</p>
+</blockquote>
+<p><a id="target-tenant-provisioning"></a></p>
+<h2>1. Target Tenant Provisioning</h2>
+<p>The target tenant must be provisioned and configured with baseline settings before any configuration is imported.</p>
+<h3>Provisioning Checklist</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Action</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Hosting cloud and region</strong></td>
+<td>Choose the hosting cloud and region deliberately (same region as source if relocation) — see <em>Choosing the Target's Hosting Cloud</em> below</td>
+<td>☐</td>
+</tr>
+<tr>
+<td><strong>Environment activation</strong></td>
+<td>Activate SaaS environment via Dynatrace Account Management</td>
+<td>☐</td>
+</tr>
+<tr>
+<td><strong>Grail enablement</strong></td>
+<td>Verify Grail is enabled (default for new SaaS tenants)</td>
+<td>☐</td>
+</tr>
+<tr>
+<td><strong>API token creation</strong></td>
+<td>Create token with <code>WriteConfig</code>, <code>ReadConfig</code>, <code>settings.write</code>, <code>settings.read</code> scopes</td>
+<td>☐</td>
+</tr>
+<tr>
+<td><strong>OAuth client creation</strong></td>
+<td>Create OAuth client for account-level API access (IAM management)</td>
+<td>☐</td>
+</tr>
+<tr>
+<td><strong>Platform version</strong></td>
+<td>Record both environments' Dynatrace versions — SaaS releases roll out to environments in stages, so source and target can briefly differ; check version-gated features on the target before relying on them</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<h3>Region Considerations</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Region Strategy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Relocation</strong></td>
+<td>Same region as source (minimize latency change)</td>
+</tr>
+<tr>
+<td><strong>Consolidation</strong></td>
+<td>Region closest to majority of monitored infrastructure</td>
+</tr>
+<tr>
+<td><strong>Hosting-cloud change</strong></td>
+<td>A region on the new cloud provider — for Azure, one of the regions Dynatrace offers on request (below)</td>
+</tr>
+<tr>
+<td><strong>Compliance-driven</strong></td>
+<td>Region that satisfies data residency requirements (EU, US, APAC)</td>
+</tr>
+</tbody>
+</table>
+<h3>Choosing the Target's Hosting Cloud</h3>
+<p>A SaaS environment runs on one cloud provider. Dynatrace documents that <em>&quot;Data is stored in Amazon Web Services (AWS), Microsoft Azure, or Google Cloud data centers.&quot;</em> Moving the environment from an AWS-hosted cluster to an Azure-hosted one is therefore a <strong>new target environment</strong>, provisioned on Azure, followed by this whole series — not a setting on the existing environment.</p>
+<p>Azure-hosted regions are listed as East US, West US 3, West Europe, Canada Central, UAE, Switzerland North and Australia East, each footnoted <em>&quot;Available on request. Talk to your Dynatrace sales contact.&quot;</em> Start that conversation before anything else in Step 4 is scheduled.</p>
+<p>There are two ways to get an Azure-hosted target:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Standard Dynatrace SaaS on an Azure region</th>
+<th>Azure Native Dynatrace Service</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>How it is provisioned</strong></td>
+<td>Through your Dynatrace account team, in an Azure region <em>&quot;Available on request&quot;</em></td>
+<td>From the Azure portal, via the Azure Marketplace — <em>&quot;available via a private offer&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Billing</strong></td>
+<td>Your existing Dynatrace agreement</td>
+<td><em>&quot;your Dynatrace license consumption becomes a part of your regular Azure bill&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Account and environment</strong></td>
+<td>A new environment, set up with your account team (settle with them how it relates to your existing account)</td>
+<td><em>&quot;The integration will create a new Dynatrace environment and account; it can't run on an existing Dynatrace SaaS environment.&quot;</em> The Azure user who creates the first resource <em>&quot;becomes the owner of the Dynatrace account&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Region</strong></td>
+<td>Chosen with the account team</td>
+<td><em>&quot;The Dynatrace environment is created in the same Azure region in which you create the Dynatrace resource.&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Identity</strong></td>
+<td>SAML SSO — Microsoft Entra ID is a documented IdP</td>
+<td><em>&quot;Enable SSO through Azure Active Directory&quot;</em>; <em>&quot;The integration works across a single Entra ID environment.&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Cloud monitoring on the target</strong></td>
+<td>Azure Cloud Platform Monitoring (Clouds app) as documented</td>
+<td><strong>Open question:</strong> the Azure Native page is labelled Dynatrace Classic and says nothing about Azure Cloud Platform Monitoring or the Clouds app on an environment it creates. Confirm with Dynatrace before choosing this path</td>
+</tr>
+</tbody>
+</table>
+<p>A consideration the docs do not settle, raised here as a softened recommendation: in community practice, the choice between the two paths is mostly <strong>commercial</strong> — a new account (Azure Native) means a separate account structure, a separate IAM and account-management surface, and consumption billed through Azure rather than your existing DPS agreement. Bring your Dynatrace account team and your Azure commercial owner into the decision together, and settle how the source environment's commitment and the target's consumption overlap during the migration window.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-security/data-security-controls">Data security controls (DT docs)</a> — <em>&quot;Data is stored in Amazon Web Services (AWS), Microsoft Azure, or Google Cloud data centers.&quot;</em>; Azure regions <em>&quot;Available on request. Talk to your Dynatrace sales contact.&quot;</em>; <em>&quot;Environments hosted on Azure use dedicated Azure storage accounts.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/azure-native-integration">Azure Native Dynatrace Service (DT docs)</a> — <em>&quot;The integration will create a new Dynatrace environment and account; it can't run on an existing Dynatrace SaaS environment.&quot;</em>; <em>&quot;The integration works across a single Entra ID environment.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/azure-onboarding">Azure Cloud Platform Monitoring (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<h3>Pre-Migration Baseline: Entity Counts</h3>
+<p>Before any migration begins, capture entity counts from the source tenant. These serve as validation targets after agent cutover in Step 5.</p>
+<blockquote>
+<p><strong>Compare like with like.</strong> The three host surfaces do not agree. Over the same 24 hours on a validation tenant (10/01/2026), <code>smartscapeNodes &quot;HOST&quot;</code> returned <strong>7</strong> hosts, <code>fetch dt.entity.host</code> returned <strong>33</strong>, and the billing usage events named <strong>39</strong>. FAQ-16 explains why Smartscape and the classic entity store differ. Pick one surface, use it in both the source and the target, and run the same query on both. For license sizing, read host consumption from the billing usage events (ADOPT-02 § 6) rather than from either entity count.</p>
+</blockquote>
+<pre><code class="language-dql">// Source tenant: baseline host count (Smartscape)
+smartscapeNodes &quot;HOST&quot;, from:-7d
+| summarize host_count = count()
+| fieldsAdd entity_type = &quot;Hosts&quot;
+
+// Run the SAME query in the target after cutover — do not compare a Smartscape count with a
+// classic one. Classic fallback: fetch dt.entity.host | summarize host_count = count()
+// (the classic store can retain hosts Smartscape no longer lists).
+</code></pre>
+<pre><code class="language-dql">// Source tenant: baseline service count (Smartscape)
+smartscapeNodes &quot;SERVICE&quot;, from:-7d
+| summarize service_count = count()
+| fieldsAdd entity_type = &quot;Services&quot;
+
+// Classic fallback: fetch dt.entity.service | summarize service_count = count()
+</code></pre>
+<pre><code class="language-dql">fetch dt.entity.process_group, from:-7d
+| summarize pg_count = count()
+| fieldsAdd entity_type = &quot;Process Groups&quot;
+
+</code></pre>
+<pre><code class="language-dql">// Source tenant: Grail bucket inventory for migration planning
+fetch dt.system.buckets
+| fields display_name, dt.system.table, retention_days, estimated_uncompressed_bytes
+| fieldsAdd size_gb = estimated_uncompressed_bytes / 1073741824.0
+| sort size_gb desc
+</code></pre>
+<blockquote>
+<p><strong>Record these counts.</strong> After agent cutover in Step 5, you will re-run these queries against the target tenant and compare. As a rule of thumb from community practice, counts within about 5% of the baseline indicate a clean wave; counts below about 90% point to missing agents or misconfigured host groups.</p>
+</blockquote>
+<p><a id="sso-and-iam-setup"></a></p>
+<h2>2. SSO and IAM Setup</h2>
+<p>IAM is the first configuration deployed to the target tenant. Users need access to validate subsequent deployments, and IAM policies reference resources that will be created in later steps — but the group structure and base policies can be deployed now.</p>
+<h3>SAML/SSO Configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Navigate to <strong>Account Management → Identity &amp; Access Management → SSO</strong></td>
+<td>Target tenant</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Configure SAML identity provider (same IdP as source if consolidation) — Microsoft Entra ID has a documented Dynatrace SAML configuration; an Azure Native environment uses Entra ID SSO from the start</td>
+<td>Copy metadata URL from IdP; create a <strong>new</strong> enterprise application for the target. Dynatrace requires the <strong>entire SAML message</strong> to be signed — Entra's default for most gallery apps signs only the assertion, so set <em>Sign SAML response and assertion</em></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Map IdP groups to Dynatrace groups</td>
+<td>Use the IAM design from Step 3</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Enable SSO enforcement (after initial admin access is confirmed)</td>
+<td>Do not lock out admin accounts</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Test SSO login with at least two different group memberships</td>
+<td>Verify policy inheritance</td>
+</tr>
+</tbody>
+</table>
+<h3>Rebuild the IP Allowlist</h3>
+<p>If the source environment restricts access with an IP allowlist, rebuild it on the target before users and automation cut over. It is configured per environment, and it blocks inbound access to the UI and API: <em>&quot;If a user's IP isn't contained in the IP allowlist, they're blocked from accessing and using the latest Dynatrace web UI and API.&quot;</em> Include the addresses of your CI/CD runners and any automation that calls the target API.</p>
+<p>The reverse direction — <strong>egress</strong> addresses of the new Azure-hosted cluster that your firewalls or webhook receivers may need to admit — is <strong>unverified</strong>: no primary source for them was found for this update. Ask Dynatrace for them rather than reusing the AWS-hosted source's addresses.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml">SAML (DT docs)</a> — <em>&quot;The entire SAML message must be signed (signing only SAML assertions is insufficient and generates a 400 Bad Request response).&quot;</em>; <a href="https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/certificate-signing-options">Advanced certificate signing options in a SAML token (Microsoft Learn)</a> — <em>&quot;default option set for most of the gallery applications&quot;</em>; <a href="https://docs.dynatrace.com/docs/manage/account-management/settings/ip-allowlist">IP allowlist (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml/idp-specific/saml-azure">Azure SAML configuration for Dynatrace (DT docs)</a> — <em>&quot;Follow the examples below to configure Azure as the SAML identity provider (IdP) for Dynatrace SSO.&quot;</em></sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> Do not enable SSO enforcement until you have confirmed that at least one admin account can log in via SSO. A misconfigured SSO with enforcement enabled will lock all users out of the tenant.</p>
+</blockquote>
+<h3>Terraform IAM Deployment</h3>
+<p>This series deploys IAM with Terraform (Monaco's <code>monaco account deploy</code> is the alternative, with an OAuth client). Deploy the group structure and base policies designed in Step 3:</p>
+<pre><code class="language-bash"># Initialize Terraform with Dynatrace provider
+cd terraform/iam
+terraform init
+
+# Plan IAM deployment
+terraform plan -var-file=&quot;target-tenant.tfvars&quot;
+
+# Apply IAM configuration
+terraform apply -var-file=&quot;target-tenant.tfvars&quot;
+</code></pre>
+<h3>IAM Deployment Order</h3>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Resource</th>
+<th>Terraform Resource Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Groups</td>
+<td><code>dynatrace_iam_group</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>Policies</td>
+<td><code>dynatrace_iam_policy</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Policy bindings</td>
+<td><code>dynatrace_iam_policy_bindings</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> For the initial deployment, create policies with broad <code>ALLOW</code> statements. After all configuration is imported (Step 5) and validated, tighten policies with <code>WHERE</code> clauses that reference specific buckets, schemas, and security contexts.</p>
+</blockquote>
+<p><a id="monaco-bulk-export"></a></p>
+<h2>3. Monaco Bulk Export</h2>
+<p>Monaco <code>download</code> exports all configuration from the source tenant into a structured directory. This export becomes the input for <code>monaco deploy</code> in Step 5. The SaaS Upgrade Assistant is documented for a Managed source only — <em>&quot;SaaS Upgrade Assistant imports your Dynatrace Managed environment configuration&quot;</em> (<a href="https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant">SaaS Upgrade Assistant (DT docs)</a>) — so plan on <code>monaco deploy</code>. As a field practice, the same export can be packaged as a <code>.tar.gz</code> and imported through the assistant on the target; <strong>S2S-10</strong> §1 builds that package and lists what to rehearse first.</p>
+<h3>Export Commands</h3>
+<pre><code class="language-bash"># Set environment variables
+export DT_SOURCE_URL=&quot;https://&lt;source-env-id&gt;.live.dynatrace.com&quot;
+export DT_SOURCE_TOKEN=&quot;dt0c01.xxx...&quot;
+
+# Full export of source tenant
+# --token takes the NAME of the environment variable, not the token itself
+monaco download \
+  --url &quot;$DT_SOURCE_URL&quot; \
+  --token DT_SOURCE_TOKEN \
+  --output-folder ./export \
+  --force
+
+# Export Settings 2.0 objects only
+monaco download \
+  --url &quot;$DT_SOURCE_URL&quot; \
+  --token DT_SOURCE_TOKEN \
+  --output-folder ./export-settings \
+  --only-settings \
+  --force
+</code></pre>
+<p><code>--token</code> names an environment variable — the Monaco command reference: <em>&quot;The name of the environment variable that contains the API token (classic Dynatrace only).&quot;</em> Passing <code>&quot;$DT_SOURCE_TOKEN&quot;</code> hands Monaco the secret where it expects a variable name. Platform configurations (documents, automations, buckets, segments, SLOs, OpenPipeline) are downloaded with a platform token (<code>--platform-token</code>) or an OAuth client (<code>--oauth-client-id</code> and <code>--oauth-client-secret</code>), each likewise naming an environment variable. To narrow a download, use <code>--only-settings</code>, <code>--only-apis</code>, <code>--only-slo-v2</code> (and the other <code>--only-*</code> flags), <code>--settings-schema &lt;schema&gt;</code> or <code>--api &lt;api&gt;</code>. OpenPipeline configuration is Settings 2.0 objects: export it with <code>--settings-schema</code> and the <code>builtin:openpipeline.*</code> schemas, plus <code>--admin-access</code> to include pipelines other users own (S2S-07 §1). Monaco 2.31.0 (10/23/2026) removed the deprecated <code>openpipeline</code> type — the release notes: <em>&quot;Removed support for deprecated OpenPipeline configurations (type <code>openpipeline</code>)&quot;</em> — and its download command no longer has <code>--only-openpipeline</code>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas">Monaco CLI commands (DT docs)</a>, <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/cmd/monaco/download/download_command.go">monaco download flags, v2.30.0 (Dynatrace GitHub)</a>, <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/tag/v2.31.0">Monaco v2.31.0 release notes (Dynatrace GitHub)</a>.</sub></p>
+</blockquote>
+<h3>Automated Export</h3>
+<p>For a scripted export — platform-aware Monaco binary download with checksum verification, a short-lived read-only export token that is revoked after the download, and a timestamped export folder ready for <code>monaco deploy</code> — see <strong>S2S-10: Migration Scripts</strong>.</p>
+<h3>Export Directory Structure</h3>
+<p>After <code>monaco download</code>, the export directory contains:</p>
+<pre><code class="language-text">export/
+├── project/
+│   ├── alerting-profile/          # Alerting profiles
+│   ├── anomaly-detection-*/       # Anomaly detection rules
+│   ├── auto-tag/                  # Auto-tag rules
+│   ├── dashboard/                 # Classic dashboards
+│   ├── management-zone/           # Management zones
+│   ├── notification/              # Notification integrations
+│   ├── request-attributes/        # Request attributes
+│   ├── slo/                       # SLO definitions
+│   ├── synthetic-*/               # Synthetic monitors
+│   └── ... (50+ config types)
+├── manifest.yaml              # Monaco manifest
+└── delete.yaml                # Deletion tracking
+</code></pre>
+<h3>Export Validation</h3>
+<p>After export, validate the output before proceeding:</p>
+<pre><code class="language-bash"># Count exported configuration items
+find ./export/project -name &quot;*.json&quot; -o -name &quot;*.yaml&quot; | wc -l
+
+# Verify the manifest renders (offline dry-run). Add the target environment to
+# export/manifest.yaml first — see S2S-05 §2 — then:
+monaco deploy ./export/manifest.yaml --environment target-tenant --dry-run
+
+# Check for entity ID references that need remapping
+grep -r &quot;HOST-\|SERVICE-\|PROCESS_GROUP-&quot; ./export/project/ | wc -l
+</code></pre>
+<blockquote>
+<p><strong>Important:</strong> Monaco download <strong>cannot export</strong> the following:</p>
+<ul>
+<li>Cloud provider credentials (AWS IAM roles, Azure service principals, GCP service account keys)</li>
+<li>Account-level IAM (groups, policies, bindings) — a plain <code>monaco download</code> skips it; use <code>monaco account download</code> (OAuth client) or Terraform</li>
+<li>ActiveGate tokens and connection info</li>
+<li>Synthetic private location credentials</li>
+</ul>
+<p>These must be recreated manually in the target tenant.</p>
+</blockquote>
+<p><a id="activegate-provisioning"></a></p>
+<h2>4. ActiveGate Provisioning</h2>
+<p>ActiveGates in the source tenant cannot be &quot;moved&quot; to the target tenant. New ActiveGates must be deployed and connected to the target tenant. The source ActiveGates remain operational until cutover is validated.</p>
+<h3>ActiveGate Sizing</h3>
+<p>A SaaS target uses <strong>Environment ActiveGates</strong> only — Cluster ActiveGates belong to Dynatrace Managed. Plan Environment ActiveGates by purpose, and size them with <strong>FAQ-10</strong> (ActiveGate sizing and scaling):</p>
+<table>
+<thead>
+<tr>
+<th>Purpose</th>
+<th>Typical modules</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Routing / API</strong></td>
+<td>OneAgent routing, API</td>
+<td>Needed where hosts cannot reach the SaaS endpoint directly</td>
+</tr>
+<tr>
+<td><strong>Extensions</strong></td>
+<td>Extension Execution Controller</td>
+<td>Remote extensions run on an ActiveGate group</td>
+</tr>
+<tr>
+<td><strong>Synthetic</strong></td>
+<td>Synthetic (private location)</td>
+<td>One per private location; recreated in the target</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate">ActiveGate overview (DT docs)</a> — <em>&quot;If you are using the Dynatrace SaaS solution, you only need to install an Environment ActiveGate.&quot;</em></sub></p>
+</blockquote>
+<h3>Deployment Steps</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Download ActiveGate installer from target tenant</td>
+<td>Verify installer matches target tenant ID</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Deploy to designated hosts (same hosts or new hosts)</td>
+<td>ActiveGate appears under <code>smartscapeNodes &quot;ACTIVEGATE&quot;</code> in the target (query below)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Assign ActiveGate groups matching the source's purposes (routing, extensions, synthetic)</td>
+<td>Verify group assignment in target tenant UI</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Assign network zones if used — a separate setting from the group</td>
+<td>Match source network zone structure</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Verify connectivity from monitored hosts to new AGs</td>
+<td>Test TCP connectivity on port <strong>9999</strong> (OneAgent → ActiveGate)</td>
+</tr>
+</tbody>
+</table>
+<h3>ActiveGate Network Zone Assignment</h3>
+<p>ActiveGate <strong>groups</strong> (which ActiveGates do which job) and <strong>network zones</strong> (which ActiveGates serve which agents) are separate settings. If the source tenant uses network zones to segment traffic, replicate the same zone structure in the target tenant — the zone names must match because migrated OneAgents keep their <code>--set-network-zone</code> value:</p>
+<table>
+<thead>
+<tr>
+<th>Source Zone</th>
+<th>Purpose</th>
+<th>Target Zone</th>
+<th>ActiveGate Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>us-east-prod</code></td>
+<td>Production workloads</td>
+<td><code>us-east-prod</code></td>
+<td>2 (HA pair)</td>
+</tr>
+<tr>
+<td><code>us-east-nonprod</code></td>
+<td>Dev/staging</td>
+<td><code>us-east-nonprod</code></td>
+<td>1</td>
+</tr>
+<tr>
+<td><code>eu-west-prod</code></td>
+<td>EU production</td>
+<td><code>eu-west-prod</code></td>
+<td>2 (HA pair)</td>
+</tr>
+<tr>
+<td><code>extensions</code></td>
+<td>Extension execution</td>
+<td><code>extensions</code></td>
+<td>1 (host-based only)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Extensions placement:</strong> remote extensions run on an ActiveGate group; SQL monitoring extensions can alternatively run in Kubernetes through Dynatrace Operator (see the K8S series). Verify the supported runtime per extension before sizing the extensions zone.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/extensions">Extensions (DT docs)</a> — <em>&quot;Run SQL monitoring extensions on Kubernetes using Dynatrace Operator.&quot;</em></sub></p>
+</blockquote>
+<h3>Verify ActiveGate Connectivity</h3>
+<p>After deploying ActiveGates to the target tenant, verify they are reporting:</p>
+<pre><code class="language-dql">// Target tenant: verify ActiveGates are connected and reporting
+smartscapeNodes &quot;ACTIVEGATE&quot;
+| fields name, zone = dt.network_zone.id, group = dt.active_gate.group.name, version = dt.active_gate.version
+| sort name asc
+
+// ActiveGates are their own Smartscape node type. Do not look for them among hosts:
+// containerized ActiveGates are not hosts at all, and host-based ones are rarely named
+// after their role, so a host-name filter returns zero rows on a tenant with working AGs.
+</code></pre>
+<p><a id="kubernetes-operator-preparation"></a></p>
+<h2>5. Kubernetes Operator Preparation</h2>
+<p>For environments running Kubernetes, the Dynatrace Operator must be configured to report to the target tenant. This involves updating the DynaKube custom resource and Helm values.</p>
+<h3>Preparation Steps</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Generate new API token and PaaS token in target tenant</td>
+<td>Scopes: <code>activeGateTokenManagement.create</code>, <code>entities.read</code>, <code>DataExport</code>, <code>metrics.read</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>Create Kubernetes secret for target tenant</td>
+<td><code>kubectl create secret generic dynakube-target --from-literal=apiToken=&lt;token&gt; --from-literal=dataIngestToken=&lt;token&gt;</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Save the running source CR for rollback, then prepare the target CR</td>
+<td><code>kubectl get dynakube dynakube -n dynatrace -o yaml &gt; dynakube-source.yaml</code>. Do <strong>not</strong> apply the target CR yet — wait for Step 5</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Validate Helm chart version compatibility</td>
+<td>Target tenant cluster version must support the operator version</td>
+</tr>
+</tbody>
+</table>
+<h3>DynaKube CR Template (Target Tenant)</h3>
+<pre><code class="language-yaml">apiVersion: dynatrace.com/v1beta6
+kind: DynaKube
+metadata:
+  name: dynakube
+  namespace: dynatrace
+spec:
+  apiUrl: https://&lt;target-env-id&gt;.live.dynatrace.com/api
+  tokens: dynakube-target
+  oneAgent:
+    cloudNativeFullStack:
+      tolerations:
+        - effect: NoSchedule
+          operator: Exists
+  activeGate:
+    capabilities:
+      - routing
+      - kubernetes-monitoring
+      - dynatrace-api
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+      limits:
+        cpu: &quot;1&quot;
+        memory: 1Gi
+</code></pre>
+<h3>Helm Chart Preparation</h3>
+<pre><code class="language-bash"># Inspect the Operator chart in the OCI registry
+helm show chart oci://public.ecr.aws/dynatrace/dynatrace-operator --version &lt;operator-version&gt;
+
+# Dry-run to validate (do NOT install yet)
+helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator \
+  --version &lt;operator-version&gt; \
+  --namespace dynatrace \
+  --create-namespace \
+  --install \
+  --atomic \
+  --dry-run
+</code></pre>
+<blockquote>
+<p><strong>Do not apply the DynaKube CR yet.</strong> Applying it now would cause agents to start reporting to the target tenant before configuration is imported. Wait for Step 5. The Helm chart installs the Operator only — the tenant URL and tokens live in the DynaKube CR and its secret, not in Helm values.</p>
+</blockquote>
+<p><a id="configuration-freeze"></a></p>
+<h2>6. Configuration Freeze</h2>
+<p>A configuration freeze prevents drift between the exported configuration and the source tenant during the migration window. Changes made after the export but before import will be lost.</p>
+<h3>Freeze Scope</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Frozen?</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Settings changes</strong></td>
+<td>Yes</td>
+<td>No new alerting rules, detection rules, or dashboards</td>
+</tr>
+<tr>
+<td><strong>Management zone changes</strong></td>
+<td>Yes</td>
+<td>No new zones or rule modifications</td>
+</tr>
+<tr>
+<td><strong>Auto-tag rule changes</strong></td>
+<td>Yes</td>
+<td>No new tags or rule modifications</td>
+</tr>
+<tr>
+<td><strong>SLO changes</strong></td>
+<td>Yes</td>
+<td>No new SLOs or metric expression changes</td>
+</tr>
+<tr>
+<td><strong>OneAgent deployments</strong></td>
+<td>No</td>
+<td>New agent deployments continue (they auto-register)</td>
+</tr>
+<tr>
+<td><strong>Application deployments</strong></td>
+<td>No</td>
+<td>Normal CI/CD continues</td>
+</tr>
+<tr>
+<td><strong>detected event generation</strong></td>
+<td>No</td>
+<td>Monitoring remains fully active</td>
+</tr>
+</tbody>
+</table>
+<h3>Freeze Communication Template</h3>
+<p>Send to all Dynatrace users and stakeholders:</p>
+<pre><code>SUBJECT: Dynatrace Configuration Freeze — [DATE] to [DATE]
+
+A configuration freeze is in effect for the Dynatrace source tenant
+from [START DATE/TIME] to [END DATE/TIME].
+
+During this period:
+- Do NOT create or modify dashboards, SLOs, alerting rules, or settings
+- Do NOT create or modify management zones or auto-tag rules
+- Normal application deployments and monitoring continue as usual
+
+Reason: SaaS-to-SaaS migration in progress. Configuration will be
+imported to the target tenant and changes made after the export
+snapshot will not be migrated.
+
+Contact: [Migration Lead] for exceptions.
+</code></pre>
+<h3>Monitoring for Freeze Violations</h3>
+<p>Use the audit log to detect any configuration changes made during the freeze window:</p>
+<pre><code class="language-dql">// Source tenant: detect configuration changes during freeze window
+// Run this periodically during the freeze to catch violations
+// Data object corrected 09/24/2026. The Dynatrace audit trail is NOT in `logs`: the former
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)` matched nothing, or matched an
+// unrelated file-based audit log (a database .aud file on the validation tenant). Environment
+// audit records are structured events in `dt.system.events` with event.kind == &quot;AUDIT_EVENT&quot;.
+// Covers Settings 2.0 objects (alerting, detection rules, management zones, auto-tags, ...).
+// Token operations are a separate provider (API_TOKEN), so they are already excluded.
+// Review user.id &quot;UNKNOWN&quot; rows before treating them as violations: on the validation
+// tenant they were metric-metadata and extension-definition writes.
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;AUDIT_EVENT&quot; and event.provider == &quot;SETTINGS&quot;
+| filter in(event.type, {&quot;CREATE&quot;, &quot;UPDATE&quot;, &quot;DELETE&quot;})
+| filter user.id != &quot;system&quot;
+| summarize {changes = count(), last_change = takeMax(timestamp)}, by:{user.id, details.dt.settings.schema_id}
+| sort changes desc
+| limit 20
+</code></pre>
+<p><a id="rollback-procedure"></a></p>
+<h2>7. Rollback Procedure</h2>
+<p>Every migration must have a documented rollback procedure. Rollback is possible at any point during Steps 4–6 because the source tenant remains fully operational.</p>
+<h3>Rollback Decision Criteria</h3>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Severity</th>
+<th>Rollback?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Entity count &lt; 80% of baseline</td>
+<td>Critical</td>
+<td>Yes — agents not connecting</td>
+</tr>
+<tr>
+<td>No log data in target after 1 hour</td>
+<td>Critical</td>
+<td>Investigate first, rollback if unresolved in 2 hours</td>
+</tr>
+<tr>
+<td>detected problems in target tenant unrelated to migration</td>
+<td>Low</td>
+<td>No — expected during transition</td>
+</tr>
+<tr>
+<td>Dashboard shows no data</td>
+<td>Medium</td>
+<td>No — likely entity ID remapping issue (fixable)</td>
+</tr>
+<tr>
+<td>IAM users cannot log in</td>
+<td>Critical</td>
+<td>Yes — SSO misconfiguration</td>
+</tr>
+</tbody>
+</table>
+<h3>Rollback Steps</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+<th>Time Estimate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Re-run <code>oneagentctl</code> with the source server, tenant and tenant token (<code>--set-server</code>, <code>--set-tenant</code>, <code>--set-tenant-token</code>, <code>--restart-service</code>)</td>
+<td>15 min per wave</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Delete the target DynaKube and re-apply the source CR saved in Section 5 (<code>apiUrl</code> is immutable — it cannot be edited back)</td>
+<td>5 min + pod restart</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Verify agents reconnect to source tenant</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Lift configuration freeze on source tenant</td>
+<td>Immediate</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Notify stakeholders</td>
+<td>Immediate</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Post-mortem and re-plan</td>
+<td>Next business day</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Key principle:</strong> The source tenant is never decommissioned until the migration is fully validated (Step 9). Rollback is always possible by pointing agents back to the source tenant.</p>
+</blockquote>
+<p><a id="step-completion-checklist"></a></p>
+<h2>8. Step Completion Checklist</h2>
+<p>Before proceeding to Step 5 (Execute), verify all preparation tasks are complete:</p>
+<table>
+<thead>
+<tr>
+<th>Deliverable</th>
+<th>Status</th>
+<th>Owner</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Target tenant provisioned</strong></td>
+<td>☐</td>
+<td>Platform</td>
+<td>Environment active, Grail enabled</td>
+</tr>
+<tr>
+<td><strong>SSO configured and tested</strong></td>
+<td>☐</td>
+<td>Security / Platform</td>
+<td>At least two group memberships validated</td>
+</tr>
+<tr>
+<td><strong>IAM deployed (Terraform or <code>monaco account</code>)</strong></td>
+<td>☐</td>
+<td>Platform</td>
+<td>Groups, policies, bindings applied</td>
+</tr>
+<tr>
+<td><strong>Monaco export completed</strong></td>
+<td>☐</td>
+<td>Platform</td>
+<td>Full export validated with dry-run</td>
+</tr>
+<tr>
+<td><strong>Entity ID audit completed</strong></td>
+<td>☐</td>
+<td>Platform</td>
+<td>Hardcoded IDs identified and remapping plan ready</td>
+</tr>
+<tr>
+<td><strong>ActiveGates deployed</strong></td>
+<td>☐</td>
+<td>Platform / Infra</td>
+<td>All zones covered, connectivity validated</td>
+</tr>
+<tr>
+<td><strong>K8s operator prepared</strong></td>
+<td>☐</td>
+<td>Platform / K8s</td>
+<td>DynaKube CR ready, secrets created, Helm validated</td>
+</tr>
+<tr>
+<td><strong>Configuration freeze active</strong></td>
+<td>☐</td>
+<td>All</td>
+<td>Freeze communicated, monitoring for violations active</td>
+</tr>
+<tr>
+<td><strong>Rollback procedure documented</strong></td>
+<td>☐</td>
+<td>Platform</td>
+<td>Reviewed and approved by migration lead</td>
+</tr>
+<tr>
+<td><strong>Pre-migration baseline recorded</strong></td>
+<td>☐</td>
+<td>Platform</td>
+<td>Entity counts, bucket inventory captured</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Gate check:</strong> Do not proceed to Step 5 until all items are checked. Missing preparation creates compounding problems during execution.</p>
+</blockquote>
+<hr />
+<h2>Next Step</h2>
+<p>Continue to <strong>S2S-05: Step 5 — Execute: Configuration Import and Agent Cutover</strong> to import configuration and redirect agents to the target tenant.</p>
+<table>
+<thead>
+<tr>
+<th>Completed</th>
+<th>Next</th>
+<th>Remaining</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><s>1. Discover</s> → <s>2. Strategize</s> → <s>3. Design</s> → <s>4. Prepare</s></td>
+<td><strong>5. Execute</strong></td>
+<td>6. Integrate → 7. Expand → 8. Enable → 9. Optimize</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

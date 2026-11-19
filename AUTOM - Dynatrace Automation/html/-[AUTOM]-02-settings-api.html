@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AUTOM-02: Settings API</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">AUTOM — Dynatrace Automation</a><span class="sep">/</span><span aria-current="page">AUTOM-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>AUTOM-02: Settings API</h1>
+<blockquote>
+<p><strong>Series:</strong> AUTOM — Dynatrace Automation | <strong>Notebook:</strong> 2 of 9 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+</blockquote>
+<p>The Settings API (also called Settings 2.0) is Dynatrace's modern REST API for configuration management. It provides a unified way to manage all Dynatrace settings through JSON objects with schema validation.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#api-fundamentals">API Fundamentals</a></li>
+<li><a href="#working-with-settings-objects">Working with Settings Objects</a></li>
+<li><a href="#common-operations">Common Operations</a></li>
+<li><a href="#best-practices">Best Practices</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<p>Before starting this notebook, ensure you have:</p>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Token</td>
+<td>A platform token (or OAuth client) with <code>settings:objects:read</code> and <code>settings:objects:write</code> — or, on an environment that still has classic access tokens, an access token with <code>settings.read</code> and <code>settings.write</code> (see <a href="#api-fundamentals">Authentication</a>)</td>
+</tr>
+<tr>
+<td>Tenant URL</td>
+<td>Your Dynatrace SaaS tenant URL</td>
+</tr>
+<tr>
+<td>HTTP client</td>
+<td>curl, Postman, or similar tool</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ul>
+<li>Understand the Settings 2.0 API architecture</li>
+<li>Know how to read and write configuration objects</li>
+<li>Be able to list available schemas and their structure</li>
+<li>Handle common API patterns and error cases</li>
+</ul>
+<hr />
+<p><a id="introduction"></a></p>
+<h2>1. Introduction</h2>
+<h3>Settings API vs Classic Config API</h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Settings API (2.0)</th>
+<th>Classic Config API</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Format</td>
+<td>Unified JSON schemas</td>
+<td>Mixed endpoints</td>
+</tr>
+<tr>
+<td>Validation</td>
+<td>Schema-based</td>
+<td>Varies by endpoint</td>
+</tr>
+<tr>
+<td>New features</td>
+<td>All new features</td>
+<td>Legacy only</td>
+</tr>
+<tr>
+<td>Recommended</td>
+<td>Yes</td>
+<td>Deprecated for new configs</td>
+</tr>
+</tbody>
+</table>
+<h3>Key Concepts</h3>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Schema</strong></td>
+<td>Defines structure and validation rules for a config type</td>
+</tr>
+<tr>
+<td><strong>Object</strong></td>
+<td>An instance of configuration following a schema</td>
+</tr>
+<tr>
+<td><strong>Scope</strong></td>
+<td>Where the config applies (tenant, host, service, etc.)</td>
+</tr>
+<tr>
+<td><strong>Object ID</strong></td>
+<td>Unique identifier for a configuration object</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>Sprint 1.337 (April 2026) Updates</h3>
+<p><strong>Extensions credentials gained <code>EXTENSION_AUTHENTICATION</code> enum.</strong> The Credentials API (both Environment and Config) now supports an <code>EXTENSION_AUTHENTICATION</code> scope value. This enables extension-based authentication scenarios — for example, granting a stored credential the ability to authenticate Extensions API calls without expanding its broader scope.</p>
+<p><strong>Extensions Action endpoint signature change.</strong> <code>PUT /extensions/{extensionName}/monitoringConfigurations/{configurationId}/actions</code> now returns <code>agIds</code> (plural array) and deprecates the singular <code>agId</code> and <code>agName</code> properties. Update any code parsing the response to handle the array form.</p>
+<blockquote>
+<p><strong>Tokens:</strong> Plan Extensions automation around <strong>platform tokens (<code>dt0s16</code>)</strong> with <code>Authorization: Bearer …</code> rather than the classic <code>dt0c01</code> access token (<code>Authorization: Api-Token …</code>): classic access tokens don't exist once the environment is on Latest Dynatrace. (<code>dt0s01</code> is a different token — the account SCIM API token — not a platform token.) For the migration steps, see <a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic">Upgrade from classic access tokens to platform tokens (DT docs)</a>.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-337">Dynatrace API changelog 1.337 (DT docs)</a> — <code>/credentials</code> <em>&quot;Added enum value: EXTENSION_AUTHENTICATION&quot;</em>; <code>/extensions</code> <em>&quot;Added properties: agIds&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management-classic/access-tokens-and-oauth-clients/access-tokens">Access tokens — token prefixes (DT docs)</a> — <em>&quot;dt0s16 Platform Token enabling programmatic access to Dynatrace platform services.&quot;</em>; <em>&quot;dt0s01 This is an API token. It's used as an authorization method: a valid token allows the user to make changes within the Dynatrace account through SCIM.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic">Upgrade from classic access tokens to platform tokens (DT docs)</a> — <em>&quot;Replace Authorization: Api-Token <token> with Authorization: Bearer <platform-token> in every migrated integration.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="api-fundamentals"></a></p>
+<h2>2. API Fundamentals</h2>
+<h3>Base URL Pattern</h3>
+<pre><code>https://{tenant-id}.live.dynatrace.com/api/v2/settings
+</code></pre>
+<h3>Authentication</h3>
+<p>Two token types work with the Settings API, and which ones your environment has depends on where it is in the upgrade to Latest Dynatrace:</p>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Header</th>
+<th>Scopes</th>
+<th>Available in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Platform token</strong> (<code>dt0s16</code>) or OAuth client bearer token</td>
+<td><code>Authorization: Bearer &lt;token&gt;</code></td>
+<td><code>settings:objects:read</code>, <code>settings:objects:write</code></td>
+<td>Hybrid and Latest environments</td>
+</tr>
+<tr>
+<td><strong>Classic access token</strong> (<code>dt0c01</code>)</td>
+<td><code>Authorization: Api-Token &lt;token&gt;</code></td>
+<td><code>settings.read</code>, <code>settings.write</code></td>
+<td>Classic and hybrid environments only — not in Latest Dynatrace</td>
+</tr>
+</tbody>
+</table>
+<p>Start new automation with a platform token: it is the only option once the environment reaches Latest Dynatrace. The examples in this notebook use the platform-token header; on an environment that still has classic access tokens, the same calls work with the <code>Api-Token</code> header and the classic scopes:</p>
+<p><strong>Platform token:</strong></p>
+<pre><code class="language-bash">curl &quot;https://{tenant}.live.dynatrace.com/api/v2/settings/schemas&quot; \
+  -H &quot;Authorization: Bearer {platform-token}&quot;
+</code></pre>
+<p><strong>Classic access token</strong> (classic and hybrid environments only):</p>
+<pre><code class="language-bash">curl &quot;https://{tenant}.live.dynatrace.com/api/v2/settings/schemas&quot; \
+  -H &quot;Authorization: Api-Token {token}&quot;
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/objects/get-objects">Settings API - List objects (DT docs)</a> — <em>&quot;Platform Token / OAuth: Required scope: settings:objects:read&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/objects/post-object">Settings API - POST an object (DT docs)</a> — <em>&quot;Platform Token / OAuth: Required scope: settings:objects:write&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/basics/dynatrace-api-authentication">Dynatrace API authentication (DT docs)</a> — <em>&quot;Platform tokens use the Bearer realm in the Authorization HTTP header.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic">Upgrade from classic access tokens to platform tokens (DT docs)</a> — <em>&quot;platform tokens are available alongside classic access tokens&quot;</em> (hybrid); (latest environment) <em>&quot;Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<h3>The Platform Settings API</h3>
+<p>Dynatrace also documents a Settings API on the platform API surface, at <code>https://{your-environment-id}.apps.dynatrace.com/platform/settings/v1/…</code> (published 10/13/2026). It covers the same object life cycle — <em>&quot;create, update, list, and delete objects, and check effective values, history, and permissions&quot;</em> — and adds endpoints for an object's ownership and per-user and per-group permissions. It takes only platform tokens and OAuth clients: <em>&quot;Platform API endpoints use Platform token and OAuth client authentication.&quot;</em> Creating an object needs <code>settings:objects:write</code>.</p>
+<p>It is not a drop-in replacement for the <code>/api/v2/settings</code> calls in this notebook. <code>POST /platform/settings/v1/objects</code> takes <strong>one</strong> object per request, not a list, and its dry-run parameter is spelled <code>validate-only=true</code> rather than <code>validateOnly=true</code>. The examples here stay on the environment API v2 paths: their reference pages carry no deprecation notice (checked 11/11/2026), so moving existing automation is a choice rather than a deadline. A Dynatrace app should call the <code>@dynatrace-sdk/client-settings</code> SDK client rather than either REST API; the platform reference says <em>&quot;This REST reference is for external and automation use.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-settings-v1">Settings API (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-settings-v1/objects-post">Create a settings object (DT docs)</a> — <em>&quot;To execute this request, you need a platform token or OAuth access token with settings:objects:write scope.&quot;</em></sub></p>
+</blockquote>
+<h3>Core Endpoints</h3>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/v2/settings/schemas</code></td>
+<td>GET</td>
+<td>List available schemas</td>
+</tr>
+<tr>
+<td><code>/api/v2/settings/schemas/{schemaId}</code></td>
+<td>GET</td>
+<td>Get schema definition</td>
+</tr>
+<tr>
+<td><code>/api/v2/settings/objects</code></td>
+<td>GET</td>
+<td>List/search objects</td>
+</tr>
+<tr>
+<td><code>/api/v2/settings/objects</code></td>
+<td>POST</td>
+<td>Create objects</td>
+</tr>
+<tr>
+<td><code>/api/v2/settings/objects/{objectId}</code></td>
+<td>GET</td>
+<td>Get specific object</td>
+</tr>
+<tr>
+<td><code>/api/v2/settings/objects/{objectId}</code></td>
+<td>PUT</td>
+<td>Update object</td>
+</tr>
+<tr>
+<td><code>/api/v2/settings/objects/{objectId}</code></td>
+<td>DELETE</td>
+<td>Delete object</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>Listing Available Schemas</h3>
+<p>To see all available configuration types:</p>
+<pre><code class="language-bash">curl -X GET &quot;https://{tenant}.live.dynatrace.com/api/v2/settings/schemas&quot; \
+  -H &quot;Authorization: Bearer {platform-token}&quot; \
+  -H &quot;Accept: application/json&quot;
+</code></pre>
+<h3>Settings 2.0 Schema Catalog by Domain</h3>
+<p>This is the repo's consolidated Settings 2.0 schema catalog. <strong>Corrected 07/01/2026:</strong> the SLO row previously read <code>builtin:slo</code> — the actual schemaId, confirmed at the <code>dynatrace_slo_v2</code> Terraform resource docs, is <code>builtin:monitoring.slo</code>. That wrong value had propagated into the SLO series' own REFERENCE.md and SLO-05 before being fixed the same day; this table is now the single source other series should cite.</p>
+<h4>Reading the Upgrade status column</h4>
+<p>A schema being <strong>available today</strong> and a schema <strong>surviving your upgrade to the latest Dynatrace</strong> are two different questions, and several rows below answer them differently.</p>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>What it means</th>
+<th>Where it is answered</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Is it deprecated?</td>
+<td>Dynatrace has named a successor. An end-of-life date may or may not be published, and the schema keeps working meanwhile.</td>
+<td>Product documentation, release notes</td>
+</tr>
+<tr>
+<td>Is it blocked at upgrade?</td>
+<td>The schema stops answering once the tenant moves to the latest Dynatrace.</td>
+<td>The ready-made <em>Check your upgrade readiness</em> dashboard</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>Upgrade status</code> values below are read from that dashboard, observed <strong>07/31/2026</strong>, and cross-checked <strong>09/18/2026</strong> against the list Dynatrace now publishes: <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas">Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)</a> — <em>&quot;None of the schemas on this page are visible in Latest Dynatrace.&quot;</em> and <em>&quot;If you use configuration-as-code or other automations that reference these schemas by ID, you need to update these automations before the schemas are removed from your environment.&quot;</em> The published page is the authoritative list; the readiness dashboard remains the tenant-specific check. Blocking is triggered by <strong>your tenant's own upgrade</strong> rather than a calendar date, so the timing is yours; the scope is not. Re-check against the dashboard in your tenant before planning around any single row.</p>
+<p><strong>This matters most for config-as-code.</strong> Monaco resolves a schema before writing objects (<code>--settings-schema</code>), and the Terraform provider maps its resources onto the same schemas — so a <code>Blocked</code> row takes its Monaco config type and its Terraform resource with it. <code>/api/v2/settings/objects</code> itself is unaffected; it is the individual schema that goes away, not the endpoint.</p>
+<table>
+<thead>
+<tr>
+<th>Domain</th>
+<th>Schema ID</th>
+<th>Configuration type</th>
+<th>Upgrade status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Classic config</td>
+<td><code>builtin:management-zones</code></td>
+<td>Management zones (see MZ2POL for the policy-migration path)</td>
+<td><strong>Blocked</strong></td>
+</tr>
+<tr>
+<td>Classic config</td>
+<td><code>builtin:tags.auto-tagging</code></td>
+<td>Auto-tagging rules</td>
+<td><strong>Blocked</strong></td>
+</tr>
+<tr>
+<td>Classic config</td>
+<td><code>builtin:tags.manual-tagging</code></td>
+<td>Manual tagging</td>
+<td><strong>Blocked</strong></td>
+</tr>
+<tr>
+<td>Classic config</td>
+<td><code>builtin:naming.hosts</code> / <code>.services</code> / <code>.processes-and-containers</code></td>
+<td>Conditional naming rules</td>
+<td><strong>Blocked</strong></td>
+</tr>
+<tr>
+<td>Alerting</td>
+<td><code>builtin:alerting.profile</code></td>
+<td>Alerting profiles</td>
+<td><strong>Blocked</strong> — successor is workflow-based notification (WFLOW, ALERT-03)</td>
+</tr>
+<tr>
+<td>Alerting</td>
+<td><code>builtin:problem.notifications</code></td>
+<td>Problem notifications</td>
+<td><strong>Blocked</strong> — same successor</td>
+</tr>
+<tr>
+<td>Alerting</td>
+<td><code>builtin:alerting.maintenance-window</code></td>
+<td>Maintenance windows</td>
+<td><strong>Blocked</strong> — successor is platform maintenance windows</td>
+</tr>
+<tr>
+<td>Alerting</td>
+<td><code>builtin:anomaly-detection.infrastructure-hosts</code></td>
+<td>Host anomaly detection (there is no <code>builtin:anomaly-detection.hosts</code> schema)</td>
+<td>Carries forward — its <code>.high-gc</code> sub-schema is on the removed list</td>
+</tr>
+<tr>
+<td>Alerting</td>
+<td><code>builtin:anomaly-detection.services</code></td>
+<td>Service anomaly detection</td>
+<td>Carries forward</td>
+</tr>
+<tr>
+<td>Alerting</td>
+<td><code>builtin:anomaly-detection.metric-events</code></td>
+<td>Custom metric-event alerts (<code>dynatrace_metric_events</code> Terraform resource — not the singular, nonexistent <code>dynatrace_metric_event</code>)</td>
+<td><strong>Blocked</strong> — recreate as DQL-based detectors on <code>builtin:davis.anomaly-detectors</code></td>
+</tr>
+<tr>
+<td>Alerting</td>
+<td><code>builtin:anomaly-detection.infrastructure-disks</code></td>
+<td>Classic disk anomaly detection</td>
+<td><strong>Blocked</strong> — successor is the newer disk alerting</td>
+</tr>
+<tr>
+<td>Alerting</td>
+<td><code>builtin:davis.anomaly-detectors</code></td>
+<td>DQL-based anomaly detectors</td>
+<td>Carries forward — the Gen3 target for metric-event migrations</td>
+</tr>
+<tr>
+<td>SLO</td>
+<td><code>builtin:monitoring.slo</code></td>
+<td>Service level objectives — <strong>not</strong> <code>builtin:slo</code></td>
+<td><strong>Blocked</strong> — takes <code>dynatrace_slo_v2</code> and the Monaco path with it (SLO-05)</td>
+</tr>
+<tr>
+<td>Service</td>
+<td><code>builtin:settings.calculated-service-metrics</code></td>
+<td>Calculated service metrics</td>
+<td><strong>Blocked</strong> — replaced by the new calculated metrics for services (removed-schemas list: &quot;Replaced by calculated service metrics&quot;)</td>
+</tr>
+<tr>
+<td>Logs</td>
+<td><code>builtin:logmonitoring.log-custom-attributes</code> / <code>.log-dpp-rules</code> / <code>.log-buckets-rules</code> / <code>.log-events</code></td>
+<td>Classic log processing, attributes, buckets and events</td>
+<td><strong>Blocked</strong> — successor is OpenPipeline (OPMIG); do not point new automation at these</td>
+</tr>
+<tr>
+<td>Cloud</td>
+<td><code>builtin:cloud.aws</code></td>
+<td>Classic AWS connection</td>
+<td><strong>Blocked</strong> — recreate as a Cloud Observability connection (CLOUD-02)</td>
+</tr>
+<tr>
+<td>Cloud</td>
+<td><code>builtin:cloud.azure</code></td>
+<td>Classic Azure connection</td>
+<td><strong>Blocked</strong> — on the published removed-schemas list as <em>Azure</em>, Removed (checked 11/11/2026)</td>
+</tr>
+<tr>
+<td>Infrastructure</td>
+<td><code>builtin:os.services.monitoring</code></td>
+<td>Classic Windows services monitoring</td>
+<td><strong>Blocked</strong> — replaced by OS services monitoring</td>
+</tr>
+<tr>
+<td>Automation</td>
+<td><code>builtin:issue-tracking.integration</code></td>
+<td>Releases issue-tracking integrations</td>
+<td><strong>Blocked</strong> — flagged by the readiness dashboard (observed 07/31/2026) and on the published removed-schemas list as <em>Issue-tracking for releases</em>, Removed (checked 11/11/2026)</td>
+</tr>
+<tr>
+<td>Network</td>
+<td><code>builtin:networkzones.zones</code></td>
+<td>Network zones — replaces the deprecated <code>/api/v2/networkZones</code> Environment API endpoints (GET deprecated in 1.339, PUT/DELETE in 1.340); see M2S-03/04</td>
+<td><strong>Verify</strong> — the published removed-schemas list names <code>builtin:networkzones</code> (<em>Network zones</em>, Removed) and has no entry for <code>builtin:networkzones.zones</code> (checked 11/11/2026). The readiness dashboard's prefix match on <code>builtin:networkzones</code> sweeps <code>.zones</code> in with it, so confirm in your tenant before acting</td>
+</tr>
+<tr>
+<td>OpenPipeline</td>
+<td><code>builtin:openpipeline.&lt;scope&gt;.pipelines</code> / <code>.routing</code> / <code>.ingest-sources</code></td>
+<td>Per-data-type family, e.g. <code>builtin:openpipeline.logs.pipelines</code> — <strong>not</strong> a single generic schema; see OPIPE, OPMIG, SL2DT-03, NRLC-09</td>
+<td>Carries forward</td>
+</tr>
+<tr>
+<td>Service detection</td>
+<td><code>builtin:enhanced-endpoints-for-sdv1</code></td>
+<td>Service detection v1: auto-detect every endpoint and emit per-endpoint metrics (available from 1.330; on by default for environments created at 1.330+, and not configurable for those created at 1.333+; environments created at 1.329 or earlier get it at 1.333, off by default)</td>
+<td>Carries forward — but must be <strong>enabled</strong> on every scope; scopes with it disabled break on upgrade</td>
+</tr>
+</tbody>
+</table>
+<p><strong>This table is not exhaustive of what is blocked.</strong> The readiness dashboard carries roughly 70 <code>builtin:</code> schema rules; the rows above are the ones this repo teaches or that readers commonly automate. Run the scan against your own tenant rather than treating an absence here as a clean bill of health. For the full migration sequence these rows sit inside, see the <strong>Classic → Gen3 Platform</strong> doorway in the <code>-START-HERE-</code> navigation playbook.</p>
+<p><strong>Not everything is a Settings 2.0 object.</strong> <strong>FINOPS</strong> has no row above because no Settings 2.0 schema exists for it — cost/budget configuration is driven by the Account Management API. <strong>ONBRD</strong> is split: OneAgent/ActiveGate <em>installer download</em> is driven by the Deployment API's installer endpoints, not a Settings object, but update policy, update windows and the default monitoring mode <em>are</em> Settings 2.0 schemas — <code>builtin:deployment.oneagent.updates</code>, <code>builtin:deployment.activegate.updates</code>, <code>builtin:deployment.management.update-windows</code> and <code>builtin:deployment.oneagent.default-mode</code>. For cost configuration and installers, go to the API directly (see FINOPS/ONBRD REFERENCE.md for the specific endpoints).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas">Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)</a> — <em>&quot;None of the schemas on this page are visible in Latest Dynatrace.&quot;</em> Lists <code>builtin:issue-tracking.integration</code>, <code>builtin:cloud.azure</code> and <code>builtin:networkzones</code>; no entry for <code>builtin:networkzones.zones</code> (checked 11/11/2026)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-339">Dynatrace API changelog 1.339 (DT docs)</a> — <em>&quot;The /networkZones endpoints are deprecated. Use the Settings API endpoint /api/v2/settings/objects with schema builtin:networkzones.zones to list network zones.&quot;</em>; <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-340">1.340 (DT docs)</a> deprecates <code>PUT</code> / <code>DELETE /networkZones/{id}</code></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1">Enhanced endpoints for SDv1 (DT docs)</a> — feature-availability table by environment creation version</sub></li>
+<li><sub>Deployment schemas (DT docs): <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-deployment-oneagent-updates">OneAgent updates</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-deployment-activegate-updates">ActiveGate updates</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-deployment-management-update-windows">Update windows</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-deployment-oneagent-default-mode">OneAgent default mode</a></sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="working-with-settings-objects"></a></p>
+<h2>3. Working with Settings Objects</h2>
+<h3>Object Structure</h3>
+<p>Every settings object follows this structure:</p>
+<pre><code class="language-json">{
+  &quot;schemaId&quot;: &quot;builtin:management-zones&quot;,
+  &quot;scope&quot;: &quot;environment&quot;,
+  &quot;value&quot;: {
+    &quot;name&quot;: &quot;Production&quot;,
+    &quot;rules&quot;: [...]
+  }
+}
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>schemaId</code></td>
+<td>The schema this object follows</td>
+</tr>
+<tr>
+<td><code>scope</code></td>
+<td>Where the config applies</td>
+</tr>
+<tr>
+<td><code>value</code></td>
+<td>The actual configuration data</td>
+</tr>
+</tbody>
+</table>
+<h3>Scope Types</h3>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Format</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Environment (tenant)</td>
+<td><code>environment</code></td>
+<td><code>environment</code></td>
+</tr>
+<tr>
+<td>Host</td>
+<td><code>HOST-{id}</code></td>
+<td><code>HOST-ABC123DEF456</code></td>
+</tr>
+<tr>
+<td>Host group</td>
+<td><code>HOST_GROUP-{id}</code></td>
+<td><code>HOST_GROUP-XYZ789</code></td>
+</tr>
+<tr>
+<td>Service</td>
+<td><code>SERVICE-{id}</code></td>
+<td><code>SERVICE-DEF456ABC</code></td>
+</tr>
+<tr>
+<td>Application</td>
+<td><code>APPLICATION-{id}</code></td>
+<td><code>APPLICATION-123ABC</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>SaaS 1.349 (staged tenant rollout from 10/27/2026):</strong> host groups <em>&quot;must be addressed by their string-based identifier&quot;</em> (for example <code>mygroup</code>) instead of their <code>HOST_GROUP-…</code> entity ID, <em>&quot;on both the environment API and in IAM policies&quot;</em> (<a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-349">What's new in Dynatrace SaaS 1.349 (DT docs)</a>). Verify it has reached your tenant; until then the current guidance remains the working path.</p>
+</blockquote>
+<hr />
+<h3>Reading Objects</h3>
+<p>List all objects for a schema:</p>
+<pre><code class="language-bash">curl -X GET &quot;https://{tenant}.live.dynatrace.com/api/v2/settings/objects?schemaIds=builtin:management-zones&quot; \
+  -H &quot;Authorization: Bearer {platform-token}&quot;
+</code></pre>
+<p>Get a specific object:</p>
+<pre><code class="language-bash">curl -X GET &quot;https://{tenant}.live.dynatrace.com/api/v2/settings/objects/{objectId}&quot; \
+  -H &quot;Authorization: Bearer {platform-token}&quot;
+</code></pre>
+<h3>Query Parameters</h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>schemaIds</code></td>
+<td>Filter by schema(s)</td>
+<td><code>schemaIds=builtin:management-zones</code></td>
+</tr>
+<tr>
+<td><code>scopes</code></td>
+<td>Filter by scope(s)</td>
+<td><code>scopes=HOST-ABC123</code></td>
+</tr>
+<tr>
+<td><code>fields</code></td>
+<td>Select specific fields</td>
+<td><code>fields=objectId,value</code></td>
+</tr>
+<tr>
+<td><code>pageSize</code></td>
+<td>Results per page</td>
+<td><code>pageSize=100</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="common-operations"></a></p>
+<h2>4. Common Operations</h2>
+<blockquote>
+<p><strong>On the two examples below.</strong> Management zones and auto-tagging are used here because they are the clearest illustrations of the request shape — a named object with a rule list — and because most existing tenants already have them. Both schemas are marked <strong>Blocked</strong> in the catalog above: they work today and stop answering when the tenant upgrades to the latest Dynatrace. Read them as <em>API mechanics</em>, not as configuration to go and create. For the replacements, see MZ2POL (management zones → policies and segments) and FAQ entry 02 (tagging strategy).</p>
+</blockquote>
+<h3>Create a Management Zone</h3>
+<pre><code class="language-bash">curl -X POST &quot;https://{tenant}.live.dynatrace.com/api/v2/settings/objects?validateOnly=true&quot; \
+  -H &quot;Authorization: Bearer {platform-token}&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '[{
+    &quot;schemaId&quot;: &quot;builtin:management-zones&quot;,
+    &quot;scope&quot;: &quot;environment&quot;,
+    &quot;value&quot;: {
+      &quot;name&quot;: &quot;Production-Web&quot;,
+      &quot;rules&quot;: [{
+        &quot;enabled&quot;: true,
+        &quot;type&quot;: &quot;ME&quot;,
+        &quot;attributeRule&quot;: {
+          &quot;entityType&quot;: &quot;SERVICE&quot;,
+          &quot;serviceToHostPropagation&quot;: false,
+          &quot;serviceToPGPropagation&quot;: false,
+          &quot;conditions&quot;: [{
+            &quot;key&quot;: &quot;SERVICE_TAGS&quot;,
+            &quot;operator&quot;: &quot;TAG_KEY_EQUALS&quot;,
+            &quot;tag&quot;: &quot;environment&quot;
+          }]
+        }
+      }]
+    }
+  }]'
+</code></pre>
+<h3>Create an Auto-Tagging Rule</h3>
+<pre><code class="language-bash">curl -X POST &quot;https://{tenant}.live.dynatrace.com/api/v2/settings/objects?validateOnly=true&quot; \
+  -H &quot;Authorization: Bearer {platform-token}&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '[{
+    &quot;schemaId&quot;: &quot;builtin:tags.auto-tagging&quot;,
+    &quot;scope&quot;: &quot;environment&quot;,
+    &quot;value&quot;: {
+      &quot;name&quot;: &quot;Application&quot;,
+      &quot;rules&quot;: [{
+        &quot;enabled&quot;: true,
+        &quot;type&quot;: &quot;ME&quot;,
+        &quot;valueFormat&quot;: &quot;{Service:DetectedName}&quot;,
+        &quot;valueNormalization&quot;: &quot;Leave text as-is&quot;,
+        &quot;attributeRule&quot;: {
+          &quot;entityType&quot;: &quot;SERVICE&quot;,
+          &quot;serviceToHostPropagation&quot;: false,
+          &quot;serviceToPGPropagation&quot;: false,
+          &quot;conditions&quot;: [{
+            &quot;key&quot;: &quot;SERVICE_TAGS&quot;,
+            &quot;operator&quot;: &quot;TAG_KEY_EQUALS&quot;,
+            &quot;tag&quot;: &quot;environment&quot;
+          }]
+        }
+      }]
+    }
+  }]'
+</code></pre>
+<p><strong>How the rule payload is shaped.</strong> Each rule has a <code>type</code> — <code>ME</code>, <code>DIMENSION</code> or <code>SELECTOR</code> for management zones; <code>ME</code> or <code>SELECTOR</code> for auto-tagging — and an <code>ME</code> rule carries an <code>attributeRule</code> with the <code>entityType</code>, one to 30 <code>conditions</code>, and the propagation flags that apply to that entity type (<code>serviceToHostPropagation</code> / <code>serviceToPGPropagation</code> for <code>SERVICE</code>). Which fields a condition needs depends on its <code>key</code> and <code>operator</code>: a <code>*_TAGS</code> key with <code>TAG_KEY_EQUALS</code> takes the tag key in <code>tag</code>; a name key such as <code>SERVICE_NAME</code> takes <code>stringValue</code> and <code>caseSensitive</code> instead. The classic Configuration API shape — <code>key: {type, attribute}</code> plus <code>comparisonInfo</code> — is <strong>not</strong> accepted by these schemas.</p>
+<p><strong>Validate first.</strong> Both requests above carry <code>validateOnly=true</code>, so they run the full server-side validation without saving anything. Check each item's <code>code</code> in the response; when it is <code>200</code>, drop the parameter to create the object. Before writing a payload for any other schema, fetch its definition (<code>GET /api/v2/settings/schemas/&lt;schemaId&gt;</code>) — the schema version in your tenant is authoritative, and some fields are required only for particular entity types or operators.</p>
+<p>The request shape is identical for any schema that carries forward — swap the <code>schemaId</code> and the <code>value</code> block. <code>builtin:davis.anomaly-detectors</code> and the <code>builtin:openpipeline.&lt;scope&gt;.*</code> family are good next examples to try, and both survive the upgrade.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-management-zones">Management zones schema table (DT docs)</a> — rule <code>type</code> <em>&quot;The element has these enums ME DIMENSION SELECTOR&quot;</em>; condition <code>tag</code> <em>&quot;Format: [CONTEXT]tagKey:tagValue&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-tags-auto-tagging">Auto-tagging schema table (DT docs)</a> — rule <code>type</code> <em>&quot;The element has these enums ME SELECTOR&quot;</em></sub></li>
+<li><sub>Schema definitions vendored in the Terraform provider (Dynatrace GitHub): <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/dynatrace/api/builtin/managementzones/schema.json"><code>builtin:management-zones</code></a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/dynatrace/api/builtin/tags/autotagging/schema.json"><code>builtin:tags.auto-tagging</code></a> — <code>conditions</code> <code>minObjects</code> 1 / <code>maxObjects</code> 30; per-field preconditions on <code>key</code>, <code>operator</code> and <code>entityType</code>; <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/dynatrace/api/builtin/tags/autotagging/testcases/update-rules-set/create.tf">auto-tagging acceptance test</a> uses <code>TAG_KEY_EQUALS</code> with a bare tag key, read 10/02/2026</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/key-concepts">Settings API key concepts (DT docs)</a> — <em>&quot;Setting validateOnly=true runs the full server-side validation of the submitted objects without persisting anything.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<hr />
+<h3>Update an Object</h3>
+<pre><code class="language-bash">curl -X PUT &quot;https://{tenant}.live.dynatrace.com/api/v2/settings/objects/{objectId}&quot; \
+  -H &quot;Authorization: Bearer {platform-token}&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{
+    &quot;updateToken&quot;: &quot;{updateToken-from-your-last-GET}&quot;,
+    &quot;value&quot;: {
+      &quot;name&quot;: &quot;Production-Web-Updated&quot;,
+      &quot;rules&quot;: [...]
+    }
+  }'
+</code></pre>
+<p><code>updateToken</code> is optional but worth sending: it is returned on every read, and with it the update (or delete) only proceeds if nobody changed the object since you fetched it. Without it the change is applied unconditionally. The PUT reference notes that the read scope is required as well as the write scope.</p>
+<h3>Delete an Object</h3>
+<pre><code class="language-bash">curl -X DELETE &quot;https://{tenant}.live.dynatrace.com/api/v2/settings/objects/{objectId}&quot; \
+  -H &quot;Authorization: Bearer {platform-token}&quot;
+</code></pre>
+<h3>Bulk Operations</h3>
+<p>Create multiple objects in one request:</p>
+<pre><code class="language-bash">curl -X POST &quot;https://{tenant}.live.dynatrace.com/api/v2/settings/objects&quot; \
+  -H &quot;Authorization: Bearer {platform-token}&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '[
+    {&quot;schemaId&quot;: &quot;...&quot;, &quot;scope&quot;: &quot;...&quot;, &quot;value&quot;: {...}},
+    {&quot;schemaId&quot;: &quot;...&quot;, &quot;scope&quot;: &quot;...&quot;, &quot;value&quot;: {...}},
+    {&quot;schemaId&quot;: &quot;...&quot;, &quot;scope&quot;: &quot;...&quot;, &quot;value&quot;: {...}}
+  ]'
+</code></pre>
+<p>Each object in the batch is processed independently and gets its own status <code>code</code> in the response array — check every item rather than the top-level status. <strong>A partially failed batch is not rolled back:</strong> the items that succeeded stay created.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/key-concepts">Settings API key concepts (DT docs)</a> — <em>&quot;Including it on a subsequent update or delete means the operation only proceeds if the object hasn't changed since you last fetched it&quot;</em>; <em>&quot;A partially failed batch does not roll back successful items.&quot;</em> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/objects/put-object">Settings API - PUT an object (DT docs)</a> — <em>&quot;The settings.read scope is required as well.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<h3>Error Handling</h3>
+<p>Status codes for <code>POST /api/v2/settings/objects</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>200</td>
+<td>Success</td>
+<td>Every object in the request succeeded</td>
+</tr>
+<tr>
+<td>207</td>
+<td>Multi-status</td>
+<td>Objects in the batch got different results — check each item's <code>code</code></td>
+</tr>
+<tr>
+<td>400</td>
+<td>Schema validation failed</td>
+<td>Read the item's <code>constraintViolations</code>; fetch the schema definition</td>
+</tr>
+<tr>
+<td>401</td>
+<td>Unauthorized</td>
+<td>Verify the token and the header realm (<code>Bearer</code> vs <code>Api-Token</code>)</td>
+</tr>
+<tr>
+<td>403</td>
+<td>Forbidden</td>
+<td>Check the token scopes and, for a platform token, the user's permissions</td>
+</tr>
+<tr>
+<td>404</td>
+<td>Not Found</td>
+<td>Object or schema doesn't exist</td>
+</tr>
+<tr>
+<td>409</td>
+<td>Conflicting resource</td>
+<td>Re-read the current object and reconcile before retrying</td>
+</tr>
+<tr>
+<td>429</td>
+<td>Too many requests</td>
+<td>The environment's request queue is full — back off and retry</td>
+</tr>
+</tbody>
+</table>
+<h3>Validation Errors</h3>
+<p>The response is an <strong>array</strong> with one entry per submitted object, so errors are read per item:</p>
+<pre><code class="language-json">[
+  {
+    &quot;code&quot;: 400,
+    &quot;error&quot;: {
+      &quot;code&quot;: 400,
+      &quot;message&quot;: &quot;Constraints violated&quot;,
+      &quot;constraintViolations&quot;: [
+        {
+          &quot;path&quot;: &quot;&lt;property path&gt;&quot;,
+          &quot;message&quot;: &quot;...&quot;,
+          &quot;parameterLocation&quot;: &quot;PAYLOAD_BODY&quot;,
+          &quot;location&quot;: &quot;...&quot;
+        }
+      ]
+    }
+  }
+]
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/objects/post-object">Settings API - POST an object (DT docs)</a> — <em>&quot;207 Settings Object Response [] Multi-status: different objects in the payload resulted in different statuses.&quot;</em>; <em>&quot;409 Settings Object Response [] Failed. Conflicting resource.&quot;</em>; response elements <code>code</code>, <code>error</code>, <code>constraintViolations</code>, <code>parameterLocation</code>. <a href="https://docs.dynatrace.com/docs/dynatrace-api/basics/access-limit">Access limits (DT docs)</a> — <em>&quot;When you reach the limit, your requests return the response code 429.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<p><a id="best-practices"></a></p>
+<h2>5. Best Practices</h2>
+<h3>API Token Security</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Least privilege</td>
+<td>Only grant required scopes</td>
+</tr>
+<tr>
+<td>Environment-specific</td>
+<td>Separate tokens for dev/prod</td>
+</tr>
+<tr>
+<td>Secret management</td>
+<td>Use vaults, not hardcoded values</td>
+</tr>
+<tr>
+<td>Rotation</td>
+<td>Rotate tokens regularly</td>
+</tr>
+</tbody>
+</table>
+<h3>Rate Limiting</h3>
+<table>
+<thead>
+<tr>
+<th>Limit Type</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Request throttling</td>
+<td>No fixed per-minute quota is documented. Each environment has a request thread pool with a queue; when both are full the API returns <code>429</code></td>
+</tr>
+<tr>
+<td>Retry strategy</td>
+<td>Exponential backoff on 429 errors</td>
+</tr>
+<tr>
+<td>Payload size</td>
+<td>Keep each bulk <code>POST</code> under the 1 MB payload limit — split large batches</td>
+</tr>
+<tr>
+<td>Batch operations</td>
+<td>Use bulk endpoints where possible</td>
+</tr>
+</tbody>
+</table>
+<h3>Idempotency</h3>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>externalId</code> on create</td>
+<td>Give each object a stable, caller-defined <code>externalId</code>. A <code>POST</code> with an <code>externalId</code> that already exists on the target scope replaces that object instead of creating a duplicate — an upsert, safe to re-run</td>
+</tr>
+<tr>
+<td><code>updateToken</code> on update/delete</td>
+<td>Send the token from your last read so a concurrent change is rejected rather than overwritten</td>
+</tr>
+<tr>
+<td>Track object IDs</td>
+<td>Store the returned <code>objectId</code> (or look objects up later with the <code>externalIds</code> parameter)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/basics/access-limit">Access limits (DT docs)</a> — <em>&quot;Every environment has a limited thread pool (with a queue) for request processing.&quot;</em>; <em>&quot;The payload size is limited to 1 MB.&quot;</em> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/key-concepts">Settings API key concepts (DT docs)</a> — <em>&quot;if an object with the given externalId already exists on the target scope, the request replaces it rather than creating a duplicate.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<h3>Schema Discovery Pattern</h3>
+<p>Before creating objects, understand the schema:</p>
+<ol>
+<li><strong>List schemas</strong> to find the right one</li>
+<li><strong>Get schema definition</strong> for field requirements</li>
+<li><strong>Review existing objects</strong> for examples</li>
+<li><strong>Validate</strong> before bulk operations — <code>POST /api/v2/settings/objects?validateOnly=true</code> runs full validation without saving</li>
+</ol>
+<pre><code class="language-bash"># Step 1: Find the schema
+curl &quot;https://{tenant}.live.dynatrace.com/api/v2/settings/schemas&quot; \
+  -H &quot;Authorization: Bearer {platform-token}&quot; | jq '.items[] | select(.schemaId | contains(&quot;management&quot;))'
+
+# Step 2: Get schema details
+curl &quot;https://{tenant}.live.dynatrace.com/api/v2/settings/schemas/builtin:management-zones&quot; \
+  -H &quot;Authorization: Bearer {platform-token}&quot;
+
+# Step 3: See existing examples
+curl &quot;https://{tenant}.live.dynatrace.com/api/v2/settings/objects?schemaIds=builtin:management-zones&quot; \
+  -H &quot;Authorization: Bearer {platform-token}&quot;
+
+# Step 4: Dry-run the payload (nothing is saved)
+curl -X POST &quot;https://{tenant}.live.dynatrace.com/api/v2/settings/objects?validateOnly=true&quot; \
+  -H &quot;Authorization: Bearer {platform-token}&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d @payload.json
+</code></pre>
+<hr />
+<p><a id="next-steps"></a></p>
+<h2>6. Next Steps</h2>
+<h3>When to Graduate from Settings API</h3>
+<p>Consider moving to higher-level tools when:</p>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Recommended Tool</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Managing many configurations</td>
+<td>Monaco</td>
+</tr>
+<tr>
+<td>Need version control</td>
+<td>Monaco or Terraform</td>
+</tr>
+<tr>
+<td>Part of larger IaC pipeline</td>
+<td>Terraform</td>
+</tr>
+<tr>
+<td>Building a custom application</td>
+<td>SDK</td>
+</tr>
+</tbody>
+</table>
+<h3>Continue the Series</h3>
+<table>
+<thead>
+<tr>
+<th>Next Notebook</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AUTOM-03: Monaco</strong></td>
+<td>Configuration-as-code with YAML</td>
+</tr>
+</tbody>
+</table>
+<h3>Additional Resources</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings">Settings API Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/key-concepts">Settings API key concepts</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic">Upgrade from classic access tokens to platform tokens</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management-classic/access-tokens-and-oauth-clients/access-tokens">API Token Management</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas">Schema Reference</a></li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>The Settings 2.0 API architecture and endpoints</li>
+<li>How to work with schemas, scopes, and objects</li>
+<li>Common CRUD operations for configuration</li>
+<li>Best practices for API token security and rate limiting</li>
+</ul>
+<blockquote>
+<p><strong>Key Takeaway:</strong> The Settings API is the foundation for all Dynatrace configuration automation. Understanding it helps you debug issues with higher-level tools like Monaco and Terraform.</p>
+</blockquote>
+<hr />
+<p><em>Continue to <strong>AUTOM-03: Monaco</strong> to learn configuration-as-code patterns.</em></p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

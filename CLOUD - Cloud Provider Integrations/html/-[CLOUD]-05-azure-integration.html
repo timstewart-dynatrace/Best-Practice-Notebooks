@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLOUD-05: Azure Integration</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">CLOUD — Cloud Provider Integrations</a><span class="sep">/</span><span aria-current="page">CLOUD-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>CLOUD-05: Azure Integration</h1>
+<blockquote>
+<p><strong>Series:</strong> CLOUD — Cloud Provider Integrations | <strong>Notebook:</strong> 5 of 8 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook covers Dynatrace's integration with Microsoft Azure: the connection options and how they authenticate, which Azure services are covered and at what depth, how to query Azure resources and Azure Monitor metrics with DQL, how to forward Azure activity, Entra ID and resource logs into Grail, how to run Dynatrace on Azure Kubernetes Service (AKS), and how Azure's subscription and resource-group structure maps onto Dynatrace governance.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#azure-architecture">Azure Integration Architecture</a></li>
+<li><a href="#authentication">Authentication Setup</a></li>
+<li><a href="#supported-services">Supported Azure Services</a></li>
+<li><a href="#querying-entities">Querying Azure Resources</a></li>
+<li><a href="#azure-metrics">Azure Metrics with DQL</a></li>
+<li><a href="#azure-logs">Forwarding Azure Logs and Events</a></li>
+<li><a href="#aks-monitoring">AKS Monitoring</a></li>
+<li><a href="#resource-group-mapping">Subscription and Resource Group Governance</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail (the DQL cells do not run on Dynatrace Managed)</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:metrics:read</code>, <code>storage:smartscape:read</code>, <code>storage:entities:read</code>, <code>storage:logs:read</code>, <code>storage:buckets:read</code> to run the queries; <code>settings:objects:read</code> / <code>settings:objects:write</code> to manage connections</td>
+</tr>
+<tr>
+<td><strong>Azure</strong></td>
+<td>A subscription (or management group) where you can create an Entra ID app registration and assign roles</td>
+</tr>
+<tr>
+<td><strong>Connection</strong></td>
+<td>An Azure connection in the Clouds app (recommended), the Azure Native Dynatrace Service, or the classic Azure integration</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td>CLOUD-01 fundamentals; CLOUD-03 for the Kubernetes material in §7</td>
+</tr>
+</tbody>
+</table>
+<p><a id="azure-architecture"></a></p>
+<h2>1. Azure Integration Architecture</h2>
+<p>Dynatrace offers several integration paths for Azure. They are not alternatives to one another so much as answers to different questions — <em>what does Azure measure about my resources</em>, <em>what do my resources log</em>, and <em>what does my code do</em>.</p>
+<h3>Connection Methods</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Signal</th>
+<th>Mechanism</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Azure connection in the Clouds app</strong></td>
+<td>Resource metrics, topology, metadata</td>
+<td>Dynatrace SaaS calls Azure APIs directly with an Entra ID app registration — no ActiveGate to run</td>
+<td>Net-new Azure onboarding on SaaS</td>
+</tr>
+<tr>
+<td><strong>Azure Native Dynatrace Service</strong></td>
+<td>Metrics (optional), activity + resource logs, OneAgent management</td>
+<td>An Azure resource bought through Azure Marketplace; creates a system-managed identity and diagnostic settings for you</td>
+<td>Azure-first teams who want Azure-side billing and lifecycle</td>
+</tr>
+<tr>
+<td><strong>Classic Azure integration</strong></td>
+<td>Resource metrics</td>
+<td>Configured under Settings; an ActiveGate with the Azure module polls the Azure Monitor API every 5 minutes</td>
+<td>Existing classic configurations; Dynatrace Managed</td>
+</tr>
+<tr>
+<td><strong>Diagnostic settings → Event Hubs</strong></td>
+<td>Activity, Entra ID and resource <strong>logs</strong>, plus events</td>
+<td>Azure streams logs to regional Event Hubs; Dynatrace pulls from them (§6)</td>
+<td>Log ingestion — this is a log path, not a metrics path</td>
+</tr>
+<tr>
+<td><strong>OneAgent code-level tracing</strong></td>
+<td>Distributed traces</td>
+<td>OneAgent on the VM, App Service, or container auto-instruments Azure SDK calls made <strong>by your application processes</strong></td>
+<td>Seeing <em>which code path</em> called <em>which Azure service</em>, and what it cost</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Three signal classes.</strong> Rows 1–3 are <strong>resource-metric</strong> paths — they read what Azure Monitor already measures <em>about</em> an Azure resource. Row 4 is the <strong>log</strong> path. Row 5 is the <strong>code-level tracing</strong> path — your application's own calls <em>into</em> Azure services. Most Azure estates need all three; §3 draws the metric-vs-trace distinction in detail and §6 covers logs.</p>
+</blockquote>
+<h3>Azure Native Dynatrace Service</h3>
+<p>The Azure Native Dynatrace Service is an Azure resource that links an Azure subscription to a Dynatrace environment. Per Microsoft's documentation it provides:</p>
+<ul>
+<li><strong>Unified billing</strong> — Dynatrace is billed on the Azure invoice</li>
+<li><strong>Single sign-on</strong> to Dynatrace through Entra ID</li>
+<li><strong>Metrics collection</strong> — optional at creation; it creates a system-managed identity with the Monitoring Reader role</li>
+<li><strong>Log forwarding</strong> — subscription activity logs and Azure resource logs, scoped by include/exclude <strong>tag rules</strong>. Diagnostic settings are created on matching resources automatically and removed when a resource stops matching</li>
+<li><strong>OneAgent management</strong> on VMs, App Service, AKS and Azure Arc machines</li>
+</ul>
+<p>Constraints worth knowing before you choose it: <em>&quot;If there's a conflict between inclusion and exclusion rules, exclusion takes priority.&quot;</em> One set of tag rules applies to every linked subscription, and it adds a diagnostic setting to each matching resource — which counts against Azure's limit of five per resource (§6). Entra ID logs are <strong>not</strong> covered; they need Entra's own tenant-level diagnostic settings.</p>
+<h3>Data Flow</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImMwNS1hcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5BenVyZSBEYXRhIEZsb3c6IFRocmVlIFNpZ25hbCBDbGFzc2VzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPk1ldHJpY3MgYW5kIHRvcG9sb2d5IGFyZSBwb2xsZWQsIGxvZ3MgYXJlIHB1bGxlZCBmcm9tIEV2ZW50IEh1YnMsIHRyYWNlcyBjb21lIGZyb20gT25lQWdlbnQ8L3RleHQ+CiAgPHJlY3QgeD0iMzAiIHk9IjExMCIgd2lkdGg9Ijg3MCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiMxNDk2RkYiIGZpbGwtb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0OCIgeT0iMTM0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPk1ldHJpY3MgKyB0b3BvbG9neSAocG9sbGVkKTwvdGV4dD4KICA8cmVjdCB4PSI1MC4wIiB5PSIxNDgiIHdpZHRoPSIyMTAiIGhlaWdodD0iNDgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTU1LjAiIHk9IjE3Ni4wIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5BenVyZSByZXNvdXJjZXM8L3RleHQ+CiAgPGxpbmUgeDE9IjI2MC4wIiB5MT0iMTcyIiB4Mj0iMzYwLjAiIHkyPSIxNzIiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYzA1LWFycm93KSIvPgogIDxyZWN0IHg9IjM2MC4wIiB5PSIxNDgiIHdpZHRoPSIyMTAiIGhlaWdodD0iNDgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1LjAiIHk9IjE3Ni4wIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5BenVyZSBNb25pdG9yIEFQSTwvdGV4dD4KICA8bGluZSB4MT0iNTcwLjAiIHkxPSIxNzIiIHgyPSI2NzAuMCIgeTI9IjE3MiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNjMDUtYXJyb3cpIi8+CiAgPHJlY3QgeD0iNjcwLjAiIHk9IjE0OCIgd2lkdGg9IjIxMCIgaGVpZ2h0PSI0OCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI3NzUuMCIgeT0iMTc2LjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkR5bmF0cmFjZSBTYWFTPC90ZXh0PgogIDxyZWN0IHg9IjMwIiB5PSIyMzAiIHdpZHRoPSI4NzAiIGhlaWdodD0iMTAwIiBmaWxsPSIjMjJEM0VFIiBmaWxsLW9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDgiIHk9IjI1NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5Mb2dzIChwdWxsZWQpPC90ZXh0PgogIDxyZWN0IHg9IjUwLjAiIHk9IjI2OCIgd2lkdGg9IjE3NSIgaGVpZ2h0PSI0OCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSIxMzcuNSIgeT0iMjk2LjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkF6dXJlIHJlc291cmNlczwvdGV4dD4KICA8bGluZSB4MT0iMjI1LjAiIHkxPSIyOTIiIHgyPSIyNjguMzMzMzMzMzMzMzMzMyIgeTI9IjI5MiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNjMDUtYXJyb3cpIi8+CiAgPHJlY3QgeD0iMjY4LjMzMzMzMzMzMzMzMzM3IiB5PSIyNjgiIHdpZHRoPSIxNzUiIGhlaWdodD0iNDgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMzU1LjgzMzMzMzMzMzMzMzM3IiB5PSIyOTYuMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+RGlhZ25vc3RpYyBzZXR0aW5nczwvdGV4dD4KICA8bGluZSB4MT0iNDQzLjMzMzMzMzMzMzMzMzM3IiB5MT0iMjkyIiB4Mj0iNDg2LjY2NjY2NjY2NjY2NjciIHkyPSIyOTIiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYzA1LWFycm93KSIvPgogIDxyZWN0IHg9IjQ4Ni42NjY2NjY2NjY2NjY3IiB5PSIyNjgiIHdpZHRoPSIxNzUiIGhlaWdodD0iNDgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNTc0LjE2NjY2NjY2NjY2NjciIHk9IjI5Ni4wIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5SZWdpb25hbCBFdmVudCBIdWJzPC90ZXh0PgogIDxsaW5lIHgxPSI2NjEuNjY2NjY2NjY2NjY2NyIgeTE9IjI5MiIgeDI9IjcwNS4wMDAwMDAwMDAwMDAxIiB5Mj0iMjkyIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2MwNS1hcnJvdykiLz4KICA8cmVjdCB4PSI3MDUuMCIgeT0iMjY4IiB3aWR0aD0iMTc1IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc5Mi41IiB5PSIyOTYuMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+RHluYXRyYWNlPC90ZXh0PgogIDxyZWN0IHg9IjMwIiB5PSIzNTAiIHdpZHRoPSI4NzAiIGhlaWdodD0iMTAwIiBmaWxsPSIjQTc4QkZBIiBmaWxsLW9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDgiIHk9IjM3NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5UcmFjZXM8L3RleHQ+CiAgPHJlY3QgeD0iNTAuMCIgeT0iMzg4IiB3aWR0aD0iMjEwIiBoZWlnaHQ9IjQ4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjE1NS4wIiB5PSI0MTYuMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+WW91ciBjb2RlIG9uIEF6dXJlPC90ZXh0PgogIDxsaW5lIHgxPSIyNjAuMCIgeTE9IjQxMiIgeDI9IjM2MC4wIiB5Mj0iNDEyIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2MwNS1hcnJvdykiLz4KICA8cmVjdCB4PSIzNjAuMCIgeT0iMzg4IiB3aWR0aD0iMjEwIiBoZWlnaHQ9IjQ4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NS4wIiB5PSI0MTYuMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+T25lQWdlbnQ8L3RleHQ+CiAgPGxpbmUgeDE9IjU3MC4wIiB5MT0iNDEyIiB4Mj0iNjcwLjAiIHkyPSI0MTIiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYzA1LWFycm93KSIvPgogIDxyZWN0IHg9IjY3MC4wIiB5PSIzODgiIHdpZHRoPSIyMTAiIGhlaWdodD0iNDgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzc1LjAiIHk9IjQxNi4wIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5EeW5hdHJhY2U8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0NzYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPk1vc3QgQXp1cmUgZXN0YXRlcyBuZWVkIGFsbCB0aHJlZSDigJQgc2VlIHRoZSBDb25uZWN0aW9uIE1ldGhvZHMgdGFibGUgYWJvdmUgZm9yIHdoaWNoIGludGVncmF0aW9uIHByb3ZpZGVzIGVhY2guPC90ZXh0Pgo8L3N2Zz4K" alt="Azure data flow: three signal classes" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Signal | Flow | Mechanism |
+|--------|------|-----------|
+| Metrics + topology | Azure resources → Azure Monitor API → Dynatrace SaaS | Polled |
+| Logs | Azure resources → Diagnostic settings → regional Event Hubs → Dynatrace | Pulled |
+| Traces | Your code on Azure → OneAgent → Dynatrace | OneAgent |
+For environments where SVG doesn't render
+-->
+<h3>Clouds (Sovereign) and Regions</h3>
+<p>The Azure connection covers <strong>Azure public cloud</strong> only. Its <em>Limitations</em> list states: <em>&quot;Azure Government and Azure China sovereign clouds are not supported.&quot;</em> If you operate in a sovereign cloud, confirm the current position with Dynatrace before planning.</p>
+<p><strong>Region values are programmatic strings, not display names.</strong> Azure regions surface in Dynatrace as lowercase, no-space identifiers — <code>eastus</code>, <code>westeurope</code>, <code>southcentralus</code> — not <code>East US</code> / <code>West Europe</code>. Filters, tag rules, and segment conditions must match the programmatic form (standardized as of OneAgent 1.337). A condition written against the display name silently matches nothing rather than erroring.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/create-an-azure-connection">Create an Azure connection (DT docs)</a> — <em>&quot;Azure Government and Azure China sovereign clouds are not supported.&quot;</em> and <em>&quot;The new integration does not deploy or use ActiveGate compute resources inside your Azure subscription to poll telemetry&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services-classic/azure-native-integration">Azure Native Dynatrace Service (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services-classic/azure-integrations/azure-monitoring-guide">Azure monitoring guide — classic (DT docs)</a> — <em>&quot;At least one ActiveGate needs to be able to connect to Azure Monitor to perform the monitoring tasks.&quot;</em></sub></li>
+<li><sub><a href="https://learn.microsoft.com/en-us/azure/partner-solutions/dynatrace/manage">Manage the Azure Native Dynatrace Service (Microsoft Learn)</a> — <em>&quot;Diagnostics settings are automatically added to the subscription's resources that match the defined tag rules.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<h3>Release Radar (April 2026): the Clouds app extends to Microsoft Azure</h3>
+<p>The enhanced <strong>Clouds app</strong> experience — already available for AWS — now extends to <strong>Microsoft Azure</strong>, bringing Azure to parity. (The Release Radar entry says Dynatrace <em>&quot;extends&quot;</em> the experience; it does not use the lifecycle term <strong>GA</strong>, so neither does this entry.) For net-new Azure onboarding, this is the recommended path; the connection-mechanism table above still describes what runs underneath.</p>
+<p>What the native Azure experience adds:</p>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>What it gives you</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Unified resource view</strong></td>
+<td>Metrics, logs, metadata, and topology for Azure subscriptions in one place, alongside AWS</td>
+</tr>
+<tr>
+<td><strong>Opinionated insights &amp; dashboards</strong></td>
+<td>Pre-built dashboards and investigations over enriched Azure telemetry to shorten root-cause analysis</td>
+</tr>
+<tr>
+<td><strong>Pre-configured health alerts</strong></td>
+<td>Health alerts created and managed directly in the Clouds app, with drill-down, search, and filtering scoped to Azure resources</td>
+</tr>
+<tr>
+<td><strong>Broad metric coverage</strong></td>
+<td>Any Azure Monitor native platform metric across services, queryable through DQL</td>
+</tr>
+<tr>
+<td><strong>Topology inventory</strong></td>
+<td>Periodic scanning enriched with native metadata (tags, subscription IDs), fully queryable via DQL</td>
+</tr>
+<tr>
+<td><strong>Onboarding &amp; lifecycle management</strong></td>
+<td>Centralized provisioning that converts Azure subscriptions into native Dynatrace connections, reducing operational overhead</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Azure resource topology and metadata surface through the modern Smartscape model. Each Azure resource type becomes a Smartscape node type named after its ARM type — <code>microsoft.compute/virtualmachines</code> becomes <code>AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES</code>. §4 uses these node types as the primary inventory query; the classic <code>dt.entity.azure_*</code> types can under-count on Clouds-app connections.</p>
+</blockquote>
+<p><a id="authentication"></a></p>
+<h2>2. Authentication Setup</h2>
+<p>The Azure connection in the Clouds app authenticates with an Entra ID app registration. The Azure Native Dynatrace Service creates its own system-managed identity, so there is nothing to register.</p>
+<h3>Setup Steps</h3>
+<ol>
+<li><strong>Create the Azure connection in Dynatrace</strong> — it displays the issuer, subject and audience values the next step needs</li>
+<li><strong>Register an application</strong> in Entra ID and add a <strong>federated identity credential</strong> using those issuer, subject and audience values (or, where federation is not possible, a client secret)</li>
+<li><strong>Assign the Monitoring Reader role</strong> to the app's service principal at the subscription or management-group scope. When scoping to a management group, use its resource ID rather than its display name</li>
+<li><strong>Update the connection in Dynatrace</strong> with the Tenant ID and Client ID (plus the client secret, if you used one)</li>
+</ol>
+<h3>Required Azure Permissions</h3>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Role</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Subscription or Management Group</td>
+<td><strong>Monitoring Reader</strong></td>
+<td>The role the Azure connection docs assign to the service principal</td>
+</tr>
+<tr>
+<td>Subscription or Management Group</td>
+<td><strong>Reader</strong></td>
+<td>Classic (Settings / ActiveGate) Azure integration</td>
+</tr>
+</tbody>
+</table>
+<h3>Authentication Methods Comparison</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Rotation</th>
+<th>Recommended</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Federated identity credential</strong> (OIDC token exchange; Clouds app connection)</td>
+<td>None — no secret exists</td>
+<td><strong>Production (recommended)</strong></td>
+</tr>
+<tr>
+<td><strong>Client secret</strong></td>
+<td>Manual; keep expiry &lt; 12 months</td>
+<td>Only where federation is not possible</td>
+</tr>
+<tr>
+<td><strong>Managed identity</strong></td>
+<td>Automatic</td>
+<td>Classic ActiveGate running on an Azure VM only</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Best Practice:</strong> For a Clouds app connection, use a <strong>federated identity credential</strong> — there is no secret to rotate or leak. Managed identity is relevant only if you run the classic integration through an ActiveGate on an Azure VM.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/create-an-azure-connection/azure-connection-cli">Create an Azure connection via CLI (DT docs)</a> — <em>&quot;Federated identity credentials provide passwordless authentication and are more secure than client secrets.&quot;</em> The same page assigns the Monitoring Reader role and, for client secrets, notes that Microsoft recommends <em>&quot;an expiration duration of less than 12 months for enhanced security&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="supported-services"></a></p>
+<h2>3. Supported Azure Services</h2>
+<p>Dynatrace monitors 50+ Azure services. Key services:</p>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Services</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Compute</strong></td>
+<td>Virtual Machines, VM Scale Sets, App Service, Azure Functions, Container Instances</td>
+</tr>
+<tr>
+<td><strong>Containers</strong></td>
+<td>AKS (Azure Kubernetes Service), Container Apps</td>
+</tr>
+<tr>
+<td><strong>Database</strong></td>
+<td>SQL Database, Cosmos DB, Database for PostgreSQL/MySQL, Cache for Redis</td>
+</tr>
+<tr>
+<td><strong>Storage</strong></td>
+<td>Blob Storage, File Storage, Queue Storage, Data Lake</td>
+</tr>
+<tr>
+<td><strong>Networking</strong></td>
+<td>Load Balancer, Application Gateway, Front Door, Traffic Manager, VPN Gateway</td>
+</tr>
+<tr>
+<td><strong>Integration</strong></td>
+<td>Service Bus, Event Hub, Event Grid, Logic Apps, API Management</td>
+</tr>
+<tr>
+<td><strong>AI/ML</strong></td>
+<td>Cognitive Services, Machine Learning, OpenAI Service</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>What this table is — and is not.</strong> These are the services covered by <strong>Azure Monitor metrics</strong> ingestion: Dynatrace polls Azure Monitor and stores the resource-level metrics Azure publishes about each service. That is coverage <em>of the resource</em>, not of your code's interaction with it. For <strong>code-level visibility</strong> — which application call reached Service Bus, how long a Cosmos DB read took, which span failed and why — you need <strong>OneAgent</strong> on the process making the call (see §1's <em>OneAgent code-level tracing</em> row). The two are complementary: Azure Monitor tells you a resource is throttling; OneAgent tells you which service and code path is being throttled. Azure's own service list and Dynatrace's coverage both move; re-check the supported-services list against your tenant's Clouds app rather than treating the table above as exhaustive.</p>
+</blockquote>
+<h3>OneAgent Azure SDK Tracing (OneAgent 1.343)</h3>
+<p>Forthcoming / rolling out with <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343"><strong>OneAgent 1.343</strong></a>, released 07/28/2026. Rollout is <strong>per agent fleet, not per tenant</strong> — <strong>verify the OneAgent version on the hosts concerned</strong>. The tenant version is not the agent version, and fleets commonly lag by more than one sprint.</p>
+<table>
+<thead>
+<tr>
+<th>Azure service</th>
+<th>Automatic tracing added for</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Service Bus</strong></td>
+<td>Java (1.2.31+), Node.js, Python</td>
+<td>Covers both sending and receiving messages</td>
+</tr>
+<tr>
+<td><strong>Event Hub</strong></td>
+<td>Java (1.2.26+), Node.js</td>
+<td>Python is <strong>not</strong> part of this release</td>
+</tr>
+<tr>
+<td><strong>Cosmos DB</strong></td>
+<td>Python</td>
+<td>Adds to the runtimes already supported</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Azure Functions</strong> instrumentation widened in the same release:</p>
+<table>
+<thead>
+<tr>
+<th>Plan / OS</th>
+<th>Runtime</th>
+<th>Trigger types</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Flex Consumption Plan (Linux)</td>
+<td>Python</td>
+<td>HTTP/webhooks, Service Bus, Event Hubs, Timer, Blob Storage, Event Grid, Azure SQL</td>
+</tr>
+<tr>
+<td>Consumption / Premium / Dedicated (Windows)</td>
+<td>Java, Node.js</td>
+<td>HTTP/webhooks, Service Bus, Event Hubs, Timer</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Later OneAgent releases widen Azure Functions coverage further.</strong> Each rolls out per agent fleet, so check the OneAgent version on the Function, not the tenant version:</p>
+<table>
+<thead>
+<tr>
+<th>OneAgent</th>
+<th>Azure Functions coverage added</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1.345</strong> (rollout from 08/25/2026)</td>
+<td>Python triggers: Cosmos DB, Kafka, Queue storage, IoT Hub</td>
+</tr>
+<tr>
+<td><strong>1.347</strong> (rollout from 09/30/2026)</td>
+<td>Python on the <strong>Premium Plan for Linux</strong></td>
+</tr>
+<tr>
+<td><strong>1.349</strong> (rollout from 11/09/2026)</td>
+<td><strong>.NET</strong> on the <strong>Windows Premium and Consumption</strong> plans and the <strong>Linux Premium and Flex Consumption</strong> plans; an updated .NET implementation for the <strong>Dedicated</strong> plan. Java adds the Azure SQL, Cosmos DB and Redis triggers; Python adds the Model Context Protocol and IoT Hub triggers</td>
+</tr>
+</tbody>
+</table>
+<p>Until the deployed agent reaches the version that covers a plan and runtime, OpenTelemetry remains the working path for that Function (FAQ-03 walks through the decision). On the Azure SDK side, the same releases add Java Blob Storage clients and Node.js <code>@azure/cosmos</code> (1.347), and .NET Event Hub and Service Bus send and receive (1.349).</p>
+<blockquote>
+<p><strong>.NET in-process Functions are leaving support.</strong> The end-of-support list names <em>&quot;OneAgent Feature: Azure Functions .NET In-Process Model&quot;</em> with last supported OneAgent 1.351. Plan the move to the isolated worker model before the Function's agent goes past 1.351.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-345">OneAgent 1.345 release notes (DT docs)</a> — <em>&quot;Rollout start on Aug 25, 2026&quot;</em>; <em>&quot;We extend Python Azure Function support by adding new triggers: Cosmos DB, Kafka, Queue storage, and IoTHub.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-347">OneAgent 1.347 release notes (DT docs)</a> — <em>&quot;Rollout start on Sep 30, 2026&quot;</em>; <em>&quot;Extended instrumentation for Azure Function (tracing, log correlation) for Premium Plan for Linux for Python.&quot;</em>; <em>&quot;We now support automatic tracing of the Azure SDK Blob Storage Clients in Java applications.&quot;</em>; <em>&quot;Node.js applications that access Azure CosmosDB via @azure/cosmos package are now traced.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349">OneAgent 1.349 release notes (DT docs)</a> — <em>&quot;Rollout start on Nov 09, 2026&quot;</em>; <em>&quot;Windows Premium and Consumption plan.&quot;</em>, <em>&quot;Linux Premium and Flex Consumption plan.&quot;</em>, <em>&quot;The Dedicated plan has an updated implementation.&quot;</em>; <em>&quot;We have extended Java Azure Functions support with the Azure SQL trigger.&quot;</em>; <em>&quot;Java Azure Functions now has extended support with the following triggers: Cosmos DB, RedisPubSubTrigger, RedisListTrigger, and RedisStreamTrigger.&quot;</em>; <em>&quot;We have extended Python Azure Function support with the following triggers: Model Context Protocol and IoT Hub.&quot;</em>; <em>&quot;We now support automatic Event Hub and Service Bus tracing (sending and receiving messages) for the Azure SDK for .NET.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news">End-of-support news (DT docs)</a> — <em>&quot;OneAgent Feature: Azure Functions .NET In-Process Model&quot;</em>, under <em>2026-11-30 End of Support</em>, <em>&quot;Last supported OneAgent version: 1.351&quot;</em></sub></li>
+</ul>
+</blockquote>
+<blockquote>
+<p><strong>Re-baseline Cosmos DB request charges across this upgrade.</strong> OneAgent 1.343 corrected how <code>db.cosmosdb.request_charge</code> values are summarized on aggregated spans. Request-charge figures collected <strong>before</strong> 1.343 should be re-baselined rather than compared across the upgrade — a step change at the upgrade boundary is the correction landing, not a workload change.</p>
+</blockquote>
+<p><strong>On OneAgent 1.342 and earlier</strong>, the Azure Monitor resource metrics in the table above remain the only coverage for these services — the code-level spans are simply not produced.</p>
+<h3>Resource Type Mapping</h3>
+<table>
+<thead>
+<tr>
+<th>Azure Resource</th>
+<th>Smartscape node type (primary)</th>
+<th>Classic entity type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Virtual Machine</td>
+<td><code>AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES</code></td>
+<td><code>dt.entity.azure_vm</code></td>
+</tr>
+<tr>
+<td>Web App / Function App</td>
+<td><code>AZURE_MICROSOFT_WEB_SITES</code></td>
+<td><code>dt.entity.azure_web_app</code></td>
+</tr>
+<tr>
+<td>Cosmos DB account</td>
+<td><code>AZURE_MICROSOFT_DOCUMENTDB_DATABASEACCOUNTS</code></td>
+<td><code>dt.entity.azure_cosmos_db</code></td>
+</tr>
+<tr>
+<td>SQL Database</td>
+<td><code>AZURE_MICROSOFT_SQL_SERVERS_DATABASES</code></td>
+<td><code>dt.entity.azure_sql_database</code></td>
+</tr>
+<tr>
+<td>Load Balancer</td>
+<td><code>AZURE_MICROSOFT_NETWORK_LOADBALANCERS</code></td>
+<td><code>dt.entity.azure_load_balancer</code></td>
+</tr>
+<tr>
+<td>IoT Hub</td>
+<td><code>AZURE_MICROSOFT_DEVICES_IOTHUBS</code></td>
+<td><code>dt.entity.azure_iot_hub</code></td>
+</tr>
+</tbody>
+</table>
+<p>Every node type follows the documented naming rule (the ARM resource type, uppercased, with <code>.</code> and <code>/</code> replaced by <code>_</code>), and every row above is confirmed in the semantic dictionary. A node type that exists but has no resources in your subscriptions still returns <strong>zero rows, not an error</strong> — so an empty result tells you nothing about whether you typed the type correctly. Check the dictionary when in doubt:</p>
+<pre><code class="language-dql">fetch dt.semantic_dictionary.models
+| filter data_object == &quot;smartscape.nodes&quot;
+| filter startsWith(smartscape_node_type, &quot;AZURE_MICROSOFT_SQL&quot;)
+| fields smartscape_node_type, name
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/ingest-telemetry/azure-topology">Azure topology (DT docs)</a>. <strong>Dictionary:</strong> <code>dt.smartscape.azure_microsoft_compute_virtualmachines</code>, <code>…_web_sites</code>, <code>…_documentdb_databaseaccounts</code>, <code>…_sql_servers_databases</code>, <code>…_network_loadbalancers</code>, <code>…_devices_iothubs</code>, and classic <code>dt.entity.azure_vm</code> / <code>azure_web_app</code> / <code>azure_cosmos_db</code> / <code>azure_sql_database</code> / <code>azure_load_balancer</code> / <code>azure_iot_hub</code> — all present in <code>dt.semantic_dictionary.models</code>, read 09/25/2026.</sub></p>
+</blockquote>
+<p><a id="querying-entities"></a></p>
+<h2>4. Querying Azure Resources</h2>
+<p>Azure resources discovered by the Clouds app connection are Smartscape nodes, queried with <code>smartscapeNodes</code>. Every Azure node carries <code>azure.subscription</code>, <code>azure.resource.group</code> and <code>azure.location</code>. The classic <code>dt.entity.azure_*</code> types still work, but on Clouds-app connections they can under-count or return nothing for the same estate — on the validation tenant (09/24/2026) the classic types saw 1 Azure VM and 0 Web Apps where Smartscape saw 8 and 2.</p>
+<h3>List Azure Virtual Machines</h3>
+<pre><code class="language-dql">// Azure VMs as Smartscape nodes (primary inventory query)
+smartscapeNodes &quot;AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES&quot;
+| fields name, azure.subscription, azure.resource.group, azure.location
+| sort name asc
+| limit 20
+</code></pre>
+<p>The classic equivalent, for environments still on the classic integration. <code>dt.entity.*</code> is a look-back view: it returns only entities <em>seen</em> in the query window, so it needs an explicit <code>from:</code>.</p>
+<pre><code class="language-dql">// Classic: Azure VMs seen in the last 7 days
+fetch dt.entity.azure_vm, from:-7d
+| fields id, entity.name, tags
+| sort entity.name asc
+| limit 20
+</code></pre>
+<h3>Count Azure Resources by Type</h3>
+<pre><code class="language-dql">// Count Azure VMs, Web Apps and Cosmos DB accounts (Smartscape)
+smartscapeNodes &quot;AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES&quot;
+| summarize resource_count = count()
+| fieldsAdd resource_type = &quot;Virtual Machine&quot;
+| append [
+    smartscapeNodes &quot;AZURE_MICROSOFT_WEB_SITES&quot;
+    | summarize resource_count = count()
+    | fieldsAdd resource_type = &quot;Web App&quot;
+  ]
+| append [
+    smartscapeNodes &quot;AZURE_MICROSOFT_DOCUMENTDB_DATABASEACCOUNTS&quot;
+    | summarize resource_count = count()
+    | fieldsAdd resource_type = &quot;Cosmos DB account&quot;
+  ]
+| sort resource_count desc
+</code></pre>
+<h3>Azure Resources by Resource Group</h3>
+<p>Resource groups are the unit most Azure teams organize by, so they are the natural first cut for ownership and cost questions.</p>
+<pre><code class="language-dql">// Azure VMs per subscription and resource group
+smartscapeNodes &quot;AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES&quot;
+| summarize vm_count = count(), by:{azure.subscription, azure.resource.group}
+| sort vm_count desc
+| limit 20
+</code></pre>
+<h3>List Azure Web Apps</h3>
+<pre><code class="language-dql">// App Service and Function App sites (Smartscape); azure.resource.kind distinguishes app / functionapp / linux
+smartscapeNodes &quot;AZURE_MICROSOFT_WEB_SITES&quot;
+| fields name, azure.location, azure.resource.group, azure.resource.kind
+| sort name asc
+| limit 20
+</code></pre>
+<p><a id="azure-metrics"></a></p>
+<h2>5. Azure Metrics with DQL</h2>
+<p>Azure Monitor metrics are ingested into Dynatrace under the <code>cloud.azure.*</code> namespace. <strong>Which key you get depends on the connection:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Connection</th>
+<th>Key family</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>New Azure connection (Clouds app)</strong></td>
+<td><code>cloud.azure.&lt;namespace&gt;.&lt;MetricName&gt;</code> — the namespace is the ARM resource type, lowercased with the provider prefix collapsed; the metric name keeps Azure Monitor's casing. Every series carries <code>dt.da.source == &quot;azure-metric-poller&quot;</code></td>
+<td><code>cloud.azure.microsoft_storage.storageaccounts.Transactions</code></td>
+</tr>
+<tr>
+<td><strong>Classic connection — built-in services</strong></td>
+<td><code>builtin:cloud.azure.*</code> in Metrics Classic (<code>dt.cloud.azure.*</code> on Grail)</td>
+<td><code>builtin:cloud.azure.apiMgmt.capacity</code></td>
+</tr>
+<tr>
+<td><strong>Classic connection — cloud services</strong></td>
+<td><code>ext:cloud.azure.*</code>, all lowercase</td>
+<td><code>ext:cloud.azure.microsoft_storage.storageaccounts.transactions</code></td>
+</tr>
+</tbody>
+</table>
+<p>Three things follow when you write or migrate a query:</p>
+<ul>
+<li><strong>A few keys collide.</strong> A small number of new keys match their classic cloud-service equivalent apart from the <code>ext:</code> prefix, and the metric picker shows both under the same display name. Filter on <code>dt.da.source == &quot;azure-metric-poller&quot;</code> to isolate the new connection's series. On the validation tenant (11/11/2026) both forms of the Storage key arrived side by side — lowercase <code>…storageaccounts.transactions</code> with no <code>dt.da.source</code>, and <code>…storageaccounts.Transactions</code> from the poller.</li>
+<li><strong>Dimensions are lowercase on the new connection.</strong> The poller lowercases every dimension name, so query <code>shardid</code>, not <code>ShardId</code>.</li>
+<li><strong>Look up each rewrite in the mapping table.</strong> The Azure metric and entity mapping page lists, per resource type, the classic key and the new key for each metric.</li>
+</ul>
+<p>The cells below use the new connection's keys. To see which Azure namespaces a tenant is ingesting from the new connection:</p>
+<pre><code class="language-dql">metrics from:now()-9d
+| filter startsWith(metric.key, &quot;cloud.azure.&quot;) and dt.da.source == &quot;azure-metric-poller&quot;
+| fieldsAdd namespace = concat(splitString(metric.key, &quot;.&quot;)[2], &quot;.&quot;, splitString(metric.key, &quot;.&quot;)[3])
+| summarize keys = countDistinctExact(metric.key), by:{namespace}
+| sort keys desc
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/ingest-telemetry/azure-monitor-metrics">Azure metrics (DT docs)</a> — <em>&quot;Every metric ingested by this integration uses the same key shape and always carries dt.da.source == &quot;azure-metric-poller&quot;&quot;</em>; <em>&quot;<MetricName> is the metric name exactly as Azure Monitor defines it, including its casing&quot;</em>; <em>&quot;The Azure metric poller lowercases every dimension name before it reaches Grail.&quot;</em>; <em>&quot;a small number of metrics have a key identical to their classic cloud-service equivalent except for the ext: prefix that classic uses.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections">Upgrade from classic to new cloud connections (DT docs)</a> — <em>&quot;Metric keys have two different classic flavours, builtin:cloud.azure.</em> and ext:cloud.azure.<em>.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail">Built-in metrics on Grail (DT docs)</a> — the <code>builtin:</code> → <code>dt.</code> key renaming on Grail</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections/metric-and-entity-mapping-azure">Azure metric and entity mapping (DT docs)</a> — Microsoft.Storage/storageAccounts: classic <code>ext:cloud.azure.microsoft_storage.storageaccounts.transactions</code> → new <code>cloud.azure.microsoft_storage.storageaccounts.Transactions</code>; Microsoft.ApiManagement/service: classic <code>builtin:cloud.azure.apiMgmt.capacity</code> → new <code>cloud.azure.microsoft_apimanagement.service.Capacity</code></sub></li>
+<li><sub>Namespace query executed on the validation tenant 11/11/2026: 8 namespaces from <code>azure-metric-poller</code> (<code>microsoft_compute.virtualmachines</code> 14 keys, down to <code>microsoft_network.loadbalancers</code> 4).</sub></li>
+</ul>
+</blockquote>
+<h3>Azure VM CPU Usage</h3>
+<pre><code class="language-dql">// Azure VM CPU (Azure Monitor metric, via the Azure connection) — no OneAgent needed.
+//
+// Corrected 09/24/2026: this cell used dt.host.cpu.usage with no provider filter, which is the
+// OneAgent host metric for EVERY host (EC2, Azure and Kubernetes nodes alike) — not Azure VMs.
+timeseries cpu = avg(cloud.azure.microsoft_compute.virtualmachines.PercentageCPU), from:-6h, by:{azure.resource.name}
+| fieldsAdd avgCpuValue = arrayAvg(cpu)
+| sort avgCpuValue desc
+| limit 10
+</code></pre>
+<h3>Azure VM Available Memory</h3>
+<pre><code class="language-dql">// Azure VM available memory % (Azure Monitor metric), lowest first, over the last 6 hours.
+//
+// Corrected 09/24/2026: this cell used dt.host.memory.usage with no provider filter — the OneAgent
+// metric for every host, not an Azure VM metric.
+timeseries mem = avg(cloud.azure.microsoft_compute.virtualmachines.AvailableMemoryPercentage), from:-6h, by:{azure.resource.name}
+| fieldsAdd avgAvailableMemPct = arrayAvg(mem)
+| sort avgAvailableMemPct asc
+| limit 10
+</code></pre>
+<p><a id="azure-logs"></a></p>
+<h2>6. Forwarding Azure Logs and Events</h2>
+<p>Azure does not expose logs through an API that Dynatrace polls. Every Azure log path in this section starts with an Azure Monitor <strong>diagnostic setting</strong> that streams a resource's logs to a destination — for Dynatrace, an <strong>Event Hub</strong>. What differs between the options is who creates the diagnostic settings and what reads the Event Hub.</p>
+<h3>Three Ways to Get Azure Logs into Grail</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Who creates diagnostic settings</th>
+<th>What reads the Event Hub</th>
+<th>Choose when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace pull from Event Hubs</strong> (current docs path)</td>
+<td>You (ARM template deploys the Event Hubs; you add the diagnostic settings)</td>
+<td>Dynatrace SaaS — it discovers tagged Event Hubs namespaces and pulls from them; no function code to host</td>
+<td>Net-new log forwarding alongside a Clouds-app Azure connection</td>
+</tr>
+<tr>
+<td><strong>Azure Native Dynatrace Service</strong></td>
+<td>The service, from include/exclude tag rules</td>
+<td>The service</td>
+<td>You already use the Native service and want tag-driven, hands-off coverage</td>
+</tr>
+<tr>
+<td><strong><code>dynatrace-azure-log-forwarder</code></strong> (open source)</td>
+<td>You</td>
+<td>An Azure Function App you deploy per region, pushing to the Logs Ingest API with a <code>logs.ingest</code> token</td>
+<td>Existing deployments; environments that need the push model</td>
+</tr>
+</tbody>
+</table>
+<h3>What to Forward</h3>
+<table>
+<thead>
+<tr>
+<th>Log</th>
+<th>Where the diagnostic setting lives</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Activity log</strong> (management operations: create, delete, role changes)</td>
+<td>Subscription scope</td>
+<td>Global — any regional Event Hubs namespace can receive it</td>
+</tr>
+<tr>
+<td><strong>Microsoft Entra ID audit logs</strong> (sign-ins and directory audit)</td>
+<td>Entra tenant scope</td>
+<td>Tenant-scoped, not subscription-scoped — needs a tenant-level administrator. Sign-ins have a built-in OpenPipeline bundle, <em>Azure Entra ID Audit Logs</em> (FAQ-27 § 2.2)</td>
+</tr>
+<tr>
+<td><strong>Resource logs</strong> (per-service data-plane logs)</td>
+<td>On each resource</td>
+<td>The bulk of volume; choose categories deliberately</td>
+</tr>
+<tr>
+<td><strong>Events</strong> (Event Grid CloudEvents, Azure Monitor alerts)</td>
+<td>Event Grid / action groups</td>
+<td>Sent to a separate <code>dt-events-evh</code> hub, not the logs hub</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Microsoft 365 audit is not in this table.</strong> Exchange, SharePoint and OneDrive, Teams and DLP audit records live in Microsoft 365's unified audit log and are read from the Office 365 Management Activity API, not from an Azure diagnostic setting, so this route does not deliver them. <strong>FAQ-27</strong> covers that collector and how it pairs with the Entra ID row above: send Entra ID sign-ins through this route, and leave <code>Audit.AzureActiveDirectory</code> out of the collector so they are not collected twice. The <em>Microsoft 365, Office 365</em> Hub extension is not a substitute — it produces service-health and usage metrics, and <em>&quot;The extension uses audit logs to count O365 service users.&quot;</em></p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/microsoft-365-office-365">Microsoft 365, Office 365 extension (DT docs)</a>, <a href="https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference">Management Activity API reference (Microsoft Learn)</a>.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Logs that land only in a storage account.</strong> The Dynatrace Azure logs route reads Event Hubs, so a source that Azure writes only to a storage account is outside it. Virtual network flow logs are the common case: they are a Network Watcher feature rather than a diagnostic setting, and <em>&quot;Flow data from virtual network flow logs is sent to Azure Storage.&quot;</em> For such a source, the <code>azureblobpolling</code> receiver for the OpenTelemetry Collector can poll the container and forward the records to Dynatrace. It complements the Event Hubs route for sources that route cannot reach; it does not replace it. The receiver is maintained in the <code>dynatrace-bindplane-otel-contrib</code> repository, its stability is <strong>beta</strong>, and it ships only in the full Dynatrace Bindplane OTel Collector build — not the slim build and not the Dynatrace OTel Collector, whose support <em>&quot;covers only the components and their versions that are included in the Dynatrace OTel Collector.&quot;</em> Bindplane can manage it but is not required. Read at v1.2.0:</p>
+<ul>
+<li><strong>Set <code>enable_incremental_read: true</code>.</strong> It is off by default, and the default path reads each blob once, whole. Flow logs are <em>&quot;ingested into a block blob at one-minute intervals by appending blocks&quot;</em>, so records appended after that first read are never ingested. On the default path a failed blob read is only logged and the poll window still advances, so that blob is not retried. The README calls the flag temporary: it is meant to become the default.</li>
+<li><strong>Use <code>blob_format: records-json</code></strong> for Azure's <code>{&quot;records&quot;:[...]}</code> exports, so each array element becomes its own log record.</li>
+<li><strong>Connection string only.</strong> The receiver authenticates with the storage account's connection string; there is no managed-identity option.</li>
+<li><strong>Event time is not set.</strong> Records carry only the observed (collection) timestamp. If you need when the event happened, parse the record's <code>time</code> field, for example in OpenPipeline.</li>
+<li><strong>One collector per container or prefix.</strong> Progress is checkpointed in the collector's own <code>storage</code> extension and is not shared between collectors, so two instances reading the same blobs ingest them twice. Without a <code>storage</code> extension, a restart falls back to <code>initial_lookback</code>.</li>
+</ul>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/ingest-telemetry/azure-logs-and-events/azure-logs">Forward Azure logs (DT docs)</a> — <em>&quot;This page explains how to forward Azure logs to Dynatrace via Event Hubs.&quot;</em></sub></li>
+<li><sub><a href="https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview">Virtual network flow logs (Microsoft Learn)</a> — <em>&quot;Flow data from virtual network flow logs is sent to Azure Storage.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector">OpenTelemetry Collector (DT docs)</a> — <em>&quot;This support covers only the components and their versions that are included in the Dynatrace OTel Collector.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/azureblobpollingreceiver/README.md">azureblobpollingreceiver README (Dynatrace GitHub)</a> — <em>&quot;When it is off (the default), every format keeps the legacy behavior of parsing each blob whole on every poll and deduping by name, which loses records appended to a blob after it is first read.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/azureblobpollingreceiver/metadata.yaml">azureblobpollingreceiver metadata (Dynatrace GitHub)</a> — <em>&quot;beta: [metrics, logs, traces]&quot;</em></sub></li>
+<li><sub><a href="https://github.com/Dynatrace/dynatrace-bindplane-otel-collector/blob/v1.2.0/manifests/dynatrace-bindplane-otel-collector/manifest.yaml">DBDOT Collector manifest (Dynatrace GitHub)</a> — <em>&quot;receiver/azureblobpollingreceiver v1.2.0&quot;</em></sub></li>
+<li><sub><strong>Code read (10/29/2026):</strong> at tag <code>v1.2.0</code>, <code>config.go</code> leaves <code>enable_incremental_read</code> false by default (<code>factory.go</code> does not set it) and requires <code>connection_string</code>; <code>internal/azureblob/blob_client.go</code> builds its client only with <code>NewClientFromConnectionString</code>; on the default path a blob read error is logged (&quot;Error consuming blob&quot;, <code>receiver.go</code>) and <code>finalizePoll</code> still advances the poll time; the <code>internal/blobconsume</code> consumers set <code>ObservedTimestamp</code> and never <code>Timestamp</code>; the checkpoint is one key per receiver instance in its storage extension. Not run against an Azure storage account</sub></li>
+<li><sub><strong>Catalog observation (10/29/2026):</strong> no <code>azureblobpollingreceiver</code> entry in the slim DBDOT manifest or the Dynatrace OTel Collector manifest</sub></li>
+</ul>
+</blockquote>
+<h3>Setting Up the Dynatrace Pull Path</h3>
+<ol>
+<li><strong>Deploy the ARM template</strong> from the Azure logs page into each Azure region that hosts resources you want logs from. It creates an Event Hubs namespace with a <code>dt-logs-evh</code> hub (logs) and a <code>dt-events-evh</code> hub (events).</li>
+<li><strong>Leave the namespace tags in place.</strong> Dynatrace only connects to namespaces carrying its <code>managed-by</code> and <code>dt-log-ingest-activated</code> tags, and a namespace serves one Azure connection.</li>
+<li><strong>Make sure the Dynatrace service principal holds <em>Azure Event Hubs Data Receiver</em></strong> on every regional deployment — the Azure logs page describes which assignments the template makes and which an administrator must add per region.</li>
+<li><strong>Create diagnostic settings</strong> that stream to the regional namespace — activity log at the subscription, Entra ID at the tenant, resource logs on each resource.</li>
+</ol>
+<h3>Diagnostic Settings Rules That Shape the Design</h3>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>&quot;Each resource can have up to five diagnostic settings.&quot;</em></td>
+<td>Existing SIEM, Log Analytics and Native-service settings all compete for the five slots. Inventory them before adding one.</td>
+</tr>
+<tr>
+<td><em>&quot;For regional resources, the destination must be in the same region as the monitored resource (applies to Storage accounts and Event Hubs).&quot;</em></td>
+<td>One Event Hubs namespace <strong>per region</strong> — a single central hub cannot receive resource logs from other regions.</td>
+</tr>
+<tr>
+<td>Category groups: <code>allLogs</code> or <code>audit</code></td>
+<td>Once you choose a category group you cannot also pick individual categories in that setting.</td>
+</tr>
+<tr>
+<td><em>&quot;Diagnostic settings don't allow granular filtering within a selected category.&quot;</em></td>
+<td>Volume control happens by category choice at the source, then by OpenPipeline drop/filter rules in Dynatrace.</td>
+</tr>
+<tr>
+<td>Data can take up to 90 minutes to start flowing after a setting is created</td>
+<td>Do not conclude a setting is broken from an empty result in the first hour.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Azure-side cost.</strong> Event Hubs throughput units and, for some categories, the export itself are billed by Azure — independently of Dynatrace ingest. Check the <em>Costs to export</em> column for a category before enabling <code>allLogs</code> on high-volume services.</p>
+</blockquote>
+<h3>Find Azure Logs in Grail</h3>
+<p>Each forwarding path marks its records differently, and the documented marker is the only reliable filter:</p>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Documented filter</th>
+<th>Also written</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace pull from Event Hubs</strong></td>
+<td><code>dt.da.source == &quot;azure-log-ingest&quot;</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong><code>dynatrace-azure-log-forwarder</code></strong></td>
+<td><code>dt.openpipeline.source == &quot;/api/v2/logs/ingest&quot;</code> and <code>cloud.provider</code> = <code>&quot;Azure&quot;</code></td>
+<td><code>cloud.log_forwarder</code>, <code>azure.resource.id</code>, <code>azure.resource.type</code>, <code>azure.resource.group</code>, <code>azure.subscription</code>; <code>log.source</code> such as <code>Activity Log - Administrative</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Do not filter on <code>cloud.provider == &quot;azure&quot;</code> alone.</strong> OneAgent stamps <code>cloud.provider</code> and <code>azure.resource.id</code> on every log it ships from an Azure host — including every AKS node. On a live tenant on 09/25/2026 that filter matched <strong>206,565</strong> records in 24 hours, <strong>all</strong> of them OneAgent host and container logs, and <strong>not one</strong> Azure resource or activity log. A dashboard built on it reports healthy Azure log ingest when none exists.</p>
+</blockquote>
+<pre><code class="language-dql">// Azure platform logs (activity, Entra ID, resource logs) by path, source and resource type.
+// The two path markers are the documented ones. Do NOT use `cloud.provider == &quot;azure&quot;` alone:
+// OneAgent stamps it on every host and container log from Azure VMs and AKS nodes.
+fetch logs, from:-1h
+| filter dt.da.source == &quot;azure-log-ingest&quot;
+    or (dt.openpipeline.source == &quot;/api/v2/logs/ingest&quot; and lower(cloud.provider) == &quot;azure&quot;)
+| summarize log_count = count(), by:{dt.da.source, log.source, azure.resource.type}
+| sort log_count desc
+| limit 20
+</code></pre>
+<p>If this returns nothing, work through the causes in order before concluding that no logs arrived: diagnostic settings created less than 90 minutes ago; an Event Hubs namespace in a different region from the resource; a missing <em>Event Hubs Data Receiver</em> role; the query window (widen to <code>from:-24h</code>); and finally the marker — inspect one record from your log source with <code>fetch logs, from:-1h | filter contains(content, &quot;&lt;your resource name&gt;&quot;) | limit 1</code> and read its <code>dt.da.source</code>, <code>dt.openpipeline.source</code> and <code>cloud.log_forwarder</code> values.</p>
+<h3>AKS Control-Plane Logs</h3>
+<p>AKS control-plane components (<code>kube-apiserver</code>, <code>kube-audit</code>, <code>kube-audit-admin</code>, <code>kube-controller-manager</code>, <code>kube-scheduler</code>, <code>cluster-autoscaler</code>, <code>guard</code>, and others) are exposed <strong>only</strong> as resource logs of the AKS cluster resource, so they reach Dynatrace through this same diagnostic-settings path. Microsoft's cost warning applies directly:</p>
+<blockquote>
+<p><em>&quot;You can incur substantial cost when you collect resource logs for AKS, particularly for <em>kube-audit</em> logs.&quot;</em> Microsoft recommends enabling <code>kube-audit-admin</code>, <em>&quot;which excludes the <code>get</code> and <code>list</code> audit events.&quot;</em></p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/ingest-telemetry/azure-logs-and-events">Azure logs and events (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/ingest-telemetry/azure-logs-and-events/azure-logs">Forward Azure logs (DT docs)</a> — <em>&quot;Use the dt.da.source attribute to filter for logs ingested through the Azure logs ingest pipeline.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services-classic/azure-integrations/set-up-log-forwarder-azure">Set up the Azure log forwarder (DT docs)</a> — <em>&quot;If you already have multiple integrations, you can additionally use the values cloud.log_forwarder and dt.auth.origin to further refine your filters.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/dynatrace-oss/dynatrace-azure-log-forwarder">dynatrace-azure-log-forwarder (Dynatrace GitHub)</a></sub></li>
+<li><sub><strong>Dictionary:</strong> <code>dt.da.source</code> (<code>experimental</code>), <code>dt.openpipeline.source</code> (<code>experimental</code>), <code>log.source</code> (<code>stable</code>), <code>cloud.provider</code> (<code>stable</code>), <code>azure.resource.id</code> (<code>experimental</code>), read 09/25/2026.</sub></li>
+<li><sub><a href="https://learn.microsoft.com/en-us/azure/azure-monitor/data-collection/diagnostic-settings">Diagnostic settings in Azure Monitor (Microsoft Learn)</a> — <em>&quot;Each resource can have up to five diagnostic settings.&quot;</em></sub></li>
+<li><sub><a href="https://learn.microsoft.com/en-us/azure/aks/monitor-aks">Monitor AKS (Microsoft Learn)</a> — <em>&quot;You can incur substantial cost when you collect resource logs for AKS, particularly for <em>kube-audit</em> logs.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="aks-monitoring"></a></p>
+<h2>7. AKS Monitoring</h2>
+<p>Azure Kubernetes Service (AKS) runs the same Dynatrace Operator and DynaKube custom resource as EKS (CLOUD-03) and GKE (CLOUD-06). What is Azure-specific is how you install it, which node types it can cover, and which AKS guardrails it has to pass.</p>
+<h3>Installing the Operator on AKS</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>What it is</th>
+<th>Trade-off</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AKS Marketplace extension</strong></td>
+<td>Installs Dynatrace Operator and a DynaKube as an AKS cluster extension (<code>az k8s-extension create … --cluster-type managedClusters</code>)</td>
+<td>Quickest; the extension's DynaKube is not fully customizable (for example, extra tolerations)</td>
+</tr>
+<tr>
+<td><strong>Helm chart + DynaKube manifest</strong></td>
+<td>The standard Operator install</td>
+<td>Full control of the DynaKube; fits GitOps (K8S series)</td>
+</tr>
+<tr>
+<td><strong>Azure Native Dynatrace Service</strong></td>
+<td>OneAgent management for AKS from the Azure portal</td>
+<td>Convenient when the Native service is already your integration</td>
+</tr>
+</tbody>
+</table>
+<p>Write new DynaKube manifests against <strong><code>dynatrace.com/v1beta6</code></strong>. The Operator CRD marks <code>v1beta5</code> as deprecated: <em>&quot;This dynakube API version is deprecated and will be removed in a future operator version.&quot;</em></p>
+<h3>What Can Be Monitored Where</h3>
+<table>
+<thead>
+<tr>
+<th>AKS node type</th>
+<th>Dynatrace coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Linux node pools — Ubuntu or Azure Linux</strong></td>
+<td>Full coverage (<code>cloudNativeFullStack</code>, <code>applicationMonitoring</code>, <code>hostMonitoring</code>); Azure Linux is a supported container host</td>
+</tr>
+<tr>
+<td><strong>Windows Server node pools</strong></td>
+<td>Not supported: Dynatrace's technology-support matrix lists AKS with the footnote <em>&quot;Windows Pods and Nodes unsupported.&quot;</em> The one documented exception is manual <strong>pod runtime injection</strong> of the .NET code module into Windows containers — application-only, outside the Operator, and it <em>&quot;may not fully link Kubernetes workloads with monitored containers/processes&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Virtual nodes (ACI)</strong></td>
+<td>No host agent: Microsoft states <em>&quot;DaemonSets won't deploy pods to the virtual nodes.&quot;</em> Host-level and cloud-native full-stack coverage cannot reach pods scheduled there</td>
+</tr>
+</tbody>
+</table>
+<h3>AKS Guardrails That Affect the Operator</h3>
+<p><strong>AKS Automatic and Deployment Safeguards.</strong> On AKS Automatic, <em>&quot;Deployment Safeguards and baseline Pod Security Standards are enabled by default in <code>Enforce</code> mode. You can exclude namespaces, but you can't switch the cluster-wide safeguard level to <code>Warn</code>.&quot;</em> The baseline standard rejects host namespaces (<code>hostNetwork</code>, <code>hostPID</code>), privileged containers and added capabilities — and the Operator's OneAgent DaemonSet runs with <code>HostNetwork</code>, <code>HostPID</code> and capabilities such as <code>SYS_ADMIN</code>. Exclude the <code>dynatrace</code> namespace from Deployment Safeguards before you install, and verify that injected application pods are admitted in a non-production cluster first.</p>
+<p><strong>Network.</strong> The Operator's webhook listens on TCP 8443, and the Kubernetes API server must be able to reach it for injection to work — check this path on private clusters and clusters with restrictive network policies. Operator components also need outbound HTTPS (443) to your Dynatrace environment.</p>
+<p><strong>Kubenet retirement.</strong> Kubenet (legacy) <em>&quot;Retires on March 31, 2028&quot;</em> — Microsoft directs migration to Azure CNI Overlay. A node-pool network migration recreates nodes, so plan it alongside an Operator upgrade window rather than as a separate outage.</p>
+<h3>AKS vs EKS at a Glance</h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>AKS</th>
+<th>EKS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Operator install</strong></td>
+<td>AKS Marketplace extension or Helm</td>
+<td>Helm (see CLOUD-03)</td>
+</tr>
+<tr>
+<td><strong>Windows nodes</strong></td>
+<td>Unsupported (technology-support matrix)</td>
+<td>Not stated on the technology-support matrix — verify for your Operator version</td>
+</tr>
+<tr>
+<td><strong>Serverless pods</strong></td>
+<td>Virtual nodes (ACI) — no DaemonSet</td>
+<td>Fargate — no DaemonSet</td>
+</tr>
+<tr>
+<td><strong>Policy guardrails</strong></td>
+<td>Deployment Safeguards (enforced on AKS Automatic)</td>
+<td>Pod Security admission (configurable)</td>
+</tr>
+<tr>
+<td><strong>Control-plane logs</strong></td>
+<td>Resource logs via diagnostic settings (§6)</td>
+<td>CloudWatch control-plane logging (CLOUD-07)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Control-plane metrics stay in Azure.</strong> Microsoft states <em>&quot;The control plane metrics feature supports only the managed service for Prometheus in Azure Monitor.&quot;</em> Dynatrace's in-cluster data comes from the Kubernetes API (via the ActiveGate <code>kubernetes-monitoring</code> capability) and the node agents; for API-server behaviour inside Dynatrace, forward the control-plane resource logs described in §6.</p>
+</blockquote>
+<h3>Namespace Resource Usage</h3>
+<p>These queries use the Kubernetes metrics the Operator produces. Replace <code>&lt;your-aks-cluster&gt;</code> with your cluster's name to scope them to one AKS cluster — without the filter they span every monitored cluster, on any cloud.</p>
+<pre><code class="language-dql">// Namespace CPU on one AKS cluster: SUM of container CPU per namespace
+// (avg would report the per-container mean, not what the namespace consumes)
+// rollup: avg averages each container WITHIN a time bucket before summing across containers;
+// without it, widening the timeframe to 24h (10-min buckets) inflates the result ~10x.
+timeseries nsCpu = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-1h,
+    by:{k8s.namespace.name},
+    filter:{k8s.cluster.name == &quot;&lt;your-aks-cluster&gt;&quot;}
+| fieldsAdd avgCpu = arrayAvg(nsCpu)
+| sort avgCpu desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Namespace memory (working set) on one AKS cluster, in MiB
+timeseries nsMem = sum(dt.kubernetes.container.memory_working_set, rollup: avg), from:-1h,
+    by:{k8s.namespace.name},
+    filter:{k8s.cluster.name == &quot;&lt;your-aks-cluster&gt;&quot;}
+| fieldsAdd avgMemMiB = arrayAvg(nsMem) / 1048576.0
+| sort avgMemMiB desc
+| limit 10
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/marketplaces/aks-dto">Dynatrace Operator on the AKS Marketplace (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/technology-support">Technology support — Microsoft Azure (DT docs)</a> — <em>&quot;Windows Pods and Nodes unsupported.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/other/pod-runtime">Pod runtime injection (DT docs)</a> — <em>&quot;This option refers to .NET applications in Windows containers.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/supported-technologies">Kubernetes supported distributions (DT docs)</a></sub></li>
+<li><sub><a href="https://www.dynatrace.com/news/blog/dynatrace-adds-monitoring-support-for-microsoft-aks-deployments/">Azure Linux container host support (Dynatrace blog)</a></sub></li>
+<li><sub><a href="https://github.com/Dynatrace/dynatrace-operator/blob/main/config/crd/bases/dynatrace.com_dynakubes.yaml">DynaKube CRD (Dynatrace GitHub)</a> — <em>&quot;This dynakube API version is deprecated and will be removed in a future operator version.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/Dynatrace/dynatrace-operator/blob/main/doc/network.md">Operator network requirements (Dynatrace GitHub)</a></sub></li>
+<li><sub><a href="https://learn.microsoft.com/en-us/azure/aks/virtual-nodes">Virtual nodes (Microsoft Learn)</a> — <em>&quot;DaemonSets won't deploy pods to the virtual nodes.&quot;</em></sub></li>
+<li><sub><a href="https://learn.microsoft.com/en-us/azure/aks/deployment-safeguards">Deployment Safeguards (Microsoft Learn)</a> — <em>&quot;Host network namespaces are disallowed&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/security">Dynatrace Operator security (DT docs)</a> — OneAgent DaemonSet policy settings: <em>&quot;Allows HostNetwork&quot;</em>, HostPID, and capabilities including <code>SYS_ADMIN</code></sub></li>
+<li><sub><a href="https://learn.microsoft.com/en-us/azure/aks/concepts-network-cni-overview">CNI overview (Microsoft Learn)</a> — <em>&quot;Retires on March 31, 2028&quot;</em></sub></li>
+<li><sub><a href="https://learn.microsoft.com/en-us/azure/aks/control-plane-metrics-monitor">Control plane metrics (Microsoft Learn)</a> — <em>&quot;The control plane metrics feature supports only the managed service for Prometheus in Azure Monitor.&quot;</em></sub></li>
+<li><sub><strong>Derived:</strong> excluding the <code>dynatrace</code> namespace follows from the baseline host-namespace and capability rules (Deployment Safeguards) combined with the OneAgent DaemonSet's policy settings (Operator security).</sub></li>
+</ul>
+</blockquote>
+<p><a id="resource-group-mapping"></a></p>
+<h2>8. Subscription and Resource Group Governance</h2>
+<p>Azure organizes resources as management groups → subscriptions → resource groups, with tags across all of them. Dynatrace carries this structure as fields on the data (<code>azure.subscription</code>, <code>azure.resource.group</code>, <code>azure.location</code>, plus your Azure tags), so governance is a matter of using those fields in the right Dynatrace construct.</p>
+<h3>Mapping Strategy</h3>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Dynatrace construct</th>
+<th>Azure field it keys on</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Who may see this data?</strong></td>
+<td>IAM policies (with bucket permissions or a security context)</td>
+<td>Subscription or resource group</td>
+</tr>
+<tr>
+<td><strong>What does this team look at by default?</strong></td>
+<td>Segments</td>
+<td>Resource group, subscription, tags</td>
+</tr>
+<tr>
+<td><strong>Who gets paged?</strong></td>
+<td>Problem-triggered workflows</td>
+<td>Ownership tags (<code>owner</code>), resource group</td>
+</tr>
+<tr>
+<td><strong>Who pays?</strong></td>
+<td>Cost allocation fields</td>
+<td>Subscription, <code>cost-center</code> tag</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Segments filter; they do not restrict access.</strong> <em>&quot;Regardless of configured visibility, any segment can be accessed with storage:filter-segments:read permission.&quot;</em> A segment per resource group is a good default <em>view</em>; it is not an access boundary. Management Zones and alerting profiles are the classic equivalents of segments/IAM and workflows respectively.</p>
+</blockquote>
+<h3>Best Practices</h3>
+<ul>
+<li><strong>Enforce Azure tags at the source</strong> (Azure Policy) — <code>environment</code>, <code>team</code>/<code>owner</code>, <code>cost-center</code> — so they arrive on every resource and log</li>
+<li><strong>Build segments on <code>azure.resource.group</code> and <code>azure.subscription</code></strong> for scoped views</li>
+<li><strong>Grant access with IAM policies</strong>, not segments; keep regulated subscriptions' logs in their own bucket if access must be enforced at storage</li>
+<li><strong>Route problems with workflows</strong> keyed on ownership tags, not on resource-group names alone — resource groups are renamed less often than teams change, but ownership is what routing needs</li>
+<li><strong>Use naming conventions</strong> that encode application, environment and region: <code>rg-myapp-prod-eastus</code></li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-visibility">Visibility of segments (DT docs)</a> — <em>&quot;Regardless of configured visibility, any segment can be accessed with storage:filter-segments:read permission.&quot;</em></sub></p>
+</blockquote>
+<h3>Tagging this producer — primary Grail tags</h3>
+<p>Azure follows the AWS pattern in CLOUD-02: an <strong>Azure tag</strong> rule at subscription scope forwards the tag as <code>azure.tags.&lt;key&gt;</code> (or writes <code>dt.security_context</code> / cost fields directly), and an OpenPipeline primary Grail tag rule promotes it with two sources — <code>azure.tags.&lt;key&gt;</code> for telemetry and <code>`tags:azure`[&lt;key&gt;]</code> for Azure Smartscape nodes — under an <code>isNull(primary_tags.&lt;key&gt;)</code> condition. <code>azure.subscription</code> and <code>azure.resource.group</code> are set automatically and need no rule.</p>
+<ul>
+<li><strong>OneAgent on Azure VMs</strong> needs a host-group <strong>Host/Process property</strong> rule (OneAgent 1.343+), the same as EC2: <em>&quot;Azure VMs follow the same pattern.&quot;</em> — with <code>azure.tags.&lt;key&gt;</code> as source.</li>
+<li><strong>Azure Functions</strong> take <code>DT_TAGS</code>, like Lambda (CLOUD-04).</li>
+<li><strong>Availability.</strong> The Azure page no longer describes central configuration as expected; it now lists it as the recommended option: <em>&quot;Promote Azure tags with central configuration&quot;</em>. Confirm the <em>Azure tag</em> rule type exists in your tenant's Ingest enrichment configuration before relying on it.</li>
+</ul>
+<blockquote>
+<p><strong>OneAgent 1.349 (rollout from 11/09/2026) — breaking change for the Host/Process property route.</strong> The <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349">OneAgent 1.349 release notes (DT docs)</a> say: <em>&quot;In the Host/process property rules dropdown, the aws.tags and azure.tags based rules will temporarily no longer work as sources or in conditions for injected processes. Full cloud tags support, which brings that functionality back, is planned for a future release.&quot;</em> OneAgent updates roll out over weeks, so check the version your hosts run before relying on this route for data from injected processes; on OneAgent versions before 1.349 the route described above remains the working path.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-azure">Enrich Azure telemetry with primary Grail fields and tags (DT docs)</a> — <em>&quot;Promote Azure tags with central configuration&quot;</em>, <a href="https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws">Apply primary Grail tags across an example AWS estate (DT docs)</a> — <em>&quot;Azure VMs follow the same pattern.&quot;</em></sub></p>
+</blockquote>
+<p><a id="summary"></a></p>
+<h2>9. Summary and Next Steps</h2>
+<h3>Key Takeaways</h3>
+<ul>
+<li><strong>Onboard with an Azure connection in the Clouds app</strong>: Entra ID app registration, <strong>Monitoring Reader</strong>, and a <strong>federated identity credential</strong> — no secret to rotate, no ActiveGate to run</li>
+<li><strong>The Azure Native Dynatrace Service</strong> trades control for convenience: Azure billing, SSO, tag-rule-driven log forwarding and OneAgent management</li>
+<li><strong>Query Azure resources as Smartscape nodes</strong> (<code>AZURE_MICROSOFT_*</code>); the classic <code>dt.entity.azure_*</code> types can under-count on Clouds-app connections</li>
+<li><strong>Logs travel through diagnostic settings to regional Event Hubs</strong> — one namespace per region, five settings per resource, and category choice is your first volume control</li>
+<li><strong>AKS</strong> runs the standard Operator (<code>v1beta6</code> DynaKube); Windows node pools and virtual nodes are outside host-level coverage, and AKS Automatic needs the <code>dynatrace</code> namespace excluded from Deployment Safeguards</li>
+<li><strong>Govern with IAM policies for access and segments for views</strong>, keyed on <code>azure.subscription</code> and <code>azure.resource.group</code></li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li><strong>CLOUD-06: GCP Integration</strong> — Google Cloud monitoring setup</li>
+<li><strong>CLOUD-07: CloudWatch Log Ingestion</strong> — the AWS counterpart to §6</li>
+<li><strong>CLOUD-08: Multi-Cloud Patterns</strong> — unified monitoring across Azure and other providers</li>
+<li><strong>K8S series</strong> — DynaKube configuration in depth</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

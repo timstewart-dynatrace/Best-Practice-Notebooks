@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MOBL-09: Session Properties &amp; Data Privacy</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MOBL — Mobile Monitoring</a><span class="sep">/</span><span aria-current="page">MOBL-09</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MOBL-09: Session Properties &amp; Data Privacy</h1>
+<blockquote>
+<p><strong>Series:</strong> MOBL — Mobile Monitoring | <strong>Notebook:</strong> 9 of 12 | <strong>Created:</strong> February 2026 | <strong>Last Updated:</strong> 10/29/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook covers how to enrich mobile sessions with custom session properties, implement user tagging for session identification, configure data collection levels to control what telemetry the SDK captures, and ensure compliance with GDPR and CCPA privacy regulations. Session properties and privacy controls are two sides of the same coin -- properties make your data actionable, while privacy controls ensure you collect only what you're permitted to.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#custom-session-properties">Custom Session Properties</a></li>
+<li><a href="#user-tagging">User Tagging</a></li>
+<li><a href="#data-collection-levels">Data Collection Levels</a></li>
+<li><a href="#opt-in-mode">Opt-In Mode</a></li>
+<li><a href="#privacy-compliance">Privacy Compliance (GDPR/CCPA)</a></li>
+<li><a href="#querying-session-properties">Querying with Session Properties</a></li>
+<li><a href="#data-retention">Data Retention</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:user.sessions:read</code>, <code>storage:user.events:read</code>; <code>user.identifier</code> is in the sensitive fieldset <code>builtin-sensitive-user-events-and-sessions</code>, so reading user tags also needs a grant for that fieldset</td>
+</tr>
+<tr>
+<td><strong>Mobile App</strong></td>
+<td>At least one mobile app with Dynatrace SDK integrated</td>
+</tr>
+<tr>
+<td><strong>SDK Version</strong></td>
+<td>iOS Agent 8.x+ or Android Agent 8.x+</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td>Basic understanding of GDPR/CCPA privacy regulations</td>
+</tr>
+<tr>
+<td><strong>Recommended</strong></td>
+<td>Complete MOBL-01 through MOBL-08 first</td>
+</tr>
+</tbody>
+</table>
+<p><a id="custom-session-properties"></a></p>
+<h2>1. Custom Session Properties</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzUwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icHVycGxlR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2MzY2ZjE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzRmNDZlNTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJsdWVHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE0OTZmZjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMGE2NGJjO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZ3JlZW5HcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIyYzU1ZTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTZhMzRhO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmx1ZUdyYWRMaWdodCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkYmVhZmU7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2JmZGJmZTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJzaGFkb3ciPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIxIiBkeT0iMSIgc3RkRGV2aWF0aW9uPSIyIiBmbG9vZC1vcGFjaXR5PSIwLjE1Ii8+CiAgICA8L2ZpbHRlcj4KICAgIDxtYXJrZXIgaWQ9ImFycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iMzUwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0MDAiIHk9IjI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TZXNzaW9uIFByb3BlcnRpZXMgQXJjaGl0ZWN0dXJlPC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PT09PT09PT09PSBMZWZ0OiBNb2JpbGUgQXBwIChwdXJwbGUpID09PT09PT09PT09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSIzMCIgeT0iNjAiIHdpZHRoPSIxNDAiIGhlaWdodD0iOTAiIHJ4PSIxMCIgZmlsbD0idXJsKCNwdXJwbGVHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIxMDAiIHk9Ijk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TW9iaWxlIEFwcDwvdGV4dD4KICA8dGV4dCB4PSIxMDAiIHk9IjExNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuODUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EeW5hdHJhY2UgU0RLPC90ZXh0PgogIDx0ZXh0IHg9IjEwMCIgeT0iMTMwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnJlcG9ydFZhbHVlKCk8L3RleHQ+CgogIDwhLS0gQXJyb3cgZnJvbSBNb2JpbGUgQXBwIHRvIFVzZXIgU2Vzc2lvbiAtLT4KICA8cGF0aCBkPSJNMTcwLDEwNSBMMjI4LDEwNSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CgogIDwhLS0gPT09PT09PT09PT09PT09PT09PT09IENlbnRlcjogVXNlciBTZXNzaW9uIChsYXJnZSBibHVlIGJveCkgPT09PT09PT09PT09PT09PT09PT09IC0tPgogIDxyZWN0IHg9IjIzNSIgeT0iNDgiIHdpZHRoPSIzMDAiIGhlaWdodD0iMTcwIiByeD0iMTIiIGZpbGw9InVybCgjYmx1ZUdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjM4NSIgeT0iNzIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Vc2VyIFNlc3Npb248L3RleHQ+CgogIDwhLS0gSW5uZXIgcHJvcGVydHkgY2FyZHMgLS0+CiAgPHJlY3QgeD0iMjUyIiB5PSI4MiIgd2lkdGg9IjEyOCIgaGVpZ2h0PSIyNCIgcng9IjUiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4yKSIvPgogIDx0ZXh0IHg9IjMxNiIgeT0iOTgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNlc3Npb24gSUQ8L3RleHQ+CgogIDxyZWN0IHg9IjM5MCIgeT0iODIiIHdpZHRoPSIxMjgiIGhlaWdodD0iMjQiIHJ4PSI1IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMikiLz4KICA8dGV4dCB4PSI0NTQiIHk9Ijk4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Vc2VyIFRhZzwvdGV4dD4KCiAgPCEtLSBDdXN0b20gUHJvcGVydGllcyBzZWN0aW9uIC0tPgogIDxyZWN0IHg9IjI1MiIgeT0iMTE1IiB3aWR0aD0iMjY2IiBoZWlnaHQ9IjkwIiByeD0iNiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjE1KSIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMykiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjM4NSIgeT0iMTMyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q3VzdG9tIFByb3BlcnRpZXM8L3RleHQ+CgogIDxyZWN0IHg9IjI2MiIgeT0iMTQwIiB3aWR0aD0iMjQ2IiBoZWlnaHQ9IjE4IiByeD0iNCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjEyKSIvPgogIDx0ZXh0IHg9IjM4NSIgeT0iMTUzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+c3Vic2NyaXB0aW9uX3RpZXIgPSAicHJlbWl1bSI8L3RleHQ+CgogIDxyZWN0IHg9IjI2MiIgeT0iMTYyIiB3aWR0aD0iMjQ2IiBoZWlnaHQ9IjE4IiByeD0iNCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjEyKSIvPgogIDx0ZXh0IHg9IjM4NSIgeT0iMTc1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Y2FydF92YWx1ZSA9IDE0OS45OTwvdGV4dD4KCiAgPHJlY3QgeD0iMjYyIiB5PSIxODQiIHdpZHRoPSIyNDYiIGhlaWdodD0iMTgiIHJ4PSI0IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMTIpIi8+CiAgPHRleHQgeD0iMzg1IiB5PSIxOTciIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5hYl90ZXN0X3ZhcmlhbnQgPSAiY2hlY2tvdXRfdjIiPC90ZXh0PgoKICA8IS0tIEFycm93IGZyb20gVXNlciBTZXNzaW9uIHRvIEdyYWlsIC0tPgogIDxwYXRoIGQ9Ik01MzUsMTMwIEw1OTgsMTMwIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KCiAgPCEtLSA9PT09PT09PT09PT09PT09PT09PT0gUmlnaHQ6IEdyYWlsIChncmVlbikgPT09PT09PT09PT09PT09PT09PT09IC0tPgogIDxyZWN0IHg9IjYwNSIgeT0iNjAiIHdpZHRoPSIxNjAiIGhlaWdodD0iOTAiIHJ4PSIxMCIgZmlsbD0idXJsKCNncmVlbkdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjY4NSIgeT0iOTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5HcmFpbDwvdGV4dD4KICA8dGV4dCB4PSI2ODUiIHk9IjExNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuODUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5RdWVyeWFibGUgU3RvcmFnZTwvdGV4dD4KICA8dGV4dCB4PSI2ODUiIHk9IjEzMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuODUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EUUwgQWNjZXNzPC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PT09PT09PT09PSBCZWxvdzogRFFMIFF1ZXJ5IGJveCA9PT09PT09PT09PT09PT09PT09PT0gLS0+CiAgPHJlY3QgeD0iMTY1IiB5PSIyMzUiIHdpZHRoPSI0NjAiIGhlaWdodD0iNDUiIHJ4PSI4IiBmaWxsPSIjMWUyOTNiIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjE4NSIgeT0iMjUzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5NGEzYjgiPkRRTDwvdGV4dD4KICA8dGV4dCB4PSIxODUiIHk9IjI3MCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSwgQXJpYWwiIGZvbnQtc2l6ZT0iOC41IiBmaWxsPSIjYTVmM2ZjIj5mZXRjaCB1c2VyLnNlc3Npb25zIHwgZmlsdGVyIHNlc3Npb25fcHJvcGVydGllcy5zdWJzY3JpcHRpb25fdGllciA9PSAicHJlbWl1bSI8L3RleHQ+CgogIDwhLS0gRG90dGVkIGxpbmUgZnJvbSBHcmFpbCBkb3duIHRvIERRTCBib3ggLS0+CiAgPGxpbmUgeDE9IjY4NSIgeTE9IjE1MCIgeDI9IjY4NSIgeTI9IjIyNSIgc3Ryb2tlPSIjMjJjNTVlIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iNCwzIi8+CiAgPGxpbmUgeDE9IjY4NSIgeTE9IjIyNSIgeDI9IjYyNSIgeTI9IjI1NyIgc3Ryb2tlPSIjMjJjNTVlIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iNCwzIi8+CgogIDwhLS0gTGVnZW5kIGJhciAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMjk1IiB3aWR0aD0iNzIwIiBoZWlnaHQ9IjQyIiByeD0iNiIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0MDAiIHk9IjMxMyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5DdXN0b20gc2Vzc2lvbiBwcm9wZXJ0aWVzIGVucmljaCBzZXNzaW9ucyB3aXRoIGJ1c2luZXNzIGNvbnRleHQsIGVuYWJsaW5nIHBvd2VyZnVsIERRTCBzZWdtZW50YXRpb24uPC90ZXh0PgogIDxjaXJjbGUgY3g9IjEwMCIgY3k9IjMyOCIgcj0iNiIgZmlsbD0iIzYzNjZmMSIvPgogIDx0ZXh0IHg9IjExNSIgeT0iMzMyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPk1vYmlsZSBBcHA8L3RleHQ+CiAgPGNpcmNsZSBjeD0iMjIwIiBjeT0iMzI4IiByPSI2IiBmaWxsPSIjMTQ5NmZmIi8+CiAgPHRleHQgeD0iMjM1IiB5PSIzMzIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+VXNlciBTZXNzaW9uPC90ZXh0PgogIDxjaXJjbGUgY3g9IjM1MCIgY3k9IjMyOCIgcj0iNiIgZmlsbD0iIzIyYzU1ZSIvPgogIDx0ZXh0IHg9IjM2NSIgeT0iMzMyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPkdyYWlsPC90ZXh0PgogIDxyZWN0IHg9IjQzMCIgeT0iMzIzIiB3aWR0aD0iMTYiIGhlaWdodD0iMTAiIHJ4PSIyIiBmaWxsPSIjMWUyOTNiIi8+CiAgPHRleHQgeD0iNDU1IiB5PSIzMzIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+RFFMIFF1ZXJ5PC90ZXh0Pgo8L3N2Zz4=" alt="Session Properties Architecture" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Component | Description |
+|-----------|-------------|
+| Mobile SDK | Reports custom key-value pairs via reportValue() API |
+| Session Context | Properties are attached to the user session and sent with beacons |
+| Server-Side Rules | Additional properties can be extracted from request attributes |
+| Grail Storage | Properties are stored alongside session data for DQL querying |
+| Dynatrace UI | Filter and segment sessions by property values in dashboards |
+For environments where SVG doesn't render
+-->
+<p><strong>Session properties</strong> are custom key-value pairs attached to a user session. They enrich your mobile telemetry with business context that Dynatrace cannot automatically detect -- subscription tier, A/B test variant, feature flags, cart value, or any other app-specific attribute.</p>
+<h3>Property Types</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>String</strong></td>
+<td>Text values</td>
+<td><code>&quot;subscription_tier&quot; = &quot;premium&quot;</code></td>
+</tr>
+<tr>
+<td><strong>Int / Long</strong></td>
+<td>Integer values</td>
+<td><code>&quot;items_in_cart&quot; = 5</code></td>
+</tr>
+<tr>
+<td><strong>Double</strong></td>
+<td>Decimal values</td>
+<td><code>&quot;cart_value&quot; = 149.99</code></td>
+</tr>
+</tbody>
+</table>
+<p>The Android SDK documents <code>int</code>, <code>long</code>, <code>double</code> and <code>string</code> values; report a date as a string or an epoch number.</p>
+<h3>Setting Properties from the SDK</h3>
+<p>Properties can be reported at any point during a session, and are sent with the next beacon.</p>
+<p>Values are reported <strong>on a user action</strong> -- <em>&quot;The reported values must be part of a user action&quot;</em> -- and are then converted into user action and session properties in the Dynatrace UI. There is no static <code>reportValue</code>.</p>
+<p><strong>iOS (Swift):</strong></p>
+<pre><code class="language-swift">// iOS -- report values on an open action
+Dynatrace.identifyUser(&quot;usr_a1b2c3d4&quot;)
+let action = DTXAction.enter(withName: &quot;Load account&quot;)
+action?.reportValue(withName: &quot;subscription_tier&quot;, stringValue: &quot;premium&quot;)
+action?.reportValue(withName: &quot;cart_value&quot;, doubleValue: 149.99)
+action?.leave()
+</code></pre>
+<p><strong>Android (Kotlin):</strong></p>
+<pre><code class="language-kotlin">// Android -- report values on an open action
+Dynatrace.identifyUser(&quot;usr_a1b2c3d4&quot;)
+val action = Dynatrace.enterAction(&quot;Load account&quot;)
+action.reportValue(&quot;subscription_tier&quot;, &quot;premium&quot;)
+action.reportValue(&quot;cart_value&quot;, 149.99)
+action.leaveAction()
+</code></pre>
+<blockquote>
+<p><strong>Correction (09/28/2026).</strong> Earlier revisions called <code>DTXAction.reportValue(...)</code> / <code>Dynatrace.reportValue(...)</code> statically. Both SDKs report values on an action instance.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/oneagent-sdk-for-android">OneAgent SDK for Android (DT docs)</a> — <em>&quot;The reported values must be part of a user action.&quot;</em>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios">OneAgent SDK for iOS (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Where Mobile Properties Come From</h3>
+<p>In the New RUM Experience, properties land in two namespaces on Grail: <strong>event properties</strong> (<code>event_properties.*</code> on <code>user.events</code>) and <strong>session properties</strong> (<code>session_properties.*</code> on <code>user.sessions</code>). For a mobile frontend there are three ways to get them:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Scope</th>
+<th>Mobile?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Reported via the RUM APIs</strong> (from your app code)</td>
+<td>Event and session properties</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Enriched in OpenPipeline</strong> (aggregated from event properties at ingest)</td>
+<td>Session properties</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Config-less via the API</strong> <em>(Preview)</em></td>
+<td>Event and session properties</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Captured by rules set in the Dynatrace web UI (extracted from a web page)</td>
+<td>Event properties</td>
+<td><strong>Web frontends only</strong></td>
+</tr>
+</tbody>
+</table>
+<p>So mobile properties always start in your code. CSS selectors and JavaScript variables are web capture methods — for a hybrid app they apply to the web content, which is monitored as web RUM. In RUM Classic, values reported with <code>reportValue()</code> become properties once they are defined in the mobile app's <strong>Session and user action properties</strong> settings.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/rum/concepts/data-model">RUM data model (DT docs)</a> — <em>&quot;Event properties apply to individual user events and are stored in the event_properties namespace. Session properties are aggregated across user sessions and stored in the session_properties namespace.&quot;</em>; method table: rule capture is <em>&quot;Extracted from a web page, without any code changes required.&quot;</em> (web frontends only); API reporting is <em>&quot;Sent from your frontend through the RUM APIs.&quot;</em> (web and mobile frontends).</sub></p>
+</blockquote>
+<h3>Best Practices for Session Properties</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Use descriptive, consistent key names</td>
+<td>Makes DQL queries readable and maintainable</td>
+</tr>
+<tr>
+<td>Set properties early in the session</td>
+<td>Ensures they are available for all subsequent actions</td>
+</tr>
+<tr>
+<td>Keep the property set small and deliberate</td>
+<td>Every property is data you send, store and must justify under data minimization</td>
+</tr>
+<tr>
+<td>Keep PII out of property values</td>
+<td>A property is stored as sent — treat it like any other field you would have to delete on request</td>
+</tr>
+<tr>
+<td>Use enum-like values for strings</td>
+<td>Facilitates aggregation (e.g., <code>&quot;tier&quot; = &quot;free&quot;</code> vs <code>&quot;tier&quot; = &quot;Free Trial Account&quot;</code>)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="user-tagging"></a></p>
+<h2>2. User Tagging</h2>
+<p>User tagging associates a mobile session with a specific user identity. This enables you to track individual user journeys across sessions, correlate mobile issues with support tickets, and analyze per-user performance.</p>
+<h3>How User Tagging Works</h3>
+<p>The <code>identifyUser()</code> SDK call sets the user tag for the current session. Once set, the tag persists for the duration of the session and appears in all related telemetry. In Grail it is the <code>user.identifier</code> field on <code>user.sessions</code>, which belongs to the sensitive fieldset <code>builtin-sensitive-user-events-and-sessions</code> and is hidden unless that fieldset is granted.</p>
+<p><strong>iOS (Swift):</strong></p>
+<pre><code class="language-swift">// Tag the session after user login
+Dynatrace.identifyUser(&quot;user-id-12345&quot;)
+</code></pre>
+<p><strong>Android (Kotlin):</strong></p>
+<pre><code class="language-kotlin">// Tag the session after user login
+Dynatrace.identifyUser(&quot;user-id-12345&quot;)
+</code></pre>
+<h3>Privacy-Aware User Tagging</h3>
+<p>User tagging requires careful consideration of privacy:</p>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Example</th>
+<th>Privacy Level</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Opaque ID</strong> (recommended)</td>
+<td><code>&quot;usr_a1b2c3d4&quot;</code></td>
+<td>High -- no PII exposed</td>
+</tr>
+<tr>
+<td><strong>Hashed email</strong></td>
+<td><code>sha256(&quot;user@example.com&quot;)</code></td>
+<td>Medium -- reversible with rainbow tables</td>
+</tr>
+<tr>
+<td><strong>Email address</strong></td>
+<td><code>&quot;user@example.com&quot;</code></td>
+<td>Low -- contains PII, not recommended</td>
+</tr>
+<tr>
+<td><strong>Internal user ID</strong></td>
+<td><code>&quot;12345&quot;</code></td>
+<td>High -- meaningless without backend lookup</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> Avoid using email addresses, phone numbers, or full names as user tags. Use opaque identifiers that can be correlated with user records on the backend but do not expose personally identifiable information (PII) in Dynatrace.</p>
+</blockquote>
+<h3>Clearing the User Tag</h3>
+<p>When a user logs out, clear the user tag to prevent subsequent anonymous sessions from being attributed to the previous user:</p>
+<pre><code class="language-swift">// iOS -- clear user identity on logout
+Dynatrace.identifyUser(nil)
+</code></pre>
+<pre><code class="language-kotlin">// Android -- clear user identity on logout
+Dynatrace.identifyUser(null)
+</code></pre>
+<p><a id="data-collection-levels"></a></p>
+<h2>3. Data Collection Levels</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmx1ZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTQ5NmZmO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwYTY0YmM7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJncmVlbkdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjJjNTVlO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNmEzNGE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0ic2hhZG93Ij4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMSIgZHk9IjEiIHN0ZERldmlhdGlvbj0iMiIgZmxvb2Qtb3BhY2l0eT0iMC4xNSIvPgogICAgPC9maWx0ZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd1VwIiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iNSIgcmVmWT0iMCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDcsIDUgMCwgMTAgNyIgZmlsbD0iIzY0NzQ4YiIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd0Rvd24iIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI1IiByZWZZPSI3IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgNSA3LCAxMCAwIiBmaWxsPSIjNjQ3NDhiIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDAwIiB5PSIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGF0YSBDb2xsZWN0aW9uIExldmVsczwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT09PT09PT09PT0gVGllciAxOiBPZmYgKEdyYXkpID09PT09PT09PT09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSIxMDAiIHk9IjQ4IiB3aWR0aD0iNTMwIiBoZWlnaHQ9IjQ4IiByeD0iMTAiIGZpbGw9IiM5NGEzYjgiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMTMwIiB5PSI2OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiPk9mZjwvdGV4dD4KICA8bGluZSB4MT0iMTcwIiB5MT0iNTYiIHgyPSIxNzAiIHkyPSI4NiIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMykiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjE5MCIgeT0iNzYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIj5TaW5nbGUgZXZlbnQgb25seSAoZGV2aWNlIG1ldGFkYXRhKTwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT09PT09PT09PT0gVGllciAyOiBQZXJmb3JtYW5jZSAoQmx1ZSkgPT09PT09PT09PT09PT09PT09PT09IC0tPgogIDxyZWN0IHg9IjEwMCIgeT0iMTA2IiB3aWR0aD0iNTMwIiBoZWlnaHQ9IjQ4IiByeD0iMTAiIGZpbGw9InVybCgjYmx1ZUdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjEzMCIgeT0iMTI2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSI+UGVyZm9ybWFuY2U8L3RleHQ+CiAgPGxpbmUgeDE9IjIzMCIgeTE9IjExNCIgeDI9IjIzMCIgeTI9IjE0NCIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMykiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjI1MCIgeT0iMTI2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSI+QW5vbnltb3VzOiBDcmFzaGVzLCBBY3Rpb25zLCBOZXR3b3JrPC90ZXh0PgogIDx0ZXh0IHg9IjI1MCIgeT0iMTQyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC43KSI+KG5vIHVzZXIgaWRlbnRpdHkpPC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PT09PT09PT09PSBUaWVyIDM6IFVzZXIgQmVoYXZpb3IgKEdyZWVuKSA9PT09PT09PT09PT09PT09PT09PT0gLS0+CiAgPHJlY3QgeD0iMTAwIiB5PSIxNjQiIHdpZHRoPSI1MzAiIGhlaWdodD0iNDgiIHJ4PSIxMCIgZmlsbD0idXJsKCNncmVlbkdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjEzMCIgeT0iMTg0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSI+VXNlciBCZWhhdmlvcjwvdGV4dD4KICA8bGluZSB4MT0iMjQwIiB5MT0iMTcyIiB4Mj0iMjQwIiB5Mj0iMjAyIiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC4zKSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMjYwIiB5PSIxODQiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIj5GdWxsOiArIFVzZXIgdGFncywgU2Vzc2lvbiBwcm9wZXJ0aWVzLCBTZXNzaW9uIHJlcGxheTwvdGV4dD4KICA8dGV4dCB4PSIyNjAiIHk9IjIwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuNykiPihjb21wbGV0ZSB1c2VyIGpvdXJuZXkgdmlzaWJpbGl0eSk8L3RleHQ+CgogIDwhLS0gPT09PT09PT09PT09PT09PT09PT09IFJpZ2h0IGFycm93OiBNb3JlIGRhdGEgPT09PT09PT09PT09PT09PT09PT09IC0tPgogIDxsaW5lIHgxPSI2ODAiIHkxPSI1NiIgeDI9IjY4MCIgeTI9IjIwMCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dEb3duKSIvPgogIDx0ZXh0IHg9IjY5MCIgeT0iMTAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjNDc1NTY5IiB0cmFuc2Zvcm09InJvdGF0ZSg5MCwgNjkwLCAxMDApIj5Nb3JlIGRhdGE8L3RleHQ+CgogIDwhLS0gPT09PT09PT09PT09PT09PT09PT09IExlZnQgYXJyb3c6IE1vcmUgcHJpdmFjeSA9PT09PT09PT09PT09PT09PT09PT0gLS0+CiAgPGxpbmUgeDE9IjYwIiB5MT0iMjAwIiB4Mj0iNjAiIHkyPSI1NiIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dVcCkiLz4KICA8dGV4dCB4PSI1MCIgeT0iMTUyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjNDc1NTY5IiB0cmFuc2Zvcm09InJvdGF0ZSgtOTAsIDUwLCAxNTIpIj5Nb3JlIHByaXZhY3k8L3RleHQ+CgogIDwhLS0gQ29ubmVjdGluZyBsaW5lcyBiZXR3ZWVuIHRpZXJzIC0tPgogIDxsaW5lIHgxPSIzNjUiIHkxPSI5NiIgeDI9IjM2NSIgeTI9IjEwNiIgc3Ryb2tlPSIjY2JkNWUxIiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1kYXNoYXJyYXk9IjMsMiIvPgogIDxsaW5lIHgxPSIzNjUiIHkxPSIxNTQiIHgyPSIzNjUiIHkyPSIxNjQiIHN0cm9rZT0iI2NiZDVlMSIgc3Ryb2tlLXdpZHRoPSIxIiBzdHJva2UtZGFzaGFycmF5PSIzLDIiLz4KCiAgPCEtLSBMZWdlbmQgYmFyIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIyMzAiIHdpZHRoPSI3MjAiIGhlaWdodD0iNTUiIHJ4PSI2IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iMjUwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM1NTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhbGFuY2UgcHJpdmFjeSByZXF1aXJlbWVudHMgd2l0aCBtb25pdG9yaW5nIGRlcHRoIHVzaW5nIER5bmF0cmFjZSBkYXRhIGNvbGxlY3Rpb24gbGV2ZWxzLjwvdGV4dD4KICA8Y2lyY2xlIGN4PSIxMjAiIGN5PSIyNzIiIHI9IjYiIGZpbGw9IiM5NGEzYjgiLz4KICA8dGV4dCB4PSIxMzUiIHk9IjI3NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5PZmY8L3RleHQ+CiAgPGNpcmNsZSBjeD0iMjAwIiBjeT0iMjcyIiByPSI2IiBmaWxsPSIjMTQ5NmZmIi8+CiAgPHRleHQgeD0iMjE1IiB5PSIyNzYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+UGVyZm9ybWFuY2U8L3RleHQ+CiAgPGNpcmNsZSBjeD0iMzQwIiBjeT0iMjcyIiByPSI2IiBmaWxsPSIjMjJjNTVlIi8+CiAgPHRleHQgeD0iMzU1IiB5PSIyNzYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+VXNlciBCZWhhdmlvcjwvdGV4dD4KICA8bGluZSB4MT0iNDgwIiB5MT0iMjY5IiB4Mj0iNDgwIiB5Mj0iMjc3IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxwb2x5Z29uIHBvaW50cz0iNDc3IDI2OSwgNDgwIDI2MywgNDgzIDI2OSIgZmlsbD0iIzY0NzQ4YiIvPgogIDx0ZXh0IHg9IjQ5NSIgeT0iMjc2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPkRpcmVjdGlvbiBpbmRpY2F0b3JzPC90ZXh0Pgo8L3N2Zz4=" alt="Data Privacy Collection Levels" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Level | Description | Data Captured |
+|-------|-------------|---------------|
+| Off | Single monitoring event only | One "Loading <App>" event with device metadata; business events are still sent unless the app checks the level before calling `sendBizEvent` |
+| Performance | Anonymous performance data only | Crashes, actions, network timings (no user identification) |
+| User Behavior | Full RUM with user identification | All actions, sessions, user tags, session properties, replay |
+For environments where SVG doesn't render
+-->
+<p>Dynatrace provides three <strong>data collection levels</strong> that control how much telemetry the mobile SDK captures. This is the primary mechanism for implementing privacy controls at the SDK level.</p>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Description</th>
+<th>Data Captured</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Off</strong></td>
+<td>Single monitoring event only</td>
+<td>One &quot;Loading <App>&quot; event with device metadata (the IP address travels with the HTTP request); identifiers randomized on every launch. Business events are still sent unless your app checks the level before calling <code>sendBizEvent</code></td>
+</tr>
+<tr>
+<td><strong>Performance</strong></td>
+<td>Anonymous performance data</td>
+<td>Crashes, actions, network timings (no user info)</td>
+</tr>
+<tr>
+<td><strong>User Behavior</strong></td>
+<td>Full RUM with user identification</td>
+<td>Actions, sessions, user tags, properties, session replay</td>
+</tr>
+</tbody>
+</table>
+<h3>Setting the Data Collection Level</h3>
+<p><strong>iOS (Swift):</strong></p>
+<pre><code class="language-swift">// iOS -- configure data collection level and crash reporting
+let privacyConfig = Dynatrace.userPrivacyOptions()
+privacyConfig.dataCollectionLevel = .userBehavior
+privacyConfig.crashReportingOptedIn = true
+privacyConfig.crashReplayOptedIn = true // Session Replay on crashes
+Dynatrace.applyUserPrivacyOptions(privacyConfig) { (successful) in }
+</code></pre>
+<p><strong>Android (Kotlin):</strong></p>
+<pre><code class="language-kotlin">// Android -- configure data collection level and crash reporting
+Dynatrace.applyUserPrivacyOptions(
+    UserPrivacyOptions.builder()
+        .withDataCollectionLevel(DataCollectionLevel.USER_BEHAVIOR)
+        .withCrashReportingOptedIn(true)
+        .withCrashReplayOptedIn(true) // Session Replay on crashes
+        .build()
+)
+</code></pre>
+<p>OneAgent <strong>persists</strong> these preferences and applies them again when the app restarts, and starts a new session whenever they change.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios">OneAgent SDK for iOS (DT docs)</a> — <em>&quot;OneAgent persists the data privacy preferences and automatically applies them when the application is restarted.&quot;</em>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/oneagent-sdk-for-android">OneAgent SDK for Android (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>What Each Level Controls</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Off</th>
+<th>Performance</th>
+<th>User Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>User actions</td>
+<td>No</td>
+<td>Yes (anonymous)</td>
+<td>Yes (with user context)</td>
+</tr>
+<tr>
+<td>Network requests</td>
+<td>No</td>
+<td>Yes (anonymous)</td>
+<td>Yes (with correlation)</td>
+</tr>
+<tr>
+<td>Crash reporting</td>
+<td>No</td>
+<td>Only if opted in</td>
+<td>Only if opted in</td>
+</tr>
+<tr>
+<td>User tagging</td>
+<td>No</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Session properties</td>
+<td>No</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Session replay</td>
+<td>No</td>
+<td>No</td>
+<td>Yes (if enabled)</td>
+</tr>
+<tr>
+<td>Device context</td>
+<td>No</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Crash reporting has its own separate opt-in flag (<code>crashReportingOptedIn</code>) that works independently of the data collection level. A user can be at the &quot;Performance&quot; level with crash reporting enabled or disabled.</p>
+</blockquote>
+<p><a id="opt-in-mode"></a></p>
+<h2>4. Opt-In Mode</h2>
+<p><strong>Opt-in mode</strong> means OneAgent starts with the <code>OFF</code> data collection level and waits for the user to explicitly consent before collecting data. In community practice, it is the usual basis for consent-before-collection under the EU GDPR — confirm the legal position with your privacy counsel.</p>
+<h3>How Opt-In Mode Works</h3>
+<ol>
+<li><strong>Enable opt-in mode</strong> -- Add the <code>DTXUserOptIn</code> key (set to <code>true</code>) to <code>Info.plist</code> on iOS, or set <code>userOptIn(true)</code> in the Dynatrace Android Gradle plugin configuration (MOBL-03 §3). OneAgent starts at the Off level and, until preferences are applied, sends only a single &quot;Loading <App>&quot; event with device metadata. If no data at all may be transmitted before consent, the docs say to <em>&quot;turn off the OneAgent for Mobile auto-start and start it manually after consent is given&quot;</em>.</li>
+<li><strong>Consent dialog shown</strong> -- The app displays a privacy consent dialog explaining what data will be collected and why.</li>
+<li><strong>User grants consent</strong> -- The app calls <code>applyUserPrivacyOptions</code> with the level the user agreed to.</li>
+<li><strong>User declines</strong> -- The app does nothing (or applies <code>OFF</code> explicitly); the app functions normally without monitoring.</li>
+</ol>
+<h3>iOS</h3>
+<pre><code class="language-xml">&lt;!-- Info.plist --&gt;
+&lt;key&gt;DTXUserOptIn&lt;/key&gt;
+&lt;true/&gt;
+</code></pre>
+<pre><code class="language-swift">// After the user grants consent:
+func userGrantedConsent() {
+    let privacyConfig = Dynatrace.userPrivacyOptions()
+    privacyConfig.dataCollectionLevel = .userBehavior
+    privacyConfig.crashReportingOptedIn = true
+    Dynatrace.applyUserPrivacyOptions(privacyConfig) { (successful) in }
+}
+</code></pre>
+<h3>Android</h3>
+<pre><code class="language-kotlin">// build.gradle.kts (top-level) -- opt-in mode
+configure&lt;com.dynatrace.tools.android.dsl.DynatraceExtension&gt; {
+    configurations {
+        create(&quot;sampleConfig&quot;) {
+            userOptIn(true)
+        }
+    }
+}
+</code></pre>
+<pre><code class="language-kotlin">// After the user grants consent:
+fun userGrantedConsent() {
+    Dynatrace.applyUserPrivacyOptions(
+        UserPrivacyOptions.builder()
+            .withDataCollectionLevel(DataCollectionLevel.USER_BEHAVIOR)
+            .withCrashReportingOptedIn(true)
+            .build()
+    )
+}
+</code></pre>
+<h3>Persisting Consent</h3>
+<p>OneAgent <strong>persists</strong> the privacy preferences you apply and re-applies them on the next app start, so you do not have to call <code>applyUserPrivacyOptions</code> on every launch. Your app is still responsible for:</p>
+<ul>
+<li>Showing the consent dialog only when no choice has been made yet</li>
+<li>Providing a way for the user to change their consent in app settings, which calls <code>applyUserPrivacyOptions</code> again</li>
+<li>Recording consent for your own compliance records</li>
+</ul>
+<blockquote>
+<p><strong>Correction (09/28/2026).</strong> Earlier revisions implemented opt-in by disabling auto-start and calling a startup method, created privacy options with <code>DTXUserPrivacyOptions()</code>, and said the SDK does not persist consent. The documented mechanism is the <code>DTXUserOptIn</code> key / <code>userOptIn</code> property plus <code>applyUserPrivacyOptions</code>, and OneAgent persists the preferences.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios">OneAgent SDK for iOS (DT docs)</a> — <em>&quot;To activate the user opt-in mode, add the DTXUserOptIn configuration key to your app's Info.plist file&quot;</em>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/adjust-oneagent-configuration">Adjust OneAgent configuration (DT docs)</a> — <em>&quot;To activate the user opt-in mode (when you use the automatic OneAgent startup ), enable the userOptIn property.&quot;</em>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/additional-configuration/configure-rum-privacy-mobile">Configure data privacy for mobile (DT docs)</a> — <em>&quot;Only a single monitoring event is sent&quot;</em>, <em>&quot;turn off the OneAgent for Mobile auto-start and start it manually after consent is given&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="privacy-compliance"></a></p>
+<h2>5. Privacy Compliance (GDPR/CCPA)</h2>
+<p>When implementing mobile monitoring, you must comply with applicable privacy regulations. The two most common are GDPR (European Union) and CCPA (California, United States).</p>
+<h3>Regulation Requirements &amp; Dynatrace Features</h3>
+<table>
+<thead>
+<tr>
+<th>Regulation</th>
+<th>Requirement</th>
+<th>Dynatrace Feature</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GDPR</td>
+<td>Consent before collection</td>
+<td>Opt-in mode (<code>DTXUserOptIn</code> / <code>userOptIn</code>)</td>
+</tr>
+<tr>
+<td>GDPR</td>
+<td>Right to erasure (Art. 17)</td>
+<td>Sensitive Data Center deletion request / Grail record deletion</td>
+</tr>
+<tr>
+<td>GDPR</td>
+<td>Data minimization (Art. 5)</td>
+<td>Data collection levels (Off / Performance / User Behavior)</td>
+</tr>
+<tr>
+<td>GDPR</td>
+<td>Purpose limitation</td>
+<td>Configurable session properties (collect only what's needed)</td>
+</tr>
+<tr>
+<td>CCPA</td>
+<td>Right to opt out</td>
+<td>Privacy options API (<code>applyUserPrivacyOptions</code>)</td>
+</tr>
+<tr>
+<td>CCPA</td>
+<td>Data disclosure</td>
+<td>Session export via DQL and Grail APIs</td>
+</tr>
+<tr>
+<td>CCPA</td>
+<td>Right to delete</td>
+<td>Sensitive Data Center deletion request / Grail record deletion</td>
+</tr>
+</tbody>
+</table>
+<h3>GDPR Implementation Checklist</h3>
+<ol>
+<li><strong>Implement opt-in mode</strong> -- SDK must not collect data before consent</li>
+<li><strong>Display clear consent dialog</strong> -- Explain what data is collected and why, using plain language</li>
+<li><strong>Provide granular consent options</strong> -- Allow users to consent to performance monitoring separately from user behavior tracking</li>
+<li><strong>Support consent withdrawal</strong> -- Users must be able to revoke consent at any time (set collection level to &quot;Off&quot;)</li>
+<li><strong>Implement data deletion</strong> -- Use a Sensitive Data Center deletion request (or Grail record deletion) when users exercise their right to erasure</li>
+<li><strong>Document data processing</strong> -- Maintain records of processing activities (Art. 30)</li>
+<li><strong>Avoid storing PII in session properties</strong> -- Use opaque user IDs, not email addresses or names</li>
+</ol>
+<h3>CCPA Implementation Checklist</h3>
+<ol>
+<li><strong>Add &quot;Do Not Sell&quot; option</strong> -- Provide a mechanism to opt out of data sharing</li>
+<li><strong>Disclose data collection in privacy policy</strong> -- List categories of data collected by the mobile SDK</li>
+<li><strong>Support data access requests</strong> -- Be able to export a user's session data via DQL</li>
+<li><strong>Support data deletion requests</strong> -- Use a Sensitive Data Center deletion request (or Grail record deletion)</li>
+<li><strong>Do not discriminate</strong> -- Users who opt out should receive the same app experience</li>
+</ol>
+<h3>Deleting a User's Data</h3>
+<p>Dynatrace documents two routes for erasure requests:</p>
+<ol>
+<li><strong>Sensitive Data Center deletion request</strong> (UI) -- the built-in deletion request workflow searches for, reviews and removes personal data associated with specific end users, tracks each request on the <strong>Requests</strong> tab, and keeps an audit trail of every step.</li>
+<li><strong>Grail record deletion</strong> (API) -- deletes records selected by a DQL condition. It covers <code>user.events</code>, <code>user.sessions</code> and <code>user.replays</code> among other tables; Sensitive Data Center uses this API underneath.</li>
+</ol>
+<p>Identify the user's records first, for example by <code>user.identifier</code> (the user tag set with <code>identifyUser()</code>), then submit the request through one of the two routes.</p>
+<blockquote>
+<p><strong>Warning:</strong> Record deletion is final and cannot be undone. Ensure you have proper authorization and audit logging before processing deletion requests.</p>
+</blockquote>
+<blockquote>
+<p><strong>Correction (09/28/2026).</strong> Earlier revisions showed a <code>POST /api/v2/data-privacy/deletion</code> call with <code>dataTypes: [&quot;RUM&quot;]</code>. That endpoint is not documented, so an erasure procedure built on it would fail.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/sensitive-data-center/delete-personal-data">Delete personal data in Sensitive Data Center (DT docs)</a> — <em>&quot;The built-in deletion request workflow makes it straightforward to search for, review, and remove personal data associated with specific end users.&quot;</em>, <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/record-deletion-in-grail">Record deletion in Grail via API (DT docs)</a> — <em>&quot;Record deletion is final and can't be undone.&quot;</em></sub></p>
+</blockquote>
+<p><a id="querying-session-properties"></a></p>
+<h2>6. Querying with Session Properties</h2>
+<p>Session properties, geolocation, device metadata, and operating system information are available in Grail and can be queried using DQL. <code>user.sessions</code> holds one record per session, so <code>count()</code> is a session count; <code>geo.country.iso_code</code>, <code>device.manufacturer</code>, <code>device.model.identifier</code>, <code>os.name</code>, <code>os.version</code> and <code>app.short_version</code> are session fields. The following queries demonstrate how to segment mobile sessions by various dimensions.</p>
+<h3>Sessions by Country (Geolocation)</h3>
+<pre><code class="language-dql">// Sessions by country (geolocation) -- one user.sessions record per session
+fetch user.sessions, from:-24h
+| filter dt.rum.application.type == &quot;mobile&quot;
+| summarize session_count = count(), by:{geo.country.iso_code}
+| sort session_count desc
+| limit 20
+</code></pre>
+<h3>Sessions by Device Manufacturer</h3>
+<pre><code class="language-dql">// Sessions by device manufacturer
+fetch user.sessions, from:-24h
+| filter dt.rum.application.type == &quot;mobile&quot;
+| filter isNotNull(device.manufacturer)
+| summarize session_count = count(), by:{device.manufacturer}
+| sort session_count desc
+| limit 15
+</code></pre>
+<h3>Sessions by Operating System</h3>
+<pre><code class="language-dql">// Sessions by operating system
+fetch user.sessions, from:-24h
+| filter dt.rum.application.type == &quot;mobile&quot;
+| summarize session_count = count(), by:{os.name, os.version}
+| sort session_count desc
+| limit 20
+</code></pre>
+<h3>Sessions by App Version</h3>
+<pre><code class="language-dql">// Sessions by app version
+fetch user.sessions, from:-24h
+| filter dt.rum.application.type == &quot;mobile&quot;
+| filter isNotNull(app.short_version)
+| summarize session_count = count(), by:{app.short_version, os.name}
+| sort session_count desc
+| limit 20
+</code></pre>
+<p><a id="data-retention"></a></p>
+<h2>7. Data Retention</h2>
+<p>Dynatrace Grail stores mobile RUM data in built-in buckets whose retention you cannot currently change. Understanding data retention is critical for both performance analysis and privacy compliance.</p>
+<h3>Default Retention Periods</h3>
+<table>
+<thead>
+<tr>
+<th>Data Type</th>
+<th>Default Retention</th>
+<th>Configurable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>User events and sessions (<code>user.events</code>, <code>user.sessions</code> — actions, crashes, errors, requests)</td>
+<td>35 days</td>
+<td>No — built-in RUM buckets</td>
+</tr>
+<tr>
+<td>Mobile session replay (<code>default_mobile_user_replays</code>)</td>
+<td>35 days</td>
+<td>No — built-in RUM bucket</td>
+</tr>
+<tr>
+<td>Business events your app sends (<code>bizevents</code>)</td>
+<td>35 days</td>
+<td>Yes, per bucket</td>
+</tr>
+<tr>
+<td>Metrics (aggregated performance data, <code>default_metrics</code>)</td>
+<td>15 months</td>
+<td>Longer retention depends on your subscription (ORGNZ series)</td>
+</tr>
+<tr>
+<td>Entities (mobile app configurations)</td>
+<td>Lifetime of entity</td>
+<td>N/A</td>
+</tr>
+</tbody>
+</table>
+<h3>RUM Retention Is Not Configurable Today</h3>
+<p>Dynatrace: <em>&quot;Grail stores RUM data across seven built-in buckets. All buckets have a 35-day retention period by default&quot;</em>, and <em>&quot;You cannot currently modify these buckets or create custom RUM buckets.&quot;</em> Extended retention for RUM data is in preview (<a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-04-observability-data-settings/rum-data-access-controls">RUM data access controls (DT docs)</a>). So a bucket cannot shorten or lengthen mobile session, event or replay retention, and RUM data cannot be routed into custom buckets.</p>
+<p>A dedicated bucket applies only to data you can route, such as business events your app sends:</p>
+<ol>
+<li><strong>Create a dedicated bucket</strong> -- Create a Grail bucket for those business events with the desired retention period</li>
+<li><strong>Configure OpenPipeline</strong> -- Route the business events to the dedicated bucket using OpenPipeline processing rules</li>
+</ol>
+<h3>Privacy Implications of Retention</h3>
+<table>
+<thead>
+<tr>
+<th>Consideration</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>GDPR data minimization</strong></td>
+<td>Set the shortest retention that meets business needs where retention is configurable (business events); for RUM data, minimize what the SDK captures</td>
+</tr>
+<tr>
+<td><strong>Right to erasure</strong></td>
+<td>Use a Sensitive Data Center deletion request (or Grail record deletion) for individual user requests; do not rely solely on retention expiry</td>
+</tr>
+<tr>
+<td><strong>Regulatory audit</strong></td>
+<td>Ensure retention periods are documented in your data processing records</td>
+</tr>
+<tr>
+<td><strong>Cross-border data</strong></td>
+<td>Verify that Grail storage regions comply with data residency requirements</td>
+</tr>
+<tr>
+<td><strong>Session replay</strong></td>
+<td>Replay retention is fixed at 35 days today, so limit what is captured instead — masking and replay sampling (MOBL-08)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data">Organize data (DT docs)</a> — built-in bucket table: <code>default_metrics</code> metrics 15 months.</sub></p>
+</blockquote>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li><strong>Custom session properties</strong> -- how to enrich mobile sessions with key-value pairs using <code>reportValue()</code> on a user action</li>
+<li><strong>User tagging</strong> -- how <code>identifyUser()</code> associates sessions with a user identity, and why opaque IDs are preferred over PII</li>
+<li><strong>Data collection levels</strong> -- the three levels (Off, Performance, User Behavior) and what telemetry each controls</li>
+<li><strong>Opt-in mode</strong> -- how <code>DTXUserOptIn</code> / <code>userOptIn</code> keeps OneAgent from collecting until the app applies the user's consent</li>
+<li><strong>GDPR and CCPA compliance</strong> -- regulation requirements mapped to Dynatrace features, including Sensitive Data Center deletion requests and Grail record deletion</li>
+<li><strong>Querying session properties</strong> -- DQL patterns for segmenting sessions by country, device, OS, and app version</li>
+<li><strong>Data retention</strong> -- built-in 35-day RUM buckets (not currently configurable) and their privacy implications</li>
+</ul>
+<hr />
+<h2>Next Steps</h2>
+<p>Continue to <strong>MOBL-10: DQL for Mobile Analytics</strong> to learn:</p>
+<ul>
+<li>The mobile data model in Grail (<code>user.events</code>, <code>user.sessions</code>, Smartscape <code>FRONTEND</code>)</li>
+<li>Engagement, crash, app-start and network analysis queries</li>
+<li>Device, OS, geography and release segmentation</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

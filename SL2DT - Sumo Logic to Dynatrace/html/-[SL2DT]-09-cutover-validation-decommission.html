@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SL2DT-09: Cutover, Validation &amp; Decommission</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SL2DT — Sumo Logic to Dynatrace</a><span class="sep">/</span><span aria-current="page">SL2DT-09</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SL2DT-09: Cutover, Validation &amp; Decommission</h1>
+<blockquote>
+<p><strong>Series:</strong> SL2DT — Sumo Logic to Dynatrace | <strong>Notebook:</strong> 9 of 11 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 10/05/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Goal of this step:</strong> run the parallel validation window, declare cutover, and decommission Sumo. This is the most operationally risky phase — a bad cutover means on-call teams missing alerts or dashboards. Discipline matters.</p>
+<p>The work here is mostly procedural: follow the runbook, execute gates, document outcomes. The engineering was done in SL2DT-03 through SL2DT-08.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#outputs">What You'll Produce</a></li>
+<li><a href="#validation-tiers">Three-Tier Validation Model</a></li>
+<li><a href="#parallel">Parallel-Run Window — Setup &amp; Discipline</a></li>
+<li><a href="#gates">Validation Gates — Per Wave</a></li>
+<li><a href="#cutover">The Cutover Runbook</a></li>
+<li><a href="#rollback">Rollback Plan</a></li>
+<li><a href="#decommission">Sumo Decommission</a></li>
+<li><a href="#post-cutover">Post-Cutover First 30 Days</a></li>
+<li><a href="#gate">Final Step Exit Criteria</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Migration lead, SRE, on-call teams, change management</td>
+</tr>
+<tr>
+<td><strong>Inputs</strong></td>
+<td>Everything from SL2DT-01 through SL2DT-08</td>
+</tr>
+<tr>
+<td><strong>Dynatrace access</strong></td>
+<td>Full write on all tenants; on-call access for alerts</td>
+</tr>
+<tr>
+<td><strong>Sumo access</strong></td>
+<td>Admin (needed for decommission + data export)</td>
+</tr>
+<tr>
+<td><strong>Prior reading</strong></td>
+<td>All preceding SL2DT notebooks</td>
+</tr>
+</tbody>
+</table>
+<p><a id="outputs"></a></p>
+<h2>1. What You'll Produce</h2>
+<table>
+<thead>
+<tr>
+<th>Artifact</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cutover/validation-report.md</code></td>
+<td>Three-tier validation results</td>
+</tr>
+<tr>
+<td><code>cutover/runbook.md</code></td>
+<td>Step-by-step cutover commands + checkpoints</td>
+</tr>
+<tr>
+<td><code>cutover/rollback-plan.md</code></td>
+<td>What to do if cutover goes wrong</td>
+</tr>
+<tr>
+<td><code>cutover/decommission-checklist.md</code></td>
+<td>Sumo teardown steps</td>
+</tr>
+<tr>
+<td><code>cutover/post-cutover-retro.md</code></td>
+<td>Retro after 30-day stable period</td>
+</tr>
+</tbody>
+</table>
+<p><a id="validation-tiers"></a></p>
+<h2>2. Three-Tier Validation Model</h2>
+<p>Don't assume &quot;looks fine in Dynatrace.&quot; Validate formally across three tiers.</p>
+<h3>Tier 1 — Technical Parity (automated)</h3>
+<p>Mechanical comparison between Sumo and Dynatrace for the same source data.</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Method</th>
+<th>Pass Criteria</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ingest volume</td>
+<td>Bucket count/hr vs Sumo <code>_sourceCategory</code> count/hr</td>
+<td>±5% for all scopes</td>
+</tr>
+<tr>
+<td>Query results</td>
+<td>Sample 100 DQL queries against Sumo equivalents</td>
+<td>≥90% match</td>
+</tr>
+<tr>
+<td>Monitor firing</td>
+<td>Force-trigger condition in both tools</td>
+<td>Both fire within 2 min of each other</td>
+</tr>
+<tr>
+<td>Alert routing</td>
+<td>Trigger → verify notification delivery</td>
+<td>100% delivery in DT</td>
+</tr>
+</tbody>
+</table>
+<h3>Tier 2 — Functional Equivalence (semi-automated + human review)</h3>
+<p>Business-level features work as expected.</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Method</th>
+<th>Pass Criteria</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dashboard panel fidelity</td>
+<td>App-team spot-checks</td>
+<td>≥90% acceptance per team</td>
+</tr>
+<tr>
+<td>Alert noise</td>
+<td>Week-over-week alert count vs Sumo baseline</td>
+<td>≤ Sumo baseline</td>
+</tr>
+<tr>
+<td>Investigation time</td>
+<td>Try to root-cause 5 past incidents using DT</td>
+<td>Comparable or faster than Sumo</td>
+</tr>
+<tr>
+<td>User access</td>
+<td>Each user logs in, sees expected dashboards/data</td>
+<td>100% users confirmed</td>
+</tr>
+</tbody>
+</table>
+<h3>Tier 3 — Business Signoff (human)</h3>
+<p>Each team and exec sponsor formally signs off.</p>
+<table>
+<thead>
+<tr>
+<th>Stakeholder</th>
+<th>Signoff</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Each app team lead</td>
+<td>✅ / ❌ per team</td>
+</tr>
+<tr>
+<td>Platform engineering lead</td>
+<td>✅ / ❌</td>
+</tr>
+<tr>
+<td>Security / compliance</td>
+<td>✅ / ❌ (audit trail parity)</td>
+</tr>
+<tr>
+<td>Exec sponsor</td>
+<td>✅ / ❌</td>
+</tr>
+</tbody>
+</table>
+<p><a id="parallel"></a></p>
+<h2>3. Parallel-Run Window — Setup &amp; Discipline</h2>
+<h3>Setup</h3>
+<p>Both Sumo and Dynatrace receive the same data. Duration: <strong>2–4 weeks</strong> typical. Longer is a warning sign — probably hiding a data gap.</p>
+<h3>Dual-Ingest Patterns</h3>
+<p>For each source, choose a dual-ingest mechanism:</p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Dual-Ingest Strategy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Syslog</td>
+<td>Forward to both Sumo collector + OTel Collector</td>
+</tr>
+<tr>
+<td>Kubernetes</td>
+<td>DynaKube logs + Sumo FluentBit (in parallel)</td>
+</tr>
+<tr>
+<td>AWS CloudWatch</td>
+<td>AWS → Sumo + AWS Clouds app</td>
+</tr>
+<tr>
+<td>HTTP source</td>
+<td>Teams change nothing; intermediate proxy forks to both</td>
+</tr>
+</tbody>
+</table>
+<h3>Discipline Rules</h3>
+<ol>
+<li><strong>Freeze Sumo changes.</strong> No new dashboards, monitors, FERs in Sumo during parallel run. Everything happens in Dynatrace.</li>
+<li><strong>Monitor alert parity daily.</strong> Track: same alert fires in both, alert fires in one only, new DT alert.</li>
+<li><strong>Daily standup review.</strong> Migration lead + SRE rep + on-call rep. Surface divergences.</li>
+<li><strong>Parallel-run exit criteria explicit.</strong> Define before starting. Common criteria:
+<ul>
+<li>Tier 1 passes 7 consecutive days</li>
+<li>Tier 2 team signoff ≥ 80% of teams</li>
+<li>Alert volume in DT ≤ Sumo baseline</li>
+</ul>
+</li>
+</ol>
+<h3>Validation Queries</h3>
+<pre><code class="language-dql">// Parallel-run parity check: DT log volume per scope
+fetch logs, from:-24h
+| summarize c = count(), by:{sumo.source_category}
+| sort c desc
+| limit 100
+
+</code></pre>
+<pre><code class="language-dql">// Parallel-run alert volume (DT detected problems, one record per problem)
+fetch dt.davis.problems, from:-24h
+| summarize problems = count(), by:{event.category}
+| sort problems desc
+
+</code></pre>
+<p><a id="gates"></a></p>
+<h2>4. Validation Gates — Per Wave</h2>
+<p>Each migration wave (SL2DT-01 §3) had entry/exit criteria. Validate them cumulatively:</p>
+<table>
+<thead>
+<tr>
+<th>Wave</th>
+<th>Validate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Wave 0 — Cut scope</td>
+<td>Retired assets are actually unused (query audit log)</td>
+</tr>
+<tr>
+<td>Wave 1 — Ingest parity</td>
+<td>All buckets receiving data ±5% of Sumo volume</td>
+</tr>
+<tr>
+<td>Wave 2 — Core monitors</td>
+<td>Top-10 monitors confirmed firing correctly</td>
+</tr>
+<tr>
+<td>Wave 3 — Dashboards</td>
+<td>In-scope dashboards live + app-team signoff</td>
+</tr>
+<tr>
+<td>Wave 4 — Remaining monitors/dashboards</td>
+<td>100% of migrate-list complete</td>
+</tr>
+<tr>
+<td>Wave 5 — Cutover</td>
+<td>See below</td>
+</tr>
+</tbody>
+</table>
+<h3>Daily Validation Checklist (during parallel run)</h3>
+<ul>
+<li>[ ] All expected buckets receiving data (no zero-volume scopes)</li>
+<li>[ ] detected problem count within range (not an explosion)</li>
+<li>[ ] No integration failures (ServiceNow delivery, Slack, PagerDuty)</li>
+<li>[ ] No user access tickets</li>
+<li>[ ] No data-loss escalations</li>
+</ul>
+<h3>Source-level ingest coverage (Wave 1 parity)</h3>
+<blockquote>
+<p><strong>Coverage vs. volume — the log-module self-monitoring events.</strong> For Wave 1 ingest parity, verify coverage at the <em>source</em> level, not just bucket volume — a source detected but not ingesting is a silent parity gap that volume checks miss. The log module emits a <code>log_source.status</code> event per discovered source into <code>dt.system.events</code>, carrying <code>log.source.file_status</code> and <code>log.source.ingest_status</code> — so it reveals sources OneAgent <strong>detected but is not ingesting</strong>, which a <code>fetch logs</code> count cannot show (no stored records means nothing to count). It scans events, not raw logs, and needs only event-read.</p>
+<p>This event stream is <strong>Early Access</strong> and requires <strong>opt-in</strong> (the OneAgent log module must be enabled to send self-monitoring events; its content folds into the built-in <em>Log ingest Overview</em> dashboard for Dynatrace <strong>1.339+</strong> — verify it is flowing in your tenant before relying on it). See <strong>FAQ-08</strong> (Recommended Approach) for the full file-status × ingest-status coverage matrix and the <code>fetch logs</code> fallback for tenants without the opt-in.</p>
+</blockquote>
+<pre><code class="language-dql">// Log-source coverage from the OneAgent log-module self-monitoring events.
+// Unlike `fetch logs` (which sees only sources that produced records), this
+// surfaces sources OneAgent DETECTED but is NOT ingesting. Scans events, not raw logs.
+fetch dt.system.events, from: now() - 24h
+| filter event.provider == &quot;Log Module&quot; and event.type == &quot;log_source.status&quot;
+| dedup event.id, sort:{ timestamp desc }
+| filter event.status == &quot;Active&quot;
+| fieldsAdd coverage =
+    if(log.source.file_status == &quot;FILE_STATUS_OK&quot; and log.source.ingest_status == &quot;Ingested&quot;, &quot;Available | Ingesting&quot;, else:
+    if(log.source.file_status == &quot;FILE_STATUS_OK&quot; and log.source.ingest_status == &quot;Not ingested&quot;, &quot;Available | NOT ingesting&quot;, else:
+    if(log.source.ingest_status == &quot;Partially ingested&quot;, &quot;Partial ingestion&quot;,
+    else: &quot;Unsupported or issue&quot;)))
+| summarize sources = count(), by:{coverage}
+| sort sources desc
+</code></pre>
+<p><a id="cutover"></a></p>
+<h2>5. The Cutover Runbook</h2>
+<p>Cutover = moment when Sumo is no longer authoritative. On-call pages route only from Dynatrace. Dashboards displayed on war-room screens are DT.</p>
+<h3>T-14 Days: Pre-Cutover Prep</h3>
+<ul>
+<li>[ ] Final parallel-run validation report published</li>
+<li>[ ] All team signoffs collected</li>
+<li>[ ] Exec sponsor formal go/no-go</li>
+<li>[ ] Change freeze announced for Sumo + Dynatrace (except migration team)</li>
+<li>[ ] On-call schedule locked + escalation paths tested</li>
+<li>[ ] Rollback plan reviewed by SRE lead</li>
+</ul>
+<h3>T-3 Days: Final Validation</h3>
+<ul>
+<li>[ ] Repeat Tier 1 check — green</li>
+<li>[ ] All ServiceNow/Slack integrations tested with live incident</li>
+<li>[ ] User access spot-check (5 users per team)</li>
+</ul>
+<h3>T-0: Cutover Day</h3>
+<pre><code>HH:00  Cutover announcement (all-hands)
+HH:00  Freeze all Sumo + DT config changes
+HH:30  Stop Sumo-side alerting (pause all monitors)
+HH:45  Verify DT alerts still firing correctly
+HH:60  Monitor for 60 min — escalation criteria defined below
+HH:120 Proceed with decommission, or roll back per criteria
+</code></pre>
+<h3>Escalation Criteria During Cutover Window</h3>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DT missing a critical alert that Sumo caught</td>
+<td>Re-enable Sumo alerts, investigate, re-cut later</td>
+</tr>
+<tr>
+<td>ServiceNow delivery failures</td>
+<td>Re-enable Sumo alerts for affected routes, investigate</td>
+</tr>
+<tr>
+<td>Major dashboard broken</td>
+<td>Post workaround; keep cut-over if non-critical</td>
+</tr>
+<tr>
+<td>Ingest gap &gt; 10 min</td>
+<td>Investigate immediately; may be cutover-related</td>
+</tr>
+</tbody>
+</table>
+<h3>Post-Cutover (T+1 Day)</h3>
+<ul>
+<li>[ ] 24h of alerting without Sumo as fallback</li>
+<li>[ ] No escalated incidents attributable to migration</li>
+<li>[ ] On-call rotation handoff completed cleanly</li>
+</ul>
+<p><a id="rollback"></a></p>
+<h2>6. Rollback Plan</h2>
+<p>Rollback is: re-enable Sumo alerting while keeping DT ingest running. This is a one-way door only at Sumo contract termination — until then, roll back freely if needed.</p>
+<h3>Rollback Triggers</h3>
+<table>
+<thead>
+<tr>
+<th>Trigger</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DT ingest pipeline breaks</td>
+<td>Re-enable Sumo ingest + alerts; investigate</td>
+</tr>
+<tr>
+<td>Critical alert silent for &gt; 30 min</td>
+<td>Re-enable Sumo monitor for that alert class</td>
+</tr>
+<tr>
+<td>Cross-system integration failure (ServiceNow etc.)</td>
+<td>Re-enable Sumo until fix deployed</td>
+</tr>
+<tr>
+<td>Data loss detected</td>
+<td>Full rollback; pause cutover</td>
+</tr>
+</tbody>
+</table>
+<h3>Rollback Runbook</h3>
+<pre><code>1. Unpause Sumo monitors (group-level enable)
+2. Verify Sumo ingest hasn't fully stopped (should still be running per parallel-run setup)
+3. Route on-call notifications back to Sumo-sourced alerts
+4. Announce rollback; update incident channel
+5. Investigate root cause; do not attempt re-cut until resolved
+</code></pre>
+<h3>Post-Rollback Steps</h3>
+<ul>
+<li>Run full validation Tier 1 + Tier 2 again</li>
+<li>Address the root cause</li>
+<li>Schedule new cutover date with stakeholder approval</li>
+</ul>
+<h3>Anti-Patterns</h3>
+<ul>
+<li><strong>Partial rollback</strong> (some teams on Sumo, some on DT). Confusing; don't.</li>
+<li><strong>Rolling back Dynatrace config.</strong> Keep DT state — rolling back IAM or bucket config is a larger undertaking.</li>
+<li><strong>&quot;Let's just watch it&quot; when alerts go silent.</strong> Silence isn't success. Re-enable Sumo.</li>
+</ul>
+<p><a id="decommission"></a></p>
+<h2>7. Sumo Decommission</h2>
+<p>Only after T+30 days of stable DT operation.</p>
+<h3>Pre-Decommission Checks</h3>
+<ul>
+<li>[ ] All teams signed off (Tier 3)</li>
+<li>[ ] No rollbacks in last 30 days</li>
+<li>[ ] DT operating at full volume</li>
+<li>[ ] Compliance retention confirmed for both Dynatrace audit records — environment audit events (<code>dt.system.events</code>, one year) and the Account Management audit log — with an export planned where longer retention is required (SL2DT-07 §6)</li>
+<li>[ ] Sumo data archival complete (per retention policy — regulated industries may require long-term archive)</li>
+</ul>
+<h3>Decommission Sequence</h3>
+<ol>
+<li><strong>Export inventory</strong> (final backup) — dashboards, monitors, FERs, settings, using the archival script below</li>
+<li><strong>Archive critical data</strong> — if required: export to S3/GCS with compliance retention; verify the archive opens</li>
+<li><strong>Cancel Sumo ingest sources</strong> — disable Collectors; stop dual-writing</li>
+<li><strong>Disable SSO integration</strong> — Sumo stops accepting new logins</li>
+<li><strong>Revoke Sumo API keys</strong> — last, because steps 1–2 use them; confirm no downstream automation still reads Sumo</li>
+<li><strong>Wait for confirmation</strong> — 14-day window with no access requests</li>
+<li><strong>Terminate Sumo contract</strong> — per contractual notice period</li>
+</ol>
+<h3>Data Archival</h3>
+<pre><code class="language-bash"># Export all dashboards (final snapshot) — run before the API keys are revoked
+# SUMO_API as set in SL2DT-02 §2 (us1 has no region label in its host)
+mkdir -p archive/dashboards
+for id in $(jq -r '.dashboards[].id' final-inventory/dashboards.json); do
+  curl -u &quot;$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY&quot; \
+    &quot;$SUMO_API/api/v2/dashboards/$id&quot; &gt; archive/dashboards/$id.json
+done
+tar czf sumo-final-archive.tar.gz archive/
+# Upload to long-term storage
+aws s3 cp sumo-final-archive.tar.gz s3://compliance-archive/sumo/
+</code></pre>
+<p><a id="post-cutover"></a></p>
+<h2>8. Post-Cutover First 30 Days</h2>
+<h3>Week 1 — Stabilization</h3>
+<ul>
+<li>Daily war-room calls (migration lead + SRE + on-call)</li>
+<li>Daily alert volume review</li>
+<li>Hot-patch any remaining low-confidence translations that fire false positives</li>
+<li>User access ticket triage (expect a burst)</li>
+</ul>
+<h3>Week 2 — Tuning</h3>
+<ul>
+<li>anomaly detection baselines stabilize — evaluate detector thresholds</li>
+<li>Reduce alert-fatigue items (obvious duplicates, too-narrow thresholds)</li>
+<li>App-team followups on dashboard polish</li>
+</ul>
+<h3>Week 3 — Handoff</h3>
+<ul>
+<li>On-call fully owns DT (no migration-team escalation)</li>
+<li>Migration team transitions to advisory role</li>
+<li>Lessons learned doc draft</li>
+</ul>
+<h3>Week 4 — Retro</h3>
+<ul>
+<li>Formal retro with all stakeholders</li>
+<li>What went well, what didn't, what would we change</li>
+<li>Document in <code>cutover/post-cutover-retro.md</code></li>
+<li>Feed back into shared skill (sumoql-to-dql) if translation gaps were discovered</li>
+</ul>
+<h3>Metrics to Track</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Target</th>
+<th>Actual</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Alert noise (DT alert count / week)</td>
+<td>≤ Sumo baseline</td>
+<td>_____</td>
+</tr>
+<tr>
+<td>User access tickets</td>
+<td>&lt; 10 / week</td>
+<td>_____</td>
+</tr>
+<tr>
+<td>Dynatrace Intelligence adoption rate</td>
+<td>≥ 40% of new monitors</td>
+<td>_____</td>
+</tr>
+<tr>
+<td>Translation low-confidence rewrites needed</td>
+<td>≤ 30 total</td>
+<td>_____</td>
+</tr>
+<tr>
+<td>MTTR post-cutover</td>
+<td>≤ pre-cutover</td>
+<td>_____</td>
+</tr>
+</tbody>
+</table>
+<p><a id="gate"></a></p>
+<h2>9. Final Step Exit Criteria</h2>
+<p><strong>G9 — Migration Complete</strong></p>
+<ul>
+<li>[ ] All three validation tiers passed</li>
+<li>[ ] Cutover executed per runbook, no rollback triggered</li>
+<li>[ ] 30-day post-cutover stability achieved</li>
+<li>[ ] All teams signed off (Tier 3)</li>
+<li>[ ] Sumo decommissioned + contract terminated</li>
+<li>[ ] Retro complete; lessons learned documented</li>
+<li>[ ] <code>sumoql-to-dql</code> skill updated with any new translation patterns discovered</li>
+</ul>
+<p><strong>You're done.</strong> Hand off to steady-state operations. Start scoping the next project (phase 2 tool migrations, if any).</p>
+<p><strong>Next:</strong> <strong>SL2DT-99 — Summary &amp; Runbook Index</strong> (full runbook compendium + quick-start for future migrations).</p>
+<hr />
+<p><a id="references"></a></p>
+<h2>10. References</h2>
+<h3>Dynatrace migration validation surfaces</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline">OpenPipeline (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">DQL Reference (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection">Anomaly detection (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app">Problems app (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/maintenance-windows">Maintenance windows (DT docs)</a></li>
+</ul>
+<h3>Sumo Logic decommission references (source)</h3>
+<ul>
+<li><a href="https://www.sumologic.com:443/help/docs/api/">Sumo Logic API (Sumo Logic docs)</a></li>
+<li><a href="https://www.sumologic.com:443/help/docs/manage/users-roles/">Sumo Logic users and roles (Sumo Logic docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://www.sumologic.com:443/help/docs/">Sumo Logic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

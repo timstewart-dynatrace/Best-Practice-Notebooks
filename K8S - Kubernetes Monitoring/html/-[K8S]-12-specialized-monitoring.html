@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K8S-12: Specialized Monitoring Scenarios</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">K8S — Kubernetes Monitoring</a><span class="sep">/</span><span aria-current="page">K8S-12</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>K8S-12: Specialized Monitoring Scenarios</h1>
+<blockquote>
+<p><strong>Series:</strong> K8S — Kubernetes Monitoring | <strong>Notebook:</strong> 12 of 14 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/15/2026</p>
+</blockquote>
+<h2>NGINX Ingress, Code-Module Delivery, Resource Tuning, and StatsD Ingestion</h2>
+<p>This notebook covers specialized monitoring scenarios including NGINX Ingress Controller instrumentation, how code modules reach pods (image volumes, CSI driver, ephemeral volumes), resource sizing, and StatsD metric ingestion on Kubernetes.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#nginx-ingress-controller-monitoring">NGINX Ingress Controller Monitoring</a></li>
+<li><a href="#csi-driver-architecture">CSI Driver Architecture</a></li>
+<li><a href="#csi-driver-resource-configuration">CSI Driver Resource Configuration</a></li>
+<li><a href="#component-sizing-guidelines">Component Sizing Guidelines</a></li>
+<li><a href="#telemetry-ingest-configuration">Telemetry Ingest Configuration</a></li>
+<li><a href="#statsd-metrics-ingestion">StatsD Metrics Ingestion on Kubernetes</a></li>
+<li><a href="#troubleshooting-specialized-scenarios">Troubleshooting Specialized Scenarios</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Kubernetes monitoring</td>
+</tr>
+<tr>
+<td><strong>Kubernetes Cluster</strong></td>
+<td>Dynatrace Operator v1.0+ installed</td>
+</tr>
+<tr>
+<td><strong>NGINX Ingress</strong></td>
+<td>ingress-nginx controller (for Section 1)</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>Completed K8S-01 through K8S-02</td>
+</tr>
+</tbody>
+</table>
+<p><a id="nginx-ingress-controller-monitoring"></a></p>
+<h2>1. NGINX Ingress Controller Monitoring</h2>
+<h3>Why Monitor NGINX Ingress?</h3>
+<p>The NGINX Ingress Controller is often the entry point for all external traffic. Instrumenting it provides:</p>
+<table>
+<thead>
+<tr>
+<th>Benefit</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>End-to-end traces</strong></td>
+<td>Complete request path visibility</td>
+</tr>
+<tr>
+<td><strong>Ingress latency</strong></td>
+<td>Measure time spent in ingress layer</td>
+</tr>
+<tr>
+<td><strong>Error correlation</strong></td>
+<td>Link 5xx errors to backend services</td>
+</tr>
+<tr>
+<td><strong>Traffic analysis</strong></td>
+<td>Understand traffic patterns</td>
+</tr>
+</tbody>
+</table>
+<h3>Prerequisites for NGINX Instrumentation</h3>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OneAgent version</td>
+<td>1.227+</td>
+</tr>
+<tr>
+<td>Pod naming</td>
+<td>Pod or container name must contain <code>ingress-nginx-</code> or <code>nginx-ingress-</code></td>
+</tr>
+<tr>
+<td>Architecture</td>
+<td><em>&quot;ARM64 architecture is not supported.&quot;</em></td>
+</tr>
+<tr>
+<td>Controller type</td>
+<td>The official Kubernetes ingress-nginx controller. The F5 NGINX ingress controller is instrumented automatically; derivatives such as Bitnami's are not supported by these steps</td>
+</tr>
+</tbody>
+</table>
+<h3>Configuration Steps</h3>
+<p><strong>Step 1: Edit the ingress-nginx-controller ConfigMap</strong></p>
+<pre><code class="language-bash">kubectl edit configmap ingress-nginx-controller -n ingress-nginx
+</code></pre>
+<p><strong>Step 2: Add the OneAgent module loading snippet</strong> (path for <code>cloudNativeFullStack</code> and <code>applicationMonitoring</code>; <code>classicFullStack</code> uses <code>/opt/dynatrace/oneagent/...</code> instead of <code>/opt/dynatrace/oneagent-paas/...</code>)</p>
+<pre><code class="language-yaml">data:
+  main-snippet: |
+    load_module /opt/dynatrace/oneagent-paas/agent/bin/current/linux-musl-x86-64/liboneagentnginx.so;
+</code></pre>
+<p><strong>Step 3 (Optional): Add trace context to access logs</strong></p>
+<pre><code class="language-yaml">data:
+  main-snippet: |
+    load_module /opt/dynatrace/oneagent-paas/agent/bin/current/linux-musl-x86-64/liboneagentnginx.so;
+  log-format-upstream: &gt;-
+    $remote_addr - $remote_user [$time_local] &quot;$request&quot;
+    [!dt dt.trace_id=$dt_trace_id,dt.span_id=$dt_span_id,dt.trace_sampled=$dt_trace_sampled]
+    $status $body_bytes_sent &quot;$http_referer&quot; &quot;$http_user_agent&quot;
+</code></pre>
+<p><strong>Step 4: Rolling restart the ingress controller</strong></p>
+<pre><code class="language-bash">kubectl rollout restart deployment ingress-nginx-controller -n ingress-nginx
+
+# Watch rollout
+kubectl rollout status deployment ingress-nginx-controller -n ingress-nginx
+</code></pre>
+<h3>Verifying NGINX Instrumentation</h3>
+<pre><code class="language-bash"># Check OneAgent injection
+kubectl -n ingress-nginx exec -it deploy/ingress-nginx-controller -- cat /proc/1/maps | grep dynatrace
+
+# Check for errors in logs
+kubectl -n ingress-nginx logs -l app.kubernetes.io/name=ingress-nginx | grep -i dynatrace
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> No DynaKube changes are required for NGINX monitoring - only the ConfigMap edit and pod restart.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/monitoring-and-instrumentation/instrument-nginx">Instrument ingress-nginx (DT docs)</a> — <em>&quot;The pod or container name must contain the substring ingress-nginx- or nginx-ingress- to ensure proper instrumentation of the NGINX binary.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Check if NGINX Ingress spans are arriving
+// dt.service.name, not service.name: service.name is the OpenTelemetry resource attribute and is
+// absent on OneAgent spans (on the validation tenant, 10/02/2026, it was set on 4,258 of 304,602
+// spans carrying k8s.namespace.name). dt.service.name is set on every span.
+fetch spans, from:-1h
+| filter contains(dt.service.name, &quot;nginx&quot;) or contains(dt.service.name, &quot;ingress&quot;)
+| summarize count = count(), by:{dt.service.name, span.name}
+| sort count desc
+| limit 20
+</code></pre>
+<p><a id="csi-driver-architecture"></a></p>
+<h2>2. CSI Driver Architecture</h2>
+<h3>Understanding the CSI Driver</h3>
+<p>The CSI (Container Storage Interface) Driver provides OneAgent code modules to application pods via volumes instead of host mounts.</p>
+<h3>Code-Module Delivery Is a Choice</h3>
+<p>There are three ways to get OneAgent code modules into application pods. Operator 1.10.0 (released 07/15/2026) added a CSI-to-ephemeral-volume migration mode, and <strong>Operator 1.11.0 (released 10/01/2026) adds image volumes</strong>, which the release notes call <em>&quot;a more secure, storage-efficient, and reliable way to instrument application pods that replaces the CSI driver as the recommended approach.&quot;</em></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><strong>Image volumes</strong> (Operator 1.11.0+)</th>
+<th><strong>CSI driver</strong></th>
+<th><strong>Ephemeral volumes</strong> (no CSI driver)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>How modules reach the pod</strong></td>
+<td>Each node pulls the code-modules image once and shares that copy with every instrumented pod</td>
+<td>Cached once per node by the CSI DaemonSet, then mounted into each injected pod</td>
+<td>Provisioned into each pod's own ephemeral volume</td>
+</tr>
+<tr>
+<td><strong>Cluster footprint</strong></td>
+<td>No DaemonSet, no elevated privileges</td>
+<td>A 5-container privileged DaemonSet per node, with a host-path CSI socket</td>
+<td>No DaemonSet; work moves into the injection path</td>
+</tr>
+<tr>
+<td><strong>Requirements</strong></td>
+<td>Kubernetes 1.35+, containerd 2.2+ or CRI-O 1.33+; not compatible with the built-in tenant registry</td>
+<td>Any supported cluster; Helm default, or the <code>kubernetes-csi.yaml</code> manifest</td>
+<td>Any supported cluster; <code>csidriver.enabled: false</code>, or the plain <code>kubernetes.yaml</code> manifest</td>
+</tr>
+<tr>
+<td><strong>Density behavior</strong></td>
+<td>One copy per node</td>
+<td>One cached copy per node</td>
+<td>One copy per pod — <em>&quot;storage-inefficient&quot;</em> per the docs: 1 GB of ephemeral storage per monitored pod, against 0.1 GB per injected pod with the CSI driver</td>
+</tr>
+<tr>
+<td><strong>Choose it when</strong></td>
+<td>Operator 1.11.0+ and the node requirements are met — Dynatrace's recommended approach</td>
+<td>The cluster cannot meet the image-volume requirements and can run a privileged DaemonSet</td>
+<td>Neither: a CSI DaemonSet is unacceptable (see FAQ-13 for OpenShift SCCs) and image volumes are unavailable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What you get without choosing.</strong> It depends on how you install. The Helm chart turns the CSI driver on (<code>csidriver.enabled: true</code> in the 1.9.0, 1.10.2 and 1.11.0 charts). With manifests it depends on the file: every release from 1.0.0 to 1.11.0 ships both <code>kubernetes.yaml</code>, which contains no CSI driver, and <code>kubernetes-csi.yaml</code>, which adds it. So running without the CSI driver is not new in 1.10.0; what 1.10.0 added is the migration mode below. Without the CSI driver, injected pods get their code modules through an ephemeral volume. The image-volume guide calls that <em>&quot;Node Image Pull via ephemeral volume injection, which is the default since Dynatrace Operator version 1.10&quot;</em>, and the 1.10.0 notes say <em>&quot;CSI-less codeModulesImage injection does not require this flag&quot;</em> (<code>feature.dynatrace.com/node-image-pull</code>). Read that as the default <em>for CSI-less injection</em>, not as ephemeral volumes becoming the Operator's overall default: a Helm install still starts on CSI.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://github.com/Dynatrace/dynatrace-operator/blob/v1.11.0/config/helm/chart/default/values.yaml">Operator Helm chart values, v1.11.0 (Dynatrace GitHub)</a> — <code>csidriver.enabled: true</code>; the same default read at v1.9.0 and v1.10.2, 10/02/2026</sub></li>
+<li><sub><a href="https://github.com/Dynatrace/dynatrace-operator/releases">Operator releases (Dynatrace GitHub)</a> — <code>kubernetes.yaml</code> and <code>kubernetes-csi.yaml</code> assets at v1.0.0, v1.9.0, v1.10.0 and v1.11.0; the CSI DaemonSet is present only in the <code>-csi</code> file (read 10/02/2026)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-0">Operator 1.10.0 release notes (DT docs)</a> — <em>&quot;The feature.dynatrace.com/node-image-pull feature flag now only affects the CSI driver.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/use-image-volumes">Use image volumes for code modules injection (DT docs)</a> — <em>&quot;ephemeral volume injection needs no privileged access but is storage-inefficient&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/storage">Storage requirements (DT docs)</a> — <code>applicationMonitoring</code>, CSI driver disabled: <em>&quot;1 GB per monitored pod from local ephemeral storage&quot;</em>; enabled: 0.1 GB per injected pod plus 1 GB per tenant and OneAgent version on the node</sub></li>
+<li><sub><strong>Derived:</strong> &quot;not the overall default&quot; combines the chart default with the guide's sentence, which describes what pods revert to <em>&quot;If the CSI driver is disabled&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><strong>Decision guidance:</strong> on Operator 1.11.0+ with Kubernetes 1.35+ and a supported runtime, move to image volumes. Otherwise stay on the CSI driver unless platform policy rules out a privileged DaemonSet, in which case use ephemeral volumes.</p>
+<p><strong>Turning image volumes on.</strong> Set the DynaKube feature flag <code>feature.dynatrace.com/mount-code-modules-via-image-volume: &quot;true&quot;</code> (it cannot be combined with <code>node-image-pull</code>). Existing pods keep their current mounts until restarted, so a full switch needs a rolling restart of instrumented workloads. To try it on one workload first, annotate that pod <code>oneagent.dynatrace.com/volume-type: &quot;image&quot;</code>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0">Operator 1.11.0 release notes (DT docs)</a> — <em>&quot;replaces the CSI driver as the recommended approach&quot;</em>.</sub></p>
+</blockquote>
+<p><strong>Staged-rollout caveat.</strong> Image volumes need <strong>Operator 1.11.0</strong> and the one-step CSI → ephemeral migration mode needs <strong>Operator 1.10.0</strong>, and estates upgrade on their own schedule. Running without the CSI driver does not depend on either. What a 1.9.x or older cluster lacks is <code>csidriver.migrationMode</code>, so moving an <em>existing</em> CSI cluster off the driver is not the single-restart procedure below. The how-to measures migration mode as <em>&quot;a single pod-restart cycle instead of two&quot;</em>, so without it plan for two — or upgrade to 1.10.0+ first. Verify your operator version before planning a migration:</p>
+<pre><code class="language-bash">kubectl -n dynatrace get deployment dynatrace-operator \
+  -o jsonpath='{.spec.template.spec.containers[0].image}'
+</code></pre>
+<h3>Migrating CSI → Ephemeral Volumes (Operator 1.10.0+)</h3>
+<p>The documented migration direction is <strong>CSI → ephemeral</strong>. The Dynatrace how-to uses the <code>csidriver.migrationMode</code> Helm value so the move takes <em>&quot;a single pod-restart cycle instead of two&quot;</em>. Prerequisites: <em>&quot;Dynatrace Operator version 1.10.0+&quot;</em>, an existing CSI-based injection setup, and a Helm-managed Operator — <em>&quot;For manifest-based installations, see Migrate from manifests to Helm first.&quot;</em> Application manifests are untouched throughout; the change is Helm values plus one restart cycle.</p>
+<p><strong>Step 1 — Enable migration mode.</strong> The CSI DaemonSet keeps running (so existing mounts can be cleanly unmounted) while new injections switch to ephemeral volumes:</p>
+<pre><code class="language-bash">helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator \
+  --namespace dynatrace \
+  --reset-then-reuse-values \
+  --set csidriver.enabled=true \
+  --set csidriver.migrationMode=true \
+  --atomic
+</code></pre>
+<p><em>&quot;After this upgrade, all newly injected pods use ephemeral-volume injection. Existing pods continue to use their current CSI mounts until they are restarted.&quot;</em></p>
+<p><strong>Step 2 — Restart every injected workload</strong> so the webhook re-injects it with ephemeral volumes:</p>
+<pre><code class="language-bash">kubectl rollout restart deployment &lt;deployment-name&gt; -n &lt;namespace&gt;
+</code></pre>
+<p><strong>Step 3 — Verify no pod still mounts a CSI volume.</strong> <em>&quot;Empty output means all pods have been migrated.&quot;</em> Restart the workload of any pod that is listed:</p>
+<pre><code class="language-bash">kubectl get pods --all-namespaces -o jsonpath='{range .items[?(@.spec.volumes[*].csi.driver==&quot;csi.oneagent.dynatrace.com&quot;)]}{.metadata.namespace}{&quot;\t&quot;}{.metadata.name}{&quot;\n&quot;}{end}'
+</code></pre>
+<p><strong>Step 4 — Only then disable the CSI driver.</strong> <em>&quot;Any pods that still rely on CSI mounts will fail to function after the CSI driver is disabled.&quot;</em> — never set <code>csidriver.enabled=false</code> before Step 3 comes back empty:</p>
+<pre><code class="language-bash">helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator \
+  --namespace dynatrace \
+  --reset-then-reuse-values \
+  --set csidriver.enabled=false \
+  --atomic
+</code></pre>
+<p>Roll it per cluster rather than fleet-wide, and re-check pod-start latency at your busiest node density before committing.</p>
+<blockquote>
+<p><sub>Source: <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/csi-to-ephemeral-volumes">Migrate from CSI driver to ephemeral volumes (DT docs)</a>, read 09/18/2026.</sub></p>
+</blockquote>
+<h3>CSI Driver Container Structure</h3>
+<p>The CSI Driver DaemonSet runs <strong>5 containers</strong> in a sidecar pattern:</p>
+<table>
+<thead>
+<tr>
+<th>Container</th>
+<th>Purpose</th>
+<th>Resource Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>csi-init</code></td>
+<td>Initialize volume plugin</td>
+<td>Runs once at startup</td>
+</tr>
+<tr>
+<td><code>server</code></td>
+<td>Main CSI plugin</td>
+<td>Core functionality</td>
+</tr>
+<tr>
+<td><code>provisioner</code></td>
+<td>Volume provisioning</td>
+<td>Highest resource needs</td>
+</tr>
+<tr>
+<td><code>registrar</code></td>
+<td>Node registration</td>
+<td>Low overhead</td>
+</tr>
+<tr>
+<td><code>livenessprobe</code></td>
+<td>Health checking</td>
+<td>Minimal</td>
+</tr>
+</tbody>
+</table>
+<p><a id="csi-driver-resource-configuration"></a></p>
+<h2>3. CSI Driver Resource Configuration</h2>
+<blockquote>
+<p><strong>This section applies only on the CSI path.</strong> If you chose image volumes (Operator 1.11.0+) or run without the CSI driver (ephemeral volumes, §2) there is no CSI DaemonSet to size and none of the values below exist — the equivalent work is watching per-pod volume provisioning and pod-start latency instead. That includes clusters installed from the plain <code>kubernetes.yaml</code> manifest, which has no CSI driver on any Operator version. On a Helm install the CSI driver is on unless you turned it off, so by default this section applies.</p>
+</blockquote>
+<h3>Helm Values for CSI Driver</h3>
+<p>Configure resources for each CSI Driver container in your Helm <code>values.yaml</code>. The values below are suggested starting points with more headroom than the chart defaults (compared in the table that follows):</p>
+<pre><code class="language-yaml">csidriver:
+  enabled: true
+  
+  # Init container - runs once at startup
+  csiInit:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 100Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+  
+  # Main CSI plugin
+  server:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 100Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+  
+  # Volume provisioner - needs more resources
+  provisioner:
+    resources:
+      requests:
+        cpu: 300m
+        memory: 100Mi
+      limits:
+        cpu: 500m         # Often missing in defaults!
+        memory: 256Mi     # Often missing in defaults!
+  
+  # Node registration sidecar
+  registrar:
+    resources:
+      requests:
+        cpu: 20m
+        memory: 30Mi
+      limits:
+        cpu: 50m
+        memory: 64Mi
+  
+  # Health check sidecar
+  livenessprobe:
+    resources:
+      requests:
+        cpu: 20m
+        memory: 30Mi
+      limits:
+        cpu: 50m
+        memory: 64Mi
+</code></pre>
+<h3>CSI Driver Resource Summary Table</h3>
+<table>
+<thead>
+<tr>
+<th>Container</th>
+<th>Chart default (Operator 1.11.0) requests / limits</th>
+<th>Suggested above</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>csiInit</code></td>
+<td>50m, 100Mi / 50m, 100Mi</td>
+<td>50m, 100Mi / 100m, 128Mi</td>
+<td>Init container</td>
+</tr>
+<tr>
+<td><code>server</code></td>
+<td>50m, 100Mi / 50m, 100Mi</td>
+<td>50m, 100Mi / 100m, 128Mi</td>
+<td>Main plugin</td>
+</tr>
+<tr>
+<td><code>provisioner</code></td>
+<td>300m, 100Mi / <strong>none</strong></td>
+<td>300m, 100Mi / 500m, 256Mi</td>
+<td><strong>No limits by default</strong></td>
+</tr>
+<tr>
+<td><code>registrar</code></td>
+<td>20m, 30Mi / 20m, 30Mi</td>
+<td>20m, 30Mi / 50m, 64Mi</td>
+<td>Sidecar</td>
+</tr>
+<tr>
+<td><code>livenessprobe</code></td>
+<td>20m, 30Mi / 20m, 30Mi</td>
+<td>20m, 30Mi / 50m, 64Mi</td>
+<td>Sidecar</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Warning:</strong> In the Operator 1.11.0 chart the <code>provisioner</code> container has requests but no limits. Add limits if your admission policy requires them. The suggested figures are community practice, not Dynatrace guidance — size from what the containers use on your busiest nodes.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/Dynatrace/dynatrace-operator/blob/v1.11.0/config/helm/chart/default/values.yaml">Operator Helm chart values, v1.11.0 (Dynatrace GitHub)</a>.</sub></p>
+</blockquote>
+<p><a id="component-sizing-guidelines"></a></p>
+<h2>4. Component Sizing Guidelines</h2>
+<p>These tables are starting points from community practice, not Dynatrace-published figures. Measure each component's real usage (the § 7 restart query and K8S-04's usage-versus-requests queries) and adjust; for ActiveGate capacity planning see FAQ-10.</p>
+<h3>ActiveGate Sizing</h3>
+<table>
+<thead>
+<tr>
+<th>Cluster Size</th>
+<th>Nodes</th>
+<th>CPU Limit</th>
+<th>Memory Limit</th>
+<th>Replicas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Small</td>
+<td>1-10</td>
+<td>500m</td>
+<td>1Gi</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Medium</td>
+<td>10-50</td>
+<td>1000m</td>
+<td>2Gi</td>
+<td>2</td>
+</tr>
+<tr>
+<td>Large</td>
+<td>50-100</td>
+<td>2000m</td>
+<td>4Gi</td>
+<td>2</td>
+</tr>
+<tr>
+<td>Enterprise</td>
+<td>100+</td>
+<td>4000m</td>
+<td>8Gi</td>
+<td>3+</td>
+</tr>
+</tbody>
+</table>
+<h3>OneAgent Resources</h3>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>CPU Request</th>
+<th>CPU Limit</th>
+<th>Memory Request</th>
+<th>Memory Limit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>cloudNativeFullStack</td>
+<td>100m</td>
+<td>300m</td>
+<td>256Mi</td>
+<td>512Mi</td>
+</tr>
+<tr>
+<td>classicFullStack (legacy)</td>
+<td>150m</td>
+<td>500m</td>
+<td>512Mi</td>
+<td>1Gi</td>
+</tr>
+<tr>
+<td>applicationMonitoring</td>
+<td>50m</td>
+<td>200m</td>
+<td>128Mi</td>
+<td>256Mi</td>
+</tr>
+</tbody>
+</table>
+<h3>OTel Collector Sizing</h3>
+<table>
+<thead>
+<tr>
+<th>Telemetry Volume</th>
+<th>CPU Limit</th>
+<th>Memory Limit</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Low</td>
+<td>200m</td>
+<td>256Mi</td>
+<td>Dev/Test</td>
+</tr>
+<tr>
+<td>Medium</td>
+<td>500m</td>
+<td>512Mi</td>
+<td>Staging</td>
+</tr>
+<tr>
+<td>High</td>
+<td>1000m</td>
+<td>1Gi</td>
+<td>Production</td>
+</tr>
+<tr>
+<td>Very High</td>
+<td>2000m</td>
+<td>2Gi</td>
+<td>High-throughput</td>
+</tr>
+</tbody>
+</table>
+<h3>Log Monitoring Sizing</h3>
+<table>
+<thead>
+<tr>
+<th>Log Volume</th>
+<th>CPU Limit</th>
+<th>Memory Limit</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Low</td>
+<td>200m</td>
+<td>256Mi</td>
+<td>&lt; 1GB/day</td>
+</tr>
+<tr>
+<td>Medium</td>
+<td>500m</td>
+<td>512Mi</td>
+<td>1-10GB/day</td>
+</tr>
+<tr>
+<td>High</td>
+<td>1000m</td>
+<td>1Gi</td>
+<td>10-50GB/day</td>
+</tr>
+<tr>
+<td>Very High</td>
+<td>2000m</td>
+<td>2Gi</td>
+<td>50GB+/day</td>
+</tr>
+</tbody>
+</table>
+<p><a id="telemetry-ingest-configuration"></a></p>
+<h2>5. Telemetry Ingest Configuration</h2>
+<h3>Multi-Protocol Ingestion</h3>
+<p>Configure DynaKube to accept telemetry from multiple sources:</p>
+<pre><code class="language-yaml">spec:
+  telemetryIngest:
+    protocols:
+      - otlp      # OpenTelemetry Protocol
+      - jaeger    # Jaeger traces
+      - zipkin    # Zipkin traces
+      - statsd    # StatsD metrics
+    serviceName: telemetry-ingest
+</code></pre>
+<p>The Operator deploys the Dynatrace OpenTelemetry Collector behind a Service named <code>&lt;dynakube-name&gt;-telemetry-ingest</code> in the <code>dynatrace</code> namespace; <code>serviceName</code> above renames it to <code>telemetry-ingest</code>. The data ingest token needs <code>openTelemetryTrace.ingest</code>, <code>logs.ingest</code> and <code>metrics.ingest</code> (Operator 1.6+).</p>
+<h3>Protocol Endpoints</h3>
+<table>
+<thead>
+<tr>
+<th>Protocol</th>
+<th>Port</th>
+<th>Endpoint (with <code>serviceName: telemetry-ingest</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OTLP gRPC</td>
+<td>4317 (TCP)</td>
+<td><code>telemetry-ingest.dynatrace:4317</code></td>
+</tr>
+<tr>
+<td>OTLP HTTP</td>
+<td>4318 (TCP)</td>
+<td><code>http://telemetry-ingest.dynatrace:4318</code></td>
+</tr>
+<tr>
+<td>Zipkin</td>
+<td>9411 (TCP)</td>
+<td><code>http://telemetry-ingest.dynatrace:9411</code></td>
+</tr>
+<tr>
+<td>Jaeger gRPC</td>
+<td>14250 (TCP)</td>
+<td><code>telemetry-ingest.dynatrace:14250</code></td>
+</tr>
+<tr>
+<td>Jaeger Thrift HTTP</td>
+<td>14268 (TCP)</td>
+<td><code>http://telemetry-ingest.dynatrace:14268</code></td>
+</tr>
+<tr>
+<td>Jaeger Thrift Compact / Binary</td>
+<td>6831 / 6832 (UDP)</td>
+<td><code>telemetry-ingest.dynatrace:6831</code></td>
+</tr>
+<tr>
+<td>StatsD</td>
+<td>8125 (UDP)</td>
+<td><code>telemetry-ingest.dynatrace:8125</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/extend-observability-k8s/telemetry-ingest">Enable Dynatrace telemetry ingest endpoints (DT docs)</a> — ports reference; <em>&quot;The data ingest token requires the token scopes openTelemetryTrace.ingest , logs.ingest , and metrics.ingest&quot;</em>.</sub></p>
+</blockquote>
+<h3>Application Configuration</h3>
+<pre><code class="language-yaml"># Application deployment using OTLP
+env:
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: &quot;http://telemetry-ingest.dynatrace:4318&quot;
+  - name: OTEL_SERVICE_NAME
+    value: &quot;my-application&quot;
+</code></pre>
+<pre><code class="language-dql">// CSI driver health — container restarts per CSI pod (last 24 h)
+// A provisioner or server container restarting repeatedly is the liveness-probe crash loop
+// described in K8S-09 § 2. The restart counter is written only when a restart happened, so an
+// empty result means no restarts. Executed 10/02/2026.
+timeseries r = sum(dt.kubernetes.container.restarts), from:-24h,
+  filter:{k8s.workload.name == &quot;dynatrace-oneagent-csi-driver&quot;},
+  by:{k8s.cluster.name, k8s.pod.name, k8s.container.name}
+| fieldsAdd restarts = arraySum(r)
+| filter restarts &gt; 0
+| fields k8s.cluster.name, k8s.pod.name, k8s.container.name, restarts
+| sort restarts desc
+</code></pre>
+<pre><code class="language-dql">// Spans that carry an OpenTelemetry instrumentation scope, by service
+// otel.scope.name is the instrumentation scope; OneAgent spans also carry it (dt.agent.*), so exclude those to see OpenTelemetry-instrumented services
+fetch spans, from:-1h
+| filter isNotNull(otel.scope.name)
+| filter not(startsWith(otel.scope.name, &quot;dt.agent&quot;)) and otel.scope.name != &quot;&quot;
+| summarize span_count = count(), by:{dt.service.name, otel.scope.name}
+| sort span_count desc
+| limit 15
+</code></pre>
+<p><a id="statsd-metrics-ingestion"></a></p>
+<h2>6. StatsD Metrics Ingestion on Kubernetes</h2>
+<h3>The Challenge</h3>
+<p>Many applications emit custom metrics using the StatsD protocol (UDP port 8125). On VMs, Dynatrace OneAgent includes a built-in StatsD daemon, but the docs state: <em>&quot;OneAgent deployed on Kubernetes, for example using Dynatrace Operator, isn't supported. For Kubernetes environments, we recommend remote StatsD monitoring using an environment ActiveGate.&quot;</em></p>
+<h3>Ingestion Approaches for Kubernetes</h3>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Works on K8s?</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Environment ActiveGate as remote listener</strong></td>
+<td>Yes</td>
+<td>The approach the StatsD docs recommend for Kubernetes</td>
+</tr>
+<tr>
+<td><strong>DynaKube <code>telemetryIngest</code> with <code>statsd</code></strong> (Operator 1.6+)</td>
+<td>Yes</td>
+<td>The Operator deploys and manages the Dynatrace OTel Collector with a StatsD endpoint on UDP 8125 (§ 5)</td>
+</tr>
+<tr>
+<td><strong>Self-managed OpenTelemetry Collector</strong></td>
+<td>Yes</td>
+<td>Documented by Dynatrace; the pattern below, when you want to own the collector</td>
+</tr>
+<tr>
+<td><strong>OneAgent StatsD daemon</strong></td>
+<td>No</td>
+<td><em>&quot;OneAgent deployed on Kubernetes, for example using Dynatrace Operator, isn't supported.&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Telegraf</strong></td>
+<td>Community practice</td>
+<td>Not documented by Dynatrace</td>
+</tr>
+</tbody>
+</table>
+<h3>Self-managed: OpenTelemetry Collector with StatsD Receiver</h3>
+<p>If you run the DynaKube <code>telemetryIngest</code> endpoint (§ 5), point StatsD clients at <code>telemetry-ingest.dynatrace:8125</code> and skip the rest of this section. To own the collector yourself, deploy a dedicated OTel Collector that listens for StatsD traffic, converts it to OTLP, and ships it to Dynatrace. The collector is <strong>shared infrastructure</strong> — it gets its own Deployment, separate from your application pods.</p>
+<h3>Deployment Pattern Options</h3>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>When to Use</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cluster-wide Deployment</strong></td>
+<td>Most common starting point</td>
+<td>Single Deployment in a <code>monitoring</code> namespace. All apps send StatsD via FQDN.</td>
+</tr>
+<tr>
+<td><strong>Per-namespace Deployment</strong></td>
+<td>Isolated teams/environments</td>
+<td>One collector per namespace. More isolation, more overhead.</td>
+</tr>
+<tr>
+<td><strong>DaemonSet</strong></td>
+<td>Very high metric volume</td>
+<td>One pod per node. Avoids cross-node traffic. Overkill for most StatsD use cases.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Recommendation:</strong> Start with a cluster-wide Deployment in a dedicated <code>monitoring</code> or <code>observability</code> namespace. The platform/infra team manages the collector independently from application deployments.</p>
+</blockquote>
+<h3>Step-by-Step Setup</h3>
+<p><strong>Step 1: Create the collector configuration</strong></p>
+<pre><code class="language-yaml"># otelcol-config.yaml (stored as a ConfigMap)
+receivers:
+  statsd:
+    endpoint: &quot;0.0.0.0:8125&quot;
+    timer_histogram_mapping:
+      - statsd_type: &quot;histogram&quot;
+        observer_type: &quot;histogram&quot;
+        histogram: {}
+      - statsd_type: &quot;timer&quot;
+        observer_type: &quot;histogram&quot;
+        histogram: {}
+
+processors:
+  batch: {}
+
+exporters:
+  otlphttp:
+    endpoint: &quot;${DT_ENDPOINT}&quot; # https://&lt;env-id&gt;.live.dynatrace.com/api/v2/otlp
+    headers:
+      Authorization: &quot;Api-Token ${DT_API_TOKEN}&quot;
+
+service:
+  pipelines:
+    metrics:
+      receivers: [statsd]
+      processors: [batch]
+      exporters: [otlphttp]
+</code></pre>
+<p><strong>Step 2: Deploy the collector in a dedicated namespace</strong></p>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector-statsd
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otel-collector-statsd
+  template:
+    metadata:
+      labels:
+        app: otel-collector-statsd
+    spec:
+      containers:
+        - name: otel-collector
+          image: otel/opentelemetry-collector-contrib:0.151.0  # pinned — keep in sync with OTEL-03/OTEL-07
+          args: [&quot;--config=/conf/otelcol-config.yaml&quot;]
+          ports:
+            - containerPort: 8125
+              protocol: UDP
+          env:
+            - name: DT_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: dynatrace-secret
+                  key: endpoint
+            - name: DT_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: dynatrace-secret
+                  key: api-token
+          volumeMounts:
+            - name: config
+              mountPath: /conf
+      volumes:
+        - name: config
+          configMap:
+            name: otel-collector-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector-statsd
+  namespace: monitoring
+spec:
+  selector:
+    app: otel-collector-statsd
+  ports:
+    - name: statsd-udp
+      protocol: UDP
+      port: 8125
+      targetPort: 8125
+</code></pre>
+<p><strong>Step 3: Point StatsD clients at the collector using the FQDN</strong></p>
+<p>Since the collector lives in the <code>monitoring</code> namespace, apps in other namespaces must use the fully qualified service name:</p>
+<pre><code class="language-yaml"># In your application deployment (any namespace)
+env:
+  - name: STATSD_HOST
+    value: &quot;otel-collector-statsd.monitoring.svc.cluster.local&quot;
+  - name: STATSD_PORT
+    value: &quot;8125&quot;
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> No application code changes are needed — just the env var configuration. The collector is managed independently from your application lifecycle.</p>
+</blockquote>
+<h3>Ownership Model</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Owner</th>
+<th>Namespace</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OTel Collector Deployment</td>
+<td>Platform / Infra team</td>
+<td><code>monitoring</code></td>
+</tr>
+<tr>
+<td>Collector ConfigMap + Secret</td>
+<td>Platform / Infra team</td>
+<td><code>monitoring</code></td>
+</tr>
+<tr>
+<td>Application <code>STATSD_HOST</code> env var</td>
+<td>App team</td>
+<td>App namespace</td>
+</tr>
+</tbody>
+</table>
+<h3>Requirements</h3>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>API Token</strong></td>
+<td><code>metrics.ingest</code> scope</td>
+</tr>
+</tbody>
+</table>
+<p>| <strong>Environment URL</strong> | <code>https://&lt;env-id&gt;.live.dynatrace.com</code> |
+| <strong>Collector Image</strong> | <code>otel/opentelemetry-collector-contrib</code> (includes StatsD receiver) |</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/statsd">StatsD ingestion (DT docs)</a> — <em>&quot;For Kubernetes environments, we recommend remote StatsD monitoring using an environment ActiveGate.&quot;</em></sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Tip:</strong> You can also use the Dynatrace Collector image or build a custom collector with the OpenTelemetry Builder. The key requirement is the StatsD receiver component.</p>
+</blockquote>
+<h3>Verifying StatsD Metrics in Dynatrace</h3>
+<p>After deploying the collector and pointing StatsD clients at it, verify metrics are flowing:</p>
+<pre><code class="language-dql">// Verify StatsD metrics are being ingested
+// The StatsD receiver keeps the metric names your client sends, so look them up by your own
+// prefix. metrics takes from: with no leading comma.
+metrics from:-1h
+| filter startsWith(metric.key, &quot;my_app.&quot;)
+| summarize n = count(), by:{metric.key}
+| sort metric.key asc
+</code></pre>
+<p><a id="troubleshooting-specialized-scenarios"></a></p>
+<h2>7. Troubleshooting Specialized Scenarios</h2>
+<h3>NGINX Ingress Issues</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Cause</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Module load fails</td>
+<td>Wrong architecture</td>
+<td>ARM64 is not supported</td>
+</tr>
+<tr>
+<td>No spans from ingress</td>
+<td>Pod name mismatch</td>
+<td>Pod or container name must contain <code>ingress-nginx-</code> or <code>nginx-ingress-</code></td>
+</tr>
+<tr>
+<td>Partial traces</td>
+<td>OneAgent version</td>
+<td>Upgrade to 1.227+</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-bash"># Debug NGINX module loading
+kubectl -n ingress-nginx exec -it deploy/ingress-nginx-controller -- \
+  ls -la /opt/dynatrace/oneagent-paas/agent/bin/current/
+</code></pre>
+<h3>CSI Driver Issues</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Cause</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Volume mount fails</td>
+<td>Provisioner OOM</td>
+<td>Increase provisioner limits</td>
+</tr>
+<tr>
+<td>Slow pod startup</td>
+<td>CSI driver overloaded</td>
+<td>Add resources, check node count</td>
+</tr>
+<tr>
+<td>Code modules missing</td>
+<td>No delivery path working</td>
+<td>Check the CSI pod on that node, or the image-volume / ephemeral-volume prerequisites (§ 2)</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-bash"># Check CSI driver status
+kubectl -n dynatrace get pods -l app.kubernetes.io/component=csi-driver
+
+# View CSI driver logs
+kubectl -n dynatrace logs -l app.kubernetes.io/component=csi-driver -c server
+</code></pre>
+<h3>StatsD Ingestion Issues</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Cause</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No metrics arriving</td>
+<td>Wrong collector image</td>
+<td>Use <code>otel/opentelemetry-collector-contrib</code> (not base)</td>
+</tr>
+<tr>
+<td>UDP traffic not reaching collector</td>
+<td>Missing Service or wrong protocol</td>
+<td>Ensure Service specifies <code>protocol: UDP</code></td>
+</tr>
+<tr>
+<td>Metrics visible but unnamed</td>
+<td>Missing metric prefix</td>
+<td>Configure StatsD client to include application prefix</td>
+</tr>
+<tr>
+<td>Token errors in collector logs</td>
+<td>Wrong scope</td>
+<td>Token needs <code>metrics.ingest</code> scope</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-bash"># Check OTel collector logs for StatsD errors
+kubectl logs -l app=otel-collector-statsd --tail=50
+
+# Test UDP connectivity to the collector
+kubectl run statsd-test --rm -it --image=busybox -- \
+  sh -c 'echo &quot;test.metric:1|c&quot; | nc -u -w1 otel-collector-statsd 8125'
+</code></pre>
+<h3>Resource Exhaustion</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Component</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OOMKilled</td>
+<td>Any</td>
+<td>Increase memory limits</td>
+</tr>
+<tr>
+<td>CPU throttling</td>
+<td>Any</td>
+<td>Increase CPU limits</td>
+</tr>
+<tr>
+<td>Slow queries</td>
+<td>ActiveGate</td>
+<td>Add replicas or resources</td>
+</tr>
+<tr>
+<td>Dropped spans</td>
+<td>OTel Collector</td>
+<td>Increase batch size, resources</td>
+</tr>
+</tbody>
+</table>
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li><strong>NGINX Ingress monitoring</strong> with OneAgent module loading</li>
+<li><strong>Code-module delivery</strong>: image volumes (Operator 1.11.0+, now recommended), the CSI driver and ephemeral volumes</li>
+<li><strong>CSI Driver resource configuration</strong> with per-container limits</li>
+<li><strong>Component sizing guidelines</strong> for all Dynatrace components</li>
+<li><strong>Telemetry ingest configuration</strong> for multi-protocol support</li>
+<li><strong>StatsD ingestion on Kubernetes</strong> via an environment ActiveGate, the DynaKube telemetry ingest endpoint, or a self-managed OpenTelemetry Collector</li>
+<li><strong>Troubleshooting</strong> common specialized monitoring issues</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/monitoring-and-instrumentation/instrument-nginx">NGINX instrumentation (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/storage">Storage / CSI driver (DT docs)</a></li>
+<li><a href="https://github.com/Dynatrace/dynatrace-operator/blob/main/config/helm/chart/default/values.yaml">Dynatrace Operator Helm chart (Dynatrace GitHub)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry">Telemetry ingest with OpenTelemetry (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/statsd">StatsD ingestion (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector-use-cases/statsd">StatsD via OpenTelemetry Collector (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s">Set up Dynatrace on Kubernetes (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/csi-to-ephemeral-volumes">Migrate from CSI driver to ephemeral volumes (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0">Operator 1.11.0 release notes (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/extend-observability-k8s/telemetry-ingest">Enable Dynatrace telemetry ingest endpoints (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

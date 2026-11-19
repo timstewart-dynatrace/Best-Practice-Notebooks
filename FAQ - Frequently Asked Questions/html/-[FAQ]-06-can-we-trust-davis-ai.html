@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ-06: Can We Trust Davis AI? A Risk and Controls Walkthrough</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">FAQ — Frequently Asked Questions</a><span class="sep">/</span><span aria-current="page">FAQ-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>FAQ-06: Can We Trust Davis AI? A Risk and Controls Walkthrough</h1>
+<blockquote>
+<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 06 — Can We Trust Davis AI? A Risk and Controls Walkthrough | <strong>Created:</strong> May 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>&quot;Can we trust the AI?&quot; is the most common question that surfaces when a customer evaluates Dynatrace Intelligence. The question is doing a lot of work in a small sentence — under it sit four very different surfaces (Causal AI, Predictive AI, Generative AI / Dynatrace Assist, and AI Observability for the customer's own GenAI apps), three different audiences (security/compliance, platform/SRE, executive), and a spectrum of risk concerns ranging from &quot;where does my data go&quot; to &quot;can the model make a destructive change without me.&quot;</p>
+<p>This FAQ unpacks the question. For each Davis AI surface, it states what the surface does, what data crosses what boundary, what risk profile applies, and what controls Dynatrace already has in place to address that risk. It also flags the parts that are still evolving — because pretending there are no gaps is a worse posture than naming them.</p>
+<p>The goal is to give a platform team, a security review, or an executive briefing one document they can read and come out the other side with the same mental model.</p>
+<blockquote>
+<p><strong>Scope:</strong> Dynatrace SaaS. <em>Dynatrace Assist</em> is the generative and agentic AI assistant; earlier releases called it Davis CoPilot, and its IAM service is still named <code>davis-copilot</code>. Its capabilities and IAM specifics evolve sprint-to-sprint — treat version-specific claims as approximate and verify against current docs before a security review.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#surface-map">The Four Davis AI Surfaces</a></li>
+<li><a href="#residency">Data Residency and Tenant Isolation</a></li>
+<li><a href="#training-boundary">Model Training Boundary</a></li>
+<li><a href="#hallucination">Hallucination and Accuracy Controls</a></li>
+<li><a href="#autonomy">Autonomy Boundaries — Human-in-the-Loop</a></li>
+<li><a href="#audit">Audit Trail and Explainability</a></li>
+<li><a href="#access-control">Access Control</a></li>
+<li><a href="#compliance">Compliance Posture</a></li>
+<li><a href="#ai-observability">AI Observability for Customer GenAI Apps</a></li>
+<li><a href="#decision-framework">Decision Framework — When to Lean In vs Hold Back</a></li>
+<li><a href="#objections">Common Objections and Responses</a></li>
+<li><a href="#evolving">What's Still Evolving</a></li>
+<li><a href="#recommendation">Recommended Approach</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Security/compliance reviewers, platform/SRE leaders, executive decision-makers</td>
+</tr>
+<tr>
+<td><strong>Format</strong></td>
+<td>Decision-support document — presents Dynatrace's posture and controls, no hands-on lab</td>
+</tr>
+<tr>
+<td><strong>Deployment</strong></td>
+<td>Dynatrace SaaS (Gen3 / Platform). Generative and agentic AI is available on SaaS environments on the latest Dynatrace (AWS and Azure), not on Managed; the region decides where prompts are processed (§3).</td>
+</tr>
+<tr>
+<td><strong>Related topic series</strong></td>
+<td>AIOPS (Dynatrace Intelligence), IAM (IAM Administration), WFLOW (Workflows and Alert Notifications)</td>
+</tr>
+<tr>
+<td><strong>Related FAQ</strong></td>
+<td>FAQ-03 OneAgent and OTel (for AI Observability context on the instrumentation side)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<p>Dynatrace Intelligence is <strong>not one AI</strong> — for a risk review, it is best read as four distinct surfaces with very different risk profiles. The four-surface split and the risk ratings below are community practice for structuring that review, not a Dynatrace-published risk classification:</p>
+<table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>What it is</th>
+<th>Risk profile</th>
+<th>One-line posture</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Causal AI</strong></td>
+<td>Deterministic problem detection and RCA over tenant topology</td>
+<td>LOW</td>
+<td>No foundation model involved; fully on-tenant; explainable by construction.</td>
+</tr>
+<tr>
+<td><strong>Predictive AI</strong></td>
+<td>Statistical analyzers — forecasts, anomaly detection, baselines</td>
+<td>LOW–MEDIUM</td>
+<td>Tenant-scoped models; outputs are bounded numerics with confidence; operator decides what to act on.</td>
+</tr>
+<tr>
+<td><strong>Generative AI (Dynatrace Assist)</strong></td>
+<td>LLM-backed Q&amp;A, DQL generation, workflow assistance</td>
+<td>MEDIUM</td>
+<td>RAG-grounded; customer data not used to train foundation models; write actions run only when approved or customer-configured; IAM-scoped; auditable.</td>
+</tr>
+<tr>
+<td><strong>AI Observability</strong></td>
+<td>Monitoring of the <em>customer's own</em> LLM/GenAI applications</td>
+<td>REDUCES customer AI risk</td>
+<td>This is a <em>risk-mitigation tool</em> for the customer's GenAI stack — it surfaces cost, latency, and errors for your own AI apps, and — with evaluations run in Arize AX — the quality, safety, and relevance of their responses (§10).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The headline:</strong> the surfaces customers worry about most (data residency, model training, hallucination, runaway autonomy) all map primarily to the Generative AI surface — and that is also the surface where Dynatrace has applied the most explicit controls. The other three surfaces inherit the general platform posture (tenant isolation, IAM, audit) and add little incremental AI-specific risk.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence">Dynatrace Intelligence (DT docs)</a> — <em>&quot;Dynatrace Intelligence can propose and run approved actions through agentic workflows and built-in agents operating under policy guardrails&quot;</em> (Preview), <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai">Agentic and generative AI (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability">Dynatrace AI Observability (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="surface-map"></a></p>
+<h2>2. The Four Davis AI Surfaces</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+RGF2aXMgQUkgU3VyZmFjZXMgYW5kIEFwcGxpZWQgUmlzayBDb250cm9sczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5Gb3VyIHN1cmZhY2VzLCBmb3VyIHJpc2sgcHJvZmlsZXMsIGZvdXIgY29udHJvbCBzZXRzIOKAlCB0ZW5hbnQtc2NvcGVkIGJ5IGRlZmF1bHQ8L3RleHQ+CgogIDwhLS0gQ2F1c2FsIEFJICh0b3AtbGVmdCkgLS0+CiAgPHJlY3QgeD0iNTAiIHk9IjgwIiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjE3MCIgZmlsbD0iIzIyQzU1RSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMjJDNTVFIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjEwIi8+CiAgPHRleHQgeD0iNzAiIHk9IjEwOCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+Q2F1c2FsIEFJIOKAlCBEYXZpcyBQcm9ibGVtcyAmYW1wOyBSQ0E8L3RleHQ+CiAgPHRleHQgeD0iNzAiIHk9IjEzMCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RGV0ZXJtaW5pc3RpYyBncmFwaCBjb3JyZWxhdGlvbiBvbiB0ZW5hbnQgdG9wb2xvZ3k8L3RleHQ+CiAgPHRleHQgeD0iNzAiIHk9IjE0OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UmlzayBwcm9maWxlOiBMT1cg4oCUIGV4cGxhaW5hYmxlLCByZXByb2R1Y2libGU8L3RleHQ+CiAgPHRleHQgeD0iNzAiIHk9IjE3MiIgZmlsbD0iI0UyRThGMCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+Q29udHJvbHMgYXBwbGllZDo8L3RleHQ+CiAgPHRleHQgeD0iNzAiIHk9IjE5MCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIDEwMCUgb24tdGVuYW50OyBubyBmb3VuZGF0aW9uLW1vZGVsIGNhbGw8L3RleHQ+CiAgPHRleHQgeD0iNzAiIHk9IjIwNiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIERldGVybWluaXN0aWMg4oCUIHNhbWUgaW5wdXRzIOKGkiBzYW1lIFJDQTwvdGV4dD4KICA8dGV4dCB4PSI3MCIgeT0iMjIyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgRnVsbCBjYXVzYWwgY2hhaW4gdmlzaWJsZSB0byBvcGVyYXRvcjwvdGV4dD4KICA8dGV4dCB4PSI3MCIgeT0iMjM4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgTm8gY3VzdG9tZXIgZGF0YSBsZWF2ZXMgdGhlIHRlbmFudDwvdGV4dD4KCiAgPCEtLSBQcmVkaWN0aXZlIEFJICh0b3AtcmlnaHQpIC0tPgogIDxyZWN0IHg9IjQ4MCIgeT0iODAiIHdpZHRoPSI0MDAiIGhlaWdodD0iMTcwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iMTAiLz4KICA8dGV4dCB4PSI1MDAiIHk9IjEwOCIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+UHJlZGljdGl2ZSBBSSDigJQgQW5hbHl6ZXJzICZhbXA7IEZvcmVjYXN0czwvdGV4dD4KICA8dGV4dCB4PSI1MDAiIHk9IjEzMCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+U3RhdGlzdGljYWwgbW9kZWxzIChmb3JlY2FzdCwgYW5vbWFseSwgYmFzZWxpbmUpPC90ZXh0PgogIDx0ZXh0IHg9IjUwMCIgeT0iMTQ4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5SaXNrIHByb2ZpbGU6IExPV+KAk01FRElVTSDigJQgYm91bmRlZCBvdXRwdXRzPC90ZXh0PgogIDx0ZXh0IHg9IjUwMCIgeT0iMTcyIiBmaWxsPSIjRTJFOEYwIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5Db250cm9scyBhcHBsaWVkOjwvdGV4dD4KICA8dGV4dCB4PSI1MDAiIHk9IjE5MCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIFRlbmFudC1zY29wZWQgdHJhaW5pbmcgZGF0YSBvbmx5PC90ZXh0PgogIDx0ZXh0IHg9IjUwMCIgeT0iMjA2IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgQ29uZmlkZW5jZSBiYW5kcyBzdXJmYWNlZCB3aXRoIHByZWRpY3Rpb25zPC90ZXh0PgogIDx0ZXh0IHg9IjUwMCIgeT0iMjIyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgT3BlcmF0b3IgY2hvb3NlcyB3aGVuIHRvIGFjdCBvbiBvdXRwdXQ8L3RleHQ+CiAgPHRleHQgeD0iNTAwIiB5PSIyMzgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBNb2RlbCBiZWhhdmlvciB2ZXJzaW9uZWQgd2l0aCBwbGF0Zm9ybTwvdGV4dD4KCiAgPCEtLSBHZW5lcmF0aXZlIEFJIChib3R0b20tbGVmdCkgLS0+CiAgPHJlY3QgeD0iNTAiIHk9IjI3MCIgd2lkdGg9IjQwMCIgaGVpZ2h0PSIxODAiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSIxMCIvPgogIDx0ZXh0IHg9IjcwIiB5PSIyOTgiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPkdlbmVyYXRpdmUgQUkg4oCUIER5bmF0cmFjZSBBc3Npc3Q8L3RleHQ+CiAgPHRleHQgeD0iNzAiIHk9IjMyMCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+TExNLWJhY2tlZCBRJmFtcDtBLCBEUUwgZ2VuLCB3b3JrZmxvdyBhc3Npc3Q8L3RleHQ+CiAgPHRleHQgeD0iNzAiIHk9IjMzOCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UmlzayBwcm9maWxlOiBNRURJVU0g4oCUIG1vc3QgY29uY2VybnMgbGl2ZSBoZXJlPC90ZXh0PgogIDx0ZXh0IHg9IjcwIiB5PSIzNjIiIGZpbGw9IiNFMkU4RjAiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPkNvbnRyb2xzIGFwcGxpZWQ6PC90ZXh0PgogIDx0ZXh0IHg9IjcwIiB5PSIzODAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBSQUctZ3JvdW5kZWQgb24gRHluYXRyYWNlIGRvY3MgKyB0ZW5hbnQgZGF0YTwvdGV4dD4KICA8dGV4dCB4PSI3MCIgeT0iMzk2IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgQ3VzdG9tZXIgZGF0YSBub3QgdXNlZCBmb3IgZm91bmRhdGlvbiB0cmFpbmluZzwvdGV4dD4KICA8dGV4dCB4PSI3MCIgeT0iNDEyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgV3JpdGVzIHJ1biBvbmx5IHdoZW4gYXBwcm92ZWQgb3IgY29uZmlndXJlZDwvdGV4dD4KICA8dGV4dCB4PSI3MCIgeT0iNDI4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgSUFNLXNjb3BlZCB2aWEgZGF2aXMtY29waWxvdDoqIHBvbGljeSBzdGF0ZW1lbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjcwIiB5PSI0NDQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBQcm9tcHQvcmVzcG9uc2UgYXVkaXRhYmxlIGFzIHBsYXRmb3JtIGV2ZW50czwvdGV4dD4KCiAgPCEtLSBBSSBPYnNlcnZhYmlsaXR5IChib3R0b20tcmlnaHQpIC0tPgogIDxyZWN0IHg9IjQ4MCIgeT0iMjcwIiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjE4MCIgZmlsbD0iI0E4NTVGNyIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjQTg1NUY3IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjEwIi8+CiAgPHRleHQgeD0iNTAwIiB5PSIyOTgiIGZpbGw9IiNEOEI0RkUiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPkFJIE9ic2VydmFiaWxpdHkg4oCUIGZvciBZT1VSIEdlbkFJIGFwcHM8L3RleHQ+CiAgPHRleHQgeD0iNTAwIiB5PSIzMjAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk1vbml0b3JzIGN1c3RvbWVyLW93bmVkIExMTSBhcHBzIChub3QgRGF2aXMpPC90ZXh0PgogIDx0ZXh0IHg9IjUwMCIgeT0iMzM4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5SaXNrIHByb2ZpbGU6IFJFRFVDRVMgY3VzdG9tZXIgQUkgcmlzazwvdGV4dD4KICA8dGV4dCB4PSI1MDAiIHk9IjM2MiIgZmlsbD0iI0UyRThGMCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+V2hhdCBpdCBzdXJmYWNlczo8L3RleHQ+CiAgPHRleHQgeD0iNTAwIiB5PSIzODAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBMTE0gdG9rZW4gY29zdCAmYW1wOyBsYXRlbmN5IGJ5IGFwcC9tb2RlbDwvdGV4dD4KICA8dGV4dCB4PSI1MDAiIHk9IjM5NiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIFJlc3BvbnNlIGV2YWxzIHZpYSBBcml6ZSBBWCAoZHQtZXZhbHMgcmV0aXJpbmcpPC90ZXh0PgogIDx0ZXh0IHg9IjUwMCIgeT0iNDEyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgTW9kZWwgZHJpZnQgYW5kIGRhdGEgZHJpZnQ8L3RleHQ+CiAgPHRleHQgeD0iNTAwIiB5PSI0MjgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBWZWN0b3IgREIgLyBzZW1hbnRpYy1jYWNoZSBwZXJmb3JtYW5jZTwvdGV4dD4KICA8dGV4dCB4PSI1MDAiIHk9IjQ0NCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIE9wZW5UZWxlbWV0cnkgR2VuQUkgc2VtY29udiBjb21wYXRpYmxlPC90ZXh0PgoKICA8dGV4dCB4PSI0NjUiIHk9IjQ3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMSI+QWxsIGZvdXIgc3VyZmFjZXMgb3BlcmF0ZSB3aXRoaW4gdGVuYW50IGJvdW5kYXJpZXM7IEdlbmVyYXRpdmUgQUkgaXMgdGhlIG9ubHkgb25lIGNhbGxpbmcgYW4gZXh0ZXJuYWwgZm91bmRhdGlvbiBtb2RlbDwvdGV4dD4KPC9zdmc+Cg==" alt="Davis AI Surfaces and Applied Risk Controls" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Surface | Data path | Foundation model? | Primary controls |
+|---------|-----------|-------------------|------------------|
+| Causal AI | Tenant topology → on-tenant graph correlation → problem card | No | Determinism, explainability, no external call |
+| Predictive AI | Tenant metrics → on-tenant statistical model → forecast/anomaly | No | Confidence bands, operator decides |
+| Generative AI (Dynatrace Assist) | User prompt + tenant context (+ agentic tool-call results) → foundation model (hosted by an enterprise vendor — e.g. Microsoft Azure AI, AWS Bedrock) → grounded response | Yes (vendor-hosted, reached through Dynatrace) | RAG, no-training boundary, HITL, IAM, audit |
+| AI Observability | Customer's LLM app telemetry → Dynatrace ingest | (monitors customer's models; optional LLM-as-a-judge evaluations, now run in Arize AX) | Standard ingest controls; OpenTelemetry GenAI semconv |
+For environments where SVG doesn't render
+-->
+<h3>Why this split matters for risk review</h3>
+<p>In community practice, a blanket &quot;we use AI&quot; statement collapses very different risk profiles into one scary phrase. A precise statement does the opposite:</p>
+<ul>
+<li><strong>Causal AI</strong> has the lowest incremental risk of anything Dynatrace ships — it is deterministic graph analysis over data that's already in the tenant, with no foundation-model call and no external data flow. The &quot;AI&quot; label is technically correct but historically loaded.</li>
+<li><strong>Predictive AI</strong> runs statistical models (forecasting, anomaly detection, baselining) on tenant data. The outputs are bounded numeric predictions with confidence intervals. The risk is <em>acting on a forecast</em> — which is an operator decision, not the model's.</li>
+<li><strong>Generative AI</strong> is the surface that triggers most concerns: a foundation model is involved, the model is large, its outputs are unbounded text, and intuitively it &quot;could say anything.&quot; This is where the controls below apply most heavily.</li>
+<li><strong>AI Observability</strong> is on the other side of the table entirely — it is Dynatrace observing the customer's GenAI apps, not Dynatrace using AI. For a customer running their own LLM applications, this surface <em>reduces</em> their AI risk by giving them visibility into cost, latency, errors and drift, and — through evaluations run in Arize AX — response quality and safety.</li>
+</ul>
+<p>In community practice, the most productive framing in a security review is to walk the four surfaces explicitly and let the reviewer apply different scrutiny to each. Treating &quot;Davis AI&quot; as one thing usually leads to over-broad concerns about the low-risk surfaces and under-precise questions about the high-risk one.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence">Dynatrace Intelligence (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai">Agentic and generative AI (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability">Dynatrace AI Observability (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="residency"></a></p>
+<h2>3. Data Residency and Tenant Isolation</h2>
+<p>The first question in most security reviews: <em>where does our data go?</em></p>
+<h3>Causal AI and Predictive AI</h3>
+<p>Both run entirely within the tenant boundary. The data they operate on (spans, logs, metrics, events, topology) is already in the tenant; the models that process it are part of the Dynatrace platform serving that tenant; the outputs (problems, forecasts, anomalies) land back in the tenant. <strong>No data leaves the tenant boundary as part of these features.</strong></p>
+<h3>Generative AI (Dynatrace Assist)</h3>
+<p>Assist is the surface where the data path is more nuanced. A prompt from a user typically combines:</p>
+<ol>
+<li>The user's literal question.</li>
+<li>Context that Dynatrace assembles to ground the answer — relevant tenant data (entities, recent problems, schemas), Dynatrace documentation, DQL grammar references.</li>
+<li>The conversation history.</li>
+</ol>
+<p>This composite prompt is sent to a foundation model that an enterprise vendor hosts, not Dynatrace: <em>&quot;Your prompts are sent to LLMs hosted by enterprise vendors such as Microsoft Azure AI and AWS Bedrock, which power Dynatrace Intelligence agentic and generative AI.&quot;</em> Each request travels <em>&quot;over an SSL-encrypted service, processed by respective enterprise vendors, and sent back to Dynatrace.&quot;</em> The vendors <em>&quot;don't store the data you submit or the responses you receive&quot;</em> — but Dynatrace itself <em>&quot;may store the prompts submitted to Dynatrace Intelligence agentic and generative AI and the responses provided by the LLMs&quot;</em>, and for Agentic Dynatrace Assist the results of intermediate tool calls too. A security review should treat the vendor as a sub-processor on the prompt path.</p>
+<p><strong>What does cross a boundary</strong>: prompt content goes to the vendor-hosted foundation model and back — and in agentic mode, more than the prompt: <em>&quot;Agentic Dynatrace Assist shares some additional information, such as tool call results, with enterprise vendors hosting the LLMs that Dynatrace agentic and generative AI are based on.&quot;</em> Agentic Assist's tools include <em>&quot;generating and executing DQL queries&quot;</em>, so the rows such a query returns — within the asking user's permissions (§8) — can reach the vendor. Agentic mode is not an edge case: once its prerequisites are met, Assist and the embedded conversation starters run in agentic mode by default. PII masking applies to standard generative AI (1.305+); for agentic AI, PII <em>blocking</em> is the control, and <em>&quot;Starting with Dynatrace version 1.345+, PII blocking is disabled by default for new environments and environments where Agentic AI was not already enabled.&quot;</em> If prompts may carry PII, turn it on under <strong>Settings &gt; Dynatrace Intelligence &gt; Generative and agentic AI</strong>. <strong>What does not cross a boundary</strong>: the tenant's data as a corpus. What is sent is the prompt, its grounding context, and what the tools return for that question — not your raw logs/spans/metrics in bulk.</p>
+<h3>Tenant region</h3>
+<p>Assist inference is region-bound at <strong>continental</strong> granularity, not at your tenant's region: <em>&quot;If your environment is located in EMEA, your prompts are processed in an EU region. If your environment is located in NORAM, LATAM, or APAC, your prompts are processed in a US region.&quot;</em> For EMEA tenants that keeps prompts in the EU. For <strong>APAC and LATAM tenants it means prompts are processed in the US</strong> — check that against your data-residency requirement before enabling generative or agentic AI. The page does not address FedRAMP. Availability itself is not regional: <em>&quot;Dynatrace Intelligence agentic and generative AI will be available for all Dynatrace SaaS customers using the latest Dynatrace. Both AWS and Azure accounts are supported.&quot;</em> It <em>&quot;is not available for Dynatrace Managed customers.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-data-privacy">Agentic and generative AI data privacy (DT docs)</a> — the vendor-hosting, storage, region and PII-blocking statements above, all quoted verbatim (page updated 09/11/2026, read 09/24/2026). Also:</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-faq">Agentic and generative AI FAQ (DT docs)</a> — the tool-call-results and availability statements, quoted verbatim (read 10/02/2026)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-getting-started">Get started with agentic and generative AI (DT docs)</a> — <em>&quot;generating and executing DQL queries&quot;</em>; agentic mode is the default once prerequisites are met (read 10/02/2026)</sub></li>
+<li><sub><strong>Derived:</strong> that tool-call results can include DQL result rows combines the two statements above.</sub></li>
+<li><sub><a href="https://www.dynatrace.com/company/trust-center/trusted-ai/">Trusted AI — Dynatrace Trust Center</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-security/data-security-controls">Data security controls (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="training-boundary"></a></p>
+<h2>4. Model Training Boundary</h2>
+<p>The second question in most security reviews: <em>is our data used to train your AI models?</em></p>
+<h3>Foundation models</h3>
+<p>The Dynatrace posture is that customer tenant data is <strong>not used to train the foundation models</strong> that back Dynatrace Assist. The foundation models are hosted by enterprise vendors (§3), and neither those vendors nor Dynatrace feed customer prompts back into them. The one model Dynatrace fine-tunes itself — the custom DQL generation model — is tuned on internal data: <em>&quot;For the custom DQL generation model, we use internally generated data that's sourced from the DQL queries executed by Dynatrace employees.&quot;</em> and <em>&quot;We don't use customer data at any stage of the fine-tuning process.&quot;</em></p>
+<p>This is the no-training boundary. It is the load-bearing commitment for most enterprise procurement reviews. Verify it against the current Trust Center language and your contract — both because phrasing tightens over time and because it is the kind of commitment that benefits from being in the agreement, not just in marketing copy.</p>
+<h3>Tenant-scoped models (Predictive AI)</h3>
+<p>The statistical models that drive Predictive AI (forecasting, anomaly baselines) <em>are</em> trained on tenant data — but the training is <strong>tenant-scoped</strong>. Your baselines come from your data; another tenant's baselines come from theirs. There is no cross-tenant model. This is different from foundation-model training and is generally what customers want.</p>
+<h3>Causal AI</h3>
+<p>Causal AI does not train. It is a deterministic graph algorithm — same inputs always produce the same RCA. There is no model to update with experience; the &quot;learning&quot; is the topology itself, which is observed, not trained.</p>
+<h3>RAG-grounding vs training</h3>
+<p>A common confusion: &quot;if Assist uses our tenant data to answer questions, isn't that training?&quot; No. <strong>Grounding (RAG) is reading; training is rewriting weights.</strong> When Assist answers a question about your tenant, it retrieves relevant tenant context and includes it in the prompt for one specific answer — your data does not change the underlying model. The next user (in any tenant) does not get a model that has been altered by your data.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-data-privacy">Agentic and generative AI data privacy (DT docs)</a> — verbatim: <em>&quot;Enterprise vendors don't use the prompts to fine-tune or improve any models or services, or to train models across customers or environments.&quot;</em> (plus the custom DQL model quotes above). <a href="https://www.dynatrace.com/company/trust-center/trusted-ai/">Trusted AI — Dynatrace Trust Center</a> — verbatim: <em>&quot;Causal AI and Predictive AI are trained only on the data of the specific customer using Dynatrace Intelligence&quot;</em> and <em>&quot;Humans control each phase of the Dynatrace Intelligence lifecycle.&quot;</em> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-faq">Agentic and generative AI FAQ (DT docs)</a> — the RAG-vs-training distinction, verbatim: <em>&quot;Dynatrace Intelligence generative AI is based on a retrieval augmented generation (RAG) approach, which means that data and additional context is used only to enrich prompts. The underlying foundation model doesn't learn from this.&quot;</em></sub></p>
+</blockquote>
+<p><a id="hallucination"></a></p>
+<h2>5. Hallucination and Accuracy Controls</h2>
+<p>The third concern in most security reviews: <em>what if the AI is wrong?</em></p>
+<h3>Causal AI</h3>
+<p>Not subject to hallucination. The outputs are deterministic causal chains over real topology. If the RCA is wrong, the cause is a topology gap (the dependency the algorithm doesn't know about), not invention.</p>
+<h3>Predictive AI</h3>
+<p>Subject to forecast error, not hallucination. Forecasts come with confidence bands; anomalies come with statistical scores. The mitigation is reading the confidence — a 95% confidence interval that spans an order of magnitude is the model telling you &quot;I'm not sure,&quot; which is a different posture than confidently fabricating.</p>
+<h3>Generative AI (Dynatrace Assist)</h3>
+<p>This is the surface where hallucination is a real concern. The table groups the controls that apply — the grouping is community practice for a review conversation; Dynatrace documents each control on its own:</p>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RAG grounding on Dynatrace docs</strong></td>
+<td>When Assist answers a &quot;how does X work&quot; question, it retrieves the relevant Dynatrace docs and grounds the answer there — reducing invention of feature behavior.</td>
+</tr>
+<tr>
+<td><strong>RAG grounding on tenant data</strong></td>
+<td>When Assist answers a &quot;what is happening in my tenant&quot; question, it retrieves real entities/problems/metrics rather than inventing them.</td>
+</tr>
+<tr>
+<td><strong>DQL generation is verifiable</strong></td>
+<td>The output is a DQL query the user can read, edit, and <em>execute</em> — the round-trip (<code>explain in natural language</code> → DQL → <code>execute</code> → results) gives the user a verification path that doesn't exist for prose answers.</td>
+</tr>
+<tr>
+<td><strong>Bounded action surface</strong></td>
+<td>What Assist runs on its own is read-only — it can auto-execute the DQL it generates. Changes go through approved or customer-configured workflows (§6).</td>
+</tr>
+<tr>
+<td><strong>Citation in answers</strong></td>
+<td>Where applicable, Assist surfaces the doc reference or entity it grounded on — letting the user verify the source.</td>
+</tr>
+</tbody>
+</table>
+<h3>Operator-side mitigation</h3>
+<p>The most reliable hallucination control is the <em>operator habit</em> of treating generative answers as drafts. In community practice, the teams that get the most value out of Assist use it for &quot;first draft of a DQL query,&quot; &quot;first pass at interpreting a problem,&quot; &quot;first explanation of an unfamiliar feature&quot; — and then verify. This is the same posture that applies to GenAI in software development generally and is not Dynatrace-specific.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai">Agentic and generative AI (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">Dynatrace Query Language (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="autonomy"></a></p>
+<h2>6. Autonomy Boundaries — Human-in-the-Loop</h2>
+<p>The fourth concern in most security reviews: <em>can the AI take destructive action on its own?</em></p>
+<h3>What Davis can do unattended</h3>
+<table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>Unattended action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Causal AI</td>
+<td>Detect a problem, open a problem card, attribute root cause within tenant topology</td>
+</tr>
+<tr>
+<td>Predictive AI</td>
+<td>Emit a forecast, raise an anomaly event, populate a baseline</td>
+</tr>
+<tr>
+<td>Generative AI (Dynatrace Assist)</td>
+<td>Answer a question; generate a DQL query — and run it: the documentation says Assist <em>is capable of auto-executing generated DQL queries</em>. DQL reads data; it runs with the asking user's permissions. Those queries are billed — <em>&quot;subject to licensing consumption according to your existing licensing agreement&quot;</em> — and <em>&quot;you can choose to generate DQL without executing it&quot;</em></td>
+</tr>
+<tr>
+<td>Agentic root cause analysis (SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout))</td>
+<td>When a problem is detected, investigate contributing factors across metrics, logs, and traces and surface findings on the problem. Verify it has reached your tenant; until then, Causal AI's root-cause attribution above is the unattended surface</td>
+</tr>
+<tr>
+<td>Agentic workflows and built-in agents (Preview)</td>
+<td>Propose actions and run them once <em>approved</em>, under policy guardrails. Preview — verify availability on your tenant before relying on it</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Run agent workflow action — licensing, permission and limits (Dynatrace 1.347+).</strong> <em>&quot;Starting with Dynatrace version 1.347+, using Dynatrace Intelligence AI outside the Assist UI, Dashboards, and Notebooks is subject to license consumption according to your existing licensing agreement and requires a DPS license that includes AI Units capabilities.&quot;</em> On a non-DPS licensing model, or without that capability, you are <em>&quot;no longer able to use agentic AI workflow actions.&quot;</em> The action needs <code>ai:operator:execute</code> alongside <code>mcp-gateway:servers:invoke</code>, <code>mcp-gateway:servers:read</code> and <code>document:documents:read</code>, and the standard agentic and generative AI limits apply: 25 requests per 15 minutes per user, 60 per 15 minutes across the environment, and 120 seconds per request. A frequently scheduled agent workflow can throttle every other agentic and generative AI use in the environment.</p>
+</blockquote>
+<p>None of the generally available surfaces above write to your infrastructure or change tenant configuration; the Preview agentic-workflow row runs only approved actions. They read data and produce findings and suggestions inside the Dynatrace tenant — so the review question for Generative AI is <em>what data can the asking user read</em>, not <em>whether a human clicks Run</em>.</p>
+<h3>What requires human-in-the-loop</h3>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Why it requires HITL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Acting on a Workflow remediation action</td>
+<td>Workflows are configured deliberately; the AI may <em>suggest</em> a workflow, but execution is governed by the workflow's own access scoping and trigger rules.</td>
+</tr>
+<tr>
+<td>Modifying tenant configuration (settings, IAM policies, alerting rules)</td>
+<td>These are explicit operator actions through configured pathways. Assist may help author the change; the change is applied through the same audit and IAM path as any other config change.</td>
+</tr>
+<tr>
+<td>Triggering external systems (ticketing, paging, ChatOps)</td>
+<td>Handled by Workflows with their own credentials, scopes, and policies.</td>
+</tr>
+</tbody>
+</table>
+<h3>The principle</h3>
+<p>In community practice, the platform's autonomy posture is summarized as: <strong>AI surfaces produce findings and suggestions; humans (or explicitly configured, scoped automation) apply changes.</strong> The summary is this entry's reading of the documented mechanics above, not a Dynatrace policy statement — and it is the choice that most enterprise risk reviewers want to hear, because the alternative (&quot;the AI made the change unattended&quot;) is the one that triggers regulatory and operational concerns.</p>
+<p>In community practice, the agentic-workflow conversation often comes up here: <em>can Davis act autonomously through Workflows?</em> The honest answer is <em>yes, if the customer configures it that way, and within the scopes the customer grants</em>. Dynatrace Assist suggesting a workflow that, when executed, takes an automatic remediation is the same as any other workflow in the platform — governed by the workflow's own credentials, IAM scope, and configured triggers. The autonomy lives in the <em>customer's workflow configuration</em>, not in the AI.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai">Agentic and generative AI (DT docs)</a> — <em>&quot;is capable of auto-executing generated DQL queries.&quot;</em>, <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-faq">Agentic and generative AI FAQ (DT docs)</a> — the licensing and generate-only quotes, <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence">Dynatrace Intelligence (DT docs)</a> — <em>&quot;Dynatrace Intelligence can propose and run approved actions through agentic workflows and built-in agents operating under policy guardrails&quot;</em> (Preview), <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">SaaS 1.348 release notes (DT docs)</a> — <em>&quot;Dynatrace Intelligence can now run agentic workflows for problem root cause analysis.&quot;</em> (GA, rollout start 10/12/2026; re-read 10/23/2026), <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows">Workflows (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-intelligence-integrations/dynatrace-intelligence-run-agent-workflows">Run agents in Workflows (DT docs)</a> — <em>&quot;Starting with Dynatrace version 1.347+, using Dynatrace Intelligence AI outside the Assist UI, Dashboards, and Notebooks is subject to license consumption&quot;</em>; <em>&quot;no longer able to use agentic AI workflow actions&quot;</em>; <em>&quot;all other Dynatrace Intelligence agentic and generative AI functionality might be throttled due to reaching the request limit&quot;</em> (read 11/11/2026).</sub></p>
+</blockquote>
+<p><a id="audit"></a></p>
+<h2>7. Audit Trail and Explainability</h2>
+<p>The fifth concern in most security reviews: <em>can we see what the AI did, after the fact?</em></p>
+<h3>Causal AI — explainable by construction</h3>
+<p>A Davis problem card surfaces the causal chain: the events, the entities, the dependencies, the timeline. Click through and you see the graph the algorithm followed. There is no &quot;the model decided&quot; black-box step — the causal chain is the explanation.</p>
+<h3>Predictive AI — analyzers are inspectable</h3>
+<p>Forecasts and anomaly detections come with their confidence ranges and the data window they were computed on. The model behavior (which algorithm, which parameters) is part of the platform version — Dynatrace versions Predictive analyzer behavior with platform release notes.</p>
+<h3>Generative AI — auditable as platform events</h3>
+<p>Assist interactions are auditable in two complementary ways:</p>
+<ol>
+<li>
+<p><strong>Queryable GenAI events.</strong> Generative AI interactions are recorded in <code>dt.system.events</code> as <code>GENAI_EVENT</code> records — skill invocations from Dynatrace Assist, and tool invocations through the Dynatrace MCP gateway — each carrying the user who made it. Reading them needs the <code>storage:system:read</code> permission:</p>
+<pre><code class="language-dql">fetch dt.system.events, from:-30d
+| filter event.kind == &quot;GENAI_EVENT&quot;
+| summarize {events = count(), users = countDistinct(user.id), with_prompt = countIf(isNotNull(user_input)), with_response = countIf(isNotNull(response))}, by:{event.provider, event.type}
+| sort events desc
+</code></pre>
+<p>On the validation tenant (10/02/2026, 30 days) this returned 269 <code>GenAI Skill Invocation</code> events from <code>DAVIS_COPILOT</code> — 267 carrying the prompt text verbatim in <code>user_input</code>, 261 carrying the answer in <code>response</code>, and all 269 carrying <code>user.email</code> — plus 2,352 <code>MCP Tool Invocation</code> and 270 <code>MCP Init</code> events from <code>MCP_GATEWAY</code>, which carry no prompt or answer. <strong>Prompts and answers are stored as typed and as returned</strong>, so anything a user pastes into a prompt, and anything Assist answers, is retained in these events: treat read access to them as access to potentially sensitive data (§3).</p>
+</li>
+<li>
+<p><strong>Operator-visible context.</strong> The grounding (which docs, which tenant entities) and the generated output are visible to the user who asked. There is no hidden &quot;private&quot; answer that differs from what was shown.</p>
+</li>
+</ol>
+<p>For procurement reviews that ask &quot;can we audit who asked Dynatrace Assist what?&quot; — the query above answers who asked, what they asked, and what Assist answered. Dynatrace documents the logging — <em>&quot;All interactions with Dynatrace Intelligence generative AI are logged in Grail as dt.system.events&quot;</em> — and ships a ready-made dashboard, <strong>Dynatrace Intelligence Feature Adoption</strong>, for reviewing prompts and responses. How long these events are kept is a <code>dt.system.events</code> retention question; verify it for your environment at review time.</p>
+<h3>What you can do with the audit trail</h3>
+<ul>
+<li>Reconstruct what Assist was asked about an incident during post-incident review.</li>
+<li>Detect over-use of Assist for sensitive prompts (data egress monitoring on the prompt side).</li>
+<li>Demonstrate to a regulator that AI-assisted actions trace back to human operators who reviewed them.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-faq">Agentic and generative AI FAQ (DT docs)</a> — the logging quote above, <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai">Agentic and generative AI (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage/account-management/audit-logs">Dynatrace audit log (DT docs)</a>. <strong>Dictionary:</strong> <code>event.kind</code> (<code>stable</code>), <code>user.id</code> (<code>stable</code>), <code>user.email</code> (<code>stable</code>); no row for <code>user_input</code> or <code>response</code> under <code>filter in(name, {…})</code>, read 10/02/2026 (control: the same filter returned the three <code>stable</code> rows) — <code>user_input</code> and <code>response</code> were read from the event records themselves. The <code>GENAI_EVENT</code> query executed against a live tenant 10/02/2026 with no notifications.</sub></p>
+</blockquote>
+<p><a id="access-control"></a></p>
+<h2>8. Access Control</h2>
+<p>The sixth concern in most security reviews: <em>who can use the AI, and what can they ask it about?</em></p>
+<h3>IAM-scoped Assist access</h3>
+<p>Dynatrace Assist is governed by the same IAM that governs everything else in the platform. Specifically:</p>
+<ul>
+<li><strong>A user must have Assist permission</strong> to interact with it at all (granted via IAM policy statements on the <code>davis-copilot:*</code> service — conversational chat, NL→DQL, DQL→NL, document search).</li>
+<li><strong>Assist inherits the user's data scope.</strong> <em>&quot;All agentic AI calls are done within the scope of your user permissions and the results won't include anything outside of it.&quot;</em> When Assist grounds an answer on tenant data, it grounds on the data the <em>asking user</em> can see — not the data the platform as a whole has. A user with management-zone-scoped access gets Assist answers grounded only on their permitted data.</li>
+<li><strong>Assist does not bypass IAM to read your data.</strong> This is the load-bearing claim. The model does not run as a privileged identity that sees everything; it runs as the user.</li>
+</ul>
+<h3>Policy examples (verified against current IAM policy reference)</h3>
+<pre><code>ALLOW davis-copilot:conversations:execute;   // Assist chat interface
+ALLOW davis-copilot:nl2dql:execute;          // Natural-language → DQL
+ALLOW davis-copilot:dql2nl:execute;          // DQL → natural-language summary
+ALLOW davis-copilot:document-search:execute; // Doc search skill
+// Davis analyzers (Predictive AI) are governed separately:
+ALLOW davis:analyzers:read;
+ALLOW davis:analyzers:execute;
+// Agentic Assist — its tools and stored conversations additionally need:
+ALLOW document:documents:read;
+ALLOW document:documents:write;
+ALLOW document:documents:delete;
+ALLOW hub:catalog:read;
+ALLOW mcp-gateway:servers:invoke;
+ALLOW mcp-gateway:servers:read;
+// Run agent workflow action (Dynatrace Intelligence in Workflows) additionally needs:
+ALLOW ai:operator:execute;
+</code></pre>
+<p>Combined with the user's existing data-access scopes (storage, settings, entities), this composes into the user's effective Assist capability. The IAM model is the same as any other Dynatrace service. Without the agentic block, a user gets an Assist that cannot call its tools. The statement names above were re-read against the IAM policy reference and the agentic getting-started page on 10/02/2026, and <code>ai:operator:execute</code> against the Run agents in Workflows page on 11/11/2026 — re-verify when authoring policies, since new Assist skills and tools add new statements over time.</p>
+<h3>Practical implication</h3>
+<p>A security reviewer asking &quot;can a junior engineer use Assist to ask about sensitive production data?&quot; gets a precise answer: <em>only if that junior engineer can already see sensitive production data through normal IAM</em>. Assist is not a side channel.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a> — re-read 10/02/2026, enumerates <code>davis-copilot:conversations:execute</code>, <code>davis-copilot:nl2dql:execute</code>, <code>davis-copilot:dql2nl:execute</code>, <code>davis-copilot:document-search:execute</code>, <code>davis:analyzers:read</code>, <code>davis:analyzers:execute</code>, <code>mcp-gateway:servers:invoke</code> and <code>mcp-gateway:servers:read</code>. Also: <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai">Agentic and generative AI (DT docs)</a>. <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-getting-started">Get started with agentic and generative AI (DT docs)</a> — the agentic permission list (<em>&quot;To get access to the full functionality of Dynatrace Intelligence agentic AI, including the tools, you'll need the following permissions&quot;</em>) and the user-scope quote above. <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-intelligence-integrations/dynatrace-intelligence-run-agent-workflows">Run agents in Workflows (DT docs)</a> — <em>&quot;To use the Dynatrace Intelligence agentic AI workflow action, ensure that you have the following permissions&quot;</em>, listing <code>ai:operator:execute</code>, <code>mcp-gateway:servers:invoke</code>, <code>mcp-gateway:servers:read</code> and <code>document:documents:read</code>.</sub></p>
+</blockquote>
+<p><a id="compliance"></a></p>
+<h2>9. Compliance Posture</h2>
+<p>The seventh concern in most security reviews: <em>which frameworks does this satisfy?</em></p>
+<h3>Inherited platform compliance</h3>
+<p>Davis AI surfaces inherit the Dynatrace platform's security program. The Trust Center's Trusted-AI page names the audits behind it: <em>&quot;our regular independent security audits (FedRAMP, ISO 27001, SOC 2)&quot;</em>. Any other framework your review needs (GDPR, HIPAA, a regional scheme) is not listed on that page — treat each one, and the listed ones too, as &quot;verify in writing for your tenant region&quot; rather than assumed.</p>
+<h3>EU AI Act considerations (Derived)</h3>
+<p>The EU AI Act tiers AI systems by risk level. Mapping Dynatrace's Davis surfaces onto the tiers (community-level synthesis, not Dynatrace guidance):</p>
+<table>
+<thead>
+<tr>
+<th>Davis surface</th>
+<th>Likely EU AI Act tier</th>
+<th>Reasoning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Causal AI</td>
+<td><strong>Minimal risk</strong></td>
+<td>Deterministic correlation; not a &quot;system that uses ML to make decisions affecting people.&quot;</td>
+</tr>
+<tr>
+<td>Predictive AI</td>
+<td><strong>Minimal–Limited risk</strong></td>
+<td>Statistical forecasting on infrastructure metrics; not an automated-decision system for individuals.</td>
+</tr>
+<tr>
+<td>Generative AI (Assist)</td>
+<td><strong>Limited risk</strong></td>
+<td>A general-purpose AI assistant; transparency requirements apply (user knows they are interacting with AI), which Dynatrace surfaces explicitly.</td>
+</tr>
+<tr>
+<td>AI Observability</td>
+<td><strong>N/A</strong></td>
+<td>Dynatrace is not the AI provider here; the customer's GenAI app is the regulated system, and this feature <em>supports</em> the customer's compliance.</td>
+</tr>
+</tbody>
+</table>
+<p>This mapping is community-level guidance for orientation. Authoritative EU AI Act applicability requires legal review of your specific use case.</p>
+<h3>NIST AI Risk Management Framework</h3>
+<p>In community practice, the NIST AI RMF's four functions (Govern, Map, Measure, Manage) are mapped onto the Davis AI controls described in §§3–8: tenant-scoping addresses Govern/Map; confidence bands and audit trails address Measure; HITL and IAM address Manage. That mapping is an orientation, not an assessment — a review that scores against the RMF still has to check each function against your own configuration (IAM grants, PII blocking, agentic mode).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://www.dynatrace.com/company/trust-center/trusted-ai/">Trusted AI — Dynatrace Trust Center</a> — the audit list quoted above, <a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/sensitive-data-center">GDPR compliance (DT docs)</a>. <strong>Derived:</strong> the EU AI Act and NIST AI RMF mappings are orientations for a compliance conversation, not Dynatrace's legal positions</sub></p>
+</blockquote>
+<p><a id="ai-observability"></a></p>
+<h2>10. AI Observability for Customer GenAI Apps</h2>
+<p>This surface is on the <em>other side of the question</em>. It is not Dynatrace using AI on your data; it is Dynatrace giving you visibility into <em>your own</em> GenAI applications. For customers building LLM-backed apps (chatbots, agents, copilots, RAG pipelines), this is a risk-reduction tool, not a risk source.</p>
+<h3>What it surfaces</h3>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Why it matters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Token cost per app/model/user</strong></td>
+<td>LLM spend can explode silently; this is the single most-cited operational pain in production GenAI.</td>
+</tr>
+<tr>
+<td><strong>End-to-end latency</strong></td>
+<td>LLM-call latency dominates user-perceived latency in most GenAI apps. Trace-level visibility into the model call vs the retrieval vs the embedding step is load-bearing for SLO.</td>
+</tr>
+<tr>
+<td><strong>Response-quality evaluations</strong></td>
+<td>Score the quality, safety, and relevance of GenAI and agent responses with <strong>Arize AX</strong>, which supports LLM-as-a-judge, agent-as-a-judge, and code evaluators.</td>
+</tr>
+<tr>
+<td><strong>Model and data drift</strong></td>
+<td>Changes in model accuracy due to shifting input data, and input-data stationarity monitored to anticipate them.</td>
+</tr>
+<tr>
+<td><strong>Vector DB and semantic-cache performance</strong></td>
+<td>Vector databases and semantic caches (for example Milvus, Weaviate, Qdrant) are monitored to identify performance bottlenecks and usage anomalies in the retrieval step.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong><code>dt-evals</code> and the Evaluations tab are being retired (AI Observability docs, updated 10/30/2026).</strong> <em>&quot;dt-evals and the Evaluations tab in the AI Observability app are being retired.&quot;</em> Evaluation results already written to Dynatrace remain available as business events (<code>event.type == &quot;gen_ai.evaluation.result&quot;</code>) for as long as your bucket retention keeps them. To run and analyze new evaluations, the page points to <strong>Arize AX</strong>.</p>
+</blockquote>
+<h3>OpenTelemetry GenAI semantic conventions</h3>
+<p>Dynatrace's AI Observability is compatible with the OpenTelemetry GenAI semantic conventions — meaning if you instrument with OpenTelemetry (Python, JS, etc.), the spans your app emits surface natively. This matters for the &quot;open source instrumentation, vendor analysis&quot; posture many platform teams prefer for AI workloads.</p>
+<h3>Why this is a risk <em>reducer</em></h3>
+<p>In community practice, the framing that lands is AI Observability as a risk <em>reducer</em>. A common board-level concern: <em>we're shipping a customer-facing LLM app — what could go wrong?</em> The honest answer is: cost, latency, hallucination, prompt injection, drift. AI Observability — with evaluations in Arize AX for response quality — turns each of those from an unknown into a metric you can SLO against. For a security review that asks &quot;are you taking AI risk in production?&quot;, the response is <em>yes, and here is the instrumentation that gives us the same posture for the AI workload that we have for the rest of the stack.</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability">Dynatrace AI Observability (DT docs)</a> — <em>&quot;dt-evals and the Evaluations tab in the AI Observability app are being retired.&quot;</em>; <em>&quot;To run and analyze evaluations of your LLM applications and agents, use Arize AX&quot;</em>; <em>&quot;Arize AX supports LLM-as-a-judge, agent-as-a-judge, and code evaluators.&quot;</em>; <em>&quot;Model drift: Changes in model accuracy due to shifting input data.&quot;</em>; vector DBs and semantic caches monitored <em>&quot;to help identify performance bottlenecks and usage anomalies&quot;</em> (read 11/11/2026), <a href="https://opentelemetry.io/docs/specs/semconv/gen-ai/">OpenTelemetry GenAI semantic conventions</a>.</sub></p>
+</blockquote>
+<p><a id="decision-framework"></a></p>
+<h2>11. Decision Framework — When to Lean In vs Hold Back</h2>
+<p>Not every team should adopt every surface on day one. The maturity curve below is community practice, not Dynatrace's own recommendation:</p>
+<table>
+<thead>
+<tr>
+<th>Davis surface</th>
+<th>Adopt immediately</th>
+<th>Adopt after pilot</th>
+<th>Hold pending governance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Causal AI</strong></td>
+<td>Yes — comes with the platform, low-risk, immediate value</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Predictive AI — forecasts/anomalies for visibility</strong></td>
+<td>Yes — read-only, informs operators</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Predictive AI — auto-triggering Workflows on anomalies</strong></td>
+<td>—</td>
+<td>Yes, after a few cycles of confidence calibration</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Generative AI — read-only Q&amp;A and DQL generation</strong></td>
+<td>Yes — high productivity, low risk when used as draft-then-verify</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Generative AI — broadly deployed across the team</strong></td>
+<td>—</td>
+<td>Yes, after an IAM scoping and audit-log review</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Generative AI — connected to write-action Workflows</strong></td>
+<td>—</td>
+<td>—</td>
+<td>Yes — explicit governance: which workflows, which scopes, what audit</td>
+</tr>
+<tr>
+<td><strong>AI Observability — instrument GenAI apps you operate</strong></td>
+<td>Yes if you operate any GenAI app — this is risk-reduction</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3>Heuristics for lean-in</h3>
+<ul>
+<li>The surface's outputs are reviewed by humans before they cause action.</li>
+<li>The IAM model gives you confidence about who can use the surface and on what data.</li>
+<li>The audit trail satisfies your compliance team's after-the-fact reconstruction needs.</li>
+</ul>
+<h3>Heuristics for hold</h3>
+<ul>
+<li>The surface's outputs can trigger autonomous writes (workflows, ticketing, paging) without your explicit scoping.</li>
+<li>The audit/observability of the surface itself is unclear to your team.</li>
+<li>Your compliance framework (FedRAMP, regulated industry) has unresolved guidance on the surface.</li>
+</ul>
+<p>In community practice, the pattern that produces the best outcomes is: <strong>Causal AI + Predictive AI + read-only Assist adopted immediately; Assist-driven write actions through Workflows treated as an explicit governance decision per workflow.</strong> This separates the value (which is mostly in the read surfaces) from the risk (which is mostly in autonomous writes) and lets each be evaluated on its own terms.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence">Dynatrace Intelligence (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows">Workflows (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="objections"></a></p>
+<h2>12. Common Objections and Responses</h2>
+<p>The actual &quot;settle concerns&quot; part. Short objection → short response. Where the response depends on customer-specific verification, that is flagged.</p>
+<p><strong>&quot;Our data will be used to train someone else's model.&quot;</strong>
+No. Customer tenant data is not used to train the foundation models that back Dynatrace Assist. Predictive AI models are tenant-scoped (your data trains your baselines, not anyone else's). Causal AI doesn't train. Verify the exact wording in the current Trust Center and your master agreement.</p>
+<p><strong>&quot;The AI can hallucinate, so we can't trust it for production.&quot;</strong>
+Hallucination applies to the Generative AI surface, not to Causal or Predictive AI. The mitigation is the same pattern that applies to any GenAI tool: read the output, verify, use as draft. The most-used outputs (DQL queries) are <em>verifiable by execution</em> — a feature most LLM products don't offer.</p>
+<p><strong>&quot;The AI could take destructive action without us knowing.&quot;</strong>
+Davis AI does not write to your infrastructure or configuration outside Workflows that the customer configures and scopes with the customer's own credentials. It does act unattended on the <em>read</em> side — Assist can run the DQL it generates, and agentic root cause analysis (SaaS 1.348, staged rollout) investigates problems on its own — always within the permissions of the user or the platform (§6). Agentic workflows and built-in agents (Preview) run actions only once approved. The write autonomy is configured or approved, not implicit.</p>
+<p><strong>&quot;We can't audit what the AI did.&quot;</strong>
+Causal AI is explainable by construction (the causal chain is the explanation). Predictive AI is versioned with the platform and surfaces confidence. Assist interactions are auditable as platform events. The exact audit retention and schema should be verified against current docs.</p>
+<p><strong>&quot;Our compliance framework hasn't approved AI features yet.&quot;</strong>
+Then the right move is to adopt the non-Generative surfaces (Causal, Predictive) — which are AI-labeled but don't carry the foundation-model risk profile — and put Assist through your compliance process. The four-surface taxonomy in §2 is the framing that lets compliance treat each surface differently.</p>
+<p><strong>&quot;We're worried about EU AI Act / FedRAMP / SOC 2.&quot;</strong>
+EU AI Act applicability for the Generative surface is <em>Limited Risk</em> in the community-level read — verify with your legal team. FedRAMP, ISO 27001 and SOC 2 are the independent audits the Trust Center names for the platform (§9) — confirm scope for your tenant region in writing.</p>
+<p><strong>&quot;We don't want AI features on, period.&quot;</strong>
+The Causal AI and Predictive AI surfaces are core platform features and broadly always-on. The Generative AI surface (Assist) has an explicit environment switch — <strong>Settings → Dynatrace Intelligence → Generative and agentic AI → Enable generative AI</strong> — which is on by default for tenants created from Dynatrace 1.335 onwards. Turn it off to opt out for the whole environment; independently, you can choose not to grant the <code>davis-copilot:*</code> capability to any user.</p>
+<p><strong>&quot;AI Observability — does that mean Dynatrace AI is looking at our AI apps?&quot;</strong>
+No. AI Observability is <em>your team</em> observing <em>your own</em> GenAI apps using Dynatrace as the observability platform — same as you would use Dynatrace to observe any other application stack. By default no Dynatrace AI operates on your app's outputs; it's standard OpenTelemetry-based instrumentation surfaced in Dynatrace. The exception is one you choose to run: response-quality evaluations, where an LLM judge scores your app's outputs. The AI Observability docs now point to Arize AX for these — <code>dt-evals</code> and the app's Evaluations tab are being retired, and results already written to Dynatrace stay available as business events (§10).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-getting-started">Get started with agentic and generative AI (DT docs)</a> — <em>&quot;You can see and change the setting in Settings &gt; Dynatrace Intelligence &gt; Generative and agentic AI &gt; Enable generative AI if you'd like to opt out.&quot;</em> The other claims map back to the Sources blocks in §§3–10 above. <strong>Softened</strong> throughout — these are summary responses; the load-bearing verifications happen in the cited sections.</sub></p>
+</blockquote>
+<p><a id="evolving"></a></p>
+<h2>13. What's Still Evolving</h2>
+<p>A risk-posture document is more credible when it names its gaps. Areas where the controls are still maturing or where Dynatrace's guidance is moving sprint-to-sprint:</p>
+<ul>
+<li><strong>Agentic workflows.</strong> Agentic workflows and built-in agents that run approved actions are in Preview (§6). The combination of Assist suggesting actions + Workflows executing actions + Workflows orchestrating multi-step plans is moving toward more agentic behavior. The governance model — which scopes, which approvals, which audit — is evolving with the capability.</li>
+<li><strong>Model versioning transparency.</strong> The Dynatrace Assist data-privacy page names the enterprise vendors hosting the foundation models (Microsoft Azure AI and AWS Bedrock) but does not pin a specific model version per customer-facing release. For customers with strict change-control on AI models, the version-pinning granularity is a real gap.</li>
+<li><strong>Prompt and response retention.</strong> Prompts and answers are kept in <code>dt.system.events</code> (§7), and Dynatrace <em>may store</em> them; the pages cited here do not publish a retention window for either. Verify against current Trust Center / data-residency language for any compliance review.</li>
+<li><strong>Region of processing, not availability.</strong> Generative and agentic AI is available on every SaaS environment on the latest Dynatrace (AWS and Azure) and not on Managed (§3); what the region decides is where prompts are processed. FedRAMP is not addressed on the data-privacy page — verify.</li>
+<li><strong>Cross-tenant features.</strong> Most Davis AI is strictly tenant-scoped today. Any future cross-tenant feature (e.g., &quot;benchmark your performance against other tenants in your industry&quot;) would re-open the data-residency conversation — but does not exist today.</li>
+<li><strong>Customer-supplied LLM integration.</strong> Some customers want to point Assist at their own foundation model (bring-your-own-LLM). This is a roadmap conversation, not a current capability — and would change the data-path posture if it lands.</li>
+</ul>
+<p>Naming these explicitly is the right posture for a risk review. They are not red flags; they are <em>moving parts</em>. The right answer to each is &quot;verify at the time of your review against current docs and your contract.&quot;</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-faq">Agentic and generative AI FAQ (DT docs)</a> — availability (quoted in §3). The other items are community-derived observations; no single Dynatrace doc enumerates these gaps. <strong>Softened</strong> throughout.</sub></p>
+</blockquote>
+<p><a id="recommendation"></a></p>
+<h2>14. Recommended Approach</h2>
+<p>For a customer evaluating Davis AI risk posture, a workable plan:</p>
+<ol>
+<li><strong>Walk the four surfaces explicitly.</strong> Causal, Predictive, Generative, AI Observability — don't let &quot;AI&quot; collapse into one decision. The risk profiles differ; the controls differ; the adoption decisions differ.</li>
+<li><strong>Adopt Causal AI and Predictive AI immediately.</strong> They come with the platform, carry low incremental risk, and provide most of the platform's AI value.</li>
+<li><strong>Pilot Assist on read-only use first.</strong> Q&amp;A, DQL generation and execution — the surfaces where the value is high and the risk is &quot;wrong answer, or a query that reads what the user was already allowed to read,&quot; not &quot;destructive action.&quot;</li>
+<li><strong>Govern write-action workflows explicitly.</strong> Where Assist suggests workflows that execute changes, treat each workflow as an explicit governance decision: which scopes, which approvals, which audit.</li>
+<li><strong>Adopt AI Observability for your own GenAI apps.</strong> If your team is shipping LLM-backed applications, this surface <em>reduces</em> your AI risk by giving you cost/latency/quality/security visibility.</li>
+<li><strong>Verify version-specific claims at review time.</strong> Trust Center language, IAM policy statement names, audit event schemas, EU AI Act applicability — all evolve sprint-to-sprint. Treat this FAQ as the orientation; verify the load-bearing claims against current docs and your contract before signing off.</li>
+<li><strong>Document your stance per surface.</strong> A short internal policy that says &quot;Causal/Predictive: enabled platform-wide; Assist: enabled for engineering, audit logged; Assist-driven workflows: per-workflow governance&quot; gives your team a stable position to refer to.</li>
+</ol>
+<h2>Summary</h2>
+<p>Davis AI is four surfaces, not one — and most of the risk concerns customers raise map specifically to the Generative AI surface (Dynatrace Assist), where Dynatrace has applied the most explicit controls: IAM-scoped data path (the prompt and, in agentic mode, tool-call results reach the vendor-hosted model — the corpus does not), no foundation-model training on customer data, RAG grounding for accuracy, human-in-the-loop for destructive actions, IAM-scoped access, auditable interactions. The other three surfaces (Causal, Predictive, AI Observability) inherit the platform's general security posture and add little incremental AI-specific risk. The right posture in a security review is to walk the four surfaces explicitly, treat each on its own terms, and verify version-specific claims against the current Trust Center and product docs at review time.</p>
+<h2>Next Steps</h2>
+<ul>
+<li>Read <strong>AIOPS</strong> topic series for a deeper walkthrough of each Davis AI surface and its operational use.</li>
+<li>Read <strong>IAM</strong> topic series for the policy-statement and scope mechanics that govern Assist access.</li>
+<li>Read <strong>WFLOW</strong> topic series for the workflow-side of Assist-suggested actions and how to scope them.</li>
+<li>Read <strong>FAQ-03</strong> for the AI Observability instrumentation side (OneAgent and OpenTelemetry for GenAI apps).</li>
+<li>Verify current Trust Center language and IAM policy reference against the load-bearing claims in this FAQ before any procurement or compliance review.</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

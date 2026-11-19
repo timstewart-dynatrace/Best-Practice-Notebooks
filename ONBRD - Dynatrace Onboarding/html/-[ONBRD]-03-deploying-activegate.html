@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ONBRD-03: Deploying ActiveGate</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ONBRD — Dynatrace Onboarding</a><span class="sep">/</span><span aria-current="page">ONBRD-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ONBRD-03: Deploying ActiveGate</h1>
+<blockquote>
+<p><strong>Series:</strong> ONBRD — Dynatrace Onboarding | <strong>Notebook:</strong> 3 of 10 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 11/16/2026</p>
+</blockquote>
+<h2>Your Network Gateway to Dynatrace</h2>
+<p>ActiveGate is a lightweight component that routes traffic between your infrastructure and Dynatrace. This notebook covers when you need ActiveGate, how many to deploy, where to place them, and installation steps - including comprehensive Kubernetes deployment options.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#what-is-activegate">What is ActiveGate?</a></li>
+<li><a href="#when-do-you-need-activegate">When Do You Need ActiveGate?</a></li>
+<li><a href="#how-many-activegates">How Many ActiveGates?</a></li>
+<li><a href="#where-to-deploy">Where to Deploy?</a></li>
+<li><a href="#generating-tokens">Generating Tokens</a></li>
+<li><a href="#installation-methods">Installation Methods</a></li>
+<li><a href="#kubernetes-deployment-detailed">Kubernetes Deployment (Detailed)</a></li>
+<li><a href="#verifying-deployment">Verifying Deployment</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>Admin access to Dynatrace environment</li>
+<li>Network architecture diagram (know your zones)</li>
+<li>Server for ActiveGate (Linux, Windows, or Kubernetes cluster)</li>
+<li>Outbound HTTPS (443) to Dynatrace SaaS</li>
+</ul>
+<p><a id="what-is-activegate"></a></p>
+<h2>1. What is ActiveGate?</h2>
+<p>ActiveGate is a proxy and routing component that connects your environment to Dynatrace.</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Environment ActiveGate</strong></td>
+<td>Routes OneAgent traffic and runs extensions; private synthetic monitors run on a <em>separate</em> Synthetic-enabled ActiveGate</td>
+</tr>
+<tr>
+<td><strong>Cluster ActiveGate</strong></td>
+<td>Dynatrace Managed only — the cluster's mediating proxy for OneAgent and digital experience traffic from outside its network</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> This notebook covers Environment ActiveGate for Dynatrace SaaS. On Managed, <em>&quot;use one or more Cluster ActiveGates as mediating proxies for pre-processing of OneAgent and DEM traffic&quot;</em>; both ActiveGate types on Managed are covered in DTM-04: ActiveGate Deployment on Managed. (<a href="https://docs.dynatrace.com/managed/managed-cluster/basics/managed-deployments">Managed deployments (DT docs)</a>)</p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgNDAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYWdCZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZjE3MmEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWUyOTNiIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJhZ0dyZWVuIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNGYxOTUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJhZ1B1cnBsZSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojYTg1NWY3Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdjM2FlZCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYWdCbHVlIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMzYjgyZjYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjU2M2ViIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0iYWdTaGFkb3ciIHg9Ii0yMCUiIHk9Ii0yMCUiIHdpZHRoPSIxNDAlIiBoZWlnaHQ9IjE0MCUiPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIwIiBkeT0iNCIgc3RkRGV2aWF0aW9uPSI2IiBmbG9vZC1vcGFjaXR5PSIwLjMiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0iYXJyb3dCbHVlIiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iMTAiIHJlZlg9IjkiIHJlZlk9IjMiIG9yaWVudD0iYXV0byIgbWFya2VyVW5pdHM9InN0cm9rZVdpZHRoIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMCw2IEw5LDMgeiIgZmlsbD0iIzYwYTVmYSIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd0dyZWVuIiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iMTAiIHJlZlg9IjkiIHJlZlk9IjMiIG9yaWVudD0iYXV0byIgbWFya2VyVW5pdHM9InN0cm9rZVdpZHRoIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMCw2IEw5LDMgeiIgZmlsbD0iIzE0ZjE5NSIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd1B1cnBsZSIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjEwIiByZWZYPSI5IiByZWZZPSIzIiBvcmllbnQ9ImF1dG8iIG1hcmtlclVuaXRzPSJzdHJva2VXaWR0aCI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDAsNiBMOSwzIHoiIGZpbGw9IiM4YjVjZjYiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI3MDAiIGhlaWdodD0iNDAwIiBmaWxsPSJ1cmwoI2FnQmcpIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iMzUwIiB5PSIzNSIgZmlsbD0iI2Y4ZmFmYyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjYwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QWN0aXZlR2F0ZSBBcmNoaXRlY3R1cmU8L3RleHQ+CgogIDwhLS0gPT09PT09PT09PT09IExFRlQgQ09MVU1OOiBJbnRlcm5hbCBOZXR3b3JrIChPbmVBZ2VudHMgKyBFeHRlbnNpb25zKSA9PT09PT09PT09PT0gLS0+CiAgPHJlY3QgeD0iMjAiIHk9IjYwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMyMCIgcng9IjgiIGZpbGw9IiMxZTI5M2IiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIiBmaWx0ZXI9InVybCgjYWdTaGFkb3cpIi8+CiAgPHRleHQgeD0iMTIwIiB5PSI4NSIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjUwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW50ZXJuYWwgTmV0d29yazwvdGV4dD4KCiAgPCEtLSBPbmVBZ2VudHMgLS0+CiAgPHJlY3QgeD0iNDUiIHk9IjExMCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI1MCIgcng9IjYiIGZpbGw9InVybCgjYWdCbHVlKSIgZmlsdGVyPSJ1cmwoI2FnU2hhZG93KSIvPgogIDx0ZXh0IHg9IjEyMCIgeT0iMTQwIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+T25lQWdlbnQgKEhvc3QgMSk8L3RleHQ+CgogIDxyZWN0IHg9IjQ1IiB5PSIxNzUiIHdpZHRoPSIxNTAiIGhlaWdodD0iNTAiIHJ4PSI2IiBmaWxsPSJ1cmwoI2FnQmx1ZSkiIGZpbHRlcj0idXJsKCNhZ1NoYWRvdykiLz4KICA8dGV4dCB4PSIxMjAiIHk9IjIwNSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk9uZUFnZW50IChIb3N0IDIpPC90ZXh0PgoKICA8cmVjdCB4PSI0NSIgeT0iMjQwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjUwIiByeD0iNiIgZmlsbD0idXJsKCNhZ0JsdWUpIiBmaWx0ZXI9InVybCgjYWdTaGFkb3cpIi8+CiAgPHRleHQgeD0iMTIwIiB5PSIyNzAiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PbmVBZ2VudCAoSG9zdCAzKTwvdGV4dD4KCiAgPCEtLSBFeHRlbnNpb25zIC0tPgogIDxyZWN0IHg9IjQ1IiB5PSIzMDUiIHdpZHRoPSIxNTAiIGhlaWdodD0iNTAiIHJ4PSI2IiBmaWxsPSIjMzc0MTUxIiBzdHJva2U9IiM2MzY2ZjEiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI2FnU2hhZG93KSIvPgogIDx0ZXh0IHg9IjEyMCIgeT0iMzM1IiBmaWxsPSIjZTJlOGYwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FeHRlbnNpb25zIDIuMDwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT0gQ0VOVEVSIENPTFVNTjogRE1aIChBY3RpdmVHYXRlKSA9PT09PT09PT09PT0gLS0+CiAgPHJlY3QgeD0iMjQwIiB5PSI2MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIzMjAiIHJ4PSI4IiBmaWxsPSIjMWUyOTNiIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIgZmlsdGVyPSJ1cmwoI2FnU2hhZG93KSIvPgogIDx0ZXh0IHg9IjM0MCIgeT0iODUiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI1MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRNWjwvdGV4dD4KCiAgPCEtLSBBY3RpdmVHYXRlIChjZW50ZXJlZCB2ZXJ0aWNhbGx5IGluIERNWiBhdCB0aGUgc2FtZSB5IGFzIE9uZUFnZW50cyB0b3AgaGFsZikgLS0+CiAgPHJlY3QgeD0iMjY1IiB5PSIxODAiIHdpZHRoPSIxNTAiIGhlaWdodD0iODAiIHJ4PSI2IiBmaWxsPSJ1cmwoI2FnUHVycGxlKSIgZmlsdGVyPSJ1cmwoI2FnU2hhZG93KSIvPgogIDx0ZXh0IHg9IjM0MCIgeT0iMjEzIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjYwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QWN0aXZlR2F0ZTwvdGV4dD4KICA8dGV4dCB4PSIzNDAiIHk9IjIzMiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjgpIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5UcmFmZmljIFJvdXRpbmc8L3RleHQ+CiAgPHRleHQgeD0iMzQwIiB5PSIyNDgiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44KSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RXh0ZW5zaW9ucyBIb3N0PC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PSBSSUdIVCBDT0xVTU46IER5bmF0cmFjZSBTYWFTID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSI0ODAiIHk9IjYwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgcng9IjgiIGZpbGw9InVybCgjYWdHcmVlbikiIGZpbHRlcj0idXJsKCNhZ1NoYWRvdykiLz4KICA8dGV4dCB4PSI1ODAiIHk9IjEwMCIgZmlsbD0iIzBmMTcyYSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RHluYXRyYWNlIFNhYVM8L3RleHQ+CiAgPHRleHQgeD0iNTgwIiB5PSIxMjUiIGZpbGw9InJnYmEoMTUsMjMsNDIsMC43KSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+R3JhaWwgRGF0YSBQbGF0Zm9ybTwvdGV4dD4KICA8dGV4dCB4PSI1ODAiIHk9IjE0NSIgZmlsbD0icmdiYSgxNSwyMyw0MiwwLjcpIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EQVZJUyBBSTwvdGV4dD4KICA8dGV4dCB4PSI1ODAiIHk9IjE2NSIgZmlsbD0icmdiYSgxNSwyMyw0MiwwLjcpIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BbGVydGluZzwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT0gQVJST1dTIChsZWZ0IOKGkiByaWdodCBmbG93KSA9PT09PT09PT09PT0gLS0+CiAgPCEtLSBPbmVBZ2VudHMg4oaSIEFjdGl2ZUdhdGUgKGJsdWUsIDk5OTkpIC0tPgogIDxwYXRoIGQ9Ik0xOTUgMTM1IEwyNjUgMjAwIiBzdHJva2U9IiM2MGE1ZmEiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhcnJvd0JsdWUpIi8+CiAgPHBhdGggZD0iTTE5NSAyMDAgTDI2NSAyMjAiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93Qmx1ZSkiLz4KICA8cGF0aCBkPSJNMTk1IDI2NSBMMjY1IDI0MCIgc3Ryb2tlPSIjNjBhNWZhIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dCbHVlKSIvPgoKICA8IS0tIEV4dGVuc2lvbnMg4oaSIEFjdGl2ZUdhdGUgKHB1cnBsZSBkYXNoZWQsIGhvc3RlZCBvbiBBRykgLS0+CiAgPHBhdGggZD0iTTE5NSAzMzAgTDI2NSAyNTUiIHN0cm9rZT0iIzhiNWNmNiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI0LDIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dQdXJwbGUpIi8+CgogIDwhLS0gQWN0aXZlR2F0ZSDihpIgRHluYXRyYWNlIFNhYVMgKGdyZWVuLCA0NDMpIC0tPgogIDxwYXRoIGQ9Ik00MTUgMjAwIEw0ODAgMTM1IiBzdHJva2U9IiMxNGYxOTUiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhcnJvd0dyZWVuKSIvPgoKICA8IS0tIFBvcnQgTGFiZWxzIC0tPgogIDx0ZXh0IHg9IjIzMCIgeT0iMTgwIiBmaWxsPSIjNjBhNWZhIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj46OTk5OTwvdGV4dD4KICA8dGV4dCB4PSI0NTAiIHk9IjE2MCIgZmlsbD0iIzE0ZjE5NSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+OjQ0MzwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT0gTEVHRU5EID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSI0ODAiIHk9IjI0MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxMzAiIHJ4PSI2IiBmaWxsPSIjMWUyOTNiIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjU4MCIgeT0iMjY1IiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5MZWdlbmQ8L3RleHQ+CgogIDxyZWN0IHg9IjQ5NSIgeT0iMjgwIiB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHJ4PSIyIiBmaWxsPSJ1cmwoI2FnQmx1ZSkiLz4KICA8dGV4dCB4PSI1MTUiIHk9IjI5MCIgZmlsbD0iI2UyZThmMCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+T25lQWdlbnQ8L3RleHQ+CgogIDxyZWN0IHg9IjQ5NSIgeT0iMzAwIiB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHJ4PSIyIiBmaWxsPSJ1cmwoI2FnUHVycGxlKSIvPgogIDx0ZXh0IHg9IjUxNSIgeT0iMzEwIiBmaWxsPSIjZTJlOGYwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5BY3RpdmVHYXRlPC90ZXh0PgoKICA8bGluZSB4MT0iNDk1IiB5MT0iMzI2IiB4Mj0iNTA3IiB5Mj0iMzI2IiBzdHJva2U9IiM2MGE1ZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjUxNSIgeT0iMzMwIiBmaWxsPSIjZTJlOGYwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5BRyBQcm90b2NvbCAoOTk5OSk8L3RleHQ+CgogIDxsaW5lIHgxPSI0OTUiIHkxPSIzNDYiIHgyPSI1MDciIHkyPSIzNDYiIHN0cm9rZT0iIzE0ZjE5NSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNTE1IiB5PSIzNTAiIGZpbGw9IiNlMmU4ZjAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPkhUVFBTICg0NDMpPC90ZXh0Pgo8L3N2Zz4K" alt="ActiveGate Architecture" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Zone | Component | Connection |
+|------|-----------|------------|
+| DMZ | ActiveGate | → Dynatrace SaaS (443) |
+| Internal | OneAgents | → ActiveGate (9999) |
+| Restricted | OneAgents | → ActiveGate (9999) |
+| Cloud | Extensions | → ActiveGate (9999) |
+-->
+<h3>ActiveGate Capabilities</h3>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Traffic Routing</strong></td>
+<td>Proxies OneAgent data to Dynatrace</td>
+</tr>
+<tr>
+<td><strong>Extensions 2.0</strong></td>
+<td>Runs Python-based extensions locally</td>
+</tr>
+<tr>
+<td><strong>Synthetic Monitoring</strong></td>
+<td>Private synthetic locations — on a dedicated Synthetic-enabled ActiveGate only (see the note below)</td>
+</tr>
+<tr>
+<td><strong>Cloud Integrations</strong></td>
+<td>Classic AWS / Azure metric polling (or use the Clouds app for direct connections); the GCP integration needs no ActiveGate on SaaS</td>
+</tr>
+<tr>
+<td><strong>Kubernetes API</strong></td>
+<td>Cluster monitoring via API</td>
+</tr>
+<tr>
+<td><strong>Log Ingest</strong></td>
+<td>Generic log ingest endpoint</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Synthetic ActiveGates do nothing else.</strong> <em>&quot;A clean ActiveGate installation for the purpose of synthetic monitoring disables all other ActiveGate features, including communication with OneAgents.&quot;</em> Plan private synthetic locations on their own ActiveGates, installed from the <strong>Install ActiveGate</strong> wizard in <strong>Discovery &amp; Coverage</strong> with <strong>Purpose → Synthetic</strong>, and never count them toward routing capacity. (<a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/active-gate-for-private-locations-install">Install a Synthetic-enabled ActiveGate (DT docs)</a>)</p>
+</blockquote>
+<blockquote>
+<p><strong>OneAgent Attribute Enrichment (OneAgent 1.333+):</strong> OneAgent can enrich all telemetry (metrics, spans, logs, events) with primary fields (<code>dt.security_context</code>, <code>dt.cost.costcenter</code>) and primary tags (<code>primary_tags.environment</code>, <code>primary_tags.team</code>) at the source. More efficient than auto-tags — feeds directly into OpenPipeline routing, bucket assignment, and Grail permissions. Configure via the installer's <code>--set-host-tag</code> at install time, or <code>oneagentctl --set-host-tag … --restart-service</code> afterwards (set parameters apply only after a OneAgent restart). See <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment">docs</a>.</p>
+</blockquote>
+<h3>Dynatrace Version Support Policy</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Standard Support</th>
+<th>Enterprise Support</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OneAgent</strong></td>
+<td>9 months</td>
+<td>12 months</td>
+</tr>
+<tr>
+<td><strong>ActiveGate</strong></td>
+<td>9 months</td>
+<td>12 months</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Operator</strong></td>
+<td>Independent release cycle — check <a href="https://docs.dynatrace.com/docs/whats-new">release notes</a></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Version floor (1.349 release notes).</strong> The OneAgent 1.349 and ActiveGate 1.349 release notes (published 11/05/2026; staged rollout from 11/09/2026) list the oldest supported version as <strong>1.331</strong> (Standard Support) and <strong>1.325</strong> (Enterprise Success and Support) — the floor moves with every release, so re-read it from the current release notes rather than from this table. Separately, <strong>SaaS 1.347</strong> (staged tenant rollout) <em>rejects</em> connections from <strong>OneAgent 1.241 and earlier</strong> once it reaches your tenant — those hosts stop reporting rather than merely falling out of support. See <strong>FAQ-04: Managing OneAgent updates on Dynatrace SaaS</strong>. Sources: <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349">OneAgent 1.349 (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/activegate/sprint-349">ActiveGate 1.349 (DT docs)</a> — <em>&quot;With this release, the following are the oldest supported ActiveGate versions.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-347">SaaS 1.347 (DT docs)</a> — <em>&quot;Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier.&quot;</em></p>
+</blockquote>
+<h3>Technology Support Levels</h3>
+<p>Dynatrace defines two support levels for third-party technologies:</p>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Meaning (quoted)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Supported</strong></td>
+<td><em>&quot;We provide support for any problems directly caused by Dynatrace.&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Limited support</strong></td>
+<td><em>&quot;Dynatrace provides support for a limited set of functionality for a particular technology.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<h3>Third-Party Technology EOL Policy</h3>
+<p><em>&quot;Dynatrace typically supports technologies and their versions six months longer than the vendor to give you enough time to upgrade your environment.&quot;</em> <em>&quot;End of support announcements are provided six months in advance.&quot;</em> Treat the six months as the usual pattern, not a guarantee — read the announcement for the technology you run.</p>
+<blockquote>
+<p><strong>Reference:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/technology-support">Technology support (DT docs)</a> | <a href="https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news">End-of-support announcements (DT docs)</a> | <a href="https://www.dynatrace.com/company/trust-center/support-policy/">Support Policy</a></p>
+</blockquote>
+<p><a id="when-do-you-need-activegate"></a></p>
+<h2>2. When Do You Need ActiveGate?</h2>
+<h3>Required Scenarios</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Why ActiveGate is Required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Network-restricted hosts</strong></td>
+<td>OneAgents can't reach internet directly</td>
+</tr>
+<tr>
+<td><strong>Private synthetic monitors</strong></td>
+<td>Test internal applications</td>
+</tr>
+<tr>
+<td><strong>Remote extensions</strong></td>
+<td>Extensions that poll remote sources (SNMP, databases, APIs) run from an ActiveGate group; local extensions run on OneAgent</td>
+</tr>
+<tr>
+<td><strong>AWS / Azure classic integration</strong></td>
+<td>See Clouds app status below — classic polling runs through an ActiveGate (on SaaS hosted on AWS, Dynatrace provides one for the built-in AWS services); GCP needs none on SaaS</td>
+</tr>
+<tr>
+<td><strong>VMware monitoring</strong></td>
+<td>The classic VMware module is superseded on Latest Dynatrace; use the VMware (remote monitoring) extension, which runs on an ActiveGate group (see the note below)</td>
+</tr>
+<tr>
+<td><strong>Kubernetes full-stack</strong></td>
+<td>Cluster API access for events, metrics</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Update — Clouds App (status as of 10/2026):</strong> The <strong>Clouds app</strong> supports direct cloud connections <strong>without ActiveGate</strong> — but coverage varies per cloud:</p>
+<table>
+<thead>
+<tr>
+<th>Cloud</th>
+<th>Clouds-app Status</th>
+<th>AG Required?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AWS</strong></td>
+<td>GA — direct connection supported</td>
+<td>No (when using Clouds app)</td>
+</tr>
+<tr>
+<td><strong>Azure</strong></td>
+<td>Direct connection (SaaS 1.337+) — <em>&quot;no need to deploy ActiveGate compute resources for metric polling&quot;</em></td>
+<td>No (when using Clouds app)</td>
+</tr>
+<tr>
+<td><strong>GCP</strong></td>
+<td>Clouds connection generally available (docs, 10/29/2026); SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout) announces it with <em>&quot;no need to deploy ActiveGate compute resources for metric polling within your Google Cloud environment&quot;</em> — verify it has reached your tenant</td>
+<td><strong>No.</strong> The classic integration (<code>dynatrace-gcp-monitor</code>, deployed on GKE) sends straight to your environment URL on SaaS and remains the working path until the Clouds connection reaches you</td>
+</tr>
+</tbody>
+</table>
+<p>ActiveGate is still required for <strong>remote extensions</strong>, <strong>private synthetic locations</strong>, and classic AWS / Azure polling where the Clouds app is not used. On SaaS, the GCP collector's <em>&quot;dynatraceUrl&quot;</em> is <em>&quot;your environment URL&quot;</em>; an ActiveGate appears there only as a Managed log-ingest option. See <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring">Clouds app documentation</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-onboarding">Azure Cloud Platform Monitoring (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform">Set up Dynatrace on Google Cloud (DT docs)</a> and the <strong>CLOUD series</strong> for per-provider deep dives.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform-classic/gcp-integrations/gcp-guide/deploy-k8">Set up the Dynatrace GCP integration on GKE (DT docs)</a> — <em>&quot;For Managed deployments: You can use an existing ActiveGate for log ingestion.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">SaaS 1.348 (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/cloudwatch-metrics">AWS CloudWatch metrics (DT docs)</a> — <em>&quot;An ActiveGate capable of monitoring your AWS account for classic (built-in) supported services is already provided and available within the Dynatrace AWS account (only for SaaS environments hosted on AWS).&quot;</em>, <a href="https://docs.dynatrace.com/docs/ingest-from/extensions">Extensions (DT docs)</a> — <em>&quot;Run extensions locally on the monitored host to collect data from local data sources with the Extension Execution Controller.&quot;</em></sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Superseded modules.</strong> <em>&quot;For ActiveGates connected to Dynatrace tenants in Group 3 (Enhanced), the superseded modules are blocked from loading and will not execute.&quot;</em> That covers classic AWS, Azure, Cloud Foundry, Oracle database insights, VMware and memory dumps. The replacements are AWS and Azure Cloud Platform Monitoring, the Cloud Foundry extension, Databases, and the VMware (remote monitoring) extension. Memory dumps have <em>&quot;No successor solution&quot;</em>. Check which group your tenant is in before you plan an ActiveGate for one of these.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/capabilities">ActiveGate purposes and functionality (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Routing OneAgent Traffic: Through an ActiveGate or Direct?</h3>
+<p>When every host can already reach your SaaS environment, routing OneAgent traffic through an ActiveGate is a design choice, not a requirement. <em>&quot;In the absence of an ActiveGate, data collected by OneAgent is sent directly to the Dynatrace Cluster&quot;</em>, and the OneAgent install guide puts it the same way: you <em>&quot;may choose to either provide direct access to the Dynatrace cluster or set up an ActiveGate.&quot;</em> Each side has costs:</p>
+<table>
+<thead>
+<tr>
+<th>Factor</th>
+<th>Route through an ActiveGate</th>
+<th>Go direct to your SaaS environment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Egress and allowlisting</strong></td>
+<td>Only the ActiveGates need outbound 443. For hosts without internet access, Dynatrace says to <em>&quot;install an ActiveGate to serve as a single access point, rather than opening the firewall for multiple hosts running OneAgents&quot;</em>, so the firewall and proxy rules name a few ActiveGates.</td>
+<td>Every monitored host needs outbound HTTPS 443 to your environment, through your firewall or proxy.</td>
+</tr>
+<tr>
+<td><strong>Proxy configuration</strong></td>
+<td>Configured on the ActiveGates: <em>&quot;You can use a single proxy for all outgoing traffic&quot;</em>, set in the ActiveGate configuration. Dynatrace says the single-access-point approach <em>&quot;greatly reduces the effort of managing and maintaining firewall and/or proxy configuration settings.&quot;</em></td>
+<td>Each OneAgent host that reaches the environment through a proxy needs that proxy set on the host, with <code>oneagentctl --set-proxy</code> or at install time.</td>
+</tr>
+<tr>
+<td><strong>Network overhead</strong></td>
+<td>The routing module <em>&quot;collects messages from OneAgent instances and builds bulks, which are then sent in compressed form&quot;</em>. Dynatrace says this <em>&quot;can reduce network overhead considerably, depending on the number of OneAgent instances&quot;</em> behind the ActiveGate.</td>
+<td>No ActiveGate-side bulking: each OneAgent connects to the environment on its own.</td>
+</tr>
+<tr>
+<td><strong>Connections at the egress</strong></td>
+<td>OneAgent connections end at the ActiveGates, and only the ActiveGates hold connections out through your NAT or firewall. Dynatrace says the ActiveGate lets you <em>&quot;reduce your interaction with Dynatrace to one single point—available locally&quot;</em>, and that it <em>&quot;reduces the complexity of network connections.&quot;</em></td>
+<td>Every OneAgent on every host holds its own connections through the shared egress device. The docs publish no per-host connection count. In field experience it grows with the number of instrumented processes on the host (see the note below).</td>
+</tr>
+<tr>
+<td><strong>Infrastructure to run</strong></td>
+<td>ActiveGate hosts to size (§ 3 and FAQ-10), keep updated (FAQ-05) and run at two or more per network zone for high availability. Auto-update covers host-based ActiveGates only: <em>&quot;Auto-update and One-click update functionalities are limited to host-based—using installer—deployment only.&quot;</em></td>
+<td>Nothing to deploy, size, patch or update.</td>
+</tr>
+<tr>
+<td><strong>Capacity</strong></td>
+<td>The ActiveGates in a zone carry every host behind them, so their capacity, and the survivor's capacity when one is down (§ 3), caps the zone.</td>
+<td>No intermediate tier to saturate.</td>
+</tr>
+<tr>
+<td><strong>Operating-system lifecycle</strong></td>
+<td>Every ActiveGate host must stay on a supported OS. The § 3 table lists nine OS versions that lose ActiveGate support between 11/01/2026 and 01/01/2027.</td>
+<td>No additional OS to track.</td>
+</tr>
+<tr>
+<td><strong>Locality and failover</strong></td>
+<td>Network zones keep OneAgents on nearby ActiveGates, and <em>&quot;You can still use ActiveGates in other zones as a backup option in case primary ActiveGates becomes unavailable&quot;</em>. See the fallback table below.</td>
+<td>No zone design. Resilience is the host's own path to your environment.</td>
+</tr>
+<tr>
+<td><strong>Installer cache</strong></td>
+<td>The requirements page budgets 4 GB for <em>&quot;ActiveGate and OneAgent cached installers and container images—if such will need to be stored.&quot;</em></td>
+<td>Hosts download installers from the environment.</td>
+</tr>
+<tr>
+<td><strong>Reuse</strong></td>
+<td>A routing/monitoring ActiveGate you already run for remote extensions, Kubernetes monitoring or classic cloud polling can also route OneAgent traffic. A Synthetic-enabled ActiveGate cannot: a clean Synthetic installation <em>&quot;disables all other ActiveGate features, including communication with OneAgents&quot;</em> (§ 1).</td>
+<td>No reuse needed.</td>
+</tr>
+<tr>
+<td><strong>Memory dumps</strong></td>
+<td>OneAgent uploads Java, .NET and Node.js memory dumps to the ActiveGate, which stores them for download. Dynatrace <em>&quot;doesn't allow you to upload dumps to the Dynatrace cluster in the cloud.&quot;</em></td>
+<td>No central store. Dumps stay on the monitored host only for a limited time: <em>&quot;when OneAgent periodically empties the directory, the file size could be 0 bytes.&quot;</em> Copy a dump off the host before it ages out.</td>
+</tr>
+<tr>
+<td><strong>z/OS</strong></td>
+<td>The zRemote module <em>&quot;routes that data, compressed and encrypted, via its local ActiveGate to Dynatrace.&quot;</em></td>
+<td>Not possible: z/OS monitoring always goes through an ActiveGate.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recommended approach:</strong> route through ActiveGates when hosts cannot or should not have direct egress, when your security team wants monitoring traffic to leave through a few known hosts, or when a large fleet shares one NAT or firewall egress (see the note below). Go direct when hosts already have outbound access, the fleet behind each egress is small, and nothing else requires an ActiveGate (central memory dump storage and z/OS monitoring both do). Choose per network zone: a sealed data center can route through ActiveGates while cloud workloads with egress go direct.</p>
+<blockquote>
+<p><strong>Large fleets going direct can exhaust the egress device.</strong> In field experience, each instrumented process on a full-stack host talks to your environment on its own. A host with log monitoring and 20 injected processes then holds on the order of 25 TCP connections. Dynatrace does not publish that figure, so measure it on one of your own hosts before planning around it: on Linux, <code>ss -tn state established '( dport = :443 )'</code>, then count the lines whose peer is your environment's address.</p>
+<p>Across a fleet, all of those connections pass through the NAT or firewall the hosts share for internet egress. A device that translates everything to <strong>one public IP</strong>, from a single port pool shared across destinations, has at most 65,535 source ports, and fewer once reserved ranges are excluded. 2,000 hosts × 25 connections uses about 50,000 of them and leaves roughly 15,000 for everything else on the network. At 30 instrumented processes per host the pool is gone: some OneAgent connections fail, and so does other outbound traffic. Devices with a pool of public IPs, or that allocate ports per destination, have more port headroom, but their session table still has to hold every connection.</p>
+<p>One large enterprise deployment that sent its whole fleet direct saw sites lose internet connectivity this way until it deployed ActiveGates. Before going direct at scale, ask your network team for two numbers: the egress device's NAT port capacity and its session-table limit.</p>
+</blockquote>
+<blockquote>
+<p><strong>Kubernetes clusters usually run an ActiveGate anyway.</strong> Kubernetes/OpenShift monitoring is an ActiveGate module, and the Operator's full-stack example deploys an ActiveGate with the <code>routing</code> and <code>kubernetes-monitoring</code> capabilities. In-cluster OneAgents can still go direct, so for a cluster the question is usually whether to route through the ActiveGate you already run there (§ 7), not whether to deploy one.</p>
+</blockquote>
+<blockquote>
+<p><strong>Going direct does not stay direct by itself.</strong> The connectivity scheme says <em>&quot;OneAgent will connect to an Environment ActiveGate, if one is present&quot;</em>, and OneAgents with no network zone <em>&quot;try to connect to any ActiveGate in a random order&quot;</em>. If you later deploy an Environment ActiveGate for extensions or Kubernetes, hosts that can reach it may start routing through it. Use network zones to decide which hosts use which ActiveGates.</p>
+</blockquote>
+<h4>When every ActiveGate in a zone is down</h4>
+<p>Each network zone has a <strong>fallback mode</strong> (<strong>Deployment Status → Network zones → Edit → Fallback mode</strong>). It decides what OneAgents do when <em>&quot;no ActiveGates are available in this network zone and there are no alternative network zones&quot;</em>:</p>
+<table>
+<thead>
+<tr>
+<th>Fallback mode</th>
+<th>Behavior when no ActiveGate in the zone or its alternative zones is available</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Any ActiveGate</strong> (default)</td>
+<td><em>&quot;traffic is routed to any available ActiveGate, including an ActiveGate in the default zone.&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Only default zone</strong></td>
+<td><em>&quot;traffic is routed only to an available ActiveGate in the default zone. ActiveGates in other zones aren't considered.&quot;</em></td>
+</tr>
+<tr>
+<td><strong>None</strong></td>
+<td><em>&quot;Traffic stays within the primary zone and its alternative zones. If no ActiveGate in those zones is available, OneAgents don't send data to another zone.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p>On SaaS, the connectivity scheme says OneAgent connects to the SaaS cluster <em>&quot;directly, if no connection to an Environment ActiveGate is possible.&quot;</em> Fallback only helps if the host can reach the fallback target. A host in a sealed network that loses every ActiveGate it can reach has nowhere to send data, so plan two or more ActiveGates per zone (§ 3) and configure alternative zones the hosts can reach.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-security/data-security-controls">Data security controls (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/installation-and-operation/linux/installation/install-oneagent-on-linux">Install OneAgent on Linux (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/capabilities/routing-monitoring-purpose">Route OneAgent traffic to Dynatrace (DT docs)</a> — <em>&quot;This can reduce network overhead considerably, depending on the number of OneAgent instances communicating with the ActiveGate and on the amount of data transferred by them.&quot;</em> and <em>&quot;In this way Dynatrace ActiveGate allows you to reduce your interaction with Dynatrace to one single point—available locally.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/supported-connectivity-schemes-for-activegates">Supported connectivity schemes for ActiveGates (DT docs)</a> — <em>&quot;Dynatrace SaaS Cluster receives connections on port 443.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/network-zones-classic/network-zones-basic-info">Get started with network zones (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage/network-zones-classic/oneagent-connectivity">OneAgent connectivity in network zones (DT docs)</a> — <em>&quot;None (drop traffic) corresponds to priority groups 1 and 2.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/configuration/set-up-proxy-authentication-for-activegate">Proxy for ActiveGate (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface">OneAgent configuration via command-line interface (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/active-gate-for-private-locations-install">Install a Synthetic-enabled ActiveGate (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/application-observability-classic/profiling-and-optimization-classic/memory-dump-analysis">Analyze memory dumps (DT docs)</a> — <em>&quot;Memory dumps are stored by OneAgent locally for a limited time on the disk of the monitored application-server machine.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/capabilities/zremote-purpose">Install the zRemote module for z/OS monitoring (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/capabilities">ActiveGate purposes and functionality (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/full-stack-observability">Full-stack observability on Kubernetes (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/operation/update-activegate">Update ActiveGate (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements">Linux ActiveGate hardware and system requirements (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news">End-of-support announcements (DT docs)</a></sub></li>
+<li><sub><strong>Derived:</strong> the recommended approach and the &quot;does not stay direct&quot; note combine the connectivity-scheme preference for an Environment ActiveGate with the unconfigured-OneAgent behavior on the network-zones page.</sub></li>
+</ul>
+</blockquote>
+<h3>Decision Tree</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImR0QmciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMEYxNzJBIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzFFMjkzQiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZHRRdWVzdGlvbiIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojRkZCODAwIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I0Q5NzcwNiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZHRSZXF1aXJlZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojRUY0NDQ0Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I0RDMjYyNiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZHRPcHRpb25hbCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjJDNTVFIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE2QTM0QSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZHRSZWNvbW1lbmRlZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTQ5NkZGIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzI1NjNFQiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZHRDbG91ZHNBcHAiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I0E4NTVGNyIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3RTIyQ0UiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJkdFNoYWRvdyIgeD0iLTIwJSIgeT0iLTIwJSIgd2lkdGg9IjE0MCUiIGhlaWdodD0iMTQwJSI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjAiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMyIvPgogICAgPC9maWx0ZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd0dyYXkiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjOTRBM0I4Ii8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFycm93UmVkIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iI0VGNDQ0NCIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd0dyZWVuIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzIyQzU1RSIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd0JsdWUiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFycm93UHVycGxlIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iI0E4NTVGNyIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9InVybCgjZHRCZykiLz4KCiAgPCEtLSBUaXRsZSArIHN1YnRpdGxlIC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtd2VpZ2h0PSI3MDAiPkRvIFlvdSBOZWVkIEFjdGl2ZUdhdGU/PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPkZpdmUtc3RlcCBkZWNpc2lvbiBmbG93IOKAlCBTdGF0dXMgYXMgb2YgMTAvMjAyNjwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT09PT09PT0gUVVFU1RJT04gQ09MVU1OICh4PTIwMCkgPT09PT09PT09PT09PT09PT09IC0tPgoKICA8IS0tIFExOiBEaXJlY3QgaW50ZXJuZXQgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSIyMDAsODAgMjkwLDExNSAyMDAsMTUwIDExMCwxMTUiIGZpbGw9InVybCgjZHRRdWVzdGlvbikiIGZpbHRlcj0idXJsKCNkdFNoYWRvdykiLz4KICA8dGV4dCB4PSIyMDAiIHk9IjExMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzBGMTcyQSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+RGlyZWN0IGludGVybmV0PC90ZXh0PgogIDx0ZXh0IHg9IjIwMCIgeT0iMTI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMEYxNzJBIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5mcm9tIGFsbCBob3N0cz88L3RleHQ+CgogIDwhLS0gUTEg4oaSIFEyIGNvbm5lY3RvciAtLT4KICA8bGluZSB4MT0iMjAwIiB5MT0iMTUwIiB4Mj0iMjAwIiB5Mj0iMTcwIiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93R3JheSkiLz4KICA8dGV4dCB4PSIyMTAiIHk9IjE2NSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjYwMCI+WWVzPC90ZXh0PgoKICA8IS0tIFEyOiBQcml2YXRlIFN5bnRoZXRpY3MgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSIyMDAsMTc1IDI5MCwyMTAgMjAwLDI0NSAxMTAsMjEwIiBmaWxsPSJ1cmwoI2R0UXVlc3Rpb24pIiBmaWx0ZXI9InVybCgjZHRTaGFkb3cpIi8+CiAgPHRleHQgeD0iMjAwIiB5PSIyMDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMwRjE3MkEiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPlByaXZhdGU8L3RleHQ+CiAgPHRleHQgeD0iMjAwIiB5PSIyMTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMwRjE3MkEiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPlN5bnRoZXRpY3M/PC90ZXh0PgoKICA8IS0tIFEyIOKGkiBRMyBjb25uZWN0b3IgLS0+CiAgPGxpbmUgeDE9IjIwMCIgeTE9IjI0NSIgeDI9IjIwMCIgeTI9IjI2NSIgc3Ryb2tlPSIjOTRBM0I4IiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvd0dyYXkpIi8+CiAgPHRleHQgeD0iMjEwIiB5PSIyNjAiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiPk5vPC90ZXh0PgoKICA8IS0tIFEzOiBFeHRlbnNpb25zIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iMjAwLDI3MCAyOTAsMzA1IDIwMCwzNDAgMTEwLDMwNSIgZmlsbD0idXJsKCNkdFF1ZXN0aW9uKSIgZmlsdGVyPSJ1cmwoI2R0U2hhZG93KSIvPgogIDx0ZXh0IHg9IjIwMCIgeT0iMjk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMEYxNzJBIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5FeHRlbnNpb25zPzwvdGV4dD4KICA8dGV4dCB4PSIyMDAiIHk9IjMxMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzBGMTcyQSIgZm9udC1zaXplPSI5Ij4ocmVtb3RlOiBEQi9TTk1QKTwvdGV4dD4KCiAgPCEtLSBRMyDihpIgUTQgY29ubmVjdG9yIC0tPgogIDxsaW5lIHgxPSIyMDAiIHkxPSIzNDAiIHgyPSIyMDAiIHkyPSIzNjAiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dHcmF5KSIvPgogIDx0ZXh0IHg9IjIxMCIgeT0iMzU1IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIj5ObzwvdGV4dD4KCiAgPCEtLSBRNDogQ2xvdWQgbW9uaXRvcmluZyAtLT4KICA8cG9seWdvbiBwb2ludHM9IjIwMCwzNjUgMjkwLDQwMCAyMDAsNDM1IDExMCw0MDAiIGZpbGw9InVybCgjZHRRdWVzdGlvbikiIGZpbHRlcj0idXJsKCNkdFNoYWRvdykiLz4KICA8dGV4dCB4PSIyMDAiIHk9IjM5NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzBGMTcyQSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+Q2xvdWQ8L3RleHQ+CiAgPHRleHQgeD0iMjAwIiB5PSI0MDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMwRjE3MkEiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPm1vbml0b3Jpbmc/PC90ZXh0PgoKICA8IS0tIFE0IE5vIOKGkiBRNSBjb25uZWN0b3IgKGNvbnRpbnVlcyBkb3duIHRvIGJvdHRvbS1sZWZ0IGJlbmQpIC0tPgogIDxwYXRoIGQ9Ik0gMTEwIDQwMCBMIDQwIDQwMCBMIDQwIDQ2MCBMIDY2IDQ2MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRBM0I4IiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvd0dyYXkpIi8+CiAgPHRleHQgeD0iMTYiIHk9IjQzMCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjYwMCI+Tm88L3RleHQ+CgogIDwhLS0gUTU6IHNpbmdsZSBlZ3Jlc3MgcG9pbnQsIG9yIGEgbGFyZ2UgZmxlZXQgYmVoaW5kIG9uZSBzaGFyZWQgTkFUL2ZpcmV3YWxsIGVncmVzcyAtLT4KICA8cG9seWdvbiBwb2ludHM9IjE3MCw0MzYgMjcwLDQ2MCAxNzAsNDg0IDcwLDQ2MCIgZmlsbD0idXJsKCNkdFF1ZXN0aW9uKSIgZmlsdGVyPSJ1cmwoI2R0U2hhZG93KSIvPgogIDx0ZXh0IHg9IjE3MCIgeT0iNDU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMEYxNzJBIiBmb250LXNpemU9IjkiIGZvbnQtd2VpZ2h0PSI3MDAiPlNpbmdsZSBlZ3Jlc3Mgb3I8L3RleHQ+CiAgPHRleHQgeD0iMTcwIiB5PSI0NjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMwRjE3MkEiIGZvbnQtc2l6ZT0iOSIgZm9udC13ZWlnaHQ9IjcwMCI+bGFyZ2UgZmxlZXQgb24gb25lIE5BVD88L3RleHQ+CgogIDwhLS0gPT09PT09PT09PT09PT09PT09IE9VVENPTUVTIENPTFVNTiAoeOKJpTQyMCkgPT09PT09PT09PT09PT09PT09IC0tPgoKICA8IS0tIFExIE5vIOKGkiBSRVFVSVJFRCBOZXR3b3JrIFByb3h5IChyaWdodCkgLS0+CiAgPGxpbmUgeDE9IjI5MCIgeTE9IjExNSIgeDI9IjQyMCIgeTI9IjExNSIgc3Ryb2tlPSIjRUY0NDQ0IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dSZWQpIi8+CiAgPHRleHQgeD0iMzUwIiB5PSIxMDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiPk5vPC90ZXh0PgogIDxyZWN0IHg9IjQzMCIgeT0iOTIiIHdpZHRoPSIyMjAiIGhlaWdodD0iNDYiIHJ4PSI2IiBmaWxsPSJ1cmwoI2R0UmVxdWlyZWQpIiBmaWx0ZXI9InVybCgjZHRTaGFkb3cpIi8+CiAgPHRleHQgeD0iNTQwIiB5PSIxMTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5SRVFVSVJFRDwvdGV4dD4KICA8dGV4dCB4PSI1NDAiIHk9IjEyOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiBmb250LXNpemU9IjEwIj5OZXR3b3JrIFByb3h5PC90ZXh0PgoKICA8IS0tIFEyIFllcyDihpIgUkVRVUlSRUQgUHJpdmF0ZSBTeW50aCAtLT4KICA8bGluZSB4MT0iMjkwIiB5MT0iMjEwIiB4Mj0iNDIwIiB5Mj0iMjEwIiBzdHJva2U9IiNFRjQ0NDQiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd1JlZCkiLz4KICA8dGV4dCB4PSIzNTAiIHk9IjIwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjYwMCI+WWVzPC90ZXh0PgogIDxyZWN0IHg9IjQzMCIgeT0iMTg3IiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjQ2IiByeD0iNiIgZmlsbD0idXJsKCNkdFJlcXVpcmVkKSIgZmlsdGVyPSJ1cmwoI2R0U2hhZG93KSIvPgogIDx0ZXh0IHg9IjU0MCIgeT0iMjA4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+UkVRVUlSRUQ8L3RleHQ+CiAgPHRleHQgeD0iNTQwIiB5PSIyMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgZm9udC1zaXplPSIxMCI+UHJpdmF0ZSBTeW50aGV0aWMgTG9jYXRpb25zPC90ZXh0PgoKICA8IS0tIFEzIFllcyDihpIgUkVRVUlSRUQgRXh0ZW5zaW9ucyAtLT4KICA8bGluZSB4MT0iMjkwIiB5MT0iMzA1IiB4Mj0iNDIwIiB5Mj0iMzA1IiBzdHJva2U9IiNFRjQ0NDQiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd1JlZCkiLz4KICA8dGV4dCB4PSIzNTAiIHk9IjI5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjYwMCI+WWVzPC90ZXh0PgogIDxyZWN0IHg9IjQzMCIgeT0iMjgyIiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjQ2IiByeD0iNiIgZmlsbD0idXJsKCNkdFJlcXVpcmVkKSIgZmlsdGVyPSJ1cmwoI2R0U2hhZG93KSIvPgogIDx0ZXh0IHg9IjU0MCIgeT0iMzAzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+UkVRVUlSRUQ8L3RleHQ+CiAgPHRleHQgeD0iNTQwIiB5PSIzMTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgZm9udC1zaXplPSIxMCI+UmVtb3RlIGV4dGVuc2lvbnMgKEFHIGdyb3VwKTwvdGV4dD4KCiAgPCEtLSBRNCBZZXMg4oaSIDMtcm93IGNsb3VkIGJyZWFrZG93biAtLT4KICA8bGluZSB4MT0iMjkwIiB5MT0iNDAwIiB4Mj0iNDIwIiB5Mj0iNDAwIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd0dyYXkpIi8+CiAgPHRleHQgeD0iMzUwIiB5PSIzOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiPlllczwvdGV4dD4KCiAgPCEtLSBDbG91ZCByb3cgMTogQVdTIC0tPgogIDxyZWN0IHg9IjQzMCIgeT0iMzY1IiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjIyIiByeD0iNCIgZmlsbD0idXJsKCNkdENsb3Vkc0FwcCkiIGZpbHRlcj0idXJsKCNkdFNoYWRvdykiLz4KICA8dGV4dCB4PSI0NDUiIHk9IjM4MCIgZmlsbD0id2hpdGUiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPkFXUzwvdGV4dD4KICA8dGV4dCB4PSI2NDAiIHk9IjM4MCIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiBmb250LXNpemU9IjkiPkNsb3VkcyBhcHAgKEdBKSDCtyBObyBBRzwvdGV4dD4KCiAgPCEtLSBDbG91ZCByb3cgMjogQXp1cmUgLS0+CiAgPHJlY3QgeD0iNDMwIiB5PSIzODkiIHdpZHRoPSIyMjAiIGhlaWdodD0iMjIiIHJ4PSI0IiBmaWxsPSJ1cmwoI2R0Q2xvdWRzQXBwKSIgZmlsdGVyPSJ1cmwoI2R0U2hhZG93KSIvPgogIDx0ZXh0IHg9IjQ0NSIgeT0iNDA0IiBmaWxsPSJ3aGl0ZSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+QXp1cmU8L3RleHQ+CiAgPHRleHQgeD0iNjQwIiB5PSI0MDQiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgZm9udC1zaXplPSI5Ij5DbG91ZHMgYXBwICgxLjMzNyspIMK3IE5vIEFHPC90ZXh0PgoKICA8IS0tIENsb3VkIHJvdyAzOiBHQ1AgLS0+CiAgPHJlY3QgeD0iNDMwIiB5PSI0MTMiIHdpZHRoPSIyMjAiIGhlaWdodD0iMjIiIHJ4PSI0IiBmaWxsPSJ1cmwoI2R0Q2xvdWRzQXBwKSIgZmlsdGVyPSJ1cmwoI2R0U2hhZG93KSIvPgogIDx0ZXh0IHg9IjQ0NSIgeT0iNDI4IiBmaWxsPSJ3aGl0ZSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+R0NQPC90ZXh0PgogIDx0ZXh0IHg9IjY0MCIgeT0iNDI4IiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIGZvbnQtc2l6ZT0iOSI+Tm8gQUcgKENsb3VkcyBHQSAvIEdLRSBjb2xsZWN0b3IpPC90ZXh0PgoKICA8IS0tIFE1IFllcyDihpIgUkVDT01NRU5ERUQgLS0+CiAgPGxpbmUgeDE9IjI3MCIgeTE9IjQ2MCIgeDI9IjQyMCIgeTI9IjQ2MCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dCbHVlKSIvPgogIDx0ZXh0IHg9IjMyNSIgeT0iNDUzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIj5ZZXM8L3RleHQ+CiAgPHJlY3QgeD0iNDMwIiB5PSI0NDciIHdpZHRoPSIxMDAiIGhlaWdodD0iMjYiIHJ4PSI2IiBmaWxsPSJ1cmwoI2R0UmVjb21tZW5kZWQpIiBmaWx0ZXI9InVybCgjZHRTaGFkb3cpIi8+CiAgPHRleHQgeD0iNDgwIiB5PSI0NjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5SRUNPTU1FTkRFRDwvdGV4dD4KCiAgPCEtLSBRNSBObyDihpIgT1BUSU9OQUwgLS0+CiAgPGxpbmUgeDE9IjU0MCIgeTE9IjQ2MCIgeDI9IjU3MiIgeTI9IjQ2MCIgc3Ryb2tlPSIjMjJDNTVFIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dHcmVlbikiLz4KICA8dGV4dCB4PSI1NTgiIHk9IjQ1MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjYwMCI+Tm88L3RleHQ+CiAgPHJlY3QgeD0iNTgwIiB5PSI0NDciIHdpZHRoPSI4MCIgaGVpZ2h0PSIyNiIgcng9IjYiIGZpbGw9InVybCgjZHRPcHRpb25hbCkiIGZpbHRlcj0idXJsKCNkdFNoYWRvdykiLz4KICA8dGV4dCB4PSI2MjAiIHk9IjQ2NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPk9QVElPTkFMPC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PT09PT09PSBMRUdFTkQgUEFORUwgKHJpZ2h0IGNvbHVtbikgPT09PT09PT09PT09PT09PT09IC0tPgogIDxyZWN0IHg9IjY5MCIgeT0iOTIiIHdpZHRoPSIyMjAiIGhlaWdodD0iMzQzIiByeD0iNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI4MDAiIHk9IjExNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+TGVnZW5kPC90ZXh0PgoKICA8cmVjdCB4PSI3MTAiIHk9IjEzNSIgd2lkdGg9IjE0IiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0idXJsKCNkdFJlcXVpcmVkKSIvPgogIDx0ZXh0IHg9IjczMiIgeT0iMTQ2IiBmaWxsPSIjRTJFOEYwIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5SZXF1aXJlZDwvdGV4dD4KICA8dGV4dCB4PSI3MzIiIHk9IjE2MCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5Ij5BRyBtdXN0IGJlIGRlcGxveWVkIGZvciB0aGlzIHNjZW5hcmlvPC90ZXh0PgoKICA8cmVjdCB4PSI3MTAiIHk9IjE4MCIgd2lkdGg9IjE0IiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0idXJsKCNkdENsb3Vkc0FwcCkiLz4KICA8dGV4dCB4PSI3MzIiIHk9IjE5MSIgZmlsbD0iI0UyRThGMCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+Q2xvdWRzIEFwcCAobm8gQUcpPC90ZXh0PgogIDx0ZXh0IHg9IjczMiIgeT0iMjA1IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkiPkRpcmVjdCBjb25uZWN0aW9uIOKAlCBubyBBRyBuZWVkZWQ8L3RleHQ+CgogIDxyZWN0IHg9IjcxMCIgeT0iMjI1IiB3aWR0aD0iMTQiIGhlaWdodD0iMTQiIHJ4PSIzIiBmaWxsPSJ1cmwoI2R0UmVjb21tZW5kZWQpIi8+CiAgPHRleHQgeD0iNzMyIiB5PSIyMzYiIGZpbGw9IiNFMkU4RjAiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPlJlY29tbWVuZGVkPC90ZXh0PgogIDx0ZXh0IHg9IjczMiIgeT0iMjUwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkiPlJvdXRlIE9uZUFnZW50IHRyYWZmaWMgdmlhIEFHPC90ZXh0PgoKICA8cmVjdCB4PSI3MTAiIHk9IjI3MCIgd2lkdGg9IjE0IiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0idXJsKCNkdE9wdGlvbmFsKSIvPgogIDx0ZXh0IHg9IjczMiIgeT0iMjgxIiBmaWxsPSIjRTJFOEYwIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5PcHRpb25hbDwvdGV4dD4KICA8dGV4dCB4PSI3MzIiIHk9IjI5NSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5Ij5EaXJlY3QgdG8gU2FhUyBpcyBmaW5lPC90ZXh0PgoKICA8bGluZSB4MT0iNzEwIiB5MT0iMzEyIiB4Mj0iODkwIiB5Mj0iMzEyIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgoKICA8dGV4dCB4PSI3MTAiIHk9IjMyOCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+Q2xvdWQgU3RhdHVzICgxMC8yMDI2KTwvdGV4dD4KICA8dGV4dCB4PSI3MTAiIHk9IjM0NSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5Ij5BV1Mg4oCUIENsb3VkcyBhcHAgR0E8L3RleHQ+CiAgPHRleHQgeD0iNzEwIiB5PSIzNjAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOSI+QXp1cmUg4oCUIENsb3VkcyBhcHAgKFNhYVMgMS4zMzcrKTwvdGV4dD4KICA8dGV4dCB4PSI3MTAiIHk9IjM3NSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5Ij5HQ1Ag4oCUIENsb3VkcyBHQTsgbm8gQUc8L3RleHQ+CgogIDxsaW5lIHgxPSI3MTAiIHkxPSIzOTIiIHgyPSI4OTAiIHkyPSIzOTIiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CgogIDx0ZXh0IHg9IjcxMCIgeT0iNDA4IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5FeHRlbnNpb25zPC90ZXh0PgogIDx0ZXh0IHg9IjcxMCIgeT0iNDIzIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkiPlJlbW90ZSAoREIvU05NUC9BUEkpIOKGkiBBRyBncm91cDwvdGV4dD4KICA8dGV4dCB4PSI3MTAiIHk9IjQzMyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5Ij5Mb2NhbCAob24taG9zdCkg4oaSIE9uZUFnZW50PC90ZXh0PgoKICA8IS0tIEZvb3RlciAtLT4KICA8bGluZSB4MT0iNDAiIHkxPSI0ODYiIHgyPSI4OTAiIHkyPSI0ODYiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDY1IiB5PSI0OTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iOSI+RGVjaXNpb24gZXZhbHVhdGVkIHRvcCDihpIgYm90dG9tOyBmaXJzdCBtYXRjaCB3aW5zLiBTZWUgT05CUkQtMDMgwqcyIGZvciB0aGUgZnVsbCB0YWJsZS1mb3JtIGFsdGVybmF0aXZlLjwvdGV4dD4KPC9zdmc+Cg==" alt="ActiveGate Decision Tree" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Question | Yes → | No → |
+|----------|-------|------|
+| Can all hosts reach Dynatrace directly? | AG optional | AG required |
+| Need private synthetic monitoring? | AG required | Continue |
+| Using remote extensions (DB / SNMP / API)? | AG required (local extensions run on OneAgent) | Continue |
+| Monitoring AWS (Clouds app GA)? | AG optional | AG required |
+| Monitoring Azure (Clouds app, SaaS 1.337+)? | AG optional | AG required |
+| Monitoring GCP? | No AG on SaaS — the classic collector runs on GKE; the Clouds connection (GA) needs none | Continue |
+| Many hosts behind one shared NAT / firewall egress? | Route via AG (see the egress note above) | Continue |
+| Want OneAgent egress through a few ActiveGates instead of every host? | Route via AG (see the trade-offs above) | Direct is fine |
+-->
+<p><a id="how-many-activegates"></a></p>
+<h2>3. How Many ActiveGates?</h2>
+<h3>Sizing Guidelines</h3>
+<blockquote>
+<p><strong>FAQ-10 owns the ActiveGate sizing decision.</strong> <em>FAQ-10: How do I size and scale ActiveGates?</em> carries the current published per-shape capacity tables, the 50% CPU / 80% memory headroom rule, the survivor-capacity HA math for a multi-node zone, and the <code>dt.sfm.active_gate.*</code> saturation signals to watch once the fleet is running. Treat the table below as an order-of-magnitude sanity check while you plan the deployment — size the actual machines against FAQ-10 and the official requirements page.</p>
+</blockquote>
+<p>Dynatrace publishes estimated host counts per reference instance shape for an ActiveGate that only routes OneAgent traffic. The counts assume a specific workload: <em>&quot;On each host, OneAgent is performing eight monitoring tasks&quot;</em> — infrastructure monitoring, log monitoring, full-stack monitoring of 3 Apache Tomcat and 2 Apache HTTP Server instances, and extension monitoring. The page adds that <em>&quot;The real number of hosts may be different depending on the monitored technologies in your environment.&quot;</em> In steady state the ActiveGate machine <em>&quot;should not exceed 50% CPU and 80% memory&quot;</em>.</p>
+<table>
+<thead>
+<tr>
+<th>Reference shape</th>
+<th>Architecture</th>
+<th>vCPU</th>
+<th>RAM</th>
+<th>Estimated hosts routed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>c6i.large</td>
+<td>x86-64</td>
+<td>2</td>
+<td>3.75 GiB</td>
+<td>~800</td>
+</tr>
+<tr>
+<td>c6i.xlarge</td>
+<td>x86-64</td>
+<td>4</td>
+<td>7.5 GiB</td>
+<td>~1,800</td>
+</tr>
+<tr>
+<td>c6i.2xlarge</td>
+<td>x86-64</td>
+<td>8</td>
+<td>15 GiB</td>
+<td>~2,500</td>
+</tr>
+<tr>
+<td>c7g.large</td>
+<td>ARM64</td>
+<td>2</td>
+<td>3.75 GiB</td>
+<td>~1,300</td>
+</tr>
+<tr>
+<td>c7g.xlarge</td>
+<td>ARM64</td>
+<td>4</td>
+<td>7.5 GiB</td>
+<td>~2,700</td>
+</tr>
+<tr>
+<td>c7g.2xlarge</td>
+<td>ARM64</td>
+<td>8</td>
+<td>15 GiB</td>
+<td>~5,500</td>
+</tr>
+<tr>
+<td>S</td>
+<td>s390</td>
+<td>2</td>
+<td>4 GiB</td>
+<td>~800</td>
+</tr>
+<tr>
+<td>M</td>
+<td>s390</td>
+<td>4</td>
+<td>8 GiB</td>
+<td>~1,500</td>
+</tr>
+</tbody>
+</table>
+<p>The reference points are AWS instance shapes (plus two s390 machine sizes). For on-premises VMs, map by vCPU and RAM rather than looking for the instance name. Compare your own hosts with the eight-task profile before reusing a count: a host with more instrumented processes than that profile fills an ActiveGate sooner.</p>
+<p><strong>Check the architecture before you pick an instance family.</strong> ARM64 routes more hosts per vCPU than x86-64 at the same shape, but <em>&quot;ActiveGate installed on the x86-64 architecture supports all functionalities. Other architectures provide only partial support.&quot;</em> Confirm that every ActiveGate purpose you need (extensions, cloud polling, Kubernetes monitoring) works on ARM64 or s390 before you standardize on it. Windows ActiveGates are x86-64 only: <em>&quot;ActiveGate supports only operating systems running on the x86-64 architecture (64-bit Intel/AMD).&quot;</em></p>
+<h4>Routing plus log ingest on the same ActiveGate</h4>
+<p>The table above is for routing only. An ActiveGate that also receives logs through the Log ingestion API has its own table, in which <em>&quot;OneAgent routing traffic is set at 50% of the routing-only capacity for the machine size&quot;</em>:</p>
+<table>
+<thead>
+<tr>
+<th>Reference shape</th>
+<th>Architecture</th>
+<th>vCPU</th>
+<th>RAM</th>
+<th>Estimated hosts routed</th>
+<th>API log ingestion (MB/min)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>c7i.large</td>
+<td>x86-64</td>
+<td>2</td>
+<td>3.75 GiB</td>
+<td>~400</td>
+<td>~750</td>
+</tr>
+<tr>
+<td>c7i.xlarge</td>
+<td>x86-64</td>
+<td>4</td>
+<td>7.5 GiB</td>
+<td>~900</td>
+<td>~1,500</td>
+</tr>
+<tr>
+<td>c7i.2xlarge</td>
+<td>x86-64</td>
+<td>8</td>
+<td>15 GiB</td>
+<td>~1,250</td>
+<td>~3,300</td>
+</tr>
+<tr>
+<td>c7g.large</td>
+<td>ARM64</td>
+<td>2</td>
+<td>3.75 GiB</td>
+<td>~400</td>
+<td>~280</td>
+</tr>
+<tr>
+<td>c7g.xlarge</td>
+<td>ARM64</td>
+<td>4</td>
+<td>7.5 GiB</td>
+<td>~1,350</td>
+<td>~560</td>
+</tr>
+<tr>
+<td>c7g.2xlarge</td>
+<td>ARM64</td>
+<td>8</td>
+<td>15 GiB</td>
+<td>~2,750</td>
+<td>~1,650</td>
+</tr>
+</tbody>
+</table>
+<p>So a 2-vCPU x86-64 ActiveGate that routes about 800 hosts on its own routes about 400 once it also takes API log ingest. If your ActiveGates will front log ingestion, size them from this table, not the routing-only one. An ActiveGate that receives logs <strong>only</strong> through the API has a third table; FAQ-10 reproduces it.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements">Linux ActiveGate hardware and system requirements (DT docs)</a> — <em>&quot;It is recommended that the machine on which ActiveGate is running should not exceed 50% CPU and 80% memory.&quot;</em>, <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/windows/windows-activegate-hardware-and-system-requirements">Windows ActiveGate hardware and system requirements (DT docs)</a> — <em>&quot;ActiveGate supports only operating systems running on the x86-64 architecture (64-bit Intel/AMD).&quot;</em> <strong>Derived:</strong> the 800 → 400 comparison maps the c6i and c7i shapes by vCPU and RAM.</sub></p>
+</blockquote>
+<h3>Detailed Hardware Requirements</h3>
+<h4>Minimum System Requirements (Linux)</h4>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Documented requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CPU</strong></td>
+<td>1 dual core processor (more for large environments)</td>
+</tr>
+<tr>
+<td><strong>RAM</strong></td>
+<td>2 GB (4 GB recommended)</td>
+</tr>
+<tr>
+<td><strong>Disk</strong></td>
+<td>4 GB for installation, configuration and logs, plus 4 GB for cached OneAgent / ActiveGate installers and container images</td>
+</tr>
+<tr>
+<td><strong>Disk, ActiveGates that run extensions</strong></td>
+<td>Add 600 MB plus a 1.5 GB buffer for the Extension Execution Controller's log-retransmission persistence file, and space for the extensions you upload</td>
+</tr>
+<tr>
+<td><strong>Disk, dump files (optional)</strong></td>
+<td>Off by default; when turned on, configurable with a 100 GB default maximum</td>
+</tr>
+</tbody>
+</table>
+<p>Don't skip the extension buffer. For the persistence directory the page warns that <em>&quot;The reliability mechanism does not work if the requirement is not met.&quot;</em> Extensions keep running, but without the buffer that covers an outage. Windows ActiveGates have the same minimums.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements">Linux ActiveGate hardware and system requirements (DT docs)</a> — <em>&quot;2 GB RAM (4 GB recommended). 1 dual core processor.&quot;</em>, <em>&quot;600 MB + 1.5 GB (buffer) of free disk space for Extension Execution Controller logs retransmission persistence file.&quot;</em>, <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/windows/windows-activegate-hardware-and-system-requirements">Windows ActiveGate hardware and system requirements (DT docs)</a>.</sub></p>
+</blockquote>
+<h4>Operating System Support</h4>
+<p>The routing/monitoring ActiveGate matrix changes every few sprints, so <strong>the official requirements pages are the authority</strong> — re-check them before you provision, not just when something breaks: <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements">Linux ActiveGate hardware and system requirements</a> and <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/windows/windows-activegate-hardware-and-system-requirements">Windows ActiveGate hardware and system requirements</a>.</p>
+<p>Currently listed for routing/monitoring ActiveGates (verified 11/11/2026 against the Linux page, updated 07/07/2026, and 10/21/2026 against the Windows page, updated 07/15/2026). Red Hat Enterprise Linux 9.4 and Ubuntu 16.04 have left the matrix: ActiveGate 1.349 lists them under <em>&quot;The following operating systems are no longer supported since 01 November 2026&quot;</em>. Architectures vary by distribution: ARM64 and x86-64 throughout, s390 on RHEL, SUSE and Ubuntu 20.04+. Only x86-64 supports every function (see above).</p>
+<table>
+<thead>
+<tr>
+<th>OS</th>
+<th>Supported Versions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Red Hat Enterprise Linux</strong></td>
+<td>8.10, 9.6, 9.7, 9.8, 10.0, 10.1, 10.2</td>
+</tr>
+<tr>
+<td><strong>Oracle Linux</strong></td>
+<td>8.10, 9.7, 9.8, 10.1, 10.2</td>
+</tr>
+<tr>
+<td><strong>Rocky Linux</strong></td>
+<td>8.10, 9.7, 9.8, 10.1, 10.2</td>
+</tr>
+<tr>
+<td><strong>Ubuntu</strong></td>
+<td>18.04, 20.04, 22.04, 24.04, 26.04 (x86-64); 20.04, 22.04, 24.04, 26.04 (ARM64 / s390)</td>
+</tr>
+<tr>
+<td><strong>Amazon Linux</strong></td>
+<td>2, 2023</td>
+</tr>
+<tr>
+<td><strong>SUSE Linux Enterprise Server</strong></td>
+<td>15.7</td>
+</tr>
+<tr>
+<td><strong>Windows Server</strong></td>
+<td>2016, 2019, 2022, 2025 (x86-64 only)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Added in ActiveGate 1.343:</strong> Oracle Linux 9.8 and 10.2, Rocky Linux 9.8 and 10.2. ActiveGate 1.343 was published 07/15/2026 with a staged fleet rollout from 07/28/2026 — the ActiveGates already running in your environment carry whatever version they last updated to, so check the version of the specific ActiveGate before assuming a newly added OS is installable on it.</p>
+<blockquote>
+<p><strong>On CentOS and Debian:</strong> neither CentOS Linux, CentOS Stream, nor Debian appears on the current routing/monitoring ActiveGate matrix (verified 07/30/2026). Earlier revisions of this notebook combined &quot;RHEL/CentOS&quot; into a single row, which reads as an endorsement of CentOS that the requirements page does not make — and CentOS Linux is end-of-life upstream regardless of what Dynatrace supports. If you are planning ActiveGates on CentOS Stream or Debian, check the requirements page directly before provisioning rather than inferring support from the RHEL row.</p>
+</blockquote>
+<h4>Support Ending — Do Not Provision New ActiveGates on These</h4>
+<p>Dynatrace de-supports an OS version <em>&quot;at least 6 months after its end of life (EOL), to give you enough time to upgrade your environment.&quot;</em> The announced removals below all fall inside the next six months:</p>
+<table>
+<thead>
+<tr>
+<th>OS version</th>
+<th>ActiveGate support ends</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Red Hat Enterprise Linux 9.7, 10.1</td>
+<td><strong>12/01/2026</strong></td>
+</tr>
+<tr>
+<td>Oracle Linux 9.7, 10.1 x86-64</td>
+<td><strong>12/01/2026</strong></td>
+</tr>
+<tr>
+<td>Rocky Linux 9.7, 10.1 x86-64</td>
+<td><strong>12/01/2026</strong></td>
+</tr>
+<tr>
+<td>Amazon Linux 2 x86-64, ARM64 (AArch64)</td>
+<td><strong>01/01/2027</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Already ended (11/01/2026):</strong> Red Hat Enterprise Linux 9.4 and Ubuntu 16.04 — no longer supported for ActiveGate since that date.</p>
+<p><strong>Existing ActiveGates on these versions keep working right up to the date</strong> — nothing stops the moment the announcement lands. What ends is Dynatrace's commitment to fix issues and ship new ActiveGate versions for that OS. Two practical consequences for an onboarding plan:</p>
+<ul>
+<li><strong>Do not provision new ActiveGates on any version in this table.</strong> Amazon Linux 2 and RHEL 9.4 were the obvious defaults a year ago; RHEL 9.4 is already out of support and Amazon Linux 2 is next — pick Amazon Linux 2023, RHEL 9.8/10.2, Oracle Linux 9.8/10.2, or Rocky Linux 9.8/10.2 instead. Oracle Linux and Rocky Linux 9.8 and 10.2 are themselves already announced for de-support from <strong>06/01/2027</strong> (ActiveGate 1.349 release notes: <em>&quot;The following operating systems will no longer be supported starting 01 June 2027&quot;</em>), so on those distributions plan the move to the next listed minor version. On Windows, <em>&quot;The following operating systems will no longer be supported starting 01 August 2027 Windows: Windows Server 2016&quot;</em> — start new Windows ActiveGates on 2019 or later.</li>
+<li><strong>Fold the OS upgrade into the next ActiveGate update window</strong> rather than scheduling it as separate work. The update mechanics, auto-update behavior, and how to schedule those windows are covered in <em>FAQ-05: Managing ActiveGate updates on Dynatrace SaaS</em>.</li>
+</ul>
+<blockquote>
+<p><strong>Reference:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news">End-of-support announcements (DT docs)</a> — the dates and the 6-month policy statement above are quoted from this page, verified 07/30/2026; the dates also match <a href="https://docs.dynatrace.com/docs/whats-new/activegate/sprint-349">ActiveGate 1.349 (DT docs)</a>, read 11/11/2026 — <em>&quot;The following operating systems are no longer supported since 01 November 2026&quot;</em>. The Windows Server 2016 date is from <a href="https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news">End of support announcements (DT docs)</a>, read 11/16/2026.</p>
+</blockquote>
+<h4>Disk Space per Directory (Linux defaults)</h4>
+<p>Most of the space an ActiveGate needs sits under <code>/var</code>, not under <code>/opt/dynatrace</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Directory (default)</th>
+<th>Contents</th>
+<th>Space</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/opt/dynatrace</code></td>
+<td>ActiveGate and autoupdater executables and libraries</td>
+<td>600 MB</td>
+</tr>
+<tr>
+<td><code>/opt/dynatrace/remotepluginmodule</code></td>
+<td>Extensions executables (Environment ActiveGate)</td>
+<td>2 GB</td>
+</tr>
+<tr>
+<td><code>/var/lib/dynatrace</code></td>
+<td>Configuration</td>
+<td>2 MB</td>
+</tr>
+<tr>
+<td><code>/var/lib/dynatrace/packages</code></td>
+<td>Auto-update installer downloads</td>
+<td>600 MB</td>
+</tr>
+<tr>
+<td><code>/var/log/dynatrace</code></td>
+<td>ActiveGate and autoupdater logs</td>
+<td>1.2 GB</td>
+</tr>
+<tr>
+<td><code>/var/tmp/dynatrace/gateway</code></td>
+<td>Temporary files</td>
+<td>4 GB (including 3 GB for cached OneAgent installers and container images)</td>
+</tr>
+<tr>
+<td><code>/var/lib/dynatrace/remotepluginmodule</code></td>
+<td>Extensions logs, cache and run-time work area (Environment ActiveGate)</td>
+<td>2 GB</td>
+</tr>
+<tr>
+<td><code>/var/lib/dynatrace/remotepluginmodule/agent/runtime/extensions/persistence</code></td>
+<td>Extension Execution Controller log-retransmission persistence</td>
+<td>Up to 600 MB, plus a 1.5 GB buffer</td>
+</tr>
+<tr>
+<td><code>/opt/dynatrace/remotepluginmodule/plugin_deployment</code></td>
+<td>Uploaded extensions (Environment ActiveGate)</td>
+<td>Depends on the extensions uploaded</td>
+</tr>
+<tr>
+<td><code>/var/lib/dynatrace/gateway/dump</code></td>
+<td>Dump files uploaded by OneAgent (off by default)</td>
+<td>Configurable; 100 GB default maximum</td>
+</tr>
+</tbody>
+</table>
+<p>Added up, the fixed rows come to about 6.5 GB for a routing-only ActiveGate and about 12.5 GB for an ActiveGate that runs extensions, before uploaded extensions and optional dump files.</p>
+<blockquote>
+<p><strong>Partitioning:</strong> if you give ActiveGate dedicated volumes, size <code>/var/tmp/dynatrace</code>, <code>/var/log/dynatrace</code> and <code>/var/lib/dynatrace</code> per the requirements page — those are the directories that hold logs, caches and update packages. A large <code>/opt/dynatrace</code> partition alone leaves them on the root volume.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements">Linux ActiveGate hardware and system requirements (DT docs)</a> — <em>&quot;ActiveGate temporary files default: /var/tmp/dynatrace/gateway&quot;</em>. <strong>Derived:</strong> the 6.5 GB and 12.5 GB totals add the table's fixed rows. Memory and CPU sizing beyond the minimums: FAQ-10.</sub></p>
+</blockquote>
+<h3>High Availability</h3>
+<p>The sizing tables assume that <em>&quot;ActiveGates may be inoperable during updates, restarts or short communication problems&quot;</em>, and that <em>&quot;operating ActiveGates should be able to takeover traffic of the unavailable ActiveGates&quot;</em>. So a production zone needs <strong>at least 2 ActiveGates</strong>, and each one must be able to carry the whole zone while the other is down:</p>
+<table>
+<thead>
+<tr>
+<th>Deployment</th>
+<th>ActiveGates</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Minimum HA</strong></td>
+<td>2 per zone</td>
+<td>The takeover rule above</td>
+</tr>
+<tr>
+<td><strong>Load distribution</strong></td>
+<td>2–3 per zone</td>
+<td>Community practice</td>
+</tr>
+<tr>
+<td><strong>Large scale</strong></td>
+<td>N+1 per zone</td>
+<td>Community practice: size N to carry the zone, then add one</td>
+</tr>
+</tbody>
+</table>
+<p><strong>How OneAgents spread across them.</strong> <em>&quot;OneAgents are load-balanced to use an ActiveGate with the lowest possible index. That is, if several ActiveGates with the low index are available, OneAgents will try to switch between the available ActiveGates on a regular basis.&quot;</em> That is periodic switching, not per-request distribution. In community practice the load on each node is uneven over short windows, so watch per-node CPU and memory (FAQ-10) rather than assuming an even split.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements">Linux ActiveGate hardware and system requirements (DT docs)</a> — <em>&quot;In order to ensure high availability, operating ActiveGates should be able to takeover traffic of the unavailable ActiveGates&quot;</em>, <a href="https://docs.dynatrace.com/docs/manage/network-zones-classic/oneagent-connectivity">OneAgent connectivity in network zones (DT docs)</a> — <em>&quot;OneAgents are load-balanced to use an ActiveGate with the lowest possible index.&quot;</em></sub></p>
+</blockquote>
+<h3>Example Deployment</h3>
+<p>The example assumes hosts close to the eight-task profile and no log ingest through the ActiveGates.</p>
+<table>
+<thead>
+<tr>
+<th>Network Zone</th>
+<th>Hosts</th>
+<th>ActiveGates</th>
+<th>Shape class per AG</th>
+<th>vCPU each</th>
+<th>RAM each</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Production DMZ</td>
+<td>200</td>
+<td>2</td>
+<td>c6i.large (~800 hosts)</td>
+<td>2</td>
+<td>3.75 GiB</td>
+</tr>
+<tr>
+<td>Production Internal</td>
+<td>800</td>
+<td>2</td>
+<td>c6i.xlarge (~1,800 hosts)</td>
+<td>4</td>
+<td>7.5 GiB</td>
+</tr>
+<tr>
+<td>Development</td>
+<td>150</td>
+<td>1</td>
+<td>c6i.large (~800 hosts)</td>
+<td>2</td>
+<td>3.75 GiB</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>1,150</strong></td>
+<td><strong>5</strong></td>
+<td></td>
+<td><strong>14 vCPU</strong></td>
+<td><strong>26.25 GiB</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Note why Production Internal is sized at c6i.xlarge for only 800 hosts across two nodes: each node must be able to carry the <strong>whole</strong> zone when its partner is down, so the survivor's capacity — not the average load — sets the shape. FAQ-10 works that survivor-capacity math out properly, including for zones larger than two nodes.</p>
+<p><a id="where-to-deploy"></a></p>
+<h2>4. Where to Deploy?</h2>
+<h3>Network Zone Strategy</h3>
+<p>Deploy ActiveGates based on network segmentation:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgNDAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYXBCZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZjE3MmEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWUyOTNiIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJhcFB1cnBsZSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojYTg1NWY3Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdjM2FlZCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYXBCbHVlIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMzYjgyZjYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjU2M2ViIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJhcEdyZWVuIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNGYxOTUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0iYXBTaGFkb3ciIHg9Ii0yMCUiIHk9Ii0yMCUiIHdpZHRoPSIxNDAlIiBoZWlnaHQ9IjE0MCUiPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIwIiBkeT0iMyIgc3RkRGV2aWF0aW9uPSI0IiBmbG9vZC1vcGFjaXR5PSIwLjMiLz4KICAgIDwvZmlsdGVyPgogICAgPCEtLSBBcnJvdyBtYXJrZXJzIGRlZmluZWQgYXQgdG9wIGxldmVsIC0tPgogICAgPG1hcmtlciBpZD0iYXJyQmx1ZSIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgcmVmWD0iNyIgcmVmWT0iMyIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMCw2IEw4LDMgeiIgZmlsbD0iIzYwYTVmYSIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJHcmVlbiIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgcmVmWD0iNyIgcmVmWT0iMyIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMCw2IEw4LDMgeiIgZmlsbD0iIzE0ZjE5NSIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjcwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9InVybCgjYXBCZykiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSIzNTAiIHk9IjI4IiBmaWxsPSIjZjhmYWZjIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iNjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BY3RpdmVHYXRlIE5ldHdvcmsgUGxhY2VtZW50PC90ZXh0PgoKICA8IS0tIEludGVybmFsIFpvbmUgKGxlZnQpIC0tPgogIDxyZWN0IHg9IjIwIiB5PSI1MCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIxNjAiIHJ4PSI4IiBmaWxsPSIjMWUyOTNiIiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI2FwU2hhZG93KSIvPgogIDx0ZXh0IHg9IjkwIiB5PSI3MiIgZmlsbD0iIzNiODJmNiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW50ZXJuYWwgTmV0d29yazwvdGV4dD4KCiAgPHJlY3QgeD0iMzUiIHk9Ijg1IiB3aWR0aD0iNTAiIGhlaWdodD0iMzUiIHJ4PSIzIiBmaWxsPSJ1cmwoI2FwQmx1ZSkiIGZpbHRlcj0idXJsKCNhcFNoYWRvdykiLz4KICA8dGV4dCB4PSI2MCIgeT0iMTA3IiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjYwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+T0E8L3RleHQ+CgogIDxyZWN0IHg9Ijk1IiB5PSI4NSIgd2lkdGg9IjUwIiBoZWlnaHQ9IjM1IiByeD0iMyIgZmlsbD0idXJsKCNhcEJsdWUpIiBmaWx0ZXI9InVybCgjYXBTaGFkb3cpIi8+CiAgPHRleHQgeD0iMTIwIiB5PSIxMDciIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PQTwvdGV4dD4KCiAgPHJlY3QgeD0iMzUiIHk9IjEzMCIgd2lkdGg9IjUwIiBoZWlnaHQ9IjM1IiByeD0iMyIgZmlsbD0idXJsKCNhcEJsdWUpIiBmaWx0ZXI9InVybCgjYXBTaGFkb3cpIi8+CiAgPHRleHQgeD0iNjAiIHk9IjE1MiIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk9BPC90ZXh0PgoKICA8cmVjdCB4PSI5NSIgeT0iMTMwIiB3aWR0aD0iNTAiIGhlaWdodD0iMzUiIHJ4PSIzIiBmaWxsPSJ1cmwoI2FwQmx1ZSkiIGZpbHRlcj0idXJsKCNhcFNoYWRvdykiLz4KICA8dGV4dCB4PSIxMjAiIHk9IjE1MiIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk9BPC90ZXh0PgoKICA8dGV4dCB4PSI5MCIgeT0iMTg1IiBmaWxsPSIjNjQ3NDhiIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PbmVBZ2VudHM8L3RleHQ+CgogIDwhLS0gRE1aIFpvbmUgKGNlbnRlci1sZWZ0KSAtLT4KICA8cmVjdCB4PSIxODAiIHk9IjUwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjE2MCIgcng9IjgiIGZpbGw9IiMxZTI5M2IiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjYXBTaGFkb3cpIi8+CiAgPHRleHQgeD0iMjUwIiB5PSI3MiIgZmlsbD0iI2Y1OWUwYiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RE1aPC90ZXh0PgoKICA8cmVjdCB4PSIxOTUiIHk9IjkwIiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjQ1IiByeD0iNCIgZmlsbD0idXJsKCNhcFB1cnBsZSkiIGZpbHRlcj0idXJsKCNhcFNoYWRvdykiLz4KICA8dGV4dCB4PSIyNTAiIHk9IjExNSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFjdGl2ZUdhdGU8L3RleHQ+CiAgPHRleHQgeD0iMjUwIiB5PSIxMjciIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC43KSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+KFByaW1hcnkpPC90ZXh0PgoKICA8cmVjdCB4PSIxOTUiIHk9IjE0NSIgd2lkdGg9IjExMCIgaGVpZ2h0PSI0NSIgcng9IjQiIGZpbGw9InVybCgjYXBQdXJwbGUpIiBmaWx0ZXI9InVybCgjYXBTaGFkb3cpIi8+CiAgPHRleHQgeD0iMjUwIiB5PSIxNzAiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BY3RpdmVHYXRlPC90ZXh0PgogIDx0ZXh0IHg9IjI1MCIgeT0iMTgyIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuNykiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPihIQSBTdGFuZGJ5KTwvdGV4dD4KCiAgPCEtLSBDbG91ZCBWUEMgWm9uZSAoY2VudGVyLXJpZ2h0KSAtLT4KICA8cmVjdCB4PSIzNjAiIHk9IjUwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjE2MCIgcng9IjgiIGZpbGw9IiMxZTI5M2IiIHN0cm9rZT0iIzIyYzU1ZSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjYXBTaGFkb3cpIi8+CiAgPHRleHQgeD0iNDMwIiB5PSI3MiIgZmlsbD0iIzIyYzU1ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QVdTIFZQQzwvdGV4dD4KCiAgPHJlY3QgeD0iMzc1IiB5PSI5MCIgd2lkdGg9IjExMCIgaGVpZ2h0PSI0NSIgcng9IjQiIGZpbGw9InVybCgjYXBQdXJwbGUpIiBmaWx0ZXI9InVybCgjYXBTaGFkb3cpIi8+CiAgPHRleHQgeD0iNDMwIiB5PSIxMTUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BY3RpdmVHYXRlPC90ZXh0PgogIDx0ZXh0IHg9IjQzMCIgeT0iMTI3IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuNykiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPihDbG91ZCBab25lKTwvdGV4dD4KCiAgPHJlY3QgeD0iMzgwIiB5PSIxNTAiIHdpZHRoPSI0NSIgaGVpZ2h0PSIzMCIgcng9IjMiIGZpbGw9InVybCgjYXBCbHVlKSIgZmlsdGVyPSJ1cmwoI2FwU2hhZG93KSIvPgogIDx0ZXh0IHg9IjQwMiIgeT0iMTY5IiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjYwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RUMyPC90ZXh0PgoKICA8cmVjdCB4PSI0MzUiIHk9IjE1MCIgd2lkdGg9IjQ1IiBoZWlnaHQ9IjMwIiByeD0iMyIgZmlsbD0idXJsKCNhcEJsdWUpIiBmaWx0ZXI9InVybCgjYXBTaGFkb3cpIi8+CiAgPHRleHQgeD0iNDU3IiB5PSIxNjkiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FS1M8L3RleHQ+CgogIDwhLS0gRHluYXRyYWNlIFNhYVMgKHJpZ2h0KSAtLT4KICA8cmVjdCB4PSI1NDAiIHk9IjUwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjE2MCIgcng9IjgiIGZpbGw9InVybCgjYXBHcmVlbikiIGZpbHRlcj0idXJsKCNhcFNoYWRvdykiLz4KICA8dGV4dCB4PSI2MTAiIHk9IjkwIiBmaWxsPSIjMGYxNzJhIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EeW5hdHJhY2U8L3RleHQ+CiAgPHRleHQgeD0iNjEwIiB5PSIxMTAiIGZpbGw9IiMwZjE3MmEiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNhYVM8L3RleHQ+CiAgPHRleHQgeD0iNjEwIiB5PSIxNDAiIGZpbGw9InJnYmEoMTUsMjMsNDIsMC43KSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Ki5keW5hdHJhY2UuY29tPC90ZXh0PgogIDx0ZXh0IHg9IjYxMCIgeT0iMTU4IiBmaWxsPSJyZ2JhKDE1LDIzLDQyLDAuNykiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkhUVFBTIDo0NDM8L3RleHQ+CgogIDwhLS0gQ29ubmVjdGlvbiBBcnJvd3MgLSBkcmF3biBCRUxPVyBib3hlcyBzbyB0aGV5IGRvbid0IG92ZXJsYXAgY29udGVudCAtLT4KICA8IS0tIEludGVybmFsIHRvIERNWiAtLT4KICA8bGluZSB4MT0iMTYwIiB5MT0iMTEyIiB4Mj0iMTk1IiB5Mj0iMTEyIiBzdHJva2U9IiM2MGE1ZmEiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJCbHVlKSIvPgogIDxsaW5lIHgxPSIxNjAiIHkxPSIxNjciIHgyPSIxOTUiIHkyPSIxNjciIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2FyckJsdWUpIi8+CgogIDwhLS0gRE1aIHRvIER5bmF0cmFjZSAoZ29lcyBiZWxvdykgLS0+CiAgPHBhdGggZD0iTTMyMCAxMzAgTDM0MCAxMzAgTDM0MCAyMjAgTDUyMCAyMjAgTDUyMCAxMzAgTDU0MCAxMzAiIHN0cm9rZT0iIzE0ZjE5NSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2FyckdyZWVuKSIvPgoKICA8IS0tIENsb3VkIHRvIER5bmF0cmFjZSAtLT4KICA8bGluZSB4MT0iNTAwIiB5MT0iMTEyIiB4Mj0iNTQwIiB5Mj0iMTEyIiBzdHJva2U9IiMxNGYxOTUiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJHcmVlbikiLz4KCiAgPCEtLSBQb3J0IGxhYmVscyAtLT4KICA8dGV4dCB4PSIxNzciIHk9IjEwNSIgZmlsbD0iIzYwYTVmYSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+Ojk5OTk8L3RleHQ+CiAgPHRleHQgeD0iNTIwIiB5PSIxMDUiIGZpbGw9IiMxNGYxOTUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPjo0NDM8L3RleHQ+CiAgPHRleHQgeD0iNDMwIiB5PSIyMzUiIGZpbGw9IiMxNGYxOTUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPjo0NDM8L3RleHQ+CgogIDwhLS0gQmVzdCBQcmFjdGljZXMgQm94IC0tPgogIDxyZWN0IHg9IjIwIiB5PSIyNDAiIHdpZHRoPSI2NjAiIGhlaWdodD0iMTQ1IiByeD0iOCIgZmlsbD0iIzFlMjkzYiIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIzNTAiIHk9IjI2NSIgZmlsbD0iI2Y4ZmFmYyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjYwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UGxhY2VtZW50IEJlc3QgUHJhY3RpY2VzPC90ZXh0PgoKICA8IS0tIFByYWN0aWNlIEl0ZW1zIC0tPgogIDxyZWN0IHg9IjM1IiB5PSIyODAiIHdpZHRoPSIyMDAiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjMGYxNzJhIi8+CiAgPHRleHQgeD0iMTM1IiB5PSIzMDAiIGZpbGw9IiNmNTllMGIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNhbWUgTmV0d29yayBab25lPC90ZXh0PgogIDx0ZXh0IHg9IjEzNSIgeT0iMzE4IiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5QbGFjZSBBRyBpbiBzYW1lIHpvbmU8L3RleHQ+CiAgPHRleHQgeD0iMTM1IiB5PSIzMzEiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmFzIE9uZUFnZW50cyBpdCBzZXJ2ZXM8L3RleHQ+CiAgPHRleHQgeD0iMTM1IiB5PSIzNTQiIGZpbGw9IiM2NDc0OGIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk1pbmltaXplcyBmaXJld2FsbCBydWxlczwvdGV4dD4KCiAgPHJlY3QgeD0iMjUwIiB5PSIyODAiIHdpZHRoPSIyMDAiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjMGYxNzJhIi8+CiAgPHRleHQgeD0iMzUwIiB5PSIzMDAiIGZpbGw9IiMyMmM1NWUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkhpZ2ggQXZhaWxhYmlsaXR5PC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iMzE4IiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EZXBsb3kgMisgQWN0aXZlR2F0ZXM8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSIzMzEiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnBlciB6b25lIGZvciBwcm9kdWN0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iMzU0IiBmaWxsPSIjNjQ3NDhiIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BdXRvIGxvYWQtYmFsYW5jZSArIGZhaWxvdmVyPC90ZXh0PgoKICA8cmVjdCB4PSI0NjUiIHk9IjI4MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI5MCIgcng9IjQiIGZpbGw9IiMwZjE3MmEiLz4KICA8dGV4dCB4PSI1NjUiIHk9IjMwMCIgZmlsbD0iIzNiODJmNiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q2xvdWQgWm9uZXM8L3RleHQ+CiAgPHRleHQgeD0iNTY1IiB5PSIzMTgiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFHIHBlciBWUEMvVk5ldCBmb3I8L3RleHQ+CiAgPHRleHQgeD0iNTY1IiB5PSIzMzEiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnJvdXRpbmcgY2xvdWQgT25lQWdlbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjU2NSIgeT0iMzU0IiBmaWxsPSIjNjQ3NDhiIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5DbG91ZHMgYXBwIG5lZWRzIG5vIEFHPC90ZXh0Pgo8L3N2Zz4K" alt="ActiveGate Placement" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Zone Type | ActiveGate Location | OneAgent Connection |
+|-----------|--------------------|-----------------|
+| DMZ | In DMZ with internet access | Internal hosts → DMZ AG |
+| Internal | Internal segment | Internal hosts → Internal AG |
+| Cloud VPC | Within VPC | Cloud workloads → VPC AG |
+| Air-gapped | Edge with controlled egress | Isolated hosts → Edge AG |
+-->
+<h3>Placement Rules</h3>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Same network zone</strong></td>
+<td>AG should be in same zone as OneAgents it serves</td>
+</tr>
+<tr>
+<td><strong>Outbound access</strong></td>
+<td>AG needs HTTPS to <code>*.dynatrace.com</code></td>
+</tr>
+<tr>
+<td><strong>Inbound from agents</strong></td>
+<td>OneAgents connect to AG on port 9999</td>
+</tr>
+<tr>
+<td><strong>Low latency</strong></td>
+<td>Place AG close to monitored workloads</td>
+</tr>
+</tbody>
+</table>
+<h3>Cloud-Specific Guidance</h3>
+<table>
+<thead>
+<tr>
+<th>Cloud</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AWS</strong></td>
+<td>Deploy in management VPC or shared services subnet</td>
+</tr>
+<tr>
+<td><strong>Azure</strong></td>
+<td>Hub VNet with peering to spoke VNets</td>
+</tr>
+<tr>
+<td><strong>GCP</strong></td>
+<td>Shared VPC host project</td>
+</tr>
+<tr>
+<td><strong>Kubernetes</strong></td>
+<td>Run routing and Kubernetes monitoring in the cluster through the Operator (§ 7); run remote extensions on host-based ActiveGates outside it</td>
+</tr>
+</tbody>
+</table>
+<p><a id="generating-tokens"></a></p>
+<h2>5. Generating Tokens</h2>
+<p>Downloading the ActiveGate installer needs one of two token types, depending on your environment. on a latest environment, <em>&quot;Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available.&quot;</em>; environments migrating to Latest Dynatrace have both, and SaaS 1.343 says <em>&quot;We recommend platform tokens over classic API tokens for new integrations.&quot;</em></p>
+<table>
+<thead>
+<tr>
+<th>Environment</th>
+<th>Token</th>
+<th>Required scope</th>
+<th>Request header</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Latest Dynatrace</strong> (platform tokens only)</td>
+<td>Platform token (<strong>My platform tokens</strong>) or OAuth client</td>
+<td><code>fleet-management:activegates:download</code></td>
+<td><code>Authorization: Bearer &lt;token&gt;</code></td>
+</tr>
+<tr>
+<td><strong>Classic or hybrid</strong> (classic access tokens still exist)</td>
+<td>Access token (<strong>Access Tokens</strong> app → <strong>Generate new token</strong>)</td>
+<td><code>InstallerDownload</code> (<em>PaaS integration - Installer download</em>)</td>
+<td><code>Authorization: Api-Token &lt;token&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<p>No further scopes are needed to install an ActiveGate. Scopes for the APIs you call later (extensions, synthetic locations) belong on the tokens that call them. The <strong>Install ActiveGate</strong> wizard in <strong>Discovery &amp; Coverage</strong> can also generate an installer token for you.</p>
+<h3>Token Naming Convention</h3>
+<p>Use descriptive names:</p>
+<ul>
+<li><code>prod-activegate-dmz</code></li>
+<li><code>aws-activegate-useast1</code></li>
+<li><code>k8s-activegate-cluster1</code></li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/activegate/download-activegate-latest">Deployment API - Download latest ActiveGate (DT docs)</a> — <em>&quot;Platform Token / OAuth: Required scope: fleet-management:activegates:download&quot;</em>, <a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic">Upgrade from access tokens classic (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-343">SaaS 1.343 (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="installation-methods"></a></p>
+<h2>6. Installation Methods</h2>
+<h3>Linux Installation</h3>
+<pre><code class="language-bash"># Download the installer (platform token; for a classic access token use
+# --header=&quot;Authorization: Api-Token {token}&quot; instead)
+wget -O Dynatrace-ActiveGate.sh \
+  --header=&quot;Authorization: Bearer {platform-token}&quot; \
+  &quot;https://{tenant-id}.live.dynatrace.com/api/v1/deployment/installer/gateway/unix/latest&quot;
+
+# Make executable and run
+chmod +x Dynatrace-ActiveGate.sh
+sudo ./Dynatrace-ActiveGate.sh
+</code></pre>
+<h3>Windows Installation</h3>
+<pre><code class="language-powershell"># Download the installer (classic access token: &quot;Api-Token {token}&quot; instead of &quot;Bearer ...&quot;)
+Invoke-WebRequest -Uri &quot;https://{tenant-id}.live.dynatrace.com/api/v1/deployment/installer/gateway/windows/latest&quot; `
+  -Headers @{ Authorization = &quot;Bearer {platform-token}&quot; } -OutFile Dynatrace-ActiveGate.exe
+
+# Run the installer
+.\Dynatrace-ActiveGate.exe
+</code></pre>
+<blockquote>
+<p><strong>Latest Dynatrace deployment API (SaaS 1.343, rollout from 07/14/2026):</strong> the ActiveGate deployment REST API is generally available — <em>&quot;now enabled by default and available via the platform domain&quot;</em> — and supports <strong>platform tokens</strong> with fine-grained OAuth scopes. The classic <code>/api/v1/deployment/installer/gateway/...</code> endpoints used above carry no deprecation notice on their reference page, and SaaS 1.343 says the gateway <code>latest</code> endpoints <em>&quot;honor the configured target version too&quot;</em>. Source: <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-343">What's new in Dynatrace SaaS 1.343 (DT docs)</a>.</p>
+</blockquote>
+<h3>Container Deployment</h3>
+<p>Dynatrace documents a containerized ActiveGate only <em>&quot;using a StatefulSet on Kubernetes/OpenShift&quot;</em> — see <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/activegate-in-container">ActiveGate container image (DT docs)</a> and section 7 below. A standalone <code>docker run</code> / Podman ActiveGate is not a documented deployment; use the Linux or Windows installer on a VM instead.</p>
+<h3>Installation Parameters</h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Purpose</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--set-network-zone</code></td>
+<td>Assign to network zone</td>
+<td><code>--set-network-zone=dmz</code></td>
+</tr>
+<tr>
+<td><code>--set-group</code></td>
+<td>Group for management</td>
+<td><code>--set-group=production</code></td>
+</tr>
+</tbody>
+</table>
+<p>Synthetic is not an installer flag on a routing ActiveGate: install a separate Synthetic-enabled ActiveGate from the <strong>Install ActiveGate</strong> wizard (<strong>Purpose → Synthetic</strong>) — see the note in section 1.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/activegate/download-activegate-latest">Deployment API - Download latest ActiveGate (DT docs)</a> — <em>&quot;GET SaaS https://{your-environment-id}.live.dynatrace.com/api/v1/deployment/installer/gateway/{osType}/latest&quot;</em>, <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-customize-installation-for-activegate">Customize ActiveGate installation on Linux (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="kubernetes-deployment-detailed"></a></p>
+<h2>7. Kubernetes Deployment (Detailed)</h2>
+<p>Deploying ActiveGate in Kubernetes requires careful consideration of where, how, and when to use containerized ActiveGates vs. traditional VM deployments.</p>
+<h3>When to Deploy ActiveGate in Kubernetes</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Deploy in K8s?</th>
+<th>Reasoning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cluster-only monitoring</strong></td>
+<td>✅ Yes</td>
+<td>Co-located with workloads, simplifies networking</td>
+</tr>
+<tr>
+<td><strong>Routing for in-cluster OneAgents</strong></td>
+<td>✅ Yes</td>
+<td>Lower latency, no external hops</td>
+</tr>
+<tr>
+<td><strong>Remote extensions</strong></td>
+<td>❌ Host-based ActiveGate</td>
+<td>The container image does not include the Extensions module. SQL extensions are the exception: they run on Kubernetes through the Operator, not on an ActiveGate (see the note below)</td>
+</tr>
+<tr>
+<td><strong>Multi-cluster routing</strong></td>
+<td>⚠️ Consider</td>
+<td>May need external AG for cross-cluster</td>
+</tr>
+<tr>
+<td><strong>Private synthetic monitoring</strong></td>
+<td>✅ Supported</td>
+<td>Containerized private locations are documented and auto-scale (SYNTH-04); in community practice some teams still choose VMs for a fixed egress IP</td>
+</tr>
+<tr>
+<td><strong>Routing for external hosts</strong></td>
+<td>❌ VM preferred</td>
+<td>External hosts need stable, routable IP</td>
+</tr>
+<tr>
+<td><strong>Air-gapped environments</strong></td>
+<td>❌ VM preferred</td>
+<td>Often need dedicated proxy tier</td>
+</tr>
+</tbody>
+</table>
+<h3>When NOT to Deploy in Kubernetes</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Why VM is Better</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Routing for VMs/bare metal</strong></td>
+<td>VMs need stable IPs, not pod IPs</td>
+</tr>
+<tr>
+<td><strong>Private synthetic locations, when you need a fixed egress IP</strong></td>
+<td>In community practice a VM is simpler to allow-list; both deployments are supported</td>
+</tr>
+<tr>
+<td><strong>Extensions polling external systems</strong></td>
+<td>The Extensions module runs on host-based ActiveGates only</td>
+</tr>
+<tr>
+<td><strong>Compliance requiring dedicated hosts</strong></td>
+<td>Some compliance requires dedicated hardware</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>What the container image leaves out.</strong> <em>&quot;The container image covers only a subset of that, provided by the core ActiveGate process.&quot;</em> The capability matrix marks Extensions, syslog ingestion, zRemote, memory dumps and classic AWS monitoring as unavailable on a containerized ActiveGate. <em>&quot;Remote configuration management works for OneAgents in Full-Stack and Infrastructure Monitoring mode and for host-based ActiveGates&quot;</em>, not containerized ones, according to a page labelled Dynatrace Classic. For SQL databases, Dynatrace documents a separate path: <em>&quot;Run SQL monitoring extensions on Kubernetes using Dynatrace Operator.&quot;</em> (Dynatrace 1.346+). For the whole decision, including VM and Kubernetes trade-offs, see <strong>FAQ-28: When and where should I deploy ActiveGates?</strong></p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/activegate-in-container/differences">Differences between containerized and host-based ActiveGates (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/capabilities">ActiveGate purposes and functionality (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/bulk-configuration-classic">Remote configuration management (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/extensions">Extensions (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/extensions/kubernetes">SQL extensions on Kubernetes (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/containerized-locations-synth-app">Containerized private Synthetic locations (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Deployment Architecture</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgNTAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iazhzQmciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMGYxNzJhIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzFlMjkzYiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iazhzQ2x1c3RlciIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMzI2Y2U1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzFlNGViOCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYWdQb2QiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE0YjhhNiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZDk0ODgiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InNlcnZpY2UiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhiNWNmNiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3YzNhZWQiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InN0b3JhZ2UiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y1OWUwYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkOTc3MDYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImR5bmF0cmFjZSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNjM2NmYxIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzRmNDZlNSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9InNoYWRvdyIgeD0iLTIwJSIgeT0iLTIwJSIgd2lkdGg9IjE0MCUiIGhlaWdodD0iMTQwJSI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMyIvPgogICAgPC9maWx0ZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI1MDAiIGZpbGw9InVybCgjazhzQmcpIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDAwIiB5PSIzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2UyZThmMCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiPkFjdGl2ZUdhdGUgS3ViZXJuZXRlcyBEZXBsb3ltZW50IEFyY2hpdGVjdHVyZTwvdGV4dD4KCiAgPCEtLSBLdWJlcm5ldGVzIENsdXN0ZXIgQm94IC0tPgogIDxyZWN0IHg9IjQwIiB5PSI2MCIgd2lkdGg9IjUyMCIgaGVpZ2h0PSIzODAiIHJ4PSIxMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzI2Y2U1IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjgsNCIvPgogIDxyZWN0IHg9IjQwIiB5PSI2MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIyOCIgcng9IjYiIGZpbGw9InVybCgjazhzQ2x1c3RlcikiLz4KICA8dGV4dCB4PSIxMzAiIHk9Ijc5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiPkt1YmVybmV0ZXMgQ2x1c3RlcjwvdGV4dD4KCiAgPCEtLSBkeW5hdHJhY2UgbmFtZXNwYWNlIC0tPgogIDxyZWN0IHg9IjYwIiB5PSIxMDAiIHdpZHRoPSI0ODAiIGhlaWdodD0iMzIwIiByeD0iOCIgZmlsbD0icmdiYSg1MCwgMTA4LCAyMjksIDAuMSkiIHN0cm9rZT0iIzMyNmNlNSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iODAiIHk9IjEyMCIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSI+bmFtZXNwYWNlOiBkeW5hdHJhY2U8L3RleHQ+CgogIDwhLS0gU3RhdGVmdWxTZXQgQm94IC0tPgogIDxyZWN0IHg9IjgwIiB5PSIxNDAiIHdpZHRoPSIyODAiIGhlaWdodD0iMTgwIiByeD0iNiIgZmlsbD0icmdiYSgyMCwgMTg0LCAxNjYsIDAuMSkiIHN0cm9rZT0iIzE0YjhhNiIgc3Ryb2tlLXdpZHRoPSIxIiBzdHJva2UtZGFzaGFycmF5PSI0LDIiLz4KICA8dGV4dCB4PSIxMDAiIHk9IjE1OCIgZmlsbD0iIzVlZWFkNCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiPlN0YXRlZnVsU2V0OiBhY3RpdmVnYXRlPC90ZXh0PgoKICA8IS0tIEFjdGl2ZUdhdGUgUG9kIDEgLS0+CiAgPHJlY3QgeD0iMTAwIiB5PSIxNzUiIHdpZHRoPSIxMTAiIGhlaWdodD0iNzAiIHJ4PSI2IiBmaWxsPSJ1cmwoI2FnUG9kKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIxNTUiIHk9IjIwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIj5BY3RpdmVHYXRlLTA8L3RleHQ+CiAgPHRleHQgeD0iMTU1IiB5PSIyMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNjY2ZiZjEiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPlBvZDwvdGV4dD4KICA8dGV4dCB4PSIxNTUiIHk9IjIzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2NjZmJmMSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5Ij46OTk5OTwvdGV4dD4KCiAgPCEtLSBBY3RpdmVHYXRlIFBvZCAyIC0tPgogIDxyZWN0IHg9IjIzMCIgeT0iMTc1IiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjcwIiByeD0iNiIgZmlsbD0idXJsKCNhZ1BvZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMjg1IiB5PSIyMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCI+QWN0aXZlR2F0ZS0xPC90ZXh0PgogIDx0ZXh0IHg9IjI4NSIgeT0iMjE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjY2NmYmYxIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5Qb2Q8L3RleHQ+CiAgPHRleHQgeD0iMjg1IiB5PSIyMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNjY2ZiZjEiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSI+Ojk5OTk8L3RleHQ+CgogIDwhLS0gUFZDIDEgLS0+CiAgPHJlY3QgeD0iMTAwIiB5PSIyNjAiIHdpZHRoPSIxMTAiIGhlaWdodD0iNDUiIHJ4PSI0IiBmaWxsPSJ1cmwoI3N0b3JhZ2UpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjE1NSIgeT0iMjgyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiPlBWQzwvdGV4dD4KICA8dGV4dCB4PSIxNTUiIHk9IjI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZlZjNjNyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5Ij5hZy1kYXRhLTA8L3RleHQ+CgogIDwhLS0gUFZDIDIgLS0+CiAgPHJlY3QgeD0iMjMwIiB5PSIyNjAiIHdpZHRoPSIxMTAiIGhlaWdodD0iNDUiIHJ4PSI0IiBmaWxsPSJ1cmwoI3N0b3JhZ2UpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjI4NSIgeT0iMjgyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiPlBWQzwvdGV4dD4KICA8dGV4dCB4PSIyODUiIHk9IjI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZlZjNjNyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5Ij5hZy1kYXRhLTE8L3RleHQ+CgogIDwhLS0gU2VydmljZXMgLS0+CiAgPHJlY3QgeD0iMzkwIiB5PSIxNDAiIHdpZHRoPSIxMzAiIGhlaWdodD0iNTUiIHJ4PSI2IiBmaWxsPSJ1cmwoI3NlcnZpY2UpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjQ1NSIgeT0iMTYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiPkNsdXN0ZXJJUDwvdGV4dD4KICA8dGV4dCB4PSI0NTUiIHk9IjE3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U5ZDVmZiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+YWN0aXZlZ2F0ZTo0NDM8L3RleHQ+CiAgPHRleHQgeD0iNDU1IiB5PSIxOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNjNGI1ZmQiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSI+KGludGVybmFsKTwvdGV4dD4KCiAgPHJlY3QgeD0iMzkwIiB5PSIyMTAiIHdpZHRoPSIxMzAiIGhlaWdodD0iNTUiIHJ4PSI2IiBmaWxsPSJ1cmwoI3NlcnZpY2UpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjQ1NSIgeT0iMjMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiPkxvYWRCYWxhbmNlcjwvdGV4dD4KICA8dGV4dCB4PSI0NTUiIHk9IjI0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U5ZDVmZiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+YWN0aXZlZ2F0ZS1leHQ6NDQzPC90ZXh0PgogIDx0ZXh0IHg9IjQ1NSIgeT0iMjYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYzRiNWZkIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiPihleHRlcm5hbCBhY2Nlc3MpPC90ZXh0PgoKICA8IS0tIENvbmZpZ01hcCAmIFNlY3JldCAtLT4KICA8cmVjdCB4PSIzOTAiIHk9IjI4MCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjQwIiByeD0iNCIgZmlsbD0iIzQ3NTU2OSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSI0MjAiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZm9udC13ZWlnaHQ9ImJvbGQiPlNlY3JldDwvdGV4dD4KICA8dGV4dCB4PSI0MjAiIHk9IjMxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2NiZDVlMSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4Ij50b2tlbnM8L3RleHQ+CgogIDxyZWN0IHg9IjQ2MCIgeT0iMjgwIiB3aWR0aD0iNjAiIGhlaWdodD0iNDAiIHJ4PSI0IiBmaWxsPSIjNDc1NTY5IiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjQ5MCIgeT0iMzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmb250LXdlaWdodD0iYm9sZCI+Q29uZmlnTWFwPC90ZXh0PgogIDx0ZXh0IHg9IjQ5MCIgeT0iMzEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjY2JkNWUxIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjgiPmNvbmZpZzwvdGV4dD4KCiAgPCEtLSBPbmVBZ2VudHMgaW4gY2x1c3RlciAtLT4KICA8cmVjdCB4PSI4MCIgeT0iMzM1IiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjcwIiByeD0iNiIgZmlsbD0icmdiYSgxMDAsIDExNiwgMTM5LCAwLjIpIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjIxMCIgeT0iMzU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCI+QXBwbGljYXRpb24gUG9kcyAod2l0aCBPbmVBZ2VudCk8L3RleHQ+CiAgPHJlY3QgeD0iMTAwIiB5PSIzNjUiIHdpZHRoPSI1MCIgaGVpZ2h0PSIzMCIgcng9IjMiIGZpbGw9IiM2NDc0OGIiLz4KICA8dGV4dCB4PSIxMjUiIHk9IjM4NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSI+UG9kPC90ZXh0PgogIDxyZWN0IHg9IjE2MCIgeT0iMzY1IiB3aWR0aD0iNTAiIGhlaWdodD0iMzAiIHJ4PSIzIiBmaWxsPSIjNjQ3NDhiIi8+CiAgPHRleHQgeD0iMTg1IiB5PSIzODQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiPlBvZDwvdGV4dD4KICA8cmVjdCB4PSIyMjAiIHk9IjM2NSIgd2lkdGg9IjUwIiBoZWlnaHQ9IjMwIiByeD0iMyIgZmlsbD0iIzY0NzQ4YiIvPgogIDx0ZXh0IHg9IjI0NSIgeT0iMzg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5Ij5Qb2Q8L3RleHQ+CiAgPHJlY3QgeD0iMjgwIiB5PSIzNjUiIHdpZHRoPSI1MCIgaGVpZ2h0PSIzMCIgcng9IjMiIGZpbGw9IiM2NDc0OGIiLz4KICA8dGV4dCB4PSIzMDUiIHk9IjM4NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSI+UG9kPC90ZXh0PgoKICA8IS0tIER5bmF0cmFjZSBTYWFTIC0tPgogIDxyZWN0IHg9IjYwMCIgeT0iMTMwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjEyMCIgcng9IjgiIGZpbGw9InVybCgjZHluYXRyYWNlKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSI2ODUiIHk9IjE2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIj5EeW5hdHJhY2U8L3RleHQ+CiAgPHRleHQgeD0iNjg1IiB5PSIxODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNjN2QyZmUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiPlNhYVM8L3RleHQ+CiAgPHRleHQgeD0iNjg1IiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNhNWI0ZmMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPioubGl2ZS5keW5hdHJhY2UuY29tPC90ZXh0PgogIDx0ZXh0IHg9IjY4NSIgeT0iMjMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYTViNGZjIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5IVFRQUyA6NDQzPC90ZXh0PgoKICA8IS0tIEV4dGVybmFsIEhvc3RzIC0tPgogIDxyZWN0IHg9IjYwMCIgeT0iMjgwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjgwIiByeD0iOCIgZmlsbD0iIzM3NDE1MSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSI2ODUiIHk9IjMxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIj5FeHRlcm5hbCBIb3N0czwvdGV4dD4KICA8dGV4dCB4PSI2ODUiIHk9IjMzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzljYTNhZiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+Vk1zIC8gQmFyZSBNZXRhbDwvdGV4dD4KICA8dGV4dCB4PSI2ODUiIHk9IjM0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzljYTNhZiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+KE9uZUFnZW50KTwvdGV4dD4KCiAgPCEtLSBDb25uZWN0aW9uIExpbmVzIC0tPgogIDwhLS0gUG9kcyB0byBBRyAtLT4KICA8cGF0aCBkPSJNIDIxMCAzMzUgTCAyMTAgMzIwIEwgMTcwIDMyMCBMIDE3MCAyNTAiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93R3JheSkiLz4KICA8cGF0aCBkPSJNIDIxMCAzMzUgTCAyMTAgMzIwIEwgMjYwIDMyMCBMIDI2MCAyNTAiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93R3JheSkiLz4KCiAgPCEtLSBBRyB0byBDbHVzdGVySVAgU2VydmljZSAtLT4KICA8cGF0aCBkPSJNIDM2MCAyMDAgTCAzOTAgMTY3IiBzdHJva2U9IiMxNGI4YTYiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIvPgoKICA8IS0tIENsdXN0ZXJJUCB0byBBRyBwb2RzIC0tPgogIDxsaW5lIHgxPSIzOTAiIHkxPSIxNjciIHgyPSIzNDAiIHkyPSIyMDAiIHN0cm9rZT0iIzhiNWNmNiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1kYXNoYXJyYXk9IjQsMiIvPgoKICA8IS0tIEFHIHRvIER5bmF0cmFjZSAtLT4KICA8cGF0aCBkPSJNIDM2MCAyMDAgTCA1MzAgMjAwIEwgNTMwIDE4MCBMIDYwMCAxODAiIHN0cm9rZT0iIzE0YjhhNiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93VGVhbCkiLz4KICA8dGV4dCB4PSI0ODAiIHk9IjE5NSIgZmlsbD0iIzVlZWFkNCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5Ij5IVFRQUzwvdGV4dD4KCiAgPCEtLSBMb2FkQmFsYW5jZXIgdG8gRXh0ZXJuYWwgLS0+CiAgPHBhdGggZD0iTSA1MjAgMjM3IEwgNTYwIDIzNyBMIDU2MCAzMjAgTCA2MDAgMzIwIiBzdHJva2U9IiM4YjVjZjYiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhcnJvd1B1cnBsZSkiLz4KCiAgPCEtLSBFeHRlcm5hbCB0byBMb2FkQmFsYW5jZXIgLS0+CiAgPHBhdGggZD0iTSA2MDAgMzEwIEwgNTc1IDMxMCBMIDU3NSAyNDUgTCA1MjAgMjQ1IiBzdHJva2U9IiM5Y2EzYWYiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtZGFzaGFycmF5PSI0LDIiIGZpbGw9Im5vbmUiLz4KICA8dGV4dCB4PSI1NzUiIHk9IjI3NSIgZmlsbD0iIzljYTNhZiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5Ij46NDQzPC90ZXh0PgoKICA8IS0tIEFycm93cyAtLT4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFycm93VGVhbCIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjMTRiOGE2Ii8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFycm93UHVycGxlIiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM4YjVjZjYiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyb3dHcmF5IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBMZWdlbmQgLS0+CiAgPHJlY3QgeD0iNjAwIiB5PSIzODUiIHdpZHRoPSIxNzAiIGhlaWdodD0iOTUiIHJ4PSI2IiBmaWxsPSJyZ2JhKDMwLCA0MSwgNTksIDAuOCkiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNjg1IiB5PSI0MDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlMmU4ZjAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIj5MZWdlbmQ8L3RleHQ+CgogIDxyZWN0IHg9IjYxNSIgeT0iNDE1IiB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHJ4PSIyIiBmaWxsPSJ1cmwoI2FnUG9kKSIvPgogIDx0ZXh0IHg9IjYzNSIgeT0iNDI1IiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5BY3RpdmVHYXRlIFBvZDwvdGV4dD4KCiAgPHJlY3QgeD0iNjE1IiB5PSI0MzMiIHdpZHRoPSIxMiIgaGVpZ2h0PSIxMiIgcng9IjIiIGZpbGw9InVybCgjc2VydmljZSkiLz4KICA8dGV4dCB4PSI2MzUiIHk9IjQ0MyIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+S3ViZXJuZXRlcyBTZXJ2aWNlPC90ZXh0PgoKICA8cmVjdCB4PSI2MTUiIHk9IjQ1MSIgd2lkdGg9IjEyIiBoZWlnaHQ9IjEyIiByeD0iMiIgZmlsbD0idXJsKCNzdG9yYWdlKSIvPgogIDx0ZXh0IHg9IjYzNSIgeT0iNDYxIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5QZXJzaXN0ZW50IFN0b3JhZ2U8L3RleHQ+CgogIDxsaW5lIHgxPSI2MTUiIHkxPSI0NzUiIHgyPSI2MjciIHkyPSI0NzUiIHN0cm9rZT0iIzE0YjhhNiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNjM1IiB5PSI0NzgiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPkRhdGEgRmxvdzwvdGV4dD4KPC9zdmc+" alt="ActiveGate Kubernetes Deployment" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| ActiveGate StatefulSet | dynatrace namespace | Routing, Kubernetes monitoring |
+| Headless Service | dynatrace namespace | Pod DNS discovery |
+| LoadBalancer Service | dynatrace namespace | External access (optional) |
+| PVC (optional) | dynatrace namespace | Persistent logs/cache |
+| ConfigMap | dynatrace namespace | Custom configuration |
+| Secret | dynatrace namespace | API tokens |
+-->
+<h3>Kubernetes ActiveGate Sizing</h3>
+<p>Dynatrace recommends <em>&quot;two sets of ActiveGates for production deployments&quot;</em>: one for Kubernetes platform monitoring (including Prometheus and KSPM), one for OneAgent traffic routing and telemetry ingest. Both are sized by cluster size — pods first, nodes second:</p>
+<table>
+<thead>
+<tr>
+<th>Cluster size</th>
+<th>Pods</th>
+<th>Nodes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Small</strong></td>
+<td>&lt;1,000</td>
+<td>Up to 25</td>
+</tr>
+<tr>
+<td><strong>Medium</strong></td>
+<td>1,000–5,000</td>
+<td>Up to 100</td>
+</tr>
+<tr>
+<td><strong>Large</strong></td>
+<td>5,000–20,000</td>
+<td>Up to 500</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Kubernetes platform monitoring ActiveGate</strong></p>
+<table>
+<thead>
+<tr>
+<th>Cluster size</th>
+<th>CPU request</th>
+<th>CPU limit</th>
+<th>Memory request</th>
+<th>Memory limit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Small</strong></td>
+<td>200m</td>
+<td>1000m</td>
+<td>6 GiB</td>
+<td>6 GiB</td>
+</tr>
+<tr>
+<td><strong>Medium</strong></td>
+<td>1000m</td>
+<td>2000m</td>
+<td>10 GiB</td>
+<td>10 GiB</td>
+</tr>
+<tr>
+<td><strong>Large</strong></td>
+<td>2000m</td>
+<td>4000m</td>
+<td>12 GiB</td>
+<td>12 GiB</td>
+</tr>
+</tbody>
+</table>
+<p><strong>OneAgent traffic routing ActiveGate</strong></p>
+<table>
+<thead>
+<tr>
+<th>Cluster size</th>
+<th>CPU request</th>
+<th>CPU limit</th>
+<th>Memory request</th>
+<th>Memory limit</th>
+<th>Replicas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Small</strong></td>
+<td>250m</td>
+<td>1000m</td>
+<td>2 GiB</td>
+<td>2 GiB</td>
+<td>3</td>
+</tr>
+<tr>
+<td><strong>Medium</strong></td>
+<td>500m</td>
+<td>2000m</td>
+<td>4 GiB</td>
+<td>4 GiB</td>
+<td>3</td>
+</tr>
+<tr>
+<td><strong>Large</strong></td>
+<td>1000m</td>
+<td>4000m</td>
+<td>6 GiB</td>
+<td>6 GiB</td>
+<td>6</td>
+</tr>
+</tbody>
+</table>
+<p>Platform monitoring needs far more memory than routing — budget for it before you put both jobs on one ActiveGate. The guide's advice on limits: <em>&quot;Use CPU limits only if required by policy.&quot;</em> OTLP log ingest through the ActiveGate adds replicas. The guide gives a throughput per replica (about 350, 650 and 1,200 MB/min for the small, medium and large configurations) and the formula <em>&quot;additional replicas = ceil(expected log traffic (MB/min) ÷ throughput per replica)&quot;</em>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits">Size Dynatrace ActiveGates in Kubernetes (DT docs)</a> — <em>&quot;One set should cover Kubernetes platform monitoring, including any Prometheus integration and Kubernetes Security Posture Management (KSPM) functionalities.&quot;</em></sub></p>
+</blockquote>
+<h3>Method 1: Dynatrace Operator (Recommended)</h3>
+<p>The Dynatrace Operator manages ActiveGate lifecycle automatically.</p>
+<blockquote>
+<p><strong>Important:</strong> Use <code>apiVersion: dynatrace.com/v1beta6</code> for new DynaKubes (<code>v1beta5</code> is still served by Operator 1.11.0 but marked deprecated in its CRD from Operator 1.10.0). Operator <strong>1.9.0</strong> removed <code>v1beta3</code> from the CRD (<em>&quot;Applying DynaKube resources using this version will fail&quot;</em>) and deprecated <code>v1beta4</code>; Operator <strong>1.10.0</strong> (July 15, 2026) stopped serving <code>v1beta4</code> (its CRD sets <code>served: false</code>, while its notes repeat <em>&quot;The <code>v1beta4</code> version is now deprecated&quot;</em>); and Operator <strong>1.11.0</strong> (released 10/01/2026) removes it from the CRD — <em>&quot;Applying DynaKube resources that still use v1beta4 will fail.&quot;</em> Check <code>kubectl get dynakube -A -o jsonpath='{.items[*].apiVersion}'</code> before upgrading the Operator, and move any <code>v1beta4</code> DynaKube to <code>v1beta6</code> first. The example below uses <code>v1beta6</code> (validated against the Operator 1.11.0 CRD). v1beta6 adds OTLP exporter configuration.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-9-0">Operator 1.9.0 release notes (DT docs)</a> — <em>&quot;Additionally, <code>v1beta4</code> is now deprecated.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-0">Operator 1.10.0 release notes (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0">Operator 1.11.0 release notes (DT docs)</a> — <em>&quot;The v1beta4 version has been removed from the DynaKube CRD.&quot;</em> <code>served</code> / <code>deprecated</code> per version read from the DynaKube CRD in each release's <code>kubernetes.yaml</code> (<a href="https://github.com/Dynatrace/dynatrace-operator/releases">Operator releases (Dynatrace GitHub)</a>), 10/02/2026.</sub></p>
+</blockquote>
+<p>The example follows the sizing guide's two-set layout for Operator versions earlier than 1.11.0 (the version pinned below): one DynaKube for platform monitoring, one for routing, both sized for a small cluster.</p>
+<pre><code class="language-yaml"># dynakube-activegates.yaml - two ActiveGate sets via the Operator (small cluster)
+apiVersion: dynatrace.com/v1beta6
+kind: DynaKube
+metadata:
+  name: k8s-monitoring
+  namespace: dynatrace
+spec:
+  apiUrl: https://{tenant-id}.live.dynatrace.com/api
+  tokens: dynakube              # secret created below
+  networkZone: kubernetes       # network zone for the ActiveGate (and OneAgent) pods
+
+  activeGate:
+    capabilities:
+      - kubernetes-monitoring   # K8s API monitoring
+    resources:
+      requests:
+        cpu: &quot;200m&quot;
+        memory: &quot;6Gi&quot;
+      limits:
+        memory: &quot;6Gi&quot;           # add a CPU limit (1000m) only if policy requires one
+
+    # Tolerations and node selector for dedicated monitoring nodes (optional)
+    tolerations:
+      - key: &quot;dedicated&quot;
+        operator: &quot;Equal&quot;
+        value: &quot;dynatrace&quot;
+        effect: &quot;NoSchedule&quot;
+    nodeSelector:
+      node-type: monitoring
+---
+apiVersion: dynatrace.com/v1beta6
+kind: DynaKube
+metadata:
+  name: agents
+  namespace: dynatrace
+spec:
+  apiUrl: https://{tenant-id}.live.dynatrace.com/api
+  tokens: dynakube
+  networkZone: kubernetes
+  # add your oneAgent: section here (see ONBRD-05)
+
+  activeGate:
+    capabilities:
+      - routing                 # route OneAgent traffic
+    resources:
+      requests:
+        cpu: &quot;250m&quot;
+        memory: &quot;2Gi&quot;
+      limits:
+        memory: &quot;2Gi&quot;
+    replicas: 3
+
+    # Labels
+    labels:
+      app.kubernetes.io/component: activegate
+</code></pre>
+<blockquote>
+<p><strong>Operator 1.11.0+:</strong> the sizing guide shows a single DynaKube instead, with platform monitoring under <code>spec.kubernetesMonitoring</code> — <em>&quot;.spec.kubernetesMonitoring is mutually exclusive with the kubernetes-monitoring capability in .spec.activeGate&quot;</em>. The <code>dynatrace-api</code> capability is left out here: the DynaKube reference marks it <em>&quot;A custom certificate is required for this capability&quot;</em> (<code>tlsSecretName</code>). <code>spec.networkZone</code> <em>&quot;Sets a network zone for the OneAgent and ActiveGate Pods.&quot;</em></p>
+<p><strong>Moving the two-DynaKube layout above to the single form:</strong> three things do not carry over on their own.</p>
+<ul>
+<li><strong>Registration.</strong> <em>&quot;With spec.kubernetesMonitoring, cluster registration is not configured automatically. Add registration: {} to keep your cluster registered in Dynatrace.&quot;</em></li>
+<li><strong>Custom cluster name.</strong> A name set with the <code>automatic-kubernetes-api-monitoring-cluster-name</code> feature-flag annotation must be moved <em>&quot;to kubernetesMonitoring.registration.clusterName. Dynatrace Operator does not migrate annotation values automatically.&quot;</em></li>
+<li><strong>Order.</strong> Add <code>spec.kubernetesMonitoring</code> to the routing DynaKube first, and delete the old Kubernetes-monitoring DynaKube only after the <code>KubernetesMonitoringAvailable</code> condition returns <code>True</code> — <em>&quot;Deleting the old DynaKube early causes a monitoring gap.&quot;</em></li>
+</ul>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters">DynaKube parameters (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits">Size Dynatrace ActiveGates in Kubernetes (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/double-dynakube-to-single">Consolidate Kubernetes monitoring into a single DynaKube (DT docs)</a> — <em>&quot;The condition returns True when all Kubernetes monitoring resources are ready.&quot;</em></sub></p>
+</blockquote>
+<p><strong>Install with Operator:</strong></p>
+<pre><code class="language-bash"># Create namespace
+kubectl create namespace dynatrace
+
+# Create secret with tokens. On Latest Dynatrace, the Operator docs (&quot;Tokens and permissions&quot;)
+# direct you to two PLATFORM tokens (Operator token + Data Ingest token) on a dedicated service user;
+# existing classic access tokens continue to be accepted. Classic path shown here:
+# apiToken = the Operator token. Create it in Access Tokens from the &quot;Kubernetes: Dynatrace
+# Operator&quot; template: an ActiveGate DynaKube needs activeGateTokenManagement.create on top of
+# InstallerDownload (see ONBRD-05 section 5) - an installer-only token is not enough.
+# the separate paasToken secret field is deprecated as of Operator 1.10.0 (still accepted).
+# From Operator 1.10.0 a Platform Token is also accepted in place of the classic access token.
+kubectl -n dynatrace create secret generic dynakube \
+  --from-literal=apiToken=&lt;your-api-token&gt;
+
+# Install Dynatrace Operator from the OCI registry, pinned to the version you validated
+helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator \
+  --version 1.10.4 \
+  --namespace dynatrace \
+  --install --atomic \
+  --set installCRD=true
+
+# Apply DynaKube configuration
+kubectl apply -f dynakube-activegates.yaml
+</code></pre>
+<blockquote>
+<p><strong>Install from the OCI registry.</strong> The Operator 1.11.0 release notes direct Helm installs to <code>oci://public.ecr.aws/dynatrace/dynatrace-operator</code>: the legacy <code>dynatrace/helm-charts</code> repository is archived, and <em>&quot;If you can't use OCI, point your Helm repository to dynatrace/dynatrace-operator instead&quot;</em> (<code>helm repo add dynatrace https://raw.githubusercontent.com/Dynatrace/dynatrace-operator/main/config/helm/repos/stable</code>). <code>1.10.4</code> (<a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-4">released 10/22/2026</a>; it adds the CSI driver cleanup fix from 1.10.3 and fixes CVE-2026-111943) is the version validated across these notebooks — it is <em>&quot;released only on GitHub (Helm and manifests)&quot;</em>, so OperatorHub and marketplace installs take 1.11.1; Operator <strong>1.11.1</strong> (<a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-1">released 10/22/2026</a>) is the newest — validate it on a non-production cluster before moving the pin.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0">Operator 1.11.0 release notes (DT docs)</a> — <em>&quot;The Helm repository located in dynatrace/helm-charts is archived and no longer receives updates.&quot;</em></sub></p>
+</blockquote>
+<h3>Method 2: Hand-Managed StatefulSet (Documented Container Image)</h3>
+<p>The Operator (Method 1) is the only Helm-based path: the Dynatrace Helm repository publishes the <code>dynatrace-operator</code> chart, not a standalone ActiveGate chart.</p>
+<p>If you must run ActiveGate without the Operator, follow <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/activegate-in-container">ActiveGate container image (DT docs)</a> exactly rather than adapting a generic manifest. The documented StatefulSet takes <code>DT_TENANT</code>, <code>DT_SERVER</code>, <code>DT_ID_SEED_NAMESPACE</code>, <code>DT_ID_SEED_K8S_CLUSTER_ID</code>, <code>DT_CAPABILITIES</code> and <code>DT_DEPLOYMENT_METADATA</code>, mounts an <strong>authentication token</strong> at <code>/var/lib/dynatrace/secrets/tokens</code>, pulls the image from a documented registry, and uses <code>/rest/state</code> (liveness) and <code>/rest/health</code> (readiness) probes. There is no <code>DT_API_TOKEN</code> variable, and none of this is needed on the Operator path.</p>
+<p>The Service, LoadBalancer, PodDisruptionBudget and anti-affinity snippets below are generic Kubernetes — adjust their <code>selector</code> labels to match the labels on your ActiveGate pods.</p>
+<h3>Exposing ActiveGate for External Access</h3>
+<p>If external hosts need to route through the K8s ActiveGate:</p>
+<pre><code class="language-yaml"># Option 1: LoadBalancer Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: activegate-external
+  namespace: dynatrace
+  annotations:
+    # AWS NLB
+    service.beta.kubernetes.io/aws-load-balancer-type: &quot;nlb&quot;
+    service.beta.kubernetes.io/aws-load-balancer-scheme: &quot;internal&quot;
+spec:
+  type: LoadBalancer
+  selector:
+    app: activegate
+  ports:
+    - port: 443
+      targetPort: 9999
+---
+# Option 2: Ingress (with TLS passthrough)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: activegate-ingress
+  namespace: dynatrace
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-passthrough: &quot;true&quot;
+    nginx.ingress.kubernetes.io/backend-protocol: &quot;HTTPS&quot;
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: activegate.internal.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: activegate
+                port:
+                  number: 443
+</code></pre>
+<h3>Platform-Specific Configurations</h3>
+<h4>Amazon EKS</h4>
+<pre><code class="language-yaml"># EKS-specific annotations
+apiVersion: v1
+kind: Service
+metadata:
+  name: activegate
+  namespace: dynatrace
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: &quot;nlb&quot;
+    service.beta.kubernetes.io/aws-load-balancer-internal: &quot;true&quot;
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: &quot;true&quot;
+spec:
+  type: LoadBalancer
+  # ...
+</code></pre>
+<h4>Azure AKS</h4>
+<pre><code class="language-yaml"># AKS-specific annotations
+apiVersion: v1
+kind: Service
+metadata:
+  name: activegate
+  namespace: dynatrace
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: &quot;true&quot;
+spec:
+  type: LoadBalancer
+  # ...
+</code></pre>
+<h4>Google GKE</h4>
+<pre><code class="language-yaml"># GKE-specific annotations  
+apiVersion: v1
+kind: Service
+metadata:
+  name: activegate
+  namespace: dynatrace
+  annotations:
+    cloud.google.com/load-balancer-type: &quot;Internal&quot;
+spec:
+  type: LoadBalancer
+  # ...
+</code></pre>
+<h3>High Availability in Kubernetes</h3>
+<table>
+<thead>
+<tr>
+<th>Configuration</th>
+<th>Setting</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Replicas</strong></td>
+<td>Routing ActiveGate: 3 (small/medium cluster), 6 (large), per the sizing guide</td>
+</tr>
+<tr>
+<td><strong>Pod Anti-Affinity</strong></td>
+<td>Spread across nodes</td>
+</tr>
+<tr>
+<td><strong>PodDisruptionBudget</strong></td>
+<td>minAvailable: 1</td>
+</tr>
+<tr>
+<td><strong>Resource Requests</strong></td>
+<td>Guarantee scheduling</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-yaml"># Pod Anti-Affinity for HA
+spec:
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app: activegate
+          topologyKey: kubernetes.io/hostname
+---
+# PodDisruptionBudget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: activegate-pdb
+  namespace: dynatrace
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: activegate
+</code></pre>
+<p><a id="verifying-deployment"></a></p>
+<h2>8. Verifying Deployment</h2>
+<p>After installation, verify ActiveGate is connected and healthy. ActiveGates surface in Grail as the <strong><code>ACTIVEGATE</code> Smartscape node</strong>, so the queries below work directly in a notebook — no REST call needed.</p>
+<blockquote>
+<p><strong>A note on the classic path (ActiveGate 1.343, July 2026):</strong> ActiveGate 1.343 deprecates the classic <code>GET /api/v2/activeGates</code> endpoints in favor of this Smartscape node. Separately, ActiveGates have <strong>never</strong> been reachable through DQL <code>fetch</code> — there is no <code>dt.entity.active_gate</code> entity type in any spelling. Worth knowing precisely how that fails: <code>fetch dt.entity.active_gate</code> does not error — it returns <strong>zero rows</strong>, which is indistinguishable from &quot;this environment has no ActiveGates.&quot; Treat an empty result from a classic entity fetch as a signal to check the entity type exists at all. <code>smartscapeNodes &quot;ACTIVEGATE&quot;</code> is the DQL path. The classic <strong>Entities API v2</strong> selector (<code>GET /api/v2/entities?entitySelector=type(&quot;ENVIRONMENT_ACTIVE_GATE&quot;)</code>) is a different surface from DQL and may still respond during the deprecation period — use it if you need a REST fallback for a tenant that has not yet received 1.343, and migrate the automation on your next maintenance touch.</p>
+</blockquote>
+<pre><code class="language-dql">// ActiveGate inventory - every ActiveGate reporting to this environment,
+// with its group, network zone, enabled modules, and host OS.
+// Live-verified 07/30/2026. Costs nothing: Smartscape nodes scan 0 bytes of Grail.
+smartscapeNodes &quot;ACTIVEGATE&quot;
+| fields name, dt.active_gate.id, dt.active_gate.version, dt.active_gate.group.name,
+         dt.network_zone.id, is_containerized, os.type, os.version, modules
+| sort name asc
+</code></pre>
+<pre><code class="language-dql">// ActiveGate version spread - find the laggards before an update window.
+// More than one row means the fleet is not uniform; sort ascending puts the
+// oldest version first. Cross-check the OS end-of-support table in section 3
+// against the os.version values from the inventory query above.
+// ids is listed because names can repeat: two ActiveGate pods in different
+// clusters can share a pod name (e.g. dynakube-activegate-0).
+smartscapeNodes &quot;ACTIVEGATE&quot;
+| summarize {activegates = count(), names = collectDistinct(name), ids = collectDistinct(dt.active_gate.id)},
+    by:{dt.active_gate.version}
+| sort dt.active_gate.version asc
+</code></pre>
+<pre><code class="language-dql">// ActiveGate count per group and network zone - the HA check.
+// Any row showing 1 is a single point of failure for that zone; production
+// zones should show 2 or more (see High Availability in section 3).
+smartscapeNodes &quot;ACTIVEGATE&quot;
+| summarize activegates = count(), by:{dt.active_gate.group.name, dt.network_zone.id}
+| sort activegates desc
+</code></pre>
+<h3>Verification via UI</h3>
+<p><strong>Location:</strong> <strong>Fleet Management</strong> → ActiveGates (SaaS 1.343+: <em>&quot;You can now monitor and manage your ActiveGates in the new Fleet Management.&quot;</em>); on older tenants, <strong>Deployment status → ActiveGates</strong></p>
+<p>Check for:</p>
+<ul>
+<li>✅ Status: Connected</li>
+<li>✅ Version: Latest or recent</li>
+<li>✅ Modules: Expected capabilities enabled</li>
+</ul>
+<h3>Verification Commands</h3>
+<p><strong>Linux:</strong></p>
+<pre><code class="language-bash"># Check service status
+sudo systemctl status dynatracegateway
+
+# Check connectivity
+curl -k https://localhost:9999/rest/health   # expect: RUNNING
+
+# View logs
+sudo tail -100 /var/log/dynatrace/gateway/gateway.log
+</code></pre>
+<p><strong>Windows:</strong></p>
+<pre><code class="language-powershell"># Check service status
+Get-Service -Name &quot;Dynatrace Gateway&quot;
+
+# Check connectivity
+Invoke-WebRequest -Uri &quot;https://localhost:9999/rest/health&quot; -SkipCertificateCheck
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/windows/windows-default-settings">ActiveGate default installation settings for Windows (DT docs)</a> — <em>&quot;ActiveGate Dynatrace Gateway The main ActiveGate service.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-343">SaaS 1.343 (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="troubleshooting"></a></p>
+<h2>9. Troubleshooting</h2>
+<h3>Common Issues</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Cause</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Not appearing in UI</strong></td>
+<td>Network blocked</td>
+<td>Check firewall for 443 outbound</td>
+</tr>
+<tr>
+<td><strong>Shows disconnected</strong></td>
+<td>Service stopped</td>
+<td>Restart dynatracegateway service</td>
+</tr>
+<tr>
+<td><strong>OneAgents not routing</strong></td>
+<td>Wrong network zone</td>
+<td>Verify zone configuration</td>
+</tr>
+<tr>
+<td><strong>High memory usage</strong></td>
+<td>Too many agents</td>
+<td>Add another AG or increase RAM</td>
+</tr>
+<tr>
+<td><strong>Certificate errors</strong></td>
+<td>Self-signed cert issue</td>
+<td>Trust Dynatrace CA or use custom cert</td>
+</tr>
+</tbody>
+</table>
+<h3>Network Verification</h3>
+<pre><code class="language-bash"># Test outbound to Dynatrace
+curl -v https://{tenant-id}.live.dynatrace.com/rest/health   # expect: RUNNING
+
+# Test ActiveGate is listening
+netstat -tlnp | grep 9999
+
+# Test from OneAgent host
+curl -k https://{activegate-ip}:9999/rest/health
+</code></pre>
+<h3>Log Locations</h3>
+<table>
+<thead>
+<tr>
+<th>OS</th>
+<th>Log Path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Linux</strong></td>
+<td><code>/var/log/dynatrace/gateway/</code></td>
+</tr>
+<tr>
+<td><strong>Windows</strong></td>
+<td><code>C:\ProgramData\dynatrace\gateway\log\</code></td>
+</tr>
+</tbody>
+</table>
+<p><a id="next-steps"></a></p>
+<h2>10. Next Steps</h2>
+<p>With ActiveGate deployed:</p>
+<ol>
+<li><strong>ONBRD-04: Cloud &amp; SaaS Integrations</strong> — Connect AWS / Azure (Clouds app, or classic polling through your AG) and GCP (no AG on SaaS), and assign remote extensions to an AG group</li>
+<li><strong>ONBRD-05: Deploying OneAgent</strong> — Now deploy agents that route through ActiveGate</li>
+<li>Configure network zones if using multiple ActiveGates</li>
+<li>Enable additional modules (synthetic, extensions) as needed</li>
+<li>Set up monitoring for ActiveGate itself</li>
+</ol>
+<h3>Where to Go Deeper</h3>
+<ul>
+<li><strong>K8S series</strong> (15 notebooks) — Cluster monitoring, DynaKube depth, GitOps for K8s deployments</li>
+<li><strong>CLOUD series</strong> (9 notebooks) — Per-cloud integration deep dives (AWS, Azure, GCP)</li>
+<li><strong>AUTOM series</strong> — Configuration automation for ActiveGate deployment at scale</li>
+</ul>
+<h3>Deployment Checklist</h3>
+<h4>Traditional (VM/Bare Metal)</h4>
+<ul>
+<li>[ ] ActiveGate deployed in each required network zone</li>
+<li>[ ] At least 2 per zone for HA (production)</li>
+<li>[ ] Status shows &quot;Connected&quot; in Dynatrace</li>
+<li>[ ] Firewall rules configured (443 out, 9999 in)</li>
+<li>[ ] Network zones configured (if applicable)</li>
+<li>[ ] Sizing appropriate for expected OneAgent count</li>
+</ul>
+<h4>Kubernetes</h4>
+<ul>
+<li>[ ] Dynatrace Operator installed (recommended)</li>
+<li>[ ] DynaKube CR applied with activeGate configuration</li>
+<li>[ ] Separate platform-monitoring and routing ActiveGates for production</li>
+<li>[ ] Replicas and resource requests/limits set per the K8s ActiveGate sizing guide</li>
+<li>[ ] PodDisruptionBudget created</li>
+<li>[ ] Pod anti-affinity configured for spread across nodes</li>
+<li>[ ] Service type appropriate (ClusterIP vs LoadBalancer)</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>What ActiveGate does and its capabilities</li>
+<li>When ActiveGate is required vs. optional</li>
+<li>Hardware requirements, the published per-shape capacity figures, and why FAQ-10 owns the sizing decision</li>
+<li>Which operating systems are currently supported, and which ones lose support inside the next six months</li>
+<li>Where to place ActiveGates in your network</li>
+<li>Installation methods for Linux and Windows, and why a containerized ActiveGate means a Kubernetes/OpenShift StatefulSet</li>
+<li><strong>Kubernetes deployment</strong> using the Operator, or the documented hand-managed StatefulSet</li>
+<li>Platform-specific configurations for EKS, AKS, and GKE</li>
+<li>How to verify successful deployment with <code>smartscapeNodes &quot;ACTIVEGATE&quot;</code> inventory, version, and HA queries</li>
+</ul>
+<hr />
+<h2>References</h2>
+<h3>General</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate">ActiveGate Overview</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation">ActiveGate Installation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/network-zones-classic">Network Zones</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements">Linux ActiveGate hardware and system requirements</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/windows/windows-activegate-hardware-and-system-requirements">Windows ActiveGate hardware and system requirements</a></li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news">End-of-support announcements</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/private-synthetic-locations">Private locations in Synthetic Classic</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring">Clouds App</a></li>
+</ul>
+<h3>Kubernetes</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment">Dynatrace Operator</a></li>
+<li><a href="https://github.com/Dynatrace/dynatrace-operator">Dynatrace Operator GitHub</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters">DynaKube parameters — ActiveGate configuration (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters">DynaKube parameters (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/activegate-in-container">ActiveGate container image (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/tokens-permissions">Tokens and permissions (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits">Size Dynatrace ActiveGates in Kubernetes (DT docs)</a></li>
+<li><a href="https://github.com/Dynatrace/dynatrace-operator/tree/main/config/helm">Helm Chart Repository</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NRLC-08: Validation, Diff &amp; Rollback</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">NRLC — New Relic to Dynatrace Migration Deep Dives</a><span class="sep">/</span><span aria-current="page">NRLC-08</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>NRLC-08: Validation, Diff &amp; Rollback</h1>
+<blockquote>
+<p><strong>Series:</strong> NRLC — New Relic to Dynatrace Migration Deep Dives | <strong>Notebook:</strong> 8 of 9 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Validation is what separates a real migration from &quot;we hope this works.&quot; This deep dive covers DQL syntax validation, live tenant validation against the DT Environment Registry, diff against existing DT configuration, the rollback manifest pattern, and conversion-quality reports. These are the safety nets the migration runs through before each cutover gate.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#tiers">Three-Tier Validation Model</a></li>
+<li><a href="#syntax">DQL Syntax Validation</a></li>
+<li><a href="#tenant">Live Tenant Validation (DTEnvironmentRegistry)</a></li>
+<li><a href="#behavioral">Behavioral Validation (Dual Run)</a></li>
+<li><a href="#diff">Diff Against Live Config</a></li>
+<li><a href="#rollback">Rollback Manifests</a></li>
+<li><a href="#reports">Conversion Quality Reports</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Migration leads, QA engineers, SRE doing cutover sign-off</td>
+</tr>
+<tr>
+<td><strong>Tooling</strong></td>
+<td><code>Dynatrace-NewRelic</code> validators + <code>migration/</code> modules; <code>nrql-engine</code>'s <code>DQLSyntaxValidator</code> and <code>DTEnvironmentRegistry</code></td>
+</tr>
+<tr>
+<td><strong>Required reading</strong></td>
+<td>NRLC-02 (validation depends on the compiler's confidence scoring)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="tiers"></a></p>
+<h2>1. Three-Tier Validation Model</h2>
+<p>Every migrated artifact passes through three tiers of validation:</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>What It Checks</th>
+<th>Tool</th>
+<th>Speed</th>
+<th>Catches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Tier 1: Syntax</strong></td>
+<td>Offline pattern checks on the DQL</td>
+<td><code>DQLSyntaxValidator</code></td>
+<td>Fast</td>
+<td>Unbalanced parentheses or braces, a wrong first command, known bad patterns</td>
+</tr>
+<tr>
+<td><strong>Tier 2: Tenant</strong></td>
+<td>Referenced metrics and entities exist; buckets and enrichment attributes checked by hand</td>
+<td><code>DTEnvironmentRegistry</code></td>
+<td>Medium</td>
+<td>Environment-specific drift, missing prerequisites</td>
+</tr>
+<tr>
+<td><strong>Tier 3: Behavioral</strong></td>
+<td>Same data shape and magnitudes as NR</td>
+<td>Dual-run + DQL diff</td>
+<td>Slow (days)</td>
+<td>Semantic translation errors</td>
+</tr>
+</tbody>
+</table>
+<p>All three tiers must pass before an artifact is production-ready. Skipping Tier 3 is the most common mistake — syntactically valid DQL can still produce wrong numbers.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5UaHJlZS1UaWVyIFZhbGlkYXRpb24gRmxvdzwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5TeW50YXgg4oaSIFRlbmFudCDihpIgQmVoYXZpb3JhbCDCtyBhbGwgdGhyZWUgbXVzdCBwYXNzIGJlZm9yZSBwcm9kdWN0aW9uPC90ZXh0PgoKICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9Im5yOWFyciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM3M0JFMjgiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBJbnB1dDogVHJhbnNsYXRlZCBEUUwgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjIwMCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzMzNDE1NSIgc3Ryb2tlPSIjNjQ3NDhCIiByeD0iNiIvPgogIDx0ZXh0IHg9IjEwMCIgeT0iMjMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5UcmFuc2xhdGVkIERRTDwvdGV4dD4KICA8dGV4dCB4PSIxMDAiIHk9IjI1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+RnJvbSBjb21waWxlcjwvdGV4dD4KICA8dGV4dCB4PSIxMDAiIHk9IjI2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+KE5STEMtMDIpPC90ZXh0PgoKICA8IS0tIFRpZXIgMTogU3ludGF4IC0tPgogIDxyZWN0IHg9IjIwMCIgeT0iMTgwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4xNSIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMjg1IiB5PSIyMDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlRpZXIgMTogU3ludGF4PC90ZXh0PgogIDx0ZXh0IHg9IjI4NSIgeT0iMjI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5EUUxTeW50YXhWYWxpZGF0b3I8L3RleHQ+CiAgPHRleHQgeD0iMjg1IiB5PSIyNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEQkVBRkUiIGZvbnQtc2l6ZT0iMTAiPk9mZmxpbmUgcGF0dGVybiBjaGVja3M8L3RleHQ+CiAgPHRleHQgeD0iMjg1IiB5PSIyNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEQkVBRkUiIGZvbnQtc2l6ZT0iMTAiPihubyBuZXR3b3JrIGNhbGwpPC90ZXh0PgogIDx0ZXh0IHg9IjI4NSIgeT0iMjgyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPn5tcyDCtyBjYXRjaGVzIG1hbGZvcm1lZCBEUUw8L3RleHQ+CgogIDwhLS0gQXV0by1maXggbG9vcCAtLT4KICA8cmVjdCB4PSIyMjAiIHk9IjMyMCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI0MCIgZmlsbD0iIzBGMTcyQSIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2UtZGFzaGFycmF5PSIzLDIiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iMjg1IiB5PSIzMzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRUYzQzciIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiPkF1dG8tZml4ZXI8L3RleHQ+CiAgPHRleHQgeD0iMjg1IiB5PSIzNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGREU2OEEiIGZvbnQtc2l6ZT0iOSI+cmV0cnkgb24gc2FmZSBjb3JyZWN0aW9uczwvdGV4dD4KICA8bGluZSB4MT0iMjg1IiB5MT0iMzAwIiB4Mj0iMjg1IiB5Mj0iMzIwIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLWRhc2hhcnJheT0iMiwyIi8+CiAgPGxpbmUgeDE9IjI4NSIgeTE9IjM2MCIgeDI9IjIwMCIgeTI9IjM3MCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1kYXNoYXJyYXk9IjIsMiIvPgogIDxsaW5lIHgxPSIyMDAiIHkxPSIzNzAiIHgyPSIyMDAiIHkyPSIyNDAiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxIiBzdHJva2UtZGFzaGFycmF5PSIyLDIiLz4KICA8bGluZSB4MT0iMjAwIiB5MT0iMjQwIiB4Mj0iMjAwIiB5Mj0iMjQwIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMSIvPgoKICA8IS0tIFRpZXIgMjogVGVuYW50IC0tPgogIDxyZWN0IHg9IjM5NSIgeT0iMTgwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4xNSIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDgwIiB5PSIyMDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlRpZXIgMjogVGVuYW50PC90ZXh0PgogIDx0ZXh0IHg9IjQ4MCIgeT0iMjI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5EVEVudmlyb25tZW50UmVnaXN0cnk8L3RleHQ+CiAgPHRleHQgeD0iNDgwIiB5PSIyNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNFREU5RkUiIGZvbnQtc2l6ZT0iMTAiPk1ldHJpY3MgwrcgRW50aXRpZXMgwrcgRGFzaGJvYXJkczwvdGV4dD4KICA8dGV4dCB4PSI0ODAiIHk9IjI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0VERTlGRSIgZm9udC1zaXplPSIxMCI+ZXhpc3QgaW4gdGFyZ2V0IHRlbmFudD88L3RleHQ+CiAgPHRleHQgeD0iNDgwIiB5PSIyODIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtc3R5bGU9Iml0YWxpYyI+fnNlY29uZHMgwrcgY2F0Y2hlcyBkcmlmdDwvdGV4dD4KCiAgPCEtLSBUaWVyIDM6IEJlaGF2aW9yYWwgLS0+CiAgPHJlY3QgeD0iNTkwIiB5PSIxODAiIHdpZHRoPSIxNzAiIGhlaWdodD0iMTIwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjE1IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMiIgcng9IjgiLz4KICA8dGV4dCB4PSI2NzUiIHk9IjIwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Q5Rjk5RCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+VGllciAzOiBCZWhhdmlvcmFsPC90ZXh0PgogIDx0ZXh0IHg9IjY3NSIgeT0iMjI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5EdWFsLXJ1biBjb21wYXJpc29uPC90ZXh0PgogIDx0ZXh0IHg9IjY3NSIgeT0iMjQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRUNGQ0NCIiBmb250LXNpemU9IjEwIj5OUlFMIG9uIE5SICsgRFFMIG9uIERUPC90ZXh0PgogIDx0ZXh0IHg9IjY3NSIgeT0iMjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRUNGQ0NCIiBmb250LXNpemU9IjEwIj5kZWx0YSB3aXRoaW4gdG9sZXJhbmNlPzwvdGV4dD4KICA8dGV4dCB4PSI2NzUiIHk9IjI4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMCIgZm9udC1zdHlsZT0iaXRhbGljIj5+ZGF5cyDCtyBjYXRjaGVzIHNlbWFudGljczwvdGV4dD4KCiAgPCEtLSBPdXRwdXQ6IHByb2R1Y3Rpb24tcmVhZHkgLS0+CiAgPHJlY3QgeD0iNzkwIiB5PSIyMDAiIHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiMzMzQxNTUiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iNiIvPgogIDx0ZXh0IHg9Ijg1MCIgeT0iMjMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5Qcm9kdWN0aW9uPC90ZXh0PgogIDx0ZXh0IHg9Ijg1MCIgeT0iMjUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5DbGVhcmVkIGZvciBjdXRvdmVyPC90ZXh0PgogIDx0ZXh0IHg9Ijg1MCIgeT0iMjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5hdCBuZXh0IGdhdGU8L3RleHQ+CgogIDwhLS0gQXJyb3dzIC0tPgogIDxnIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIj4KICAgIDxsaW5lIHgxPSIxNjAiIHkxPSIyNDAiIHgyPSIyMDAiIHkyPSIyNDAiIG1hcmtlci1lbmQ9InVybCgjbnI5YXJyKSIvPgogICAgPGxpbmUgeDE9IjM3MCIgeTE9IjI0MCIgeDI9IjM5NSIgeTI9IjI0MCIgbWFya2VyLWVuZD0idXJsKCNucjlhcnIpIi8+CiAgICA8bGluZSB4MT0iNTY1IiB5MT0iMjQwIiB4Mj0iNTkwIiB5Mj0iMjQwIiBtYXJrZXItZW5kPSJ1cmwoI25yOWFycikiLz4KICAgIDxsaW5lIHgxPSI3NjAiIHkxPSIyNDAiIHgyPSI3OTAiIHkyPSIyNDAiIG1hcmtlci1lbmQ9InVybCgjbnI5YXJyKSIvPgogIDwvZz4KCiAgPCEtLSBUb2xlcmFuY2UgdGFibGUgYXQgYm90dG9tIC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5CZWhhdmlvcmFsIFRvbGVyYW5jZSBwZXIgQXJ0aWZhY3QgVHlwZTwvdGV4dD4KCiAgPGcgZm9udC1zaXplPSIxMSI+CiAgICA8cmVjdCB4PSIxMDAiIHk9IjQxMCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiByeD0iNSIvPgogICAgPHRleHQgeD0iMTgwIiB5PSI0MzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtd2VpZ2h0PSI2MDAiPkRhc2hib2FyZHM8L3RleHQ+CiAgICA8dGV4dCB4PSIxODAiIHk9IjQ1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+wrE1JTwvdGV4dD4KCiAgICA8cmVjdCB4PSIyNzAiIHk9IjQxMCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiByeD0iNSIvPgogICAgPHRleHQgeD0iMzUwIiB5PSI0MzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtd2VpZ2h0PSI2MDAiPkFsZXJ0cyAoZHVhbC1ydW4pPC90ZXh0PgogICAgPHRleHQgeD0iMzUwIiB5PSI0NTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPsKxMTAlPC90ZXh0PgoKICAgIDxyZWN0IHg9IjQ0MCIgeT0iNDEwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI1Ii8+CiAgICA8dGV4dCB4PSI1MjAiIHk9IjQzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC13ZWlnaHQ9IjYwMCI+U0xPczwvdGV4dD4KICAgIDx0ZXh0IHg9IjUyMCIgeT0iNDUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkVDQUNBIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj7CsTAuNSU8L3RleHQ+CgogICAgPHJlY3QgeD0iNjEwIiB5PSI0MTAiIHdpZHRoPSIxNjAiIGhlaWdodD0iNjAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgcng9IjUiLz4KICAgIDx0ZXh0IHg9IjY5MCIgeT0iNDMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXdlaWdodD0iNjAwIj5TeW50aGV0aWNzPC90ZXh0PgogICAgPHRleHQgeD0iNjkwIiB5PSI0NTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRUNBQ0EiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPsKxMC41JTwvdGV4dD4KICA8L2c+Cjwvc3ZnPgo=" alt="Three-Tier Validation Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Tier | What it checks | Speed |
+|------|---------------|-------|
+| 1. Syntax | Offline pattern checks (DQLSyntaxValidator) | ms |
+| 2. Tenant | Referenced metrics/entities exist (DTEnvRegistry) | seconds |
+| 3. Behavioral | Same data shape/values as NR (dual-run diff) | days |
+
+Tolerance: dashboards ±5%, alerts ±10%, SLOs ±0.5%, synthetics ±0.5%
+For environments where SVG doesn't render
+-->
+<p><a id="syntax"></a></p>
+<h2>2. DQL Syntax Validation</h2>
+<p>The <code>DQLSyntaxValidator</code> runs offline pattern checks: balanced parentheses and braces, a valid first command, known invalid patterns and anti-patterns. It makes no network call, so it cannot catch an unknown function or a field that does not exist.</p>
+<p>With a tenant, <code>DTEnvironmentRegistry.validate_dql_syntax</code> submits the query for execution:</p>
+<pre><code>POST /platform/storage/query/v1/query:execute
+</code></pre>
+<p>That catches parser errors, but not an unknown field: on the validation tenant, a filter on a nonexistent field returned 0 rows with an empty <code>notifications</code> array (10/31/2026). Tier 3 is what finds it.</p>
+<h3>Auto-Fix Loop</h3>
+<p>When syntax validation fails, the engine attempts safe corrections via <code>DQLFixer</code>:</p>
+<ol>
+<li>Try applying known fix patterns (named parameters, operator normalization, etc.)</li>
+<li>Re-validate</li>
+<li>If still failing, return failure with original DQL + attempted fix + error message</li>
+</ol>
+<p>Applied fixes are returned in <code>result.fixes[]</code> for transparency.</p>
+<p><a id="tenant"></a></p>
+<h2>3. Live Tenant Validation (DTEnvironmentRegistry)</h2>
+<p>Syntax validation only confirms the DQL parses. Tenant validation confirms the DQL refers to things that exist in <em>your</em> tenant.</p>
+<p>The <code>DTEnvironmentRegistry</code> lazy-loads tenant inventory:</p>
+<table>
+<thead>
+<tr>
+<th>Lookup</th>
+<th>Source API</th>
+<th>Validates</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Metric keys (<code>dt.host.cpu.usage</code>, etc.)</td>
+<td><code>GET /api/v2/metrics</code> — on a latest-Dynatrace tenant, prefer the DQL <code>metrics</code> command</td>
+<td>Metric exists; displayName, unit</td>
+</tr>
+<tr>
+<td>Entity types and IDs</td>
+<td><code>GET /api/v2/entities</code> — on a latest-Dynatrace tenant, prefer <code>smartscapeNodes</code> (FAQ entry 16)</td>
+<td>Entity present; resolves names ↔ IDs</td>
+</tr>
+<tr>
+<td>Existing dashboards</td>
+<td><code>GET /platform/document/v1/documents</code></td>
+<td>Avoids duplicate creation</td>
+</tr>
+<tr>
+<td>Synthetic locations</td>
+<td><code>GET /api/v2/synthetic/locations</code> (platform alternative, early adopter: <code>GET /platform/synthetic/v1/locations</code>, <code>synthetic:locations:read</code>)</td>
+<td>Location exists. The synthetic transformer does not use this lookup (NRLC-05 §6)</td>
+</tr>
+</tbody>
+</table>
+<p>The registry does not cover these, so check them by hand:</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>API</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OpenPipeline enrichment rules</td>
+<td><code>GET /api/v2/settings/objects?schemaIds=builtin:openpipeline.logs.pipelines</code> (and <code>.routing</code>, <code>.ingest-sources</code> per scope)</td>
+</tr>
+<tr>
+<td>Buckets and their retention</td>
+<td><code>GET /platform/storage/management/v1/bucket-definitions</code></td>
+</tr>
+<tr>
+<td>Notifications</td>
+<td><code>GET /api/v2/settings/objects?schemaIds=builtin:problem.notifications</code> — the <strong>schema</strong> is blocked at upgrade (the <code>objects</code> endpoint is not); workflow-based notifications replace it</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note — OpenPipeline API deprecation:</strong> The direct <code>GET</code> / <code>POST /platform/openpipeline/v1/configurations/{id}</code> endpoints were deprecated in SaaS 1.327 and reached end of life on <strong>June 29, 2026</strong>. Read and manage OpenPipeline configuration through Settings 2.0 with the <code>builtin:openpipeline.&lt;scope&gt;.routing</code>, <code>builtin:openpipeline.&lt;scope&gt;.pipelines</code>, and <code>builtin:openpipeline.&lt;scope&gt;.ingest-sources</code> schemas. The current OpenPipeline API reference still documents <strong>List configurations</strong> (<code>GET /platform/openpipeline/v1/configurations</code>, scope <code>openpipeline:configurations:read</code>), which lists configuration identifiers only. See the official <a href="https://docs.dynatrace.com/docs/dynatrace-api/basics/deprecation-migration-guides">API deprecation guide</a>.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-327">SaaS 1.327 release notes (DT docs)</a> — <em>&quot;are marked as deprecated.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-342">SaaS 1.342 release notes (DT docs)</a> — <em>&quot;On June 29, 2026, we will deactivate the legacy Configurations API and migrate all environments to the new configuration based on the Settings API.&quot;</em>, <a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-openpipeline-v1/configurations-get">List configurations (DT docs)</a> — <em>&quot;you need a platform token or OAuth access token with openpipeline:configurations:read scope&quot;</em>.</sub></p>
+</blockquote>
+<p>Common failures caught here:</p>
+<ul>
+<li>Migrated alert references <code>dt.host.cpu.usage</code> but tenant only ingests <code>dt.host.cpu.user</code> (and OOTB metric naming changed in DT version)</li>
+<li>Entity name lookup returns multiple matches — ambiguous selector</li>
+<li>Synthetic location <code>AWS_US_EAST_1</code> not enabled in target tenant</li>
+</ul>
+<p><a id="behavioral"></a></p>
+<h2>4. Behavioral Validation (Dual Run)</h2>
+<p>Both platforms produce numbers from the same underlying world. Validate they agree.</p>
+<h3>Dual-Run Pattern</h3>
+<ol>
+<li>Configure NR and DT both ingesting from the same source (during the dual-run window)</li>
+<li>For each migrated artifact, run the original NRQL against NR and the translated DQL against DT for the <strong>same time window</strong></li>
+<li>Compare the result shape and magnitudes</li>
+<li>Investigate any discrepancy &gt; acceptable tolerance (typically 1–5% depending on artifact type)</li>
+</ol>
+<h3>Comparison Tooling</h3>
+<p>The <code>Dynatrace-NewRelic</code> CLI has <strong>no</strong> NR-vs-DT result comparison. Its <code>migrate.py audit</code> command is a <em>configuration</em> drift check: it compares the transformed baseline a migration run wrote against the live Dynatrace tenant and reports <code>RENAMED</code>, <code>DELETED</code>, <code>MODIFIED</code> and <code>EXTRA</code> entities. It is read-only, exits 1 when it finds drift, and never queries New Relic.</p>
+<pre><code class="language-bash"># Config drift: live tenant vs the transformed baseline from a migration run
+python3 migrate.py audit --baseline ./output/transformed/dynatrace_config.json --output drift.json
+</code></pre>
+<p>The dual-run comparison above is therefore manual: run each NRQL query in New Relic and its DQL translation in Dynatrace over the same window, record both values, and compare them against the tolerances below.</p>
+<h3>Tolerance by Artifact Type</h3>
+<table>
+<thead>
+<tr>
+<th>Artifact</th>
+<th>Tolerance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dashboard count widgets</td>
+<td>±5% (display)</td>
+</tr>
+<tr>
+<td>Alert thresholds</td>
+<td>±10% during dual-alert tuning</td>
+</tr>
+<tr>
+<td>SLO SLI values</td>
+<td>±0.5%</td>
+</tr>
+<tr>
+<td>Synthetic availability</td>
+<td>±0.5%</td>
+</tr>
+<tr>
+<td>Log volumes</td>
+<td>±5%</td>
+</tr>
+</tbody>
+</table>
+<p><a id="diff"></a></p>
+<h2>5. Diff Against Live Config</h2>
+<p>Before importing migrated artifacts, diff them against what already exists in the target DT tenant. This avoids:</p>
+<ul>
+<li>Duplicating dashboards that already exist (e.g., from a previous partial migration)</li>
+<li>Overwriting tenant admin's customized Workflows</li>
+<li>Recreating notifications when an existing one matches</li>
+</ul>
+<pre><code class="language-bash"># --dry-run is what keeps this read-only: without it, --diff runs after a full import
+python3 migrate.py migrate --dry-run --diff --components dashboards,alerts --output ./output
+</code></pre>
+<p>Output classifies each migrated entity (actions as defined in the tool's <code>migration/diff.py</code>, read 10/05/2026):</p>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CREATE</code></td>
+<td>No match found in DT — will be created. Also the result for every entity type the diff cannot look up</td>
+</tr>
+<tr>
+<td><code>UPDATE</code></td>
+<td>An existing DT entity has the same name</td>
+</tr>
+<tr>
+<td><code>CONFLICT</code></td>
+<td>Counted in the summary, but the current diff logic never assigns it</td>
+</tr>
+<tr>
+<td><code>ORPHAN</code></td>
+<td>Exists in DT but not in the NR export</td>
+</tr>
+</tbody>
+</table>
+<p>The diff matches by name and only for <strong>dashboards and management zones</strong>; alerts (metric events, alerting profiles), SLOs and synthetic monitors are always reported as <code>CREATE</code>. It cannot detect drift inside a matching dashboard or an alert that a previous run already migrated — check those by hand.</p>
+<p>Always run <code>migrate --diff</code> with <code>--dry-run</code> before any full import. <code>--diff</code> is ignored with <code>--import-only</code>.</p>
+<p><a id="rollback"></a></p>
+<h2>6. Rollback Manifests</h2>
+<p>Every migration run generates a <strong>rollback manifest</strong> — a JSON record of every entity created, with enough metadata to reverse the operation.</p>
+<p>A full <code>migrate</code> run (not <code>--import-only</code>) writes it to <code>&lt;output&gt;/rollback-manifest.json</code>. Its shape, from the tool's <code>migration/state.py</code> (read 10/05/2026):</p>
+<pre><code class="language-json">{
+  &quot;entries&quot;: [
+    {
+      &quot;entity_type&quot;: &quot;&lt;type&gt;&quot;,
+      &quot;dynatrace_id&quot;: &quot;&lt;id&gt;&quot;,
+      &quot;name&quot;: &quot;&lt;entity name&gt;&quot;,
+      &quot;timestamp&quot;: &quot;&lt;ISO-8601 UTC&gt;&quot;
+    }
+  ]
+}
+</code></pre>
+<h3>Rollback Command</h3>
+<pre><code class="language-bash">python3 migrate.py migrate --rollback ./output/rollback-manifest.json
+</code></pre>
+<p>The rollback:</p>
+<ol>
+<li>Reads the manifest and lists the target entities (with <code>--dry-run</code> it stops here)</li>
+<li>Asks for confirmation</li>
+<li>For each entity, calls the Dynatrace client's delete for that entity type, printing any failure</li>
+<li>Prints a total of entities deleted and failed</li>
+</ol>
+<p><strong>Always retain manifests for at least the dual-run window + 30 days.</strong> Rollback at hour 71 of dual-run is rare but not theoretical.</p>
+<p><a id="reports"></a></p>
+<h2>7. Conversion Quality Reports</h2>
+<p>Generate a quality report without importing anything. Without <code>--dry-run</code>, this command runs a full import. It writes <code>./output/reports/conversion-report.html</code> and <code>.json</code>:</p>
+<pre><code class="language-bash">python3 migrate.py migrate --dry-run --report --output ./output
+</code></pre>
+<p>Report sections:</p>
+<table>
+<thead>
+<tr>
+<th>Section</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Summary</strong></td>
+<td>Counts for the run</td>
+</tr>
+<tr>
+<td><strong>Query Details</strong></td>
+<td>Queries named in migration warnings about NRQL or confidence</td>
+</tr>
+</tbody>
+</table>
+<p>The report has no manual review queue and no rollback list.</p>
+<p>Reports are the migration's audit trail — attach them to your change-management ticket for each phase.</p>
+<h2>Summary</h2>
+<p>Validation is the migration's safety net. Three tiers — syntax, tenant, behavioral — must pass before any artifact is production-ready. Diff and rollback give you reversibility. Conversion-quality reports give you the audit trail.</p>
+<p>Continue to <strong>NRLC-09 Toolchain Reference &amp; End-to-End Runbook</strong>.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources, including the open-source <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities">NewRelic-to-Dynatrace-Migration-Utilities</a>, <a href="https://github.com/timstewart-dynatrace/nrql-engine">nrql-engine</a> (planned future home: the <a href="https://github.com/dynatrace-dma"><code>dynatrace-dma</code></a> Dynatrace Migration Assistant organization), and <a href="https://github.com/timstewart-dynatrace/nrql-translator">nrql-translator</a> projects. This notebook series is not officially supported by Dynatrace or New Relic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://docs.newrelic.com">New Relic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

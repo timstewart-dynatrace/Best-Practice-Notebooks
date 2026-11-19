@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ONBRD-08: Your First Queries</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ONBRD — Dynatrace Onboarding</a><span class="sep">/</span><span aria-current="page">ONBRD-08</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ONBRD-08: Your First Queries</h1>
+<blockquote>
+<p><strong>Series:</strong> ONBRD — Dynatrace Onboarding | <strong>Notebook:</strong> 8 of 10 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 10/02/2026</p>
+</blockquote>
+<h2>Learning DQL Fundamentals</h2>
+<p>Dynatrace Query Language (DQL) is how you access data in Grail. This notebook introduces the core concepts and patterns you'll use daily.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#dql-basics">DQL Basics</a></li>
+<li><a href="#the-pipeline-model">The Pipeline Model</a></li>
+<li><a href="#fetching-data">Fetching Data</a></li>
+<li><a href="#filtering">Filtering</a></li>
+<li><a href="#selecting-fields">Selecting Fields</a></li>
+<li><a href="#aggregating-with-summarize">Aggregating with Summarize</a></li>
+<li><a href="#sorting-and-limiting">Sorting and Limiting</a></li>
+<li><a href="#time-ranges">Time Ranges</a></li>
+<li><a href="#common-patterns">Common Patterns</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>Dynatrace environment with data (ONBRD-05, ONBRD-06, ONBRD-07)</li>
+<li>DQL query permissions</li>
+<li>Access to Notebooks or the DQL query interface</li>
+</ul>
+<p><a id="dql-basics"></a></p>
+<h2>1. DQL Basics</h2>
+<p>DQL is a <strong>pipeline-based query language</strong>—not SQL. Data flows through a series of commands connected by the pipe (<code>|</code>) operator.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMjAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZmV0Y2hHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE0OTZmZjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMGE2NGJjO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZmlsdGVyR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxMGI5ODE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzA1OTY2OTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImZpZWxkc0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZjU5ZTBiO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkOTc3MDY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJzb3J0R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4YjVjZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdjM2FlZDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJwaXBlbGluZVNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjEiIGR5PSIxIiBzdGREZXZpYXRpb249IjIiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0icGlwZUFycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0MDAiIHk9IjI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EUUwgUGlwZWxpbmUgTW9kZWw8L3RleHQ+CiAgPHRleHQgeD0iNDAwIiB5PSI0OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EYXRhIGZsb3dzIHRocm91Z2ggY29tbWFuZHMgY29ubmVjdGVkIGJ5IHRoZSBwaXBlICh8KSBvcGVyYXRvcjwvdGV4dD4KCiAgPCEtLSBQaXBlbGluZSBTdGFnZXMgLS0+CiAgPCEtLSBGZXRjaCAtLT4KICA8cmVjdCB4PSI0MCIgeT0iNzUiIHdpZHRoPSIxNDAiIGhlaWdodD0iNzAiIHJ4PSIxMCIgZmlsbD0idXJsKCNmZXRjaEdyYWQpIiBmaWx0ZXI9InVybCgjcGlwZWxpbmVTaGFkb3cpIi8+CiAgPHRleHQgeD0iMTEwIiB5PSIxMDUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5mZXRjaDwvdGV4dD4KICA8dGV4dCB4PSIxMTAiIHk9IjEyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmxvZ3M8L3RleHQ+CgogIDwhLS0gQXJyb3cgLS0+CiAgPHBhdGggZD0iTTE4NSwxMTAgTDIxNSwxMTAiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI3BpcGVBcnJvdykiLz4KCiAgPCEtLSBGaWx0ZXIgLS0+CiAgPHJlY3QgeD0iMjIwIiB5PSI3NSIgd2lkdGg9IjE0MCIgaGVpZ2h0PSI3MCIgcng9IjEwIiBmaWxsPSJ1cmwoI2ZpbHRlckdyYWQpIiBmaWx0ZXI9InVybCgjcGlwZWxpbmVTaGFkb3cpIi8+CiAgPHRleHQgeD0iMjkwIiB5PSIxMDUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5maWx0ZXI8L3RleHQ+CiAgPHRleHQgeD0iMjkwIiB5PSIxMjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5zdGF0dXM8L3RleHQ+CgogIDwhLS0gQXJyb3cgLS0+CiAgPHBhdGggZD0iTTM2NSwxMTAgTDM5NSwxMTAiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI3BpcGVBcnJvdykiLz4KCiAgPCEtLSBGaWVsZHMgLS0+CiAgPHJlY3QgeD0iNDAwIiB5PSI3NSIgd2lkdGg9IjE0MCIgaGVpZ2h0PSI3MCIgcng9IjEwIiBmaWxsPSJ1cmwoI2ZpZWxkc0dyYWQpIiBmaWx0ZXI9InVybCgjcGlwZWxpbmVTaGFkb3cpIi8+CiAgPHRleHQgeD0iNDcwIiB5PSIxMDUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5maWVsZHM8L3RleHQ+CiAgPHRleHQgeD0iNDcwIiB5PSIxMjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5zZWxlY3Q8L3RleHQ+CgogIDwhLS0gQXJyb3cgLS0+CiAgPHBhdGggZD0iTTU0NSwxMTAgTDU3NSwxMTAiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI3BpcGVBcnJvdykiLz4KCiAgPCEtLSBTb3J0IC0tPgogIDxyZWN0IHg9IjU4MCIgeT0iNzUiIHdpZHRoPSIxNDAiIGhlaWdodD0iNzAiIHJ4PSIxMCIgZmlsbD0idXJsKCNzb3J0R3JhZCkiIGZpbHRlcj0idXJsKCNwaXBlbGluZVNoYWRvdykiLz4KICA8dGV4dCB4PSI2NTAiIHk9IjEwNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnNvcnQ8L3RleHQ+CiAgPHRleHQgeD0iNjUwIiB5PSIxMjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5vcmRlcjwvdGV4dD4KCiAgPCEtLSBGbG93IEluZGljYXRvcnMgLS0+CiAgPHRleHQgeD0iMTEwIiB5PSIxNjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QWxsIGxvZ3M8L3RleHQ+CiAgPHRleHQgeD0iMjkwIiB5PSIxNjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+T25seSBlcnJvcnM8L3RleHQ+CiAgPHRleHQgeD0iNDcwIiB5PSIxNjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SnVzdCBmaWVsZHM8L3RleHQ+CiAgPHRleHQgeD0iNDcwIiB5PSIxNzgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+d2UgbmVlZDwvdGV4dD4KICA8dGV4dCB4PSI2NTAiIHk9IjE2NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PcmRlcmVkPC90ZXh0PgogIDx0ZXh0IHg9IjY1MCIgeT0iMTc4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPm91dHB1dDwvdGV4dD4KCiAgPCEtLSBBcnJvdyBpbmRpY2F0b3JzIGJlbG93IGJveGVzIC0tPgogIDxwYXRoIGQ9Ik0xMTAsMTQ1IEwxMTAsMTU1IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIvPgogIDxwYXRoIGQ9Ik0yOTAsMTQ1IEwyOTAsMTU1IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIvPgogIDxwYXRoIGQ9Ik00NzAsMTQ1IEw0NzAsMTU1IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIvPgogIDxwYXRoIGQ9Ik02NTAsMTQ1IEw2NTAsMTU1IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIvPgo8L3N2Zz4K" alt="DQL Pipeline" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Command | Result |
+|-------|---------|--------|
+| 1 | fetch logs | All logs |
+| 2 | filter status | Only errors |
+| 3 | fields select | Just fields we need |
+| 4 | sort order | Ordered output |
+-->
+<h3>DQL vs SQL</h3>
+<table>
+<thead>
+<tr>
+<th>DQL</th>
+<th>SQL</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fetch logs</code></td>
+<td><code>SELECT * FROM logs</code></td>
+<td>Start with data source</td>
+</tr>
+<tr>
+<td><code>| filter x == &quot;y&quot;</code></td>
+<td><code>WHERE x = 'y'</code></td>
+<td>Use <code>==</code>, double quotes</td>
+</tr>
+<tr>
+<td><code>| fields a, b</code></td>
+<td><code>SELECT a, b</code></td>
+<td>Field selection after fetch</td>
+</tr>
+<tr>
+<td><code>| summarize count()</code></td>
+<td><code>SELECT COUNT(*)</code></td>
+<td>Aggregation command</td>
+</tr>
+<tr>
+<td><code>by: {field}</code></td>
+<td><code>GROUP BY field</code></td>
+<td>Grouping syntax</td>
+</tr>
+<tr>
+<td><code>{&quot;a&quot;, &quot;b&quot;}</code></td>
+<td><code>('a', 'b')</code></td>
+<td>Array syntax (curly braces)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="the-pipeline-model"></a></p>
+<h2>2. The Pipeline Model</h2>
+<p>Each command in the pipeline operates on the output of the previous command:</p>
+<pre><code class="language-dql">fetch logs, from:-1h             // 1. Get the last hour of logs (time range on fetch)
+| filter status == &quot;ERROR&quot;       // 2. Keep only error-class records
+| fields timestamp, content      // 3. Select columns
+| sort timestamp desc            // 4. Order by time
+| limit 100                      // 5. Take first 100
+</code></pre>
+<h3>Order Matters</h3>
+<ul>
+<li><strong>Filter early</strong> - Reduces data before expensive operations</li>
+<li><strong>Select fields</strong> - Reduces memory usage</li>
+<li><strong>Aggregate</strong> - Summarize before sorting</li>
+<li><strong>Sort</strong> - Order the final results</li>
+<li><strong>Limit</strong> - Control output size</li>
+</ul>
+<p><a id="fetching-data"></a></p>
+<h2>3. Fetching Data</h2>
+<p>Every DQL query starts with a <code>fetch</code> command specifying the data source.</p>
+<pre><code class="language-dql">// Fetch logs (most common)
+fetch logs, from:-1h
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Fetch spans (distributed traces)
+fetch spans, from:-1h
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Fetch entity data (hosts)
+fetch dt.entity.host
+| limit 10
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;HOST&quot;
+//   | limit 10
+// Caveat: Smartscape can report fewer entities than the classic entity store, and
+// both return only entities seen in the query timeframe (default 2 h) - for a
+// discovery inventory add a timeframe such as from:-7d to either query.
+</code></pre>
+<pre><code class="language-dql">// Fetch problems
+fetch dt.davis.problems, from:-24h
+| limit 10
+</code></pre>
+<h3>Common Data Sources</h3>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>logs</code></td>
+<td>Log records</td>
+</tr>
+<tr>
+<td><code>spans</code></td>
+<td>Distributed trace spans</td>
+</tr>
+<tr>
+<td><code>events</code></td>
+<td>Davis, Kubernetes, custom, and other platform events (self-monitoring is <code>dt.system.events</code>)</td>
+</tr>
+<tr>
+<td><code>bizevents</code></td>
+<td>Business events</td>
+</tr>
+<tr>
+<td><code>dt.entity.host</code></td>
+<td>Host entities</td>
+</tr>
+<tr>
+<td><code>dt.entity.service</code></td>
+<td>Service entities</td>
+</tr>
+<tr>
+<td><code>dt.entity.process_group</code></td>
+<td>Process group entities</td>
+</tr>
+<tr>
+<td><code>dt.davis.problems</code></td>
+<td>Detected problems</td>
+</tr>
+</tbody>
+</table>
+<p><a id="filtering"></a></p>
+<h2>4. Filtering</h2>
+<p>Use <code>filter</code> to narrow results. Filter as early as possible for performance.</p>
+<blockquote>
+<p><strong><code>loglevel</code> vs <code>status</code> on logs.</strong> <code>loglevel</code> holds the detected severity — <code>ERROR</code>, but also <code>SEVERE</code>, <code>CRITICAL</code>, <code>ALERT</code>, <code>EMERGENCY</code>, and so on. Dynatrace adds a derived <code>status</code> field that groups <code>SEVERE</code>, <code>ERROR</code>, <code>CRITICAL</code>, <code>ALERT</code>, <code>FATAL</code>, and <code>EMERGENCY</code> into <code>ERROR</code>. To find every error-class record, filter <code>status == &quot;ERROR&quot;</code>: on one tenant over one hour, <code>loglevel == &quot;ERROR&quot;</code> matched about 64,000 records and <code>status == &quot;ERROR&quot;</code> about 118,000. Both fields use uppercase values.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-log-data-transformation-oa">Automatic log enrichment (DT docs)</a> — <em>&quot;a status attribute is created with a value that is a sum of loglevel values&quot;</em>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Filter by equality - loglevel values are UPPERCASE (&quot;ERROR&quot;, &quot;WARN&quot;, &quot;INFO&quot;);
+// a lowercase &quot;error&quot; matches nothing and raises no error. loglevel is the raw
+// detected level (SEVERE, CRITICAL, ... are separate values); to catch every
+// error-class record use the derived field instead: status == &quot;ERROR&quot;
+fetch logs, from:-1h
+| filter loglevel == &quot;ERROR&quot;
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Filter with multiple conditions (AND)
+fetch logs, from:-1h
+| filter status == &quot;ERROR&quot; and contains(content, &quot;timeout&quot;)
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Filter with or condition
+fetch logs, from:-1h
+| filter status == &quot;ERROR&quot; or status == &quot;WARN&quot;
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Filter using IN for multiple values
+fetch logs, from:-1h
+| filter in(status, {&quot;ERROR&quot;, &quot;WARN&quot;})
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Filter with string matching
+fetch logs, from:-1h
+| filter contains(content, &quot;timeout&quot;)
+| limit 20
+</code></pre>
+<h3>Filter Operators</h3>
+<table>
+<thead>
+<tr>
+<th>Operator</th>
+<th>Example</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>==</code></td>
+<td><code>field == &quot;value&quot;</code></td>
+<td>Equals</td>
+</tr>
+<tr>
+<td><code>!=</code></td>
+<td><code>field != &quot;value&quot;</code></td>
+<td>Not equals</td>
+</tr>
+<tr>
+<td><code>&gt;</code>, <code>&lt;</code></td>
+<td><code>count &gt; 10</code></td>
+<td>Greater/less than</td>
+</tr>
+<tr>
+<td><code>&gt;=</code>, <code>&lt;=</code></td>
+<td><code>count &gt;= 10</code></td>
+<td>Greater/less or equal</td>
+</tr>
+<tr>
+<td><code>and</code>, <code>or</code></td>
+<td><code>a == 1 and b == 2</code></td>
+<td>Logical operators</td>
+</tr>
+<tr>
+<td><code>in()</code></td>
+<td><code>in(field, {&quot;a&quot;, &quot;b&quot;})</code></td>
+<td>Value in set</td>
+</tr>
+<tr>
+<td><code>contains()</code></td>
+<td><code>contains(field, &quot;text&quot;)</code></td>
+<td>Substring match</td>
+</tr>
+<tr>
+<td><code>isNull()</code></td>
+<td><code>isNull(field)</code></td>
+<td>Field is null</td>
+</tr>
+<tr>
+<td><code>isNotNull()</code></td>
+<td><code>isNotNull(field)</code></td>
+<td>Field is not null</td>
+</tr>
+</tbody>
+</table>
+<p><a id="selecting-fields"></a></p>
+<h2>5. Selecting Fields</h2>
+<p>Use <code>fields</code> to select specific columns. This improves readability and performance.</p>
+<pre><code class="language-dql">// Select specific fields from logs
+fetch logs, from:-1h
+| fields timestamp, loglevel, log.source, content
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Create calculated fields (duration / 1ms uses duration arithmetic — preferred)
+fetch spans, from:-1h
+| fields span.name, 
+         duration,
+         duration_ms = duration / 1ms
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Rename fields with aliases
+fetch dt.entity.host
+| fields name = entity.name,
+         status = state,
+         os = osType
+| limit 20
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
+// classic-only field state, which has NO Smartscape node equivalent
+// (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
+// query above for state detail. For monitoring mode, do not use monitoringMode — it is
+// empty on Kubernetes and Fargate hosts; read billing events instead (ONBRD-05 § 6).
+// Other fields do map: osType -&gt; os.type (LINUX -&gt; OS_TYPE_LINUX); entity.name -&gt; name.
+</code></pre>
+<h3>fieldsAdd vs fields</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fields</code></td>
+<td>Keeps only specified fields</td>
+</tr>
+<tr>
+<td><code>fieldsAdd</code></td>
+<td>Adds new fields, keeps all existing</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// fieldsAdd keeps existing fields and adds new ones
+fetch spans, from:-1h
+| fieldsAdd duration_ms = duration / 1ms
+| fields span.name, duration, duration_ms
+| limit 10
+</code></pre>
+<p><a id="aggregating-with-summarize"></a></p>
+<h2>6. Aggregating with Summarize</h2>
+<p>Use <code>summarize</code> to aggregate data. Combine with <code>by:</code> for grouping.</p>
+<pre><code class="language-dql">// Simple count
+fetch logs, from: now() - 1h
+| summarize total_logs = count()
+</code></pre>
+<pre><code class="language-dql">// Count by group
+fetch logs, from: now() - 1h
+| summarize log_count = count(), by: {loglevel}
+| sort log_count desc
+</code></pre>
+<pre><code class="language-dql">// Multiple aggregations
+// dt.service.name is set on every span, whatever the ingest source
+fetch spans, from: now() - 1h
+| filter span.kind == &quot;server&quot;
+| summarize {
+    request_count = count(),
+    avg_duration = avg(duration),
+    max_duration = max(duration)
+  }, by: {dt.service.name}
+| sort request_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Conditional counting
+fetch spans, from: now() - 1h
+| filter span.kind == &quot;server&quot;
+| summarize {
+    total = count(),
+    errors = countIf(span.status_code == &quot;error&quot;)
+  }, by: {dt.service.name}
+| fieldsAdd error_rate = 100.0 * errors / total
+| sort error_rate desc
+| limit 20
+</code></pre>
+<h3>Common Aggregation Functions</h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>count()</code></td>
+<td>Count records</td>
+</tr>
+<tr>
+<td><code>countIf(condition)</code></td>
+<td>Count where condition is true</td>
+</tr>
+<tr>
+<td><code>sum(field)</code></td>
+<td>Sum values</td>
+</tr>
+<tr>
+<td><code>avg(field)</code></td>
+<td>Average value</td>
+</tr>
+<tr>
+<td><code>min(field)</code></td>
+<td>Minimum value</td>
+</tr>
+<tr>
+<td><code>max(field)</code></td>
+<td>Maximum value</td>
+</tr>
+<tr>
+<td><code>percentile(field, 95)</code></td>
+<td>95th percentile</td>
+</tr>
+</tbody>
+</table>
+<p><a id="sorting-and-limiting"></a></p>
+<h2>7. Sorting and Limiting</h2>
+<p>Control output order and size.</p>
+<pre><code class="language-dql">// Sort descending (newest first)
+fetch logs, from: now() - 1h
+| fields timestamp, loglevel, content
+| sort timestamp desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Sort by multiple fields
+fetch spans, from: now() - 1h
+| filter span.kind == &quot;server&quot;
+| summarize request_count = count(), by: {dt.service.name}
+| sort request_count desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Find slowest spans
+fetch spans, from: now() - 1h
+| fields span.name, dt.service.name, duration
+| sort duration desc
+| limit 10
+</code></pre>
+<p><a id="time-ranges"></a></p>
+<h2>8. Time Ranges</h2>
+<p>Control the time range for your queries.</p>
+<pre><code class="language-dql">// Last hour (using the from: parameter on fetch)
+fetch logs, from: now() - 1h
+| summarize count()
+</code></pre>
+<pre><code class="language-dql">// Specific time range (a one-hour window ending an hour ago)
+fetch logs, from: now() - 2h, to: now() - 1h
+| summarize count()
+</code></pre>
+<pre><code class="language-dql">// Last 7 days
+fetch dt.davis.problems, from: now() - 7d
+| summarize problem_count = count(), by: {event.status}
+</code></pre>
+<h3>Time Units</h3>
+<table>
+<thead>
+<tr>
+<th>Unit</th>
+<th>Example</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>s</code></td>
+<td><code>now() - 30s</code></td>
+<td>Seconds</td>
+</tr>
+<tr>
+<td><code>m</code></td>
+<td><code>now() - 15m</code></td>
+<td>Minutes</td>
+</tr>
+<tr>
+<td><code>h</code></td>
+<td><code>now() - 2h</code></td>
+<td>Hours</td>
+</tr>
+<tr>
+<td><code>d</code></td>
+<td><code>now() - 7d</code></td>
+<td>Days</td>
+</tr>
+</tbody>
+</table>
+<p><a id="common-patterns"></a></p>
+<h2>9. Common Patterns</h2>
+<p>Here are patterns you'll use frequently.</p>
+<h3>Error Investigation</h3>
+<pre><code class="language-dql">// Find error logs with context
+fetch logs, from: now() - 1h
+| filter status == &quot;ERROR&quot;
+| fields timestamp, log.source, content
+| sort timestamp desc
+| limit 50
+</code></pre>
+<h3>Service Performance</h3>
+<pre><code class="language-dql">// Service response time summary (use duration / 1ms for ns→ms conversion)
+fetch spans, from: now() - 1h
+| filter span.kind == &quot;server&quot;
+| summarize {
+    requests = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms
+  }, by: {dt.service.name}
+| sort requests desc
+| limit 20
+</code></pre>
+<h3>Log Volume Analysis</h3>
+<pre><code class="language-dql">// Log volume by source and severity
+fetch logs, from: now() - 1h
+| summarize log_count = count(), by: {log.source, loglevel}
+| sort log_count desc
+| limit 30
+</code></pre>
+<h3>Entity Inventory</h3>
+<pre><code class="language-dql">// Host inventory with details
+fetch dt.entity.host
+| fields 
+    name = entity.name,
+    state,
+    os = osType,
+    cores = cpuCores
+| sort name
+| limit 50
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
+// classic-only field state, which has NO Smartscape node equivalent
+// (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
+// query above for state detail. For monitoring mode, do not use monitoringMode — it is
+// empty on Kubernetes and Fargate hosts; read billing events instead (ONBRD-05 § 6).
+// Other fields do map: osType -&gt; os.type (LINUX -&gt; OS_TYPE_LINUX); cpuCores -&gt; cores; entity.name -&gt; name.
+</code></pre>
+<p><a id="next-steps"></a></p>
+<h2>10. Next Steps</h2>
+<p>With DQL fundamentals covered:</p>
+<ol>
+<li><strong>ONBRD-09: Setting Up Alerts</strong> — Configure alerting and notifications</li>
+<li>Practice with your own data</li>
+<li>Explore the DQL documentation for advanced functions</li>
+<li>Try creating queries in Notebooks</li>
+</ol>
+<h3>Beyond the Basics</h3>
+<ul>
+<li><strong><code>makeTimeseries</code></strong> — convert event-based data (logs, spans, bizevents) into time-bucketed metric series. Different from the <code>timeseries</code> command, which queries pre-ingested metrics. Example: <code>fetch logs, from:-2h | makeTimeseries errors = countIf(status == &quot;ERROR&quot;), interval:5m, by:{k8s.cluster.name}</code> (an error count per 5 minutes)</li>
+<li><strong>Iterative array expressions</strong> — <code>arrayAvg</code>, <code>arraySum</code>, <code>iAny</code>, etc. for working with timeseries arrays in <code>fieldsAdd</code> and <code>filter</code></li>
+<li><strong>Smartscape topology navigation</strong> — <code>smartscapeNodes</code>, <code>smartscapeEdges</code>, <code>traverse</code> for entity relationships (the modern alternative to <code>dt.entity.*</code>)</li>
+</ul>
+<h3>Where to Go Deeper</h3>
+<ul>
+<li><strong>OPLOGS / OPMIG / OPIPE</strong> — Log query patterns, OpenPipeline transformations</li>
+<li><strong>SPANS series</strong> — Span-specific DQL patterns</li>
+<li><strong>DASH series</strong> — Building dashboards from DQL queries</li>
+<li><strong>AIOPS series</strong> — Davis problem queries, anomaly detection DQL</li>
+</ul>
+<h3>DQL Checklist</h3>
+<ul>
+<li>[ ] Understand the pipeline model</li>
+<li>[ ] Can fetch different data types</li>
+<li>[ ] Can filter with conditions</li>
+<li>[ ] Can select and calculate fields (using duration arithmetic, not nanosecond constants)</li>
+<li>[ ] Can aggregate with summarize</li>
+<li>[ ] Can sort and limit results</li>
+<li>[ ] Can specify time ranges</li>
+<li>[ ] Know that <code>makeTimeseries</code> exists for event → series conversion</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>DQL uses a pipeline model (not SQL)</li>
+<li><code>fetch</code> starts every query</li>
+<li><code>filter</code> narrows results</li>
+<li><code>fields</code> selects and calculates columns</li>
+<li><code>summarize</code> aggregates data</li>
+<li><code>sort</code> and <code>limit</code> control output</li>
+<li>Time ranges with <code>from:</code> and <code>to:</code></li>
+<li>Duration arithmetic (<code>duration / 1ms</code>) is preferred over nanosecond constants</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">DQL Reference</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions">DQL Functions</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands">DQL Commands</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">Dynatrace Query Language (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-log-data-transformation-oa">Automatic log enrichment (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

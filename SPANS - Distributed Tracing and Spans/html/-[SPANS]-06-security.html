@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPANS-06: Security Analysis with Spans</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SPANS — Distributed Tracing and Spans</a><span class="sep">/</span><span aria-current="page">SPANS-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SPANS-06: Security Analysis with Spans</h1>
+<blockquote>
+<p><strong>Series:</strong> SPANS — Distributed Tracing and Spans | <strong>Notebook:</strong> 6 of 8 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 10/28/2026</p>
+</blockquote>
+<h2>Protecting Distributed Traces and Ensuring Compliance</h2>
+<p>This notebook demonstrates how to use span data for security analysis, audit for sensitive data exposure, and ensure compliance with regulations.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#understanding-sensitive-data-in-spans">Understanding Sensitive Data in Spans</a></li>
+<li><a href="#pii-audit-queries">PII Audit Queries</a></li>
+<li><a href="#http-status-code-security-analysis">HTTP Status Code Security Analysis</a></li>
+<li><a href="#authentication-failure-detection">Authentication Failure Detection</a></li>
+<li><a href="#anomalous-traffic-patterns">Anomalous Traffic Patterns</a></li>
+<li><a href="#sensitive-endpoint-monitoring">Sensitive Endpoint Monitoring</a></li>
+<li><a href="#openpipeline-for-data-masking">OpenPipeline for Data Masking</a></li>
+<li><a href="#compliance-considerations">Compliance Considerations</a></li>
+<li><a href="#security-audit-queries">Security Audit Queries</a></li>
+<li><a href="#security-checklist">Security Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<p>Before starting this notebook, ensure you have:</p>
+<ul>
+<li>✅ Completed previous SPANS notebooks (01-05)</li>
+<li>✅ Understanding of HTTP status codes and security concepts</li>
+<li>✅ Access to span data containing HTTP attributes (<code>storage:spans:read</code>)</li>
+<li>✅ Familiarity with OpenPipeline basics</li>
+</ul>
+<p><a id="understanding-sensitive-data-in-spans"></a></p>
+<h2>1. Understanding Sensitive Data in Spans</h2>
+<p>Distributed traces can inadvertently capture sensitive information:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3NTAgMzIwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic2hpZWxkR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyMmM1NWU7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE2YTM0YTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImRhbmdlckdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWY0NDQ0O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkYzI2MjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ3YXJuR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmOTczMTY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2VhNTgwYztzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InBpcGVsaW5lR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4YjVjZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdjM2FlZDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJzZWNTaGFkb3ciPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIyIiBkeT0iMiIgc3RkRGV2aWF0aW9uPSIzIiBmbG9vZC1vcGFjaXR5PSIwLjE1Ii8+CiAgICA8L2ZpbHRlcj4KICAgIDxtYXJrZXIgaWQ9InNlY0Fycm93IiBtYXJrZXJXaWR0aD0iOCIgbWFya2VySGVpZ2h0PSI2IiByZWZYPSI3IiByZWZZPSIzIiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgOCAzLCAwIDYiIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI3NTAiIGhlaWdodD0iMzIwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSIzNzUiIHk9IjI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TcGFuIFNlY3VyaXR5OiBQcm90ZWN0aW5nIFNlbnNpdGl2ZSBEYXRhPC90ZXh0PgoKICA8IS0tIFBJSSBSaXNrcyBTZWN0aW9uIC0tPgogIDxyZWN0IHg9IjQwIiB5PSI1MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxODAiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNmZWNhY2EiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI3NlY1NoYWRvdykiLz4KICA8cmVjdCB4PSI0MCIgeT0iNTAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMzUiIHJ4PSI4IiBmaWxsPSJ1cmwoI2RhbmdlckdyYWQpIi8+CiAgPHJlY3QgeD0iNDAiIHk9Ijc1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwIiBmaWxsPSJ1cmwoI2RhbmdlckdyYWQpIi8+CiAgPHRleHQgeD0iMTQwIiB5PSI3NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBJSSBpbiBTcGFuczwvdGV4dD4KCiAgPHRleHQgeD0iNTUiIHk9IjEwNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjMzMzIj5Db21tb24gRXhwb3N1cmUgUG9pbnRzOjwvdGV4dD4KICA8dGV4dCB4PSI1NSIgeT0iMTI1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NjYiPi0gdXJsLnBhdGggLyB1cmwucXVlcnkgLyB1cmwuZnVsbDwvdGV4dD4KICA8dGV4dCB4PSI1NSIgeT0iMTQyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NjYiPi0gZGIucXVlcnkudGV4dCB3aXRoIHZhbHVlczwvdGV4dD4KICA8dGV4dCB4PSI1NSIgeT0iMTU5IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NjYiPi0gc3Bhbi5uYW1lIHdpdGggdXNlciBJRHM8L3RleHQ+CiAgPHRleHQgeD0iNTUiIHk9IjE3NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjY2Ij4tIEN1c3RvbSBhdHRyaWJ1dGVzPC90ZXh0PgogIDx0ZXh0IHg9IjU1IiB5PSIxOTYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY2NiI+LSBFcnJvciBtZXNzYWdlczwvdGV4dD4KICA8dGV4dCB4PSI1NSIgeT0iMjE2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNlZjQ0NDQiIGZvbnQtd2VpZ2h0PSJib2xkIj5BdWRpdCByZWd1bGFybHkhPC90ZXh0PgoKICA8IS0tIE9wZW5QaXBlbGluZSBTb2x1dGlvbiAtLT4KICA8cmVjdCB4PSIyODAiIHk9IjUwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE4MCIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2M0YjVmZCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjc2VjU2hhZG93KSIvPgogIDxyZWN0IHg9IjI4MCIgeT0iNTAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMzUiIHJ4PSI4IiBmaWxsPSJ1cmwoI3BpcGVsaW5lR3JhZCkiLz4KICA8cmVjdCB4PSIyODAiIHk9Ijc1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwIiBmaWxsPSJ1cmwoI3BpcGVsaW5lR3JhZCkiLz4KICA8dGV4dCB4PSIzODAiIHk9Ijc1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+T3BlblBpcGVsaW5lPC90ZXh0PgoKICA8dGV4dCB4PSIyOTUiIHk9IjEwNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjMzMzIj5EYXRhIFByb2Nlc3Npbmc6PC90ZXh0PgogIDx0ZXh0IHg9IjI5NSIgeT0iMTI1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NjYiPi0gTWFzayBzZW5zaXRpdmUgZmllbGRzPC90ZXh0PgogIDx0ZXh0IHg9IjI5NSIgeT0iMTQyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NjYiPi0gRHJvcCBzcGVjaWZpYyBhdHRyaWJ1dGVzPC90ZXh0PgogIDx0ZXh0IHg9IjI5NSIgeT0iMTU5IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NjYiPi0gUmVkYWN0IHBhdHRlcm5zIChTU04sIENDKTwvdGV4dD4KICA8dGV4dCB4PSIyOTUiIHk9IjE3NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjY2Ij4tIEhhc2ggaWRlbnRpZmllcnM8L3RleHQ+CiAgPHRleHQgeD0iMjk1IiB5PSIxOTYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY2NiI+LSBSb3V0ZSB0byBzZWN1cmUgYnVja2V0czwvdGV4dD4KICA8dGV4dCB4PSIyOTUiIHk9IjIxNiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOGI1Y2Y2IiBmb250LXdlaWdodD0iYm9sZCI+Q29uZmlndXJlIGJlZm9yZSBpbmdlc3Rpb248L3RleHQ+CgogIDwhLS0gQWNjZXNzIENvbnRyb2wgLS0+CiAgPHJlY3QgeD0iNTIwIiB5PSI1MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxODAiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNiYmY3ZDAiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI3NlY1NoYWRvdykiLz4KICA8cmVjdCB4PSI1MjAiIHk9IjUwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjM1IiByeD0iOCIgZmlsbD0idXJsKCNzaGllbGRHcmFkKSIvPgogIDxyZWN0IHg9IjUyMCIgeT0iNzUiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTAiIGZpbGw9InVybCgjc2hpZWxkR3JhZCkiLz4KICA8dGV4dCB4PSI2MjAiIHk9Ijc1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QWNjZXNzIENvbnRyb2w8L3RleHQ+CgogIDx0ZXh0IHg9IjUzNSIgeT0iMTA1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiMzMzMiPlByb3RlY3Rpb24gTGF5ZXJzOjwvdGV4dD4KICA8dGV4dCB4PSI1MzUiIHk9IjEyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjY2Ij4tIEJ1Y2tldC1sZXZlbCBwZXJtaXNzaW9uczwvdGV4dD4KICA8dGV4dCB4PSI1MzUiIHk9IjE0MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjY2Ij4tIEZpZWxkLWxldmVsIHJlc3RyaWN0aW9uczwvdGV4dD4KICA8dGV4dCB4PSI1MzUiIHk9IjE1OSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjY2Ij4tIERhdGEgc2VnbWVudHM8L3RleHQ+CiAgPHRleHQgeD0iNTM1IiB5PSIxNzYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY2NiI+LSBJQU0gcG9saWNpZXM8L3RleHQ+CiAgPHRleHQgeD0iNTM1IiB5PSIxOTYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY2NiI+LSBBdWRpdCBsb2dnaW5nPC90ZXh0PgogIDx0ZXh0IHg9IjUzNSIgeT0iMjE2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMyMmM1NWUiIGZvbnQtd2VpZ2h0PSJib2xkIj5MZWFzdCBwcml2aWxlZ2UgcHJpbmNpcGxlPC90ZXh0PgoKICA8IS0tIEFycm93cyAtLT4KICA8bGluZSB4MT0iMjQwIiB5MT0iMTQwIiB4Mj0iMjc1IiB5Mj0iMTQwIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNzZWNBcnJvdykiLz4KICA8bGluZSB4MT0iNDgwIiB5MT0iMTQwIiB4Mj0iNTE1IiB5Mj0iMTQwIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNzZWNBcnJvdykiLz4KCiAgPCEtLSBCb3R0b20gYXVkaXQgcXVlcnkgZXhhbXBsZSAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMjUwIiB3aWR0aD0iNjgwIiBoZWlnaHQ9IjU1IiByeD0iNiIgZmlsbD0iIzFlMjkzYiIvPgogIDx0ZXh0IHg9IjU1IiB5PSIyNzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM5NGEzYjgiPlBJSSBBdWRpdCBRdWVyeTo8L3RleHQ+CiAgPHRleHQgeD0iMTcwIiB5PSIyNzAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMyMmM1NWUiPmZldGNoPC90ZXh0PgogIDx0ZXh0IHg9IjIwNSIgeT0iMjcwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZjhmYWZjIj5zcGFuczwvdGV4dD4KICA8dGV4dCB4PSIyNTAiIHk9IjI3MCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk0YTNiOCI+fDwvdGV4dD4KICA8dGV4dCB4PSIyNjAiIHk9IjI3MCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2Y5NzMxNiI+ZmlsdGVyPC90ZXh0PgogIDx0ZXh0IHg9IjMwMiIgeT0iMjcwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZjhmYWZjIj5jb250YWlucyh1cmwucXVlcnksICJlbWFpbCIsIGNhc2VTZW5zaXRpdmU6IGZhbHNlKTwvdGV4dD4KICA8dGV4dCB4PSIzMDIiIHk9IjI4NCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2Y4ZmFmYyI+b3IgY29udGFpbnModXJsLnF1ZXJ5LCAicGFzc3dvcmQiLCBjYXNlU2Vuc2l0aXZlOiBmYWxzZSk8L3RleHQ+CiAgPHRleHQgeD0iMzAyIiB5PSIyOTgiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNmOGZhZmMiPm9yIGNvbnRhaW5zKHVybC5xdWVyeSwgInRva2VuIiwgY2FzZVNlbnNpdGl2ZTogZmFsc2UpPC90ZXh0Pgo8L3N2Zz4K" alt="Span Security" /></p>
+<!--MARKDOWN_TABLE_ALTERNATIVE
+| Risk Area | Examples | Mitigation |
+|-----------|----------|------------|
+| URLs (`url.path`, `url.query` / `url.full`) | User IDs, emails, tokens | Use http.route, mask PII |
+| Headers | Auth tokens, cookies | Drop sensitive headers |
+| DB Queries (`db.query.text`) | User data in WHERE | Parameterize queries |
+| Errors | Stack traces with context | Truncate/filter |
+| Custom Attrs | Business data | Evaluate per case |
+
+PII audit query: fetch spans | filter contains(url.query, "email", caseSensitive: false) or contains(url.query, "password", caseSensitive: false) or contains(url.query, "token", caseSensitive: false)
+-->
+<h3>Fields to Consider for Protection</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Risk</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>url.path</code></td>
+<td>PII in the path</td>
+<td>Mask, or group by <code>http.route</code></td>
+</tr>
+<tr>
+<td><code>url.query</code> / <code>url.full</code></td>
+<td>Tokens and credentials in query parameters</td>
+<td>Mask parameter values</td>
+</tr>
+<tr>
+<td><code>http.request.header.&lt;name&gt;</code></td>
+<td>Auth tokens/cookies (only headers you configured for capture)</td>
+<td>Don't capture them; remove if captured</td>
+</tr>
+<tr>
+<td><code>db.query.text</code> (was <code>db.statement</code>)</td>
+<td>SQL with user data</td>
+<td>Parameterize or mask</td>
+</tr>
+<tr>
+<td><code>span.events</code> → <code>exception.message</code> / <code>exception.stack_trace</code></td>
+<td>Values in exception text</td>
+<td>Mask or limit capture</td>
+</tr>
+<tr>
+<td>Request attributes / custom attributes</td>
+<td>Business data</td>
+<td>Evaluate case by case</td>
+</tr>
+</tbody>
+</table>
+<p>Exceptions are recorded as <strong>span events</strong>, not span fields: on the validation tenant 6,004 spans in an hour carried an <code>exception</code> event with <code>exception.message</code> and <code>exception.stack_trace</code> inside <code>span.events</code>, while a top-level <code>exception.stacktrace</code> field has no dictionary row and was set on none.</p>
+<blockquote>
+<p><sub><strong>Dictionary:</strong> <code>url.path</code>, <code>url.query</code>, <code>url.full</code>, <code>db.query.text</code>, <code>exception.message</code>, <code>http.request.header.__key__</code> (all <code>stable</code>); no row for <code>exception.stacktrace</code> or <code>messaging.payload</code>, read 10/02/2026 (control: <code>exception.message</code> returned a row).</sub></p>
+</blockquote>
+<hr />
+<p><a id="pii-audit-queries"></a></p>
+<h2>2. PII Audit Queries</h2>
+<p>Regularly audit your span data for potential PII exposure. These queries help identify data that may need masking or removal.</p>
+<h3>Step 1: Find URLs with Email Addresses</h3>
+<pre><code class="language-dql">// Find URLs that might contain email addresses
+// Look for @ symbol or URL-encoded %40
+fetch spans, from:-1h
+| filter isNotNull(url.path)
+| filter contains(url.path, &quot;@&quot;) or contains(url.path, &quot;%40&quot;)
+| fields start_time,
+         dt.service.name,
+         http.route,
+         url.path
+| dedup http.route
+| limit 20
+</code></pre>
+<h3>Step 2: Find URLs with User Identifiers</h3>
+<pre><code class="language-dql">// Find URLs with potential user identifiers
+// contains() is case-sensitive by default, so match case-insensitively
+fetch spans, from:-1h
+| filter isNotNull(url.path)
+| filter contains(url.path, &quot;user&quot;, caseSensitive: false) or 
+        contains(url.path, &quot;email&quot;, caseSensitive: false) or
+        contains(url.path, &quot;customer&quot;, caseSensitive: false) or
+        contains(url.path, &quot;account&quot;, caseSensitive: false)
+| fields dt.service.name,
+         http.route,
+         url.path
+| dedup http.route
+| limit 20
+</code></pre>
+<h3>Step 3: Find Sensitive Query Parameters</h3>
+<pre><code class="language-dql">// Find URLs that suggest credentials or tokens.
+// Query strings are carried in url.query (or url.full), NOT url.path — a path-only check
+// never sees &quot;?token=…&quot;. Check all three, case-insensitively.
+fetch spans, from:-1h
+| fieldsAdd url_text = concat(coalesce(url.path, &quot;&quot;), &quot;?&quot;, coalesce(url.query, &quot;&quot;), &quot; &quot;, coalesce(url.full, &quot;&quot;))
+| filter contains(url_text, &quot;password&quot;, caseSensitive: false)
+    or contains(url_text, &quot;token&quot;, caseSensitive: false)
+    or contains(url_text, &quot;secret&quot;, caseSensitive: false)
+    or contains(url_text, &quot;apikey&quot;, caseSensitive: false)
+    or contains(url_text, &quot;auth&quot;, caseSensitive: false)
+| fields dt.service.name, http.route, url.path, url.query
+| dedup http.route
+| limit 20
+</code></pre>
+<h3>Step 4: Audit Database Queries for PII</h3>
+<pre><code class="language-dql">// Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
+// used throughout, and every one of them is null on Grail spans. They fail SILENTLY: a filter on a
+// non-existent field matches nothing and a summarize groups everything under null, so these cells
+// returned empty or single-null-group results without ever erroring.
+//   db.operation         -&gt; db.operation.name    (stable; set on 50,379 of 57,295 db spans)
+//   db.statement         -&gt; db.query.text        (stable; 33,463)
+//   db.mongodb.collection-&gt; db.collection.name   (stable; 6,912)
+//   db.name              -&gt; db.namespace         (stable; 57,281)
+// Confirm the catalog for your tenant with:
+//   fetch dt.semantic_dictionary.fields | filter startsWith(name, &quot;db.&quot;) | fields name, stability
+// Find database queries that might contain sensitive data (contains() is case-sensitive by default, so match case-insensitively)
+fetch spans, from:-1h
+| filter isNotNull(db.query.text)
+| filter contains(db.query.text, &quot;password&quot;, caseSensitive: false) or
+        contains(db.query.text, &quot;ssn&quot;, caseSensitive: false) or
+        contains(db.query.text, &quot;credit&quot;, caseSensitive: false) or
+        contains(db.query.text, &quot;email&quot;, caseSensitive: false) or
+        contains(db.query.text, &quot;phone&quot;, caseSensitive: false)
+| fields dt.service.name,
+         db.system,
+         db.namespace,
+         db.query.text
+| limit 20
+</code></pre>
+<h3>Step 5: Check Error Messages for Data Leakage</h3>
+<pre><code class="language-dql">// Audit error messages for potential data leakage
+fetch spans, from:-1h
+| filter span.status_code == &quot;error&quot;
+| filter isNotNull(span.status_message)
+| fields dt.service.name,
+         span.name,
+         span.status_message
+| limit 20
+</code></pre>
+<h3>Summary: Which Fields Contain Potentially Sensitive Data?</h3>
+<pre><code class="language-dql">// Identify which potentially sensitive fields are present
+fetch spans, from:-1h
+| summarize {
+    total_spans = count(),
+    has_url = countIf(isNotNull(url.path)),
+    has_db_statement = countIf(isNotNull(db.query.text)),
+    has_exception = countIf(iAny(span.events[][span_event.name] == &quot;exception&quot;))
+  }
+| fieldsAdd url_percent = (has_url * 100.0) / total_spans
+| fieldsAdd db_percent = (has_db_statement * 100.0) / total_spans
+| fieldsAdd exception_percent = (has_exception * 100.0) / total_spans
+</code></pre>
+<hr />
+<p><a id="http-status-code-security-analysis"></a></p>
+<h2>3. HTTP Status Code Security Analysis</h2>
+<p>HTTP status codes can reveal security-relevant patterns:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iY29kZTQwMSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWY0NDQ0O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkYzI2MjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJjb2RlNDAzIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmOTczMTY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2VhNTgwYztzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImNvZGU0MDQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2VhYjMwODtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojY2E4YTA0O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iY29kZTQyOSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojOGI1Y2Y2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3YzNhZWQ7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJjb2RlNTAwIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNDk2ZmY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBhNjRiYztzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJjb2RlU2hhZG93Ij4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMiIgZHk9IjIiIHN0ZERldmlhdGlvbj0iMiIgZmxvb2Qtb3BhY2l0eT0iMC4xNSIvPgogICAgPC9maWx0ZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSIzMDAiIGZpbGw9IiNmOGY5ZmEiIHJ4PSIxMCIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjQwMCIgeT0iMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkhUVFAgU3RhdHVzIENvZGVzIGZvciBTZWN1cml0eSBBbmFseXNpczwvdGV4dD4KCiAgPCEtLSA0MDEgVW5hdXRob3JpemVkIC0tPgogIDxyZWN0IHg9IjMwIiB5PSI1MCIgd2lkdGg9IjE0NSIgaGVpZ2h0PSIxMDAiIHJ4PSI4IiBmaWxsPSJ1cmwoI2NvZGU0MDEpIiBmaWx0ZXI9InVybCgjY29kZVNoYWRvdykiLz4KICA8dGV4dCB4PSIxMDIiIHk9IjgwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+NDAxPC90ZXh0PgogIDx0ZXh0IHg9IjEwMiIgeT0iMTAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VW5hdXRob3JpemVkPC90ZXh0PgogIDx0ZXh0IHg9IjEwMiIgeT0iMTE4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RmFpbGVkIGF1dGhlbnRpY2F0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjEwMiIgeT0iMTMzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW52YWxpZCBjcmVkZW50aWFsczwvdGV4dD4KCiAgPCEtLSA0MDMgRm9yYmlkZGVuIC0tPgogIDxyZWN0IHg9IjE4NSIgeT0iNTAiIHdpZHRoPSIxNDUiIGhlaWdodD0iMTAwIiByeD0iOCIgZmlsbD0idXJsKCNjb2RlNDAzKSIgZmlsdGVyPSJ1cmwoI2NvZGVTaGFkb3cpIi8+CiAgPHRleHQgeD0iMjU3IiB5PSI4MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjQwMzwvdGV4dD4KICA8dGV4dCB4PSIyNTciIHk9IjEwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkZvcmJpZGRlbjwvdGV4dD4KICA8dGV4dCB4PSIyNTciIHk9IjExOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFjY2VzcyBjb250cm9sIHZpb2xhdGlvbjwvdGV4dD4KICA8dGV4dCB4PSIyNTciIHk9IjEzMyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkluc3VmZmljaWVudCBwZXJtaXNzaW9uczwvdGV4dD4KCiAgPCEtLSA0MDQgTm90IEZvdW5kIC0tPgogIDxyZWN0IHg9IjM0MCIgeT0iNTAiIHdpZHRoPSIxNDUiIGhlaWdodD0iMTAwIiByeD0iOCIgZmlsbD0idXJsKCNjb2RlNDA0KSIgZmlsdGVyPSJ1cmwoI2NvZGVTaGFkb3cpIi8+CiAgPHRleHQgeD0iNDEyIiB5PSI4MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjQwNDwvdGV4dD4KICA8dGV4dCB4PSI0MTIiIHk9IjEwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5vdCBGb3VuZDwvdGV4dD4KICA8dGV4dCB4PSI0MTIiIHk9IjExOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkVuZHBvaW50IHByb2Jpbmc8L3RleHQ+CiAgPHRleHQgeD0iNDEyIiB5PSIxMzMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4oaWYgc3Bpa2luZyk8L3RleHQ+CgogIDwhLS0gNDI5IFJhdGUgTGltaXRlZCAtLT4KICA8cmVjdCB4PSI0OTUiIHk9IjUwIiB3aWR0aD0iMTQ1IiBoZWlnaHQ9IjEwMCIgcng9IjgiIGZpbGw9InVybCgjY29kZTQyOSkiIGZpbHRlcj0idXJsKCNjb2RlU2hhZG93KSIvPgogIDx0ZXh0IHg9IjU2NyIgeT0iODAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj40Mjk8L3RleHQ+CiAgPHRleHQgeD0iNTY3IiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Ub28gTWFueSBSZXF1ZXN0czwvdGV4dD4KICA8dGV4dCB4PSI1NjciIHk9IjExOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJhdGUgbGltaXRpbmcgdHJpZ2dlcmVkPC90ZXh0PgogIDx0ZXh0IHg9IjU2NyIgeT0iMTMzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UG9zc2libGUgYWJ1c2U8L3RleHQ+CgogIDwhLS0gNTAwIFNlcnZlciBFcnJvciAtLT4KICA8cmVjdCB4PSI2NTAiIHk9IjUwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEwMCIgcng9IjgiIGZpbGw9InVybCgjY29kZTUwMCkiIGZpbHRlcj0idXJsKCNjb2RlU2hhZG93KSIvPgogIDx0ZXh0IHg9IjcxMCIgeT0iODAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj41eHg8L3RleHQ+CiAgPHRleHQgeD0iNzEwIiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TZXJ2ZXIgRXJyb3I8L3RleHQ+CiAgPHRleHQgeD0iNzEwIiB5PSIxMTgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FeHBsb2l0IGF0dGVtcHRzPC90ZXh0PgogIDx0ZXh0IHg9IjcxMCIgeT0iMTMzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U3lzdGVtIGZhaWx1cmVzPC90ZXh0PgoKICA8IS0tIEFsZXJ0IFBhdHRlcm5zIFNlY3Rpb24gLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjE2NSIgd2lkdGg9IjM2MCIgaGVpZ2h0PSIxMjAiIHJ4PSI2IiBmaWxsPSIjZmVmMmYyIiBzdHJva2U9IiNmZWNhY2EiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjIxMCIgeT0iMTg4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjOTkxYjFiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TZWN1cml0eSBBbGVydCBQYXR0ZXJuczwvdGV4dD4KCiAgPHRleHQgeD0iNTAiIHk9IjIxMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOTkxYjFiIj5TcGlrZSBpbiA0MDFzIOKGkiBCcnV0ZSBmb3JjZSAvIGNyZWRlbnRpYWwgc3R1ZmZpbmc8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOTkxYjFiIj5TcGlrZSBpbiA0MDNzIOKGkiBQcml2aWxlZ2UgZXNjYWxhdGlvbiBhdHRlbXB0czwvdGV4dD4KICA8dGV4dCB4PSI1MCIgeT0iMjQ2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5OTFiMWIiPlNwaWtlIGluIDQwNHMg4oaSIERpcmVjdG9yeS9lbmRwb2ludCBlbnVtZXJhdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI1MCIgeT0iMjY0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5OTFiMWIiPlNwaWtlIGluIDQyOXMg4oaSIERvUyBvciBhZ2dyZXNzaXZlIHNjcmFwaW5nPC90ZXh0PgoKICA8IS0tIERRTCBRdWVyeSBTZWN0aW9uIC0tPgogIDxyZWN0IHg9IjQxMCIgeT0iMTY1IiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjEyMCIgcng9IjYiIGZpbGw9IiMxZTI5M2IiLz4KICA8dGV4dCB4PSI1OTAiIHk9IjE4OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzk0YTNiOCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UXVlcnkgU2VjdXJpdHkgU3RhdHVzIENvZGVzPC90ZXh0PgogIDx0ZXh0IHg9IjQyNSIgeT0iMjEwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMjJjNTVlIj5mZXRjaDwvdGV4dD4KICA8dGV4dCB4PSI0NjMiIHk9IjIxMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2Y4ZmFmYyI+c3BhbnM8L3RleHQ+CiAgPHRleHQgeD0iNDI1IiB5PSIyMjgiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxNDk2ZmYiPnwgZmlsdGVyPC90ZXh0PgogIDx0ZXh0IHg9IjQ4MCIgeT0iMjI4IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZjhmYWZjIj5pbihodHRwLnJlc3BvbnNlLnN0YXR1c19jb2RlLDwvdGV4dD4KICA8dGV4dCB4PSI0NDUiIHk9IjI0NiIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2ZiYmYyNCI+ezQwMSwgNDAzLCA0MjksIDUwMH0pPC90ZXh0PgogIDx0ZXh0IHg9IjQyNSIgeT0iMjY0IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMTQ5NmZmIj58IHN1bW1hcml6ZTwvdGV4dD4KICA8dGV4dCB4PSI1MDUiIHk9IjI2NCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2Y4ZmFmYyI+biA9IGNvdW50KCksPC90ZXh0PgogIDx0ZXh0IHg9IjQ0NSIgeT0iMjc5IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZjhmYWZjIj5ieTp7aHR0cC5yZXNwb25zZS5zdGF0dXNfY29kZX08L3RleHQ+Cjwvc3ZnPgo=" alt="HTTP Security Codes" /></p>
+<!--MARKDOWN_TABLE_ALTERNATIVE
+| Code | Meaning | Security Relevance |
+|------|---------|-------------------|
+| 401 | Unauthorized | Failed authentication |
+| 403 | Forbidden | Access control violation |
+| 404 | Not Found | Endpoint probing (if spiking) |
+| 429 | Too Many Requests | Rate limiting triggered |
+| 5xx | Server Error | Potential exploit attempts |
+
+Query: fetch spans | filter in(http.response.status_code, {401, 403, 429, 500}) | summarize n = count(), by:{http.response.status_code}
+-->
+<pre><code class="language-dql">// Analyze HTTP status code distribution
+fetch spans, from:-1h
+| filter isNotNull(http.response.status_code)
+| summarize {count = count()}, by:{http.response.status_code}
+| sort count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Find security-relevant HTTP errors (401, 403, 429)
+fetch spans, from:-1h
+| filter in(http.response.status_code, {401, 403, 429})
+| summarize {
+    count = count()
+  }, by:{http.response.status_code, dt.service.name, http.route}
+| sort count desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// Security status codes over time (detect spikes)
+fetch spans, from:-1h
+| filter in(http.response.status_code, {401, 403, 429, 500})
+| fieldsAdd time_bucket = bin(start_time, 10m)
+| fieldsAdd status_category = if(http.response.status_code == 401, &quot;401_Unauthorized&quot;,
+                                else: if(http.response.status_code == 403, &quot;403_Forbidden&quot;,
+                                else: if(http.response.status_code == 429, &quot;429_RateLimited&quot;,
+                                else: &quot;500_ServerError&quot;)))
+| summarize {count = count()}, by:{time_bucket, status_category}
+| sort time_bucket asc, status_category
+| limit 200
+</code></pre>
+<hr />
+<p><a id="authentication-failure-detection"></a></p>
+<h2>4. Authentication Failure Detection</h2>
+<p>Monitor authentication endpoints for potential brute force or credential stuffing attacks.</p>
+<pre><code class="language-dql">// Find 401 Unauthorized responses (failed authentication)
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;  // requests your service answered; a 401 on a client span is a dependency refusing your call
+| filter http.response.status_code == 401
+| fields start_time,
+         dt.service.name,
+         http.request.method,
+         http.route,
+         url.path,
+         trace.id
+| sort start_time desc
+| limit 100
+</code></pre>
+<pre><code class="language-dql">// Count authentication failures by endpoint
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;  // requests your service answered; a 401 on a client span is a dependency refusing your call
+| filter http.response.status_code == 401
+| summarize {
+    failure_count = count(),
+    unique_traces = countDistinctExact(trace.id)
+  }, by:{dt.service.name, http.route}
+| sort failure_count desc
+| limit 30
+</code></pre>
+<pre><code class="language-dql">// Authentication failure rate over time
+// contains() is case-sensitive by default, so match case-insensitively
+fetch spans, from:-1h
+| filter isNotNull(http.response.status_code)
+| filter contains(http.route, &quot;auth&quot;, caseSensitive: false) or contains(http.route, &quot;login&quot;, caseSensitive: false) or contains(span.name, &quot;login&quot;, caseSensitive: false)
+| fieldsAdd time_bucket = bin(start_time, 10m)
+| summarize {
+    total_attempts = count(),
+    failures = countIf(http.response.status_code == 401)
+  }, by:{time_bucket}
+| fieldsAdd failure_rate_pct = (failures * 100.0) / total_attempts
+| sort time_bucket asc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// High-frequency authentication failures by service
+// contains() is case-sensitive by default, so match case-insensitively
+fetch spans, from:-1h
+| filter contains(span.name, &quot;auth&quot;, caseSensitive: false) or contains(span.name, &quot;login&quot;, caseSensitive: false)
+| filter span.status_code == &quot;error&quot; or http.response.status_code == 401 or http.response.status_code == 403
+| summarize {
+    failure_count = count()
+  }, by:{dt.service.name, span.name, http.response.status_code}
+| filter failure_count &gt; 10
+| sort failure_count desc
+</code></pre>
+<hr />
+<p><a id="anomalous-traffic-patterns"></a></p>
+<h2>5. Anomalous Traffic Patterns</h2>
+<p>Detect unusual patterns that might indicate attacks or misuse.</p>
+<pre><code class="language-dql">// Find endpoints with unusually high error rates
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| filter isNotNull(http.response.status_code)
+| summarize {
+    total_requests = count(),
+    error_4xx = countIf(http.response.status_code &gt;= 400 and http.response.status_code &lt; 500),
+    error_5xx = countIf(http.response.status_code &gt;= 500)
+  }, by:{dt.service.name, http.route}
+| fieldsAdd error_rate_4xx = (error_4xx * 100.0) / total_requests
+| fieldsAdd error_rate_5xx = (error_5xx * 100.0) / total_requests
+| filter error_rate_4xx &gt; 20 or error_rate_5xx &gt; 5
+| sort error_rate_4xx desc
+| limit 30
+</code></pre>
+<pre><code class="language-dql">// Detect potential enumeration attacks (high 404 rates)
+fetch spans, from:-1h
+| filter http.response.status_code == 404
+| summarize {
+    not_found_count = count(),
+    unique_paths = countDistinct(url.path)
+  }, by:{dt.service.name}
+| filter not_found_count &gt; 100
+| sort not_found_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Find rate limiting events (429 responses)
+fetch spans, from:-1h
+| filter http.response.status_code == 429
+| fields start_time,
+         dt.service.name,
+         http.route,
+         trace.id
+| sort start_time desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// Unusual access patterns - services with high error rates
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| summarize {
+    requests = count(),
+    unique_operations = countDistinct(span.name),
+    error_rate = (countIf(span.status_code == &quot;error&quot; or http.response.status_code &gt;= 500) * 100.0) / count()
+  }, by:{dt.service.name}
+| filter error_rate &gt; 20
+| sort error_rate desc
+</code></pre>
+<hr />
+<p><a id="sensitive-endpoint-monitoring"></a></p>
+<h2>6. Sensitive Endpoint Monitoring</h2>
+<p>Monitor access patterns to sensitive endpoints like admin panels, configuration APIs, and user data endpoints.</p>
+<pre><code class="language-dql">// Find access to admin or configuration endpoints
+// contains() is case-sensitive by default, so match case-insensitively
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| filter contains(url.path, &quot;admin&quot;, caseSensitive: false) 
+      or contains(url.path, &quot;config&quot;, caseSensitive: false)
+      or contains(url.path, &quot;settings&quot;, caseSensitive: false)
+      or contains(span.name, &quot;admin&quot;, caseSensitive: false)
+| fields start_time,
+         dt.service.name,
+         http.request.method,
+         url.path,
+         http.response.status_code,
+         trace.id
+| sort start_time desc
+| limit 100
+</code></pre>
+<pre><code class="language-dql">// Monitor data export or bulk operations
+// contains() is case-sensitive by default, so match case-insensitively
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| filter contains(url.path, &quot;export&quot;, caseSensitive: false)
+      or contains(url.path, &quot;download&quot;, caseSensitive: false)
+      or contains(url.path, &quot;bulk&quot;, caseSensitive: false)
+| summarize {
+    access_count = count(),
+    unique_traces = countDistinctExact(trace.id)
+  }, by:{dt.service.name, http.route}
+| sort access_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Identify services that might handle regulated data
+// contains() is case-sensitive by default, so match case-insensitively
+fetch spans, from:-1h
+| filter (contains(span.name, &quot;health&quot;, caseSensitive: false) and not(contains(span.name, &quot;grpc.health&quot;))) or  // not gRPC liveness probes
+        contains(span.name, &quot;patient&quot;, caseSensitive: false) or
+        contains(span.name, &quot;payment&quot;, caseSensitive: false) or
+        contains(span.name, &quot;card&quot;, caseSensitive: false) or
+        contains(span.name, &quot;billing&quot;, caseSensitive: false)
+| summarize {
+    span_count = count(),
+    unique_operations = countDistinct(span.name)
+  }, by:{dt.service.name}
+| sort span_count desc
+</code></pre>
+<hr />
+<p><a id="openpipeline-for-data-masking"></a></p>
+<h2>7. OpenPipeline for Data Masking</h2>
+<p>Use OpenPipeline to mask sensitive data <strong>before</strong> it is stored in Grail.</p>
+<h3>Masking with a DQL processor</h3>
+<p>There is no dedicated masking processor. Masking is a <strong>DQL</strong> processor in the <strong>Processing</strong> stage of the spans pipeline, using <code>replacePattern</code> with <strong>DPL</strong> patterns (not regex). One processor can mask several fields:</p>
+<pre><code class="language-text">fieldsAdd url.path = replacePattern(url.path, &quot;[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+&quot;, &quot;[EMAIL-MASKED]&quot;)
+| fieldsAdd url.query = replacePattern(url.query, &quot;&lt;&lt;(('token' | 'TOKEN' | 'Token' | 'key' | 'KEY' | 'Key' | 'secret' | 'SECRET' | 'Secret' | 'password' | 'PASSWORD' | 'Password') '=') [^&amp;]+&quot;, &quot;[REDACTED]&quot;)
+| fieldsAdd url.path = replacePattern(url.path, &quot;&lt;&lt;'/' CREDITCARD (&gt;&gt;'/' | &gt;&gt;'?' | EOF)&quot;, &quot;[CARD-MASKED]&quot;)
+</code></pre>
+<p>Each statement was run against sample values on 10/02/2026: <code>/users/john.doe@example.com/orders</code> → <code>/users/[EMAIL-MASKED]/orders</code>; <code>token=abc123XYZ&amp;page=2&amp;password=hunter2</code> → <code>token=[REDACTED]&amp;page=2&amp;password=[REDACTED]</code>; <code>/pay/4111111111111111/confirm</code> → <code>/pay/[CARD-MASKED]/confirm</code>. The card statement is bounded to a whole path segment on purpose: a bare <code>CREDITCARD</code> matcher also hits Luhn-valid digit runs <strong>inside</strong> hex identifiers — on the validation tenant it rewrote <code>/session/c05e365fe5eee852102159234007ec45/element</code> to <code>/session/c05e365fe5eee8[CARD]7ec45/element</code>, and all 30 &quot;card&quot; hits in an hour were session hashes of that kind. <code>&lt;&lt;(…)</code> is a lookbehind, so the parameter name stays and only the value is replaced. DPL literals are case-sensitive and there is no case-insensitive flag, so the key list names each casing: with lowercase keys only, <code>API_KEY=ABCDEF&amp;page=2</code>, <code>TOKEN=…</code> and <code>Password=…</code> were left in clear, and with the list above they are masked (verified 10/12/2026). <code>key</code> also masks <code>api_key</code> and <code>token</code> also masks <code>access_token</code>, because the lookbehind only checks the characters before <code>=</code>. The same reason makes it over-mask <code>monkey=</code>, which is the safe direction. <code>replacePattern</code> has no back-references, but partial masking (&quot;keep the last four digits&quot;) still works with a <code>&gt;&gt;</code> lookahead, which checks the trailing digits without consuming them: <code>replacePattern(url.path, &quot;&lt;&lt;'/' [0-9]{12} &gt;&gt;([0-9]{4} ('/' | '?' | EOF))&quot;, &quot;XXXXXXXXXXXX&quot;)</code> turns <code>/pay/4111111111111234/confirm</code> into <code>/pay/XXXXXXXXXXXX1234/confirm</code> (verified 10/12/2026). Apply the same statements to <code>url.full</code> if your spans carry it. For the DPL syntax in depth, see <strong>OPLOGS-08</strong> and <strong>FAQ-15</strong>.</p>
+<h3>Routing sensitive spans to restricted buckets</h3>
+<p>Routing chooses a <strong>pipeline</strong>; the pipeline's <strong>Bucket assignment</strong> stage chooses the bucket. Matchers accept <code>matchesValue</code> / <code>matchesPhrase</code> / comparisons, not <code>contains()</code> or <code>in()</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Route matcher (first match wins)</th>
+<th>Target pipeline</th>
+<th>Its Bucket assignment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>matchesValue(dt.service.name, &quot;payment*&quot;) or matchesValue(dt.service.name, &quot;auth*&quot;)</code></td>
+<td><code>sensitive-spans</code></td>
+<td><code>spans_sensitive</code></td>
+</tr>
+<tr>
+<td><code>matchesValue(deployment.environment, &quot;production&quot;)</code></td>
+<td><code>production-spans</code></td>
+<td><code>spans_production</code></td>
+</tr>
+<tr>
+<td><em>(default route)</em></td>
+<td>default pipeline</td>
+<td><code>default_spans</code></td>
+</tr>
+</tbody>
+</table>
+<p>Spans OpenPipeline configuration is covered in <strong>SPANS-07</strong> and <strong>OPIPE-02</strong>.</p>
+<h3>Verify Masking Is Working</h3>
+<pre><code class="language-dql">// Verify masking is working — leak check.
+// Counts values the masking patterns would STILL change. All three should be 0 after masking.
+fetch spans, from:-1h
+| summarize {
+    total = count(),
+    unmasked_email = countIf(replacePattern(url.path, &quot;[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+&quot;, &quot;&quot;) != url.path),
+    unmasked_secret_param = countIf(replacePattern(url.query, &quot;&lt;&lt;(('token' | 'TOKEN' | 'Token' | 'key' | 'KEY' | 'Key' | 'secret' | 'SECRET' | 'Secret' | 'password' | 'PASSWORD' | 'Password') '=') [^&amp;]+&quot;, &quot;&quot;) != url.query),
+    unmasked_card = countIf(replacePattern(url.path, &quot;&lt;&lt;'/' CREDITCARD (&gt;&gt;'/' | &gt;&gt;'?' | EOF)&quot;, &quot;&quot;) != url.path)
+  }
+</code></pre>
+<hr />
+<p><a id="compliance-considerations"></a></p>
+<h2>8. Compliance Considerations</h2>
+<h3>GDPR Compliance</h3>
+<ul>
+<li><strong>Data minimization</strong>: Only collect necessary data</li>
+<li><strong>Purpose limitation</strong>: Use data only for stated purposes</li>
+<li><strong>Storage limitation</strong>: Define retention periods</li>
+<li><strong>Right to erasure</strong>: Plan for data deletion requests</li>
+</ul>
+<h3>PCI DSS Compliance</h3>
+<ul>
+<li><strong>Do not let</strong> full card numbers reach traces — PCI DSS calls for stored card numbers to be rendered unreadable; confirm the controls that apply to you with your compliance team</li>
+<li><strong>Mask</strong> cardholder data in all traces</li>
+<li><strong>Mask</strong> at ingestion rather than relying on storage encryption alone</li>
+<li><strong>Audit</strong> access to payment-related traces</li>
+</ul>
+<h3>HIPAA Compliance</h3>
+<ul>
+<li><strong>Protect</strong> PHI (Protected Health Information)</li>
+<li><strong>Encrypt</strong> health-related span data</li>
+<li><strong>Restrict</strong> access based on role</li>
+<li><strong>Audit</strong> all access to healthcare traces</li>
+</ul>
+<h3>Secure Query Patterns</h3>
+<p><strong>Use aggregations instead of exposing individual records:</strong></p>
+<pre><code class="language-dql">// SECURE: Aggregate patterns without exposing individual data
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| summarize {
+    request_count = count(),
+    unique_routes = countDistinct(http.route),
+    error_count = countIf(span.status_code == &quot;error&quot;)
+  }, by:{dt.service.name}
+| sort request_count desc
+</code></pre>
+<p><strong>Use <code>http.route</code> (pattern) instead of <code>url.path</code> (full URL):</strong></p>
+<pre><code class="language-dql">// SECURE: Use http.route (pattern) instead of url.path (full URL)
+// http.route: /users/:id (pattern, no PII)
+// url.path: /users/john.doe@email.com (actual value, potential PII)
+
+fetch spans, from:-1h
+| filter isNotNull(http.route)
+| summarize {
+    requests = count(),
+    avg_ms = avg(duration) / 1ms
+  }, by:{dt.service.name, http.route, http.request.method}
+| sort requests desc
+| limit 20
+</code></pre>
+<p><strong>Limit exposure of trace.id - get just enough to diagnose:</strong></p>
+<pre><code class="language-dql">// For investigation: Get just enough trace.ids to diagnose
+fetch spans, from:-1h
+| filter span.status_code == &quot;error&quot;
+| summarize {
+    error_count = count(),
+    sample_trace = takeFirst(trace.id)
+  }, by:{dt.service.name, span.name}
+| sort error_count desc
+| limit 10
+</code></pre>
+<hr />
+<p><a id="security-audit-queries"></a></p>
+<h2>9. Security Audit Queries</h2>
+<p>Use these queries for regular security audits.</p>
+<pre><code class="language-dql">// Security summary dashboard: Overall security status
+fetch spans, from:-1h
+| filter isNotNull(http.response.status_code)
+| summarize {
+    total_requests = count(),
+    auth_failures_401 = countIf(http.response.status_code == 401),
+    forbidden_403 = countIf(http.response.status_code == 403),
+    rate_limited_429 = countIf(http.response.status_code == 429),
+    server_errors_5xx = countIf(http.response.status_code &gt;= 500)
+  }
+| fieldsAdd auth_failure_rate = (auth_failures_401 * 100.0) / total_requests
+| fieldsAdd forbidden_rate = (forbidden_403 * 100.0) / total_requests
+</code></pre>
+<pre><code class="language-dql">// Security events timeline
+fetch spans, from:-24h
+| filter in(http.response.status_code, {401, 403, 429})
+| makeTimeseries {
+    auth_failures = countIf(http.response.status_code == 401),
+    forbidden = countIf(http.response.status_code == 403),
+    rate_limited = countIf(http.response.status_code == 429)
+  }, interval: 10m
+</code></pre>
+<pre><code class="language-dql">// Services with highest security event rates
+fetch spans, from:-1h
+| filter isNotNull(http.response.status_code)
+| summarize {
+    total_requests = count(),
+    security_events = countIf(in(http.response.status_code, {401, 403, 429}))
+  }, by:{dt.service.name}
+| fieldsAdd security_event_rate = (security_events * 100.0) / total_requests
+| filter security_events &gt; 0
+| sort security_event_rate desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Final audit: Summary of potential security concerns
+// contains() is case-sensitive by default, so match case-insensitively
+fetch spans, from:-1h
+| summarize {
+    total_spans = count(),
+    spans_with_url = countIf(isNotNull(url.path)),
+    spans_with_db_query = countIf(isNotNull(db.query.text)),
+    spans_with_errors = countIf(span.status_code == &quot;error&quot;),
+    auth_failures = countIf(
+        (contains(span.name, &quot;auth&quot;, caseSensitive: false) or contains(span.name, &quot;login&quot;, caseSensitive: false)) and
+        (span.status_code == &quot;error&quot; or http.response.status_code &gt;= 400))
+  }
+| fieldsAdd url_percent = (spans_with_url * 100.0) / total_spans
+| fieldsAdd db_percent = (spans_with_db_query * 100.0) / total_spans
+</code></pre>
+<hr />
+<p><a id="security-checklist"></a></p>
+<h2>10. Security Checklist</h2>
+<h3>Data Protection</h3>
+<ul>
+<li>[ ] Audit spans for PII in URLs, headers, query params</li>
+<li>[ ] Configure OpenPipeline to mask sensitive data</li>
+<li>[ ] Use <code>http.route</code> instead of <code>url.path</code> when possible</li>
+<li>[ ] Drop or mask database query contents</li>
+<li>[ ] Sanitize error messages and stack traces</li>
+</ul>
+<h3>Access Control</h3>
+<ul>
+<li>[ ] Route sensitive spans to restricted buckets</li>
+<li>[ ] Configure IAM policies for span access</li>
+<li>[ ] Limit who can query raw span data</li>
+<li>[ ] Use aggregations instead of exposing individual records</li>
+</ul>
+<h3>Compliance</h3>
+<ul>
+<li>[ ] Define data retention policies per bucket</li>
+<li>[ ] Document data processing for GDPR Article 30</li>
+<li>[ ] Ensure PCI DSS compliance for payment spans</li>
+<li>[ ] Protect PHI for HIPAA compliance</li>
+</ul>
+<h3>Monitoring</h3>
+<ul>
+<li>[ ] Regular audits for new PII exposure</li>
+<li>[ ] Monitor authentication failure patterns</li>
+<li>[ ] Alert on unusual access patterns</li>
+<li>[ ] Review masking effectiveness periodically</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<p>✅ <strong>Understanding sensitive data locations</strong> in span attributes<br />
+✅ <strong>PII audit queries</strong> to find emails, tokens, and credentials in spans<br />
+✅ <strong>HTTP status code analysis</strong> for security-relevant codes (401, 403, 429, 500)<br />
+✅ <strong>Authentication failure detection</strong> to identify potential attacks<br />
+✅ <strong>Anomalous traffic pattern detection</strong> for enumeration and abuse<br />
+✅ <strong>Sensitive endpoint monitoring</strong> for admin and data access<br />
+✅ <strong>OpenPipeline masking</strong> with DQL-processor <code>replacePattern</code> statements for emails, card numbers and tokens<br />
+✅ <strong>Compliance considerations</strong> for GDPR, PCI DSS, and HIPAA<br />
+✅ <strong>Security audit queries</strong> for compliance and reporting<br />
+✅ <strong>Security checklist</strong> for ongoing protection</p>
+<hr />
+<h2>Next Steps</h2>
+<p>Continue to <strong>SPANS-07: Grail Buckets &amp; OpenPipeline</strong> to learn:</p>
+<ul>
+<li>Understanding Grail bucket architecture</li>
+<li>Configuring OpenPipeline for span processing</li>
+<li>Data routing and retention strategies</li>
+<li>Access control for span data</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/trace">Trace semantic conventions (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing-stage">Processing stage (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline">DQL matcher in OpenPipeline (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language">Dynatrace Pattern Language (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

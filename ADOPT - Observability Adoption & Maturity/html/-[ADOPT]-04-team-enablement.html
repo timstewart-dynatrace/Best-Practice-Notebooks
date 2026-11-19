@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ADOPT-04: Team Enablement</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ADOPT — Observability Adoption &amp; Maturity</a><span class="sep">/</span><span aria-current="page">ADOPT-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ADOPT-04: Team Enablement</h1>
+<blockquote>
+<p><strong>Series:</strong> ADOPT — Observability Adoption &amp; Maturity | <strong>Notebook:</strong> 4 of 6 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/23/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Technology alone does not drive observability maturity — people do. This notebook provides a framework for team enablement: role-based learning paths, recommended notebook study sequences, skill assessment approaches, and strategies for building internal champions. The goal is to move from a small group of Dynatrace experts to broad organizational capability.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#enablement-challenge">The Enablement Challenge</a></li>
+<li><a href="#role-based-paths">Role-Based Learning Paths</a></li>
+<li><a href="#study-sequences">Recommended Study Sequences</a></li>
+<li><a href="#skill-assessment">Skill Assessment Framework</a></li>
+<li><a href="#internal-champions">Building Internal Champions</a></li>
+<li><a href="#practical-exercises">Practical Exercises — Exploring Your Environment</a></li>
+<li><a href="#training-roadmap">Training Roadmap Template</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS (Grail). The exercises do not apply to Dynatrace Managed, which has no Grail.</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:logs:read</code>, <code>storage:metrics:read</code>, <code>storage:entities:read</code>, <code>storage:events:read</code></td>
+</tr>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Engineering managers, platform team leads, learning &amp; development</td>
+</tr>
+<tr>
+<td><strong>Context</strong></td>
+<td>Completed ADOPT-01 (maturity model) and ADOPT-02 (platform health) assessments</td>
+</tr>
+</tbody>
+</table>
+<p><a id="enablement-challenge"></a></p>
+<h2>1. The Enablement Challenge</h2>
+<p>A common failure mode in observability adoption is the <strong>&quot;hero problem&quot;</strong> — one or two people become the Dynatrace experts, and everyone else depends on them. This creates bottlenecks, single points of failure, and prevents the organization from scaling its observability practice.</p>
+<h3>Signs of an Enablement Gap</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Root Cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Same 2-3 people answer all Dynatrace questions</td>
+<td>Knowledge is concentrated, not distributed</td>
+</tr>
+<tr>
+<td>Teams open tickets instead of investigating themselves</td>
+<td>Lack of DQL skills and self-service capability</td>
+</tr>
+<tr>
+<td>Dashboards are created by one team, consumed by others</td>
+<td>Dashboard consumers cannot create their own views</td>
+</tr>
+<tr>
+<td>New features are not adopted after rollout</td>
+<td>No structured learning path for new capabilities</td>
+</tr>
+<tr>
+<td>Incidents still require manual log SSH</td>
+<td>Teams do not know how to use Grail for investigation</td>
+</tr>
+</tbody>
+</table>
+<h3>The Goal</h3>
+<p>Move from a model where knowledge is concentrated to one where every team has at least one member who can:</p>
+<ul>
+<li>Write basic DQL queries</li>
+<li>Navigate the Dynatrace UI independently</li>
+<li>Create dashboards for their service</li>
+<li>Respond to Dynatrace Intelligence problems without escalation</li>
+</ul>
+<p><a id="role-based-paths"></a></p>
+<h2>2. Role-Based Learning Paths</h2>
+<p>Different roles need different depths of Dynatrace knowledge. The following learning paths define what each role should be able to do.</p>
+<h3>2.1 SRE / Operations Engineer</h3>
+<table>
+<thead>
+<tr>
+<th>Skill Level</th>
+<th>Capabilities</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Beginner</strong></td>
+<td>Navigate the Dynatrace UI, understand detected problems, view dashboards</td>
+</tr>
+<tr>
+<td><strong>Intermediate</strong></td>
+<td>Write DQL queries, investigate incidents with logs/traces, create alerting rules</td>
+</tr>
+<tr>
+<td><strong>Advanced</strong></td>
+<td>Build custom dashboards, configure SLOs, optimize OpenPipeline routing</td>
+</tr>
+<tr>
+<td><strong>Expert</strong></td>
+<td>Design automation workflows, implement self-healing, manage IAM policies</td>
+</tr>
+</tbody>
+</table>
+<h3>2.2 Application Developer</h3>
+<table>
+<thead>
+<tr>
+<th>Skill Level</th>
+<th>Capabilities</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Beginner</strong></td>
+<td>View service health, understand distributed traces, read span data</td>
+</tr>
+<tr>
+<td><strong>Intermediate</strong></td>
+<td>Query spans and logs for their services, understand error rates</td>
+</tr>
+<tr>
+<td><strong>Advanced</strong></td>
+<td>Instrument custom spans/metrics, configure code-level monitoring</td>
+</tr>
+<tr>
+<td><strong>Expert</strong></td>
+<td>Design observability-first applications, implement OpenTelemetry</td>
+</tr>
+</tbody>
+</table>
+<h3>2.3 Platform Engineer</h3>
+<table>
+<thead>
+<tr>
+<th>Skill Level</th>
+<th>Capabilities</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Beginner</strong></td>
+<td>Understand Dynatrace architecture, deploy OneAgent, configure basic settings</td>
+</tr>
+<tr>
+<td><strong>Intermediate</strong></td>
+<td>Manage Grail buckets, configure OpenPipeline, set up IAM</td>
+</tr>
+<tr>
+<td><strong>Advanced</strong></td>
+<td>Implement configuration-as-code (Monaco), design multi-tenant IAM</td>
+</tr>
+<tr>
+<td><strong>Expert</strong></td>
+<td>Build custom Dynatrace apps, integrate with CI/CD, manage at scale</td>
+</tr>
+</tbody>
+</table>
+<h3>2.4 Engineering Manager</h3>
+<table>
+<thead>
+<tr>
+<th>Skill Level</th>
+<th>Capabilities</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Beginner</strong></td>
+<td>Read dashboards, understand SLO status, interpret problem impact</td>
+</tr>
+<tr>
+<td><strong>Intermediate</strong></td>
+<td>Define SLOs for their team's services, review MTTR/MTTD trends</td>
+</tr>
+<tr>
+<td><strong>Advanced</strong></td>
+<td>Drive observability culture, allocate resources for monitoring investment</td>
+</tr>
+</tbody>
+</table>
+<p><a id="study-sequences"></a></p>
+<h2>3. Recommended Study Sequences</h2>
+<p>Map roles to notebook series from this repository for structured learning.</p>
+<h3>3.1 SRE / Operations Track</h3>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Series</th>
+<th>Focus</th>
+<th>Duration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>ONBRD</td>
+<td>Dynatrace fundamentals</td>
+<td>2 weeks</td>
+</tr>
+<tr>
+<td>2</td>
+<td>OPLOGS</td>
+<td>Log management with OpenPipeline</td>
+<td>1 week</td>
+</tr>
+<tr>
+<td>3</td>
+<td>SPANS</td>
+<td>Distributed tracing</td>
+<td>1 week</td>
+</tr>
+<tr>
+<td>4</td>
+<td>ALERT</td>
+<td>Alerting strategy — detection, routing, cost</td>
+<td>1 week</td>
+</tr>
+<tr>
+<td>5</td>
+<td>WFLOW</td>
+<td>Workflows and alert notifications</td>
+<td>1 week</td>
+</tr>
+<tr>
+<td>6</td>
+<td>SLO</td>
+<td>Service level objectives and burn-rate alerting</td>
+<td>1 week</td>
+</tr>
+<tr>
+<td>7</td>
+<td>SYNTH</td>
+<td>Synthetic monitoring</td>
+<td>1 week</td>
+</tr>
+<tr>
+<td>8</td>
+<td>AIOPS</td>
+<td>Dynatrace Intelligence — problems, root cause, Dynatrace Assist</td>
+<td>1 week</td>
+</tr>
+</tbody>
+</table>
+<h3>3.2 Developer Track</h3>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Series</th>
+<th>Focus</th>
+<th>Duration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>ONBRD (notebooks 1-5)</td>
+<td>Dynatrace basics</td>
+<td>1 week</td>
+</tr>
+<tr>
+<td>2</td>
+<td>SPANS</td>
+<td>Understanding distributed traces</td>
+<td>1 week</td>
+</tr>
+<tr>
+<td>3</td>
+<td>OTEL</td>
+<td>OpenTelemetry integration</td>
+<td>1 week</td>
+</tr>
+<tr>
+<td>4</td>
+<td>ORGNZ (notebooks 1-3)</td>
+<td>Data organization basics</td>
+<td>3 days</td>
+</tr>
+<tr>
+<td>5</td>
+<td>FAQ-03, FAQ-15</td>
+<td>OneAgent and OpenTelemetry decision; DPL for parsing</td>
+<td>2 days</td>
+</tr>
+</tbody>
+</table>
+<h3>3.3 Platform Engineer Track</h3>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Series</th>
+<th>Focus</th>
+<th>Duration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>ONBRD</td>
+<td>Full onboarding series</td>
+<td>2 weeks</td>
+</tr>
+<tr>
+<td>2</td>
+<td>K8S</td>
+<td>Kubernetes monitoring</td>
+<td>2 weeks</td>
+</tr>
+<tr>
+<td>3</td>
+<td>IAM</td>
+<td>Identity and access management</td>
+<td>1 week</td>
+</tr>
+<tr>
+<td>4</td>
+<td>AUTOM</td>
+<td>Configuration automation</td>
+<td>1 week</td>
+</tr>
+<tr>
+<td>5</td>
+<td>ORGNZ</td>
+<td>Full data organization series</td>
+<td>2 weeks</td>
+</tr>
+<tr>
+<td>6</td>
+<td>OPMIG</td>
+<td>OpenPipeline migration</td>
+<td>1 week</td>
+</tr>
+<tr>
+<td>7</td>
+<td>FINOPS</td>
+<td>Consumption tracking and cost levers</td>
+<td>3 days</td>
+</tr>
+</tbody>
+</table>
+<h3>3.4 Manager Track</h3>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Series</th>
+<th>Focus</th>
+<th>Duration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>ADOPT (this series)</td>
+<td>Strategy and metrics</td>
+<td>1 week</td>
+</tr>
+<tr>
+<td>2</td>
+<td>ONBRD (notebooks 1-3)</td>
+<td>Platform overview</td>
+<td>3 days</td>
+</tr>
+<tr>
+<td>3</td>
+<td>ORGNZ (notebook 1)</td>
+<td>Data organization concepts</td>
+<td>1 day</td>
+</tr>
+<tr>
+<td>4</td>
+<td>ALERT-01, SLO-01</td>
+<td>How alerting and SLOs fit together</td>
+<td>1 day</td>
+</tr>
+<tr>
+<td>5</td>
+<td>FINOPS-01</td>
+<td>What the platform costs and how to read consumption</td>
+<td>1 day</td>
+</tr>
+</tbody>
+</table>
+<p><a id="skill-assessment"></a></p>
+<h2>4. Skill Assessment Framework</h2>
+<p>Use practical DQL exercises to assess current skill levels. The following categories test progressively deeper understanding.</p>
+<h3>Level 1: Navigation (Beginner)</h3>
+<ul>
+<li>Can the person find and explain a detected problem?</li>
+<li>Can they navigate to a specific host or service in the UI?</li>
+<li>Can they read a dashboard and explain what each tile shows?</li>
+</ul>
+<h3>Level 2: Basic DQL (Intermediate)</h3>
+<ul>
+<li>Can they write a <code>fetch logs</code> query with time range and filters?</li>
+<li>Can they count records and group by a field?</li>
+<li>Can they create a basic timeseries chart?</li>
+</ul>
+<h3>Level 3: Applied DQL (Advanced)</h3>
+<ul>
+<li>Can they join data from two sources (e.g., logs + entities)?</li>
+<li>Can they calculate MTTR from detected problems?</li>
+<li>Can they build a multi-tile dashboard from DQL queries?</li>
+</ul>
+<h3>Level 4: Platform Operations (Expert)</h3>
+<ul>
+<li>Can they configure OpenPipeline routing rules?</li>
+<li>Can they design a Grail bucket strategy?</li>
+<li>Can they create a Workflow for automated remediation?</li>
+</ul>
+<p><a id="internal-champions"></a></p>
+<h2>5. Building Internal Champions</h2>
+<p>Internal champions are the force multiplier for observability adoption. They are team members who develop deep Dynatrace expertise and actively help others.</p>
+<h3>Champion Program Structure</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Activities</th>
+<th>Duration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Selection</strong></td>
+<td>Identify 1-2 motivated individuals per team</td>
+<td>Week 1</td>
+</tr>
+<tr>
+<td><strong>Deep Training</strong></td>
+<td>Complete platform engineer track + hands-on labs</td>
+<td>Weeks 2-6</td>
+</tr>
+<tr>
+<td><strong>Shadowing</strong></td>
+<td>Pair with existing experts during incident response</td>
+<td>Weeks 7-8</td>
+</tr>
+<tr>
+<td><strong>Teaching</strong></td>
+<td>Champion leads a knowledge-sharing session for their team</td>
+<td>Week 9</td>
+</tr>
+<tr>
+<td><strong>Ongoing</strong></td>
+<td>Monthly champion sync, shared Slack channel, quarterly skills refresh</td>
+<td>Continuous</td>
+</tr>
+</tbody>
+</table>
+<h3>Champion Responsibilities</h3>
+<ul>
+<li>First point of contact for Dynatrace questions within their team</li>
+<li>Create and maintain team-specific dashboards</li>
+<li>Review and improve alerting configurations quarterly</li>
+<li>Attend monthly platform team syncs</li>
+<li>Share learnings back to the broader champion community</li>
+</ul>
+<h3>Measuring Champion Effectiveness</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Escalation tickets to platform team</td>
+<td>Decrease by 50% within 3 months</td>
+</tr>
+<tr>
+<td>Teams with self-service dashboards</td>
+<td>100% within 6 months</td>
+</tr>
+<tr>
+<td>DQL-literate team members</td>
+<td>At least 2 per team within 6 months</td>
+</tr>
+</tbody>
+</table>
+<p><a id="practical-exercises"></a></p>
+<h2>6. Practical Exercises — Exploring Your Environment</h2>
+<p>The following DQL queries serve as starter exercises for new users. Each one answers a practical question about the environment.</p>
+<h3>Exercise 1: &quot;What services are running in my environment?&quot;</h3>
+<pre><code class="language-dql">// List all monitored services with their types
+fetch dt.entity.service, from:-24h
+| fieldsAdd entity.name, serviceType
+| sort entity.name asc
+| limit 25
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;SERVICE&quot;
+//   | fieldsAdd name, dt.service.sdv1_type
+//   | sort name asc
+//   | limit 25
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration discovery inventory keep the classic query above.
+// Field maps: serviceType -&gt; dt.service.sdv1_type; entity.name -&gt; name.
+// dt.service.sdv1_type is set only when dt.service_detection.version is 1; on SDv2 services it is null — add dt.service_detection.version to the by: list to see which applies.
+</code></pre>
+<h3>Exercise 2: &quot;What happened in the last hour?&quot;</h3>
+<pre><code class="language-dql">// Count logs in the last hour by log level
+fetch logs, from:-1h
+| summarize {log_count = count()}, by:{loglevel}
+| sort log_count desc
+</code></pre>
+<h3>Exercise 3: &quot;Which hosts are using the most CPU?&quot;</h3>
+<pre><code class="language-dql">// Top 5 hosts by CPU usage in the last hour
+timeseries cpuUsage = avg(dt.host.cpu.usage), from:-1h, by:{dt.entity.host}
+| fieldsAdd avgCpu = arrayAvg(cpuUsage)
+| sort avgCpu desc
+| limit 5
+</code></pre>
+<h3>Exercise 4: &quot;Are there any active problems?&quot;</h3>
+<pre><code class="language-dql">// List currently active detected problems
+fetch dt.davis.problems, from:-24h
+| filter event.status == &quot;ACTIVE&quot;
+| fieldsKeep display_id, event.name, event.category, event.status, event.start
+| sort event.start desc
+</code></pre>
+<h3>Exercise 5: &quot;How much log data are we ingesting?&quot;</h3>
+<pre><code class="language-dql">// Log ingestion volume over the last 24 hours by source
+fetch logs, from:-24h
+| summarize record_count = count(), by:{log.source}
+| sort record_count desc
+| limit 10
+</code></pre>
+<p><a id="training-roadmap"></a></p>
+<h2>7. Training Roadmap Template</h2>
+<p>Use this template to plan a 12-week enablement program for your organization.</p>
+<table>
+<thead>
+<tr>
+<th>Week</th>
+<th>Focus Area</th>
+<th>Activities</th>
+<th>Deliverable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1-2</td>
+<td>Platform Orientation</td>
+<td>UI walkthrough, basic navigation, Dynatrace Intelligence overview</td>
+<td>All team leads can navigate Dynatrace</td>
+</tr>
+<tr>
+<td>3-4</td>
+<td>DQL Fundamentals</td>
+<td>Exercises 1-5 above, basic fetch/filter/summarize</td>
+<td>All participants can write a basic query</td>
+</tr>
+<tr>
+<td>5-6</td>
+<td>Role-Specific Deep Dives</td>
+<td>SRE: logs + alerting. Dev: traces + spans. Platform: IAM + config</td>
+<td>Role-specific skills demonstrated</td>
+</tr>
+<tr>
+<td>7-8</td>
+<td>Dashboard Building</td>
+<td>Create team dashboards from DQL queries</td>
+<td>Each team has a service dashboard</td>
+</tr>
+<tr>
+<td>9-10</td>
+<td>Incident Response Practice</td>
+<td>Simulated incident using real detected problems</td>
+<td>Teams can triage without escalation</td>
+</tr>
+<tr>
+<td>11-12</td>
+<td>Champion Certification</td>
+<td>Champions lead a knowledge-sharing session</td>
+<td>Champion program officially launched</td>
+</tr>
+</tbody>
+</table>
+<h3>Success Criteria</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>12-Week Target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Teams with at least 1 DQL-literate member</td>
+<td>100%</td>
+</tr>
+<tr>
+<td>Teams with self-service dashboards</td>
+<td>&gt; 80%</td>
+</tr>
+<tr>
+<td>Escalation tickets to platform team</td>
+<td>30% reduction</td>
+</tr>
+<tr>
+<td>Champions identified and trained</td>
+<td>1 per team</td>
+</tr>
+</tbody>
+</table>
+<p><a id="summary"></a></p>
+<h2>8. Summary and Next Steps</h2>
+<h3>Key Takeaways</h3>
+<ul>
+<li>Observability adoption fails without team enablement — technology alone is not enough</li>
+<li>Role-based learning paths ensure each person learns what they need, not everything</li>
+<li>Internal champions are the most effective way to scale observability knowledge</li>
+<li>Practical DQL exercises build confidence faster than documentation alone</li>
+<li>A structured 12-week program can transform an organization's observability capability</li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li>Proceed to <strong>ADOPT-05: Optimization Roadmap</strong> to plan your long-term observability investment</li>
+<li>Identify champion candidates within each team</li>
+<li>Schedule the first &quot;Platform Orientation&quot; session for weeks 1-2</li>
+<li>Create a shared Slack/Teams channel for Dynatrace knowledge sharing</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

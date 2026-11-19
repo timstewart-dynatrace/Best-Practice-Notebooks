@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ-18: How Do I Monitor Adobe Experience Manager as a Cloud Service?</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">FAQ — Frequently Asked Questions</a><span class="sep">/</span><span aria-current="page">FAQ-18</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>FAQ-18: How Do I Monitor Adobe Experience Manager as a Cloud Service?</h1>
+<blockquote>
+<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 18 — Monitoring AEM as a Cloud Service | <strong>Created:</strong> July 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Adobe Experience Manager as a Cloud Service (AEMaaCS) is a managed platform: Adobe runs the Kubernetes containers, controls the release cadence, and holds the keys to the runtime. That single fact is what makes monitoring it different from every other OneAgent deployment described in this corpus — and it is the part most teams discover only after their first support ticket.</p>
+<p>There <em>is</em> a first-class integration. It is published and supported by <strong>Dynatrace</strong>, it is genuine <strong>OneAgent full-stack monitoring</strong> on the containers running your author and publish services, and it produces the topology, service detection, and Davis analysis you would expect. What it does not give you is the deployment control you are used to. You do not install the agent. You cannot pin its version. There is no host to configure and no <code>oneagentctl</code> to run.</p>
+<p>This entry covers <strong>what the integration is, how to get it turned on, exactly what you hand to Adobe, where the control boundary sits, how it is licensed, and the one behavior that will surprise a team mid-migration</strong> — that enabling Dynatrace stops data flowing to any other APM tool already connected to the same environments.</p>
+<p><strong>A note on sourcing.</strong> The enablement procedure is documented by <strong>Adobe</strong>, not Dynatrace, because Adobe owns the action. The commercial and capability framing is documented by Dynatrace. Where a claim rests on only one of the two, it is cited to that source. Several questions readers reasonably ask — whether the Preview service is included, whether Dispatcher and CDN tiers are covered, whether AEM logs flow into Grail — are <strong>not</strong> settled by either vendor's public documentation, and this entry says so rather than guessing. Those are marked as open questions to confirm with Adobe in your own request.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#what-the-integration-is">What the Integration Actually Is</a></li>
+<li><a href="#the-adobe-request-path">Turning It On — The Adobe Request Path</a></li>
+<li><a href="#what-you-hand-over">What You Hand Over</a></li>
+<li><a href="#the-control-boundary">The Control Boundary</a></li>
+<li><a href="#topology-and-services">What You Get — Topology and Services</a></li>
+<li><a href="#licensing">Licensing and Capacity Forecasting</a></li>
+<li><a href="#apm-exclusivity">It Displaces Your Other APM Tool</a></li>
+<li><a href="#changes-to-standard-practice">What This Changes About Standard Practice</a></li>
+<li><a href="#scope-boundaries">Scope Boundaries and Open Questions</a></li>
+<li><a href="#recommended-approach">Recommended Approach</a></li>
+<li><a href="#common-gotchas">Common Gotchas</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AEM deployment model</strong></td>
+<td><strong>AEM as a Cloud Service.</strong> This entry does not cover AEM Managed Services or on-premises AEM, where you control the hosts and standard OneAgent deployment applies</td>
+</tr>
+<tr>
+<td><strong>Adobe relationship</strong></td>
+<td>The ability to raise a customer-care ticket with Adobe — enablement is an Adobe-side action, not a Dynatrace-side one</td>
+</tr>
+<tr>
+<td><strong>Dynatrace environment</strong></td>
+<td>SaaS or Managed. Managed additionally requires a reachable ActiveGate and its port</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>Enough access in Dynatrace to mint the token Adobe asks for — Adobe names the classic access-token scope <strong>PaaS integration - Installer download</strong>, which current Dynatrace docs label <strong>Download OneAgent and ActiveGate installers</strong> (<code>InstallerDownload</code>). On a Latest Dynatrace environment, which has no classic access tokens, see § 4</td>
+</tr>
+<tr>
+<td><strong>Licensing headroom</strong></td>
+<td>Full-stack capacity for the containers Adobe runs — see § 7 before you request enablement, not after</td>
+</tr>
+<tr>
+<td><strong>Related series</strong></td>
+<td><strong>ONBRD</strong> (tenant and access design), <strong>K8S</strong> (the container model underneath), <strong>FAQ-03</strong> (OneAgent and OpenTelemetry), <strong>FAQ-04</strong> (OneAgent update management — mostly <em>not</em> applicable here, see § 9), <strong>NR2DT</strong> / <strong>NRLC</strong> (if you are migrating off New Relic — read § 8 first)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<p><strong>Raise a customer-care ticket with Adobe requesting the Dynatrace integration for the AEM environments you want monitored, and supply your Dynatrace environment URL plus an installer-download token (<code>PaaS integration - Installer download</code> in Adobe's wording).</strong> Adobe deploys OneAgent into the containers running your author and publish services; the services, their endpoints, and their container memory are detected automatically.</p>
+<p>Three things to internalise before you start:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>You cannot self-serve</strong></td>
+<td>There is no toggle in Cloud Manager and no action available from the Dynatrace side. Every enablement, and every subsequent environment you add, is an Adobe ticket</td>
+</tr>
+<tr>
+<td><strong>It replaces your other APM</strong></td>
+<td>Adobe states that once Dynatrace is integrated, data stops flowing to other APM tools on those environments. This is a cutover, not a parallel run — see § 8</td>
+</tr>
+<tr>
+<td><strong>Adobe owns the agent</strong></td>
+<td>Version, upgrade timing, injection, and host-level configuration are Adobe's. Plan around that rather than against it — see § 5</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/">Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)</a>, <a href="https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace">Dynatrace — AEM as a Cloud Service (Adobe Experience League)</a>. <strong>Derived:</strong> neither page names OneAgent; &quot;Adobe deploys OneAgent&quot; follows from the full-stack licensing basis and the requested token scope, <em>&quot;PaaS integration - Installer download&quot;</em>, which is the OneAgent installer download scope.</sub></p>
+</blockquote>
+<hr />
+<p><a id="what-the-integration-is"></a></p>
+<h2>2. What the Integration Actually Is</h2>
+<p>It is worth being precise, because &quot;plug-in&quot; undersells it and invites the wrong mental model. This is not a community extension, not a log-shipping recipe, and not an OpenTelemetry exporter.</p>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Listing name</strong></td>
+<td>Adobe Experience Manager Cloud Service monitoring</td>
+</tr>
+<tr>
+<td><strong>Published by</strong></td>
+<td><strong>Dynatrace</strong></td>
+</tr>
+<tr>
+<td><strong>Support route</strong></td>
+<td>Dynatrace support — the <a href="https://support.dynatrace.com/">Dynatrace support center</a></td>
+</tr>
+<tr>
+<td><strong>Technology</strong></td>
+<td><strong>OneAgent, full-stack</strong>, on the Kubernetes containers Adobe operates</td>
+</tr>
+<tr>
+<td><strong>Enablement owner</strong></td>
+<td><strong>Adobe</strong> (customer-care ticket)</td>
+</tr>
+<tr>
+<td><strong>Detected automatically</strong></td>
+<td>AEM applications and their dependencies, from the website through the container to the cloud service, plus the container <strong>memory sizes</strong> of the <strong>author</strong> and <strong>publish</strong> services</td>
+</tr>
+</tbody>
+</table>
+<p>Because it is real full-stack OneAgent monitoring rather than an API-polling integration, you get the things that follow from having an agent in the process: automatic service detection, distributed tracing through the AEM tiers, code-level visibility, dependency topology, and Davis root-cause analysis — the same machinery documented throughout the rest of this corpus, on infrastructure you do not own.</p>
+<p>The unusual part is purely operational: <strong>the deployment step belongs to someone else.</strong> Everything downstream of &quot;the agent is running&quot; behaves normally.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/">Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)</a>, <a href="https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace">Dynatrace — AEM as a Cloud Service (Adobe Experience League)</a>. <strong>Derived:</strong> the Hub states the licensing basis (<em>&quot;Dynatrace AEM licensing is based on Full-Stack Monitoring for containers&quot;</em>) but neither page names OneAgent — the &quot;OneAgent, full-stack&quot; row follows from that basis plus the installer-download token Adobe asks for; the &quot;behaves normally downstream&quot; conclusion adds standard OneAgent behavior, which neither vendor states for this integration</sub></p>
+</blockquote>
+<hr />
+<p><a id="the-adobe-request-path"></a></p>
+<h2>3. Turning It On — The Adobe Request Path</h2>
+<p>Adobe's documented path is a support request, not a self-service configuration:</p>
+<ol>
+<li><strong>Raise a service request</strong> with Adobe customer care.</li>
+<li><strong>Name the AEM environments</strong> you want monitored — enablement is per environment, so list every one you intend to cover.</li>
+<li><strong>Supply your Dynatrace environment details</strong> (§ 4) so Adobe can configure the agent to report into your tenant.</li>
+</ol>
+<p>Two planning consequences follow, and both are easy to miss:</p>
+<ul>
+<li><strong>Lead time is Adobe's, not yours.</strong> Enablement moves at support-ticket pace. If monitoring coverage is a gate in a migration or go-live plan, the request belongs early in the schedule, with a named owner — not in the cutover week.</li>
+<li><strong>Adding environments later is another ticket.</strong> If you enable production first and add staging afterwards, that is a second request. Where practical, list every environment in the initial request rather than discovering the per-environment cost later.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace">Dynatrace — AEM as a Cloud Service (Adobe Experience League)</a>, <a href="https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/">Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)</a>. <strong>Derived:</strong> the two planning consequences follow from the per-environment, ticket-based enablement both sources describe.</sub></p>
+</blockquote>
+<hr />
+<p><a id="what-you-hand-over"></a></p>
+<h2>4. What You Hand Over</h2>
+<p>Adobe's documentation enumerates what the ticket must contain. Assemble it before opening the request — an incomplete ticket costs another support round-trip.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+<th>Required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace environment URL</strong></td>
+<td>SaaS: <code>https://&lt;your-environment-id&gt;.live.dynatrace.com</code> · Managed: <code>https://&lt;your-managed-url&gt;/e/&lt;environmentId&gt;</code></td>
+<td>Always</td>
+</tr>
+<tr>
+<td><strong>Environment ID and token</strong></td>
+<td><code>tenantUUID</code> and <code>tenantToken</code> from the connection-info API (command below)</td>
+<td>Always</td>
+</tr>
+<tr>
+<td><strong>API access token</strong></td>
+<td>Scope: <strong><code>PaaS integration - Installer download</code></strong> in Adobe's wording — labelled <strong>Download OneAgent and ActiveGate installers</strong> (<code>InstallerDownload</code>) in current Dynatrace docs</td>
+<td>Always</td>
+</tr>
+<tr>
+<td><strong>ActiveGate port</strong></td>
+<td>The port your ActiveGate listens on</td>
+<td><strong>Managed only</strong></td>
+</tr>
+<tr>
+<td><strong>ActiveGate network zone</strong></td>
+<td>Routes monitoring data across regions</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td><strong>AEM environment IDs</strong></td>
+<td>Which environment(s) to monitor</td>
+<td>Always</td>
+</tr>
+</tbody>
+</table>
+<h3>Getting the environment ID and token</h3>
+<p>Both values come from one call against your own environment — Adobe does not retrieve them for you:</p>
+<pre><code class="language-bash">curl -X GET &quot;&lt;environmentUrl&gt;/api/v1/deployment/installer/agent/connectioninfo&quot; \
+  -H &quot;accept: application/json&quot; \
+  -H &quot;Authorization: Api-Token &lt;accessToken&gt;&quot;
+</code></pre>
+<p>Take <strong><code>tenantUUID</code></strong> (the environment ID) and <strong><code>tenantToken</code></strong> from the response. Note that the
+<code>&lt;accessToken&gt;</code> used here is the same <code>PaaS integration - Installer download</code> token you will send on:
+mint it first (<strong>Access tokens → Generate new token →</strong> scope <code>PaaS integration - Installer download</code>),
+then use it to obtain the two values.</p>
+<p><strong>On a Latest Dynatrace environment this step needs adjusting.</strong> Adobe's procedure assumes a classic access token, and the scope it names is now labelled <strong>Download OneAgent and ActiveGate installers</strong> (<code>InstallerDownload</code>) in the token UI. Latest Dynatrace environments have no classic access tokens at all. There, the connection-info call accepts a platform token with the <code>fleet-management:oneagent.connection-info:read</code> scope (send it as <code>Authorization: Bearer &lt;token&gt;</code>). Adobe does not publish which credential its integration accepts in that case, so confirm it with Adobe before you open the ticket (§ 10).</p>
+<p>Adobe classifies <strong>both the environment token and the API access token</strong> as secrets.</p>
+<h3>Handling the token</h3>
+<p>The token is a credential that permits downloading the OneAgent installer for your tenant, and it is being transmitted through a support ticket. Adobe's guidance is to <strong>password-protect it on a paste service that the ticket references, along with the password</strong> — treat that as the floor, not a suggestion. A stronger practice is to send the password through a separate channel, so that the ticket alone does not expose the token.</p>
+<p>Two practices worth adding on your side:</p>
+<ul>
+<li><strong>Mint a token dedicated to this integration</strong>, rather than reusing an existing PaaS token, so it can be revoked without collateral damage.</li>
+<li><strong>Grant only the installer-download scope.</strong> It is the documented requirement, and a broader token in a support-ticket attachment is a materially worse exposure.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace">Dynatrace — AEM as a Cloud Service (Adobe Experience League)</a> — <em>&quot;which the customer support ticket can reference, along with the password.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management-classic/access-tokens-and-oauth-clients/access-tokens">Access tokens (DT docs)</a> — the PaaS scope <em>Download OneAgent and ActiveGate installers</em> (<code>InstallerDownload</code>): <em>&quot;Allows download of installers via Deployment API.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic">Upgrade from access tokens (classic) (DT docs)</a> — (latest environment) <em>&quot;Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/oneagent/get-connectivity-info">Get connectivity information for OneAgent (DT docs)</a> — platform-token scope <em>&quot;fleet-management:oneagent.connection-info:read&quot;</em></sub></li>
+<li><sub><strong>Derived:</strong> the separate-channel password, dedicated-token and least-scope practices apply standard credential hygiene to Adobe's stated transmission method; neither vendor states them for this integration.</sub></li>
+</ul>
+</blockquote>
+<p><a id="the-control-boundary"></a></p>
+<h2>5. The Control Boundary</h2>
+<p>This is the section to read if you read only one. Most Dynatrace guidance — in this corpus and in the product documentation — assumes you control the host and the agent. On AEMaaCS you control neither, and knowing where the line falls prevents a lot of wasted effort.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+QUVNIGFzIGEgQ2xvdWQgU2VydmljZSDigJQgdGhlIENvbnRyb2wgQm91bmRhcnk8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+QWRvYmUgb3ducyBldmVyeXRoaW5nIHVwIHRvIHRoZSBhZ2VudDsgeW91IG93biBldmVyeXRoaW5nIGRvd25zdHJlYW0gb2YgdGhlIGRhdGE8L3RleHQ+CgogIDxkZWZzPgogICAgPG1hcmtlciBpZD0iYWVtQXJyb3ciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iMTAiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gQURPQkUgU0lERSAtLT4KICA8cmVjdCB4PSIzMCIgeT0iOTIiIHdpZHRoPSIzOTAiIGhlaWdodD0iMzMwIiBmaWxsPSIjRjVBNjIzIiBvcGFjaXR5PSIwLjA2IiBzdHJva2U9IiNGNUE2MjMiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iMTAiLz4KICA8dGV4dCB4PSIyMjUiIHk9IjExOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCIgbGV0dGVyLXNwYWNpbmc9IjEuMiI+QURPQkUgQ09OVFJPTFM8L3RleHQ+CiAgPHRleHQgeD0iMjI1IiB5PSIxMzciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtc3R5bGU9Iml0YWxpYyI+eW91IHJlcXVlc3Q7IHlvdSBkbyBub3QgY29uZmlndXJlPC90ZXh0PgoKICA8cmVjdCB4PSI1MiIgeT0iMTUyIiB3aWR0aD0iMzQ2IiBoZWlnaHQ9IjUyIiBmaWxsPSIjRjVBNjIzIiBvcGFjaXR5PSIwLjA3IiBzdHJva2U9IiNGNUE2MjMiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8dGV4dCB4PSI3MCIgeT0iMTczIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNjAwIj5Db250YWluZXIgcGxhdGZvcm0sIHNjYWxpbmcsIHJlbGVhc2UgY2FkZW5jZTwvdGV4dD4KICA8dGV4dCB4PSI3MCIgeT0iMTkyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5ObyBub2RlIGFjY2VzcyDCtyBubyBzY2hlZHVsaW5nIG9yIHJlc291cmNlIGNvbnRyb2w8L3RleHQ+CgogIDxyZWN0IHg9IjUyIiB5PSIyMTQiIHdpZHRoPSIzNDYiIGhlaWdodD0iNTIiIGZpbGw9IiNGNUE2MjMiIG9wYWNpdHk9IjAuMDciIHN0cm9rZT0iI0Y1QTYyMyIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjcwIiB5PSIyMzUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI2MDAiPk9uZUFnZW50IHByZXNlbmNlLCB2ZXJzaW9uLCB1cGdyYWRlIHRpbWluZzwvdGV4dD4KICA8dGV4dCB4PSI3MCIgeT0iMjU0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5ObyB2ZXJzaW9uIHBpbm5pbmcgwrcgbm8gc3RhZ2VkIGFnZW50IHJvbGxvdXQ8L3RleHQ+CgogIDxyZWN0IHg9IjUyIiB5PSIyNzYiIHdpZHRoPSIzNDYiIGhlaWdodD0iNTIiIGZpbGw9IiNGNUE2MjMiIG9wYWNpdHk9IjAuMDciIHN0cm9rZT0iI0Y1QTYyMyIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjcwIiB5PSIyOTciIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI2MDAiPldoaWNoIGVudmlyb25tZW50cyByZXBvcnQ8L3RleHQ+CiAgPHRleHQgeD0iNzAiIHk9IjMxNiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RXZlcnkgYWRkIG9yIHJlbW92ZSBpcyBhIGN1c3RvbWVyLWNhcmUgdGlja2V0PC90ZXh0PgoKICA8cmVjdCB4PSI1MiIgeT0iMzM4IiB3aWR0aD0iMzQ2IiBoZWlnaHQ9IjYwIiBmaWxsPSIjRUY0NDQ0IiBvcGFjaXR5PSIwLjA3IiBzdHJva2U9IiNFRjQ0NDQiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8dGV4dCB4PSI3MCIgeT0iMzU5IiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5FbmFibGluZyBkaXNwbGFjZXMgeW91ciBvdGhlciBBUE0gdG9vbDwvdGV4dD4KICA8dGV4dCB4PSI3MCIgeT0iMzc4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5EYXRhIHN0b3BzIGZsb3dpbmcgdG8gYSBwcmV2aW91c2x5IGVuYWJsZWQgdG9vbCDigJQ8L3RleHQ+CiAgPHRleHQgeD0iNzAiIHk9IjM5MiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YSBjdXRvdmVyIGZvciB0aGF0IGVudmlyb25tZW50LCBub3QgYSBwYXJhbGxlbCBydW48L3RleHQ+CgogIDwhLS0gQk9VTkRBUlkgLS0+CiAgPGxpbmUgeDE9IjQ2NSIgeTE9IjEwMCIgeDI9IjQ2NSIgeTI9IjQxNCIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjYgNSIvPgogIDxyZWN0IHg9IjQyNCIgeT0iMjM4IiB3aWR0aD0iODIiIGhlaWdodD0iMjYiIGZpbGw9IiMwRjE3MkEiIHJ4PSIxMyIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIiBsZXR0ZXItc3BhY2luZz0iMSI+QUdFTlQ8L3RleHQ+CiAgPGxpbmUgeDE9IjQxOCIgeTE9IjIwMCIgeDI9IjQ1MiIgeTI9IjIwMCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhZW1BcnJvdykiLz4KICA8bGluZSB4MT0iNDc4IiB5MT0iMzAwIiB4Mj0iNTEyIiB5Mj0iMzAwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2FlbUFycm93KSIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPnRlbGVtZXRyeSBjcm9zc2VzIGhlcmU8L3RleHQ+CgogIDwhLS0gWU9VUiBTSURFIC0tPgogIDxyZWN0IHg9IjUxMCIgeT0iOTIiIHdpZHRoPSIzOTAiIGhlaWdodD0iMzMwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA2IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iMTAiLz4KICA8dGV4dCB4PSI3MDUiIHk9IjExOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCIgbGV0dGVyLXNwYWNpbmc9IjEuMiI+WU9VIENPTlRST0w8L3RleHQ+CiAgPHRleHQgeD0iNzA1IiB5PSIxMzciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtc3R5bGU9Iml0YWxpYyI+c3RhbmRhcmQgcHJhY3RpY2UgYXBwbGllcywgdW5jaGFuZ2VkPC90ZXh0PgoKICA8cmVjdCB4PSI1MzIiIHk9IjE1MiIgd2lkdGg9IjM0NiIgaGVpZ2h0PSI1MiIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wNyIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNTUwIiB5PSIxNzMiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI2MDAiPlRlbmFudCwgYnVja2V0cywgcmV0ZW50aW9uLCBwZXJtaXNzaW9uczwvdGV4dD4KICA8dGV4dCB4PSI1NTAiIHk9IjE5MiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+T1JHTlogwrcgSUFNIOKAlCBmdWxseSBhcHBsaWNhYmxlPC90ZXh0PgoKICA8cmVjdCB4PSI1MzIiIHk9IjIxNCIgd2lkdGg9IjM0NiIgaGVpZ2h0PSI1MiIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wNyIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNTUwIiB5PSIyMzUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI2MDAiPlNlcnZpY2UgbmFtaW5nLCB0YWdnaW5nLCBzZWdtZW50YXRpb248L3RleHQ+CiAgPHRleHQgeD0iNTUwIiB5PSIyNTQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkF1dGhvciArIHB1Ymxpc2ggZGV0ZWN0ZWQgYXV0b21hdGljYWxseTsgdGFnIHRvIHlvdXIgY29udmVudGlvbjwvdGV4dD4KCiAgPHJlY3QgeD0iNTMyIiB5PSIyNzYiIHdpZHRoPSIzNDYiIGhlaWdodD0iNTIiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDciIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjU1MCIgeT0iMjk3IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNjAwIj5BbGVydGluZywgU0xPcywgZGFzaGJvYXJkcywgd29ya2Zsb3dzPC90ZXh0PgogIDx0ZXh0IHg9IjU1MCIgeT0iMzE2IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5BTEVSVCDCtyBTTE8gwrcgREFTSCDCtyBXRkxPVyDigJQgZnVsbHkgYXBwbGljYWJsZTwvdGV4dD4KCiAgPHJlY3QgeD0iNTMyIiB5PSIzMzgiIHdpZHRoPSIzNDYiIGhlaWdodD0iNjAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDciIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjU1MCIgeT0iMzU5IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5JbnRlcnByZXRhdGlvbiwgRGF2aXMgdHVuaW5nLCBidXNpbmVzcyBjb250ZXh0PC90ZXh0PgogIDx0ZXh0IHg9IjU1MCIgeT0iMzc4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5BSU9QUyDCtyBCSVpFViDigJQgeW91ciBpbnZlc3RtZW50IGdvZXMgaGVyZSw8L3RleHQ+CiAgPHRleHQgeD0iNTUwIiB5PSIzOTIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm5vdCBpbnRvIGhvdyB0aGUgdGVsZW1ldHJ5IGFycml2ZXM8L3RleHQ+CgogIDwhLS0gRm9vdGVyIC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjExIj5MaWNlbnNpbmcgZm9sbG93cyBBZG9iZSdzIGNvbnRhaW5lciBtZW1vcnkg4oCUIGZvcmVjYXN0IHBlciBBRU0gZW52aXJvbm1lbnQsIG5vdCBwZXIgYXBwbGljYXRpb248L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0ODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM0NzU1NjkiIGZvbnQtc2l6ZT0iMTAiPk5vdCBwdWJsaWNseSBjb25maXJtZWQ6IFByZXZpZXcgc2VydmljZSDCtyBEaXNwYXRjaGVyIMK3IENETiB0aWVyIMK3IEFFTSBsb2cgZmxvdyDigJQgYXNrIEFkb2JlIGluIHRoZSByZXF1ZXN0PC90ZXh0Pgo8L3N2Zz4K" alt="What Adobe Controls vs What You Control on AEMaaCS" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Layer | Owner | Practical consequence |
+|---|---|---|
+| Container platform, scaling, release cadence | Adobe | No node access, no scheduling control |
+| OneAgent presence, version, upgrade timing | Adobe | Version pinning and staged agent rollout are unavailable |
+| Which environments report | Adobe (on your request) | Every change is a ticket |
+| Tenant, buckets, retention, access control | You | Standard ORGNZ and IAM practice applies unchanged |
+| Alerting, SLOs, dashboards, workflows | You | Standard ALERT, SLO, DASH, WFLOW practice applies unchanged |
+| Data interpretation and Davis tuning | You | Standard AIOPS practice applies unchanged |
+For environments where SVG doesn't render
+-->
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Who controls it</th>
+<th>What that means for you</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Container platform, scaling, release cadence</td>
+<td><strong>Adobe</strong></td>
+<td>No node access; no scheduling or resource control</td>
+</tr>
+<tr>
+<td>OneAgent presence, version, upgrade timing</td>
+<td><strong>Adobe</strong></td>
+<td>You cannot pin a version or stage an agent rollout</td>
+</tr>
+<tr>
+<td>Which environments report</td>
+<td><strong>Adobe</strong>, on your request</td>
+<td>Adding or removing coverage is a support ticket</td>
+</tr>
+<tr>
+<td>Your Dynatrace tenant, buckets, retention, permissions</td>
+<td><strong>You</strong></td>
+<td>Unchanged — normal <strong>ORGNZ</strong> and <strong>IAM</strong> practice</td>
+</tr>
+<tr>
+<td>Alerting, SLOs, dashboards, workflows</td>
+<td><strong>You</strong></td>
+<td>Unchanged — normal <strong>ALERT</strong>, <strong>SLO</strong>, <strong>DASH</strong>, <strong>WFLOW</strong> practice</td>
+</tr>
+<tr>
+<td>Interpretation, Davis tuning, business context</td>
+<td><strong>You</strong></td>
+<td>Unchanged — normal <strong>AIOPS</strong> and <strong>BIZEV</strong> practice</td>
+</tr>
+</tbody>
+</table>
+<p>The useful reframing: <strong>everything to the left of the agent is Adobe's, everything to the right of the data is yours.</strong> Your investment goes into what you do with the telemetry, not into how it gets there.</p>
+<blockquote>
+<p><sub><strong>Derived:</strong> the boundary table combines Adobe's documented ownership with the tenant-side Dynatrace capabilities — neither vendor publishes the split, so confirm it against your own contract</sub></p>
+</blockquote>
+<hr />
+<p><a id="topology-and-services"></a></p>
+<h2>6. What You Get — Topology and Services</h2>
+<p>Once the agent is reporting, detection is automatic:</p>
+<ul>
+<li><strong>AEM applications and their dependencies detected automatically</strong>, from the website through the container to the cloud service.</li>
+<li><strong>Container memory sizes of the author and publish services detected automatically</strong> — which is also the basis of licensing (§ 7).</li>
+<li><strong>Standard full-stack telemetry</strong> on those containers: traces, service metrics, process and container resource data, and the dependency topology that follows from them.</li>
+</ul>
+<p>Because this is full-stack OneAgent rather than an API integration, ordinary service and endpoint detection follows — neither vendor documents that step for AEM specifically, so treat it as the expected behavior to verify rather than a published guarantee. Practically, an AEM estate appears in Smartscape as ordinary services with ordinary relationships, and every downstream Dynatrace capability treats them as such. There is no AEM-specific query surface to learn: the services behave like any other in <code>fetch spans</code>, <code>timeseries</code>, and Davis problem analysis.</p>
+<p>In community practice, the first thing worth doing after enablement is confirming that the author and publish services appear as <strong>separate</strong> services with sensible names, and tagging them to your own convention while the estate is small — service-level tagging is tenant-side and fully yours, so this is one of the few places where the usual <strong>ORGNZ</strong> guidance applies without modification.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/">Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)</a>, <a href="https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace">Dynatrace — AEM as a Cloud Service (Adobe Experience League)</a> — both state that container memory sizes are automatically detected for the author and publish services. <strong>Derived:</strong> service-level and endpoint detection follows from full-stack OneAgent behavior, not from either vendor's AEM material.</sub></p>
+</blockquote>
+<hr />
+<p><a id="licensing"></a></p>
+<h2>7. Licensing and Capacity Forecasting</h2>
+<p>Licensing follows <strong>full-stack monitoring of the containers</strong>, so it scales with the memory Adobe allocates rather than with anything you configure. Adobe publishes the deployment specification and the Dynatrace Hub listing publishes the licensing figures, which makes this forecastable before you raise the ticket.</p>
+<h3>Adobe's typical deployment specification, per AEM environment</h3>
+<table>
+<thead>
+<tr>
+<th>Environment</th>
+<th>Containers (average)</th>
+<th>Memory each</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Production</strong></td>
+<td>4</td>
+<td>16 GB</td>
+</tr>
+<tr>
+<td><strong>Non-production</strong></td>
+<td>4</td>
+<td>8 GB</td>
+</tr>
+</tbody>
+</table>
+<h3>Published licensing figures, per AEM environment</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Production</th>
+<th>Non-production</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Platform Subscription</strong></td>
+<td>max <strong>64 GiB-hours</strong> — no period stated (see below)</td>
+<td>max <strong>32 GiB-hours</strong> — no period stated</td>
+</tr>
+<tr>
+<td><strong>Classic licensing</strong></td>
+<td><strong>4 host units</strong>, or 96 host-unit-hours/day</td>
+<td><strong>2 host units</strong>, or 48 host-unit-hours/day</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Check the period before you forecast.</strong> The Hub gives the classic figure per day but the DPS figure with no period. 64 GiB-hours is exactly one hour of the production specification above (4 containers × 16 GB), so the reading consistent with that specification is <em>per hour</em> — up to about 1,536 GiB-hours a day per production environment, and about 768 a day per non-production one. Read as a daily figure, it would under-forecast by a factor of 24. Confirm the period with your Dynatrace account team before committing a number.</p>
+<p>Two forecasting notes:</p>
+<ul>
+<li><strong>Multiply by environments, not by applications.</strong> The figures above are <em>per AEM environment</em>. A team running production, stage, and a development environment is forecasting three of these, and the non-production ones are not free.</li>
+<li><strong>The container figures are Adobe's stated averages; the licensing figures are Dynatrace's worked examples of maximum consumption. Neither is a contractual cap.</strong> They are the right basis for a first estimate and the wrong basis for a commitment — confirm actual allocation for your environments before finalising licensing.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/">Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)</a>, <a href="https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace">Dynatrace — AEM as a Cloud Service (Adobe Experience League)</a> — both publish the deployment specification; the licensing figures are on the Hub listing only (<em>&quot;Production: Maximum consumption of 64 GiB hours (actual consumption depends on memory usage)&quot;</em>). The Hub states the specification as <em>&quot;On average, 4 containers, 16 GB of memory each&quot;</em> and the classic figure as <em>&quot;96 host unit hours consumption per day&quot;</em>. <strong>Derived:</strong> the per-hour reading of the DPS figure follows from the Hub's own specification (4 × 16 GB = 64); the Hub does not state the period. The per-environment multiplication note follows from the figures being stated per environment.</sub></p>
+</blockquote>
+<hr />
+<p><a id="apm-exclusivity"></a></p>
+<h2>8. It Displaces Your Other APM Tool</h2>
+<p>This is the single behavior most likely to disrupt a plan, and it is easy to miss because it appears as one line in Adobe's documentation:</p>
+<blockquote>
+<p>Once Dynatrace integrates, &quot;data no longer flows to other APM tools such as New Relic, if it was previously enabled.&quot;</p>
+</blockquote>
+<p><strong>Enabling Dynatrace on an AEM environment is a cutover for that environment, not a parallel run.</strong></p>
+<p>Almost every migration playbook in this corpus — <strong>NR2DT</strong>, <strong>NRLC</strong>, <strong>S2D</strong>, <strong>SL2DT</strong> — is built on a parallel-run period during which both tools observe the same traffic and you compare output before committing. On AEMaaCS environments, that period is not available in the usual form. The comparison has to be restructured:</p>
+<table>
+<thead>
+<tr>
+<th>Instead of</th>
+<th>Do this</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Running both tools on the same environment and comparing</td>
+<td>Cut a <strong>non-production</strong> environment first and validate there against known behavior</td>
+</tr>
+<tr>
+<td>Comparing dashboards side by side during the window</td>
+<td>Capture the <strong>outgoing</strong> tool's baselines <em>before</em> the switch — you cannot re-derive them afterwards</td>
+</tr>
+<tr>
+<td>Rolling back by disabling the new tool</td>
+<td>Treat rollback as <strong>another Adobe ticket</strong> with its own lead time, and decide the trigger in advance</td>
+</tr>
+</tbody>
+</table>
+<p><strong>FAQ-17</strong> (<em>Planning a Migration Cutover</em>) covers the general invariants; this is the case where its &quot;parallel-run window with an end date&quot; invariant has to be replaced rather than merely shortened, because the platform does not permit the overlap.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace">Dynatrace — AEM as a Cloud Service (Adobe Experience League)</a> — the quoted displacement statement. <strong>Derived:</strong> the restructured comparison table applies FAQ-17's cutover invariants to a platform where parallel running is unavailable.</sub></p>
+</blockquote>
+<hr />
+<p><a id="changes-to-standard-practice"></a></p>
+<h2>9. What This Changes About Standard Practice</h2>
+<p>Several pieces of guidance elsewhere in this corpus assume host and agent control. On AEMaaCS they need adjusting — not discarding, but knowing which half still applies.</p>
+<table>
+<thead>
+<tr>
+<th>Guidance</th>
+<th>Status on AEMaaCS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>FAQ-04</strong> — managing OneAgent updates</td>
+<td><strong>Mostly not applicable.</strong> Update rings, version pinning, and staged agent rollout are Adobe's. The reasoning about <em>why</em> agent version matters still helps you ask Adobe the right question</td>
+</tr>
+<tr>
+<td><strong>FAQ-01</strong> — host group naming</td>
+<td><strong>Not applicable as written.</strong> There is no host you name. Organise at the service and tag layer instead</td>
+</tr>
+<tr>
+<td><strong>FAQ-03</strong> — OneAgent and OpenTelemetry</td>
+<td><strong>Decided for you</strong> on these containers: it is OneAgent. Still relevant for anything you build <em>around</em> AEM</td>
+</tr>
+<tr>
+<td><strong>ORGNZ</strong> — buckets, segments, security</td>
+<td><strong>Fully applies.</strong> All tenant-side</td>
+</tr>
+<tr>
+<td><strong>IAM</strong> — access model</td>
+<td><strong>Fully applies.</strong> All tenant-side</td>
+</tr>
+<tr>
+<td><strong>ALERT / SLO / DASH / WFLOW / AIOPS</strong></td>
+<td><strong>Fully applies.</strong> These consume the data; they do not care how the agent arrived</td>
+</tr>
+<tr>
+<td><strong>K8S</strong> series</td>
+<td><strong>Background reading, not a runbook.</strong> It explains the container model underneath, but you have no cluster access and cannot apply its operator or DynaKube guidance</td>
+</tr>
+</tbody>
+</table>
+<p>The pattern is consistent: <strong>anything about getting the agent in place is Adobe's; anything about what you do with the resulting data is yours and unchanged.</strong></p>
+<blockquote>
+<p><sub><strong>Derived:</strong> this table is an editorial mapping of the documented Adobe/customer control split onto the referenced series, not a vendor statement</sub></p>
+</blockquote>
+<hr />
+<p><a id="scope-boundaries"></a></p>
+<h2>10. Scope Boundaries and Open Questions</h2>
+<p>What is confirmed: <strong>author and publish services</strong> are detected and monitored.</p>
+<p>Beyond that, several reasonable questions are <strong>not settled by either vendor's public documentation</strong> as of 07/27/2026. They are listed here as questions to put in your Adobe request rather than assumptions to build a plan on:</p>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Is the <strong>Preview</strong> service monitored alongside author and publish?</td>
+<td>Not stated publicly — confirm with Adobe</td>
+</tr>
+<tr>
+<td>Are <strong>Dispatcher</strong> and the <strong>CDN tier</strong> in scope?</td>
+<td>Not stated publicly. Both vendors' AEM material describes end-to-end coverage without naming these tiers</td>
+</tr>
+<tr>
+<td>Do <strong>AEM logs</strong> flow into Grail through this integration?</td>
+<td>Not stated publicly. Adobe provides its own log-access mechanisms; whether they connect here is unconfirmed</td>
+</tr>
+<tr>
+<td>Is <strong>RUM</strong> included, or configured separately?</td>
+<td>Dynatrace describes RUM, Session Replay, and synthetic monitoring as part of the broader AEM story, but these are tenant-side capabilities you configure — treat them as <strong>separate from</strong> the container agent enablement</td>
+</tr>
+<tr>
+<td>Can you influence <strong>OneAgent version</strong>?</td>
+<td>Not stated publicly; § 5 assumes not</td>
+</tr>
+<tr>
+<td>Which <strong>credential</strong> does the integration accept on a <strong>Latest Dynatrace</strong> environment?</td>
+<td>Not stated publicly. Adobe's procedure assumes a classic access token, which Latest environments do not have; the connection-info call accepts a platform token (§ 4). Confirm with Adobe</td>
+</tr>
+</tbody>
+</table>
+<p>Being explicit about this beats a confident guess: an AEM estate has real tiers in front of the author and publish services, and a monitoring plan that silently assumes they are covered will have a gap exactly where customer-facing latency lives.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://www.dynatrace.com/news/blog/dynatrace-and-adobe-experience-manager-seamless-end-to-end-observability/">Dynatrace and Adobe Experience Manager (Dynatrace blog)</a>, <a href="https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace">Dynatrace — AEM as a Cloud Service (Adobe Experience League)</a> — whose introduction promises &quot;end-to-end tracing across every tier and Real User Monitoring&quot; without naming a tier. The remaining rows record the <em>absence</em> of a public statement and are therefore uncited by construction.</sub></p>
+</blockquote>
+<hr />
+<p><a id="recommended-approach"></a></p>
+<h2>11. Recommended Approach</h2>
+<ol>
+<li><strong>Forecast licensing first.</strong> Use § 7 against your actual environment count. Do this before the ticket, not after enablement surprises the bill.</li>
+<li><strong>Decide the environment order.</strong> Non-production first, always — it is the only safe place to learn what the integration does and does not cover, given that § 8 removes the parallel run.</li>
+<li><strong>If another APM tool is live, capture its baselines now.</strong> Response-time distributions, error rates, throughput. Post-cutover you cannot go back for them.</li>
+<li><strong>Assemble the full ticket payload</strong> (§ 4) before opening the request, and mint a <strong>dedicated, minimally-scoped token</strong>.</li>
+<li><strong>List every environment you intend to monitor</strong> in the first request.</li>
+<li><strong>Ask the § 10 open questions explicitly</strong> in the ticket — Preview, Dispatcher, CDN, logs. Get the answer in writing for your own architecture record.</li>
+<li><strong>After enablement, verify detection</strong>: author and publish appear as separate services with sensible names and endpoints.</li>
+<li><strong>Tag to your convention immediately</strong>, while the estate is small. This is tenant-side and fully yours.</li>
+<li><strong>Build alerting and SLOs normally.</strong> From here the standard <strong>ALERT</strong>, <strong>SLO</strong>, and <strong>WFLOW</strong> guidance applies without modification.</li>
+</ol>
+<hr />
+<p><a id="common-gotchas"></a></p>
+<h2>12. Common Gotchas</h2>
+<table>
+<thead>
+<tr>
+<th>Gotcha</th>
+<th>Why it bites</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Treating enablement as a self-service task</strong></td>
+<td>There is no toggle anywhere. Plans that schedule &quot;enable monitoring&quot; as an afternoon's work miss the support-ticket lead time entirely</td>
+</tr>
+<tr>
+<td><strong>Assuming a parallel run with the outgoing APM tool</strong></td>
+<td>Adobe states the integration displaces other APM tools on those environments. Discovering this at cutover means losing comparison baselines you can no longer recreate</td>
+</tr>
+<tr>
+<td><strong>Forecasting licensing per application instead of per environment</strong></td>
+<td>The published figures are per AEM environment; three environments is three times the forecast, and non-production is not free</td>
+</tr>
+<tr>
+<td><strong>Reusing a broad existing token</strong></td>
+<td>The documented requirement is a single narrow scope, and the token travels through a support ticket. A broad token there is a materially worse exposure</td>
+</tr>
+<tr>
+<td><strong>Enabling production first</strong></td>
+<td>Removes the safe place to learn what is and is not covered, on the environment where being wrong costs the most</td>
+</tr>
+<tr>
+<td><strong>Assuming Dispatcher and CDN are covered</strong></td>
+<td>Neither vendor states it publicly (§ 10). A plan that assumes it has a gap precisely at the customer-facing edge</td>
+</tr>
+<tr>
+<td><strong>Applying FAQ-04 update-management guidance</strong></td>
+<td>Agent version and upgrade timing are Adobe's. The effort belongs in asking Adobe, not in building a rollout ring you cannot control</td>
+</tr>
+<tr>
+<td><strong>Requesting one environment at a time</strong></td>
+<td>Each addition is a separate ticket with its own lead time</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

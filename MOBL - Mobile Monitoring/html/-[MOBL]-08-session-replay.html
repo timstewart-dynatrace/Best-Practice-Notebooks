@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MOBL-08: Session Replay for Mobile</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MOBL — Mobile Monitoring</a><span class="sep">/</span><span aria-current="page">MOBL-08</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MOBL-08: Session Replay for Mobile</h1>
+<blockquote>
+<p><strong>Series:</strong> MOBL — Mobile Monitoring | <strong>Notebook:</strong> 8 of 12 | <strong>Created:</strong> February 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Mobile Session Replay gives a video-like reconstruction of user sessions for debugging and UX analysis. This notebook covers enabling Session Replay (a server-side setting), configuring privacy masking in code, choosing a capture percentage to control costs, leveraging crash replay, and querying session data with DQL.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#what-is-session-replay">What is Mobile Session Replay?</a></li>
+<li><a href="#enabling-session-replay">Enabling Session Replay</a></li>
+<li><a href="#privacy-masking-levels">Privacy Masking Levels</a></li>
+<li><a href="#sampling-cost-control">Sampling &amp; Cost Control</a></li>
+<li><a href="#crash-session-replay">Crash Session Replay</a></li>
+<li><a href="#platform-configuration">Platform Configuration</a></li>
+<li><a href="#querying-session-data">Querying Session Data</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail</td>
+</tr>
+<tr>
+<td><strong>Mobile SDK</strong></td>
+<td>OneAgent for Android 8.303+ / OneAgent for iOS 8.323+ (Dynatrace version 1.303+)</td>
+</tr>
+<tr>
+<td><strong>Session Replay License</strong></td>
+<td>DEM units with Session Replay entitlement</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:user.sessions:read</code>, <code>storage:user.events:read</code> (replay playback additionally needs <code>storage:user.replays:read</code>)</td>
+</tr>
+<tr>
+<td><strong>Platform</strong></td>
+<td>iOS 15+ (Swift 5+, Xcode 16+) or Android 6.0+ (API 23+); native apps; Flutter and React Native as a preview on Latest Dynatrace with DPS licensing; not available for Cordova, Xamarin or .NET MAUI</td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>At least 24 hours of mobile user action data</td>
+</tr>
+</tbody>
+</table>
+<p><a id="what-is-session-replay"></a></p>
+<h2>1. What is Mobile Session Replay?</h2>
+<p>Mobile Session Replay lets you replay each tap, swipe and screen rotation of a user session &quot;in a movie-like experience&quot;. In Dynatrace's own words it is <em>&quot;a video-like reconstruction of the user interactions with mobile applications that use captured events and data&quot;</em>; on iOS, the <code>DTXDebugMasking</code> environment variable (Xcode scheme &gt; Run &gt; Arguments) shows the screenshots Session Replay takes, which is how you check masking during development.</p>
+<p>Two capture modes exist:</p>
+<ol>
+<li><strong>Full Session Replay</strong> -- a configurable percentage of sessions is captured.</li>
+<li><strong>Session Replay on crashes</strong> -- every session that ends in a crash is captured, regardless of the Full Session Replay setting.</li>
+</ol>
+<h3>Key Use Cases</h3>
+<table>
+<thead>
+<tr>
+<th>Use Case</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Bug reproduction</strong></td>
+<td>Watch exactly what the user did before encountering an error, eliminating guesswork</td>
+</tr>
+<tr>
+<td><strong>UX friction analysis</strong></td>
+<td>Identify confusing navigation patterns, rage taps, and abandoned flows</td>
+</tr>
+<tr>
+<td><strong>Crash context</strong></td>
+<td>View the session leading up to a crash to understand the sequence of events</td>
+</tr>
+<tr>
+<td><strong>Conversion optimization</strong></td>
+<td>Trace drop-off points in checkout or onboarding funnels</td>
+</tr>
+<tr>
+<td><strong>Support escalation</strong></td>
+<td>Attach session replays to support tickets for faster resolution</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Session Replay Classic is available only for native iOS and Android apps. On Latest Dynatrace with DPS licensing, Session Replay for <strong>Flutter</strong> and <strong>React Native</strong> is available as a preview (pages published 09/30/2026 and 09/28/2026; register for the preview program; not available for RUM Classic or Dynatrace Managed). The older Session Replay overview still says it <em>&quot;is not supported on Cordova, React Native, Flutter, Xamarin, and .NET MAUI&quot;</em> — the newer preview pages are the current statement. Cordova, Xamarin and .NET MAUI are not supported; for hybrid apps, only the native part is replayed.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/session-replay-latest/configure-session-replay-mobile/latest-session-replay-flutter">Session Replay for Flutter (DT docs)</a> — <em>&quot;Session Replay for Flutter is available as a preview.&quot;</em>, <em>&quot;The preview is available to customers with Latest Dynatrace and DPS licensing.&quot;</em>; <a href="https://docs.dynatrace.com/docs/observe/digital-experience/session-replay-latest/configure-session-replay-mobile/latest-session-replay-react-native">Session Replay for React Native (DT docs)</a> — <em>&quot;Session Replay for React Native is available as a preview.&quot;</em></sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Correction (09/28/2026).</strong> Earlier revisions said Session Replay &quot;is <strong>not</strong> a video recording&quot;, captures &quot;UI state rather than pixels&quot;, and typically adds &quot;&lt; 50 KB per session&quot;. None of this is supported by the Session Replay documentation, which describes screenshots and a video-like reconstruction.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-ios">Session Replay Classic for iOS (DT docs)</a> — <em>&quot;Session Replay is a video-like reconstruction of the user interactions with mobile applications that use captured events and data.&quot;</em>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-android">Session Replay Classic for Android (DT docs)</a> — <em>&quot;Session Replay is not available for cross-platform frameworks such as Cordova, React Native, Flutter, Xamarin, and more&quot;</em></sub></p>
+</blockquote>
+<p><a id="enabling-session-replay"></a></p>
+<h2>2. Enabling Session Replay</h2>
+<p>Session Replay is switched on <strong>in the mobile app's settings in Dynatrace</strong>, not in <code>Info.plist</code> or the Gradle block. Once the app is instrumented (instrumentation wizard complete), the steps are the same for iOS and Android. The path below is the one the <em>Session Replay Classic</em> pages document; on a New RUM Experience frontend, look for the same toggles under the frontend's <strong>Settings &gt; Enablement and cost control</strong>:</p>
+<ol>
+<li>Go to <strong>Mobile</strong> and select the mobile application.</li>
+<li>Select <strong>More (…) &gt; Edit</strong> in the upper-right corner of the application tile.</li>
+<li>From the application settings, select <strong>General &gt; Enablement and cost control</strong>.</li>
+<li>Turn on <strong>Enable Full Session Replay</strong> and/or <strong>Enable Session Replay on crashes</strong>.</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Full Session Replay at 100%</strong></td>
+<td>All sessions are captured</td>
+</tr>
+<tr>
+<td><strong>Full Session Replay below 100%</strong></td>
+<td>A random selection of sessions is captured -- this percentage is the only sampling control</td>
+</tr>
+<tr>
+<td><strong>Session Replay on crashes</strong></td>
+<td>All sessions with a crash are captured, regardless of the Full Session Replay setting and percentage</td>
+</tr>
+</tbody>
+</table>
+<p>Then complete the Session Replay steps of the instrumentation wizard for your platform. There is <strong>no client-side sample rate</strong>, and no <code>Info.plist</code> or Gradle key that sets a sample rate or a privacy mode; masking is configured in code (Section 3). One client-side key does exist: for an instrumented <strong>SwiftUI</strong> app, also set <code>DTXSwiftUIEnableSessionReplayInstrumentation</code> to <code>true</code> in <code>Info.plist</code> (<em>&quot;Set the DTXSwiftUIEnableSessionReplayInstrumentation configuration key to true in your project's Info.plist file.&quot;</em> — Session Replay for iOS).</p>
+<blockquote>
+<p><strong>Correction (09/28/2026).</strong> Earlier revisions configured Session Replay with Info.plist keys (<code>DTXSessionReplayEnabled</code>, <code>DTXSessionReplayPrivacyMode</code>, <code>DTXSessionReplaySampleRate</code>, <code>DTXSessionReplayOnCrash</code>) and Gradle properties (<code>sessionReplay</code>, <code>sessionReplayPrivacyMode</code>, <code>sessionReplaySampleRate</code>, <code>sessionReplayOnCrash</code>), and described an SDK sample rate that combines with the server rate. None of these exists on the Session Replay pages.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-android">Session Replay Classic for Android (DT docs)</a> — <em>&quot;From the application settings, select General &gt; Enablement and cost control . Turn on Enable Full Session Replay or Enable Session Replay on crashes .&quot;</em>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-ios">Session Replay Classic for iOS (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="privacy-masking-levels"></a></p>
+<h2>3. Privacy Masking Levels</h2>
+<p>Privacy is a critical concern when capturing session replays. Dynatrace provides three masking levels to protect sensitive user data.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzUwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icmVkR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlZjQ0NDQ7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2RjMjYyNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9Im9yYW5nZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZjk3MzE2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlYTU4MGM7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJncmVlbkdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjJjNTVlO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNmEzNGE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0ic2hhZG93Ij4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMSIgZHk9IjEiIHN0ZERldmlhdGlvbj0iMiIgZmxvb2Qtb3BhY2l0eT0iMC4xNSIvPgogICAgPC9maWx0ZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSIzNTAiIGZpbGw9IiNmOGY5ZmEiIHJ4PSIxMCIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjQwMCIgeT0iMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNlc3Npb24gUmVwbGF5IFByaXZhY3kgTWFza2luZyBMZXZlbHM8L3RleHQ+CgogIDwhLS0gPT09PT09PT09PT09PT09PT09PT09IENvbHVtbiAxOiBTYWZlc3QgKFJlZCkgPT09PT09PT09PT09PT09PT09PT09IC0tPgogIDwhLS0gSGVhZGVyIHBpbGwgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjUwIiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbD0idXJsKCNyZWRHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIxNTAiIHk9IjcwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2FmZXN0PC90ZXh0PgoKICA8IS0tIFBob25lIG1vY2t1cCAtLT4KICA8cmVjdCB4PSI4MCIgeT0iOTIiIHdpZHRoPSIxNDAiIGhlaWdodD0iMTMwIiByeD0iMTIiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2RjMjYyNiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDwhLS0gU3RhdHVzIGJhciAtLT4KICA8cmVjdCB4PSI4MCIgeT0iOTIiIHdpZHRoPSIxNDAiIGhlaWdodD0iMjAiIHJ4PSIxMiIgZmlsbD0iI2ZlY2FjYSIvPgogIDx0ZXh0IHg9IjE1MCIgeT0iMTA2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5OTFiMWIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlN0YXR1cyBCYXI8L3RleHQ+CiAgPCEtLSBBbGwgbWFza2VkIGNvbnRlbnQgLS0+CiAgPHJlY3QgeD0iOTIiIHk9IjEyMCIgd2lkdGg9IjExNiIgaGVpZ2h0PSIxMiIgcng9IjMiIGZpbGw9IiNkNGQ0ZDgiLz4KICA8cmVjdCB4PSI5MiIgeT0iMTM4IiB3aWR0aD0iOTAiIGhlaWdodD0iMTIiIHJ4PSIzIiBmaWxsPSIjZDRkNGQ4Ii8+CiAgPHJlY3QgeD0iOTIiIHk9IjE1NiIgd2lkdGg9IjExNiIgaGVpZ2h0PSIxMiIgcng9IjMiIGZpbGw9IiNkNGQ0ZDgiLz4KICA8cmVjdCB4PSI5MiIgeT0iMTc0IiB3aWR0aD0iNzAiIGhlaWdodD0iMTIiIHJ4PSIzIiBmaWxsPSIjZDRkNGQ4Ii8+CiAgPHJlY3QgeD0iOTIiIHk9IjE5MiIgd2lkdGg9IjExNiIgaGVpZ2h0PSIxNiIgcng9IjMiIGZpbGw9IiNkNGQ0ZDgiLz4KICA8IS0tIE1hc2tlZCBvdmVybGF5IFggcGF0dGVybiAtLT4KICA8bGluZSB4MT0iOTIiIHkxPSIxMjAiIHgyPSIyMDgiIHkyPSIyMDgiIHN0cm9rZT0iI2VmNDQ0NCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1vcGFjaXR5PSIwLjQiLz4KICA8bGluZSB4MT0iMjA4IiB5MT0iMTIwIiB4Mj0iOTIiIHkyPSIyMDgiIHN0cm9rZT0iI2VmNDQ0NCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1vcGFjaXR5PSIwLjQiLz4KCiAgPCEtLSBMYWJlbCAtLT4KICA8dGV4dCB4PSIxNTAiIHk9IjI0MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BbGwgdGV4dCwgaW1hZ2VzLDwvdGV4dD4KICA8dGV4dCB4PSIxNTAiIHk9IjI1NCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5pbnB1dHMgbWFza2VkPC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PT09PT09PT09PSBDb2x1bW4gMjogU2FmZSAoT3JhbmdlKSA9PT09PT09PT09PT09PT09PT09PT0gLS0+CiAgPCEtLSBIZWFkZXIgcGlsbCAtLT4KICA8cmVjdCB4PSIyOTAiIHk9IjUwIiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbD0idXJsKCNvcmFuZ2VHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSI0MDAiIHk9IjcwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2FmZTwvdGV4dD4KCiAgPCEtLSBQaG9uZSBtb2NrdXAgLS0+CiAgPHJlY3QgeD0iMzMwIiB5PSI5MiIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIxMzAiIHJ4PSIxMiIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZWE1ODBjIiBzdHJva2Utd2lkdGg9IjIiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPCEtLSBTdGF0dXMgYmFyIC0tPgogIDxyZWN0IHg9IjMzMCIgeT0iOTIiIHdpZHRoPSIxNDAiIGhlaWdodD0iMjAiIHJ4PSIxMiIgZmlsbD0iI2ZlZDdhYSIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iMTA2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5YTM0MTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlN0YXR1cyBCYXI8L3RleHQ+CiAgPCEtLSBWaXNpYmxlIGxhYmVscywgbWFza2VkIGlucHV0cyAtLT4KICA8dGV4dCB4PSIzNDIiIHk9IjEzMiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5Vc2VybmFtZTwvdGV4dD4KICA8cmVjdCB4PSIzNDIiIHk9IjEzNyIgd2lkdGg9IjExNiIgaGVpZ2h0PSIxNCIgcng9IjMiIGZpbGw9IiNkNGQ0ZDgiLz4KICA8dGV4dCB4PSIzNDIiIHk9IjE2NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5QYXNzd29yZDwvdGV4dD4KICA8cmVjdCB4PSIzNDIiIHk9IjE3MCIgd2lkdGg9IjExNiIgaGVpZ2h0PSIxNCIgcng9IjMiIGZpbGw9IiNkNGQ0ZDgiLz4KICA8dGV4dCB4PSIzNDIiIHk9IjIwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5TdWJtaXQ8L3RleHQ+CiAgPHJlY3QgeD0iMzQyIiB5PSIyMDQiIHdpZHRoPSI2MCIgaGVpZ2h0PSIxMCIgcng9IjMiIGZpbGw9IiNmZGJhNzQiLz4KCiAgPCEtLSBMYWJlbCAtLT4KICA8dGV4dCB4PSI0MDAiIHk9IjI0MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5JbnB1dHMgbWFza2VkLDwvdGV4dD4KICA8dGV4dCB4PSI0MDAiIHk9IjI1NCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5sYWJlbHMgdmlzaWJsZTwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT09PT09PT09PT0gQ29sdW1uIDM6IEN1c3RvbSAoR3JlZW4pID09PT09PT09PT09PT09PT09PT09PSAtLT4KICA8IS0tIEhlYWRlciBwaWxsIC0tPgogIDxyZWN0IHg9IjU0MCIgeT0iNTAiIHdpZHRoPSIyMjAiIGhlaWdodD0iMzAiIHJ4PSI4IiBmaWxsPSJ1cmwoI2dyZWVuR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iNjUwIiB5PSI3MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkN1c3RvbTwvdGV4dD4KCiAgPCEtLSBQaG9uZSBtb2NrdXAgLS0+CiAgPHJlY3QgeD0iNTgwIiB5PSI5MiIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIxMzAiIHJ4PSIxMiIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjMTZhMzRhIiBzdHJva2Utd2lkdGg9IjIiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPCEtLSBTdGF0dXMgYmFyIC0tPgogIDxyZWN0IHg9IjU4MCIgeT0iOTIiIHdpZHRoPSIxNDAiIGhlaWdodD0iMjAiIHJ4PSIxMiIgZmlsbD0iI2JiZjdkMCIvPgogIDx0ZXh0IHg9IjY1MCIgeT0iMTA2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxNjY1MzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlN0YXR1cyBCYXI8L3RleHQ+CiAgPCEtLSBNaXggb2YgdmlzaWJsZSBhbmQgbWFza2VkIC0tPgogIDx0ZXh0IHg9IjU5MiIgeT0iMTMyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPldlbGNvbWUsIFVzZXI8L3RleHQ+CiAgPHRleHQgeD0iNTkyIiB5PSIxNTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+QmFsYW5jZTo8L3RleHQ+CiAgPHJlY3QgeD0iNjQwIiB5PSIxNDEiIHdpZHRoPSI2OCIgaGVpZ2h0PSIxMiIgcng9IjMiIGZpbGw9IiNkNGQ0ZDgiLz4KICA8dGV4dCB4PSI1OTIiIHk9IjE3MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5DYXJkOiAqKioqPC90ZXh0PgogIDxyZWN0IHg9IjU5MiIgeT0iMTgwIiB3aWR0aD0iMTE2IiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzg2ZWZhYyIvPgogIDx0ZXh0IHg9IjY1MCIgeT0iMTkxIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxNjY1MzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlZpc2libGUgYWN0aW9uPC90ZXh0PgogIDxyZWN0IHg9IjU5MiIgeT0iMjAwIiB3aWR0aD0iNjAiIGhlaWdodD0iMTAiIHJ4PSIzIiBmaWxsPSIjODZlZmFjIi8+CgogIDwhLS0gTGFiZWwgLS0+CiAgPHRleHQgeD0iNjUwIiB5PSIyNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzU1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGV2ZWxvcGVyLWRlZmluZWQ8L3RleHQ+CiAgPHRleHQgeD0iNjUwIiB5PSIyNTQiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzU1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+bWFza2luZzwvdGV4dD4KCiAgPCEtLSBBcnJvd3MgYmV0d2VlbiBjb2x1bW5zIHNob3dpbmcgcHJvZ3Jlc3Npb24gLS0+CiAgPHRleHQgeD0iMjc1IiB5PSIxNjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzk0YTNiOCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+JiN4MjVCNjs8L3RleHQ+CiAgPHRleHQgeD0iNTI1IiB5PSIxNjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzk0YTNiOCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+JiN4MjVCNjs8L3RleHQ+CgogIDwhLS0gTGVnZW5kIGJhciAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMjc1IiB3aWR0aD0iNzIwIiBoZWlnaHQ9IjYwIiByeD0iNiIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0MDAiIHk9IjI5NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5DaG9vc2UgdGhlIHByaXZhY3kgbGV2ZWwgdGhhdCBtYXRjaGVzIHlvdXIgY29tcGxpYW5jZSByZXF1aXJlbWVudHMuIFN0YXJ0IHdpdGggU2FmZXN0IGFuZCByZWxheCBhcyBuZWVkZWQuPC90ZXh0PgogIDxjaXJjbGUgY3g9IjEyMCIgY3k9IjMyMCIgcj0iNiIgZmlsbD0iI2VmNDQ0NCIvPgogIDx0ZXh0IHg9IjEzNSIgeT0iMzI0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPlNhZmVzdCAoYWxsIG1hc2tlZCk8L3RleHQ+CiAgPGNpcmNsZSBjeD0iMjkwIiBjeT0iMzIwIiByPSI2IiBmaWxsPSIjZjk3MzE2Ii8+CiAgPHRleHQgeD0iMzA1IiB5PSIzMjQiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+U2FmZSAoaW5wdXRzIG1hc2tlZCk8L3RleHQ+CiAgPGNpcmNsZSBjeD0iNDcwIiBjeT0iMzIwIiByPSI2IiBmaWxsPSIjMjJjNTVlIi8+CiAgPHRleHQgeD0iNDg1IiB5PSIzMjQiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+Q3VzdG9tIChzZWxlY3RpdmUpPC90ZXh0Pgo8L3N2Zz4=" alt="Session Replay Privacy Levels" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Privacy Level | Description | What Is Masked |
+|---------------|-------------|----------------|
+| Safest | Maximum privacy protection | Editable text fields, images, labels, web views and switches |
+| Safe | Balanced approach for most apps | Editable text fields only; labels, images, web views and switches remain visible |
+| Custom | Developer-controlled masking | Starts with the same elements as Safest; the developer then masks or unmasks specific views |
+For environments where SVG doesn't render
+-->
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Description</th>
+<th>Masked Elements</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Safest</strong></td>
+<td>Maximum privacy</td>
+<td>Editable text fields, images, labels, web views and switches masked</td>
+</tr>
+<tr>
+<td><strong>Safe</strong></td>
+<td>Balanced approach</td>
+<td>Editable text fields masked; labels, images, web views and switches visible</td>
+</tr>
+<tr>
+<td><strong>Custom</strong></td>
+<td>Developer-defined</td>
+<td>By default the same as Safest; mask/unmask specific views via the API</td>
+</tr>
+</tbody>
+</table>
+<p>OneAgent applies <strong>Safest</strong> by default. To use Safe or Custom, set the masking level through the API.</p>
+<h3>Choosing the Right Level</h3>
+<ul>
+<li><strong>Safest</strong> (default) -- Use for apps handling financial, healthcare, or highly regulated data. Replays show layout and navigation but no readable content.</li>
+<li><strong>Safe</strong> -- Only editable text fields are masked; labels and navigation elements remain visible for context.</li>
+<li><strong>Custom</strong> -- Starts from Safest; developers then mask or unmask specific views for precise control.</li>
+</ul>
+<h3>Setting the Masking Level</h3>
+<p><strong>iOS (Swift):</strong></p>
+<pre><code class="language-swift">let maskingConfiguration = MaskingConfiguration(maskingLevelType: .safe)
+try? AgentManager.setMaskingConfiguration(maskingConfiguration)
+</code></pre>
+<p><strong>Android (Java):</strong></p>
+<pre><code class="language-java">MaskingConfiguration config = new MaskingConfiguration.Safe(); // .Safest or .Custom
+DynatraceSessionReplay.setConfiguration(Configuration.builder()
+    .withMaskingConfiguration(config)
+    .build());
+</code></pre>
+<h3>Custom Masking Examples</h3>
+<p><strong>iOS -- mask views by <code>accessibilityIdentifier</code> (Custom level):</strong></p>
+<pre><code class="language-swift">try? maskingConfiguration.addMaskedView(viewIds: [&quot;masked_view_id&quot;])
+try? maskingConfiguration.addNonMaskedView(viewIds: [&quot;nonMasked_view_id&quot;])
+</code></pre>
+<p><strong>Android -- mask views by ID (Custom level), then apply the configuration as above:</strong></p>
+<pre><code class="language-java">Set&lt;Integer&gt; set = new HashSet&lt;Integer&gt;() { add(R.id.view_id1); add(R.id.view_id2); };
+new MaskingConfiguration.Custom().addMaskedIds(set);
+</code></pre>
+<p><strong>Android Jetpack Compose -- mask a composable:</strong></p>
+<pre><code class="language-kotlin">import com.dynatrace.agent.compose.api.dtMask
+
+@Composable
+fun MyScreen() {
+    Column {
+        Text(text = &quot;This text will be masked&quot;, modifier = Modifier.dtMask())
+    }
+}
+</code></pre>
+<p>On both platforms, a view whose <code>accessibilityIdentifier</code> (iOS) or <code>android:tag</code> (Android) contains the masking tag <code>data-dtrum-mask</code> is always masked.</p>
+<blockquote>
+<p><strong>Correction (09/28/2026).</strong> Earlier revisions used a <code>dtxMaskingMode</code> view property (not documented) and labelled an <code>applyUserPrivacyOptions</code> call &quot;mask a specific view&quot; -- that call sets the data-collection level (MOBL-09), not Session Replay masking.</p>
+</blockquote>
+<blockquote>
+<p><strong>Tip:</strong> Start with the default <strong>Safest</strong> level or with <strong>Safe</strong>, and move to <strong>Custom</strong> only when specific elements need to be unmasked for debugging. This keeps privacy by default.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-ios">Session Replay Classic for iOS (DT docs)</a> — <em>&quot;Safest —all the editable text fields, images, labels, web views, and switches are masked. Safe —all the editable text fields are masked.&quot;</em>, <em>&quot;Custom —by default, masks the same elements as Safest&quot;</em>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-android">Session Replay Classic for Android (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="sampling-cost-control"></a></p>
+<h2>4. Sampling &amp; Cost Control</h2>
+<p>Session Replay is billed on top of the session itself — in <strong>DEM (Digital Experience Monitoring) units</strong> on classic licensing; on a Dynatrace Platform Subscription, check the Session Replay line of your rate card. The Full Session Replay percentage under <strong>General &gt; Enablement and cost control</strong> (Section 2) is the primary lever for managing costs while still capturing enough data for meaningful analysis.</p>
+<h3>Sampling Strategy</h3>
+<p>The Full Session Replay percentage determines what share of user sessions is recorded for replay. Not every session needs to be captured -- statistical sampling provides representative coverage.</p>
+<p>In community practice, teams start from percentages like these and tune them to their traffic and budget:</p>
+<table>
+<thead>
+<tr>
+<th>Environment</th>
+<th>Starting Percentage</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Production</strong></td>
+<td>5--10%</td>
+<td>Captures enough sessions for trend analysis while controlling DEM consumption</td>
+</tr>
+<tr>
+<td><strong>Staging / QA</strong></td>
+<td>100%</td>
+<td>Full coverage for pre-release testing and bug verification</td>
+</tr>
+<tr>
+<td><strong>High-traffic production</strong></td>
+<td>1--5%</td>
+<td>Even 1% of millions of sessions provides thousands of replays</td>
+</tr>
+<tr>
+<td><strong>Post-incident</strong></td>
+<td>Temporarily increase to 50--100%</td>
+<td>Raise sampling when actively investigating a reported issue</td>
+</tr>
+</tbody>
+</table>
+<h3>Cost Estimation</h3>
+<p>Session Replay cost depends on:</p>
+<ol>
+<li><strong>Number of captured sessions</strong> -- Directly proportional to sample rate and total traffic.</li>
+<li><strong>Session length</strong> -- Longer sessions generate more replay data.</li>
+<li><strong>UI activity</strong> -- in community practice, busier screens (frequent transitions and animation) produce more replay data per session.</li>
+</ol>
+<p><strong>Formula:</strong></p>
+<pre><code>Monthly replay sessions = Monthly active sessions x Sample rate (%)
+DEM units consumed = Monthly replay sessions x Avg DEM units per session
+</code></pre>
+<h3>Best Practices</h3>
+<ul>
+<li><strong>Start low</strong> -- Begin with 5% in production and increase only if you need more coverage.</li>
+<li><strong>Use crash replay</strong> -- Even at low sample rates, crash replay captures the sessions that matter most (see next section).</li>
+<li><strong>Monitor consumption</strong> -- Track DEM unit usage in the Dynatrace license overview to avoid surprises.</li>
+<li><strong>Segment by app</strong> -- Set a different Full Session Replay percentage per mobile application based on its criticality.</li>
+</ul>
+<p><a id="crash-session-replay"></a></p>
+<h2>5. Crash Session Replay</h2>
+<p>Crash Session Replay is one of the most valuable features of mobile Session Replay. It works independently of the general sampling rate to ensure that crash sessions are always captured.</p>
+<h3>How It Works</h3>
+<p>With <strong>Enable Session Replay on crashes</strong> turned on, every session that ends in a crash is captured, whatever the Full Session Replay percentage. The replay shows the user actions that preceded the crash.</p>
+<h3>Key Benefits</h3>
+<table>
+<thead>
+<tr>
+<th>Benefit</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Always-on crash capture</strong></td>
+<td>Crash replays are saved regardless of the general sample rate</td>
+</tr>
+<tr>
+<td><strong>Full context</strong></td>
+<td>See the exact sequence of screens and interactions leading to the crash</td>
+</tr>
+<tr>
+<td><strong>Faster root cause</strong></td>
+<td>Developers can visually reproduce the crash scenario without relying on user descriptions</td>
+</tr>
+</tbody>
+</table>
+<h3>Configuration</h3>
+<p>Crash replay is the <strong>Enable Session Replay on crashes</strong> toggle in the app settings (<strong>General &gt; Enablement and cost control</strong>, Section 2). There is no <code>Info.plist</code> or Gradle key for it. Separately, the user's privacy choice must allow it: the OneAgent SDK privacy options carry a <code>crashReplayOptedIn</code> flag (MOBL-09 §3).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-android">Session Replay Classic for Android (DT docs)</a> — <em>&quot;Enabling Session Replay on Crashes means guarantees that, regardless of the Enable Full Session Replay setting and its const and traffic control value, all sessions with crash are will be captured.&quot;</em> (sic)</sub></p>
+</blockquote>
+<p><a id="platform-configuration"></a></p>
+<h2>6. Platform Configuration</h2>
+<p>Enablement and the capture percentage live in the app settings (Section 2), and masking is set in code (Section 3). The one platform key is iOS-only: SwiftUI apps also need <code>DTXSwiftUIEnableSessionReplayInstrumentation</code> set to <code>true</code> in <code>Info.plist</code> (Section 2). What differs by platform is the requirements:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>iOS</th>
+<th>Android</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Agent</strong></td>
+<td>OneAgent for iOS 8.323+</td>
+<td>OneAgent for Android 8.303+</td>
+</tr>
+<tr>
+<td><strong>OS</strong></td>
+<td>iOS 15.0+ (not tvOS or iPadOS)</td>
+<td>Android 6.0+ (API 23+)</td>
+</tr>
+<tr>
+<td><strong>Toolchain</strong></td>
+<td>Swift 5+, Xcode 16+; SwiftUI supported</td>
+<td>Android Gradle plugin 8.1.1+, Kotlin 2.1.0+; Jetpack Compose 1.4+ from OneAgent 8.325</td>
+</tr>
+<tr>
+<td><strong>Masking API</strong></td>
+<td><code>MaskingConfiguration</code> + <code>AgentManager.setMaskingConfiguration</code></td>
+<td><code>MaskingConfiguration</code> + <code>DynatraceSessionReplay.setConfiguration</code>; <code>Modifier.dtMask()</code> for Compose</td>
+</tr>
+<tr>
+<td><strong>Debug check</strong></td>
+<td><code>DTXDebugMasking</code> environment variable (Xcode scheme) shows the screenshots taken</td>
+<td>Session Replay logs as for OneAgent</td>
+</tr>
+</tbody>
+</table>
+<h3>Cross-Platform Frameworks</h3>
+<table>
+<thead>
+<tr>
+<th>Framework</th>
+<th>Session Replay Support</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>React Native</strong></td>
+<td>Preview (Latest Dynatrace + DPS)</td>
+<td><code>@dynatrace/react-native-plugin</code> 2.349.1+ with <code>@dynatrace/react-native-session-replay</code>; register for the preview program</td>
+</tr>
+<tr>
+<td><strong>Flutter</strong></td>
+<td>Preview (Latest Dynatrace + DPS)</td>
+<td><code>dynatrace_flutter_plugin</code> 3.349.1+ with <code>dynatrace_flutter_plugin_replay</code>; register for the preview program</td>
+</tr>
+<tr>
+<td><strong>Xamarin / .NET MAUI</strong></td>
+<td>Not available</td>
+<td>Both named as unsupported on the Session Replay overview</td>
+</tr>
+<tr>
+<td><strong>Cordova / Ionic</strong></td>
+<td>Not available</td>
+<td>For hybrid apps, only the native part is replayed</td>
+</tr>
+</tbody>
+</table>
+<p><a id="querying-session-data"></a></p>
+<h2>7. Querying Session Data</h2>
+<p>Use DQL to analyze mobile session patterns, identify high-activity sessions, track trends, and find crash sessions for replay review.</p>
+<h3>Session Counts by Mobile Application</h3>
+<p>Count distinct sessions (<code>dt.rum.session.id</code> on <code>user.events</code>) per mobile application over the last 24 hours to understand session volume distribution.</p>
+<pre><code class="language-dql">// Session counts by mobile application
+fetch user.events, from:-24h
+| filter in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;})
+| summarize session_count = countDistinct(dt.rum.session.id), by:{frontend.name}
+| sort session_count desc
+</code></pre>
+<h3>Most Active Sessions by Action Count</h3>
+<p>Identify the most active sessions in the last 24 hours from <code>user.sessions</code>, which carries per-session counters (<code>user_action_count</code>, <code>request_count</code>, <code>error.count</code>) and <code>characteristics.has_replay</code>. High action counts may indicate power users, automated testing, or potential abuse.</p>
+<pre><code class="language-dql">// Most active sessions by user-action count -- one user.sessions record per session
+fetch user.sessions, from:-24h
+| filter dt.rum.application.type == &quot;mobile&quot;
+| fields start_time, dt.rum.session.id, user_action_count, request_count, error.count, characteristics.has_replay
+| sort user_action_count desc
+| limit 20
+</code></pre>
+<h3>Daily Session Volume Trends</h3>
+<p>Track session volume over the past 7 days, and how many sessions carry a replay (<code>characteristics.has_replay</code>), to identify usage patterns, weekend vs. weekday differences, and growth trends.</p>
+<pre><code class="language-dql">// Daily session volume trends, and how many carry a replay
+fetch user.sessions, from:-7d
+| filter dt.rum.application.type == &quot;mobile&quot;
+| makeTimeseries {sessions = count(), replay_sessions = countIf(characteristics.has_replay == true)}, time:start_time, interval:24h
+</code></pre>
+<h3>Crash Sessions for Replay Review</h3>
+<p>Find recent crash sessions (<code>user.sessions</code> with <code>error.has_crash</code>) to review their Session Replay; <code>characteristics.has_replay</code> tells you whether a replay exists. These are the highest-priority sessions for debugging, and crash replay ensures they are captured even at low sampling rates.</p>
+<pre><code class="language-dql">// Crash sessions for replay review
+fetch user.sessions, from:-24h
+| filter dt.rum.application.type == &quot;mobile&quot; and error.has_crash == true
+| fields start_time, dt.rum.session.id, os.name, app.short_version, characteristics.has_replay
+| sort start_time desc
+| limit 20
+</code></pre>
+<h2>Summary</h2>
+<p>This notebook covered the key aspects of Mobile Session Replay:</p>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Key Takeaway</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>What is Session Replay</strong></td>
+<td>Video-like reconstruction from captured events and screenshots; native iOS/Android; Flutter / React Native in preview (Latest Dynatrace + DPS)</td>
+</tr>
+<tr>
+<td><strong>Enabling</strong></td>
+<td>App settings &gt; General &gt; Enablement and cost control; no client-side keys</td>
+</tr>
+<tr>
+<td><strong>Privacy masking</strong></td>
+<td>Three levels (Safest default, Safe, Custom), set in code via <code>MaskingConfiguration</code></td>
+</tr>
+<tr>
+<td><strong>Capture percentage</strong></td>
+<td>Full Session Replay percentage; start at 5--10% for production, 100% for staging/QA</td>
+</tr>
+<tr>
+<td><strong>Crash replay</strong></td>
+<td>Captures every crashed session regardless of the Full Session Replay percentage</td>
+</tr>
+<tr>
+<td><strong>Platform requirements</strong></td>
+<td>iOS 15+ / OneAgent 8.323+; Android 6.0+ / OneAgent 8.303+</td>
+</tr>
+<tr>
+<td><strong>Querying</strong></td>
+<td>Use DQL on <code>user.sessions</code> / <code>user.events</code> to analyze session patterns and find crash sessions</td>
+</tr>
+</tbody>
+</table>
+<h2>Next Steps</h2>
+<p>Continue to <strong>MOBL-09: Session Properties &amp; Data Privacy</strong> to explore session properties, user tagging, data-collection levels and opt-in, and data deletion.</p>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic">Session Replay for Mobile</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-android">Session Replay Classic for Android (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-ios">Session Replay Classic for iOS (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/additional-configuration/configure-rum-privacy-mobile">Mobile SDK Privacy Settings</a></li>
+<li><a href="https://docs.dynatrace.com/docs/license">Dynatrace Platform Subscription (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

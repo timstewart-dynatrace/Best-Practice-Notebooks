@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NRLC-09: Toolchain Reference &amp; End-to-End Runbook</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">NRLC — New Relic to Dynatrace Migration Deep Dives</a><span class="sep">/</span><span aria-current="page">NRLC-09</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>NRLC-09: Toolchain Reference &amp; End-to-End Runbook</h1>
+<blockquote>
+<p><strong>Series:</strong> NRLC — New Relic to Dynatrace Migration Deep Dives | <strong>Notebook:</strong> 9 of 9 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 10/31/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>The master reference for the open-source toolchain that powers every preceding notebook in this series. This deep dive covers how <code>Dynatrace-NewRelic</code>, <code>nrql-engine</code>, and <code>nrql-translator</code> fit together, how to operate the orchestrating CLI, the configuration surface, the export formats (Monaco v2 YAML, Terraform HCL), and a complete end-to-end runbook.</p>
+<p><strong>As of 2026-04-15</strong> the Python orchestrator ships <strong>40+ transformers</strong> across 9 phase batches (Phase 11 foundation + Phases 16–24 expansion), <strong>1,200+ unit tests</strong>, and <strong>292 NRQL translation patterns</strong> pinned to the TypeScript <code>nrql-engine</code> via the Phase 19b regression suite. It emits <strong>Gen3 Dynatrace by default</strong> (Workflows, anomaly detectors, Segments, OpenPipeline, Document API); use <code>--legacy</code> only for the 8 Gen2-only capabilities or for tenants without Gen3 features.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#projects">The Three Projects — How They Fit</a></li>
+<li><a href="#install">Installation &amp; Configuration</a></li>
+<li><a href="#cli"><code>migrate.py</code> CLI Reference</a></li>
+<li><a href="#components">Component Selection</a></li>
+<li><a href="#exports">Export Formats — Monaco &amp; Terraform</a></li>
+<li><a href="#runbook">End-to-End Runbook</a></li>
+<li><a href="#cicd">CI/CD Integration Patterns</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Engineers operating the migration end-to-end</td>
+</tr>
+<tr>
+<td><strong>Required reading</strong></td>
+<td>All preceding NRLC notebooks (this is the operational reference)</td>
+</tr>
+<tr>
+<td><strong>Access</strong></td>
+<td>NR API key + DT API token; both with appropriate scopes (see §2)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>For the full Terraform resource catalog (worked examples for every resource named in §5's export list, plus the OAuth-client-only vs. Platform-Token distinction for IAM/bucket resources), see <strong>AUTOM-04</strong> (Terraform Provider) and <strong>AUTOM-02</strong> (Settings API) rather than treating this notebook as the canonical shape.</p>
+</blockquote>
+<p><a id="projects"></a></p>
+<h2>1. The Three Projects — How They Fit</h2>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│        Dynatrace-NewRelic (Python orchestrator)        │
+│  - migrate.py CLI (14 subcommands)                      │
+│  - 40+ entity transformers (Phases 11 + 16–24)          │
+│  - migration/state, canary, audit, diff, retry, rollback│
+│  - exporters/monaco (v2), exporters/terraform           │
+└───────────────┬────────────────┴────────────────────────┐
+                │ (uses)                            (uses)
+                ↓                                     ↓
+     ┌────────────────────────┐    ┌─────────────────────────┐
+     │  nrql-engine (TS lib)  │    │  Dynatrace + NR APIs    │
+     │  - 292 NRQL patterns   │    │                          │
+     │  - DQL validator       │    └──────────────────────────┘
+     │  - TS↔Python parity    │
+     │    pinned via Phase 19b│
+     └─────┬─────────────────┘
+           │ (wrapped by)
+           ↓
+     ┌─────────────────────────┐
+     │  nrql-translator CLI    │
+     │  - single query         │
+     │  - batch Excel          │
+     │  - notebook gen         │
+     └─────────────────────────┘
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Use Case</th>
+<th>Tool</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>End-to-end NR→DT migration</td>
+<td><code>Dynatrace-NewRelic</code> (<code>migrate.py</code>)</td>
+</tr>
+<tr>
+<td>Embed translation in your own tool/web app</td>
+<td><code>nrql-engine</code></td>
+</tr>
+<tr>
+<td>One-off NRQL→DQL on the command line</td>
+<td><code>nrql-translator</code></td>
+</tr>
+<tr>
+<td>Translate a batch of dashboard queries</td>
+<td><code>nrql-translator excel</code> or <code>migrate.py batch</code></td>
+</tr>
+<tr>
+<td>Generate a DT notebook from a <code>*_ast_test.json</code> file</td>
+<td><code>nrql-translator notebook</code></td>
+</tr>
+</tbody>
+</table>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5OUiDihpIgRFQgTWlncmF0aW9uIFRvb2xjaGFpbiBPdmVydmlldzwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5UaHJlZSBvcGVuLXNvdXJjZSBwcm9qZWN0cyDCtyBob3cgdGhleSBmaXQgdG9nZXRoZXI8L3RleHQ+CgogIDxkZWZzPgogICAgPG1hcmtlciBpZD0ibnIxMGFyciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBUT1A6IE9yY2hlc3RyYXRvciAtLT4KICA8cmVjdCB4PSIyMDAiIHk9IjkwIiB3aWR0aD0iNTMwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xNSIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjIiIHJ4PSIxMCIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRDlGOTlEIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5EeW5hdHJhY2UtTmV3UmVsaWMgKFB5dGhvbiBvcmNoZXN0cmF0b3IpPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5taWdyYXRlLnB5IENMSSDCtyA0MCsgdHJhbnNmb3JtZXJzIMK3IG1pZ3JhdGlvbiBzdGF0ZSDCtyBkaWZmL3JvbGxiYWNrPC90ZXh0PgoKICA8ZyBmb250LXNpemU9IjEwIj4KICAgIDxyZWN0IHg9IjIyMCIgeT0iMTUwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHJ4PSIzIi8+CiAgICA8dGV4dCB4PSIyNzAiIHk9IjE2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Q5Rjk5RCI+LS1mdWxsIC8gLS1kaWZmPC90ZXh0PgogICAgPHJlY3QgeD0iMzMwIiB5PSIxNTAiIHdpZHRoPSIxMDAiIGhlaWdodD0iMjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjMiLz4KICAgIDx0ZXh0IHg9IjM4MCIgeT0iMTY4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRDlGOTlEIj4tLXJlcG9ydDwvdGV4dD4KICAgIDxyZWN0IHg9IjQ0MCIgeT0iMTUwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHJ4PSIzIi8+CiAgICA8dGV4dCB4PSI0OTAiIHk9IjE2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Q5Rjk5RCI+LS1yb2xsYmFjazwvdGV4dD4KICAgIDxyZWN0IHg9IjU1MCIgeT0iMTUwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHJ4PSIzIi8+CiAgICA8dGV4dCB4PSI2MDAiIHk9IjE2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Q5Rjk5RCI+YXVkaXQtc2xvczwvdGV4dD4KICAgIDxyZWN0IHg9IjY2MCIgeT0iMTUwIiB3aWR0aD0iNjAiIGhlaWdodD0iMjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjMiLz4KICAgIDx0ZXh0IHg9IjY5MCIgeT0iMTY4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRDlGOTlEIj5iYXRjaDwvdGV4dD4KICA8L2c+CgogIDwhLS0gTUlERExFIExFRlQ6IG5ycWwtZW5naW5lIC0tPgogIDxyZWN0IHg9IjYwIiB5PSIyMjUiIHdpZHRoPSIzMjAiIGhlaWdodD0iMTYwIiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjE1IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMiIgcng9IjEwIi8+CiAgPHRleHQgeD0iMjIwIiB5PSIyNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPm5ycWwtZW5naW5lIChUeXBlU2NyaXB0IGxpYnJhcnkpPC90ZXh0PgogIDx0ZXh0IHg9IjIyMCIgeT0iMjcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5HaXRIdWIgUGFja2FnZXM6IEB0aW1zdGV3YXJ0LWR5bmF0cmFjZS9ucnFsLWVuZ2luZTwvdGV4dD4KCiAgPGcgZm9udC1zaXplPSIxMCI+CiAgICA8cmVjdCB4PSI4MCIgeT0iMjg1IiB3aWR0aD0iMTM1IiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHJ4PSIzIi8+CiAgICA8dGV4dCB4PSIxNDgiIHk9IjMwMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0VERTlGRSI+TlJRTENvbXBpbGVyPC90ZXh0PgogICAgPHJlY3QgeD0iMjI1IiB5PSIyODUiIHdpZHRoPSIxMzUiIGhlaWdodD0iMjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgcng9IjMiLz4KICAgIDx0ZXh0IHg9IjI5MyIgeT0iMzAzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRURFOUZFIj5EUUxTeW50YXhWYWxpZGF0b3I8L3RleHQ+CiAgICA8cmVjdCB4PSI4MCIgeT0iMzIwIiB3aWR0aD0iMTM1IiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHJ4PSIzIi8+CiAgICA8dGV4dCB4PSIxNDgiIHk9IjMzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0VERTlGRSI+RFRFbnZSZWdpc3RyeTwvdGV4dD4KICAgIDxyZWN0IHg9IjIyNSIgeT0iMzIwIiB3aWR0aD0iMTM1IiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHJ4PSIzIi8+CiAgICA8dGV4dCB4PSIyOTMiIHk9IjMzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0VERTlGRSI+dHJhbnNmb3JtZXJzPC90ZXh0PgogIDwvZz4KICA8dGV4dCB4PSIyMjAiIHk9IjM3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMCIgZm9udC1zdHlsZT0iaXRhbGljIj4yOTIgTlJRTOKGkkRRTCBwYXR0ZXJuczwvdGV4dD4KCiAgPCEtLSBNSURETEUgUklHSFQ6IG5ycWwtdHJhbnNsYXRvciAtLT4KICA8cmVjdCB4PSI0MDAiIHk9IjIyNSIgd2lkdGg9IjMyMCIgaGVpZ2h0PSIxNjAiIGZpbGw9IiMyMkQzRUUiIG9wYWNpdHk9IjAuMTUiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iMTAiLz4KICA8dGV4dCB4PSI1NjAiIHk9IjI1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+bnJxbC10cmFuc2xhdG9yIChDTEkpPC90ZXh0PgogIDx0ZXh0IHg9IjU2MCIgeT0iMjcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5ydW4gZnJvbSBhIGNoZWNrb3V0OiBucG0gcnVuIGNsaTwvdGV4dD4KCiAgPGcgZm9udC1zaXplPSIxMCI+CiAgICA8cmVjdCB4PSI0MjAiIHk9IjI4NSIgd2lkdGg9IjEzNSIgaGVpZ2h0PSIyOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiByeD0iMyIvPgogICAgPHRleHQgeD0iNDg4IiB5PSIzMDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDRkZBRkUiPnF1ZXJ5IChzaW5nbGUpPC90ZXh0PgogICAgPHJlY3QgeD0iNTY1IiB5PSIyODUiIHdpZHRoPSIxMzUiIGhlaWdodD0iMjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgcng9IjMiLz4KICAgIDx0ZXh0IHg9IjYzMyIgeT0iMzAzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0ZGQUZFIj5leGNlbCAoYmF0Y2gpPC90ZXh0PgogICAgPHJlY3QgeD0iNDIwIiB5PSIzMjAiIHdpZHRoPSIxMzUiIGhlaWdodD0iMjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgcng9IjMiLz4KICAgIDx0ZXh0IHg9IjQ4OCIgeT0iMzM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0ZGQUZFIj52YWxpZGF0ZTwvdGV4dD4KICAgIDxyZWN0IHg9IjU2NSIgeT0iMzIwIiB3aWR0aD0iMTM1IiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHJ4PSIzIi8+CiAgICA8dGV4dCB4PSI2MzMiIHk9IjMzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NGRkFGRSI+bm90ZWJvb2sgKGdlbik8L3RleHQ+CiAgPC9nPgogIDx0ZXh0IHg9IjU2MCIgeT0iMzcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPlRoaW4gd3JhcHBlciDCtyBhbGwgbG9naWMgZGVsZWdhdGVzIHRvIGVuZ2luZTwvdGV4dD4KCiAgPCEtLSBBcnJvd3MgLS0+CiAgPGcgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiPgogICAgPGxpbmUgeDE9IjM1MCIgeTE9IjE5MCIgeDI9IjIyMCIgeTI9IjIyNSIgbWFya2VyLWVuZD0idXJsKCNucjEwYXJyKSIvPgogICAgPGxpbmUgeDE9IjU4MCIgeTE9IjE5MCIgeDI9IjU2MCIgeTI9IjIyNSIgbWFya2VyLWVuZD0idXJsKCNucjEwYXJyKSIvPgogICAgPGxpbmUgeDE9IjM4MCIgeTE9IjMwNSIgeDI9IjQwMCIgeTI9IjMwNSIgbWFya2VyLWVuZD0idXJsKCNucjEwYXJyKSIvPgogIDwvZz4KCiAgPCEtLSBCb3R0b206IE91dHB1dHMgLS0+CiAgPHRleHQgeD0iNDY1IiB5PSI0MjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPk91dHB1dHM8L3RleHQ+CgogIDxnIGZvbnQtc2l6ZT0iMTEiPgogICAgPHJlY3QgeD0iNjAiIHk9IjQzNSIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI1MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNSIvPgogICAgPHRleHQgeD0iMTUwIiB5PSI0NTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtd2VpZ2h0PSI2MDAiPkRpcmVjdCBBUEkgaW1wb3J0PC90ZXh0PgogICAgPHRleHQgeD0iMTUwIiB5PSI0NzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkRUIFNldHRpbmdzIMK3IERvY3VtZW50cyDCtyBTeW50aGV0aWM8L3RleHQ+CgogICAgPHJlY3QgeD0iMjYwIiB5PSI0MzUiIHdpZHRoPSIxODAiIGhlaWdodD0iNTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjUiLz4KICAgIDx0ZXh0IHg9IjM1MCIgeT0iNDU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkVGM0M3IiBmb250LXdlaWdodD0iNjAwIj5Nb25hY28gWUFNTDwvdGV4dD4KICAgIDx0ZXh0IHg9IjM1MCIgeT0iNDcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5tb25hY28gZGVwbG95IChvbmUtdGltZSk8L3RleHQ+CgogICAgPHJlY3QgeD0iNDYwIiB5PSI0MzUiIHdpZHRoPSIxODAiIGhlaWdodD0iNTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjUiLz4KICAgIDx0ZXh0IHg9IjU1MCIgeT0iNDU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRDlGOTlEIiBmb250LXdlaWdodD0iNjAwIj5UZXJyYWZvcm0gSENMPC90ZXh0PgogICAgPHRleHQgeD0iNTUwIiB5PSI0NzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkdpdE9wcyAobG9uZy10ZXJtKTwvdGV4dD4KCiAgICA8cmVjdCB4PSI2NjAiIHk9IjQzNSIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI1MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiByeD0iNSIvPgogICAgPHRleHQgeD0iNzUwIiB5PSI0NTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtd2VpZ2h0PSI2MDAiPkRUIE5vdGVib29rPC90ZXh0PgogICAgPHRleHQgeD0iNzUwIiB5PSI0NzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPm1pZ3JhdGVkIGRhc2hib2FyZC5pcHluYjwvdGV4dD4KICA8L2c+Cjwvc3ZnPgo=" alt="NR → DT Migration Toolchain Overview" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Tool | Form | Use Case |
+|------|------|----------|
+| Dynatrace-NewRelic | Python orchestrator | End-to-end migration via migrate.py (40+ transformers, 14 subcommands) |
+| nrql-engine | TS library | Embed translation (292 patterns; TS↔Python parity pinned via Phase 19b CI) |
+| nrql-translator | TS CLI | Single query, batch Excel, notebook gen |
+
+Outputs: direct API import, Monaco v2 YAML, Terraform HCL, DT notebook
+For environments where SVG doesn't render
+-->
+<h3>Upstream Home: Dynatrace Migration Assistant (<code>dynatrace-dma</code>)</h3>
+<p>The official Dynatrace migration tooling lives under the <a href="https://github.com/dynatrace-dma"><code>dynatrace-dma</code></a> GitHub organization — the <strong>Dynatrace Migration Assistant</strong> project. Existing repos in the org:</p>
+<table>
+<thead>
+<tr>
+<th>Repo</th>
+<th>Source Platform</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/dynatrace-dma/splunk-to-dynatrace"><code>splunk-to-dynatrace</code></a></td>
+<td>Splunk</td>
+<td>Active</td>
+</tr>
+<tr>
+<td><a href="https://github.com/dynatrace-dma/datadog-to-dynatrace"><code>datadog-to-dynatrace</code></a></td>
+<td>Datadog</td>
+<td>Active</td>
+</tr>
+<tr>
+<td><code>newrelic-to-dynatrace</code> <em>(planned)</em></td>
+<td>New Relic</td>
+<td><code>nrql-engine</code> planned to relocate here</td>
+</tr>
+</tbody>
+</table>
+<p>When the New Relic engine relocates, the recommended install path will become the <code>dynatrace-dma</code> repo. Until then, <code>timstewart-dynatrace/nrql-engine</code> is canonical.</p>
+<p><a id="install"></a></p>
+<h2>2. Installation &amp; Configuration</h2>
+<h3>Dynatrace-NewRelic (Python)</h3>
+<pre><code class="language-bash">git clone https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities
+cd NewRelic-to-Dynatrace-Migration-Utilities
+pip install -r requirements.txt
+cp .env.example .env
+# Edit .env with NR + DT credentials
+</code></pre>
+<blockquote>
+<p><strong>Future home note:</strong> The <code>nrql-engine</code> underlying this orchestrator is planned to relocate to the <a href="https://github.com/dynatrace-dma"><code>dynatrace-dma</code></a> (<strong>Dynatrace Migration Assistant</strong>) organization, joining the existing <code>splunk-to-dynatrace</code> and <code>datadog-to-dynatrace</code> repos. Track that org for the official Dynatrace-supported install going forward.</p>
+</blockquote>
+<h3>Required NR API Token Scopes</h3>
+<ul>
+<li><code>read:dashboards</code>, <code>read:alerts</code>, <code>read:nrql</code>, <code>read:synthetics</code>, <code>read:slo</code>, <code>read:workloads</code>, <code>read:logs</code></li>
+</ul>
+<h3>Required DT API Token Scopes</h3>
+<p>From the tool's <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/main/docs/token-scopes.md">token scopes reference (migration utilities GitHub)</a>:</p>
+<table>
+<thead>
+<tr>
+<th>Credential</th>
+<th>Permissions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Platform token (<code>dt0s16.</code>, the default): preflight</td>
+<td><code>settings:schemas:read</code>, <code>settings:objects:read</code>, <code>document:documents:read</code>, <code>automation:workflows:read</code>, <code>slo:slos:read</code></td>
+</tr>
+<tr>
+<td>Platform token: full migrate adds</td>
+<td><code>settings:objects:write</code>, <code>document:documents:write</code>, <code>automation:workflows:write</code>, <code>automation:workflows:run</code>, <code>slo:slos:write</code></td>
+</tr>
+<tr>
+<td>Platform token: Grail reads</td>
+<td><code>storage:logs:read</code>, <code>storage:events:read</code>, <code>storage:metrics:read</code>, <code>storage:spans:read</code>, <code>storage:entities:read</code>, <code>storage:buckets:read</code></td>
+</tr>
+<tr>
+<td>Classic token (<code>dt0c01.</code>, with <code>--legacy</code>)</td>
+<td><code>ReadConfig</code>, <code>WriteConfig</code>, <code>DataExport</code>, <code>ExternalSyntheticIntegration</code>, <code>events.ingest</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> OAuth clients use the same platform permissions — not the classic <code>&lt;area&gt;.&lt;action&gt;</code> scopes. SLOs are platform-only here: the tool writes them through the SLO Service Public API, so the credential needs <code>slo:slos:read</code> (plus <code>slo:slos:write</code> for migrate runs), not <code>slo.read</code> / <code>slo.write</code>; the Terraform <code>dynatrace_platform_slo</code> resource takes an OAuth client (<code>DT_CLIENT_ID</code>, <code>DT_CLIENT_SECRET</code>, <code>DT_ACCOUNT_ID</code>) with those permissions.</p>
+</blockquote>
+<h3>Configuration File (<code>.env</code>)</h3>
+<p>Key names as in the repository's <code>.env.example</code> (<code>main</code> branch, read 10/05/2026):</p>
+<pre><code class="language-bash">NEW_RELIC_API_KEY=NRAK-...
+NEW_RELIC_ACCOUNT_ID=1234567
+NEW_RELIC_REGION=US           # or EU
+
+DYNATRACE_API_TOKEN=dt0c01.XXXX...
+DYNATRACE_ENVIRONMENT_URL=https://abc12345.live.dynatrace.com
+DYNATRACE_DETECTOR_ACTOR=     # service-user UUID; anomaly detectors fail to import without it
+
+# Optional
+MIGRATION_DRY_RUN=false
+MIGRATION_OUTPUT_DIR=./output
+LOG_LEVEL=INFO
+</code></pre>
+<p><code>audit-slos</code> additionally reads <code>DYNATRACE_OAUTH_TOKEN</code> from the environment and exits without it.</p>
+<p>Settings are loaded via Pydantic; missing required values fail fast with descriptive errors.</p>
+<p><a id="cli"></a></p>
+<h2>3. <code>migrate.py</code> CLI Reference</h2>
+<h3>Subcommand inventory (post-Phase-24)</h3>
+<p>The <code>migrate.py</code> entry point registers <strong>14 subcommands</strong> (<code>main</code> branch, read 10/05/2026):</p>
+<p><code>agents, archive, audit, audit-slos, batch, compile, convert, export-monaco, export-terraform, extract-nrql, migrate, preflight, reference, scan-instrumentation</code></p>
+<table>
+<thead>
+<tr>
+<th>Subcommand</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>migrate</code></td>
+<td>Full pipeline (export → transform → import). Accepts <code>--full</code>, <code>--export-only</code>, <code>--import-only</code>, <code>--dry-run</code>, <code>--components</code>, <code>--rollback &lt;file&gt;</code>, <code>--retry &lt;file&gt;</code>, <code>--resume</code>, <code>--incremental</code>, <code>--report</code>, <code>--diff</code>, <code>--legacy</code>, <code>--canary &lt;pct&gt;</code>, <code>--canary-auto-proceed</code></td>
+</tr>
+<tr>
+<td><code>compile</code></td>
+<td>Single NRQL → DQL compilation. Flags: <code>--interactive</code>, <code>--file</code>, <code>--validate</code>, <code>--output</code></td>
+</tr>
+<tr>
+<td><code>convert</code></td>
+<td>NRQL → DQL with post-processing + auto-fix (wraps <code>compile</code> + <code>DQLFixer</code>)</td>
+</tr>
+<tr>
+<td><code>batch</code></td>
+<td>CSV / Excel batch compile (NRQL column)</td>
+</tr>
+<tr>
+<td><code>reference</code></td>
+<td>Print NRQL → DQL reference table; <code>--mappings</code> for full mapping tables (230 metrics + 72 attributes + 90+ aggregations + 34 event types)</td>
+</tr>
+<tr>
+<td><strong><code>preflight</code></strong></td>
+<td><strong>Phase 14.</strong> Probe target DT tenant for Gen3 API availability (Settings 2.0 / Document / Automation). Suggests <code>--legacy</code> if any surface is missing.</td>
+</tr>
+<tr>
+<td><strong><code>agents</code></strong></td>
+<td><strong>Phase 16.</strong> Per-language APM agent migration action plans (Java / .NET / Node.js / Python / Ruby / PHP / Go). Flags: <code>--language &lt;lang&gt;</code>, <code>--phase</code>, <code>--dry-run</code>.</td>
+</tr>
+<tr>
+<td><strong><code>scan-instrumentation</code></strong></td>
+<td><strong>Phase 16.</strong> Scan <strong>one source file</strong> (<code>--file</code>) for <code>newrelic.*()</code> SDK calls; print DT/OTel replacement suggestions as a diff (<code>--output</code> writes it to a file). Side-effect-free; manual apply.</td>
+</tr>
+<tr>
+<td><strong><code>archive</code></strong></td>
+<td><strong>Phase 17.</strong> Pre-decommission NRDB snapshot (resumable JSONL per event type). Requires <code>--account</code> and <code>--since</code>.</td>
+</tr>
+<tr>
+<td><strong><code>audit</code></strong></td>
+<td><strong>Phase 20.</strong> Config drift: compares a transformed baseline (<code>--baseline &lt;dynatrace_config.json&gt;</code>) with the live tenant. Reports RENAMED / DELETED / MODIFIED / EXTRA. Read-only; exits 1 on drift. Does not query New Relic.</td>
+</tr>
+<tr>
+<td><code>audit-slos</code></td>
+<td>Validate DT SLOs against live metrics for missing/invalid keys (Phase 11 + Phase 20 enrichment). DT side only; needs <code>DYNATRACE_OAUTH_TOKEN</code>.</td>
+</tr>
+<tr>
+<td><code>extract-nrql</code></td>
+<td>Extract every NRQL query from the export JSON into a flat <code>.txt</code> or <code>.csv</code> list.</td>
+</tr>
+<tr>
+<td><code>export-monaco</code></td>
+<td>Emit Monaco v2 project YAML (Gen3 default; <code>--legacy</code> for Gen2 shapes).</td>
+</tr>
+<tr>
+<td><code>export-terraform</code></td>
+<td>Emit Terraform HCL with <code>dynatrace-oss/dynatrace</code> provider (Gen3 default; <code>--legacy</code> for Gen2 shapes).</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> No subcommand runs NRQL against New Relic and DQL against Dynatrace to compare results. Behavioral validation (NRLC-08 §4) is a manual step; <code>audit</code> compares <em>configuration</em>, not query results.</p>
+</blockquote>
+<h3><code>migrate</code> flags</h3>
+<p>These are options of the <code>migrate</code> subcommand, not global flags. There is no <code>--transform-only</code>, <code>--filter</code>, <code>--log-level</code> or <code>--no-color</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--components &lt;list&gt;</code></td>
+<td>Restrict to specific components (see §4 for the accepted names)</td>
+</tr>
+<tr>
+<td><code>--export-only</code> / <code>--import-only</code></td>
+<td>Run one phase only; <code>--import-only</code> needs <code>--input &lt;dir&gt;</code> and writes no rollback manifest</td>
+</tr>
+<tr>
+<td><code>--dry-run</code></td>
+<td>Export and transform, skip the import (&quot;Validate without applying changes&quot;)</td>
+</tr>
+<tr>
+<td><code>--diff</code></td>
+<td>Compare the transformed entities with the live tenant — use with <code>--dry-run</code>, otherwise it runs after the import</td>
+</tr>
+<tr>
+<td><code>--output &lt;dir&gt;</code></td>
+<td>Override output directory</td>
+</tr>
+<tr>
+<td><code>--rollback &lt;file&gt;</code></td>
+<td>Delete the entities listed in a rollback manifest</td>
+</tr>
+<tr>
+<td><code>--legacy</code></td>
+<td>Gen2 output path — emits Alerting Profiles / Management Zones / Auto-Tags / Config v1 dashboards instead of Gen3 equivalents.</td>
+</tr>
+<tr>
+<td><code>--canary &lt;pct&gt;</code></td>
+<td>Phase 20. Two-wave import — import N% first, await approval, then import remainder</td>
+</tr>
+<tr>
+<td><code>--canary-auto-proceed</code></td>
+<td>In canary mode, skip the interactive prompt and proceed automatically (CI / scripted use)</td>
+</tr>
+<tr>
+<td><code>--report</code></td>
+<td>Emit enriched conversion report (confidence_score, warning_codes, runbook_url per entry)</td>
+</tr>
+</tbody>
+</table>
+<h3>Transformer coverage</h3>
+<p><code>migrate.py</code> orchestrates 40+ entity transformers across 9 phase batches. See the <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/main/docs/COVERAGE.md">coverage matrix (migration utilities GitHub)</a> for the complete NR-surface → transformer mapping. High-level summary:</p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Transformers added</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>11</strong> (foundation)</td>
+<td>alert, dashboard, synthetic, slo, workload, infrastructure, log_parsing, tag, drop_rule</td>
+</tr>
+<tr>
+<td><strong>16</strong> (P0 coverage)</td>
+<td>agents/ orchestrators (7 languages), lambda, browser_rum, mobile_rum, custom_instrumentation_translator</td>
+</tr>
+<tr>
+<td><strong>17</strong> (P1 alerts + data + identity)</td>
+<td>non_nrql_alert, baseline_alert, lookup_table, maintenance_window, change_tracking, custom_event_ingest, identity, log_obfuscation, tools/nrdb_archive</td>
+</tr>
+<tr>
+<td><strong>18</strong> (specialized products)</td>
+<td>cloud_integration, kubernetes, aiops, vulnerability, npm, ai_monitoring, prometheus</td>
+</tr>
+<tr>
+<td><strong>19</strong> (dashboard widget parity)</td>
+<td>funnel / honeycomb / event-feed / cascading vars / saved views / permissions uplift</td>
+</tr>
+<tr>
+<td><strong>19b</strong> (nrql-engine parity)</td>
+<td>compiler/shorthands, K8s metric + entity-field overrides, 24 DQL fixer methods</td>
+</tr>
+<tr>
+<td><strong>20</strong> (operational safety)</td>
+<td>migration/canary, migration/audit, DynatraceClient.delete_entity, enriched ConversionReport</td>
+</tr>
+<tr>
+<td><strong>23</strong> (second-wave parity)</td>
+<td>key_transaction, otel_metrics, statsd, cloudwatch_metric_streams, metric_transform plugin, transformers/mappings/</td>
+</tr>
+<tr>
+<td><strong>24</strong> (third-wave parity)</td>
+<td>database_monitoring (10 engines), on_host_integration (12 techs), security_signals, custom_entity, log_archive, metric_normalization, synthetic_specialized (cert-check + broken-links), saved_filter_notebook, otel_collector, legacy/error_inbox_v1, legacy/request_naming_v1</td>
+</tr>
+</tbody>
+</table>
+<p><a id="components"></a></p>
+<h2>4. Component Selection</h2>
+<p>Migrating one entity type at a time is the safe pattern. The <code>--components</code> flag accepts a comma-separated list.</p>
+<blockquote>
+<p><strong>What <code>migrate --components</code> actually accepts (<code>main</code> branch, read 10/05/2026).</strong> <code>--list-components</code> prints ten names: <code>dashboards</code>, <code>alerts</code>, <code>synthetics</code>, <code>slos</code>, <code>workloads</code>, <code>notification_channels</code>, <code>infrastructure</code>, <code>log_parsing</code>, <code>tags</code>, <code>drop_rules</code>. Of those, <code>migrate</code> exports and transforms only <code>dashboards</code>, <code>alerts</code>, <code>notification_channels</code>, <code>synthetics</code>, <code>slos</code> and <code>workloads</code>; any other name is reported as exported and produces nothing. Dependencies are added automatically — <code>alerts</code> pulls in <code>notification_channels</code>, and <code>slos</code> pulls in <code>alerts</code>. The table below maps NR surfaces to the engine's <strong>transformers</strong>; most of its first-column names are not <code>--components</code> values.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Migrates</th>
+<th>Transformer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dashboards</code></td>
+<td>NR Dashboards → DT Documents (one per page), including funnel / honeycomb / event-feed / cascading variables / saved views</td>
+<td><code>dashboard_transformer</code> (Phase 11 + Phase 19 widget parity)</td>
+</tr>
+<tr>
+<td><code>alerts</code></td>
+<td>NR NRQL conditions → <code>builtin:davis.anomaly-detectors</code> + Workflow</td>
+<td><code>alert_transformer</code> (Phase 11 + Phase 17 extensions)</td>
+</tr>
+<tr>
+<td><code>baseline_alerts</code></td>
+<td>NR baseline / outlier NRQL conditions → Dynatrace Intelligence adaptive detectors</td>
+<td><code>baseline_alert_transformer</code> (Phase 17)</td>
+</tr>
+<tr>
+<td><code>non_nrql_alerts</code></td>
+<td>Infrastructure / Synthetic / Browser / Mobile / External-service / Multi-location-synthetic conditions</td>
+<td><code>non_nrql_alert_transformer</code> (Phase 17)</td>
+</tr>
+<tr>
+<td><code>lookup_tables</code></td>
+<td>NR <code>WHERE IN</code> lookups → Resource Store JSONL + DQL <code>lookup</code> subquery</td>
+<td><code>lookup_table_transformer</code> (Phase 17)</td>
+</tr>
+<tr>
+<td><code>maintenance_windows</code></td>
+<td>NR scheduled + recurring maintenance + mute rules → DT maintenance-window envelopes; a mute rule's condition arrives as a LOW-confidence comment in a workflow filter</td>
+<td><code>maintenance_window_transformer</code> (Phase 17)</td>
+</tr>
+<tr>
+<td><code>change_tracking</code></td>
+<td>NR deployment markers → DT events API (<code>CUSTOM_DEPLOYMENT</code>, <code>CUSTOM_CONFIGURATION</code>)</td>
+<td><code>change_tracking_transformer</code> (Phase 17)</td>
+</tr>
+<tr>
+<td><code>custom_event_ingest</code></td>
+<td>NR custom events → bizevent CloudEvent payloads</td>
+<td><code>custom_event_ingest_transformer</code> (Phase 17)</td>
+</tr>
+<tr>
+<td><code>synthetics</code></td>
+<td>NR Ping / Browser / Scripted API / Scripted Browser → <code>dynatrace_http_monitor</code>/<code>dynatrace_browser_monitor</code> (Config-v1, <code>ExternalSyntheticIntegration</code> scope)</td>
+<td><code>synthetic_transformer</code> (Phase 11)</td>
+</tr>
+<tr>
+<td><code>synthetics_specialized</code></td>
+<td>CERT_CHECK + BROKEN_LINKS</td>
+<td><code>synthetic_specialized_transformer</code> (Phase 24)</td>
+</tr>
+<tr>
+<td><code>slos</code></td>
+<td>NR SLOs (v1 / v2) → Platform SLOs (SLO Service Public API; <code>dynatrace_platform_slo</code>). Classic <code>builtin:monitoring.slo</code> is no longer emitted</td>
+<td><code>slo_transformer</code> (Phase 11)</td>
+</tr>
+<tr>
+<td><code>key_transactions</code></td>
+<td>NR Key Transactions → SLO + OpenPipeline enrichment + Workflow bundle</td>
+<td><code>key_transaction_transformer</code> (Phase 23)</td>
+</tr>
+<tr>
+<td><code>workloads</code></td>
+<td>NR Workloads → Grail Filter Segment (<code>dynatrace_segment</code>) + bucket-scoped IAM</td>
+<td><code>workload_transformer</code> (Phase 11, Gen3 default)</td>
+</tr>
+<tr>
+<td><code>tags</code></td>
+<td>NR tag rules → OpenPipeline enrichment (<code>builtin:openpipeline.*</code>)</td>
+<td><code>tag_transformer</code> (Phase 11, Gen3 default)</td>
+</tr>
+<tr>
+<td><code>logs</code></td>
+<td>NR log forwarding configs → DT ingest or OneAgent log collection runbook</td>
+<td><code>log_parsing_transformer</code> + runbook (Phase 11)</td>
+</tr>
+<tr>
+<td><code>drops</code></td>
+<td>NR drop rules → OpenPipeline filter processors</td>
+<td><code>drop_rule_transformer</code> (Phase 11)</td>
+</tr>
+<tr>
+<td><code>parsing</code></td>
+<td>NR Grok parsing → OpenPipeline DPL <code>parse</code> processors</td>
+<td><code>log_parsing_transformer</code> (Phase 11)</td>
+</tr>
+<tr>
+<td><code>log_obfuscation</code></td>
+<td>NR PII / PAN masking → OpenPipeline <code>mask</code> processors (7 presets + regex)</td>
+<td><code>log_obfuscation_transformer</code> (Phase 17)</td>
+</tr>
+<tr>
+<td><code>log_archive</code></td>
+<td>NR Log Live Archive → Grail bucket + OpenPipeline egress (S3/GCS/Azure Blob)</td>
+<td><code>log_archive_transformer</code> (Phase 24)</td>
+</tr>
+<tr>
+<td><code>notifications</code></td>
+<td>NR Notification Channels → Workflow action tasks (email/slack/pagerduty/webhook first-class; Jira/ServiceNow/OpsGenie/xMatters/VictorOps/Teams via <code>http-function</code> fallback or <code>--legacy</code> typed shapes)</td>
+<td>folded into <code>alert_transformer</code> (Phase 11 + 17)</td>
+</tr>
+<tr>
+<td><code>identity</code></td>
+<td>NR Users / Teams / Roles / SAML → <code>builtin:iam.*</code> + SCIM runbook</td>
+<td><code>identity_transformer</code> (Phase 17)</td>
+</tr>
+<tr>
+<td><code>cloud_integrations</code></td>
+<td>AWS (16 services) / Azure (8 resources) / GCP (8 services)</td>
+<td><code>cloud_integration_transformer</code> (Phase 18)</td>
+</tr>
+<tr>
+<td><code>kubernetes</code></td>
+<td>NR K8s → DynaKube (full-stack / host-only) + Helm values</td>
+<td><code>kubernetes_transformer</code> (Phase 18)</td>
+</tr>
+<tr>
+<td><code>aiops</code></td>
+<td>NR AI Workflows + enrichments + decisions → DT automation + Dynatrace Intelligence detectors</td>
+<td><code>aiops_transformer</code> (Phase 18)</td>
+</tr>
+<tr>
+<td><code>vulnerability</code></td>
+<td>NR Vuln Mgmt → RVA alerting + per-CVE muting</td>
+<td><code>vulnerability_transformer</code> (Phase 18)</td>
+</tr>
+<tr>
+<td><code>npm</code></td>
+<td>SNMP devices + NetFlow collector (secrets redacted)</td>
+<td><code>npm_transformer</code> (Phase 18)</td>
+</tr>
+<tr>
+<td><code>ai_monitoring</code></td>
+<td>Model registry + inference NRQL→DQL mapping</td>
+<td><code>ai_monitoring_transformer</code> (Phase 18)</td>
+</tr>
+<tr>
+<td><code>prometheus</code></td>
+<td>NR Prometheus → DT scrape + OTLP remote-write + relabel filters</td>
+<td><code>prometheus_transformer</code> (Phase 18)</td>
+</tr>
+<tr>
+<td><code>otel_metrics</code></td>
+<td>NR OTLP metrics ingest → <code>builtin:otel.ingest.metrics</code> + collector YAML</td>
+<td><code>otel_metrics_transformer</code> (Phase 23)</td>
+</tr>
+<tr>
+<td><code>otel_collector</code></td>
+<td>NR OTel collector (traces + metrics + logs + 5 processor kinds)</td>
+<td><code>otel_collector_transformer</code> (Phase 24)</td>
+</tr>
+<tr>
+<td><code>statsd</code></td>
+<td>NR StatsD → ActiveGate <code>builtin:statsd.metrics</code> + tag-mapping translation</td>
+<td><code>statsd_transformer</code> (Phase 23)</td>
+</tr>
+<tr>
+<td><code>cloudwatch_metric_streams</code></td>
+<td>NR Firehose path → <code>builtin:aws.metric-streams</code> + Terraform snippet</td>
+<td><code>cloudwatch_metric_streams_transformer</code> (Phase 23)</td>
+</tr>
+<tr>
+<td><code>database_monitoring</code></td>
+<td>10 DB engines (MySQL / Postgres / MSSQL / Oracle / MongoDB / Redis / Cassandra / MariaDB / DB2 / HANA) → <code>builtin:dynatrace.extension.db.*</code></td>
+<td><code>database_monitoring_transformer</code> (Phase 24)</td>
+</tr>
+<tr>
+<td><code>on_host_integrations</code></td>
+<td>12 integrations (NGINX / HAProxy / Kafka / RabbitMQ / Elasticsearch / Memcached / Couchbase / Consul / Apache / etcd / Varnish / Zookeeper) → DT extensions</td>
+<td><code>on_host_integration_transformer</code> (Phase 24)</td>
+</tr>
+<tr>
+<td><code>security_signals</code></td>
+<td>NR Security Signals / IAST → AppSec envelope + per-signature OpenPipeline enrichment</td>
+<td><code>security_signals_transformer</code> (Phase 24)</td>
+</tr>
+<tr>
+<td><code>custom_entity</code></td>
+<td>NR custom entities → DT custom-device POST payload + enrichment matcher</td>
+<td><code>custom_entity_transformer</code> (Phase 24)</td>
+</tr>
+<tr>
+<td><code>metric_normalization</code></td>
+<td>NR rename / aggregate / drop rules → OpenPipeline metric processors</td>
+<td><code>metric_normalization_transformer</code> (Phase 24)</td>
+</tr>
+<tr>
+<td><code>saved_filter_notebook</code></td>
+<td>NR Data Apps → Document API <code>type=='notebook'</code> with markdown + DQL cells</td>
+<td><code>saved_filter_notebook_transformer</code> (Phase 24)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recommended order:</strong> <code>workloads</code> first (foundations), then <code>dashboards</code>, then <code>synthetics</code>, then <code>alerts</code> (with <code>notification_channels</code>), then <code>slos</code>. Tag rules, log parsing, drop rules and the specialized surfaces in the table (cloud integrations, Kubernetes, Prometheus, database and on-host integrations, vulnerabilities, security signals, AI monitoring, OpenTelemetry, StatsD, CloudWatch metric streams, NPM, custom entities, metric normalization, saved-filter notebooks) are migrated by hand from the transformer guidance until <code>migrate</code> exports them.</p>
+<p><a id="exports"></a></p>
+<h2>5. Export Formats — Monaco &amp; Terraform</h2>
+<p>Beyond direct API import, <code>Dynatrace-NewRelic</code> can emit <strong>config-as-code</strong> in two formats:</p>
+<h3>Monaco YAML</h3>
+<pre><code class="language-bash">python3 migrate.py export-monaco --input ./output --output ./monaco-project
+</code></pre>
+<p>Output: a Monaco v2 project (<code>manifest.yaml</code> + per-config-type directories with <code>config.yaml</code> + JSON templates), including Platform SLOs as Monaco <code>slo-v2</code> configs. Deploy it with <code>monaco deploy manifest.yaml</code>. The SaaS Upgrade Assistant (M2S series) is not a route for this project: it imports a Dynatrace Managed configuration export created in the Cluster Management Console, not a Monaco project.</p>
+<h3>Terraform HCL</h3>
+<pre><code class="language-bash">python3 migrate.py export-terraform --input ./output --output ./terraform-project
+</code></pre>
+<p>Output: HCL files using the <code>dynatrace-oss/dynatrace</code> provider, plus a <code>provider.tf</code> that declares the credential variables (<code>dynatrace_env_url</code>, <code>dynatrace_api_token</code>, <code>dynatrace_oauth_client_id</code>, <code>dynatrace_oauth_client_secret</code>). Resources: <code>dynatrace_document</code> (dashboards), <code>dynatrace_automation_workflow</code>, <code>dynatrace_segment</code>, <code>dynatrace_iam_policy</code>, <code>dynatrace_platform_slo</code> (SLOs), and <code>dynatrace_generic_setting</code> for anomaly detectors (<code>builtin:davis.anomaly-detectors</code>), synthetic tests and OpenPipeline processors (exporter on the <code>main</code> branch, read 10/14/2026). <code>--legacy</code> emits classic (Gen2) resource names instead.</p>
+<h3>Why both formats</h3>
+<ul>
+<li><strong>Monaco</strong> is best for one-time bootstrap and bulk deploys (<code>monaco deploy</code>)</li>
+<li><strong>Terraform</strong> is best for ongoing GitOps-style management</li>
+</ul>
+<p>The general guidance is <strong>Terraform as the long-term tool</strong>, with Monaco reserved for export and one-time deploys. The <strong>AUTOM</strong> series covers configuration automation tooling in depth.</p>
+<p><a id="runbook"></a></p>
+<h2>6. End-to-End Runbook</h2>
+<p>This is the operational sequence to run a complete NR→DT migration.</p>
+<h3>Prerequisites</h3>
+<ul>
+<li>[ ] NR API key + account ID configured</li>
+<li>[ ] DT Platform Token configured (OAuth / Classic tokens supported but Platform Token is the recommended default)</li>
+<li>[ ] Bucket strategy in place (see <strong>ORGNZ-02 / ORGNZ-99</strong>)</li>
+<li>[ ] Host group strategy in place (see <strong>FAQ-01</strong>)</li>
+<li>[ ] Stakeholders identified per wave</li>
+</ul>
+<h3>Phase 0 — Preflight (new in Phase 14; always do this first)</h3>
+<pre><code class="language-bash">python3 migrate.py preflight
+</code></pre>
+<p>Probes the target tenant for Settings 2.0 / Document API / Automation API availability. If any Gen3 surface is missing, the command suggests <code>--legacy</code> and exits non-zero — catch this before burning a run.</p>
+<h3>Phase 1 — Discover (pair with NR2DT-01)</h3>
+<pre><code class="language-bash"># Export from New Relic (nothing is written to Dynatrace)
+python3 migrate.py migrate --export-only --output ./inventory
+# Transform and write the conversion report without importing
+python3 migrate.py migrate --dry-run --report --output ./inventory
+</code></pre>
+<p>Do not run <code>migrate --report</code> without <code>--dry-run</code>: with neither <code>--export-only</code> nor <code>--import-only</code>, <code>migrate</code> runs export, transform <strong>and import</strong>. Review <code>inventory/exports/newrelic_export.json</code>, enriched conversion-quality report (<code>confidence_score</code>, <code>warning_codes</code>, <code>runbook_url</code> per entry), and gap analysis. Stakeholder sign-off on wave plan.</p>
+<p><strong>Pre-decommission archive (Phase 17):</strong></p>
+<pre><code class="language-bash">python3 migrate.py archive --account &lt;nr-account-id&gt; --since '30 days ago' \
+  --event-types Transaction,Log,SyntheticCheck --output ./nrdb-archive
+</code></pre>
+<p>Historical NRDB data is <strong>not migratable to Grail</strong> — archive as JSONL before decommissioning NR. Resumable per-event-type cursors let you interrupt and restart safely.</p>
+<h3>Phase 2 — Translate &amp; Stage</h3>
+<pre><code class="language-bash"># Translate NRQL inventory
+# Extract NRQL from the export (produces inventory/all-nrql.txt + .csv)
+python3 migrate.py extract-nrql --input ./inventory --output ./inventory/all-nrql.txt
+python3 migrate.py extract-nrql --input ./inventory --output ./inventory/all-nrql.csv
+
+# Translate — compile for plain DQL; batch for a CSV with confidence scores
+python3 migrate.py compile --file inventory/all-nrql.txt --output translated.dql
+python3 migrate.py batch   --file inventory/all-nrql.csv --output translated.csv
+
+# Instrumentation scan for newrelic.*() SDK calls (Phase 16) — one file per run
+python3 migrate.py scan-instrumentation --file ./app-source/checkout/Handler.java --output ./instrumentation-todos.diff
+
+# APM agent plan per language (Phase 16)
+python3 migrate.py agents --language java --dry-run
+python3 migrate.py agents --language nodejs --dry-run
+
+# Transform each component and diff against the live tenant (nothing is imported)
+python3 migrate.py migrate --dry-run --diff --report --components workloads --output ./wave0
+</code></pre>
+<h3>Phase 3 — Wave-by-Wave Import (Gen3 default)</h3>
+<p><strong>Use <code>migrate --dry-run --diff</code> before each wave and <code>--canary</code> for production tenants.</strong> Each wave below is a full run (export → transform → import), which is what writes <code>&lt;output&gt;/rollback-manifest.json</code>; <code>--diff</code> is ignored with <code>--import-only</code>.</p>
+<pre><code class="language-bash"># Wave 0 (foundations)
+python3 migrate.py migrate --dry-run --diff --components workloads --output ./wave0
+python3 migrate.py migrate --components workloads --canary 10 --canary-auto-proceed --output ./wave0
+
+# Wave 1 (dashboards — read-only impact)
+python3 migrate.py migrate --dry-run --diff --components dashboards --output ./wave1
+python3 migrate.py migrate --components dashboards --output ./wave1
+
+# Wave 2 (synthetics)
+python3 migrate.py migrate --components synthetics --output ./wave2
+
+# Wave 3 (alerts + notification channels — dual-alert window!)
+python3 migrate.py migrate --components alerts,notification_channels --output ./wave3
+# ... wait 1–2 weeks dual-alert ...
+
+# Wave 4 (SLOs — also pulls in alerts and notification channels as dependencies)
+python3 migrate.py migrate --components slos --output ./wave4
+python3 migrate.py audit-slos
+
+# Waves 5–6 (tags, logs, drop and parsing rules, specialized surfaces):
+# not exported by `migrate` on the current main branch — migrate by hand (NRLC-07, §4)
+</code></pre>
+<h3>Phase 4 — Validate &amp; Cutover (NRLC-08)</h3>
+<p>Per-wave validation gates:</p>
+<pre><code class="language-bash"># Config-drift audit: live tenant vs the wave's transformed baseline (Phase 20)
+python3 migrate.py audit --baseline ./wave1/transformed/dynatrace_config.json
+
+# SLO validity audit (DT side only: SLOs evaluate, metrics exist)
+python3 migrate.py audit-slos
+</code></pre>
+<p>Behavioral validation — the same query run in New Relic and in Dynatrace over the same window, results compared — has no CLI command; do it by hand per NRLC-08 §4. Sign-off per wave.</p>
+<h3>Phase 5 — Decommission NR</h3>
+<p>Disable NR alert routes; archive dashboards; halt NR ingest. Retain rollback manifests for 30+ days. <code>DynatraceClient.delete_entity</code> (Phase 20) now dispatches unified Gen3 deletes — rollback actually executes.</p>
+<p><a id="cicd"></a></p>
+<h2>7. CI/CD Integration Patterns</h2>
+<p>Once the migration is run, ongoing config can live in CI:</p>
+<h3>GitOps with Terraform</h3>
+<pre><code class="language-yaml"># .github/workflows/dt-config.yml
+name: dt-config
+on: [push]
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    # Job-level env: plan and apply both need credentials.
+    env:
+      # Variables declared in the exported provider.tf
+      TF_VAR_dynatrace_env_url: ${{ secrets.DT_ENV_URL }}
+      TF_VAR_dynatrace_api_token: ${{ secrets.DT_API_TOKEN }}
+      TF_VAR_dynatrace_oauth_client_id: ${{ secrets.DT_CLIENT_ID }}
+      TF_VAR_dynatrace_oauth_client_secret: ${{ secrets.DT_CLIENT_SECRET }}
+      # dynatrace_platform_slo reads its OAuth client from these
+      DT_CLIENT_ID: ${{ secrets.DT_CLIENT_ID }}
+      DT_CLIENT_SECRET: ${{ secrets.DT_CLIENT_SECRET }}
+      DT_ACCOUNT_ID: ${{ secrets.DT_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform init
+      - run: terraform plan -out=tfplan
+      - run: terraform apply tfplan
+</code></pre>
+<p>The <code>TF_VAR_*</code> names match the variables in the <code>provider.tf</code> that <code>export-terraform</code> writes; if you replace that provider block with your own, use the provider's environment variables instead (<code>DYNATRACE_ENV_URL</code>, <code>DYNATRACE_API_TOKEN</code>, and <code>DT_CLIENT_ID</code> / <code>DT_CLIENT_SECRET</code> / <code>DT_ACCOUNT_ID</code> or <code>DYNATRACE_PLATFORM_TOKEN</code>). The secret names on the right are placeholders.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md">Dynatrace provider — authentication (Dynatrace GitHub)</a> — <em>&quot;Define <code>DYNATRACE_ENV_URL</code> for the Dynatrace environment URL.&quot;</em>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_slo.md">dynatrace_platform_slo resource (Dynatrace GitHub)</a> — <em>&quot;please define the environment variables <code>DT_CLIENT_ID</code>, <code>DT_CLIENT_SECRET</code>, <code>DT_ACCOUNT_ID</code>&quot;</em>, <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas">Monaco commands (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant">SaaS Upgrade Assistant (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Translation in CI</h3>
+<p>Run the compiler in CI to validate any committed DQL:</p>
+<pre><code class="language-yaml">      - run: npx nrql-translator validate --file ./queries.nrql
+      - run: |
+          if [[ $(jq '.confidence' result.json) == &quot;LOW&quot; ]]; then
+            echo &quot;::error::LOW-confidence translation — manual review required&quot;
+            exit 1
+          fi
+</code></pre>
+<h3>Drift Detection</h3>
+<p>Schedule a daily drift audit to detect manual DT changes that drifted from the GitOps source of truth — Phase 20 <code>migrate.py audit</code>:</p>
+<pre><code class="language-bash"># audit exits 1 when it finds drift; the JSON report carries drift_count and by_kind
+if ! python3 migrate.py audit --baseline ./output/transformed/dynatrace_config.json --output drift.json; then
+  alert_team &quot;DT config drift detected&quot;
+fi
+</code></pre>
+<h2>Summary</h2>
+<p>The toolchain is open-source, modular, and CI-friendly. <code>Dynatrace-NewRelic</code> orchestrates; <code>nrql-engine</code> translates; <code>nrql-translator</code> exposes the engine on the CLI. Together they cover discovery, translation, transformation, validation, drift audit, canary promotion, and rollback. Pair them with the bucket strategy (<strong>ORGNZ-02 / ORGNZ-99</strong>) and host grouping strategy (<strong>FAQ-01</strong>) for a complete migration foundation.</p>
+<h2>Series Complete</h2>
+<p>You've reached the end of the NRLC deep-dive series. For the procedural step-by-step migration walkthrough, see the <strong>NR2DT</strong> series (9 procedural steps + NR2DT-99 summary). For reference, NRLC covers:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Topic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01</td>
+<td>Platform Comparison</td>
+</tr>
+<tr>
+<td>02</td>
+<td>NRQL → DQL Translation</td>
+</tr>
+<tr>
+<td>03</td>
+<td>Dashboard Migration</td>
+</tr>
+<tr>
+<td>04</td>
+<td>Alert &amp; Workflow Migration</td>
+</tr>
+<tr>
+<td>05</td>
+<td>Synthetic Monitor Migration</td>
+</tr>
+<tr>
+<td>06</td>
+<td>SLO &amp; Workload Migration</td>
+</tr>
+<tr>
+<td>07</td>
+<td>Logs, Tags &amp; Drop Rules</td>
+</tr>
+<tr>
+<td>08</td>
+<td>Validation, Diff &amp; Rollback</td>
+</tr>
+<tr>
+<td>09</td>
+<td>Toolchain Reference &amp; End-to-End Runbook</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources, including the open-source <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities">NewRelic-to-Dynatrace-Migration-Utilities</a>, <a href="https://github.com/timstewart-dynatrace/nrql-engine">nrql-engine</a> (planned future home: the <a href="https://github.com/dynatrace-dma"><code>dynatrace-dma</code></a> Dynatrace Migration Assistant organization), and <a href="https://github.com/timstewart-dynatrace/nrql-translator">nrql-translator</a> projects. This notebook series is not officially supported by Dynatrace or New Relic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://docs.newrelic.com">New Relic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

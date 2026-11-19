@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IAM-09: Troubleshooting Access Issues</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">IAM — IAM Administration</a><span class="sep">/</span><span aria-current="page">IAM-09</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>IAM-09: Troubleshooting Access Issues</h1>
+<blockquote>
+<p><strong>Series:</strong> IAM — IAM Administration | <strong>Notebook:</strong> 9 of 12 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/08/2026</p>
+</blockquote>
+<h2>Systematic Diagnosis of IAM Problems</h2>
+<p>Access issues are among the most common support requests. This notebook provides a systematic methodology for diagnosing and resolving IAM-related problems including permission denials, policy conflicts, and boundary issues.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#troubleshooting-methodology">Troubleshooting Methodology</a></li>
+<li><a href="#common-access-issues">Common Access Issues</a></li>
+<li><a href="#permission-denied-debugging">Permission Denied Debugging</a></li>
+<li><a href="#policy-conflict-resolution">Policy Conflict Resolution</a></li>
+<li><a href="#boundary-troubleshooting">Boundary Troubleshooting</a></li>
+<li><a href="#sso-and-authentication-issues">SSO and Authentication Issues</a></li>
+<li><a href="#token-and-api-access-issues">Token and API Access Issues</a></li>
+<li><a href="#diagnostic-queries">Diagnostic Queries</a></li>
+<li><a href="#troubleshooting-checklist">Troubleshooting Checklist</a></li>
+<li><a href="#escalation-path">Escalation Path</a></li>
+<li><a href="#series-conclusion">Series Conclusion</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Gen3 IAM</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>account-user-management</code> for full diagnosis</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>IAM-01 through 08 completed</td>
+</tr>
+</tbody>
+</table>
+<p><a id="troubleshooting-methodology"></a></p>
+<h2>1. Troubleshooting Methodology</h2>
+<p>Follow a systematic approach to diagnose access issues.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgNDUwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idGR0Qmx1ZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM2I4MmY2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxZDRlZDg7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ0ZHRHcmVlbkdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2Njk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ0ZHRPcmFuZ2VHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y1OWUwYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZDk3NzA2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9InRkdFNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0idGR0QXJyb3ciIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzY0NzQ4YiIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJ0ZHRBcnJvd0dyZWVuIiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiMxNmEzNGEiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0idGR0QXJyb3dPcmFuZ2UiIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iI2Q5NzcwNiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjcwMCIgaGVpZ2h0PSI0NTAiIGZpbGw9IiNmOGY5ZmEiIHJ4PSIxMCIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjM1MCIgeT0iMzIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMWUyOTNiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BY2Nlc3MgSXNzdWUgVHJvdWJsZXNob290aW5nPC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iNTIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlN0YXJ0IGluIEFjY291bnQgTWFuYWdlbWVudCDigLogRWZmZWN0aXZlIHBvbGljaWVzLCB0aGVuIHdhbGsgdGhlIHRyZWU8L3RleHQ+CgogIDwhLS0gU3RhcnQgLS0+CiAgPHJlY3QgeD0iMjc1IiB5PSI2NSIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIzNSIgcng9IjE3IiBmaWxsPSJ1cmwoI3RkdEJsdWVHcmFkKSIgZmlsdGVyPSJ1cmwoI3RkdFNoYWRvdykiLz4KICA8dGV4dCB4PSIzNTAiIHk9Ijg4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VXNlciByZXBvcnRzIGlzc3VlPC90ZXh0PgoKICA8IS0tIFExOiBDYW4gbG9naW4/IC0tPgogIDxsaW5lIHgxPSIzNTAiIHkxPSIxMDAiIHgyPSIzNTAiIHkyPSIxMjAiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHJlY3QgeD0iMjY1IiB5PSIxMjUiIHdpZHRoPSIxNzAiIGhlaWdodD0iNDAiIHJ4PSI0IiBmaWxsPSIjZmZmIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMS41IiBmaWx0ZXI9InVybCgjdGR0U2hhZG93KSIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iMTUwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMWUyOTNiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5DYW4gdXNlciBsb2dpbiB0byBEeW5hdHJhY2U/PC90ZXh0PgoKICA8IS0tIE5vIC0gU1NPIGlzc3VlIC0tPgogIDxsaW5lIHgxPSIyNjUiIHkxPSIxNDUiIHgyPSIxNDUiIHkyPSIxNDUiIHN0cm9rZT0iI2Q5NzcwNiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjE0NSIgeTE9IjE0NSIgeDI9IjE0NSIgeTI9IjE3NSIgc3Ryb2tlPSIjZDk3NzA2IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjdGR0QXJyb3dPcmFuZ2UpIi8+CiAgPHRleHQgeD0iMjA1IiB5PSIxMzciIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNkOTc3MDYiPk5PPC90ZXh0PgoKICA8cmVjdCB4PSI2MCIgeT0iMTgwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjUwIiByeD0iNCIgZmlsbD0iI2ZlZjNjNyIgc3Ryb2tlPSIjZDk3NzA2IiBzdHJva2Utd2lkdGg9IjIiIGZpbHRlcj0idXJsKCN0ZHRTaGFkb3cpIi8+CiAgPHRleHQgeD0iMTQ1IiB5PSIyMDAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5DaGVjayBTU08vQXV0aDwvdGV4dD4KICA8dGV4dCB4PSIxNDUiIHk9IjIxNSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjYTE2MjA3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5JZFAgY29uZmlnLCBTQU1MLCBNRkEgKGluIElkUCk8L3RleHQ+CgogIDwhLS0gWWVzIC0gY29udGludWUgLS0+CiAgPGxpbmUgeDE9IjQzNSIgeTE9IjE0NSIgeDI9IjUwMCIgeTI9IjE0NSIgc3Ryb2tlPSIjMTZhMzRhIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iNTAwIiB5MT0iMTQ1IiB4Mj0iNTAwIiB5Mj0iMTc1IiBzdHJva2U9IiMxNmEzNGEiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCN0ZHRBcnJvd0dyZWVuKSIvPgogIDx0ZXh0IHg9IjQ2NyIgeT0iMTM3IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMTZhMzRhIj5ZRVM8L3RleHQ+CgogIDwhLS0gUTI6IEluIGNvcnJlY3QgZ3JvdXBzPyAtLT4KICA8cmVjdCB4PSI0MTUiIHk9IjE4MCIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI0MCIgcng9IjQiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbHRlcj0idXJsKCN0ZHRTaGFkb3cpIi8+CiAgPHRleHQgeD0iNTAwIiB5PSIyMDUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxZTI5M2IiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkluIGNvcnJlY3QgZ3JvdXBzPzwvdGV4dD4KCiAgPCEtLSBObyAtIEdyb3VwIGlzc3VlIC0tPgogIDxsaW5lIHgxPSI1MDAiIHkxPSIyMjAiIHgyPSI1MDAiIHkyPSIyNDUiIHN0cm9rZT0iI2Q5NzcwNiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjUwMCIgeTE9IjI0NSIgeDI9IjQwMCIgeTI9IjI0NSIgc3Ryb2tlPSIjZDk3NzA2IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iNDAwIiB5MT0iMjQ1IiB4Mj0iNDAwIiB5Mj0iMjcwIiBzdHJva2U9IiNkOTc3MDYiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCN0ZHRBcnJvd09yYW5nZSkiLz4KICA8dGV4dCB4PSI0NTAiIHk9IjIzNyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2Q5NzcwNiI+Tk88L3RleHQ+CgogIDxyZWN0IHg9IjMxNSIgeT0iMjc1IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjUwIiByeD0iNCIgZmlsbD0iI2ZlZjNjNyIgc3Ryb2tlPSIjZDk3NzA2IiBzdHJva2Utd2lkdGg9IjIiIGZpbHRlcj0idXJsKCN0ZHRTaGFkb3cpIi8+CiAgPHRleHQgeD0iNDAwIiB5PSIyOTUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5GaXggR3JvdXAgTWVtYmVyc2hpcDwvdGV4dD4KICA8dGV4dCB4PSI0MDAiIHk9IjMxMCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjYTE2MjA3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BZGQgdG8gY29ycmVjdCBncm91cCB2aWEgSWRQPC90ZXh0PgoKICA8IS0tIFllcyAtIGNvbnRpbnVlIHRvIHBvbGljeSAtLT4KICA8bGluZSB4MT0iNTg1IiB5MT0iMjAwIiB4Mj0iNjMwIiB5Mj0iMjAwIiBzdHJva2U9IiMxNmEzNGEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSI2MzAiIHkxPSIyMDAiIHgyPSI2MzAiIHkyPSIyNjUiIHN0cm9rZT0iIzE2YTM0YSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjYzMCIgeTE9IjI2NSIgeDI9IjU5MCIgeTI9IjI2NSIgc3Ryb2tlPSIjMTZhMzRhIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iNTkwIiB5MT0iMjY1IiB4Mj0iNTkwIiB5Mj0iMjcwIiBzdHJva2U9IiMxNmEzNGEiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCN0ZHRBcnJvd0dyZWVuKSIvPgogIDx0ZXh0IHg9IjY0MCIgeT0iMjMyIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMTZhMzRhIj5ZRVM8L3RleHQ+CgogIDwhLS0gUTM6IFBvbGljeSBncmFudHMgYWNjZXNzPyAtLT4KICA8cmVjdCB4PSI1MDAiIHk9IjI3MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI0MCIgcng9IjQiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbHRlcj0idXJsKCN0ZHRTaGFkb3cpIi8+CiAgPHRleHQgeD0iNTkwIiB5PSIyOTUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxZTI5M2IiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBvbGljeSBncmFudHMgYWNjZXNzPzwvdGV4dD4KCiAgPCEtLSBObyAtIFBvbGljeSBpc3N1ZSAtLT4KICA8bGluZSB4MT0iNTkwIiB5MT0iMzEwIiB4Mj0iNTkwIiB5Mj0iMzQwIiBzdHJva2U9IiNkOTc3MDYiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCN0ZHRBcnJvd09yYW5nZSkiLz4KICA8dGV4dCB4PSI2MDUiIHk9IjMzMCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2Q5NzcwNiI+Tk88L3RleHQ+CgogIDxyZWN0IHg9IjUwNSIgeT0iMzQ1IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjUwIiByeD0iNCIgZmlsbD0iI2ZlZjNjNyIgc3Ryb2tlPSIjZDk3NzA2IiBzdHJva2Utd2lkdGg9IjIiIGZpbHRlcj0idXJsKCN0ZHRTaGFkb3cpIi8+CiAgPHRleHQgeD0iNTkwIiB5PSIzNjUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BZGQvTW9kaWZ5IFBvbGljeTwvdGV4dD4KICA8dGV4dCB4PSI1OTAiIHk9IjM4MCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjYTE2MjA3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5HcmFudCByZXF1aXJlZCBwZXJtaXNzaW9uPC90ZXh0PgoKICA8IS0tIFllcyAtIGNoZWNrIGJvdW5kYXJ5IChyb3V0ZSBiZWxvdyBGaXggR3JvdXAgTWVtYmVyc2hpcCBib3ggYXQgeT0yNzUtMzI1KSAtLT4KICA8bGluZSB4MT0iNTAwIiB5MT0iMzEwIiB4Mj0iNTAwIiB5Mj0iMzM1IiBzdHJva2U9IiMxNmEzNGEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSI1MDAiIHkxPSIzMzUiIHgyPSIyNTAiIHkyPSIzMzUiIHN0cm9rZT0iIzE2YTM0YSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjI1MCIgeTE9IjMzNSIgeDI9IjI0OCIgeTI9IjMzNSIgc3Ryb2tlPSIjMTZhMzRhIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjdGR0QXJyb3dHcmVlbikiLz4KICA8dGV4dCB4PSI0MzAiIHk9IjMyOCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzE2YTM0YSI+WUVTPC90ZXh0PgoKICA8IS0tIFE0OiBCb3VuZGFyeSBhbGxvd3M/IC0tPgogIDxyZWN0IHg9IjY1IiB5PSIzMjAiIHdpZHRoPSIxODAiIGhlaWdodD0iNDAiIHJ4PSI0IiBmaWxsPSIjZmZmIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMS41IiBmaWx0ZXI9InVybCgjdGR0U2hhZG93KSIvPgogIDx0ZXh0IHg9IjE1NSIgeT0iMzQ1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMWUyOTNiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CaW5kaW5nJ3MgYm91bmRhcnkgaW5jbHVkZXMgZGF0YT88L3RleHQ+CgogIDwhLS0gTm8gLSBCb3VuZGFyeSBpc3N1ZSAtLT4KICA8bGluZSB4MT0iMTU1IiB5MT0iMzYwIiB4Mj0iMTU1IiB5Mj0iMzkwIiBzdHJva2U9IiNkOTc3MDYiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCN0ZHRBcnJvd09yYW5nZSkiLz4KICA8dGV4dCB4PSIxNzAiIHk9IjM4MCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2Q5NzcwNiI+Tk88L3RleHQ+CgogIDxyZWN0IHg9IjcwIiB5PSIzOTUiIHdpZHRoPSIxNzAiIGhlaWdodD0iNDUiIHJ4PSI0IiBmaWxsPSIjZmVmM2M3IiBzdHJva2U9IiNkOTc3MDYiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI3RkdFNoYWRvdykiLz4KICA8dGV4dCB4PSIxNTUiIHk9IjQxMyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM5MjQwMGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFkanVzdCBCb3VuZGFyeTwvdGV4dD4KICA8dGV4dCB4PSIxNTUiIHk9IjQyOCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjYTE2MjA3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BZGp1c3QgY29uZGl0aW9ucyBvbiB0aGF0IGJpbmRpbmc8L3RleHQ+CgogIDwhLS0gWWVzIC0gcmVzb2x2ZWQgLS0+CiAgPGxpbmUgeDE9IjY1IiB5MT0iMzQwIiB4Mj0iMzAiIHkyPSIzNDAiIHN0cm9rZT0iIzE2YTM0YSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjMwIiB5MT0iMzQwIiB4Mj0iMzAiIHkyPSI0NDYiIHN0cm9rZT0iIzE2YTM0YSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjMwIiB5MT0iNDQ2IiB4Mj0iMzUwIiB5Mj0iNDQ2IiBzdHJva2U9IiMxNmEzNGEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSIzNTAiIHkxPSI0NDYiIHgyPSIzNTAiIHkyPSI0NDMiIHN0cm9rZT0iIzE2YTM0YSIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI3RkdEFycm93R3JlZW4pIi8+CiAgPHRleHQgeD0iNDciIHk9IjM3NSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzE2YTM0YSI+WUVTPC90ZXh0PgoKICA8IS0tIFN1Y2Nlc3MgLS0+CiAgPHJlY3QgeD0iMjYwIiB5PSI0MDAiIHdpZHRoPSIxODAiIGhlaWdodD0iNDAiIHJ4PSIyMCIgZmlsbD0idXJsKCN0ZHRHcmVlbkdyYWQpIiBmaWx0ZXI9InVybCgjdGR0U2hhZG93KSIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iNDI1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QWNjZXNzIHNob3VsZCB3b3JrITwvdGV4dD4KCiAgPCEtLSBMZWdlbmQgLS0+CiAgPHJlY3QgeD0iNTAwIiB5PSI0MTAiIHdpZHRoPSIxNzUiIGhlaWdodD0iMzUiIHJ4PSI0IiBmaWxsPSIjZjFmNWY5Ii8+CiAgPHJlY3QgeD0iNTEwIiB5PSI0MTgiIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCIgZmlsbD0iIzE2YTM0YSIvPgogIDx0ZXh0IHg9IjUyNSIgeT0iNDI3IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM0NzU1NjkiPj0gQ29udGludWU8L3RleHQ+CiAgPHJlY3QgeD0iNTgwIiB5PSI0MTgiIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCIgZmlsbD0iI2Q5NzcwNiIvPgogIDx0ZXh0IHg9IjU5NSIgeT0iNDI3IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM0NzU1NjkiPj0gRml4IHRoaXM8L3RleHQ+Cjwvc3ZnPgo=" alt="Troubleshooting Decision Tree" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Question | If Yes | If No |
+|------|----------|--------|-------|
+| 0 | (Start) Open Account Management → Identity & access management → Effective policies for the user | Go to step 1 | — |
+| 1 | Can user login? | Go to step 2 | Check SSO/auth |
+| 2 | Is user in correct groups? | Go to step 3 | Add to group |
+| 3 | Do policies grant access? | Go to step 4 | Modify policy |
+| 4 | Does the boundary on the granting binding include the data? | Access should work | Adjust the boundary's conditions (for example security-context values) |
+-->
+<h3>Step-by-Step Methodology</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Check</th>
+<th>Tools</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>See which permissions the user actually holds</td>
+<td>Account Management → Identity &amp; access management → <strong>Effective policies</strong></td>
+</tr>
+<tr>
+<td>1</td>
+<td>User can authenticate</td>
+<td>SSO logs, IdP logs</td>
+</tr>
+<tr>
+<td>2</td>
+<td>User exists in Dynatrace</td>
+<td>Account Management → Users</td>
+</tr>
+<tr>
+<td>3</td>
+<td>User is in correct groups</td>
+<td>Account Management → Groups</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Groups have correct policies</td>
+<td>Account Management → Policies</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Policies grant required permissions</td>
+<td>Effective policies</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Boundaries on the granting bindings don't exclude the data</td>
+<td>Boundary configuration on each binding</td>
+</tr>
+<tr>
+<td>7</td>
+<td>No conflicting policies</td>
+<td>Policy evaluation</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Data exists and is accessible</td>
+<td>DQL query</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Start with Effective policies.</strong> Account Management lists it under Identity &amp; access management as the place to <em>learn which permissions are assigned to users through policies and groups</em>. It answers steps 3–5 in one view before you open individual groups and policies.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/account-management/identity-access-management">Manage users, groups, and permissions (DT docs)</a> — <em>&quot;Effective policies&quot; to learn which permissions are assigned to users through policies and groups</em>.</sub></p>
+</blockquote>
+<h3>Information Gathering</h3>
+<p>Before troubleshooting, collect:</p>
+<pre><code>User Information:
+□ User's email address
+□ What action they're trying to perform
+□ Exact error message received
+□ When the issue started
+□ What changed recently (role, team, etc.)
+
+Environment Information:
+□ Which environment(s) affected
+□ What data/resource they're accessing
+□ Screenshot of error (if available)
+</code></pre>
+<p><a id="common-access-issues"></a></p>
+<h2>2. Common Access Issues</h2>
+<h3>Issue Categories</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Symptoms</th>
+<th>Common Cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Authentication</strong></td>
+<td>Can't login</td>
+<td>SSO misconfigured, account disabled</td>
+</tr>
+<tr>
+<td><strong>Authorization</strong></td>
+<td>Access denied</td>
+<td>Missing policy, wrong group</td>
+</tr>
+<tr>
+<td><strong>Data Access</strong></td>
+<td>No results</td>
+<td>Boundary restriction, no data</td>
+</tr>
+<tr>
+<td><strong>Partial Access</strong></td>
+<td>See some, not all</td>
+<td>Boundary or policy condition</td>
+</tr>
+<tr>
+<td><strong>Intermittent</strong></td>
+<td>Sometimes works</td>
+<td>Caching, eventual consistency</td>
+</tr>
+</tbody>
+</table>
+<h3>Quick Diagnosis Table</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely Cause</th>
+<th>First Check</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&quot;Access Denied&quot;</td>
+<td>Missing permission</td>
+<td>Policy assignments</td>
+</tr>
+<tr>
+<td>&quot;Forbidden&quot;</td>
+<td>Boundary restriction</td>
+<td>Boundary config</td>
+</tr>
+<tr>
+<td>&quot;Not Found&quot;</td>
+<td>No data or no access</td>
+<td>Query without filters</td>
+</tr>
+<tr>
+<td>&quot;Unauthorized&quot;</td>
+<td>Token/auth issue</td>
+<td>Token validity</td>
+</tr>
+<tr>
+<td>Can't see entity</td>
+<td>Boundary or policy condition</td>
+<td>Entity's <code>dt.security_context</code> vs. the boundary</td>
+</tr>
+<tr>
+<td>Can read, can't write</td>
+<td>Read-only policy</td>
+<td>Policy permissions</td>
+</tr>
+</tbody>
+</table>
+<p><a id="permission-denied-debugging"></a></p>
+<h2>3. Permission Denied Debugging</h2>
+<p>When users receive &quot;Access Denied&quot; or &quot;Forbidden&quot; errors.</p>
+<h3>Diagnostic Steps</h3>
+<p><strong>Step 1: Verify User Exists</strong></p>
+<ol>
+<li>Go to Account Management → Users</li>
+<li>Search for user by email</li>
+<li>Verify account is active (not disabled)</li>
+</ol>
+<p><strong>Step 2: Check Group Membership</strong></p>
+<ol>
+<li>Click on user to view details</li>
+<li>Note all groups user belongs to</li>
+<li>Verify expected groups are present</li>
+</ol>
+<p><strong>Step 3: Review Group Policies</strong></p>
+<ol>
+<li>For each group, check assigned policies</li>
+<li>Verify policies grant needed permissions</li>
+<li>Check policy conditions/restrictions</li>
+</ol>
+<p><strong>Step 4: Check Boundaries</strong></p>
+<ol>
+<li>Review boundaries assigned to groups</li>
+<li>Verify boundaries include target resources</li>
+<li>Check boundary conditions</li>
+</ol>
+<h3>Permission Evaluation Order</h3>
+<pre><code>1. User authenticated? → No = Auth failure
+2. User in any groups? → No = No permissions
+3. Any DENY statement matches? → Yes = Access denied (boundaries never apply to DENY)
+4. Any policy grants permission? → No = Access denied
+5. Boundary on the granting binding excludes the data? → Yes = Check boundary scope
+6. Access granted
+</code></pre>
+<h3>Common Permission Issues</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Symptom</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Not in group</td>
+<td>No access at all</td>
+<td>Add user to group via IdP</td>
+</tr>
+<tr>
+<td>Wrong group</td>
+<td>Partial access</td>
+<td>Move to correct group</td>
+</tr>
+<tr>
+<td>Policy too restrictive</td>
+<td>Can't perform action</td>
+<td>Modify or add policy</td>
+</tr>
+<tr>
+<td>Missing environment</td>
+<td>Can't access env</td>
+<td>Add env to policy scope</td>
+</tr>
+</tbody>
+</table>
+<p><a id="policy-conflict-resolution"></a></p>
+<h2>4. Policy Conflict Resolution</h2>
+<p>When multiple policies interact unexpectedly.</p>
+<h3>How Policy Evaluation Works</h3>
+<ol>
+<li>Collect all policies from all user's groups</li>
+<li>Evaluate each policy's conditions</li>
+<li><strong>Any ALLOW</strong> = access granted (unless explicitly denied)</li>
+<li><strong>No matching ALLOW</strong> = access denied</li>
+</ol>
+<h3>Conflict Scenarios</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Policy A</th>
+<th>Policy B</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Both allow</td>
+<td>ALLOW read</td>
+<td>ALLOW write</td>
+<td>ALLOW both</td>
+</tr>
+<tr>
+<td>One allows</td>
+<td>ALLOW read</td>
+<td>No match</td>
+<td>ALLOW read</td>
+</tr>
+<tr>
+<td>Overlapping</td>
+<td>ALLOW all envs</td>
+<td>ALLOW prod only</td>
+<td>ALLOW all envs</td>
+</tr>
+<tr>
+<td>Condition mismatch</td>
+<td>ALLOW (condition: A)</td>
+<td>ALLOW (condition: B)</td>
+<td>Depends on conditions</td>
+</tr>
+</tbody>
+</table>
+<h3>Debugging Policy Conflicts</h3>
+<p><strong>Step 1: List All Applicable Policies</strong></p>
+<ol>
+<li>Identify all groups user belongs to</li>
+<li>List all policies assigned to those groups</li>
+<li>Note overlapping permissions</li>
+</ol>
+<p><strong>Step 2: Evaluate Each Policy</strong></p>
+<p>For each policy, check:</p>
+<ul>
+<li>Does it apply to the target resource?</li>
+<li>Does it grant the required permission?</li>
+<li>Are conditions met?</li>
+</ul>
+<p><strong>Step 3: Identify Conflict</strong></p>
+<table>
+<thead>
+<tr>
+<th>Conflict Type</th>
+<th>Indicator</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Unintended restriction</td>
+<td>User in wrong group</td>
+<td>Remove from group</td>
+</tr>
+<tr>
+<td>Missing permission</td>
+<td>No policy grants access</td>
+<td>Add policy</td>
+</tr>
+<tr>
+<td>Condition not met</td>
+<td>Policy exists but doesn't apply</td>
+<td>Adjust condition</td>
+</tr>
+<tr>
+<td>Scope mismatch</td>
+<td>Policy applies to wrong scope</td>
+<td>Correct scope</td>
+</tr>
+</tbody>
+</table>
+<p><a id="boundary-troubleshooting"></a></p>
+<h2>5. Boundary Troubleshooting</h2>
+<p>Boundaries restrict what data users can access within their permissions. A boundary is attached to a <strong>policy binding</strong> — the assignment of a policy to a group — not to a user or a group as a whole. The same user can therefore hold one permission through a bounded binding and the same permission through an unbounded one.</p>
+<h3>Boundary Evaluation</h3>
+<pre><code>User wants to access data
+  ↓
+A DENY statement matches? → Yes = Access denied (boundaries don't apply to DENY)
+  ↓ No
+Any binding grants the permission? → No = Access denied
+  ↓ Yes
+Is any granting binding unbounded? → Yes = That binding's policy applies without boundary conditions
+  ↓ No (every granting binding has a boundary)
+Does the boundary have conditions for this permission's service? → No = Unconditional for that binding
+  ↓ Yes
+Data within the boundary conditions? → No = Data hidden
+  ↓ Yes
+Data returned
+</code></pre>
+<p>Two consequences catch most teams out. A service (domain) left out of a boundary is <strong>unscoped, not blocked</strong>: only conditions added for a service are applied to that service's permissions. And when more than one boundary applies to a policy, effective statements are calculated for each boundary separately, so two narrow boundaries on one binding can each leave the other's domain unconditional.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries">IAM policy boundaries (DT docs)</a> — <em>&quot;Boundaries don't apply to DENY statements.&quot;</em>; <em>&quot;Only conditions added to service configuration will be applied to relative permissions.&quot;</em>; <em>&quot;When more than one boundary applies to a policy, then effective statements are calculated for each boundary separately.&quot;</em></sub></p>
+</blockquote>
+<h3>Common Boundary Issues</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Symptom</th>
+<th>Cause</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Too restrictive</td>
+<td>See no data</td>
+<td>Boundary too narrow</td>
+<td>Expand boundary</td>
+</tr>
+<tr>
+<td>Not restrictive enough</td>
+<td>See too much</td>
+<td>Boundary too broad, a service missing from the boundary (unscoped), or another binding grants the same permission without a boundary</td>
+<td>Narrow the boundary, add conditions for every service the policy uses, and check Effective policies for unbounded bindings</td>
+</tr>
+<tr>
+<td>Segment applied</td>
+<td>Some data missing</td>
+<td>A segment the user selected hides data they are allowed to see</td>
+<td>Clear the segment selector before debugging access</td>
+</tr>
+<tr>
+<td>Wrong environment</td>
+<td>Access works in one environment but not another</td>
+<td>The policy binding is scoped to a different environment — environment scope is set on the <strong>binding</strong>, not in the boundary</td>
+<td>Re-bind the policy at the right environment, or at account level</td>
+</tr>
+</tbody>
+</table>
+<h3>Boundary Debugging Steps</h3>
+<p><strong>Step 1: Identify Boundary</strong></p>
+<ol>
+<li>Find user's groups</li>
+<li>Check the boundary attached to each policy binding of those groups (boundaries are per binding)</li>
+<li>Note each binding's scope (account or a single environment) and its boundary's conditions</li>
+</ol>
+<p><strong>Step 2: Verify Binding Scope and Boundary Conditions</strong></p>
+<ul>
+<li><strong>Binding scope</strong>: is the policy bound at account level, or to the environment the user is working in?</li>
+<li><strong>Storage conditions</strong>: which security contexts, buckets or data types does the boundary allow?</li>
+<li><strong>Settings conditions</strong>: which security contexts or schemas?</li>
+<li><strong>Classic (<code>environment:</code>) conditions</strong>: which management zones?</li>
+</ul>
+<p><strong>Step 3: Check Effective Policies</strong></p>
+<p>Go to <strong>Account Management &gt; Identity &amp; access management &gt; Effective policies</strong>, enter the user's email address, select the environment, and select <strong>Find permissions</strong>. Dynatrace documents this view for exactly this job: <em>&quot;Use Effective policies to troubleshoot unexpected access denials. You can see which policy granted or restricted a specific permission and which boundary condition was applied.&quot;</em></p>
+<p>Do not add the affected user to an unbounded admin group to test. That grants production admin rights to diagnose a scoping problem, and is itself an access change an auditor will ask about. If you need to reproduce, in community practice teams bind the same policy <strong>without</strong> the boundary to a dedicated test group holding a test user, reproduce, then delete that binding.</p>
+<p><strong>Step 4: Adjust the Binding or Boundary</strong></p>
+<ul>
+<li>Missing security-context values or data types → add them to the boundary</li>
+<li>Wrong environment → re-bind the policy at the right scope</li>
+<li>A domain with no condition in the boundary → add a condition for it (unscoped, not blocked — see above)</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-platform">Grant access to Dynatrace (DT docs)</a> — <em>&quot;Use Effective policies to troubleshoot unexpected access denials.&quot;</em>; <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-mgt">Manage IAM policies (DT docs)</a> — <em>&quot;defining one policy on the account level and binding it to environment levels.&quot;</em>; <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries">IAM policy boundaries (DT docs)</a> — <em>&quot;Boundaries alone don't restrict anything, they are always used together with policies in the process of assigning policies to your user groups.&quot;</em></sub></p>
+</blockquote>
+<p><a id="sso-and-authentication-issues"></a></p>
+<h2>6. SSO and Authentication Issues</h2>
+<p>When users can't login at all.</p>
+<h3>SSO Troubleshooting</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Check</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Redirect loop</td>
+<td>IdP configuration</td>
+<td>Verify ACS URL</td>
+</tr>
+<tr>
+<td>SAML error</td>
+<td>SAML response</td>
+<td>Check attribute mapping</td>
+</tr>
+<tr>
+<td>Signs in but has no access</td>
+<td>Group claims vs. each group's SAML Group Attribute Value</td>
+<td>Users are created automatically at SAML sign-in; fix the group mapping so a claim matches</td>
+</tr>
+<tr>
+<td>MFA failure</td>
+<td>Your IdP's MFA policy</td>
+<td>Dynatrace does not configure MFA; fix it in the IdP</td>
+</tr>
+<tr>
+<td>Session expired</td>
+<td>Session settings</td>
+<td>Extend session duration</td>
+</tr>
+</tbody>
+</table>
+<h3>SAML Debugging</h3>
+<p><strong>Check SAML Response:</strong></p>
+<ol>
+<li>Use browser dev tools → Network</li>
+<li>Find SAML response during login</li>
+<li>Decode and verify:
+<ul>
+<li>Subject/NameID (email)</li>
+<li>Groups attribute</li>
+<li>Conditions (timestamps)</li>
+</ul>
+</li>
+</ol>
+<p><strong>Common SAML Issues:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Indicator</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Wrong NameID</td>
+<td>Email doesn't match</td>
+<td>Configure NameID format</td>
+</tr>
+<tr>
+<td>Missing groups</td>
+<td>Groups not in assertion</td>
+<td>Add groups attribute in IdP</td>
+</tr>
+<tr>
+<td>Expired assertion</td>
+<td>Time mismatch</td>
+<td>Sync clocks, extend validity</td>
+</tr>
+<tr>
+<td>Invalid signature</td>
+<td>Signature error</td>
+<td>Update IdP certificate</td>
+</tr>
+</tbody>
+</table>
+<h3>Group Mapping Issues</h3>
+<p>If user logs in but has wrong permissions:</p>
+<ol>
+<li>Check SAML groups in assertion</li>
+<li>Verify group mapping configuration</li>
+<li>Confirm IdP group names match exactly</li>
+<li>Check for case sensitivity</li>
+</ol>
+<p><a id="token-and-api-access-issues"></a></p>
+<h2>7. Token and API Access Issues</h2>
+<p>When API tokens or OAuth clients don't work as expected.</p>
+<h3>Token Issues</h3>
+<table>
+<thead>
+<tr>
+<th>Error</th>
+<th>Cause</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>401 Unauthorized</code></td>
+<td>Token invalid/expired</td>
+<td>Regenerate token</td>
+</tr>
+<tr>
+<td><code>403 Forbidden</code></td>
+<td>Missing scope</td>
+<td>Add required scope</td>
+</tr>
+<tr>
+<td><code>404 Not Found</code></td>
+<td>Wrong endpoint or no data</td>
+<td>Verify API path</td>
+</tr>
+<tr>
+<td>Token rejected</td>
+<td>Token revoked</td>
+<td>Create new token</td>
+</tr>
+</tbody>
+</table>
+<h3>Token Debugging Steps</h3>
+<p><strong>Step 1: Verify Token Valid</strong></p>
+<ol>
+<li>Check token hasn't expired</li>
+<li>Verify token not revoked</li>
+<li>Confirm token is for correct environment</li>
+</ol>
+<p><strong>Step 2: Check Scopes</strong></p>
+<ol>
+<li>List token's scopes</li>
+<li>Compare to required scopes for API</li>
+<li>Add missing scopes if needed</li>
+</ol>
+<p><strong>Step 3: Test with curl</strong></p>
+<pre><code class="language-bash"># Connectivity smoke test — pick an endpoint that survives the Gen3 upgrade
+curl -H &quot;Authorization: Api-Token &lt;TOKEN&gt;&quot; \
+  https://&lt;env&gt;.live.dynatrace.com/api/v2/settings/schemas
+</code></pre>
+<blockquote>
+<p><strong>Do not use <code>/api/v2/entities</code> for this test.</strong> It is flagged blocked at upgrade, so on a latest-Dynatrace tenant it fails for a reason that has nothing to do with the token — sending you to debug scopes and expiry when the endpoint itself is gone. <code>/api/v2/settings/schemas</code> carries forward and needs only <code>settings.read</code>, which makes it a cleaner probe. To check an entity actually resolves, use DQL (<code>smartscapeNodes</code>) rather than the classic Entities API — see FAQ entry 16.</p>
+</blockquote>
+<h3>OAuth Client Issues</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Check</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Can't get token</td>
+<td>Client credentials</td>
+<td>Verify client ID/secret</td>
+</tr>
+<tr>
+<td>Wrong permissions</td>
+<td>Client scopes</td>
+<td>Add required scopes</td>
+</tr>
+<tr>
+<td>Token expired</td>
+<td>OAuth token expiry is not configurable</td>
+<td>Request a new token from the client</td>
+</tr>
+</tbody>
+</table>
+<p><a id="diagnostic-queries"></a></p>
+<h2>8. Diagnostic Queries</h2>
+<p>DQL queries to help diagnose IAM issues.</p>
+<pre><code class="language-dql">// Find recent access denied events
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter event.outcome == &quot;403&quot;
+| fields timestamp, user.id, resource, event.type, origin.address
+| sort timestamp desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Recent authenticated API calls (credential type per call)
+// Retitled 10/12/2026: authentication.type is set on every audited request, so this lists API traffic.
+// To list sign-ins only, filter event.type == &quot;LOGIN&quot;.
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter isNotNull(authentication.type)
+| fields timestamp, user.id, authentication.type, authentication.grant.type, event.outcome
+| sort timestamp desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// Failed sign-in attempts (event.type LOGIN with outcome &quot;failure&quot;)
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter event.type == &quot;LOGIN&quot; and event.outcome == &quot;failure&quot;
+| fields timestamp, user.id, authentication.type, origin.address
+| sort timestamp desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// Recent IAM API activity in this environment (account-level policy or group changes: account audit log)
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter in(event.type, {&quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;CREATE&quot;, &quot;UPDATE&quot;}) and contains(resource, &quot;iam&quot;)
+| filter not startsWith(resource, &quot;/lookups/&quot;)
+| fields timestamp, user.id, event.type, resource
+| sort timestamp desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Token lifecycle: API and ActiveGate token creation, update and deletion
+// Corrected 10/13/2026: token lifecycle events carry event.provider API_TOKEN / ACTIVE_GATE_TOKEN,
+// and their resource is the token ID. The previous filter (authentication.type == &quot;TOKEN&quot; or
+// contains(resource, &quot;token&quot;)) matched every API call made with a token instead, plus scheduled
+// /lookups/iam_tokens uploads. Same filter as IAM-06 and IAM-07.
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter in(event.provider, {&quot;API_TOKEN&quot;, &quot;ACTIVE_GATE_TOKEN&quot;})
+| fields timestamp, user.id, event.provider, event.type, resource, event.outcome
+| sort timestamp desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// All audit events in the last hour (immediate troubleshooting)
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-1h
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| fields timestamp, user.id, event.type, resource, event.outcome
+| sort timestamp desc
+| limit 50
+</code></pre>
+<p><a id="troubleshooting-checklist"></a></p>
+<h2>Troubleshooting Checklist</h2>
+<p>Use this checklist when debugging access issues:</p>
+<pre><code>AUTHENTICATION
+□ User can access IdP login page
+□ User can authenticate with IdP
+□ SAML assertion is valid
+□ User account exists in Dynatrace
+□ User account is active (not disabled)
+
+GROUP MEMBERSHIP
+□ User is in expected groups
+□ Groups are synced from IdP (if using SCIM/JIT)
+□ No unexpected group memberships
+
+POLICIES
+□ Groups have policies assigned
+□ Policies grant required permissions
+□ Policy conditions are met
+□ No conflicting policies
+
+BOUNDARIES
+□ Policy binding scoped to the target environment (or account)
+□ Boundary includes target data type
+□ No overly restrictive boundaries
+
+DATA
+□ Data exists in target timeframe
+□ No segment is selected that hides the data (segments filter views, they do not restrict access)
+□ Query syntax is correct
+</code></pre>
+<p><a id="escalation-path"></a></p>
+<h2>Escalation Path</h2>
+<p>When self-service troubleshooting doesn't resolve the issue:</p>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Who</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L1</td>
+<td>Team lead</td>
+<td>Can't determine cause</td>
+</tr>
+<tr>
+<td>L2</td>
+<td>IAM admin</td>
+<td>Need policy/boundary changes</td>
+</tr>
+<tr>
+<td>L3</td>
+<td>Platform team</td>
+<td>Infrastructure/IdP issues</td>
+</tr>
+<tr>
+<td>L4</td>
+<td>Dynatrace support</td>
+<td>Product issues</td>
+</tr>
+</tbody>
+</table>
+<h3>Information for Escalation</h3>
+<p>Include in escalation:</p>
+<pre><code>□ User email/identifier
+□ Exact error message
+□ Steps to reproduce
+□ Timestamp of issue
+□ What was already checked
+□ Audit log excerpts
+□ Screenshots
+</code></pre>
+<p><a id="series-conclusion"></a></p>
+<h2>Series Conclusion</h2>
+<p>Congratulations! You've completed the IAM series.</p>
+<h3>Series Recap</h3>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Key Topics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>01: Governance Foundations</strong></td>
+<td>Framework, roles, models</td>
+</tr>
+<tr>
+<td><strong>02: SSO and Authentication</strong></td>
+<td>SAML, IdP integration, MFA</td>
+</tr>
+<tr>
+<td><strong>03: Group Architecture</strong></td>
+<td>Hierarchy, naming, SAML mapping</td>
+</tr>
+<tr>
+<td><strong>04: Policy Authoring</strong></td>
+<td>Syntax, conditions, GitOps</td>
+</tr>
+<tr>
+<td><strong>05: Boundary Design</strong></td>
+<td>Three domains, isolation patterns</td>
+</tr>
+<tr>
+<td><strong>06: User Lifecycle</strong></td>
+<td>SCIM, JIT, tokens</td>
+</tr>
+<tr>
+<td><strong>07: Audit and Compliance</strong></td>
+<td>Audit queries, SOC2/SOX/HIPAA</td>
+</tr>
+<tr>
+<td><strong>08: Multi-Environment</strong></td>
+<td>Account vs env, break-glass</td>
+</tr>
+<tr>
+<td><strong>09: Troubleshooting</strong></td>
+<td>Methodology, common issues</td>
+</tr>
+<tr>
+<td><strong>10: Templated Policy-Group Assignments</strong></td>
+<td>Parameterized policies, IAM API bindings, Monaco</td>
+</tr>
+<tr>
+<td><strong>11: Policy Persona Workshop</strong></td>
+<td>Persona-based policy design, schema audit, domain mapping</td>
+</tr>
+<tr>
+<td><strong>12: API Provisioning &amp; Validation</strong></td>
+<td>Provisioning scripts, binding reports, cleanup, validation DQL</td>
+</tr>
+<tr>
+<td><strong>95: Terraform IAM Provisioning (LAB)</strong></td>
+<td>Groups, policies, boundaries and bindings as Terraform</td>
+</tr>
+<tr>
+<td><strong>96: Python IAM Provisioning (LAB)</strong></td>
+<td>Step-by-step Account Management API provisioning in Python</td>
+</tr>
+<tr>
+<td><strong>99: Best Practice Summary</strong></td>
+<td>75 best practices with priorities and settings</td>
+</tr>
+</tbody>
+</table>
+<h3>Ongoing Maintenance</h3>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>Frequency</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Access reviews</td>
+<td>Quarterly</td>
+</tr>
+<tr>
+<td>Policy review</td>
+<td>Semi-annually</td>
+</tr>
+<tr>
+<td>Boundary review</td>
+<td>Semi-annually</td>
+</tr>
+<tr>
+<td>Token rotation</td>
+<td>Per policy (90 days typical)</td>
+</tr>
+<tr>
+<td>Audit log review</td>
+<td>Monthly</td>
+</tr>
+<tr>
+<td>Documentation update</td>
+<td>As needed</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Systematic troubleshooting methodology</li>
+<li>Common access issue categories</li>
+<li>Permission denied debugging steps</li>
+<li>Policy conflict identification and resolution</li>
+<li>Boundary troubleshooting techniques</li>
+<li>SSO and authentication debugging</li>
+<li>Token and API access troubleshooting</li>
+<li>Diagnostic DQL queries</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management">IAM Troubleshooting</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml">SAML Configuration</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients">API Authentication</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries">IAM policy boundaries (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/token-concepts">Token concepts (DT docs)</a> — the IAM token types table lists <em>&quot;Expiry configurable?&quot;</em> as <em>&quot;No&quot;</em> for OAuth tokens</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

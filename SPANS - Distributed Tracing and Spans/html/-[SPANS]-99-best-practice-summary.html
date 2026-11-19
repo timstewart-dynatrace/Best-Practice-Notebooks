@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPANS-99: Best Practice Summary</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SPANS — Distributed Tracing and Spans</a><span class="sep">/</span><span aria-current="page">SPANS-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SPANS-99: Best Practice Summary</h1>
+<blockquote>
+<p><strong>Series:</strong> SPANS — Distributed Tracing and Spans | <strong>Notebook:</strong> 99 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/28/2026</p>
+</blockquote>
+<p>Definitive best practice settings for distributed tracing and span analysis. Each entry specifies the exact configuration.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#dql-syntax-rules">DQL Syntax Rules</a></li>
+<li><a href="#filtering-performance">Filtering &amp; Performance</a></li>
+<li><a href="#time-range-cost">Time Range &amp; Cost</a></li>
+<li><a href="#duration-aggregation">Duration &amp; Aggregation</a></li>
+<li><a href="#trace-analysis">Trace Analysis</a></li>
+<li><a href="#service-dependencies">Service Dependencies</a></li>
+<li><a href="#security">Security</a></li>
+<li><a href="#openpipeline-span-configuration">OpenPipeline Span Configuration</a></li>
+<li><a href="#bucket-strategy-sampling">Bucket Strategy &amp; Sampling</a></li>
+</ol>
+<hr />
+<p><a id="dql-syntax-rules"></a></p>
+<h2>1. DQL Syntax Rules</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Equality operator</td>
+<td><code>==</code> (double equals) — never <code>=</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Array literals</td>
+<td><code>{&quot;a&quot;, &quot;b&quot;}</code> with curly braces and double quotes — never <code>('a', 'b')</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>NULL checks</td>
+<td><code>isNull(field)</code> / <code>isNotNull(field)</code> — <code>field == null</code> is rejected (<em>&quot;<code>null</code> isn't allowed here&quot;</em>)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Multi-value matching</td>
+<td><code>in(field, {&quot;val1&quot;, &quot;val2&quot;})</code> — never SQL <code>IN</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td><code>span.kind</code> values</td>
+<td>Lowercase only: <code>&quot;server&quot;</code>, <code>&quot;client&quot;</code>, <code>&quot;internal&quot;</code>, <code>&quot;producer&quot;</code>, <code>&quot;consumer&quot;</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td><code>span.status_code</code> values</td>
+<td>Lowercase <code>&quot;error&quot;</code> / <code>&quot;ok&quot;</code>; the field is <strong>absent</strong> when unset (most spans), so <code>!= &quot;error&quot;</code> does not count successes — use total minus errors</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>String literals</td>
+<td>Double quotes everywhere — never single quotes</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Grouping syntax</td>
+<td><code>summarize n = count(), by:{field}</code> with curly braces — never <code>GROUP BY</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Service field</td>
+<td><code>dt.service.name</code> (every span) — not <code>service.name</code> (OpenTelemetry spans only; 6.7% on the validation tenant). Joins and identity: <code>dt.smartscape.service</code> (<code>dt.entity.service</code> is deprecated) — names can repeat across applications</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>ID fields are <code>uid</code></td>
+<td><code>trace.id == toUid(&quot;…&quot;)</code> — a plain string comparison is always false and returns zero rows</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Always alias aggregation results</td>
+<td><code>summarize error_count = count()</code> — required for <code>sort</code> and <code>fieldsAdd</code></td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<p><a id="filtering-performance"></a></p>
+<h2>2. Filtering &amp; Performance</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Filter immediately after fetch</td>
+<td>All <code>filter</code> commands before any <code>fieldsAdd</code>, <code>summarize</code>, <code>sort</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Selective filters first</td>
+<td>Grail has <strong>no field indexes</strong>; a filter that rules out most data lets it skip reading (1 h: no filter 910 MB, <code>dt.service.name == &quot;checkout&quot;</code> 54 MB, <code>trace.id == toUid(…)</code> 57 MB)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Measure, don't guess</td>
+<td>Read <code>scannedBytes</code> in the query result before and after a change</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td><code>==</code> for exact matches; <code>~</code> is a case-insensitive token search, not an exact match</td>
+<td><code>span.name ~ &quot;GET&quot;</code> matched 25,846 spans where <code>span.name == &quot;GET&quot;</code> matched 16,242 (15 min, validation tenant, 10/28/2026) — use <code>==</code> when you mean equality</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Combine conditions in single filter</td>
+<td><code>filter span.kind == &quot;server&quot; and dt.service.name == &quot;checkout&quot; and duration &gt; 100ms</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Substring tests after selective filters</td>
+<td><code>contains(url.path, …)</code> skips little data on its own</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Select only needed fields</td>
+<td>Smaller results — scanned bytes are unchanged</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>Compute derived fields after filtering</td>
+<td><code>fieldsAdd duration_ms = ...</code> must appear after all <code>filter</code> steps</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Sort after summarize, never after fetch</td>
+<td>Sorting before aggregation wastes resources</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Limit after sort, at pipeline end</td>
+<td><code>sort desc | limit 20</code> as final commands — never <code>limit</code> before <code>summarize</code></td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/operators">DQL operators (DT docs)</a> — <em>&quot;The performed comparison is case-insensitive and supports pattern matching using wildcards.&quot;</em></sub></p>
+</blockquote>
+<p><a id="time-range-cost"></a></p>
+<h2>3. Time Range &amp; Cost</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Always specify explicit time range</td>
+<td><code>fetch spans, from:-1h</code> — never bare <code>fetch spans</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use narrowest range possible</td>
+<td>Debugging: <code>from:-5m</code>. Recent: <code>from:-1h</code>. Daily: <code>from:-24h</code>. Weekly: <code>from:-7d</code> (1 h → 15 min cut 910 MB to 234 MB)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Target specific buckets</td>
+<td><code>fetch spans, from:-1h, bucket:{&quot;&lt;your bucket&gt;&quot;}</code> — check <code>dt.system.bucket</code> first</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Read sampling for estimates</td>
+<td><code>fetch spans, samplingRatio: 100</code> then multiply counts by <code>dt.system.sampling_ratio</code> (the read-sampling ratio, not the trace sampler)</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>Never group by <code>trace.id</code> without pre-filtering</td>
+<td>Millions of unique values — filter by error or time first</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Group by low-cardinality fields for dashboards</td>
+<td><code>dt.service.name</code>, <code>span.name</code>, <code>span.kind</code>, <code>http.route</code> — never <code>url.path</code>, <code>trace.id</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Always <code>limit</code> non-aggregated queries</td>
+<td><code>limit 100</code> on any raw span query</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use only needed percentiles</td>
+<td>Each adds compute time, not scanned bytes</td>
+<td>Optional</td>
+</tr>
+</tbody>
+</table>
+<p><a id="duration-aggregation"></a></p>
+<h2>4. Duration &amp; Aggregation</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Convert duration to a number</td>
+<td><code>duration / 1ms</code>, <code>duration / 1s</code> — never <code>/ 1000000</code> (still a duration)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use duration literals in filters</td>
+<td><code>filter duration &gt; 100ms</code> — an integer literal never matches a duration</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use <code>countIf()</code> for conditional counts</td>
+<td><code>summarize errors = countIf(span.status_code == &quot;error&quot;), total = count()</code> in single pass</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Error rate calculation</td>
+<td><code>(error_count * 100.0) / total_requests</code> — use <code>100.0</code> (float) to avoid integer division</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Percentile trends</td>
+<td><code>makeTimeseries p95_ms = percentile(duration / 1ms, 95), interval:10m</code> — conversion <strong>inside</strong> the aggregation; <code>percentile(duration, 95) / 1ms</code> is rejected</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use <code>makeTimeseries</code> for dashboard charts</td>
+<td><code>makeTimeseries {requests = count(), errors = countIf(span.status_code == &quot;error&quot;)}, interval:5m</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Server error rate</td>
+<td>Count <code>span.status_code == &quot;error&quot; or http.response.status_code &gt;= 500</code> — 7.7% of 5xx server spans carried no status on the validation tenant</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Minimum sample size before ranking</td>
+<td><code>filter request_count &gt; 10</code> before percentile/error rate rankings</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="trace-analysis"></a></p>
+<h2>5. Trace Analysis</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Find root spans</td>
+<td><code>filter isNull(span.parent_id)</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Reconstruct trace chronologically</td>
+<td><code>filter trace.id == toUid(&quot;ID&quot;) | sort start_time asc</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Find the ORIGIN error in a trace</td>
+<td>The error span that <strong>ends first</strong>: <code>summarize origin = takeMin(record(end_time = end_time, service = dt.service.name, span = span.name)), by:{trace.id}</code>. The earliest-<em>starting</em> error is usually a caller that inherited it (231 of 247 multi-error traces)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Trace duration</td>
+<td><code>(max(end_time) - min(start_time)) / 1ms</code> per <code>trace.id</code> — not <code>sum(duration)</code> (double-counts nested work)</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Detect cascading failures</td>
+<td><code>filter span.status_code == &quot;error&quot; | summarize n = count(), by:{trace.id} | filter n &gt; 1</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Impact score for bottleneck spans</td>
+<td><code>fieldsAdd impact_score = call_count * avg_duration_ms | sort impact_score desc</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td><code>sum(duration)</code> per service is inclusive time</td>
+<td>It includes child calls a span waits on — rank by it, don't call it self time</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Health scorecard classification</td>
+<td><code>if(error_rate &gt; 5, &quot;Critical&quot;, else: if(error_rate &gt; 1, &quot;Warning&quot;, else: &quot;Healthy&quot;))</code></td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="service-dependencies"></a></p>
+<h2>6. Service Dependencies</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Map dependencies via CLIENT spans</td>
+<td><code>filter span.kind == &quot;client&quot; | summarize n = count(), by:{dt.service.name, server.address}</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Caller → callee service map</td>
+<td>Join server spans to the client span named in <code>span.parent_id</code> (same <code>trace.id</code>) — see SPANS-04 §3</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Don't rely on <code>peer.service</code></td>
+<td>No semantic-dictionary row; 0 of 8.29M spans in 24 h on the validation tenant</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Track async messaging</td>
+<td><code>filter span.kind == &quot;producer&quot; or span.kind == &quot;consumer&quot; | summarize n = count(), by:{messaging.system, messaging.destination.name}</code> (<code>messaging.operation.type</code>, not <code>messaging.operation</code>)</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Outbound/inbound ratio</td>
+<td><code>toDouble(outbound) / toDouble(inbound)</code> per <code>dt.service.name</code> — integer division truncates</td>
+<td>Optional</td>
+</tr>
+</tbody>
+</table>
+<p><a id="security"></a></p>
+<h2>7. Security</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Use <code>http.route</code> in dashboards, never <code>url.path</code></td>
+<td><code>http.route</code> = pattern (no PII), <code>url.path</code> = actual values (may contain PII)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Audit query strings where they live</td>
+<td>Tokens sit in <code>url.query</code> / <code>url.full</code>, not <code>url.path</code> — check all three</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Mask card numbers as whole path segments</td>
+<td><code>replacePattern(url.path, &quot;&lt;&lt;'/' CREDITCARD (&gt;&gt;'/' | &gt;&gt;'?' | EOF)&quot;, &quot;[CARD-MASKED]&quot;)</code> — a bare <code>CREDITCARD</code> also matches digit runs inside hex IDs</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Weekly PII audit: emails in URLs</td>
+<td>Leak check: <code>countIf(replacePattern(url.path, &quot;[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+&quot;, &quot;&quot;) != url.path)</code> — must be 0</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Weekly audit: sensitive data in <code>db.query.text</code></td>
+<td><code>contains(db.query.text, &quot;password&quot;, caseSensitive: false)</code> and similar (<code>db.statement</code> is the null pre-1.0 name)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Exceptions are span events</td>
+<td><code>iAny(span.events[][span_event.name] == &quot;exception&quot;)</code>; text in <code>exception.message</code> / <code>exception.stack_trace</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Monitor 401/403/429 as security signals</td>
+<td><code>filter in(http.response.status_code, {401, 403, 429})</code> with 10-min bucketing on dashboard</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Brute force detection</td>
+<td>401 count &gt;10 per hour per endpoint = alert (community threshold — tune it)</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Enumeration detection</td>
+<td>404 count &gt;100 with high unique path count = scanning alert (community threshold)</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Limit <code>trace.id</code> exposure</td>
+<td><code>takeAny(trace.id)</code> per error pattern — never expose all trace IDs</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Mask emails in span URLs via OpenPipeline</td>
+<td>DQL processor: <code>replacePattern(url.path, &quot;[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+&quot;, &quot;[EMAIL-MASKED]&quot;)</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Mask tokens in query params via OpenPipeline</td>
+<td>DQL processor: <code>replacePattern(url.query, &quot;&lt;&lt;(('token' | 'TOKEN' | 'Token' | 'key' | 'KEY' | 'Key' | 'secret' | 'SECRET' | 'Secret' | 'password' | 'PASSWORD' | 'Password') '=') [^&amp;]+&quot;, &quot;[REDACTED]&quot;)</code> — DPL literals are case-sensitive, so list each casing</td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<p><a id="openpipeline-span-configuration"></a></p>
+<h2>8. OpenPipeline Span Configuration</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Drop health check spans at ingestion</td>
+<td><strong>Drop record</strong> processor, matching condition <code>matchesValue(span.name, &quot;*health*&quot;) or matchesValue(span.name, &quot;*/ready*&quot;)</code> (matchers reject <code>contains()</code>)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Drop static asset spans</td>
+<td>Drop record on <code>matchesValue(url.path, &quot;*.js&quot;) or matchesValue(url.path, &quot;*.css&quot;)</code> — measure first</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Never drop error or slow spans</td>
+<td>Leave <code>span.status_code == &quot;error&quot;</code> and <code>duration &gt; 1s</code> out of every drop condition</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Pre-compute <code>duration_ms</code> at ingestion</td>
+<td>DQL processor: <code>fieldsAdd duration_ms = duration / 1ms</code></td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>Route to environment buckets</td>
+<td>Bucket assignment (first match): production → long-retention bucket, staging → short, <code>true</code> last</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Route sensitive service spans to restricted buckets</td>
+<td>Payment/auth services → <code>spans_sensitive</code> with restricted IAM</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Bucket-level IAM for team isolation</td>
+<td>Frontend team: <code>spans_frontend</code> only. SRE: all span buckets. Compliance: <code>audit_spans</code></td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="bucket-strategy-sampling"></a></p>
+<h2>9. Bucket Strategy &amp; Sampling</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Retention by environment</td>
+<td>Production: 90 days. Staging: 7 days. <code>default_spans</code> is built in (10 days on the validation tenant); Grail traces are <em>&quot;Configurable, from 10 days to 10 years&quot;</em></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Sample at the source, not in OpenPipeline</td>
+<td>OneAgent: Adaptive Traffic Management (head-based). OpenTelemetry: Collector <code>tail_sampling</code> — the only place &quot;keep all errors&quot; is possible. <em>&quot;OpenPipeline processing cannot be used as an alternative to ATM configuration for controlling trace volume.&quot;</em></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Compute metrics before tail sampling</td>
+<td><code>spanmetrics</code> connector ahead of <code>tail_sampling</code> in the Collector</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Calculate savings before filtering</td>
+<td>Count health checks + static assets (<code>url.path</code>) vs errors + slow to size droppable vs must-keep</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Extract <code>dt.ingest.size</code> as metric</td>
+<td><strong>Sampling aware value metric</strong> (the value-metric variant on spans), key <code>span.ingest.size.by.app</code>, dim: app identifier</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Verify bucket distribution monthly</td>
+<td><code>summarize n = count(), by:{dt.system.bucket}</code> — verify routing rules working</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

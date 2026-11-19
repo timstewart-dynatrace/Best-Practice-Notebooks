@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ-22: What Happened to My PurePath Timings in Grail?</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">FAQ — Frequently Asked Questions</a><span class="sep">/</span><span aria-current="page">FAQ-22</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>FAQ-22: What Happened to My PurePath Timings in Grail?</h1>
+<blockquote>
+<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 22 — PurePath Timings in the Grail Span Model | <strong>Created:</strong> August 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Teams arriving from a classic Dynatrace estate — or from another APM tool — tend to ask a version of the same question within the first week of running <code>fetch spans</code>:</p>
+<blockquote>
+<p><em>&quot;Where did IO time, lock time, and fetch count go? Why does an outgoing HTTP call have no service and no endpoint? And can I rely on <code>request_attribute.&lt;name&gt;</code>?&quot;</em></p>
+</blockquote>
+<p>All three have the same root. The Grail span model is <strong>not</strong> a serialization of the classic PurePath detail view. It is a smaller, deliberately typed set of fields published as a <strong>semantic dictionary</strong> — and that dictionary is itself queryable, with a stability level on every field. Some classic sub-timings survived the move to Grail; most were never modeled. The ones that were not are not &quot;lost in migration&quot; and are not pending — they are simply not in the model.</p>
+<p>This entry answers the three field-model questions directly, and then shows how to answer the next one without asking anyone. Two adjacent questions are handled by series that own them properly and are not restated here:</p>
+<table>
+<thead>
+<tr>
+<th>Adjacent question</th>
+<th>Read</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>How to detect failures on client spans in practice</td>
+<td><strong>SPANS-03</strong> (troubleshooting) — <code>span.kind == &quot;client&quot; and span.status_code == &quot;error&quot;</code></td>
+</tr>
+<tr>
+<td>DPS trace Ingest / Retain / Query and who consumes query budget</td>
+<td><strong>FINOPS-01</strong> §6 and §9</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#the-span-model-is-a-queryable-contract">The Span Model Is a Queryable Contract</a></li>
+<li><a href="#which-purepath-timings-survived">Which PurePath Timings Survived</a></li>
+<li><a href="#why-an-external-call-has-no-service-and-no-endpoint">Why an External Call Has No Service and No Endpoint</a></li>
+<li><a href="#request-attribute-vs-captured-attribute">request_attribute vs captured_attribute</a></li>
+<li><a href="#answering-the-next-one-yourself">Answering the Next One Yourself</a></li>
+<li><a href="#recommended-approach">Recommended Approach</a></li>
+<li><a href="#summary-and-next-steps">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<p><a id="prerequisites"></a></p>
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Applies to</strong></td>
+<td>Any Grail tenant querying <code>fetch spans</code> — especially estates migrating from classic Dynatrace or from another APM tool</td>
+</tr>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Anyone porting classic PurePath analysis, dashboards, or alerting onto span DQL</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:buckets:read</code> plus <code>storage:spans:read</code> for the span queries — table permissions alone do not grant reads. The <code>dt.semantic_dictionary.*</code> queries scanned <strong>zero bytes</strong> on the validation tenant</td>
+</tr>
+<tr>
+<td><strong>Related topic series</strong></td>
+<td>SPANS (span DQL, troubleshooting, topology) · OTEL (OTLP ingest and attribute mapping) · FINOPS (trace Ingest / Retain / Query billing) · OPIPE (span processing at ingest)</td>
+</tr>
+<tr>
+<td><strong>Related FAQs</strong></td>
+<td><strong>FAQ-11</strong> (how metrics work — the Classic/Grail dual-write that explains the metric half of this question) · <strong>FAQ-16</strong> (migrating classic entity selectors to Smartscape) · <strong>FAQ-12</strong> (coverage gaps from partial enablement)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Validation status.</strong> Every field name, stability level, and description quoted in this entry was read from <code>dt.semantic_dictionary.fields</code> and <code>dt.semantic_dictionary.models</code> on a live SaaS tenant on <strong>08/04/2026</strong>, and the span-shape claims in sections 3–4 were confirmed against live <code>fetch spans</code> results on the same tenant. The one claim this entry does <strong>not</strong> make from observation is which platform apps consume trace Query budget — see <a href="#recommended-approach">section 7</a>.</p>
+</blockquote>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<p><strong>Three answers, each verifiable in your own tenant in about a minute.</strong></p>
+<ul>
+<li><strong>CPU time survived. IO time, lock time, disk IO time, and suspension did not.</strong> The Dynatrace span model publishes exactly two timing-breakdown fields — <code>span.timing.cpu</code> and <code>span.timing.cpu_self</code>, both <code>stable</code>. A search of the <em>entire</em> semantic dictionary for lock, wait, suspension, or IO timing fields returns nothing on spans. This is a model boundary, not a rollout gap, so treat it as permanent until the dictionary says otherwise — and the dictionary is how you would find out.</li>
+<li><strong>Mostly yes — an external call made while serving a request is a client span with no endpoint.</strong> <code>endpoint.name</code> is <code>stable</code> and, per its own definition, <em>&quot;exclusively detected on request root spans.&quot;</em> A client span beneath a server span is not a request root span, so <code>endpoint.name</code> is null on it and the <code>dt.service.request.*</code> metric family — which is dimensioned by service and endpoint — has no series for that call. The exception is a client span that <em>starts</em> a request — an outbound call from a scheduler, background thread or batch job with no inbound span above it. That span is the request root, and it carries an endpoint and a service-metric series (3.8% of client spans over 2 h on the validation tenant, 10/15/2026). Either way, you characterize outbound dependencies from the client spans themselves, grouped on <code>server.address</code> (<code>stable</code>). <code>peer.service</code> is not in the semantic dictionary — it appears only where OpenTelemetry instrumentation sets it, so treat it as optional.</li>
+<li><strong><code>request_attribute.&lt;name&gt;</code> is <code>stable</code> — with two traps.</strong> It is a registered field in the span model as <code>request_attribute.__attribute_name__</code>. But its type is <strong>array</strong>, not scalar, and it is <em>request-scoped reconciled</em> values. Its lesser-known sibling <code>captured_attribute.&lt;name&gt;</code> (also <code>stable</code>) holds the <em>span-scoped raw</em> values. Picking the wrong one, or comparing an array with <code>==</code>, are the two ways this goes wrong.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary">Semantic Dictionary (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/shortlink/request-attributes">Request attributes (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1">Enhanced endpoints for SDv1 (DT docs)</a>. <strong>Dictionary:</strong> <code>endpoint.name</code> (<code>stable</code>), <code>request.is_failed</code> (<code>deprecated</code>), <code>span.timing.cpu</code> (<code>stable</code>), <code>span.timing.cpu_self</code> (<code>stable</code>), <code>server.address</code> (<code>stable</code>), <code>request.is_root_span</code> (<code>deprecated</code>, read 10/15/2026); quoted definitions and stability levels read 08/04/2026, re-read 08/27/2026 and 09/28/2026 unchanged. No row for <code>peer.service</code>, read 09/28/2026 (control: the same query returns <code>server.address</code>).</sub></p>
+</blockquote>
+<p><a id="the-span-model-is-a-queryable-contract"></a></p>
+<h2>2. The Span Model Is a Queryable Contract</h2>
+<p>The reason this entry can answer &quot;is it a permanent gap?&quot; at all is that Dynatrace publishes the span model as data. Two tables carry it, both queryable with ordinary DQL and both scanning <strong>zero billable bytes</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Grain</th>
+<th>Use it for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.semantic_dictionary.models</code></td>
+<td>One row per semantic model (<code>span</code>, <code>db</code>, <code>faas</code>, <code>ctg</code>, …)</td>
+<td>&quot;What is the complete field list for spans?&quot;</td>
+</tr>
+<tr>
+<td><code>dt.semantic_dictionary.fields</code></td>
+<td>One row per field</td>
+<td>&quot;Does this field exist, what type is it, and is it stable?&quot;</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>fields</code> table carries a <strong><code>stability</code></strong> column, and it is the single most useful thing in this entry. Its values separate three very different situations that all look identical in a query result:</p>
+<table>
+<thead>
+<tr>
+<th><code>stability</code></th>
+<th>What it means for you</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>stable</code></td>
+<td>Safe to build dashboards, alerts, and automation on</td>
+</tr>
+<tr>
+<td><code>experimental</code></td>
+<td>Real and populated, but the contract may change — do not build alerting on it</td>
+</tr>
+<tr>
+<td><code>deprecated</code></td>
+<td>Still present, on its way out — migrate off it</td>
+</tr>
+</tbody>
+</table>
+<p>A field that is absent from <code>dt.semantic_dictionary.fields</code> entirely is a fourth case, and it is the one that matters for the PurePath timings: not experimental, not deprecated — <strong>not modeled</strong>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary">Semantic Dictionary (DT docs)</a>. <strong>Dictionary:</strong> the <code>stable</code> / <code>experimental</code> / <code>deprecated</code> ladder and the zero-bytes-scanned property observed directly, read 08/04/2026, re-read 08/27/2026 unchanged.</sub></p>
+</blockquote>
+<p><strong>The whole span field list, in one query.</strong> Run this first — it is the ground truth for every &quot;does field X exist?&quot; argument:</p>
+<pre><code class="language-dql">// The complete published field list for Dynatrace spans.
+// Scans zero billable bytes — this is metadata, not span data.
+fetch dt.semantic_dictionary.models
+| filter data_object == &quot;spans&quot;
+| filter name == &quot;span&quot;
+| fields title, description, fields
+</code></pre>
+<p><a id="which-purepath-timings-survived"></a></p>
+<h2>3. Which PurePath Timings Survived</h2>
+<p>The classic PurePath detail view breaks a request's elapsed time into contributions — CPU, IO, lock/sync, suspension, and so on. The Grail span model publishes <strong>two</strong> of them.</p>
+<table>
+<thead>
+<tr>
+<th>Classic PurePath concept</th>
+<th>Grail span field</th>
+<th>Stability</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CPU time (inclusive of same-thread children)</td>
+<td><code>span.timing.cpu</code></td>
+<td><code>stable</code></td>
+<td><strong>Survived</strong></td>
+</tr>
+<tr>
+<td>CPU time (this span only)</td>
+<td><code>span.timing.cpu_self</code></td>
+<td><code>stable</code></td>
+<td><strong>Survived</strong> — no classic equivalent as a first-class value</td>
+</tr>
+<tr>
+<td>IO time</td>
+<td>—</td>
+<td>—</td>
+<td><strong>Not modeled</strong></td>
+</tr>
+<tr>
+<td>Disk IO time</td>
+<td>—</td>
+<td>—</td>
+<td><strong>Not modeled</strong></td>
+</tr>
+<tr>
+<td>Lock / sync / wait time</td>
+<td>—</td>
+<td>—</td>
+<td><strong>Not modeled</strong></td>
+</tr>
+<tr>
+<td>Suspension time</td>
+<td>—</td>
+<td>—</td>
+<td><strong>Not modeled</strong></td>
+</tr>
+<tr>
+<td>Fetch count (rows fetched)</td>
+<td><code>db.result.fetch_size</code> — <em>nearest analogue only</em></td>
+<td><code>experimental</code></td>
+<td><strong>Different measure</strong> — see below</td>
+</tr>
+</tbody>
+</table>
+<p>Two of those rows deserve care.</p>
+<p><strong><code>span.timing.cpu</code> vs <code>span.timing.cpu_self</code>.</strong> The dictionary defines the first as <em>&quot;the overall CPU time spent executing the span, including the CPU times of child spans that are running on the same thread on the same call stack,&quot;</em> and the second as <em>&quot;the CPU time spent exclusively on executing this span, not including the CPU times of any children.&quot;</em> The <code>_self</code> form is what you want for &quot;which span actually burned the CPU&quot; — the inclusive form double-counts up the same-thread stack.</p>
+<p><strong><code>db.result.fetch_size</code> is not fetch count.</strong> It is defined as <em>&quot;the number of items <strong>requested</strong> in fetching query results&quot;</em> — a fetch-size hint, not a count of rows returned. It is also <code>experimental</code>, which rules it out for alerting. If a classic dashboard tracked fetch count as an N+1-query signal, the durable replacement is span <em>count</em> per trace against the database service, not this field. <strong>DBMON-05</strong> (query analysis) covers N+1 detection.</p>
+<p><strong>What to do about the gap.</strong> There is no reconstruction of IO or lock time from the fields that do exist — <code>duration</code> minus <code>span.timing.cpu</code> is elapsed-minus-CPU, which lumps IO, lock, queueing, and downstream wait into one undifferentiated number. It can be a useful <em>triage</em> signal (&quot;this span is not CPU-bound&quot;), but do not present it as IO time. Where the distinction genuinely drives a decision, the durable path is the child spans themselves: a database call, an outbound HTTP call, and a queue wait each appear as their own span with their own <code>duration</code>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing">Distributed Tracing (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/semantic-dictionary">Semantic Dictionary (DT docs)</a>. <strong>Dictionary:</strong> <code>span.timing.cpu</code> (<code>stable</code>), <code>span.timing.cpu_self</code> (<code>stable</code>); no row for IO time, disk IO time, lock/sync time or suspension under <code>filter contains(name, &quot;timing&quot;) or contains(name, &quot;io.time&quot;) or contains(name, &quot;lock&quot;) or contains(name, &quot;suspension&quot;) or contains(name, &quot;wait&quot;)</code>, which returned 11 distinct fields on 11/13/2026 — <code>compilation_timings.*</code> ×3, the two CPU fields, and six unrelated substring hits (<code>azure.storage.blob.block_id</code>, <code>azure.x_PricingBlockSize</code>, <code>characteristics.has_w3c_*</code> ×2, <code>snowflake.user.is_locked</code>, <code>snowflake.user.locked_until_time</code>) — so the query surface works and the absence is meaningful, not an empty result. Read 08/04/2026, re-verified 08/27/2026; the sixth field appeared by 09/28/2026. <strong>Derived:</strong> the <code>duration - span.timing.cpu</code> triage caveat follows from the two published CPU definitions plus the absence of any wait-time field — no source endorses it as a substitute.</sub></p>
+</blockquote>
+<p><strong>Confirm the timing inventory yourself.</strong> This searches the entire dictionary — not just spans — so an empty result for lock/wait/suspension is a statement about the platform, not about your tenant's data:</p>
+<pre><code class="language-dql">// Every timing-related field the semantic dictionary publishes, anywhere.
+// Expect: span.timing.cpu, span.timing.cpu_self, compilation_timings.*, and
+// unrelated substring hits (azure.*, characteristics.has_w3c_*, snowflake.*) — nothing for IO,
+// lock/sync time or suspension.
+fetch dt.semantic_dictionary.fields
+| filter contains(name, &quot;timing&quot;)
+    or contains(name, &quot;lock&quot;)
+    or contains(name, &quot;suspend&quot;)
+| fields name, stability, type, description
+| sort name asc
+</code></pre>
+<p><a id="why-an-external-call-has-no-service-and-no-endpoint"></a></p>
+<h2>4. Why an External Call Has No Service and No Endpoint</h2>
+<p>The customer premise here is correct, and it follows from one sentence in the dictionary.</p>
+<p><code>endpoint.name</code> is <code>stable</code>, and its definition reads: <em>&quot;The endpoint name is derived from endpoint detection rules and uniquely identifies one endpoint of a particular service… Endpoints are <strong>exclusively detected on request root spans</strong>.&quot;</em></p>
+<blockquote>
+<p><strong>Breaking (SaaS 1.347 — staged rollout from 09/16/2026): endpoint names keep their volatile segments</strong> — for customers using URL truncation, that is Service Detection v2, or Service Detection v1 with enhanced endpoint naming enabled. Verbatim: <em>&quot;volatile segments are no longer dropped. Instead, they’re replaced with typed placeholders, and path processing continues for the full path&quot;</em> This does not change <em>where</em> endpoints are detected — the root-span rule below still holds — but it changes the <strong>shape of every name</strong>. A path that previously truncated at its first volatile segment now runs its full length with <code>{id}</code> / <code>{token}</code> standing in for the volatile parts, so a filter written against a truncated name stops matching. Cardinality moves with it: two URLs that used to collapse to the same truncated endpoint can now resolve to two names. Re-check endpoint-scoped filters, dashboards and alerts once 1.347 reaches your tenant; until it does, the truncating behaviour is what you will observe.</p>
+</blockquote>
+<p>A client span — the caller's side of an outbound HTTP, gRPC, or database call — made <strong>while serving an inbound request</strong> is not a request root span. So:</p>
+<table>
+<thead>
+<tr>
+<th>On a request root (server) span</th>
+<th>On a client span beneath a server span</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>endpoint.name</code> populated</td>
+<td><code>endpoint.name</code> <strong>null</strong></td>
+</tr>
+<tr>
+<td><code>request.is_failed</code> populated</td>
+<td><code>request.is_failed</code> <strong>null</strong></td>
+</tr>
+<tr>
+<td>Contributes to <code>dt.service.request.*</code> series</td>
+<td><strong>No</strong> service/endpoint metric series</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The exception: a client span that starts a request.</strong> The dictionary defines the request root as the span that <em>&quot;starts the request within a service&quot;</em> (<code>request.is_root_span</code>). An outbound call from a scheduler, background thread, load generator or batch job has no inbound span above it, so its client span <em>is</em> the request root — and carries <code>endpoint.name</code>, <code>request.is_failed</code> and a <code>dt.service.request.*</code> series. On the validation tenant over 2 h (10/15/2026), 17,970 of 478,373 client spans (3.8%) were request roots; every one had both fields, no other client span had either, and the most frequent endpoint among them (<code>okhttp3.RealCall.execute</code>, 9,914 spans) had a matching <code>dt.service.request.count</code> series.</p>
+<p>The last table row is the one with real consequences. The <code>dt.service.request.*</code> family — <code>count</code>, <code>failure_count</code>, <code>response_time</code> — is dimensioned by <code>dt.entity.service</code> and <code>endpoint.name</code>. With no endpoint on a client span made while serving a request, there is no series describing that outbound call to a third-party API. Golden-signal dashboards for external dependencies are built from spans, not from that metric family.</p>
+<p><strong>Two consequences worth internalizing:</strong></p>
+<ol>
+<li><strong>Characterize dependencies from the client spans.</strong> Group on <code>server.address</code> (<code>stable</code>). <code>peer.service</code> is not in the semantic dictionary; it appears only when OTel instrumentation sets it — treat it as optional, never as the key. <strong>SPANS-04</strong> §3–4 is the full treatment — service dependency mapping, inbound/outbound ratios, slowest-dependency queries.</li>
+<li><strong><code>request.is_failed</code> is not your failure signal here — and is deprecated anyway.</strong> The dictionary marks it <code>deprecated</code>, describing it as <em>&quot;considered failed according to the failure detection rules. Only present on the request root span.&quot;</em> The successor namespace <code>dt.failure_detection.verdict</code> / <code>.results</code> is <code>experimental</code>. For client spans the <code>stable</code> answer is <code>span.status_code</code> plus the protocol status field (<code>http.response.status_code</code>; for gRPC <code>rpc.grpc.status_code</code>, which is <code>experimental</code>) — which is exactly what <strong>SPANS-03</strong> already teaches. Do not build alerting on the failure-detection namespace while it is experimental.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-347">What's new in Dynatrace SaaS 1.347 (DT docs)</a> — the endpoint-naming change for volatile segments quoted above, <a href="https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1">Enhanced endpoints for SDv1 (DT docs)</a> — <em>&quot;No endpoints are created for external services, background activity services, queue listener services, or key value store services.&quot;</em> <a href="https://docs.dynatrace.com/docs/shortlink/service-failure-detection">Service failure detection (DT docs)</a>. <strong>Dictionary:</strong> <code>endpoint.name</code> (<code>stable</code>), <code>request.is_failed</code> (<code>deprecated</code>), <code>dt.failure_detection.verdict</code> (<code>experimental</code>), <code>span.status_code</code> (<code>stable</code>), <code>server.address</code> (<code>stable</code>), <code>rpc.grpc.status_code</code> (<code>experimental</code>), <code>request.is_root_span</code> (<code>deprecated</code>, read 10/15/2026); quoted definitions read 08/04/2026, re-read 08/27/2026 unchanged; no row for <code>peer.service</code>, read 09/28/2026 (0 of 507,133 spans in a 2 h window carried it, against 438,899 with <code>server.address</code>). The null-on-client / populated-on-server contrast was observed on live spans on the same tenant and date; the request-root client-span counts and the <code>dt.service.request.count</code> series were executed 10/15/2026.</sub></p>
+</blockquote>
+<p><strong>Reproduce the contrast in your own tenant.</strong> Two queries, run back to back — the first returns client spans, nearly all with nulls in the endpoint and failure columns (a row that has them is a client span that started its request); the second returns both fields populated:</p>
+<pre><code class="language-dql">// Client spans: endpoint.name and request.is_failed are null on client spans beneath a server span;
+// a client span that starts a request (no inbound span above it) carries both.
+// server.address is what you group outbound dependencies by.
+fetch spans, from:-2h
+| filter span.kind == &quot;client&quot;
+| fields span.name, server.address, endpoint.name, request.is_failed, duration, span.timing.cpu
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Request root (server) spans: both fields are populated.
+fetch spans, from:-2h
+| filter span.kind == &quot;server&quot; and isNotNull(endpoint.name)
+| fields span.name, endpoint.name, request.is_failed, span.timing.cpu, span.timing.cpu_self
+| limit 10
+</code></pre>
+<p><a id="request-attribute-vs-captured-attribute"></a></p>
+<h2>5. <code>request_attribute</code> vs <code>captured_attribute</code></h2>
+<p>Both are <code>stable</code>. Both are registered in the span model under templated names — <code>request_attribute.__attribute_name__</code> and <code>captured_attribute.__attribute_name__</code>, where <code>__attribute_name__</code> is the name you gave the request attribute in its configuration. So the answer to <em>&quot;is <code>request_attribute.&lt;name&gt;</code> a GA and stable attribute mapping?&quot;</em> is <strong>yes</strong>.</p>
+<p>The useful part is the distinction between the two, because nothing in the name signals it:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><code>request_attribute.&lt;name&gt;</code></th>
+<th><code>captured_attribute.&lt;name&gt;</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Stability</strong></td>
+<td><code>stable</code></td>
+<td><code>stable</code></td>
+</tr>
+<tr>
+<td><strong>Type</strong></td>
+<td>array</td>
+<td>array</td>
+</tr>
+<tr>
+<td><strong>Scope</strong></td>
+<td>Request-scoped, <strong>reconciled</strong></td>
+<td>Span-scoped, <strong>raw</strong></td>
+</tr>
+<tr>
+<td><strong>Definition</strong></td>
+<td><em>&quot;the request scoped reconciled values of the attribute … defined by the request attribute configuration&quot;</em></td>
+<td><em>&quot;the span scoped raw values that were captured under the name … &quot;</em></td>
+</tr>
+<tr>
+<td><strong>Reach for it when</strong></td>
+<td>You want the attribute's settled value for the request as a whole</td>
+<td>You want to see what a specific span actually captured, before reconciliation</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Three traps, in the order teams hit them:</strong></p>
+<ol>
+<li><strong>The type is array, not scalar.</strong> <code>filter request_attribute.order_id == &quot;A-1&quot;</code> does not do what a classic request-attribute filter did. Use <code>matchesValue()</code> for membership, or an array function when you need the element. This is the single most common failure and it fails <em>silently</em> — an equality comparison against an array simply matches nothing.</li>
+<li><strong>Mixed capture types collapse to string.</strong> The dictionary is explicit for <code>captured_attribute</code>: if the captured values have mixed types, <em>&quot;all attributes are converted to string and stored as string array.&quot;</em> A numeric comparison that worked in one environment can silently stop matching in another where a stray string value appeared.</li>
+<li><strong>The name is yours, so the field is not discoverable by browsing.</strong> <code>request_attribute.__attribute_name__</code> is a template. Nothing lists your tenant's actual request-attribute fields from the dictionary — you have to read them from the request-attribute configuration, or from a span that carries them.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/request-attributes">Request attributes (DT docs)</a>. <strong>Dictionary:</strong> <code>request_attribute.__attribute_name__</code> (<code>stable</code>) and <code>captured_attribute.__attribute_name__</code> (<code>stable</code>) — the dictionary names them with the <code>__attribute_name__</code> placeholder; definitions, array typing and the mixed-type-to-string rule quoted, read 08/04/2026, re-read 08/27/2026 unchanged. <strong>Derived:</strong> the trap ordering in the numbered list reflects how the array typing interacts with ordinary DQL equality — no source ranks them.</sub></p>
+</blockquote>
+<p><strong>Check both fields' contract before you write the filter:</strong></p>
+<pre><code class="language-dql">// The two request-attribute field families, with their published contracts.
+fetch dt.semantic_dictionary.fields
+| filter contains(name, &quot;request_attribute&quot;)
+    or contains(name, &quot;captured_attribute&quot;)
+| fields name, stability, type, description
+</code></pre>
+<p><a id="answering-the-next-one-yourself"></a></p>
+<h2>6. Answering the Next One Yourself</h2>
+<p>The three questions above share one method. It generalizes to every <em>&quot;does Grail have X?&quot;</em> question, and it costs nothing to run.</p>
+<p><strong>The four-case test.</strong> Given a field name you expect to exist, <code>dt.semantic_dictionary.fields</code> puts it in exactly one of four states:</p>
+<table>
+<thead>
+<tr>
+<th>Result</th>
+<th>Meaning</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Row with <code>stability: stable</code></td>
+<td>Modeled and supported</td>
+<td>Build on it</td>
+</tr>
+<tr>
+<td>Row with <code>stability: experimental</code></td>
+<td>Modeled, contract may change</td>
+<td>Query it; do not alert on it</td>
+</tr>
+<tr>
+<td>Row with <code>stability: deprecated</code></td>
+<td>Modeled, being removed</td>
+<td>Migrate off it</td>
+</tr>
+<tr>
+<td><strong>No row</strong></td>
+<td><strong>Not modeled</strong></td>
+<td>Stop looking for it in span data — redesign around what exists</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why this beats querying the data.</strong> A query that returns zero rows cannot distinguish &quot;this field does not exist&quot; from &quot;this field exists but is empty in my timeframe&quot; from &quot;I lack the scope to read this table.&quot; The dictionary distinguishes them, and it does so without scanning billable bytes. This matters most for exactly the claim this entry makes — <em>&quot;IO time is not in the model&quot;</em> — which would be unsafe to assert from an empty span query and is safe to assert from an empty dictionary result.</p>
+<blockquote>
+<p><sub><strong>Derived:</strong> the four-case table restates the observed <code>stability</code> values plus the absent-row case; no single source presents it as a decision procedure.</sub></p>
+</blockquote>
+<p><strong>The general-purpose lookup.</strong> Change the filter and keep the shape:</p>
+<pre><code class="language-dql">// Does this field exist, and can I build on it?
+// Substitute any field-name fragment. An empty result means &quot;not modeled&quot;.
+fetch dt.semantic_dictionary.fields
+| filter contains(name, &quot;timing&quot;)
+| fields name, stability, type, description
+| sort stability asc, name asc
+</code></pre>
+<pre><code class="language-dql">// Which model owns a field, and what else ships alongside it?
+fetch dt.semantic_dictionary.models
+| filter data_object == &quot;spans&quot;
+| expand fields
+| filter contains(fields, &quot;request_attribute&quot;)
+| fields name, title, fields
+</code></pre>
+<p><a id="recommended-approach"></a></p>
+<h2>7. Recommended Approach</h2>
+<p><strong>If you are porting classic PurePath analysis onto span DQL:</strong></p>
+<ol>
+<li><strong>Inventory before you port.</strong> Run the section 2 query once and diff the published field list against the fields your classic dashboards and alerts depend on. The fields with no row are the real work; everything else is a rename.</li>
+<li><strong>Replace sub-timings with child spans, not with arithmetic.</strong> Where IO or lock time drove a decision, the durable signal is the child span — a DB call, an outbound HTTP call, a queue wait — each with its own <code>duration</code>. <code>duration - span.timing.cpu</code> is a triage hint, not a metric to publish.</li>
+<li><strong>Use <code>span.timing.cpu_self</code> for CPU attribution</strong>, and reserve the inclusive <code>span.timing.cpu</code> for whole-subtree questions.</li>
+<li><strong>Build external-dependency views from client spans</strong> keyed on <code>server.address</code> (<code>peer.service</code> only where your OTel instrumentation sets it), and do not expect a <code>dt.service.request.*</code> series for calls made while serving a request — only a client span that starts a request gets one. <strong>SPANS-04</strong> has the queries.</li>
+<li><strong>Filter request attributes as arrays.</strong> <code>matchesValue()</code>, not <code>==</code>. Decide deliberately between the request-scoped reconciled value and the span-scoped raw one.</li>
+<li><strong>Check <code>stability</code> before anything reaches an alert.</strong> <code>experimental</code> fields are legitimate for investigation and wrong for paging.</li>
+</ol>
+<p><strong>On the DPS question that usually arrives with these</strong> — trace Ingest &amp; Process, Retain, and Query are documented in <strong>FINOPS-01</strong> §6, including the footgun that Traces-Ingest meters <code>ingested_bytes</code> while Retain and Query meter <code>billed_bytes</code>. To find out whether a given platform app consumes trace Query budget in <em>your</em> tenant, FINOPS-01 §9 has the pattern: filter <code>dt.system.events</code> to <code>event.type == &quot;Traces - Query&quot;</code> and group by <code>client.application_context</code>. On the validation tenant used for this entry no <code>Traces - Query</code> records existed in a 30-day window, so this entry makes no claim about which apps appear — run it yourself rather than assuming either answer.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary">Semantic Dictionary (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/shortlink/request-attributes">Request attributes (DT docs)</a>. The zero-<code>Traces - Query</code>-records observation is from the validation tenant on 08/04/2026 and is reported as a limit on this entry's evidence, not as a property of the platform.</sub></p>
+</blockquote>
+<p><a id="summary-and-next-steps"></a></p>
+<h2>8. Summary and Next Steps</h2>
+<p><strong>Five things to carry away:</strong></p>
+<ol>
+<li><strong>The span model is published data, not folklore.</strong> <code>dt.semantic_dictionary.models</code> and <code>dt.semantic_dictionary.fields</code> answer &quot;does X exist and can I trust it&quot; in one query, at zero billable bytes.</li>
+<li><strong>CPU time survived; IO, lock, disk IO, and suspension were never modeled.</strong> Absent from the dictionary is a stronger statement than absent from a query result — and it is the statement that justifies calling this permanent rather than pending.</li>
+<li><strong>External calls are client spans.</strong> A client span made while serving a request has no <code>endpoint.name</code>, no <code>request.is_failed</code> and no <code>dt.service.request.*</code> series; one that starts a request has all three. Group on <code>server.address</code> either way.</li>
+<li><strong><code>request_attribute.&lt;name&gt;</code> is <code>stable</code> — and is an array, request-scoped and reconciled.</strong> <code>captured_attribute.&lt;name&gt;</code> is its span-scoped raw sibling. Equality against either matches nothing.</li>
+<li><strong>Check <code>stability</code> before you alert.</strong> <code>request.is_failed</code> is <code>deprecated</code> and <code>dt.failure_detection.*</code> is <code>experimental</code>; <code>span.status_code</code> is <code>stable</code>. The failure-detection namespace is not yet somewhere to build.</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>If you need…</th>
+<th>Read</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Span DQL fundamentals and the full field walkthrough</td>
+<td>SPANS-01, SPANS-02</td>
+</tr>
+<tr>
+<td>Failure and error analysis on client spans</td>
+<td>SPANS-03</td>
+</tr>
+<tr>
+<td>Service dependency mapping from client spans</td>
+<td>SPANS-04</td>
+</tr>
+<tr>
+<td>Trace Ingest / Retain / Query billing and query-side chargeback</td>
+<td>FINOPS-01</td>
+</tr>
+<tr>
+<td>Span query cost and the filter-early pattern</td>
+<td>SPANS-08</td>
+</tr>
+<tr>
+<td>The metrics half of the Classic-vs-Grail question</td>
+<td>FAQ-11</td>
+</tr>
+<tr>
+<td>Migrating classic entity selectors to Smartscape</td>
+<td>FAQ-16</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

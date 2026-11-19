@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIOPS-07: Putting It Together — Detect, Investigate, Remediate</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">AIOPS — Dynatrace Intelligence</a><span class="sep">/</span><span aria-current="page">AIOPS-07</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>AIOPS-07: Putting It Together — Detect, Investigate, Remediate</h1>
+<blockquote>
+<p><strong>Series:</strong> AIOPS — Dynatrace Intelligence | <strong>Notebook:</strong> 7 of 8 | <strong>Created:</strong> May 2026 | <strong>Last Updated:</strong> 10/12/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>The previous six notebooks each focused on one slice of Dynatrace Intelligence. This one composes them into the operational pattern most teams want from AIOps: <strong>Detect → Investigate → Remediate</strong>, with each phase backed by the right AI category.</p>
+<p><strong>Audience:</strong> SRE / observability lead designing the actual operational flow.</p>
+<p><strong>Outcome:</strong> A reference operational pattern, plus three concrete scenarios — capacity, incident response, and quality regression — showing the pattern in practice.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+RGV0ZWN0IOKGkiBJbnZlc3RpZ2F0ZSDihpIgUmVtZWRpYXRlPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPlRoZSBvcGVyYXRpb25hbCBBSU9wcyBsb29wLCB3aXRoIGVhY2ggcGhhc2UgYmFja2VkIGJ5IGEgc3BlY2lmaWMgQUkgY2F0ZWdvcnk8L3RleHQ+CgogIDwhLS0gUGhhc2UgMTogRGV0ZWN0IC0tPgogIDxyZWN0IHg9IjQwIiB5PSIxMDAiIHdpZHRoPSIyNzAiIGhlaWdodD0iMzIwIiBmaWxsPSIjMjJEM0VFIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjE3NSIgeT0iMTMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iNzAwIj4xLiBEZXRlY3Q8L3RleHQ+CiAgPHRleHQgeD0iMTc1IiB5PSIxNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPlByZWRpY3RpdmUgQUk8L3RleHQ+CgogIDxyZWN0IHg9IjYwIiB5PSIxNzAiIHdpZHRoPSIyMzAiIGhlaWdodD0iNTUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgcng9IjYiLz4KICA8dGV4dCB4PSIxNzUiIHk9IjE5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+QW5vbWFseSBkZXRlY3RvciBmaXJlczwvdGV4dD4KICA8dGV4dCB4PSIxNzUiIHk9IjIxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+c3RhdGljIMK3IGFkYXB0aXZlIMK3IHNlYXNvbmFsIMK3IGZvcmVjYXN0PC90ZXh0PgoKICA8cmVjdCB4PSI2MCIgeT0iMjQwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjU1IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTc1IiB5PSIyNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPkRhdmlzIGV2ZW50IGxhbmRzPC90ZXh0PgogIDx0ZXh0IHg9IjE3NSIgeT0iMjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5kdC5kYXZpcy5ldmVudHM8L3RleHQ+CgogIDx0ZXh0IHg9IjE3NSIgeT0iMzI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5NZXRyaWM6IERldGVjdGlvbiBsYXRlbmN5PC90ZXh0PgogIDx0ZXh0IHg9IjE3NSIgeT0iMzQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Ib3cgbG9uZyBmcm9tIGFub21hbHkgdG8gZXZlbnQ/PC90ZXh0PgoKICA8dGV4dCB4PSIxNzUiIHk9IjM3NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+TWV0cmljOiBGYWxzZSBwb3NpdGl2ZXM8L3RleHQ+CiAgPHRleHQgeD0iMTc1IiB5PSIzOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPiUgb2YgZGV0ZWN0aW9ucyB0aGF0IHByb2R1Y2Ugbm8gYWN0aW9uPzwvdGV4dD4KCiAgPGxpbmUgeDE9IjMxMCIgeTE9IjI2MCIgeDI9IjM0NSIgeTI9IjI2MCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KCiAgPCEtLSBQaGFzZSAyOiBJbnZlc3RpZ2F0ZSAtLT4KICA8cmVjdCB4PSIzNTAiIHk9IjEwMCIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIzMjAiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDg1IiB5PSIxMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI3MDAiPjIuIEludmVzdGlnYXRlPC90ZXh0PgogIDx0ZXh0IHg9IjQ4NSIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5DYXVzYWwgKyBHZW5lcmF0aXZlPC90ZXh0PgoKICA8cmVjdCB4PSIzNzAiIHk9IjE3MCIgd2lkdGg9IjIzMCIgaGVpZ2h0PSI1NSIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ4NSIgeT0iMTkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5DYXVzYWwgQUkgZ3JvdXBzIHNpZ25hbHM8L3RleHQ+CiAgPHRleHQgeD0iNDg1IiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnZpYSBTbWFydHNjYXBlIHRvcG9sb2d5PC90ZXh0PgoKICA8cmVjdCB4PSIzNzAiIHk9IjI0MCIgd2lkdGg9IjIzMCIgaGVpZ2h0PSI1NSIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ4NSIgeT0iMjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5Qcm9ibGVtIGluIGR0LmRhdmlzLnByb2JsZW1zPC90ZXh0PgogIDx0ZXh0IHg9IjQ4NSIgeT0iMjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4rIEdlbmVyYXRpdmUgQUkgc3VtbWFyeTwvdGV4dD4KCiAgPHRleHQgeD0iNDg1IiB5PSIzMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPk1ldHJpYzogTVRUUiAobWVkaWFuLCBwOTUpPC90ZXh0PgogIDx0ZXh0IHg9IjQ4NSIgeT0iMzQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5CeSBjYXRlZ29yeSBhbmQgc2VydmljZTwvdGV4dD4KCiAgPHRleHQgeD0iNDg1IiB5PSIzNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPk1ldHJpYzogQ29tcHJlc3Npb24gcmF0aW88L3RleHQ+CiAgPHRleHQgeD0iNDg1IiB5PSIzOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnNpZ25hbHMgcGVyIHByb2JsZW08L3RleHQ+CgogIDxsaW5lIHgxPSI2MjAiIHkxPSIyNjAiIHgyPSI2NTUiIHkyPSIyNjAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CgogIDwhLS0gUGhhc2UgMzogUmVtZWRpYXRlIC0tPgogIDxyZWN0IHg9IjY2MCIgeT0iMTAwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjMyMCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI3NzUiIHk9IjEzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9IjcwMCI+My4gUmVtZWRpYXRlPC90ZXh0PgogIDx0ZXh0IHg9Ijc3NSIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5HZW5lcmF0aXZlICsgQWdlbnRpYzwvdGV4dD4KCiAgPHJlY3QgeD0iNjc1IiB5PSIxNzAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNTUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjYiLz4KICA8dGV4dCB4PSI3NzUiIHk9IjE5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+V29ya2Zsb3cgbm90aWZpY2F0aW9uPC90ZXh0PgogIDx0ZXh0IHg9Ijc3NSIgeT0iMjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj50byBvbi1jYWxsIC8gY2hhbm5lbDwvdGV4dD4KCiAgPHJlY3QgeD0iNjc1IiB5PSIyNDAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNTUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjYiLz4KICA8dGV4dCB4PSI3NzUiIHk9IjI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+QWN0aW9uIHVuZGVyIGd1YXJkcmFpbHM8L3RleHQ+CiAgPHRleHQgeD0iNzc1IiB5PSIyODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmh1bWFuLWFwcHJvdmVkIG9yIGF1dG9tYXRlZDwvdGV4dD4KCiAgPHRleHQgeD0iNzc1IiB5PSIzMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPk1ldHJpYzogVGltZSB0byByZXBhaXI8L3RleHQ+CiAgPHRleHQgeD0iNzc1IiB5PSIzNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkZyb20gbm90aWZpY2F0aW9uIHRvIGZpeDwvdGV4dD4KCiAgPHRleHQgeD0iNzc1IiB5PSIzNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPk1hdHVyaXR5IGdhdGU8L3RleHQ+CiAgPHRleHQgeD0iNzc1IiB5PSIzOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlN1Z2dlc3QgbW9kZSDihpIgYXV0b21hdGVkPC90ZXh0PgoKICA8IS0tIEZlZWRiYWNrIGxvb3AgLS0+CiAgPGxpbmUgeDE9Ijc3NSIgeTE9IjQzMCIgeDI9IjE3NSIgeTI9IjQzMCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1kYXNoYXJyYXk9IjMsMyIvPgogIDxsaW5lIHgxPSIxNzUiIHkxPSI0MzAiIHgyPSIxNzUiIHkyPSI0MjUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CiAgPHRleHQgeD0iNDY1IiB5PSI0NjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtc3R5bGU9Iml0YWxpYyI+RmVlZGJhY2s6IHR1bmUgZGV0ZWN0b3JzIGJhc2VkIG9uIGZhbHNlLXBvc2l0aXZlIHJhdGU7IGltcHJvdmUgdG9wb2xvZ3kgd2hlcmUgUkNBIGZhaWxzPC90ZXh0Pgo8L3N2Zz4K" alt="Detect Investigate Remediate Loop" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Phase | AI category | Surfaces |
+|-------|-------------|----------|
+| Detect | Predictive | Anomaly Detection app, custom DQL alerts |
+| Investigate | Causal + Generative | Problems app, Dynatrace Assist |
+| Remediate | Generative + Agentic | Workflows, AutomationEngine, MCP |
+For environments where SVG doesn't render
+-->
+<blockquote>
+<p><strong>The Detect surface depends on tenant version (SaaS 1.344).</strong> <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones.&quot;</em> SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the <strong>Anomaly Detection</strong> app is where custom alerts are created, and it is the Detect surface the diagram shows.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app">Anomaly Detection (DT docs)</a> — <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#loop">The Three-Phase Loop</a></li>
+<li><a href="#scenario-a">Scenario A: Capacity Planning (Disk Exhaustion)</a></li>
+<li><a href="#scenario-b">Scenario B: Incident Response (Latency Spike)</a></li>
+<li><a href="#scenario-c">Scenario C: Quality Regression (Error Rate Drift)</a></li>
+<li><a href="#dashboard">Putting It on a Page: AIOps Health Dashboard</a></li>
+<li><a href="#maturity">Maturity Pointers</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS Gen3</td>
+</tr>
+<tr>
+<td><strong>Apps</strong></td>
+<td>Problems, Anomaly Detection (custom alerts are created in <strong>Settings</strong> from SaaS 1.344 — see Overview), Notebooks, Workflows</td>
+</tr>
+<tr>
+<td><strong>Series Background</strong></td>
+<td>AIOPS-01 through AIOPS-06; this notebook composes those building blocks</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>All read permissions and <code>davis:analyzers:execute</code>, <code>automation:workflows:run</code></td>
+</tr>
+</tbody>
+</table>
+<p><a id="loop"></a></p>
+<h2>1. The Three-Phase Loop</h2>
+<p><strong>Detect</strong> — Predictive AI watches metrics for anomalies. Output: a Davis event in <code>dt.davis.events</code>.</p>
+<p><strong>Investigate</strong> — Causal AI groups related events into a problem. Generative AI summarizes. Output: a problem in <code>dt.davis.problems</code> with narrative context.</p>
+<p><strong>Remediate</strong> — Workflow / AutomationEngine takes action under policy. Optionally Generative AI proposes the action; human approves; agent executes.</p>
+<p><strong>Three feedback loops to close:</strong></p>
+<ol>
+<li><em>Detection-to-action latency</em> — how long from anomaly to remediation start?</li>
+<li><em>False-positive rate</em> — what fraction of detections result in no action?</li>
+<li><em>Mean time to repair</em> — how long to actually fix?</li>
+</ol>
+<p>Each loop has a metric. Each metric should be on a dashboard.</p>
+<p><a id="scenario-a"></a></p>
+<h2>2. Scenario A: Capacity Planning (Disk Exhaustion)</h2>
+<p><strong>Detect:</strong> scheduled workflow runs the <strong>Analyze data</strong> action with the <em>Generic Forecast Analysis</em> analyzer against host disk usage. Forecasts 7 days ahead. Branches when any host's projected usage exceeds 85%.</p>
+<p><strong>Investigate:</strong> workflow generates a summary table — which hosts, which volumes, current trajectory, predicted exhaustion date. Posts to capacity-planning channel.</p>
+<p><strong>Remediate:</strong> capacity team reviews. Decision is human (do we add disk? archive logs? scale the cluster?). The workflow's job is to <em>give the team enough lead time</em> — not to auto-remediate.</p>
+<pre><code class="language-dql">// Hosts trending toward disk exhaustion — last 7 days
+// (Feed to the forecast analyzer for the 7-day projection.)
+timeseries disk_used = avg(dt.host.disk.used.percent),
+  by:{dt.entity.host, dt.entity.disk},
+  from:-7d,
+  interval:1h
+| fieldsAdd current_avg = arrayAvg(disk_used)
+| filter current_avg &gt; 70
+| sort current_avg desc
+| limit 50
+</code></pre>
+<p><a id="scenario-b"></a></p>
+<h2>3. Scenario B: Incident Response (Latency Spike)</h2>
+<p><strong>Detect:</strong> auto-adaptive baseline on response time fires. Davis event lands in <code>dt.davis.events</code>.</p>
+<p><strong>Investigate:</strong> Causal AI groups the latency anomaly with related signals from downstream services. Problem appears in <code>dt.davis.problems</code> with root cause attributed to (say) a database. Dynatrace Assist composes the summary.</p>
+<p><strong>Remediate:</strong> WFLOW notifies on-call. On-call uses Assist to ask follow-up questions while reading the problem. If remediation is well-known (restart a pod, scale a deployment), the team triggers an AutomationEngine workflow with the right scope.</p>
+<pre><code class="language-dql">// Latency-related active problems and their root cause entities
+fetch dt.davis.problems, from:-2h
+| filter event.status == &quot;ACTIVE&quot;
+| filter event.category == &quot;SLOWDOWN&quot; or event.category == &quot;ERROR&quot;
+| fields display_id, event.name, event.category, event.start,
+         root_cause_entity_name, affected_entity_ids
+| sort event.start desc
+| limit 25
+</code></pre>
+<p><a id="scenario-c"></a></p>
+<h2>4. Scenario C: Quality Regression (Error Rate Drift)</h2>
+<p>Subtler than incident response — slow drift, not sudden spike.</p>
+<p><strong>Detect:</strong> seasonal baseline on error rate, evaluated weekly. Drift not visible at the 5-minute resolution but obvious at the 7-day rollup.</p>
+<p><strong>Investigate:</strong> workflow assembles problem-rate trend, deployment-correlation, user-affected-volume. Generative AI summarizes the regression in context.</p>
+<p><strong>Remediate:</strong> quality / release team reviews. Decision is human — pin a release? rollback? add a feature flag? The workflow surfaces the data, not the action.</p>
+<pre><code class="language-dql">// Weekly error rate trend by service — last 8 weeks, services with real traffic only
+//
+// Corrected 08/12/2026: `interval:1w` is a CALENDAR duration and `interval` does not accept them
+// (NAMED_PARAMETER_MUST_NOT_BE_CALENDAR_DURATION). `interval:` accepts only fixed durations, and
+// `7d` is silently rewritten to `168h` with a DEPRECATED_DURATION_UNIT_DAYS notification (10/12/2026),
+// so write `168h`.
+// default:0 makes zero-failure weeks count as 0, not null; the volume floor keeps services that
+// handled a handful of requests (and so sit at 100%) from filling the top 25.
+timeseries {
+    failures = sum(dt.service.request.failure_count, default:0),
+    total    = sum(dt.service.request.count)
+  },
+  by:{dt.entity.service},
+  from:-8w,
+  interval:168h
+| fieldsAdd error_rate = (failures[] / total[]) * 100
+| fieldsAdd requests = arraySum(total), overall_error_rate = arraySum(failures) / arraySum(total) * 100
+| filter requests &gt;= 1000
+| sort overall_error_rate desc
+| limit 25
+</code></pre>
+<p><a id="dashboard"></a></p>
+<h2>5. Putting It on a Page: AIOps Health Dashboard</h2>
+<p>If AIOps is doing its job, three numbers on one dashboard tell the story:</p>
+<ol>
+<li><strong>Active problem count by category</strong> (current state)</li>
+<li><strong>Median MTTR by category over the last 30 days</strong> (effectiveness)</li>
+<li><strong>Davis signal-to-problem compression ratio over time</strong> (Causal AI value)</li>
+</ol>
+<p>The first two are obvious. The third is interesting — a high compression ratio means Causal AI is keeping noise off the team. A dropping ratio means topology is degrading or detectors are getting noisier. Count only problem-eligible signals: INFO and WARNING events never open a problem, so on a tenant running observation-mode detectors the unfiltered event stream inflates the ratio many times over, and shadow-deploying a detector would raise it without any change in grouping.</p>
+<pre><code class="language-dql">// Davis signal-to-problem compression — problem-eligible signals only, last 7 days
+// INFO / WARNING never open problems and PROBLEM_UPDATE is lifecycle, not signal - exclude them.
+// (Run side-by-side with the problem volume query below.)
+fetch dt.davis.events, from:-7d
+| filter in(event.category, {&quot;AVAILABILITY&quot;,&quot;ERROR&quot;,&quot;RESOURCE_CONTENTION&quot;,&quot;SLOWDOWN&quot;,&quot;CUSTOM_ALERT&quot;})
+| makeTimeseries signals = count(), interval:24h
+</code></pre>
+<pre><code class="language-dql">// Problem volume — last 7 days (compare against signals above)
+fetch dt.davis.problems, from:-7d
+| makeTimeseries problems = count(), interval:24h
+</code></pre>
+<p>Higher signals-per-problem ratio = better Causal AI compression. Track this number monthly; if it drops, audit topology completeness.</p>
+<p><a id="maturity"></a></p>
+<h2>6. Maturity Pointers</h2>
+<p>The broader observability maturity model is <strong>ADOPT-01</strong>; the AIOps stages below are this series' own:</p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>What's in place</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>0 — Off</strong></td>
+<td>Static thresholds only; no Causal AI use; manual investigation</td>
+</tr>
+<tr>
+<td><strong>1 — Detect</strong></td>
+<td>Anomaly detection in use; problems consumed in app</td>
+</tr>
+<tr>
+<td><strong>2 — Notify</strong></td>
+<td>Workflows route active problems to teams</td>
+</tr>
+<tr>
+<td><strong>3 — Summarize</strong></td>
+<td>Generative AI summaries part of the daily ops loop</td>
+</tr>
+<tr>
+<td><strong>4 — Suggest</strong></td>
+<td>AI-suggested remediation in human-approval mode</td>
+</tr>
+<tr>
+<td><strong>5 — Remediate</strong></td>
+<td>Automated remediation under policy guardrails for known patterns</td>
+</tr>
+</tbody>
+</table>
+<p>Most teams in 2026 sit between stage 2 and stage 3. The investment between 2 and 3 is well-bounded. The investment between 3 and 4 is significant. Between 4 and 5 is a multi-year governance project.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

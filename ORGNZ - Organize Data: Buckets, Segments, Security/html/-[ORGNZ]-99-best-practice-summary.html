@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ORGNZ-99: Best Practice Summary &amp; DQL Reference</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ORGNZ — Organize Data: Buckets, Segments, Security</a><span class="sep">/</span><span aria-current="page">ORGNZ-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ORGNZ-99: Best Practice Summary &amp; DQL Reference</h1>
+<blockquote>
+<p><strong>Series:</strong> ORGNZ — Organize Data: Buckets, Segments, Security | <strong>Notebook:</strong> 99 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook consolidates every actionable best practice from the ORGNZ series (notebooks 01-10) into a single definitive reference. Each section provides the exact setting, value, or action to take — and a <strong>Validation Queries</strong> subsection with executable DQL to verify your configuration against a live Grail environment.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#bucket-design">Bucket Design</a></li>
+<li><a href="#retention-strategy">Retention Strategy</a></li>
+<li><a href="#data-routing">Data Routing</a></li>
+<li><a href="#iam-and-access-control">IAM and Access Control</a></li>
+<li><a href="#security-context">Security Context</a></li>
+<li><a href="#segment-design">Segment Design</a></li>
+<li><a href="#metadata-enrichment">Metadata Enrichment</a></li>
+<li><a href="#query-performance">Query Performance</a></li>
+<li><a href="#governance-and-operations">Governance and Operations</a></li>
+</ol>
+<blockquote>
+<p>Each section ends with a <strong>Validation Queries</strong> block — executable DQL to verify your configuration against a live Grail environment.</p>
+</blockquote>
+<hr />
+<p><a id="bucket-design"></a></p>
+<h2>1. Bucket Design</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Size log buckets for 1–3 TB/day</td>
+<td>Logs bucket best practice (08/24/2026): <em>&quot;between 1 TB and 3 TB of log data per day&quot;</em>. The older partition-data page (06/17/2026) says to split above 2 TB/day, the only figure stated for other tables</td>
+<td>Critical</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>2</td>
+<td>One data type per bucket</td>
+<td>Each bucket stores exactly one table type (logs, metrics, spans, events, bizevents, security.events)</td>
+<td>Critical</td>
+<td>Architecture</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Use consistent naming convention</td>
+<td>Format: <code>&lt;provider&gt;_&lt;type&gt;_&lt;retention&gt;</code> or <code>&lt;team&gt;_&lt;type&gt;_&lt;retention&gt;</code> (e.g., <code>aws_logs_35d</code>, <code>team_platform_logs</code>)</td>
+<td>Critical</td>
+<td>Naming</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Bucket names: lowercase, letter-first, underscores/hyphens only</td>
+<td>Regex: <code>^[a-z][a-z0-9_-]*$</code>; never start with <code>default_</code> or <code>dt_</code> (reserved)</td>
+<td>Critical</td>
+<td>Naming</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Plan bucket names before creation</td>
+<td>Bucket names are immutable after creation; display names can be changed</td>
+<td>Critical</td>
+<td>Planning</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Stay within the custom-bucket environment default — 250 from SaaS 1.346 (80 on earlier versions)</td>
+<td>Budget buckets across teams; request increase only if justified</td>
+<td>Recommended</td>
+<td>Planning</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Attribute cost with cost-allocation fields, not buckets</td>
+<td>Set <code>dt.cost.costcenter</code> / <code>dt.cost.product</code> at the source (works for logs, traces, metrics and events); create a dedicated bucket only where a cost center also needs its own retention or access</td>
+<td>Recommended</td>
+<td>Cost</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Create separate buckets for compliance data</td>
+<td>Dedicated bucket (e.g., <code>compliance_audit_logs</code>) with extended retention for regulatory requirements</td>
+<td>Recommended</td>
+<td>Compliance</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Create short-retention buckets for debug logs</td>
+<td>Bucket: <code>debug_logs_7d</code> with 7-day retention for high-volume verbose logs</td>
+<td>Recommended</td>
+<td>Cost</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Split high-volume buckets to maintain queryability</td>
+<td>If a bucket exceeds the range in row 1, split by line of business first, then by application where volume or compliance justify it</td>
+<td>Recommended</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>10a</td>
+<td>Give an application its own bucket above 250 GB/day</td>
+<td><em>&quot;Create a dedicated bucket for any application ingesting more than 250 GB/day.&quot;</em> Below that, applications can share a bucket</td>
+<td>Recommended</td>
+<td>Performance</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy">Best practices for a logs bucket strategy (DT docs)</a> — row 1 as quoted; <em>&quot;Split log buckets by line of business rather than by individual application.&quot;</em>, <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data">Use Grail buckets to partition data (DT docs)</a> — <em>&quot;We recommend splitting up buckets that receive more than 2 TB of daily ingest.&quot;</em>, <a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/data-partitioning">Best practices for data partitioning (DT docs)</a> — row 10a as quoted, <a href="https://docs.dynatrace.com/docs/manage-your-costs/allocate/plan-and-set-up">Set up Cost Allocation (DT docs)</a> — row 7. <a href="https://developer.dynatrace.com/develop/sdks/client-bucket-management/">Bucket management SDK (Dynatrace Developer)</a> — row 4: <em>&quot;Bucket name can not start with&quot;</em> <code>default_</code> or <code>dt_</code>. Where the pages differ, the newer and more specific page is followed (read 10/14/2026).</sub></p>
+</blockquote>
+<h3>Validation Queries — Bucket Design</h3>
+<p>List all buckets with data type, retention, and estimated storage:</p>
+<pre><code class="language-dql">// Inventory of all Grail buckets — verify data types, retention, and naming convention
+fetch dt.system.buckets
+| fields name, display_name, dt.system.table, retention_days, estimated_uncompressed_bytes
+| sort dt.system.table asc, name asc
+</code></pre>
+<p><strong>List all built-in buckets</strong> (use to compare your environment to the expected defaults):</p>
+<pre><code class="language-dql">// Discover all built-in Grail buckets — compare against expected defaults
+fetch dt.system.buckets
+| filter startsWith(name, &quot;default_&quot;) or startsWith(name, &quot;dt_&quot;)
+| fields name, display_name, dt.system.table, retention_days
+| sort dt.system.table asc, name asc
+</code></pre>
+<p><a id="retention-strategy"></a></p>
+<h2>2. Retention Strategy</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>11</td>
+<td>Set debug/development log retention to 3-7 days</td>
+<td>Bucket retention: 7 days maximum for DEBUG-level logs</td>
+<td>Critical</td>
+<td>Cost</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Set standard operational log retention to 35 days</td>
+<td>Bucket retention: 35 days for application and infrastructure logs</td>
+<td>Recommended</td>
+<td>Operations</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Set performance analysis retention to 60-90 days</td>
+<td>Bucket retention: 90 days for logs/events used in quarterly trend analysis (metrics default to ~15 months in <code>default_metrics</code>; from SaaS 1.349 a custom metric bucket can set its own)</td>
+<td>Recommended</td>
+<td>Operations</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Set audit/compliance log retention to 365-3657 days</td>
+<td>Bucket retention: match regulatory requirement (SOX: 7 years = 2,555 days; HIPAA: 6 years = 2,190 days)</td>
+<td>Critical</td>
+<td>Compliance</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Set span retention to 10-35 days</td>
+<td>Bucket retention: 10 days for default APM; 35 days if long-running incident correlation needed</td>
+<td>Recommended</td>
+<td>Operations</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Set security event retention to 90-365 days</td>
+<td>Bucket retention: 365 days for security investigation timelines</td>
+<td>Recommended</td>
+<td>Security</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Never lower retention without understanding data loss</td>
+<td>Reducing retention immediately deletes data older than the new setting; this is irreversible</td>
+<td>Critical</td>
+<td>Operations</td>
+</tr>
+</tbody>
+</table>
+<h3>Validation Queries — Retention Strategy</h3>
+<p>Compare retention settings across all bucket types:</p>
+<pre><code class="language-dql">// Compare bucket retention configurations — verify each tier matches its compliance requirement
+fetch dt.system.buckets
+| fields name, dt.system.table, retention_days
+| sort retention_days desc
+</code></pre>
+<p><a id="data-routing"></a></p>
+<h2>3. Data Routing</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>18</td>
+<td>Route data to custom buckets via OpenPipeline</td>
+<td>Configure Storage-stage <strong>Bucket assignment</strong> processors (first match wins) with DQL matchers on <code>loglevel</code>, <code>dt.host_group.id</code>, <code>log.source</code>, <code>dt.cost.*</code></td>
+<td>Critical</td>
+<td>Architecture</td>
+</tr>
+<tr>
+<td>19</td>
+<td>Decide where unmatched records go</td>
+<td>There is no <code>default:</code> route setting; data with no bucket assignment goes to the scope's default bucket (<code>default_logs</code> for logs) — check unmatched records in the pipeline preview</td>
+<td>Critical</td>
+<td>Reliability</td>
+</tr>
+<tr>
+<td>20</td>
+<td>Route DEBUG logs to short-retention buckets</td>
+<td>Bucket assignment matcher <code>loglevel == &quot;DEBUG&quot;</code> → bucket <code>debug_logs_7d</code></td>
+<td>Recommended</td>
+<td>Cost</td>
+</tr>
+<tr>
+<td>21</td>
+<td>Route audit logs to compliance buckets</td>
+<td>Bucket assignment matcher <code>matchesPhrase(log.source, &quot;audit&quot;)</code> → bucket <code>audit_logs_365d</code></td>
+<td>Recommended</td>
+<td>Compliance</td>
+</tr>
+<tr>
+<td>22</td>
+<td>Data cannot be moved between buckets after ingestion</td>
+<td>Route new data via OpenPipeline; old data stays in the original bucket until retention expires</td>
+<td>Critical</td>
+<td>Architecture</td>
+</tr>
+</tbody>
+</table>
+<h3>Validation Queries — Data Routing</h3>
+<p>Verify routing rules are directing data to the expected buckets:</p>
+<pre><code class="language-dql">// Audit log volume by bucket — verify routing rules are directing data correctly
+fetch logs, from:-1h
+| summarize recordCount = count(), by:{dt.system.bucket}
+| sort recordCount desc
+</code></pre>
+<pre><code class="language-dql">// Track log ingest trends by bucket over the last day — identify routing anomalies
+fetch logs, from:-24h
+| summarize recordCount = count(), by:{time_bucket = bin(timestamp, 1h), dt.system.bucket}
+| sort time_bucket desc
+</code></pre>
+<p><a id="iam-and-access-control"></a></p>
+<h2>4. IAM and Access Control</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>23</td>
+<td>Always include <code>storage:buckets:read</code> in every data access policy</td>
+<td>Without bucket read, users cannot query any data; always pair with table permissions</td>
+<td>Critical</td>
+<td>Security</td>
+</tr>
+<tr>
+<td>24</td>
+<td>Assign policies to groups, never to individual users</td>
+<td>Create IAM groups per team/role; assign all policies at the group level</td>
+<td>Critical</td>
+<td>Governance</td>
+</tr>
+<tr>
+<td>25</td>
+<td>Use the two-step policy pattern</td>
+<td>Step 1: <code>ALLOW storage:buckets:read WHERE ...</code>; Step 2: <code>ALLOW storage:logs:read</code> (or other table types)</td>
+<td>Critical</td>
+<td>Security</td>
+</tr>
+<tr>
+<td>26</td>
+<td>Use STARTSWITH for team bucket prefixes</td>
+<td>Policy: <code>ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH &quot;team_platform_&quot;</code> — automatically includes future buckets with matching prefix</td>
+<td>Recommended</td>
+<td>Scalability</td>
+</tr>
+<tr>
+<td>27</td>
+<td>Use MATCH operator for array fields</td>
+<td>When <code>dt.security_context</code> holds an array, use <code>MATCH</code> (not <code>=</code>, <code>STARTSWITH</code>, or <code>IN</code> — those always return false for arrays)</td>
+<td>Critical</td>
+<td>Security</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Start with least privilege</td>
+<td>Grant minimum required access; expand only when justified</td>
+<td>Critical</td>
+<td>Security</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Use policy boundaries for reusable conditions</td>
+<td>Define regional/environmental restrictions once as a boundary; apply to multiple policies</td>
+<td>Recommended</td>
+<td>Governance</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Limit policy boundaries to 10 restrictions per boundary</td>
+<td>Maximum 10 conditions per boundary; create additional boundaries if more are needed</td>
+<td>Recommended</td>
+<td>Architecture</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Use fieldsets for sensitive fields</td>
+<td>Grant <code>storage:fieldsets:read</code> on specific fieldsets (e.g. <code>builtin-sensitive-spans</code>, or a custom fieldset for log fields) only where needed — users without it don't see those fields. There is no per-field <code>DENY</code> permission</td>
+<td>Recommended</td>
+<td>Security</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Test policies with sample users before deployment</td>
+<td>Create a test user in the target group and verify query results before rolling out to the team</td>
+<td>Critical</td>
+<td>Operations</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Document every IAM policy</td>
+<td>Include name, description, tags, target group, and purpose in a policy registry</td>
+<td>Recommended</td>
+<td>Governance</td>
+</tr>
+</tbody>
+</table>
+<h3>Validation Queries — IAM and Access Control</h3>
+<p>Verify bucket access and data distribution across teams:</p>
+<pre><code class="language-dql">// Verify bucket access — distribution of accessible log data by bucket
+fetch logs, from:-1h
+| summarize count = count(), by:{dt.system.bucket}
+| sort count desc
+</code></pre>
+<pre><code class="language-dql">// Check namespace-based access — verify namespace-scoped policies return expected data
+fetch logs, from:-1h
+| filter isNotNull(k8s.namespace.name)
+| summarize count = count(), by:{k8s.namespace.name}
+| sort count desc
+</code></pre>
+<pre><code class="language-dql">// Check host group-based access — verify host-group-scoped policies return expected data
+fetch logs, from:-1h
+| filter isNotNull(dt.host_group.id)
+| summarize count = count(), by:{dt.host_group.id}
+| sort count desc
+</code></pre>
+<p><a id="security-context"></a></p>
+<h2>5. Security Context</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>34</td>
+<td>Use <code>dt.security_context</code> for record-level access control</td>
+<td>Set at the source first (host tag, <code>DT_TAGS</code>, K8s namespace labels, OTel resource attribute); OpenPipeline Set security context processor for computed values</td>
+<td>Critical</td>
+<td>Security</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Use hierarchical encoding in security context values</td>
+<td>Format: <code>&lt;org&gt;/&lt;department&gt;/&lt;team&gt;</code> (e.g., <code>acme/engineering/platform</code>); enables department-level access with <code>MATCH ('acme/engineering/*')</code></td>
+<td>Critical</td>
+<td>Scalability</td>
+</tr>
+<tr>
+<td>36</td>
+<td>Use type prefixes for security context values</td>
+<td>Prefix with <code>team:</code>, <code>lob:</code>, <code>env:</code>, <code>cloud:</code> (e.g., <code>team:checkout</code>, <code>lob:finance</code>, <code>env:production</code>)</td>
+<td>Recommended</td>
+<td>Naming</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Plan security context hierarchy before implementation</td>
+<td>Context values are assigned to records at ingest time; changing schema requires re-ingesting data</td>
+<td>Critical</td>
+<td>Planning</td>
+</tr>
+<tr>
+<td>38</td>
+<td>Use security context instead of additional buckets when at the bucket-count limit</td>
+<td>Security context enables multi-team isolation within shared buckets without consuming bucket quota</td>
+<td>Recommended</td>
+<td>Scalability</td>
+</tr>
+<tr>
+<td>39</td>
+<td>Set security context on entities via Grail Security Context settings</td>
+<td>Settings → Topology model → Grail Security Context; this scopes the entities only, not their logs/spans/metrics — use a host tag or primary-field enrichment for those</td>
+<td>Recommended</td>
+<td>Security</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Always use MATCH for array-valued security context in IAM policies</td>
+<td><code>ALLOW storage:logs:read WHERE storage:dt.security_context MATCH (&quot;team-a*&quot;)</code></td>
+<td>Critical</td>
+<td>Security</td>
+</tr>
+</tbody>
+</table>
+<h3>Validation Queries — Security Context</h3>
+<p>Verify <code>dt.security_context</code> assignment, distribution, and hierarchical patterns:</p>
+<pre><code class="language-dql">// View logs with security context — confirm dt.security_context is being set
+fetch logs, from:-1h
+| filter isNotNull(dt.security_context)
+| fields timestamp, content, dt.security_context
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Summarize log volume by security context — verify naming conventions and distribution
+fetch logs, from:-1h
+| filter isNotNull(dt.security_context)
+| summarize recordCount = count(), by:{dt.security_context}
+| sort recordCount desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Shape check — is dt.security_context a single string on every record, or an array on some?
+// Any &quot;array&quot; row means IAM conditions need MATCH and DQL checks need expand (ORGNZ-06).
+fetch logs, from:-1h
+| filter isNotNull(dt.security_context)
+| fieldsAdd shape = type(dt.security_context)
+| summarize records = count(), by:{shape}
+</code></pre>
+<pre><code class="language-dql">// Why the checks below expand first — no data scanned. On the array record, == is false and
+// startsWith returns null; after expand, both shapes match.
+data record(dt.security_context = array(&quot;finance/payments&quot;, &quot;team:platform&quot;)), record(dt.security_context = &quot;team:platform&quot;), record(dt.security_context = &quot;finance/ledger&quot;)
+| fieldsAdd shape = type(dt.security_context), eq_direct = dt.security_context == &quot;team:platform&quot;, sw_direct = startsWith(dt.security_context, &quot;finance/&quot;)
+| expand dt.security_context
+| fieldsAdd eq_expanded = dt.security_context == &quot;team:platform&quot;, sw_expanded = startsWith(dt.security_context, &quot;finance/&quot;)
+</code></pre>
+<pre><code class="language-dql">// Count logs carrying one security-context value. expand first: dt.security_context can be an array,
+// and == against an array is always false, so a bare filter would miss exactly those records.
+fetch logs, from:-1h
+| filter isNotNull(dt.security_context)
+| expand dt.security_context
+| filter dt.security_context == &quot;team:platform&quot;
+| summarize records = count()
+</code></pre>
+<pre><code class="language-dql">// Which records a MATCH (&quot;finance/*&quot;) policy would cover — this does not test the policy itself.
+// expand handles string and array values alike; startsWith on an array returns null.
+fetch logs, from:-1h
+| filter isNotNull(dt.security_context)
+| expand dt.security_context
+| filter startsWith(dt.security_context, &quot;finance/&quot;)
+| summarize count = count(), by:{dt.security_context}
+| sort count desc
+</code></pre>
+<pre><code class="language-dql">// Audit security context coverage — percentage of logs with dt.security_context assigned
+fetch logs, from:-1h
+| summarize
+    total = count(),
+    withContext = countIf(isNotNull(dt.security_context)),
+    withoutContext = countIf(isNull(dt.security_context))
+| fieldsAdd coverage = round(toDouble(withContext) / toDouble(total) * 100, decimals: 2)
+</code></pre>
+<p><a id="segment-design"></a></p>
+<h2>6. Segment Design</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>41</td>
+<td>Use segments for dynamic data views, not access control</td>
+<td>Segments filter at query time; they do not enforce security boundaries — IAM policies do</td>
+<td>Critical</td>
+<td>Architecture</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Stay within the 20-include limit per segment</td>
+<td>Maximum 20 include blocks per segment; plan rule complexity accordingly</td>
+<td>Critical</td>
+<td>Architecture</td>
+</tr>
+<tr>
+<td>43</td>
+<td>One include block per data type</td>
+<td>Cannot have two <code>logs</code> includes; combine conditions with <code>OR</code> within a single include</td>
+<td>Critical</td>
+<td>Architecture</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Use Primary Grail Fields in segment filters</td>
+<td>Filter on <code>dt.host_group.id</code>, <code>k8s.namespace.name</code>, <code>k8s.cluster.name</code>, <code>aws.account.id</code>, <code>azure.subscription</code>, <code>gcp.project.id</code> — Dynatrace enriches them on every signal from a source that has them; check coverage per data type, because problems can carry far fewer than logs (ORGNZ-10 §3)</td>
+<td>Critical</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>45</td>
+<td>Use prefix-based naming for cross-signal filtering</td>
+<td>Name host groups, namespaces, etc. with prefixes (e.g., <code>prod-web-tier</code> not <code>web-tier-prod</code>) so a prefix (<code>= &quot;prod-*&quot;</code>) works on signal includes and on classic <code>entity.name</code> (the only classic-entity property that accepts starts-with)</td>
+<td>Recommended</td>
+<td>Naming</td>
+</tr>
+<tr>
+<td>46</td>
+<td>Create one segment per dimension</td>
+<td>Separate segments for platform, application, environment, and region — users combine them as needed</td>
+<td>Recommended</td>
+<td>Architecture</td>
+</tr>
+<tr>
+<td>47</td>
+<td>Add event includes for detected problem filtering</td>
+<td>Define events include with <code>event.kind = &quot;DAVIS_PROBLEM&quot;</code> — entity includes alone do not filter problems</td>
+<td>Critical</td>
+<td>Troubleshooting</td>
+</tr>
+<tr>
+<td>48</td>
+<td>Set official segments to Public visibility</td>
+<td>Platform-team segments: <em>Anyone in the environment</em>; application-team segments: <em>Unlisted</em>, surfaced through the team's shared notebooks and dashboards (segments have no share-with-group setting)</td>
+<td>Recommended</td>
+<td>Governance</td>
+</tr>
+<tr>
+<td>49</td>
+<td>Use consistent segment naming prefixes</td>
+<td>Prefixes: <code>team-</code>, <code>env-</code>, <code>app-</code>, <code>region-</code> (e.g., <code>team-platform-infra</code>, <code>env-production</code>)</td>
+<td>Recommended</td>
+<td>Naming</td>
+</tr>
+<tr>
+<td>50</td>
+<td>Test segment filter conditions with DQL before creating the segment</td>
+<td>Run the equivalent <code>filter</code> clause as a DQL query; verify record counts match expectations</td>
+<td>Critical</td>
+<td>Operations</td>
+</tr>
+<tr>
+<td>51</td>
+<td>Limit segment variable dropdowns to 15,000 values</td>
+<td>15,000 values in the variable dropdown (5 MB byte cap also applies); 100 selected values per segment</td>
+<td>Recommended</td>
+<td>Architecture</td>
+</tr>
+<tr>
+<td>52</td>
+<td>Filter signals on primary Grail fields; keep entity relationships only for existing classic-entity segments</td>
+<td>Entity relationships in segments <em>&quot;are only supported for backward compatibility with classic entities&quot;</em>; build new segments on a <code>Data (all types)</code> include (ORGNZ-08)</td>
+<td>Recommended</td>
+<td>Architecture</td>
+</tr>
+<tr>
+<td>53</td>
+<td>Segments reduce scanned bytes</td>
+<td>Applying a segment injects filters at query time, reducing data scanned and improving performance on high-volume buckets</td>
+<td>Recommended</td>
+<td>Performance</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits">Segment limits (DT docs)</a> — row 51: <em>&quot;15,000 values in the variable dropdown (5 MB byte cap also applies)&quot;</em>. <a href="https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-includes">Include data in segments (DT docs)</a> — row 52, as quoted.</sub></p>
+</blockquote>
+<h3>Validation Queries — Segment Design</h3>
+<p>Simulate segment filter conditions before committing to a segment definition:</p>
+<pre><code class="language-dql">// Simulate host-group-based segment filter on logs
+fetch logs, from:-1h
+| filter isNotNull(dt.host_group.id)
+| summarize count = count(), by:{dt.host_group.id}
+| sort count desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Simulate a primary-tag segment filter on the service list: what a Data (all types) include sees.
+// Service metrics carry primary Grail tags, not classic entity tags. Replace primary_tags.app
+// with your key. Validated 10/14/2026 with a tenant-specific key: 3 values, 4-17 services each.
+timeseries requests = sum(dt.service.request.count), from:-2h, by:{primary_tags.app, dt.smartscape.service}
+| filter isNotNull(primary_tags.app)
+| fieldsAdd total = arraySum(requests)
+| summarize {services = countDistinct(dt.smartscape.service), requests = sum(total)}, by:{primary_tags.app}
+| sort requests desc
+</code></pre>
+<pre><code class="language-dql">// Simulate combined segment filter — verify host group + namespace combination returns expected logs
+fetch logs, from:-1h
+| filter isNotNull(dt.host_group.id) and isNotNull(k8s.namespace.name)
+| summarize count = count(), by:{dt.host_group.id, k8s.namespace.name}
+| sort count desc
+| limit 20
+</code></pre>
+<p><a id="metadata-enrichment"></a></p>
+<h2>7. Metadata Enrichment</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>54</td>
+<td>Enrich all signals with Primary Grail Fields before building segments</td>
+<td>Verify <code>dt.host_group.id</code>, <code>k8s.namespace.name</code>, <code>k8s.cluster.name</code> are present on logs, spans, and metrics</td>
+<td>Critical</td>
+<td>Architecture</td>
+</tr>
+<tr>
+<td>55</td>
+<td>Set <code>dt.security_context</code> via a host tag for dedicated infrastructure</td>
+<td>Host tag <code>dt.security_context=&lt;team&gt;</code> (installation, <code>oneagentctl --set-host-tag</code>, or Deployment Status)</td>
+<td>Recommended</td>
+<td>Security</td>
+</tr>
+<tr>
+<td>56</td>
+<td>Set <code>dt.cost.costcenter</code> and <code>dt.cost.product</code> on hosts</td>
+<td>Host tags: <code>dt.cost.costcenter=&lt;center&gt;</code>, <code>dt.cost.product=&lt;product&gt;</code> — these propagate to service metrics</td>
+<td>Recommended</td>
+<td>Cost</td>
+</tr>
+<tr>
+<td>57</td>
+<td>Use <code>DT_TAGS</code> environment variable for shared infrastructure</td>
+<td>Set <code>DT_TAGS=primary_tags.team=&lt;team&gt;</code> per process when multiple apps share the same host</td>
+<td>Recommended</td>
+<td>Architecture</td>
+</tr>
+<tr>
+<td>58</td>
+<td>Restart applications after enrichment changes for spans</td>
+<td>Logs: no restart needed (OneAgent auto-enriches); Spans: application restart required; Metrics: OneAgent restart applies automatically</td>
+<td>Critical</td>
+<td>Operations</td>
+</tr>
+<tr>
+<td>59</td>
+<td>Verify enrichment coverage before building segments</td>
+<td>Run DQL audit query to check field coverage percentage across signal types; fields with 0% coverage need enrichment</td>
+<td>Critical</td>
+<td>Operations</td>
+</tr>
+<tr>
+<td>60</td>
+<td>Use Primary Grail Tags (<code>primary_tags.*</code>) when standard fields do not match your organization</td>
+<td>Set via <strong>host tags</strong> (<code>hostautotag.conf</code> / <code>oneagentctl --set-host-tag</code>) or the <code>DT_TAGS</code> environment variable; propagates across logs, spans, and topology. <strong>Host properties no longer work for this</strong> — see row 60a</td>
+<td>Recommended</td>
+<td>Architecture</td>
+</tr>
+<tr>
+<td>60a</td>
+<td>Do not set host-level <code>primary_tags.*</code> via <code>hostcustomproperties.conf</code></td>
+<td><strong>Breaking, OneAgent 1.345:</strong> <em>&quot;the OS Agent derives <code>primary_tags</code> from host tags (<code>hostautotag.conf</code>) rather than from host properties (<code>hostcustomproperties.conf</code>) at the host level.&quot;</em> Existing primary tags configured through host properties silently stop being promoted once a host reaches 1.345 — audit before the fleet upgrades, and migrate them to host tags</td>
+<td>Critical</td>
+<td>Migration</td>
+</tr>
+</tbody>
+</table>
+<h3>Validation Queries — Metadata Enrichment</h3>
+<p>Audit primary Grail field coverage before building segment definitions:</p>
+<pre><code class="language-dql">// Audit primary Grail field coverage on logs — low-coverage fields need enrichment before segment use
+fetch logs, from:-1h
+| summarize
+    total = count(),
+    with_namespace = countIf(isNotNull(k8s.namespace.name)),
+    with_cluster = countIf(isNotNull(k8s.cluster.name)),
+    with_host_group = countIf(isNotNull(dt.host_group.id)),
+    with_security_ctx = countIf(isNotNull(dt.security_context))
+| fieldsAdd
+    ns_pct = round(toDouble(with_namespace) / toDouble(total) * 100, decimals: 1),
+    cluster_pct = round(toDouble(with_cluster) / toDouble(total) * 100, decimals: 1),
+    hg_pct = round(toDouble(with_host_group) / toDouble(total) * 100, decimals: 1),
+    sec_pct = round(toDouble(with_security_ctx) / toDouble(total) * 100, decimals: 1)
+</code></pre>
+<pre><code class="language-dql">// Audit primary Grail field coverage on spans — spans require app restart to pick up new enrichment
+fetch spans, from:-1h
+| summarize
+    total = count(),
+    with_namespace = countIf(isNotNull(k8s.namespace.name)),
+    with_cluster = countIf(isNotNull(k8s.cluster.name)),
+    with_host_group = countIf(isNotNull(dt.host_group.id)),
+    with_service = countIf(isNotNull(dt.smartscape.service))
+| fieldsAdd
+    ns_pct = round(toDouble(with_namespace) / toDouble(total) * 100, decimals: 1),
+    cluster_pct = round(toDouble(with_cluster) / toDouble(total) * 100, decimals: 1),
+    hg_pct = round(toDouble(with_host_group) / toDouble(total) * 100, decimals: 1),
+    svc_pct = round(toDouble(with_service) / toDouble(total) * 100, decimals: 1)
+</code></pre>
+<pre><code class="language-dql">// Variable DQL: list host groups. Use as a segment variable for host-group-scoped filters.
+// There is no HOST_GROUP Smartscape node type; the host group is the dt.host_group.id field
+// on HOST nodes. Validated 10/14/2026; 0 bytes scanned.
+smartscapeNodes &quot;HOST&quot;
+| filter isNotNull(dt.host_group.id)
+| fields host_group = dt.host_group.id
+| dedup host_group
+| sort host_group asc
+</code></pre>
+<pre><code class="language-dql">// Variable DQL: list Kubernetes namespaces. Use as a segment variable for namespace-scoped filters.
+// Validated 10/14/2026: 12 namespace names across 23 K8S_NAMESPACE nodes; 0 bytes scanned.
+smartscapeNodes &quot;K8S_NAMESPACE&quot;
+| fields namespace = name
+| dedup namespace
+| sort namespace asc
+</code></pre>
+<p><a id="query-performance"></a></p>
+<h2>8. Query Performance</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>61</td>
+<td>Understand the default 500 GB scan limit</td>
+<td><code>fetch</code> stops at 500 GB scanned by default (<code>scanLimitGBytes</code>); at 1 TB/day ingest an unmodified query reaches back ~12 hours — raise <code>scanLimitGBytes</code> or narrow the query</td>
+<td>Critical</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>62</td>
+<td>Target specific buckets in queries</td>
+<td>Use <code>fetch logs, bucket:{&quot;team_logs&quot;, &quot;app_logs_*&quot;}</code> to avoid scanning all buckets — an unscoped query reads every log bucket. A misspelled name is skipped without a warning, even inside a list</td>
+<td>Recommended</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>63</td>
+<td>Use exact match (<code>=</code>) over pattern match in segment filters</td>
+<td><code>=</code> is faster than <code>starts-with</code>; use exact values when known</td>
+<td>Recommended</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>64</td>
+<td>Minimize segment filter expressions</td>
+<td>Fewer conditions = better query performance; maximum 10 expressions per filter</td>
+<td>Recommended</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>65</td>
+<td>Use OpenPipeline pre-processing for complex segment logic</td>
+<td>If segment conditions would be complex, pre-enrich a simple field (e.g., <code>dt.security_context</code>) and filter on that</td>
+<td>Recommended</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>66</td>
+<td>Know the default result limits: 1,000 records and 1 MB</td>
+<td>Dynatrace lists <em>&quot;1,000 records returned per result&quot;</em> and <em>&quot;1 MB result payload&quot;</em> among its default query limits; aggregate (<code>summarize</code>, <code>makeTimeseries</code>) or raise <code>maxResultRecords</code> / <code>maxResultBytes</code> on a Query API request</td>
+<td>Recommended</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>67</td>
+<td>Prefer a few broad segments over many narrow ones</td>
+<td>In community practice, a small set of broad segments is easier to govern than many narrow ones; the Segment limits page sets no per-query segment count</td>
+<td>Recommended</td>
+<td>Architecture</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy">Best practices for a logs bucket strategy (DT docs)</a> — row 66 as quoted, <a href="https://developer.dynatrace.com/develop/sdks/client-query/">Grail storage query SDK (Dynatrace Developer)</a> — <code>maxResultRecords</code> and <code>maxResultBytes</code> request parameters.</sub></p>
+</blockquote>
+<h3>Validation Queries — Query Performance</h3>
+<p>Use bucket targeting to control scan scope and stay within the 500 GB scan limit:</p>
+<pre><code class="language-dql">// Query from multiple buckets simultaneously — reduce scan scope by naming targets explicitly
+// Bucket names that don't exist are skipped with no warning — a misspelled name looks like an empty bucket.
+// Check names first: fetch dt.system.buckets | filter dt.system.table == &quot;logs&quot; | fields name
+fetch logs, from:-1h, bucket:{&quot;default_logs&quot;, &quot;audit_logs&quot;, &quot;security_logs&quot;}
+| limit 100
+</code></pre>
+<pre><code class="language-dql">// Filter by bucket within query — useful when bucket list is dynamic
+fetch logs, from:-1h
+| filter dt.system.bucket == &quot;default_logs&quot;
+// status == &quot;ERROR&quot; also counts SEVERE, CRITICAL and FATAL logs; loglevel == &quot;ERROR&quot; misses them
+| filter status == &quot;ERROR&quot;
+| limit 50
+</code></pre>
+<p><a id="governance-and-operations"></a></p>
+<h2>9. Governance and Operations</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>68</td>
+<td>Schedule regular access reviews</td>
+<td>Quarterly review of all IAM policies and group memberships; remove unnecessary permissions</td>
+<td>Critical</td>
+<td>Governance</td>
+</tr>
+<tr>
+<td>69</td>
+<td>Document all bucket purposes</td>
+<td>Maintain a registry mapping each bucket to its owner, data type, retention, cost center, and routing rule</td>
+<td>Recommended</td>
+<td>Governance</td>
+</tr>
+<tr>
+<td>70</td>
+<td>Document all security context values</td>
+<td>Maintain a registry of all <code>dt.security_context</code> values, their meaning, and which IAM policies reference them</td>
+<td>Recommended</td>
+<td>Governance</td>
+</tr>
+<tr>
+<td>71</td>
+<td>Platform team owns infrastructure segments</td>
+<td>Platform/SRE team creates and maintains public environment and infrastructure segments</td>
+<td>Recommended</td>
+<td>Governance</td>
+</tr>
+<tr>
+<td>72</td>
+<td>Application teams own app-specific segments</td>
+<td>Each team creates segments for its applications, kept <em>Unlisted</em> and referenced from the team's shared documents</td>
+<td>Recommended</td>
+<td>Governance</td>
+</tr>
+<tr>
+<td>73</td>
+<td>Review segments quarterly</td>
+<td>Remove unused segments; verify filter conditions still match data; check for empty results</td>
+<td>Recommended</td>
+<td>Operations</td>
+</tr>
+<tr>
+<td>74</td>
+<td>Use combined approach for defense in depth</td>
+<td>Buckets for retention/cost + Security context for access control + Segments for dynamic views — all three together</td>
+<td>Critical</td>
+<td>Architecture</td>
+</tr>
+<tr>
+<td>75</td>
+<td>Implement in phases</td>
+<td>Phase 1: Plan → Phase 2: Buckets + routing → Phase 3: IAM policies → Phase 4: Segments → Phase 5: Governance</td>
+<td>Recommended</td>
+<td>Operations</td>
+</tr>
+<tr>
+<td>76</td>
+<td>Delete specific records with the record deletion API</td>
+<td>Hard delete of the records a DQL filter matches; needs <code>storage:records:delete</code>; at most 24 hours of data per request, ending at least 4 hours before the request; final, and does not reduce bucket size</td>
+<td>Critical</td>
+<td>Operations</td>
+</tr>
+<tr>
+<td>77</td>
+<td>Bucket deletion destroys all data permanently</td>
+<td>Deleting a bucket removes ALL records immediately and irreversibly</td>
+<td>Critical</td>
+<td>Operations</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/record-deletion-in-grail">Record deletion in Grail via API (DT docs)</a> — row 76: <em>&quot;You can delete records from Grail using the API by leveraging DQL&quot;</em>; <em>&quot;The maximum timeframe for a record deletion request is 24 hours.&quot;</em>; <em>&quot;The end of the timeframe must be at least 4 hours prior to the time of record deletion.&quot;</em>; <em>&quot;Deleting data using the record deletion API is a hard delete, but it won't reduce the bucket size.&quot;</em></sub></p>
+</blockquote>
+<h3>Validation Queries — Governance and Operations</h3>
+<p>Routine audit queries for operational health checks:</p>
+<pre><code class="language-dql">// Audit bucket data distribution — verify all expected buckets are receiving data
+fetch logs, from:-1h
+| summarize
+    recordCount = count(),
+    by:{dt.system.bucket}
+| sort recordCount desc
+</code></pre>
+<pre><code class="language-dql">// Audit bucket retention settings — verify retention tiers match compliance requirements
+fetch dt.system.buckets
+| fields name, dt.system.table, retention_days
+| sort dt.system.table asc, retention_days desc
+</code></pre>
+<p><strong>Audit bucket management events</strong> — who created, updated, truncated, or deleted a bucket and when:</p>
+<pre><code class="language-dql">// Audit all bucket management actions — create, update, truncate, delete
+// Bucket changes are rare: widen to from:-365d for a full year of history
+fetch dt.system.events, from:-90d
+| filter event.kind == &quot;AUDIT_EVENT&quot; and event.category == &quot;BUCKET_MANAGEMENT&quot;
+| fields timestamp, event.type, resource, user.id, event.outcome
+| sort timestamp desc
+</code></pre>
+<p><strong>Audit segment changes</strong> — who created, updated or deleted a segment and when. Run it first when a segment stops matching data: an <code>UPDATE</code> event carries the definition before and after the change, so you can tell a changed definition from changed data. Ready-made segments show <code>user.id</code> <code>system</code>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-audit-logs">Audit logs for segments (DT docs)</a> — <em>&quot;If the segment was updated, the event includes both the previous and the new configuration.&quot;</em>; <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">SaaS 1.348 release notes (DT docs)</a> — <em>&quot;the audit trail lives in the same dt.system.events as other audit logs.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Audit segment management actions — create, update, delete (SaaS 1.348+)
+// details.before / details.after hold the full definition; segment = its name
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot; and event.category == &quot;FILTER_SEGMENT_MANAGEMENT&quot;
+| fieldsAdd segment = coalesce(details.after[name], details.before[name])
+| fields timestamp, event.type, event.outcome, user.id, resource, segment
+| sort timestamp desc
+| limit 50
+</code></pre>
+<hr />
+<p><sub><em>This notebook was AI-generated from Dynatrace documentation and enterprise best practices. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

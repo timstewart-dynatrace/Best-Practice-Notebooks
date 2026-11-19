@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPANS-05: Advanced Span Analytics</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SPANS — Distributed Tracing and Spans</a><span class="sep">/</span><span aria-current="page">SPANS-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SPANS-05: Advanced Span Analytics</h1>
+<blockquote>
+<p><strong>Series:</strong> SPANS — Distributed Tracing and Spans | <strong>Notebook:</strong> 5 of 8 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 10/28/2026</p>
+</blockquote>
+<h2>Time-Series Analysis and Complex Aggregations</h2>
+<p>This notebook covers advanced analytical techniques for span data, including time-series analysis, trend detection, and complex aggregations for building dashboards and reports.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#time-series-with-maketimeseries">Time-Series with makeTimeseries</a></li>
+<li><a href="#trend-analysis">Trend Analysis</a></li>
+<li><a href="#complex-aggregations">Complex Aggregations</a></li>
+<li><a href="#comparison-queries">Comparison Queries</a></li>
+<li><a href="#dashboard-ready-queries">Dashboard-Ready Queries</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<p>Before starting this notebook, ensure you have:</p>
+<ul>
+<li>✅ Completed previous SPANS notebooks (01-04)</li>
+<li>✅ Understanding of summarize and aggregation functions</li>
+<li>✅ Familiarity with time-based filtering</li>
+</ul>
+<p><a id="time-series-with-maketimeseries"></a></p>
+<h2>1. Time-Series with makeTimeseries</h2>
+<p>Use <code>makeTimeseries</code> to create time-series data for visualization and trend analysis.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3NTAgMzIwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iY2hhcnRHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNDk2ZmY7c3RvcC1vcGFjaXR5OjAuNCIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTQ5NmZmO3N0b3Atb3BhY2l0eTowLjA1IiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9ImNoYXJ0U2hhZG93Ij4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMSIgZHk9IjEiIHN0ZERldmlhdGlvbj0iMiIgZmxvb2Qtb3BhY2l0eT0iMC4xIi8+CiAgICA8L2ZpbHRlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iNzUwIiBoZWlnaHQ9IjMyMCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iMzc1IiB5PSIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VGltZS1TZXJpZXMgQW5hbHl0aWNzIHdpdGggbWFrZVRpbWVzZXJpZXM8L3RleHQ+CgogIDwhLS0gQ2hhcnQgQXJlYSAtLT4KICA8cmVjdCB4PSI2MCIgeT0iNTAiIHdpZHRoPSI0NTAiIGhlaWdodD0iMjAwIiByeD0iNiIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjIiIGZpbHRlcj0idXJsKCNjaGFydFNoYWRvdykiLz4KCiAgPCEtLSBZLWF4aXMgbGFiZWxzIC0tPgogIDx0ZXh0IHg9IjUwIiB5PSI3MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0iZW5kIj41MDA8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjEyMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0iZW5kIj4zMDA8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjE3MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0iZW5kIj4xMDA8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjI0MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0iZW5kIj4wPC90ZXh0PgoKICA8IS0tIFktYXhpcyB0aXRsZSAtLT4KICA8dGV4dCB4PSIyNSIgeT0iMTUwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIHRyYW5zZm9ybT0icm90YXRlKC05MCwgMjUsIDE1MCkiPlJlcXVlc3RzL21pbjwvdGV4dD4KCiAgPCEtLSBHcmlkIGxpbmVzIC0tPgogIDxsaW5lIHgxPSI2MCIgeTE9IjcwIiB4Mj0iNTEwIiB5Mj0iNzAiIHN0cm9rZT0iI2YxZjVmOSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPGxpbmUgeDE9IjYwIiB5MT0iMTIwIiB4Mj0iNTEwIiB5Mj0iMTIwIiBzdHJva2U9IiNmMWY1ZjkiIHN0cm9rZS13aWR0aD0iMSIvPgogIDxsaW5lIHgxPSI2MCIgeTE9IjE3MCIgeDI9IjUxMCIgeTI9IjE3MCIgc3Ryb2tlPSIjZjFmNWY5IiBzdHJva2Utd2lkdGg9IjEiLz4KCiAgPCEtLSBBcmVhIGZpbGwgLS0+CiAgPHBhdGggZD0iTTcwLDIwMCBMMTIwLDE4MCBMMTcwLDE1MCBMMjIwLDEyMCBMMjcwLDEwMCBMMzIwLDg1IEwzNzAsOTAgTDQyMCwxMTAgTDQ3MCwxMzAgTDUwMCwxNDAgTDUwMCwyNDAgTDcwLDI0MCBaIiBmaWxsPSJ1cmwoI2NoYXJ0R3JhZCkiLz4KCiAgPCEtLSBMaW5lIGNoYXJ0IC0tPgogIDxwb2x5bGluZSBwb2ludHM9IjcwLDIwMCAxMjAsMTgwIDE3MCwxNTAgMjIwLDEyMCAyNzAsMTAwIDMyMCw4NSAzNzAsOTAgNDIwLDExMCA0NzAsMTMwIDUwMCwxNDAiCiAgICAgICAgICAgIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzE0OTZmZiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CgogIDwhLS0gRGF0YSBwb2ludHMgLS0+CiAgPGNpcmNsZSBjeD0iNzAiIGN5PSIyMDAiIHI9IjUiIGZpbGw9IiMxNDk2ZmYiLz4KICA8Y2lyY2xlIGN4PSIxMjAiIGN5PSIxODAiIHI9IjUiIGZpbGw9IiMxNDk2ZmYiLz4KICA8Y2lyY2xlIGN4PSIxNzAiIGN5PSIxNTAiIHI9IjUiIGZpbGw9IiMxNDk2ZmYiLz4KICA8Y2lyY2xlIGN4PSIyMjAiIGN5PSIxMjAiIHI9IjUiIGZpbGw9IiMxNDk2ZmYiLz4KICA8Y2lyY2xlIGN4PSIyNzAiIGN5PSIxMDAiIHI9IjUiIGZpbGw9IiMxNDk2ZmYiLz4KICA8Y2lyY2xlIGN4PSIzMjAiIGN5PSI4NSIgcj0iNSIgZmlsbD0iI2VmNDQ0NCIvPgogIDxjaXJjbGUgY3g9IjM3MCIgY3k9IjkwIiByPSI1IiBmaWxsPSIjMTQ5NmZmIi8+CiAgPGNpcmNsZSBjeD0iNDIwIiBjeT0iMTEwIiByPSI1IiBmaWxsPSIjMTQ5NmZmIi8+CiAgPGNpcmNsZSBjeD0iNDcwIiBjeT0iMTMwIiByPSI1IiBmaWxsPSIjMTQ5NmZmIi8+CiAgPGNpcmNsZSBjeD0iNTAwIiBjeT0iMTQwIiByPSI1IiBmaWxsPSIjMTQ5NmZmIi8+CgogIDwhLS0gUGVhayBhbm5vdGF0aW9uIC0tPgogIDxsaW5lIHgxPSIzMjAiIHkxPSI4NSIgeDI9IjMyMCIgeTI9IjU1IiBzdHJva2U9IiNlZjQ0NDQiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLWRhc2hhcnJheT0iMywyIi8+CiAgPHRleHQgeD0iMzIwIiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZWY0NDQ0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5QZWFrOiA0NTAvbWluPC90ZXh0PgoKICA8IS0tIFgtYXhpcyBsYWJlbHMgLS0+CiAgPHRleHQgeD0iNzAiIHk9IjI2MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4wMDowMDwvdGV4dD4KICA8dGV4dCB4PSIxNzAiIHk9IjI2MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4wNDowMDwvdGV4dD4KICA8dGV4dCB4PSIyNzAiIHk9IjI2MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4wODowMDwvdGV4dD4KICA8dGV4dCB4PSIzNzAiIHk9IjI2MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4xMjowMDwvdGV4dD4KICA8dGV4dCB4PSI0NzAiIHk9IjI2MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4xNjowMDwvdGV4dD4KCiAgPCEtLSBEUUwgUXVlcnkgYm94IC0tPgogIDxyZWN0IHg9IjUzMCIgeT0iNTAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiByeD0iNiIgZmlsbD0iIzFlMjkzYiIvPgogIDx0ZXh0IHg9IjU0NSIgeT0iNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM5NGEzYjgiPm1ha2VUaW1lc2VyaWVzIFF1ZXJ5PC90ZXh0PgoKICA8dGV4dCB4PSI1NDUiIHk9IjEwMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzIyYzU1ZSI+ZmV0Y2g8L3RleHQ+CiAgPHRleHQgeD0iNTgwIiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNmOGZhZmMiPnNwYW5zPC90ZXh0PgoKICA8dGV4dCB4PSI1NDUiIHk9IjExOCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk0YTNiOCI+fDwvdGV4dD4KICA8dGV4dCB4PSI1NTUiIHk9IjExOCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2Y5NzMxNiI+ZmlsdGVyPC90ZXh0PgogIDx0ZXh0IHg9IjYwMCIgeT0iMTE4IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZjhmYWZjIj5zcGFuLmtpbmQgPT08L3RleHQ+CiAgPHRleHQgeD0iNTU1IiB5PSIxMzMiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNmYmJmMjQiPiJzZXJ2ZXIiPC90ZXh0PgoKICA8dGV4dCB4PSI1NDUiIHk9IjE1NSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk0YTNiOCI+fDwvdGV4dD4KICA8dGV4dCB4PSI1NTUiIHk9IjE1NSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzE0OTZmZiI+bWFrZVRpbWVzZXJpZXM8L3RleHQ+CgogIDx0ZXh0IHg9IjU2MCIgeT0iMTczIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZjhmYWZjIj5yZXF1ZXN0cyA9IGNvdW50KCksPC90ZXh0PgogIDx0ZXh0IHg9IjU2MCIgeT0iMTg4IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMTQ5NmZmIj5pbnRlcnZhbDo8L3RleHQ+CiAgPHRleHQgeD0iNjE1IiB5PSIxODgiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2MGE1ZmEiPjVtPC90ZXh0PgoKICA8dGV4dCB4PSI1NDUiIHk9IjIxMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk0YTNiOCI+Ly8gQWxzbyBzdXBwb3J0czo8L3RleHQ+CiAgPHRleHQgeD0iNTQ1IiB5PSIyMjUiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5NGEzYjgiPi8vIGF2ZygpLCBzdW0oKSw8L3RleHQ+CiAgPHRleHQgeD0iNTQ1IiB5PSIyNDAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5NGEzYjgiPi8vIHBlcmNlbnRpbGUoKTwvdGV4dD4KCiAgPCEtLSBMZWdlbmQgLS0+CiAgPHJlY3QgeD0iNjAiIHk9IjI3NSIgd2lkdGg9IjY3MCIgaGVpZ2h0PSIzNSIgcng9IjYiIGZpbGw9IiNmMGY5ZmYiIHN0cm9rZT0iI2JhZTZmZCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPGNpcmNsZSBjeD0iODAiIGN5PSIyOTIiIHI9IjYiIGZpbGw9IiMxNDk2ZmYiLz4KICA8dGV4dCB4PSI5NSIgeT0iMjk3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiMwMzY5YTEiPlJlcXVlc3QgY291bnQgcGVyIGludGVydmFsPC90ZXh0PgogIDxjaXJjbGUgY3g9IjI4MCIgY3k9IjI5MiIgcj0iNiIgZmlsbD0iI2VmNDQ0NCIvPgogIDx0ZXh0IHg9IjI5NSIgeT0iMjk3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiNiOTFjMWMiPkFub21hbHkvUGVhayBkZXRlY3RlZDwvdGV4dD4KICA8dGV4dCB4PSI1MDAiIHk9IjI5NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjMDM2OWExIj5QZXJmZWN0IGZvciBkYXNoYm9hcmRzICZhbXA7IGFsZXJ0aW5nPC90ZXh0Pgo8L3N2Zz4K" alt="Timeseries Analytics" /></p>
+<!--MARKDOWN_TABLE_ALTERNATIVE
+| Function | Purpose | makeTimeseries Support |
+|----------|---------|------------------------|
+| count() | Count records | ✅ Yes |
+| countIf() | Conditional count | ✅ Yes |
+| avg() | Average value | ✅ Yes |
+| sum() | Total sum | ✅ Yes |
+| min()/max() | Extremes | ✅ Yes |
+| percentile() | Distribution | ✅ Yes |
+-->
+<blockquote>
+<p>⚠️ <strong>Important:</strong> in <code>makeTimeseries</code>, each entry must <strong>be</strong> an aggregation — arithmetic on its result is rejected with the error <code>The parameter has to be an expression-based timeseries aggregation.</code> Put the conversion <strong>inside</strong> the aggregation instead:</p>
+<ul>
+<li>✅ <code>p95_ms = percentile(duration / 1ms, 95)</code> — works</li>
+<li>❌ <code>p95_ms = percentile(duration, 95) / 1ms</code> — rejected</li>
+</ul>
+<p><code>percentile()</code> itself is supported (verified 10/02/2026). Ratios such as an error rate need the counts first: produce both series, then compute the ratio element-wise with a later <code>fieldsAdd</code>, or use a time-bucketed <code>summarize</code>.</p>
+</blockquote>
+<pre><code class="language-dql">// Request volume over time by service
+fetch spans, from:-24h
+| filter span.kind == &quot;server&quot;
+| makeTimeseries {
+    request_count = count(),
+    error_count = countIf(span.status_code == &quot;error&quot;)
+  }, by:{dt.service.name}, interval: 5m
+</code></pre>
+<pre><code class="language-dql">// Average duration over time (without grouping)
+fetch spans, from:-24h
+| filter span.kind == &quot;server&quot;
+| makeTimeseries {
+    request_count = count(),
+    avg_duration_ns = avg(duration)
+  }, interval: 5m
+</code></pre>
+<pre><code class="language-dql">// Percentile trend as a time series: keep the unit conversion INSIDE the aggregation
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| makeTimeseries {
+    request_count = count(),
+    p95_duration_ms = percentile(duration / 1ms, 95),
+    error_count = countIf(span.status_code == &quot;error&quot;)
+  }, by:{dt.service.name}, interval: 10m
+</code></pre>
+<hr />
+<p><a id="trend-analysis"></a></p>
+<h2>2. Trend Analysis</h2>
+<p>Identify trends and patterns in your span data over time.</p>
+<pre><code class="language-dql">// Hourly error rate trend
+fetch spans, from:-24h
+| filter span.kind == &quot;server&quot;
+| fieldsAdd hour_bucket = bin(start_time, 1h)
+| summarize {
+    total_requests = count(),
+    errors = countIf(span.status_code == &quot;error&quot;)
+  }, by:{hour_bucket}
+| fieldsAdd error_rate_pct = (errors * 100.0) / total_requests
+| sort hour_bucket asc
+| limit 48
+</code></pre>
+<pre><code class="language-dql">// Latency trend by service (10-minute buckets)
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| fieldsAdd time_bucket = bin(start_time, 10m)
+| summarize {
+    request_count = count(),
+    avg_duration_ms = avg(duration) / 1ms,
+    p90_duration_ms = percentile(duration, 90) / 1ms
+  }, by:{time_bucket, dt.service.name}
+| sort time_bucket asc, dt.service.name
+| limit 300
+</code></pre>
+<pre><code class="language-dql">// Identify services with degrading performance
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| fieldsAdd time_bucket = bin(start_time, 30m)
+| summarize {
+    request_count = count(),
+    p95_ms = percentile(duration, 95) / 1ms
+  }, by:{time_bucket, dt.service.name}
+| filter p95_ms &gt; 500
+| sort time_bucket desc, p95_ms desc
+| limit 50
+</code></pre>
+<hr />
+<p><a id="complex-aggregations"></a></p>
+<h2>3. Complex Aggregations</h2>
+<p>Perform multi-dimensional analysis with complex aggregation patterns.</p>
+<pre><code class="language-dql">// Service health scorecard
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| summarize {
+    total_requests = count(),
+    error_count = countIf(span.status_code == &quot;error&quot; or http.response.status_code &gt;= 500),
+    avg_duration_ms = avg(duration) / 1ms,
+    p50_duration_ms = percentile(duration, 50) / 1ms,
+    p95_duration_ms = percentile(duration, 95) / 1ms,
+    p99_duration_ms = percentile(duration, 99) / 1ms,
+    max_duration_ms = max(duration) / 1ms
+  }, by:{dt.service.name}
+| fieldsAdd error_rate_pct = (error_count * 100.0) / total_requests
+| fieldsAdd health_score = if(error_rate_pct &gt; 5, &quot;Critical&quot;, 
+                            else: if(error_rate_pct &gt; 1, &quot;Warning&quot;, 
+                            else: &quot;Healthy&quot;))
+| sort error_rate_pct desc
+| limit 30
+</code></pre>
+<pre><code class="language-dql">// Endpoint-level analysis with multiple metrics
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| summarize {
+    request_count = count(),
+    error_count = countIf(span.status_code == &quot;error&quot; or http.response.status_code &gt;= 500),
+    slow_count = countIf(duration &gt; 1s),  // &gt; 1 second
+    avg_duration_ms = avg(duration) / 1ms,
+    p95_duration_ms = percentile(duration, 95) / 1ms
+  }, by:{dt.service.name, span.name}
+| fieldsAdd error_rate_pct = (error_count * 100.0) / request_count
+| fieldsAdd slow_rate_pct = (slow_count * 100.0) / request_count
+| filter request_count &gt; 10
+| sort error_rate_pct desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// HTTP method distribution with performance metrics
+fetch spans, from:-1h
+| filter isNotNull(http.request.method)
+| summarize {
+    request_count = count(),
+    error_count = countIf(span.status_code == &quot;error&quot;),
+    avg_duration_ms = avg(duration) / 1ms
+  }, by:{http.request.method, dt.service.name}
+| sort request_count desc
+| limit 30
+</code></pre>
+<hr />
+<p><a id="comparison-queries"></a></p>
+<h2>4. Comparison Queries</h2>
+<p>Compare metrics across different dimensions to identify outliers and patterns.</p>
+<pre><code class="language-dql">// Compare span kinds: server vs client performance
+fetch spans, from:-1h
+| filter in(span.kind, {&quot;server&quot;, &quot;client&quot;})
+| summarize {
+    span_count = count(),
+    error_count = countIf(span.status_code == &quot;error&quot;),
+    avg_duration_ms = avg(duration) / 1ms,
+    p95_duration_ms = percentile(duration, 95) / 1ms
+  }, by:{span.kind}
+| fieldsAdd error_rate_pct = (error_count * 100.0) / span_count
+</code></pre>
+<pre><code class="language-dql">// Compare success vs error span characteristics
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| summarize {
+    span_count = count(),
+    avg_duration_ms = avg(duration) / 1ms,
+    p95_duration_ms = percentile(duration, 95) / 1ms
+  }, by:{span.status_code, dt.service.name}
+| sort dt.service.name, span.status_code
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// HTTP status code distribution by service
+fetch spans, from:-1h
+| filter isNotNull(http.response.status_code)
+| fieldsAdd status_class = if(http.response.status_code &gt;= 500, &quot;5xx&quot;,
+                            else: if(http.response.status_code &gt;= 400, &quot;4xx&quot;,
+                            else: if(http.response.status_code &gt;= 300, &quot;3xx&quot;,
+                            else: &quot;2xx&quot;)))
+| summarize {count = count()}, by:{status_class, dt.service.name}
+| sort dt.service.name, status_class
+</code></pre>
+<hr />
+<p><a id="dashboard-ready-queries"></a></p>
+<h2>5. Dashboard-Ready Queries</h2>
+<p>Queries optimized for use in Dynatrace dashboards and reports.</p>
+<blockquote>
+<p>💡 <strong>Tip:</strong> These queries are designed to produce clean output suitable for dashboard tiles.</p>
+</blockquote>
+<pre><code class="language-dql">// Dashboard: Request rate and error rate over time
+fetch spans, from:-24h
+| filter span.kind == &quot;server&quot;
+| makeTimeseries {
+    requests = count(),
+    errors = countIf(span.status_code == &quot;error&quot;)
+  }, interval: 5m
+</code></pre>
+<pre><code class="language-dql">// Dashboard: Service health summary (single value tiles)
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| summarize {
+    total_requests = count(),
+    total_errors = countIf(span.status_code == &quot;error&quot; or http.response.status_code &gt;= 500),
+    unique_services = countDistinct(dt.service.name),
+    avg_latency_ms = avg(duration) / 1ms
+  }
+| fieldsAdd overall_error_rate_pct = (total_errors * 100.0) / total_requests
+</code></pre>
+<pre><code class="language-dql">// Dashboard: Top 10 services by request volume
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| summarize {
+    requests = count(),
+    errors = countIf(span.status_code == &quot;error&quot; or http.response.status_code &gt;= 500),
+    p95_ms = percentile(duration, 95) / 1ms
+  }, by:{dt.service.name}
+| fieldsAdd error_rate = (errors * 100.0) / requests
+| sort requests desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Dashboard: Recent errors list
+fetch spans, from:-1h
+| filter span.status_code == &quot;error&quot;
+| fields start_time, dt.service.name, span.name, span.status_message
+| sort start_time desc
+| limit 20
+</code></pre>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<p>✅ <strong>Time-series analysis</strong> with makeTimeseries — percentiles included, with conversions inside the aggregation<br />
+✅ <strong>Time-bucketed summarize</strong> for percentile trends<br />
+✅ <strong>Trend analysis</strong> to identify patterns over time<br />
+✅ <strong>Complex aggregations</strong> for multi-dimensional analysis<br />
+✅ <strong>Comparison queries</strong> to identify outliers<br />
+✅ <strong>Dashboard-ready queries</strong> for visualization</p>
+<hr />
+<h2>Next Steps</h2>
+<p>Continue to <strong>SPANS-06: Security Analysis with Spans</strong> to learn:</p>
+<ul>
+<li>Detecting security-relevant patterns in traces</li>
+<li>Analyzing authentication and authorization flows</li>
+<li>Finding anomalous behavior</li>
+<li>Security audit queries</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/aggregation-commands#makeTimeseries">makeTimeseries command (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions/aggregation-functions">Aggregation functions (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/trace">Trace semantic conventions (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

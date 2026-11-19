@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M2S-02: Step 2 — Strategize: Define Your Migration Approach</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">M2S — Managed to SaaS Migration</a><span class="sep">/</span><span aria-current="page">M2S-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>M2S-02: Step 2 — Strategize: Define Your Migration Approach</h1>
+<blockquote>
+<p><strong>Series:</strong> M2S — Managed to SaaS Migration | <strong>Notebook:</strong> 2 of 9 | <strong>Phase:</strong> Plan | <strong>Step:</strong> Strategize | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<p>With your discovery complete, it's time to turn inventory into action. This notebook helps you select a migration approach, sequence your operations, assess risks, and build a timeline that earns stakeholder confidence.</p>
+<blockquote>
+<p><strong>M2S Migration Journey — 3 Phases / 9 Steps</strong></p>
+<p><strong>Plan:</strong> 1. Discover | <strong>2. Strategize</strong> | 3. Design</p>
+<p><strong>Upgrade:</strong> 4. Prepare | 5. Execute | 6. Integrate</p>
+<p><strong>Run:</strong> 7. Enable | 8. Expand | 9. Optimize</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#three-phase-framework">The Three-Phase Framework</a></li>
+<li><a href="#migration-approach-selection">Migration Approach Selection</a></li>
+<li><a href="#order-of-operations">Order of Operations</a></li>
+<li><a href="#migration-considerations">Migration Considerations and Dependencies</a></li>
+<li><a href="#risk-assessment">Risk Assessment</a></li>
+<li><a href="#defining-success-criteria">Defining Success Criteria</a></li>
+<li><a href="#timeline-planning">Timeline Planning</a></li>
+<li><a href="#the-90-10-rule">The 90/10 Rule</a></li>
+<li><a href="#step-completion-checklist">Step Completion Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Step 1 Complete</strong></td>
+<td>Discovery inventory from M2S-01 (host counts, agent versions, ActiveGate topology, integrations)</td>
+</tr>
+<tr>
+<td><strong>Stakeholder Access</strong></td>
+<td>Ability to engage infrastructure, security, and application teams</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Account Team</strong></td>
+<td>Contact established for licensing and migration support</td>
+</tr>
+<tr>
+<td><strong>Risk Tolerance Understood</strong></td>
+<td>Organizational appetite for maintenance windows and parallel operation</td>
+</tr>
+</tbody>
+</table>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI3MDAiIGhlaWdodD0iMzgwIiB2aWV3Qm94PSIwIDAgNzAwIDQwMCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZjE3MmEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWUyOTNiIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJwbGFuR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM2I4MmY2Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzFkNGVkOCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idXBncmFkZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE0YjhhNiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZDk0ODgiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InJ1bkdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2E4NTVmNyIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3YzNhZWQiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJzaGFkb3ciIHg9Ii0yMCUiIHk9Ii0yMCUiIHdpZHRoPSIxNDAlIiBoZWlnaHQ9IjE0MCUiPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIyIiBkeT0iNCIgc3RkRGV2aWF0aW9uPSI0IiBmbG9vZC1vcGFjaXR5PSIwLjMiLz4KICAgIDwvZmlsdGVyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI3MDAiIGhlaWdodD0iMzgwIiBmaWxsPSJ1cmwoI2JnR3JhZCkiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSIzNTAiIHk9IjM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZjhmYWZjIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtd2VpZ2h0PSJib2xkIj5EeW5hdHJhY2UgTWlncmF0aW9uIEZyYW1ld29yazwvdGV4dD4KICA8dGV4dCB4PSIzNTAiIHk9IjU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiPjMgUGhhc2VzLCA5IFN0YWdlczwvdGV4dD4KCiAgPCEtLSBQaGFzZSAxOiBQTEFOIC0tPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDMwLCA4MCkiPgogICAgPCEtLSBQaGFzZSBoZWFkZXIgLS0+CiAgICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0idXJsKCNwbGFuR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgICA8dGV4dCB4PSIxMDAiIHk9IjI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iYm9sZCI+UExBTjwvdGV4dD4KCiAgICA8IS0tIFN0YWdlcyAtLT4KICAgIDxyZWN0IHg9IjAiIHk9IjUwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIyMCIgcng9IjYiIGZpbGw9IiMxZTNhNWYiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIxIi8+CgogICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCwgNjApIj4KICAgICAgPGNpcmNsZSBjeD0iMzAiIGN5PSIyMCIgcj0iMTYiIGZpbGw9IiMzYjgyZjYiLz4KICAgICAgPHRleHQgeD0iMzAiIHk9IjI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCI+MTwvdGV4dD4KICAgICAgPHRleHQgeD0iNjAiIHk9IjE4IiBmaWxsPSIjZjhmYWZjIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIj5EaXNjb3ZlcjwvdGV4dD4KICAgICAgPHRleHQgeD0iNjAiIHk9IjM1IiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPkludmVudG9yeSBlbnZpcm9ubWVudDwvdGV4dD4KICAgIDwvZz4KCiAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgwLCAxMjUpIj4KICAgICAgPGNpcmNsZSBjeD0iMzAiIGN5PSIyMCIgcj0iMTYiIGZpbGw9IiMzYjgyZjYiLz4KICAgICAgPHRleHQgeD0iMzAiIHk9IjI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCI+MjwvdGV4dD4KICAgICAgPHRleHQgeD0iNjAiIHk9IjE4IiBmaWxsPSIjZjhmYWZjIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIj5TdHJhdGVnaXplPC90ZXh0PgogICAgICA8dGV4dCB4PSI2MCIgeT0iMzUiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+RGVmaW5lIGFwcHJvYWNoPC90ZXh0PgogICAgPC9nPgoKICAgIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAsIDE5MCkiPgogICAgICA8Y2lyY2xlIGN4PSIzMCIgY3k9IjIwIiByPSIxNiIgZmlsbD0iIzNiODJmNiIvPgogICAgICA8dGV4dCB4PSIzMCIgeT0iMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIj4zPC90ZXh0PgogICAgICA8dGV4dCB4PSI2MCIgeT0iMTgiIGZpbGw9IiNmOGZhZmMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiPkRlc2lnbjwvdGV4dD4KICAgICAgPHRleHQgeD0iNjAiIHk9IjM1IiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPlBsYW4gYXJjaGl0ZWN0dXJlPC90ZXh0PgogICAgPC9nPgogIDwvZz4KCiAgPCEtLSBBcnJvdyAxIC0tPgogIDxwYXRoIGQ9Ik0yNDAgMjAwIEwyNjAgMjAwIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhcnJvd2hlYWQpIi8+CiAgPHBvbHlnb24gcG9pbnRzPSIyNTgsMTk1IDI2OCwyMDAgMjU4LDIwNSIgZmlsbD0iIzY0NzQ4YiIvPgoKICA8IS0tIFBoYXNlIDI6IFVQR1JBREUgLS0+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjUwLCA4MCkiPgogICAgPCEtLSBQaGFzZSBoZWFkZXIgLS0+CiAgICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0idXJsKCN1cGdyYWRlR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgICA8dGV4dCB4PSIxMDAiIHk9IjI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iYm9sZCI+VVBHUkFERTwvdGV4dD4KCiAgICA8IS0tIFN0YWdlcyAtLT4KICAgIDxyZWN0IHg9IjAiIHk9IjUwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIyMCIgcng9IjYiIGZpbGw9IiMxMzRlNGEiIHN0cm9rZT0iIzE0YjhhNiIgc3Ryb2tlLXdpZHRoPSIxIi8+CgogICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCwgNjApIj4KICAgICAgPGNpcmNsZSBjeD0iMzAiIGN5PSIyMCIgcj0iMTYiIGZpbGw9IiMxNGI4YTYiLz4KICAgICAgPHRleHQgeD0iMzAiIHk9IjI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCI+NDwvdGV4dD4KICAgICAgPHRleHQgeD0iNjAiIHk9IjE4IiBmaWxsPSIjZjhmYWZjIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIj5QcmVwYXJlPC90ZXh0PgogICAgICA8dGV4dCB4PSI2MCIgeT0iMzUiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+U2V0IHVwIFNhYVMgdGVuYW50PC90ZXh0PgogICAgPC9nPgoKICAgIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAsIDEyNSkiPgogICAgICA8Y2lyY2xlIGN4PSIzMCIgY3k9IjIwIiByPSIxNiIgZmlsbD0iIzE0YjhhNiIvPgogICAgICA8dGV4dCB4PSIzMCIgeT0iMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIj41PC90ZXh0PgogICAgICA8dGV4dCB4PSI2MCIgeT0iMTgiIGZpbGw9IiNmOGZhZmMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiPkV4ZWN1dGU8L3RleHQ+CiAgICAgIDx0ZXh0IHg9IjYwIiB5PSIzNSIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5NaWdyYXRlIGFnZW50cy9jb25maWc8L3RleHQ+CiAgICA8L2c+CgogICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCwgMTkwKSI+CiAgICAgIDxjaXJjbGUgY3g9IjMwIiBjeT0iMjAiIHI9IjE2IiBmaWxsPSIjMTRiOGE2Ii8+CiAgICAgIDx0ZXh0IHg9IjMwIiB5PSIyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiPjY8L3RleHQ+CiAgICAgIDx0ZXh0IHg9IjYwIiB5PSIxOCIgZmlsbD0iI2Y4ZmFmYyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCI+SW50ZWdyYXRlPC90ZXh0PgogICAgICA8dGV4dCB4PSI2MCIgeT0iMzUiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+Q29ubmVjdCBzeXN0ZW1zPC90ZXh0PgogICAgPC9nPgogIDwvZz4KCiAgPCEtLSBBcnJvdyAyIC0tPgogIDxwYXRoIGQ9Ik00NjAgMjAwIEw0ODAgMjAwIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIvPgogIDxwb2x5Z29uIHBvaW50cz0iNDc4LDE5NSA0ODgsMjAwIDQ3OCwyMDUiIGZpbGw9IiM2NDc0OGIiLz4KCiAgPCEtLSBQaGFzZSAzOiBSVU4gLS0+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNDcwLCA4MCkiPgogICAgPCEtLSBQaGFzZSBoZWFkZXIgLS0+CiAgICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0idXJsKCNydW5HcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICAgIDx0ZXh0IHg9IjEwMCIgeT0iMjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSJib2xkIj5SVU48L3RleHQ+CgogICAgPCEtLSBTdGFnZXMgLS0+CiAgICA8cmVjdCB4PSIwIiB5PSI1MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMjAiIHJ4PSI2IiBmaWxsPSIjM2IxZjVlIiBzdHJva2U9IiNhODU1ZjciIHN0cm9rZS13aWR0aD0iMSIvPgoKICAgIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAsIDYwKSI+CiAgICAgIDxjaXJjbGUgY3g9IjMwIiBjeT0iMjAiIHI9IjE2IiBmaWxsPSIjYTg1NWY3Ii8+CiAgICAgIDx0ZXh0IHg9IjMwIiB5PSIyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiPjc8L3RleHQ+CiAgICAgIDx0ZXh0IHg9IjYwIiB5PSIxOCIgZmlsbD0iI2Y4ZmFmYyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCI+RW5hYmxlPC90ZXh0PgogICAgICA8dGV4dCB4PSI2MCIgeT0iMzUiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+QWN0aXZhdGUgbW9uaXRvcmluZzwvdGV4dD4KICAgIDwvZz4KCiAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgwLCAxMjUpIj4KICAgICAgPGNpcmNsZSBjeD0iMzAiIGN5PSIyMCIgcj0iMTYiIGZpbGw9IiNhODU1ZjciLz4KICAgICAgPHRleHQgeD0iMzAiIHk9IjI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCI+ODwvdGV4dD4KICAgICAgPHRleHQgeD0iNjAiIHk9IjE4IiBmaWxsPSIjZjhmYWZjIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIj5FeHBhbmQ8L3RleHQ+CiAgICAgIDx0ZXh0IHg9IjYwIiB5PSIzNSIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5FeHRlbmQgY292ZXJhZ2U8L3RleHQ+CiAgICA8L2c+CgogICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCwgMTkwKSI+CiAgICAgIDxjaXJjbGUgY3g9IjMwIiBjeT0iMjAiIHI9IjE2IiBmaWxsPSIjYTg1NWY3Ii8+CiAgICAgIDx0ZXh0IHg9IjMwIiB5PSIyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiPjk8L3RleHQ+CiAgICAgIDx0ZXh0IHg9IjYwIiB5PSIxOCIgZmlsbD0iI2Y4ZmFmYyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCI+T3B0aW1pemU8L3RleHQ+CiAgICAgIDx0ZXh0IHg9IjYwIiB5PSIzNSIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5UdW5lIGFuZCBpbXByb3ZlPC90ZXh0PgogICAgPC9nPgogIDwvZz4KCiAgPCEtLSBCb3R0b20gdGltZWxpbmUgaW5kaWNhdG9yIC0tPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDMwLCAzNTUpIj4KICAgIDxyZWN0IHdpZHRoPSI2NDAiIGhlaWdodD0iNCIgcng9IjIiIGZpbGw9IiMzMzQxNTUiLz4KICAgIDxyZWN0IHdpZHRoPSIyMTMiIGhlaWdodD0iNCIgcng9IjIiIGZpbGw9IiMzYjgyZjYiLz4KICAgIDxyZWN0IHg9IjIxMyIgd2lkdGg9IjIxNCIgaGVpZ2h0PSI0IiByeD0iMiIgZmlsbD0iIzE0YjhhNiIvPgogICAgPHJlY3QgeD0iNDI3IiB3aWR0aD0iMjEzIiBoZWlnaHQ9IjQiIHJ4PSIyIiBmaWxsPSIjYTg1NWY3Ii8+CiAgPC9nPgo8L3N2Zz4K" alt="Migration Framework" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Phase | Step 1 | Step 2 | Step 3 |
+|-------|--------|--------|--------|
+| **Plan** | 1. Discover | **2. Strategize** | 3. Design |
+| **Upgrade** | 4. Prepare | 5. Execute | 6. Integrate |
+| **Run** | 7. Enable | 8. Expand | 9. Optimize |
+For environments where SVG doesn't render
+-->
+<p><a id="three-phase-framework"></a></p>
+<h2>1. The Three-Phase Framework</h2>
+<p>The Managed-to-SaaS migration follows a proven three-phase, nine-step framework. Each phase builds on the previous one, and skipping steps leads to preventable failures.</p>
+<h3>Phase Overview</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Steps</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Plan</strong></td>
+<td>1. Discover → 2. Strategize → 3. Design</td>
+<td>Understand what you have, decide how to move it, design the target</td>
+</tr>
+<tr>
+<td><strong>Upgrade</strong></td>
+<td>4. Prepare → 5. Execute → 6. Integrate</td>
+<td>Set up SaaS, migrate agents and config, reconnect integrations</td>
+</tr>
+<tr>
+<td><strong>Run</strong></td>
+<td>7. Enable → 8. Expand → 9. Optimize</td>
+<td>Enable teams, adopt new capabilities, tune for value</td>
+</tr>
+</tbody>
+</table>
+<h3>What Each Step Delivers</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Name</th>
+<th>Key Deliverable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Discover</strong></td>
+<td>Complete environment inventory (hosts, agents, configs, integrations)</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Strategize</strong></td>
+<td>Migration approach, timeline, risk assessment, success criteria</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Design</strong></td>
+<td>Target SaaS architecture, network topology, IAM model</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Prepare</strong></td>
+<td>SaaS tenant provisioned, ActiveGates deployed, network validated</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Execute</strong></td>
+<td>Configurations migrated, OneAgents redirected, data flowing</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Integrate</strong></td>
+<td>Webhooks, CI/CD, ITSM, and third-party tools reconnected</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Enable</strong></td>
+<td>User communication, persona-based training, documentation, and support channels</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>Expand</strong></td>
+<td>Grail, Notebooks, OpenPipeline, Workflows, and Dynatrace Assist adopted</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>Optimize</strong></td>
+<td>Alert tuning, cost management, query performance, feature adoption</td>
+</tr>
+</tbody>
+</table>
+<h3>Time Investment by Phase</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Typical Duration</th>
+<th>Effort Level</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plan</td>
+<td>2-4 weeks</td>
+<td>Medium — analysis and decision-making</td>
+</tr>
+<tr>
+<td>Upgrade</td>
+<td>2-6 weeks</td>
+<td>High — technical execution</td>
+</tr>
+<tr>
+<td>Run</td>
+<td>2-4 weeks</td>
+<td>Medium — enablement and tuning</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Duration varies significantly based on environment size, complexity, and organizational readiness. A 200-host environment can complete in 4 weeks. A 5,000-host multi-region deployment may take 12 weeks.</p>
+</blockquote>
+<p><a id="migration-approach-selection"></a></p>
+<h2>2. Migration Approach Selection</h2>
+<p>The single most consequential decision in your migration is the approach. Choose based on environment size, risk tolerance, and operational constraints.</p>
+<h3>Three Approaches</h3>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>When to Use</th>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Big Bang</strong></td>
+<td>&lt; 500 hosts, simple environment</td>
+<td>Fast, decisive, clean cutover</td>
+<td>Higher risk, requires extensive prep</td>
+</tr>
+<tr>
+<td><strong>Phased by Environment</strong></td>
+<td>500-2,000 hosts</td>
+<td>Lower risk, lessons learned per wave</td>
+<td>Longer timeline, dual-run costs</td>
+</tr>
+<tr>
+<td><strong>Phased by Region/App</strong></td>
+<td>&gt; 2,000 hosts or complex integrations</td>
+<td>Lowest risk, maximum flexibility</td>
+<td>Longest timeline, complex coordination</td>
+</tr>
+</tbody>
+</table>
+<h3>Big Bang Migration</h3>
+<p>All agents and configurations migrate in a single maintenance window.</p>
+<table>
+<thead>
+<tr>
+<th>Factor</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Typical window</strong></td>
+<td>4-8 hours</td>
+</tr>
+<tr>
+<td><strong>Best for</strong></td>
+<td>Smaller environments with flexible maintenance windows</td>
+</tr>
+<tr>
+<td><strong>Requires</strong></td>
+<td>Complete preparation, tested rollback procedure</td>
+</tr>
+<tr>
+<td><strong>Risk</strong></td>
+<td>Higher — all-or-nothing in a single window</td>
+</tr>
+</tbody>
+</table>
+<h3>Phased by Environment</h3>
+<p>Migrate in waves: Dev → Staging → Production.</p>
+<table>
+<thead>
+<tr>
+<th>Factor</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Typical duration</strong></td>
+<td>3-6 weeks (1-2 weeks per wave)</td>
+</tr>
+<tr>
+<td><strong>Best for</strong></td>
+<td>Mid-size environments with distinct environment tiers</td>
+</tr>
+<tr>
+<td><strong>Requires</strong></td>
+<td>Parallel operation budget, wave-by-wave validation</td>
+</tr>
+<tr>
+<td><strong>Risk</strong></td>
+<td>Medium — each wave validates the next</td>
+</tr>
+</tbody>
+</table>
+<h3>Phased by Region or Application</h3>
+<p>Migrate by geography (EMEA → APAC → Americas) or by application criticality.</p>
+<table>
+<thead>
+<tr>
+<th>Factor</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Typical duration</strong></td>
+<td>6-12 weeks</td>
+</tr>
+<tr>
+<td><strong>Best for</strong></td>
+<td>Large, complex environments with regional or app-team ownership</td>
+</tr>
+<tr>
+<td><strong>Requires</strong></td>
+<td>Complex coordination, extended parallel operation</td>
+</tr>
+<tr>
+<td><strong>Risk</strong></td>
+<td>Lowest — isolated blast radius per wave</td>
+</tr>
+</tbody>
+</table>
+<h3>Decision Matrix</h3>
+<table>
+<thead>
+<tr>
+<th>Factor</th>
+<th>Big Bang</th>
+<th>Phased by Env</th>
+<th>Phased by Region/App</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hosts &lt; 500</td>
+<td>Recommended</td>
+<td>Optional</td>
+<td>Unnecessary</td>
+</tr>
+<tr>
+<td>Hosts 500-2,000</td>
+<td>Possible</td>
+<td>Recommended</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>Hosts &gt; 2,000</td>
+<td>Not recommended</td>
+<td>Possible</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Simple integrations</td>
+<td>Recommended</td>
+<td>Optional</td>
+<td>Unnecessary</td>
+</tr>
+<tr>
+<td>Complex integrations</td>
+<td>Risky</td>
+<td>Recommended</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Short timeline required</td>
+<td>Fastest</td>
+<td>Moderate</td>
+<td>Longest</td>
+</tr>
+<tr>
+<td>Risk-averse organization</td>
+<td>Higher risk</td>
+<td>Lower risk</td>
+<td>Lowest risk</td>
+</tr>
+</tbody>
+</table>
+<h3>Cloud-Native and Serverless Estates</h3>
+<p>Host count is the wrong yardstick for a Cloud Run / GKE / OTLP-heavy estate. A shop with thousands of Cloud Run services and a handful of GKE clusters may report only a few residual VMs, yet its migration is far from &quot;small.&quot; Size the approach on the axes that actually drive coordination and risk in a cloud-native estate:</p>
+<table>
+<thead>
+<tr>
+<th>Cloud-native axis</th>
+<th>Big Bang</th>
+<th>Phased by Env</th>
+<th>Phased by Cluster/Service</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cloud Run / serverless services</strong></td>
+<td>&lt; ~20 services, single team</td>
+<td>Dozens across a few teams</td>
+<td>Hundreds of services or many owning teams</td>
+</tr>
+<tr>
+<td><strong>GKE / Kubernetes clusters</strong></td>
+<td>1 cluster</td>
+<td>2–3 clusters</td>
+<td>4+ clusters or multi-region</td>
+</tr>
+<tr>
+<td><strong>Log volume &amp; pipeline complexity</strong></td>
+<td>Low, few sources</td>
+<td>Moderate, some OpenPipeline routing</td>
+<td>High volume, many sources / bucket-routing rules</td>
+</tr>
+<tr>
+<td><strong>Redirect blast radius</strong></td>
+<td>One redeploy window</td>
+<td>Per-environment redeploys</td>
+<td>Per-cluster / per-service-team redeploys</td>
+</tr>
+</tbody>
+</table>
+<p>Map these onto the same risk profiles as the host-count bands above: a single GKE cluster with modest log volume behaves like a <strong>Big Bang</strong> candidate, while many clusters or high log volume push you toward <strong>Phased by Cluster/Service</strong> for an isolated blast radius. Two cloud-native specifics change the mechanics:</p>
+<ul>
+<li><strong>The redirect is a redeploy, not an <code>oneagentctl</code> reconfigure</strong> — a new Cloud Run revision or rolled GKE pods. See <strong>M2S-05: Step 5 — Execute</strong> for the per-surface redirect matrix.</li>
+<li><strong>ActiveGate footprint is minimal</strong> — cloud-native estates route far less through ActiveGates (forwarder path, private synthetics, and residual VMs only). See <strong>M2S-03: Step 3 — Design</strong> for cloud-native AG sizing.</li>
+</ul>
+<p><a id="order-of-operations"></a></p>
+<h2>3. Order of Operations</h2>
+<p>Regardless of which approach you choose, the migration must follow this exact 11-step sequence. Steps cannot be reordered — each depends on the previous one completing successfully. The rightmost column shows which notebook covers each operation in detail.</p>
+<table>
+<thead>
+<tr>
+<th>Sequence</th>
+<th>Activity</th>
+<th>Why This Order</th>
+<th>Covered In</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1</strong></td>
+<td><strong>Assess</strong> — Inventory current environment</td>
+<td>Cannot plan what you don't know</td>
+<td>Step 4: Prepare</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td><strong>Provision</strong> — SaaS tenant and access (SSO)</td>
+<td>Target environment must exist before anything moves</td>
+<td>Step 4: Prepare</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td><strong>Install</strong> — New ActiveGates in parallel with old ActiveGates</td>
+<td>Agents need routing infrastructure before redirect</td>
+<td>Step 4: Prepare</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td><strong>Migrate</strong> — Configuration and integrations</td>
+<td>Settings must be in place before agents report to SaaS</td>
+<td>Step 5: Execute</td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td><strong>Rebuild</strong> — Dashboards, zones, alerts</td>
+<td>Operational visibility must be ready before cutover</td>
+<td>Step 5: Execute</td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td><strong>Redirect</strong> — OneAgents to SaaS</td>
+<td>The actual migration moment — agents begin reporting to SaaS</td>
+<td>Step 5: Execute</td>
+</tr>
+<tr>
+<td><strong>7</strong></td>
+<td><strong>Reconnect</strong> — Integrations and extensions</td>
+<td>Restore external system connections</td>
+<td>Step 6: Integrate</td>
+</tr>
+<tr>
+<td><strong>8</strong></td>
+<td><strong>Migrate</strong> — Any remaining configuration and integrations</td>
+<td>Catch items missed in first pass or dependent on agent data</td>
+<td>Step 6: Integrate</td>
+</tr>
+<tr>
+<td><strong>9</strong></td>
+<td><strong>Validate</strong> — Data flow and performance</td>
+<td>Confirm everything works before declaring success</td>
+<td>Step 9: Optimize</td>
+</tr>
+<tr>
+<td><strong>10</strong></td>
+<td><strong>Cutover</strong> — Full switch to SaaS</td>
+<td>Formal declaration that SaaS is the primary platform</td>
+<td>Step 9: Optimize</td>
+</tr>
+<tr>
+<td><strong>11</strong></td>
+<td><strong>Decommission</strong> — Managed environment</td>
+<td>Only after full validation and parallel observation period</td>
+<td>Step 9: Optimize</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> Steps 4 and 5 are where the <a href="https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant">SaaS Upgrade Assistant</a> does the heavy lifting. Export from Managed, upload to SaaS, review, and deploy — most configurations migrate automatically.</p>
+</blockquote>
+<h3>Critical Dependencies</h3>
+<table>
+<thead>
+<tr>
+<th>Dependency</th>
+<th>Impact if Missed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ActiveGates before OneAgents</td>
+<td>Agents have nowhere to route — data loss</td>
+</tr>
+<tr>
+<td>Config before agent redirect</td>
+<td>No alerting, no dashboards during cutover</td>
+</tr>
+<tr>
+<td>SSO before user access</td>
+<td>Teams locked out of new SaaS tenant</td>
+</tr>
+<tr>
+<td>Firewall rules before anything</td>
+<td>All traffic blocked — complete failure</td>
+</tr>
+</tbody>
+</table>
+<p><a id="migration-considerations"></a></p>
+<h2>4. Migration Considerations and Dependencies</h2>
+<p>These are the non-obvious factors that derail migrations when overlooked.</p>
+<h3>Licensing and Contracts</h3>
+<table>
+<thead>
+<tr>
+<th>Consideration</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dual licensing</strong></td>
+<td>You will run both Managed and SaaS in parallel during migration — coordinate with your Dynatrace account team early</td>
+</tr>
+<tr>
+<td><strong>Contract alignment</strong></td>
+<td>SaaS licensing model differs from Managed — the Dynatrace Platform Subscription (DPS), consumption-based, vs. host units</td>
+</tr>
+<tr>
+<td><strong>Timing</strong></td>
+<td>Begin licensing discussions at least 4 weeks before migration start</td>
+</tr>
+</tbody>
+</table>
+<h3>Data Continuity</h3>
+<table>
+<thead>
+<tr>
+<th>Consideration</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Historic data cannot be migrated</strong></td>
+<td>Managed data stays in Managed — plan for a baseline period in SaaS</td>
+</tr>
+<tr>
+<td><strong>Parallel observation</strong></td>
+<td>Run both environments for 2-4 weeks to build SaaS baselines</td>
+</tr>
+<tr>
+<td><strong>Data gap planning</strong></td>
+<td>Brief gap during OneAgent redirect is unavoidable — minimize with maintenance window</td>
+</tr>
+</tbody>
+</table>
+<h3>Infrastructure</h3>
+<table>
+<thead>
+<tr>
+<th>Consideration</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>New ActiveGates required</strong></td>
+<td>SaaS requires Environment ActiveGates — cannot reuse Managed Cluster ActiveGates</td>
+</tr>
+<tr>
+<td><strong>Network zones</strong></td>
+<td>Must exist in SaaS with SaaS ActiveGates assigned before agents move — the Upgrade Assistant can import the definitions; plan ActiveGate placement per zone</td>
+</tr>
+<tr>
+<td><strong>Firewall rules</strong></td>
+<td>New outbound rules to <code>*.live.dynatrace.com</code> and <code>*.apps.dynatrace.com</code> on port 443</td>
+</tr>
+<tr>
+<td><strong>OneAgent version compatibility</strong></td>
+<td>Dynatrace supports OneAgent versions for 9 months (Standard) / 12 months (Enterprise) — verify your oldest agents are within support. Separately, SaaS 1.347 (staged tenant rollout from 09/16/2026) <strong>rejects connections</strong> from OneAgent 1.241 and earlier, so those hosts send no data after redirect. Managed 1.348 applies the same cutoff, so on a source cluster at 1.348 or later those agents are already silent and missing from the Managed inventory — see the Step 1 (M2S-01) callout</td>
+</tr>
+</tbody>
+</table>
+<h3>Configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Consideration</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Environment rebuild required</strong></td>
+<td>SaaS is a new environment — settings, dashboards, and alerts must be migrated or recreated</td>
+</tr>
+<tr>
+<td><strong>Credential Vault</strong></td>
+<td>Manual migration — secrets cannot be exported from Managed</td>
+</tr>
+<tr>
+<td><strong>Synthetic private locations</strong></td>
+<td>Must be recreated with new ActiveGates in SaaS</td>
+</tr>
+<tr>
+<td><strong>Custom extensions</strong></td>
+<td>Extensions 2.0 required — legacy extensions need conversion</td>
+</tr>
+<tr>
+<td><strong>Configuration freeze</strong></td>
+<td>Freeze Managed changes during migration to prevent drift</td>
+</tr>
+</tbody>
+</table>
+<h3>Security and Compliance</h3>
+<table>
+<thead>
+<tr>
+<th>Consideration</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Security approvals</strong></td>
+<td>Firewall change requests may require weeks of lead time</td>
+</tr>
+<tr>
+<td><strong>SSO/SAML configuration</strong></td>
+<td>IdP must sign the <strong>entire SAML message</strong>, not just the assertion — Microsoft Entra signs only the assertion by default (M2S-04 § 3)</td>
+</tr>
+<tr>
+<td><strong>SSO federation</strong></td>
+<td>Dynatrace documents <strong>SAML 2.0</strong> federation (plus SCIM provisioning) for SaaS — confirm your IdP can federate via SAML</td>
+</tr>
+<tr>
+<td><strong>Outbound email (SMTP)</strong></td>
+<td>Notifications are sent by Dynatrace; we found no documented custom-SMTP option for SaaS — route to an internal relay via a webhook or Workflow action if required</td>
+</tr>
+<tr>
+<td><strong>API token rotation</strong></td>
+<td>New tokens needed for SaaS — update all automation and integrations</td>
+</tr>
+<tr>
+<td><strong>Data residency</strong></td>
+<td>Confirm SaaS tenant region meets compliance requirements</td>
+</tr>
+</tbody>
+</table>
+<h3>Execution Readiness</h3>
+<table>
+<thead>
+<tr>
+<th>Consideration</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Rollback procedure</strong></td>
+<td>Document and test on one host before full migration</td>
+</tr>
+<tr>
+<td><strong>Maintenance window</strong></td>
+<td>Coordinate with all application teams</td>
+</tr>
+<tr>
+<td><strong>Communication plan</strong></td>
+<td>Stakeholders must know what's happening and when</td>
+</tr>
+<tr>
+<td><strong>Version alignment</strong></td>
+<td>Align Managed cluster and SaaS to the same major version for SaaS Upgrade Assistant</td>
+</tr>
+</tbody>
+</table>
+<h3>Use Your Discovery Data to Identify Dependencies</h3>
+<p>The queries from Step 1 (Discover) provide the data you need to assess these dependencies. If you haven't run them yet, go back to <strong>M2S-01</strong> and complete the discovery first.</p>
+<p>Once your agents are reporting to SaaS, use these DQL queries to validate coverage and identify gaps.</p>
+<pre><code class="language-dql">// Check OneAgent version distribution — agents outside the 9-month (Standard) / 12-month (Enterprise) support window need upgrading before migration
+fetch dt.entity.host, from:-24h
+| fieldsAdd version = installerVersion
+| summarize {hostCount = count()}, by:{version}
+| sort hostCount desc
+
+// No Smartscape equivalent: installerVersion (OneAgent version) is not a Smartscape node
+// field, so this version distribution stays on the classic entity store.
+// from:-24h: without it dt.entity.* counts only entities seen in the default 2-hour window.
+
+</code></pre>
+<pre><code class="language-dql">// Count monitored entities seen in the last 24 hours — confirms your discovery inventory matches what SaaS sees after redirect
+fetch dt.entity.host, from:-24h | summarize hosts = count()
+| append [fetch dt.entity.service, from:-24h | summarize services = count()]
+| append [fetch dt.entity.process_group, from:-24h | summarize process_groups = count()]
+| append [smartscapeNodes &quot;FRONTEND&quot;, from:-24h | summarize frontends = count()]
+
+// Web and mobile applications are counted as Smartscape FRONTEND nodes (M2S-01). Classic
+// dt.entity.application counts only classic web applications and returned 0 on a validation tenant
+// with 34 frontends (10/01/2026). Every subquery uses the same from:-24h window.
+
+</code></pre>
+<pre><code class="language-dql">// Verify ActiveGate connectivity — all Environment ActiveGates should be reporting
+smartscapeNodes &quot;ACTIVEGATE&quot;
+| fields name, zone = dt.network_zone.id, group = dt.active_gate.group.name
+| sort name asc
+
+// Correction (verified 07/2026): this cell previously ran `fetch dt.entity.active_gate` and
+// carried a note claiming Smartscape had no ActiveGate node. Both were wrong. There is NO classic
+// ActiveGate entity type in any spelling (active_gate, environment_active_gate,
+// environment_activegate), so the classic query returned zero rows in every tenant —
+// indistinguishable from &quot;no ActiveGates deployed&quot;. `smartscapeNodes &quot;ACTIVEGATE&quot;` (no
+// underscore) is the working path, and it works on tenants today.
+// Field maps: entity.name → name, softwareVersion → dt.active_gate.version,
+// networkZone → dt.network_zone.id.
+</code></pre>
+<p><a id="risk-assessment"></a></p>
+<h2>5. Risk Assessment</h2>
+<p>Every migration carries risk. The goal is not to eliminate risk but to identify, quantify, and mitigate it before execution begins.</p>
+<h3>Risk Register</h3>
+<table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Impact</th>
+<th>Likelihood</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Data gaps during cutover</strong></td>
+<td>High</td>
+<td>Medium</td>
+<td>Schedule waves inside existing maintenance windows to hold the per-host gap under 15 minutes. A host cannot report to both tenants at once — running a second agent is not available as a mitigation (M2S-05 § Zero-Gap Requirements)</td>
+</tr>
+<tr>
+<td><strong>Configuration drift</strong></td>
+<td>Medium</td>
+<td>High</td>
+<td>Freeze Managed changes during migration; use SaaS Upgrade Assistant for snapshot export</td>
+</tr>
+<tr>
+<td><strong>Integration failures</strong></td>
+<td>High</td>
+<td>Medium</td>
+<td>Test all webhooks and APIs in SaaS before cutover; verify endpoints and tokens</td>
+</tr>
+<tr>
+<td><strong>Rollback needed</strong></td>
+<td>Medium</td>
+<td>Low</td>
+<td>Document rollback procedure; test on one host first; keep Managed running during parallel period</td>
+</tr>
+<tr>
+<td><strong>Licensing overlap costs</strong></td>
+<td>Low</td>
+<td>High</td>
+<td>Coordinate with Dynatrace account team early; align contract dates with migration timeline</td>
+</tr>
+<tr>
+<td><strong>SSO/SAML misconfiguration</strong></td>
+<td>High</td>
+<td>Medium</td>
+<td>Test IdP integration before any user access; verify full SAML message signing</td>
+</tr>
+<tr>
+<td><strong>Network connectivity blocked</strong></td>
+<td>High</td>
+<td>Medium</td>
+<td>Submit firewall change requests 4+ weeks early; test connectivity before migration day</td>
+</tr>
+<tr>
+<td><strong>Unsupported OneAgent versions</strong></td>
+<td>Medium</td>
+<td>Low</td>
+<td>Audit agent versions in discovery; upgrade agents outside support window before redirect</td>
+</tr>
+</tbody>
+</table>
+<h3>Risk Scoring</h3>
+<table>
+<thead>
+<tr>
+<th>Impact Level</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>High</strong></td>
+<td>Migration failure, data loss, or monitoring gap &gt; 1 hour</td>
+</tr>
+<tr>
+<td><strong>Medium</strong></td>
+<td>Partial functionality loss or delayed timeline</td>
+</tr>
+<tr>
+<td><strong>Low</strong></td>
+<td>Inconvenience or minor cost impact</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> Assign an owner to each risk. Unowned risks are unmitigated risks.</p>
+</blockquote>
+<p><a id="defining-success-criteria"></a></p>
+<h2>6. Defining Success Criteria</h2>
+<p>Define measurable success criteria before migration starts. These criteria determine when the migration is &quot;done&quot; and when you can decommission Managed.</p>
+<h3>Target Metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Target</th>
+<th>How to Measure</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Host coverage</strong></td>
+<td>100% of discovered hosts reporting</td>
+<td>Compare DQL host count to discovery inventory</td>
+</tr>
+<tr>
+<td><strong>Service discovery</strong></td>
+<td>100% of known services detected</td>
+<td>Compare DQL service count to discovery inventory</td>
+</tr>
+<tr>
+<td><strong>Data gaps</strong></td>
+<td>&lt; 15 minutes during cutover</td>
+<td>Review data availability in SaaS after redirect</td>
+</tr>
+<tr>
+<td><strong>Alert delivery</strong></td>
+<td>100% of critical alerts firing correctly</td>
+<td>Trigger test alerts; verify notification channels</td>
+</tr>
+<tr>
+<td><strong>Dashboard availability</strong></td>
+<td>100% of migrated dashboards rendering</td>
+<td>Spot-check each dashboard in SaaS</td>
+</tr>
+<tr>
+<td><strong>Integration success</strong></td>
+<td>100% of external integrations operational</td>
+<td>Test each webhook, API, and ITSM connection</td>
+</tr>
+<tr>
+<td><strong>User access</strong></td>
+<td>All users can authenticate via SSO</td>
+<td>Verify SSO login for each role/group</td>
+</tr>
+<tr>
+<td><strong>Baseline established</strong></td>
+<td>Dynatrace Intelligence baseline period complete (2-4 weeks)</td>
+<td>Confirm Dynatrace Intelligence is generating problems correctly</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Post-migration validation — compare host count to your discovery inventory
+fetch dt.entity.host, from:-24h
+| summarize totalHosts = count()
+| fieldsAdd target = &quot;&lt;YOUR_DISCOVERY_COUNT&gt;&quot;, coverage = &quot;Compare totalHosts to target&quot;
+
+// Smartscape equivalent: smartscapeNodes &quot;HOST&quot;, from:-24h | summarize totalHosts = count()
+// For validating against a discovery inventory keep the classic count (FAQ-16 explains why the
+// two surfaces can disagree).
+
+</code></pre>
+<pre><code class="language-dql">// Post-migration validation — check for recent detected problems (confirms AI baseline is building)
+fetch dt.davis.problems, from:-24h
+| summarize problemCount = count(), by:{event.status}
+| sort problemCount desc
+</code></pre>
+<p><a id="timeline-planning"></a></p>
+<h2>7. Timeline Planning</h2>
+<p>Build your timeline working backward from the desired Managed decommission date.</p>
+<h3>Milestone Durations</h3>
+<table>
+<thead>
+<tr>
+<th>Milestone</th>
+<th>Typical Duration</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Discover + Strategize + Design</strong> (Steps 1-3)</td>
+<td>2-4 weeks</td>
+<td>Front-load planning — rushed planning causes failed execution</td>
+</tr>
+<tr>
+<td><strong>Prepare</strong> (Step 4)</td>
+<td>1-2 weeks</td>
+<td>SaaS provisioning, ActiveGate deployment, network validation</td>
+</tr>
+<tr>
+<td><strong>Execute</strong> (Step 5, per wave)</td>
+<td>1-2 weeks</td>
+<td>Config migration + OneAgent redirect per wave</td>
+</tr>
+<tr>
+<td><strong>Integrate</strong> (Step 6)</td>
+<td>1-2 weeks</td>
+<td>Webhook, API, and ITSM reconnection</td>
+</tr>
+<tr>
+<td><strong>Parallel operation</strong></td>
+<td>2-4 weeks</td>
+<td>Both environments running — critical for Dynatrace Intelligence baseline</td>
+</tr>
+<tr>
+<td><strong>Expand + Enable + Optimize</strong> (Steps 7-9)</td>
+<td>2-4 weeks</td>
+<td>New capabilities, tuning, adoption</td>
+</tr>
+<tr>
+<td><strong>Decommission</strong></td>
+<td>1 week</td>
+<td>Shutdown Managed after final validation</td>
+</tr>
+<tr>
+<td><strong>Total typical</strong></td>
+<td><strong>4-12 weeks</strong></td>
+<td>Depends on environment size and approach</td>
+</tr>
+</tbody>
+</table>
+<h3>Sample Timelines by Approach</h3>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Week 1-2</th>
+<th>Week 3-4</th>
+<th>Week 5-6</th>
+<th>Week 7-8</th>
+<th>Week 9-12</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Big Bang</strong></td>
+<td>Plan + Prepare</td>
+<td>Execute + Validate</td>
+<td>Parallel Run</td>
+<td>Decommission</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Phased by Env</strong></td>
+<td>Plan + Prepare</td>
+<td>Dev wave</td>
+<td>Staging wave</td>
+<td>Prod wave</td>
+<td>Parallel + Decommission</td>
+</tr>
+<tr>
+<td><strong>Phased by Region</strong></td>
+<td>Plan + Prepare</td>
+<td>Region 1</td>
+<td>Region 2</td>
+<td>Region 3</td>
+<td>Parallel + Decommission</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> The parallel operation period is non-negotiable. In community practice, Dynatrace Intelligence baselines become trustworthy over roughly two to four weeks — FAQ-25 § 5 has a query that measures each host's history depth instead of guessing. Do not decommission Managed until baselines are established.</p>
+</blockquote>
+<h3>Migration Plan Checklist</h3>
+<p>When building your high-level migration plan, ensure these items are addressed:</p>
+<ol>
+<li><strong>Catalog and evaluate</strong> monitoring components (OneAgents, AG/OA extensions, external sources) — any version updates needed?</li>
+<li><strong>Identify</strong> configurations and settings — what can be migrated automatically vs. manually?</li>
+<li><strong>Leave legacy behind</strong> — excessive or outdated configuration items can be left behind; apply naming standards</li>
+<li><strong>Understand procedures and timeline</strong> for AG, OA, and configuration migrations plus application restarts</li>
+<li><strong>Minimize dual running</strong> — provide a seamless cutover for Dynatrace users
+<ul>
+<li>What can be done over a weekend or outside of peak/business hours?</li>
+<li>Group components into migration waves; learn from non-production first</li>
+</ul>
+</li>
+</ol>
+<h3>Things to Include in Your Plan</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SSO implementation</td>
+<td>IdP configuration, DNS domain validation, group mapping</td>
+</tr>
+<tr>
+<td>Email allowlisting</td>
+<td>Dynatrace email domain for SaaS platform/problem/security notifications</td>
+</tr>
+<tr>
+<td>ActiveGate ordering</td>
+<td>Procurement and provisioning of new AG machines</td>
+</tr>
+<tr>
+<td>Root access requests</td>
+<td>For new AG machines and monitored hosts</td>
+</tr>
+<tr>
+<td>Network change requests</td>
+<td>Connectivity between entities, AGs, proxies, and Dynatrace SaaS</td>
+</tr>
+<tr>
+<td>Integration connectivity</td>
+<td>External on-premise or SaaS systems, Dynatrace API, webhook integrations</td>
+</tr>
+<tr>
+<td>Deployment automation</td>
+<td>Prepare OA and AG deployment automation (Ansible, Puppet, Terraform, PowerShell)</td>
+</tr>
+<tr>
+<td>Training</td>
+<td>Train team on configuration migration tooling and SaaS administration</td>
+</tr>
+<tr>
+<td>Execution plan</td>
+<td>Environment configurations and application configurations, in what order</td>
+</tr>
+</tbody>
+</table>
+<p><a id="the-90-10-rule"></a></p>
+<h2>8. The 90/10 Rule</h2>
+<p>In community practice, migration teams describe a consistent pattern — treat the numbers as a planning heuristic, not a Dynatrace figure:</p>
+<blockquote>
+<p><strong>Most configuration migrates through the <a href="https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant">SaaS Upgrade Assistant</a>; the small remainder takes most of the manual effort.</strong> The &quot;90/10&quot; shorthand is folklore, not a documented ratio — your own Upgrade Assistant review screen gives the real split.</p>
+</blockquote>
+<h3>What Typically Migrates Through the Upgrade Assistant</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Tool</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Settings and configuration</td>
+<td>SaaS Upgrade Assistant</td>
+</tr>
+<tr>
+<td>Dashboards</td>
+<td>SaaS Upgrade Assistant</td>
+</tr>
+<tr>
+<td>Alert policies</td>
+<td>SaaS Upgrade Assistant</td>
+</tr>
+<tr>
+<td>Management zones</td>
+<td>SaaS Upgrade Assistant</td>
+</tr>
+<tr>
+<td>Auto-tag rules</td>
+<td>SaaS Upgrade Assistant</td>
+</tr>
+<tr>
+<td>Request attributes</td>
+<td>SaaS Upgrade Assistant</td>
+</tr>
+<tr>
+<td>Calculated metrics</td>
+<td>SaaS Upgrade Assistant</td>
+</tr>
+</tbody>
+</table>
+<h3>What Requires Manual Effort</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Why Manual</th>
+<th>Effort Level</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Credential Vault entries</strong></td>
+<td>Secrets cannot be exported from Managed</td>
+<td>High — must recreate each credential</td>
+</tr>
+<tr>
+<td><strong>Problem notification webhooks</strong></td>
+<td>URLs and tokens change between environments</td>
+<td>Medium — update each endpoint</td>
+</tr>
+<tr>
+<td><strong>Cloud platform credentials</strong></td>
+<td>AWS/Azure/GCP keys are tenant-specific</td>
+<td>Medium — reconfigure each integration</td>
+</tr>
+<tr>
+<td><strong>Synthetic private locations</strong></td>
+<td>Tied to Managed ActiveGates</td>
+<td>Medium — recreate with SaaS ActiveGates</td>
+</tr>
+<tr>
+<td><strong>Custom extensions (v1)</strong></td>
+<td>Legacy format not supported in SaaS</td>
+<td>High — convert to Extensions 2.0</td>
+</tr>
+<tr>
+<td><strong>Custom scripts and automation</strong></td>
+<td>Hardcoded Managed URLs and tokens</td>
+<td>Medium — update all references</td>
+</tr>
+<tr>
+<td><strong>Third-party ITSM integrations</strong></td>
+<td>Webhook endpoints change</td>
+<td>Medium — reconfigure each connection</td>
+</tr>
+</tbody>
+</table>
+<h3>Budget Accordingly</h3>
+<table>
+<thead>
+<tr>
+<th>Planning Item</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Identify the 10% early</strong></td>
+<td>Use your discovery inventory to list every manual item</td>
+</tr>
+<tr>
+<td><strong>Assign owners</strong></td>
+<td>Each manual item needs a person responsible</td>
+</tr>
+<tr>
+<td><strong>Track separately</strong></td>
+<td>Manual items need their own checklist — do not mix with automated migration</td>
+</tr>
+<tr>
+<td><strong>Test before cutover</strong></td>
+<td>Every manual item should be validated in SaaS before redirecting agents</td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-completion-checklist"></a></p>
+<h2>9. Step Completion Checklist</h2>
+<p>Do not proceed to Step 3 (Design) until all items are confirmed.</p>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Migration approach selected (Big Bang / Phased by Env / Phased by Region)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Order of operations documented and reviewed with stakeholders</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Risk assessment completed with owners assigned to each risk</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Success criteria defined with measurable targets</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>High-level timeline established with milestone dates</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Dynatrace account team engaged for licensing and migration support</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>90/10 manual effort items identified and owners assigned</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Communication plan drafted for affected teams</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Rollback procedure documented</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Next Step</h2>
+<blockquote>
+<p><strong>M2S-03: Step 3 — Design</strong> — Create your target SaaS architecture, including network topology, ActiveGate placement, IAM model, and configuration mapping.</p>
+</blockquote>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you:</p>
+<ul>
+<li>Reviewed the three-phase, nine-step migration framework</li>
+<li>Selected a migration approach based on your environment size and risk tolerance</li>
+<li>Documented the required order of operations and critical dependencies</li>
+<li>Assessed key considerations across licensing, data, infrastructure, configuration, and security</li>
+<li>Completed a risk register with mitigations and owners</li>
+<li>Defined measurable success criteria for migration completion</li>
+<li>Built a timeline with milestone durations</li>
+<li>Identified the 90/10 split between automated and manual migration effort</li>
+</ul>
+<blockquote>
+<p><strong>Key Takeaway:</strong> Strategy is about making decisions before the pressure is on. A clear approach, documented risks, and measurable success criteria are what separate migrations that succeed from those that spiral into firefighting.</p>
+</blockquote>
+<hr />
+<p><em>Continue to <strong>M2S-03: Step 3 — Design</strong> to create your target SaaS architecture.</em></p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

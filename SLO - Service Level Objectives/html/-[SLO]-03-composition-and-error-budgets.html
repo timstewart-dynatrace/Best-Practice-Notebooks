@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SLO-03: Composition and Error Budgets</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SLO — Service Level Objectives</a><span class="sep">/</span><span aria-current="page">SLO-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SLO-03: Composition and Error Budgets</h1>
+<blockquote>
+<p><strong>Series:</strong> SLO — Service Level Objectives | <strong>Notebook:</strong> 3 of 7 | <strong>Created:</strong> June 2026 | <strong>Last Updated:</strong> 11/19/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>A single SLI rarely captures a service's health, and a raw SLI percentage is a weak alert signal. This notebook covers the two ideas that make SLOs operationally useful: the <strong>error budget</strong> (and its <strong>burn rate</strong>), and <strong>composition</strong> — combining SLIs into composite and weighted SLOs. The burn-rate query here is validated against a live tenant; the weighted-global calculation is worked end to end with an honest note on what Dynatrace does and does not compute for you.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#budget">Error Budget Math</a></li>
+<li><a href="#burnrate">Burn Rate</a></li>
+<li><a href="#composite">Composite SLOs — Multiple SLIs</a></li>
+<li><a href="#weighted">Weighted Global SLO</a></li>
+<li><a href="#windows">Rolling vs Calendar Windows</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS Gen3 with Grail and the SLO app</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:metrics:read</code></td>
+</tr>
+<tr>
+<td><strong>Prior reading</strong></td>
+<td>SLO-01 (fundamentals), SLO-02 (SLIs)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="budget"></a></p>
+<h2>1. Error Budget Math</h2>
+<p>The error budget is the complement of the target:</p>
+<pre><code>error budget = 100% − SLO target
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Target</th>
+<th>Error budget</th>
+<th>Allowed downtime per 30 days</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>99%</td>
+<td>1%</td>
+<td>~7.2 hours</td>
+</tr>
+<tr>
+<td>99.5%</td>
+<td>0.5%</td>
+<td>~3.6 hours</td>
+</tr>
+<tr>
+<td>99.9%</td>
+<td>0.1%</td>
+<td>~43 minutes</td>
+</tr>
+<tr>
+<td>99.95%</td>
+<td>0.05%</td>
+<td>~22 minutes</td>
+</tr>
+</tbody>
+</table>
+<p>The budget reframes the conversation. Instead of &quot;any error is a failure,&quot; the team has a quantity to spend: as long as budget remains, ship features; when it runs low, shift to hardening. This is the mechanism that connects reliability to release decisions.</p>
+<p><a id="burnrate"></a></p>
+<h2>2. Burn Rate</h2>
+<p><strong>Burn rate</strong> is how fast you are consuming the budget relative to the sustainable pace. A burn rate of <code>1</code> spends the whole budget exactly over the window; <code>14</code> empties a 30-day budget in roughly two days.</p>
+<pre><code>burn rate = observed bad ratio ÷ error budget
+</code></pre>
+<p>The following computes the current burn rate against a 99.5% target (0.5% budget):</p>
+<pre><code class="language-dql">// Error-budget burn rate against a 99.5% target
+// Re-validated on a live tenant 10/14/2026: observed_bad 0.0292, burn_rate 5.84x
+// observed_bad divides the window's failures by its requests. Averaging the
+// hourly ratios (arrayAvg) instead weights a quiet hour like a busy one: 0.0291 here
+// Live figures move between runs — what should hold
+// is the relationship: burn_rate = observed_bad / (1 - target)
+timeseries {
+  total = sum(dt.service.request.count),
+  failures = sum(dt.service.request.failure_count)
+}, from:-24h, interval:1h
+| fieldsAdd observed_bad = arraySum(failures) / arraySum(total)
+| fieldsAdd error_budget = 1.0 - 0.995
+| fieldsAdd burn_rate = observed_bad / error_budget
+| fields observed_bad, error_budget, burn_rate
+</code></pre>
+<p>A burn rate above <code>1</code> sustained over the window means you are on track to breach. SLO-04 turns this into multiwindow fast-burn / slow-burn alerts — the burn rate is the quantity those alerts threshold on.</p>
+<p><a id="composite"></a></p>
+<h2>3. Composite SLOs — Multiple SLIs</h2>
+<p>A service can be &quot;available&quot; yet unusably slow. One indicator is rarely enough. Two ways to combine:</p>
+<ul>
+<li><strong>Multiple separate SLOs per service</strong> — an availability SLO <em>and</em> a latency SLO, each with its own budget. Simplest; each fails independently and routes independently. Recommended default.</li>
+<li><strong>Composite SLO</strong> — combine SLIs into one health number. Useful for an executive roll-up where &quot;is this service healthy?&quot; needs a single answer. The cost is that a composite hides <em>which</em> dimension failed, so keep the constituent SLOs too.</li>
+</ul>
+<p>Reach for separate SLOs for operational alerting (you want to know <em>what</em> broke); reach for a composite only when you specifically need a single combined health figure.</p>
+<p><a id="weighted"></a></p>
+<h2>4. Weighted Global SLO</h2>
+<p>To express the reliability of a whole product made of several services of differing importance, weight each service's SLO and combine. Worked example for three services:</p>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Uptime target</th>
+<th>Weight</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mobile service</td>
+<td>99%</td>
+<td>1.5</td>
+</tr>
+<tr>
+<td>Web service</td>
+<td>99.5%</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Telephony service</td>
+<td>98%</td>
+<td>0.75</td>
+</tr>
+</tbody>
+</table>
+<p>Multiply each target by its weight, sum, then divide by the sum of the weights:</p>
+<pre><code>(99 × 1.5) + (99.5 × 1) + (98 × 0.75)   148.5 + 99.5 + 73.5     321.5
+─────────────────────────────────────  = ───────────────────  = ───── = 98.92%
+          1.5 + 1 + 0.75                        3.25              3.25
+</code></pre>
+<p>The global SLO is <strong>98.92%</strong> — the overall measure weighted by each service's importance.</p>
+<blockquote>
+<p><strong>Honest caveat:</strong> the Dynatrace SLO documentation describes no weighted-global SLO computed across multiple SLO objects — checked 09/28/2026 across the Service-Level Objectives page, Create service-level objectives, and the templates and examples pages. The wizard creates individual SLOs; the weighted roll-up is something you compute yourself — as a DQL expression on a dashboard, or in a notebook like this one. Treat the number above as a reporting calculation you maintain, not a built-in SLO type. (This is a point the original field document glossed over.)</p>
+</blockquote>
+<p><a id="windows"></a></p>
+<h2>5. Rolling vs Calendar Windows</h2>
+<table>
+<thead>
+<tr>
+<th>Window</th>
+<th>Behaviour</th>
+<th>Use when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Rolling</strong> (e.g. last 30 days)</td>
+<td>Always moving; a bad day ages out gradually</td>
+<td>Operational trend awareness, on-call signal — the default</td>
+</tr>
+<tr>
+<td><strong>Calendar</strong> (e.g. this month)</td>
+<td>Resets at a boundary; budget refills on the 1st</td>
+<td>Business reporting, contractual periods, exec reviews</td>
+</tr>
+</tbody>
+</table>
+<p>Rolling windows give smoother, more honest day-to-day signals and avoid the &quot;budget resets tomorrow so ignore today&quot; trap. Calendar windows align to how the business reports. Many teams run both: rolling for alerting, calendar for the monthly review.</p>
+<p>Whatever you choose, <strong>alert on sustained breach, not on momentary dips</strong> — a single bad interval inside a 30-day window is noise. SLO-04 covers how multiwindow burn-rate alerting encodes exactly that.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives">Service-Level Objectives (DT docs)</a>, <a href="https://sre.google/sre-book/embracing-risk/">Site Reliability Engineering — Error Budgets (Google SRE Book)</a>. <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives/create-slo">Create service-level objectives (DT docs)</a>. Burn-rate query re-executed against a live tenant 08/28/2026, and again 10/14/2026 after it switched to window totals. The §4 caveat is a dated reading of the SLO documentation (09/28/2026: no weighted, composite or global SLO type on the Service-Level Objectives page, Create service-level objectives, Service-level objective templates or Service-level objective examples), not a documented statement.</sub></p>
+</blockquote>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

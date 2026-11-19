@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ONBRD-01: Getting Started: Your First Steps in Dynatrace</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ONBRD — Dynatrace Onboarding</a><span class="sep">/</span><span aria-current="page">ONBRD-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ONBRD-01: Getting Started: Your First Steps in Dynatrace</h1>
+<blockquote>
+<p><strong>Series:</strong> ONBRD — Dynatrace Onboarding | <strong>Notebook:</strong> 1 of 10 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 11/13/2026</p>
+</blockquote>
+<h2>Finding Your Way Around</h2>
+<p>Welcome to Dynatrace. This notebook helps you get oriented in your new environment—where to find things, how to navigate, and what to do first.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#accessing-your-environment">Accessing Your Environment</a></li>
+<li><a href="#understanding-the-navigation">Understanding the Navigation</a></li>
+<li><a href="#key-areas-to-know">Key Areas to Know</a></li>
+<li><a href="#your-environment-id-and-urls">Your Environment ID and URLs</a></li>
+<li><a href="#checking-whats-already-there">Checking What's Already There</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>Access credentials for your Dynatrace tenant</li>
+<li>A modern web browser (Chrome, Firefox, Edge, Safari)</li>
+</ul>
+<h3>2026 Defaults for New Customers</h3>
+<p>Three platform changes establish what &quot;new customer onboarding&quot; should default to in 2026:</p>
+<ol>
+<li><strong>Platform tokens (<code>dt0s16</code>) with <code>Authorization: Bearer …</code></strong> — recommended default for all new automation. Dynatrace's upgrade guide states that a latest environment has <em>&quot;Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available.&quot;</em> Classic <code>dt0c01</code> (<code>Authorization: Api-Token …</code>) still works on classic and hybrid environments for legacy paths but should not be the default for new pipelines. Wrong scheme returns <code>401 Unsupported authorization scheme</code> even when scopes are correct (covered in ONBRD-02 IAM and Authentication).</li>
+<li><strong>Settings v2 (Environment API v2)</strong> — new automation should target Settings v2 paths. SaaS 1.337 (April 2026) put deprecation notices on many Configuration API endpoints that Settings now covers. Plan onboarding tooling around Settings v2 (Terraform's per-schema <code>dynatrace_*</code> settings resources, Monaco v2 <code>settings</code> configs). See ONBRD-06 (Organizing Your Environment) and ONBRD-09 (Setting Up Alerts) for the schema-id patterns to use.</li>
+<li><strong>Extensions 2.0</strong> (managed in the <strong>Extensions</strong> app) — <strong>the current framework for customers adopting custom Extensions.</strong> Extensions Framework 1.0 reached end of support on 2025-03-31 (Python EF1.0: 2024-10-31); JMX and PMI EF1.0 are supported past March 2025 but deprecated (to keep using them, contact Dynatrace), and reach end of support on <strong>July 1, 2027</strong> (SaaS 1.347, staged rollout from 09/16/2026, adds an in-product deprecation banner in Settings) — advocate migrating any remaining EF1.0 extensions in onboarding conversations.</li>
+</ol>
+<p>Also: <strong>OneAgent primary fields/tags at the source</strong> (OneAgent 1.333+, Latest Dynatrace) means new customers should be told to design their tag taxonomy with primary tags first-class — set during OneAgent install via <code>oneagentctl --set-host-tag=&quot;primary_tags.&lt;key&gt;=&lt;value&gt;&quot;</code> — the <code>primary_tags.</code> prefix must be written explicitly. Covered in ONBRD-05 (Deploying OneAgent) and ONBRD-06 (Organizing Your Environment).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic">Upgrade from access tokens classic (DT docs)</a> — (latest environment) <em>&quot;Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-337">SaaS 1.337 release notes (DT docs)</a> — <em>&quot;Many Configuration API endpoints are now covered by the Settings endpoints in the Environment API v2.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news">End-of-support news (DT docs)</a> — <em>&quot;If you plan to use JMX and PMI EF1.0 extensions further, please contact Dynatrace.&quot;</em> and <em>&quot;JMX and PMI EF1.0 will reach End of Support on July 1, 2027.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-347">SaaS 1.347 release notes (DT docs)</a> — <em>&quot;A new in-product banner in Settings informs you that JMX/PMI EF1 will be deprecated in SaaS deployments.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/extensions/manage-extensions">Manage extensions (DT docs)</a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/tree/main/docs/resources">Terraform provider resources (Dynatrace GitHub)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment">Primary Grail fields and tags enrichment (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="accessing-your-environment"></a></p>
+<h2>1. Accessing Your Environment</h2>
+<p>Your Dynatrace environment is accessed via a URL specific to your tenant:</p>
+<pre><code>https://{tenant-id}.apps.dynatrace.com
+</code></pre>
+<h3>Finding Your Tenant ID</h3>
+<p>Your tenant ID is the first part of your Dynatrace URL. For example:</p>
+<ul>
+<li>URL: <code>https://abc12345.apps.dynatrace.com</code></li>
+<li>Tenant ID: <code>abc12345</code></li>
+</ul>
+<p><strong>Write down your tenant ID</strong>—you'll need it for API tokens, OneAgent deployment, and integrations.</p>
+<h3>First Login</h3>
+<ol>
+<li>Navigate to your tenant URL</li>
+<li>Enter your credentials (local user or SSO)</li>
+<li>Complete any MFA requirements</li>
+<li>You'll land on the default home screen</li>
+</ol>
+<blockquote>
+<p><strong>Note:</strong> If your organization is setting up SAML/SSO, see <strong>ONBRD-02: IAM and Authentication</strong> before inviting additional users.</p>
+</blockquote>
+<blockquote>
+<p><strong>New tenant or trial?</strong> QuickStart → <strong>Add data</strong> opens Auto Discovery — <em>&quot;We recommend Auto Discovery, the default when you select Add data&quot;</em> — where a CLI (<code>dtwiz</code>) <em>&quot;Recommends the optimal ingestion method for your environment (ranked suggestions)&quot;</em> and deploys it (<a href="https://docs.dynatrace.com/docs/discover-dynatrace/get-started/quickstart-guide">QuickStart guide (DT docs)</a>). For production rollouts, follow ONBRD-03 to ONBRD-05.</p>
+</blockquote>
+<p><a id="understanding-the-navigation"></a></p>
+<h2>2. Understanding the Navigation</h2>
+<p>Dynatrace uses a left-hand navigation menu organized by function. The platform is built around <strong>Apps</strong>—each capability is an app you can launch.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3NTAgNTAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibmF2SGVhZGVyR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNDk2ZmY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBhNjRiYztzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9Im5hdkl0ZW1HcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y4ZmFmYztzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZTJlOGYwO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9Im5hdlNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI3NTAiIGhlaWdodD0iNTAwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSIzNzUiIHk9IjMyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EeW5hdHJhY2UgTmF2aWdhdGlvbiBTdHJ1Y3R1cmU8L3RleHQ+CgogIDwhLS0gTWFpbiBCcm93c2VyIENvbnRhaW5lciAtLT4KICA8cmVjdCB4PSI0MCIgeT0iNTUiIHdpZHRoPSI1MDAiIGhlaWdodD0iMzUwIiByeD0iMTAiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2NiZDVlMSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjbmF2U2hhZG93KSIvPgoKICA8IS0tIEhlYWRlciBCYXIgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjU1IiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjUwIiByeD0iMTAiIGZpbGw9InVybCgjbmF2SGVhZGVyR3JhZCkiLz4KICA8cmVjdCB4PSI0MCIgeT0iOTAiIHdpZHRoPSI1MDAiIGhlaWdodD0iMTUiIGZpbGw9InVybCgjbmF2SGVhZGVyR3JhZCkiLz4KCiAgPCEtLSBTZWFyY2ggQmFyIGluIEhlYWRlciAtLT4KICA8cmVjdCB4PSIxODAiIHk9IjY4IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwIiByeD0iMTUiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4yNSkiLz4KICA8dGV4dCB4PSIyMTAiIHk9Ijg4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSI+4oyYSyAgU2VhcmNoLi4uPC90ZXh0PgoKICA8IS0tIExlZnQgU2lkZWJhciAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMTA1IiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2YxZjVmOSIvPgoKICA8IS0tIFNpZGViYXIgSGVhZGVyIC0tPgogIDx0ZXh0IHg9IjYwIiB5PSIxMzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM2NDc0OGIiPkFQUFM8L3RleHQ+CgogIDwhLS0gU2lkZWJhciBJdGVtcyAtLT4KICA8cmVjdCB4PSI1MCIgeT0iMTQ1IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0idXJsKCNuYXZJdGVtR3JhZCkiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNjUiIHk9IjE2NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmaWxsPSIjMzMzIj5EYXNoYm9hcmRzPC90ZXh0PgoKICA8cmVjdCB4PSI1MCIgeT0iMTg1IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0idXJsKCNuYXZJdGVtR3JhZCkiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNjUiIHk9IjIwNiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmaWxsPSIjMzMzIj5Ob3RlYm9va3M8L3RleHQ+CgogIDxyZWN0IHg9IjUwIiB5PSIyMjUiIHdpZHRoPSIxMjAiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjMTQ5NmZmIi8+CiAgPHRleHQgeD0iNjUiIHk9IjI0NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiI+UHJvYmxlbXM8L3RleHQ+CgogIDxyZWN0IHg9IjUwIiB5PSIyNjUiIHdpZHRoPSIxMjAiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSJ1cmwoI25hdkl0ZW1HcmFkKSIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI2NSIgeT0iMjg2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZpbGw9IiMzMzMiPkxvZ3M8L3RleHQ+CgogIDxyZWN0IHg9IjUwIiB5PSIzMDUiIHdpZHRoPSIxMjAiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSJ1cmwoI25hdkl0ZW1HcmFkKSIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI2NSIgeT0iMzI2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZpbGw9IiMzMzMiPkhvc3RzPC90ZXh0PgoKICA8cmVjdCB4PSI1MCIgeT0iMzQ1IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0idXJsKCNuYXZJdGVtR3JhZCkiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNjUiIHk9IjM2NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmaWxsPSIjMzMzIj5TZXJ2aWNlczwvdGV4dD4KCiAgPCEtLSBNYWluIENvbnRlbnQgQXJlYSAtLT4KICA8cmVjdCB4PSIxOTAiIHk9IjExNSIgd2lkdGg9IjM0MCIgaGVpZ2h0PSIyODAiIHJ4PSI2IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjM2MCIgeT0iMjYwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTUiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk1haW4gQ29udGVudCBBcmVhPC90ZXh0PgoKICA8IS0tIEFOTk9UQVRJT05TIC0gUmlnaHQgU2lkZSBQYW5lbCAtLT4KICA8cmVjdCB4PSI1NjAiIHk9IjU1IiB3aWR0aD0iMTc1IiBoZWlnaHQ9IjM1MCIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNjQ3IiB5PSI4MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+S2V5IEFyZWFzPC90ZXh0PgoKICA8IS0tIEFubm90YXRpb24gMTogU2VhcmNoIC0tPgogIDxyZWN0IHg9IjU3NSIgeT0iMTAwIiB3aWR0aD0iMTQ1IiBoZWlnaHQ9IjcwIiByeD0iNiIgZmlsbD0iI2RiZWFmZSIvPgogIDxjaXJjbGUgY3g9IjU5NSIgY3k9IjEyMCIgcj0iMTAiIGZpbGw9IiMxNDk2ZmYiLz4KICA8dGV4dCB4PSI1OTUiIHk9IjEyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MTwvdGV4dD4KICA8dGV4dCB4PSI2MTUiIHk9IjEyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzE0OTZmZiI+UXVpY2sgU2VhcmNoPC90ZXh0PgogIDx0ZXh0IHg9IjU4NSIgeT0iMTQ1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiMzMzQxNTUiPlByZXNzIOKMmEsgb3IgQ3RybCtLPC90ZXh0PgogIDx0ZXh0IHg9IjU4NSIgeT0iMTYwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiMzMzQxNTUiPnRvIGZpbmQgYW55dGhpbmc8L3RleHQ+CgogIDwhLS0gQW5ub3RhdGlvbiAyOiBBcHBzIE1lbnUgLS0+CiAgPHJlY3QgeD0iNTc1IiB5PSIxODAiIHdpZHRoPSIxNDUiIGhlaWdodD0iNzAiIHJ4PSI2IiBmaWxsPSIjZGNmY2U3Ii8+CiAgPGNpcmNsZSBjeD0iNTk1IiBjeT0iMjAwIiByPSIxMCIgZmlsbD0iIzEwYjk4MSIvPgogIDx0ZXh0IHg9IjU5NSIgeT0iMjA1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4yPC90ZXh0PgogIDx0ZXh0IHg9IjYxNSIgeT0iMjA1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMTBiOTgxIj5BcHBzIE1lbnU8L3RleHQ+CiAgPHRleHQgeD0iNTg1IiB5PSIyMjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzMzNDE1NSI+TGVmdCBzaWRlYmFyIHNob3dzPC90ZXh0PgogIDx0ZXh0IHg9IjU4NSIgeT0iMjQwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiMzMzQxNTUiPmFsbCBhdmFpbGFibGUgYXBwczwvdGV4dD4KCiAgPCEtLSBBbm5vdGF0aW9uIDM6IEFjdGl2ZSBBcHAgLS0+CiAgPHJlY3QgeD0iNTc1IiB5PSIyNjAiIHdpZHRoPSIxNDUiIGhlaWdodD0iNzAiIHJ4PSI2IiBmaWxsPSIjZWRlOWZlIi8+CiAgPGNpcmNsZSBjeD0iNTk1IiBjeT0iMjgwIiByPSIxMCIgZmlsbD0iIzhiNWNmNiIvPgogIDx0ZXh0IHg9IjU5NSIgeT0iMjg1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4zPC90ZXh0PgogIDx0ZXh0IHg9IjYxNSIgeT0iMjg1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjOGI1Y2Y2Ij5BY3RpdmUgQXBwPC90ZXh0PgogIDx0ZXh0IHg9IjU4NSIgeT0iMzA1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiMzMzQxNTUiPkhpZ2hsaWdodGVkIGl0ZW08L3RleHQ+CiAgPHRleHQgeD0iNTg1IiB5PSIzMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzMzNDE1NSI+c2hvd3MgY3VycmVudCB2aWV3PC90ZXh0PgoKICA8IS0tIEFubm90YXRpb24gNDogQ29udGVudCAtLT4KICA8cmVjdCB4PSI1NzUiIHk9IjM0MCIgd2lkdGg9IjE0NSIgaGVpZ2h0PSI1NSIgcng9IjYiIGZpbGw9IiNmZWYzYzciLz4KICA8Y2lyY2xlIGN4PSI1OTUiIGN5PSIzNjAiIHI9IjEwIiBmaWxsPSIjZjU5ZTBiIi8+CiAgPHRleHQgeD0iNTk1IiB5PSIzNjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjQ8L3RleHQ+CiAgPHRleHQgeD0iNjE1IiB5PSIzNjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNkOTc3MDYiPkNvbnRlbnQ8L3RleHQ+CiAgPHRleHQgeD0iNTg1IiB5PSIzODUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzMzNDE1NSI+TWFpbiB3b3Jrc3BhY2U8L3RleHQ+CgogIDwhLS0gQ29ubmVjdGluZyBMaW5lcyAoc2ltcGxlLCBub24tY3Jvc3NpbmcpIC0tPgogIDwhLS0gTGluZSB0byBTZWFyY2ggLS0+CiAgPGxpbmUgeDE9IjM4MCIgeTE9IjgzIiB4Mj0iNTQwIiB5Mj0iODMiIHN0cm9rZT0iIzE0OTZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjU0MCIgeTE9IjgzIiB4Mj0iNTQwIiB5Mj0iMTM1IiBzdHJva2U9IiMxNDk2ZmYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSI1NDAiIHkxPSIxMzUiIHgyPSI1NzUiIHkyPSIxMzUiIHN0cm9rZT0iIzE0OTZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGNpcmNsZSBjeD0iMzgwIiBjeT0iODMiIHI9IjQiIGZpbGw9IiMxNDk2ZmYiLz4KCiAgPCEtLSBMaW5lIHRvIEFwcHMgTWVudSAtLT4KICA8bGluZSB4MT0iMTEwIiB5MT0iMTMwIiB4Mj0iMTEwIiB5Mj0iNDI1IiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSIxMTAiIHkxPSI0MjUiIHgyPSI1NzUiIHkyPSI0MjUiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjU3NSIgeTE9IjQyNSIgeDI9IjU3NSIgeTI9IjIxNSIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8Y2lyY2xlIGN4PSIxMTAiIGN5PSIxMzAiIHI9IjQiIGZpbGw9IiMxMGI5ODEiLz4KCiAgPCEtLSBMaW5lIHRvIEFjdGl2ZSBBcHAgLS0+CiAgPGxpbmUgeDE9IjE3MCIgeTE9IjI0MSIgeDI9IjU1NSIgeTI9IjI0MSIgc3Ryb2tlPSIjOGI1Y2Y2IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iNTU1IiB5MT0iMjQxIiB4Mj0iNTU1IiB5Mj0iMjk1IiBzdHJva2U9IiM4YjVjZjYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSI1NTUiIHkxPSIyOTUiIHgyPSI1NzUiIHkyPSIyOTUiIHN0cm9rZT0iIzhiNWNmNiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGNpcmNsZSBjeD0iMTcwIiBjeT0iMjQxIiByPSI0IiBmaWxsPSIjOGI1Y2Y2Ii8+CgogIDwhLS0gTGluZSB0byBDb250ZW50IC0tPgogIDxsaW5lIHgxPSIzNjAiIHkxPSIzOTUiIHgyPSIzNjAiIHkyPSI0NDAiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjM2MCIgeTE9IjQ0MCIgeDI9IjU2NSIgeTI9IjQ0MCIgc3Ryb2tlPSIjZjU5ZTBiIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iNTY1IiB5MT0iNDQwIiB4Mj0iNTY1IiB5Mj0iMzY3IiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSI1NjUiIHkxPSIzNjciIHgyPSI1NzUiIHkyPSIzNjciIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGNpcmNsZSBjeD0iMzYwIiBjeT0iMzk1IiByPSI0IiBmaWxsPSIjZjU5ZTBiIi8+CgogIDwhLS0gRm9vdGVyIFRpcCAtLT4KICA8dGV4dCB4PSIzNzUiIHk9IjQ4MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn5KhIFRpcDogUGluIGZyZXF1ZW50bHkgdXNlZCBhcHBzIHRvIHRoZSBzaWRlYmFyIGZvciBxdWljayBhY2Nlc3M8L3RleHQ+Cjwvc3ZnPgo=" alt="Navigation Structure" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Area | Description |
+|------|-------------|
+| Search (Cmd+K) | Quick access to anything |
+| Apps Menu | Platform capabilities (Dashboards, Notebooks, Problems, etc.) |
+| Main Content | Workspace for analysis and monitoring |
+| Settings | Configuration options |
+| Account Management | Users, tokens, permissions |
+-->
+<h3>Quick Search</h3>
+<p>Press <strong>Cmd+K</strong> (Mac) or <strong>Ctrl+K</strong> (Windows/Linux) to open the quick search. Type anything:</p>
+<ul>
+<li>Entity names (hosts, services)</li>
+<li>App names</li>
+<li>Keywords like &quot;logs&quot; or &quot;problems&quot;</li>
+</ul>
+<h3>The App Launcher</h3>
+<p>Click the grid icon to see all available apps. You can:</p>
+<ul>
+<li>Pin frequently used apps to your sidebar</li>
+<li>Discover new apps in the Dynatrace Hub</li>
+<li>Install apps from the Hub to extend functionality</li>
+</ul>
+<p><a id="key-areas-to-know"></a></p>
+<h2>3. Key Areas to Know</h2>
+<h3>Infrastructure &amp; Operations App</h3>
+<p>The Infrastructure &amp; Operations app has an Explorer for hosts, containers, processes, network devices and technologies:</p>
+<ul>
+<li>Host health and resource utilization</li>
+<li>Running processes and services</li>
+<li>Host properties and metadata</li>
+</ul>
+<h3>Problems App</h3>
+<p>Dynatrace Intelligence (Davis) automatically detects problems and correlates related events. This is where you'll see:</p>
+<ul>
+<li>Active issues requiring attention</li>
+<li>Root cause analysis</li>
+<li>Affected entities</li>
+<li>Problem timeline and resolution</li>
+</ul>
+<h3>Logs App</h3>
+<p>Explore all log data ingested into Dynatrace (the Logs app replaces the classic Logs and Events screen):</p>
+<ul>
+<li>Full-text search across logs</li>
+<li>Filter by source, severity, content</li>
+<li>Correlate logs with traces and metrics</li>
+</ul>
+<h3>Notebooks App</h3>
+<p>Interactive analysis environment (you're using one now!):</p>
+<ul>
+<li>Write and execute DQL queries</li>
+<li>Document investigations</li>
+<li>Share findings with your team</li>
+</ul>
+<h3>Workflows App</h3>
+<p>Automation and alerting for the modern platform:</p>
+<ul>
+<li>Create automated responses to problems</li>
+<li>Configure notifications (Slack, email, PagerDuty, etc.)</li>
+<li>Build custom automation logic</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/infrastructure-and-operations">Infrastructure &amp; Operations (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-logs-app">Logs app (DT docs)</a> — <em>&quot;The application replaces the Logs and Events screen&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="your-environment-id-and-urls"></a></p>
+<h2>4. Your Environment ID and URLs</h2>
+<p>Several URLs are important to bookmark:</p>
+<table>
+<thead>
+<tr>
+<th>Purpose</th>
+<th>URL Pattern</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Main UI</strong></td>
+<td><code>https://{tenant-id}.apps.dynatrace.com</code></td>
+</tr>
+<tr>
+<td><strong>Platform API</strong></td>
+<td><code>https://{tenant-id}.apps.dynatrace.com/platform/</code></td>
+</tr>
+<tr>
+<td><strong>Account Management</strong></td>
+<td><code>https://myaccount.dynatrace.com</code></td>
+</tr>
+</tbody>
+</table>
+<h3>API Access</h3>
+<p>Modern Dynatrace platform access uses three credential types — choose based on the integration:</p>
+<table>
+<thead>
+<tr>
+<th>Token Type</th>
+<th>Prefix</th>
+<th>When to Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Platform Token</strong> <em>(recommended default)</em></td>
+<td><code>dt0s16</code></td>
+<td>New automation, MCP integrations, OpenPipeline configuration, installer downloads</td>
+</tr>
+<tr>
+<td><strong>OAuth Client</strong></td>
+<td>(client ID + secret)</td>
+<td>External SaaS integrations, account-admin automation</td>
+</tr>
+<tr>
+<td><strong>Classic API Token</strong> <em>(legacy phase-out)</em></td>
+<td><code>dt0c01</code></td>
+<td>Existing scripts; migrate to Platform Token where possible</td>
+</tr>
+</tbody>
+</table>
+<p>Workflows don't use a token: each workflow runs as its <strong>actor</strong> (a user or service user), so grant permissions to the actor.</p>
+<p>For OneAgent and ActiveGate deployment, installer downloads work with a <strong>platform token</strong> carrying <code>fleet-management:oneagents:download</code> (OneAgent) or <code>fleet-management:activegates:download</code> (ActiveGate). On classic and hybrid environments, a classic access token with the <code>InstallerDownload</code> scope (from the <strong>Access Tokens</strong> app) also works; latest environments have no classic access tokens. Token management depth lives in <strong>ONBRD-02</strong>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/oneagent/download-oneagent-latest">Download latest OneAgent installer (DT docs)</a> — <em>&quot;Platform Token / OAuth: Required scope: fleet-management:oneagents:download&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security">Workflow security (DT docs)</a> — <em>&quot;Every execution of a workflow task is performed in the context of a user.&quot;</em>; <a href="https://docs.dynatrace.com/docs/manage/account-management">Account Management (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="checking-whats-already-there"></a></p>
+<h2>5. Checking What's Already There</h2>
+<p>Before deploying OneAgent, check if any data is already flowing. Run these queries to see what exists in your environment.</p>
+<pre><code class="language-dql">// Count entities by type - see what's been discovered
+fetch dt.entity.host
+| summarize host_count = count()
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;HOST&quot;
+//   | summarize host_count = count()
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
+</code></pre>
+<pre><code class="language-dql">// List all discovered hosts
+fetch dt.entity.host
+| fields entity.name, state
+| sort entity.name
+| limit 50
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
+// classic-only field state, which has NO Smartscape node equivalent
+// (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
+// query above for state detail. For monitoring mode, do not use monitoringMode — it is
+// empty on Kubernetes and Fargate hosts; read billing events instead (ONBRD-05 § 6).
+// Other fields do map: entity.name -&gt; name.
+</code></pre>
+<pre><code class="language-dql">// Check for any services
+fetch dt.entity.service
+| fields entity.name, serviceType
+| sort entity.name
+| limit 50
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;SERVICE&quot;
+//   | fields name, dt.service_detection.version, dt.service.sdv1_type
+//   | sort name
+//   | limit 50
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
+// Field maps: serviceType -&gt; dt.service.sdv1_type (SDv1 services only; null on SDv2
+// services); entity.name -&gt; name.
+</code></pre>
+<pre><code class="language-dql">// Check for recent log data
+fetch logs, from: now() - 1h
+| summarize log_count = count()
+</code></pre>
+<pre><code class="language-dql">// Check for recent problems
+fetch dt.davis.problems, from: now() - 7d
+| fields timestamp, display_id, event.name, event.status
+| sort timestamp desc
+| limit 10
+</code></pre>
+<h3>Interpreting Results</h3>
+<table>
+<thead>
+<tr>
+<th>Result</th>
+<th>What It Means</th>
+<th>Next Step</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Hosts found</strong></td>
+<td>OneAgent or cloud integration active</td>
+<td>Explore the Infrastructure &amp; Operations app</td>
+</tr>
+<tr>
+<td><strong>No hosts</strong></td>
+<td>No monitoring deployed yet</td>
+<td>Deploy OneAgent (ONBRD-05)</td>
+</tr>
+<tr>
+<td><strong>Services found</strong></td>
+<td>Application-level monitoring working</td>
+<td>Review service mapping</td>
+</tr>
+<tr>
+<td><strong>Logs found</strong></td>
+<td>Log ingestion configured</td>
+<td>Explore the Logs app</td>
+</tr>
+<tr>
+<td><strong>Problems found</strong></td>
+<td>Dynatrace Intelligence is detecting issues</td>
+<td>Review problem details</td>
+</tr>
+</tbody>
+</table>
+<p><a id="next-steps"></a></p>
+<h2>6. Next Steps</h2>
+<p>Now that you're oriented in the Dynatrace UI, proceed based on your priorities:</p>
+<h3>Recommended Path</h3>
+<ol>
+<li><strong>ONBRD-02: IAM and Authentication</strong> - Set up SAML/SSO, Platform Tokens, and user permissions before inviting your team</li>
+<li><strong>ONBRD-03: Deploying ActiveGate</strong> - Set up network routing (if needed)</li>
+<li><strong>ONBRD-04: Cloud &amp; SaaS Integrations</strong> - Connect AWS / Azure / GCP and SaaS data sources</li>
+<li><strong>ONBRD-05: Deploying OneAgent</strong> - Start getting infrastructure and application data</li>
+<li><strong>ONBRD-06: Organizing Your Environment</strong> - Set up tags, segments, and naming conventions</li>
+</ol>
+<h3>Migrating from Another Platform?</h3>
+<p>If you're migrating from another APM tool, the deep-dive translation series cover concept mapping, query translation, and cutover patterns:</p>
+<ul>
+<li><strong>NRLC</strong> (NR → Dynatrace component deep dives) + <strong>NR2DT</strong> (procedural runbook) for New Relic</li>
+<li><strong>SL2DT</strong> for Sumo Logic logs/dashboards/monitors</li>
+<li><strong>S2D</strong> for Splunk</li>
+<li><strong>M2S</strong> for Managed-to-SaaS Dynatrace migrations</li>
+</ul>
+<p>Running <strong>Dynatrace Managed</strong> rather than SaaS? This series is written for SaaS; the <strong>DTM</strong> series covers what is specific to a Managed cluster.</p>
+<p>Pair the migration series with this <strong>ONBRD</strong> series for the platform-fundamentals foundation.</p>
+<h3>Key Tasks Before Moving On</h3>
+<ul>
+<li>[ ] Bookmark your tenant URL</li>
+<li>[ ] Note your tenant ID</li>
+<li>[ ] Explore the App Launcher</li>
+<li>[ ] Open the Infrastructure &amp; Operations app (even if empty)</li>
+<li>[ ] Find Account Management for tokens and users</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>How to access your Dynatrace environment</li>
+<li>The app-based navigation structure</li>
+<li>Key apps: Infrastructure &amp; Operations, Problems, Logs, Notebooks, Workflows</li>
+<li>Important URLs for your tenant</li>
+<li>How to check what data already exists</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/discover-dynatrace/get-started">Get Started with Dynatrace (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/discover-dynatrace/get-started/quickstart-guide">QuickStart guide (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/discover-dynatrace/get-started/dynatrace-ui">Navigate the Dynatrace Platform (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

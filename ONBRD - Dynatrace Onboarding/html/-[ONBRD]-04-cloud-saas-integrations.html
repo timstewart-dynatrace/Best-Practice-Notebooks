@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ONBRD-04: Cloud &amp; SaaS Integrations</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ONBRD — Dynatrace Onboarding</a><span class="sep">/</span><span aria-current="page">ONBRD-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ONBRD-04: Cloud &amp; SaaS Integrations</h1>
+<blockquote>
+<p><strong>Series:</strong> ONBRD — Dynatrace Onboarding | <strong>Notebook:</strong> 4 of 10 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/16/2026</p>
+</blockquote>
+<h2>Extending Visibility Beyond OneAgent</h2>
+<p>While OneAgent provides deep application and infrastructure monitoring, many organizations need visibility into cloud services and SaaS platforms that can't run an agent. This notebook covers how to integrate AWS, Azure, GCP, and third-party SaaS tools into Dynatrace.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#integration-overview">Integration Overview</a></li>
+<li><a href="#aws-integration">AWS Integration</a></li>
+<li><a href="#azure-integration">Azure Integration</a></li>
+<li><a href="#gcp-integration">GCP Integration</a></li>
+<li><a href="#extensions-20-framework">Extensions Framework</a></li>
+<li><a href="#dynatrace-hub">Dynatrace Hub</a></li>
+<li><a href="#common-saas-integrations">Common SaaS Integrations</a></li>
+<li><a href="#verifying-integrations">Verifying Integrations</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>Dynatrace environment with admin access</li>
+<li><strong>ActiveGate</strong> deployed where required — remote extensions and classic AWS / Azure polling run through an AG; AWS (Clouds app GA) and Azure (Clouds app, SaaS 1.337+) connections and the GCP integration on SaaS need none</li>
+<li>Cloud provider admin access (for AWS/Azure/GCP)</li>
+<li>API credentials for SaaS platforms</li>
+</ul>
+<p><a id="integration-overview"></a></p>
+<h2>1. Integration Overview</h2>
+<p>Dynatrace offers multiple integration methods depending on the data source:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5DbG91ZCAmYW1wOyBTYWFTIEludGVncmF0aW9uIE1ldGhvZHM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+UGljayB0aGUgbWV0aG9kIGJ5IGRhdGEgc291cmNlIOKAlCAxMC8yMDI2IHN0YXR1czwvdGV4dD4KCiAgPCEtLSBNZXRob2QgMTogQ2xvdWRzIEFwcCAoTW9kZXJuLCByZWNvbW1lbmRlZCB3aGVyZSBzdXBwb3J0ZWQpIC0tPgogIDxyZWN0IHg9IjQwIiB5PSI5MCIgd2lkdGg9IjIxMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iOCIvPgogIDx0ZXh0IHg9IjE0NSIgeT0iMTE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5DbG91ZHMgQXBwPC90ZXh0PgogIDx0ZXh0IHg9IjE0NSIgeT0iMTMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIj7imIUgTW9kZXJuIMK3IERpcmVjdCBjb25uZWN0aW9uPC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSIxNDgiIHdpZHRoPSIxNzAiIGhlaWdodD0iNDAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjYiLz4KICA8dGV4dCB4PSIxNDUiIHk9IjE2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+Tm8gQWN0aXZlR2F0ZTwvdGV4dD4KICA8dGV4dCB4PSIxNDUiIHk9IjE4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+QWdlbnRsZXNzIHBvbGxpbmc8L3RleHQ+CiAgPHRleHQgeD0iMTQ1IiB5PSIyMDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPkNvdmVyYWdlPC90ZXh0PgogIDx0ZXh0IHg9IjE0NSIgeT0iMjI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5BV1Mg4oCUIEdBPC90ZXh0PgogIDx0ZXh0IHg9IjE0NSIgeT0iMjQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5BenVyZSDigJQgU2FhUyAxLjMzNys8L3RleHQ+CiAgPHRleHQgeD0iMTQ1IiB5PSIyNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTAiPkdDUCDigJQgR0EgKDEwLzIwMjYpPC90ZXh0PgogIDx0ZXh0IHg9IjE0NSIgeT0iMjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj7ihpIgVXNlIGZvciBBV1MgLyBBenVyZSAvIEdDUDwvdGV4dD4KCiAgPCEtLSBNZXRob2QgMjogQUctUG9sbGluZyAoQ2xhc3NpYykgLS0+CiAgPHJlY3QgeD0iMjcwIiB5PSI5MCIgd2lkdGg9IjIxMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMzc1IiB5PSIxMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkFHLVBvbGxpbmcgKENsYXNzaWMpPC90ZXh0PgogIDx0ZXh0IHg9IjM3NSIgeT0iMTMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEwIj5SZXF1aXJlcyBBY3RpdmVHYXRlPC90ZXh0PgogIDxyZWN0IHg9IjI5MCIgeT0iMTQ4IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMzc1IiB5PSIxNjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkFjdGl2ZUdhdGUgUG9sbHM8L3RleHQ+CiAgPHRleHQgeD0iMzc1IiB5PSIxODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkNsb3VkV2F0Y2ggLyBNb25pdG9yIC8gZXRjLjwvdGV4dD4KICA8dGV4dCB4PSIzNzUiIHk9IjIwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+V2hlbiB0byBVc2U8L3RleHQ+CiAgPHRleHQgeD0iMzc1IiB5PSIyMjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkFXUyAvIEF6dXJlIGNsYXNzaWM8L3RleHQ+CiAgPHRleHQgeD0iMzc1IiB5PSIyNDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPih3aGVyZSBubyBDbG91ZHMgYXBwKTwvdGV4dD4KICA8dGV4dCB4PSIzNzUiIHk9IjI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+UmVzdHJpY3RlZCBuZXR3b3JrczwvdGV4dD4KICA8dGV4dCB4PSIzNzUiIHk9IjI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+4oaSIENsYXNzaWMgQVdTIC8gQXp1cmU8L3RleHQ+CgogIDwhLS0gTWV0aG9kIDM6IEV4dGVuc2lvbnMgLS0+CiAgPHJlY3QgeD0iNTAwIiB5PSI5MCIgd2lkdGg9IjIxMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNjA1IiB5PSIxMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkV4dGVuc2lvbnM8L3RleHQ+CiAgPHRleHQgeD0iNjA1IiB5PSIxMzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTAiPkV4dGVuc2lvbnMgMi4wIMK3IGN1cnJlbnQgZnJhbWV3b3JrPC90ZXh0PgogIDxyZWN0IHg9IjUyMCIgeT0iMTQ4IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNjA1IiB5PSIxNjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkFHIG9yIE9uZUFnZW50PC90ZXh0PgogIDx0ZXh0IHg9IjYwNSIgeT0iMTgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5SZW1vdGUg4oaSIEFHIMK3IGxvY2FsIOKGkiBPQTwvdGV4dD4KICA8dGV4dCB4PSI2MDUiIHk9IjIwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+V2hlbiB0byBVc2U8L3RleHQ+CiAgPHRleHQgeD0iNjA1IiB5PSIyMjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkRhdGFiYXNlcyAvIFNhYVMgQVBJczwvdGV4dD4KICA8dGV4dCB4PSI2MDUiIHk9IjI0MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+U05NUCAvIFZNd2FyZSAvIEY1PC90ZXh0PgogIDx0ZXh0IHg9IjYwNSIgeT0iMjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5Pbi1ob3N0IGludGVncmF0aW9uczwvdGV4dD4KICA8dGV4dCB4PSI2MDUiIHk9IjI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+4oaSIEN1c3RvbSBkYXRhIHNvdXJjZXM8L3RleHQ+CgogIDwhLS0gTWV0aG9kIDQ6IE9UZWwgRGlyZWN0IC0tPgogIDxyZWN0IHg9IjczMCIgeT0iOTAiIHdpZHRoPSIxNjAiIGhlaWdodD0iMjAwIiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjgxMCIgeT0iMTE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5PVGVsIERpcmVjdDwvdGV4dD4KICA8dGV4dCB4PSI4MTAiIHk9IjEzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMCI+T1RMUCBpbmdlc3Q8L3RleHQ+CiAgPHJlY3QgeD0iNzQ1IiB5PSIxNDgiIHdpZHRoPSIxMzAiIGhlaWdodD0iNDAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgcng9IjYiLz4KICA8dGV4dCB4PSI4MTAiIHk9IjE2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+Tm8gQWN0aXZlR2F0ZTwvdGV4dD4KICA8dGV4dCB4PSI4MTAiIHk9IjE4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+RGlyZWN0IE9UTFA8L3RleHQ+CiAgPHRleHQgeD0iODEwIiB5PSIyMDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPldoZW4gdG8gVXNlPC90ZXh0PgogIDx0ZXh0IHg9IjgxMCIgeT0iMjI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5PVGVsLWluc3RydW1lbnRlZDwvdGV4dD4KICA8dGV4dCB4PSI4MTAiIHk9IjI0MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+YXBwcyArIGNvbGxlY3RvcnM8L3RleHQ+CiAgPHRleHQgeD0iODEwIiB5PSIyNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlBvbHlnbG90IC8gcG9ydGFibGU8L3RleHQ+CiAgPHRleHQgeD0iODEwIiB5PSIyODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPuKGkiBDb2RlLWluc3RydW1lbnRlZDwvdGV4dD4KCiAgPCEtLSBEZWNpc2lvbiByb3cgYXQgYm90dG9tIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIzMjAiIHdpZHRoPSI4NTAiIGhlaWdodD0iMTQwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+UXVpY2sgRGVjaXNpb24gUmVmZXJlbmNlPC90ZXh0PgoKICA8dGV4dCB4PSI4MCIgeT0iMzc4IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5BV1M8L3RleHQ+CiAgPHRleHQgeD0iMTIwIiB5PSIzNzgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKGkiBDbG91ZHMgYXBwIChHQSksIG5vIEFHIHJlcXVpcmVkPC90ZXh0PgoKICA8dGV4dCB4PSI4MCIgeT0iMzk4IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5BenVyZTwvdGV4dD4KICA8dGV4dCB4PSIxMjAiIHk9IjM5OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oaSIENsb3VkcyBhcHAgKFNhYVMgMS4zMzcrKSwgbm8gQUcgcmVxdWlyZWQ8L3RleHQ+CgogIDx0ZXh0IHg9IjgwIiB5PSI0MTgiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkdDUDwvdGV4dD4KICA8dGV4dCB4PSIxMjAiIHk9IjQxOCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oaSIENsb3VkcyBhcHAgKEdBKSBvciBHS0UgY29sbGVjdG9yLCBubyBBRyByZXF1aXJlZDwvdGV4dD4KCiAgPHRleHQgeD0iNDY1IiB5PSIzNzgiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkFXUyBMYW1iZGE8L3RleHQ+CiAgPHRleHQgeD0iNTU1IiB5PSIzNzgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKGkiBPbmVBZ2VudCBsYXllciArIERUX1RBR1MgKE9BIDEuMzM3KTwvdGV4dD4KCiAgPHRleHQgeD0iNDY1IiB5PSIzOTgiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkRCIC8gU2FhUyAvIFNOTVA8L3RleHQ+CiAgPHRleHQgeD0iNTg1IiB5PSIzOTgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKGkiBFeHRlbnNpb25zIChyZW1vdGU6IEFHKTwvdGV4dD4KCiAgPHRleHQgeD0iNDY1IiB5PSI0MTgiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPk9UZWwgYXBwPC90ZXh0PgogIDx0ZXh0IHg9IjU0MCIgeT0iNDE4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7ihpIgRGlyZWN0IE9UTFAgaW5nZXN0LCBubyBBRzwvdGV4dD4KCiAgPHRleHQgeD0iNDY1IiB5PSI0NDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAiPlNlZSBDTE9VRCBzZXJpZXMgZm9yIHBlci1wcm92aWRlciBkZWVwIGRpdmVzIMK3IEFVVE9NIHNlcmllcyBmb3IgZXh0ZW5zaW9uIGF1dG9tYXRpb248L3RleHQ+Cjwvc3ZnPgo=" alt="Cloud &amp; SaaS Integration Methods" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Method | When to Use | Requires AG? |
+|--------|-------------|--------------|
+| Clouds App | AWS (GA) / Azure (SaaS 1.337+) — direct connection; GCP GA (announced SaaS 1.348) | No |
+| AG-Polling (Classic) | AWS/Azure without Clouds app; restricted networks | Yes |
+| Extensions 2.0 | Custom data sources, SaaS APIs, SNMP, on-host integrations | Remote: AG group; local: OneAgent |
+| OTel Direct | OTel-instrumented apps and collectors | No (OTLP) |
+For environments where SVG doesn't render
+-->
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Use Case</th>
+<th>Requires ActiveGate?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Clouds App (recommended where supported)</strong></td>
+<td>AWS (GA), Azure (SaaS 1.337+); GCP generally available (docs, 10/29/2026), announced in SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout) — verify it has reached your tenant</td>
+<td>No (direct connection)</td>
+</tr>
+<tr>
+<td><strong>Cloud Integrations (Classic)</strong></td>
+<td>AWS / Azure where the Clouds app is not used (ActiveGate polling); GCP through the <code>dynatrace-gcp-monitor</code> collector on GKE</td>
+<td>AWS / Azure: Yes — on SaaS hosted on AWS, Dynatrace provides one for the built-in AWS services · GCP: No on SaaS</td>
+</tr>
+<tr>
+<td><strong>Extensions 2.0</strong> <em>(current framework)</em></td>
+<td>Custom data sources, SaaS APIs, on-host integrations</td>
+<td>Remote extensions: an ActiveGate group · local (on-host) extensions: OneAgent</td>
+</tr>
+<tr>
+<td><strong>OpenTelemetry</strong></td>
+<td>OTel-instrumented apps</td>
+<td>No (direct OTLP ingest)</td>
+</tr>
+<tr>
+<td><strong>Log Ingest</strong></td>
+<td>External log sources</td>
+<td>Optional (AG can route)</td>
+</tr>
+<tr>
+<td><strong>Metrics Ingest</strong></td>
+<td>Custom metrics via API</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h3>Decision Rule (Quick Reference)</h3>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Default Method (10/2026)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AWS</strong></td>
+<td>Clouds app (GA) — direct connection</td>
+</tr>
+<tr>
+<td><strong>Azure</strong></td>
+<td>Clouds app — direct connection (SaaS 1.337+); <em>&quot;no need to deploy ActiveGate compute resources for metric polling&quot;</em> (<a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-onboarding">Azure Cloud Platform Monitoring (DT docs)</a>)</td>
+</tr>
+<tr>
+<td><strong>GCP</strong></td>
+<td>Classic <code>dynatrace-gcp-monitor</code> (on GKE, no AG on SaaS) until the Clouds connection reaches your tenant; then evaluate it</td>
+</tr>
+<tr>
+<td><strong>AWS Lambda</strong></td>
+<td>Clouds app for CloudWatch metrics; OneAgent Lambda layer for traces and logs, with <code>DT_TAGS</code> primary fields (OneAgent 1.337+)</td>
+</tr>
+<tr>
+<td><strong>Custom DB / SaaS / SNMP</strong></td>
+<td>Extensions 2.0 — remote extensions on an AG group</td>
+</tr>
+<tr>
+<td><strong>OTel-instrumented app</strong></td>
+<td>OTLP ingest direct to Dynatrace</td>
+</tr>
+</tbody>
+</table>
+<h3>Why Integrate Before OneAgent?</h3>
+<table>
+<thead>
+<tr>
+<th>Benefit</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Infrastructure context</strong></td>
+<td>See cloud resources before deploying agents</td>
+</tr>
+<tr>
+<td><strong>Dependency mapping</strong></td>
+<td>Understand managed services (RDS, Lambda, etc.)</td>
+</tr>
+<tr>
+<td><strong>Complete topology</strong></td>
+<td>Smartscape includes cloud services from day one</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">SaaS 1.348 (DT docs)</a> — <em>&quot;There’s no need to deploy ActiveGate compute resources for metric polling within your Google Cloud environment.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-337">OneAgent 1.337 (DT docs)</a> — <em>&quot;Primary fields set via DT_TAGS are now added to logs and spans in AWS Lambda deployments of OneAgent.&quot;</em>, <a href="https://docs.dynatrace.com/docs/ingest-from/extensions">Extensions (DT docs)</a> — <em>&quot;Run extensions remotely from an ActiveGate group to collect data from remote technologies and cloud environments.&quot;</em></sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Where to go deeper:</strong> the <strong>CLOUD series</strong> (9 notebooks) covers per-provider deep dives (AWS, Azure, GCP). The <strong>AUTOM series</strong> covers GitOps/Terraform automation for extension deployment at scale.</p>
+</blockquote>
+<p><a id="aws-integration"></a></p>
+<h2>2. AWS Integration</h2>
+<p>The AWS integration pulls metrics from CloudWatch and discovers AWS resources.</p>
+<p><strong>Default path — Clouds app.</strong> Create the AWS connection in <strong>Clouds</strong>. <em>&quot;All AWS connection creation methods are powered by CloudFormation as Infrastructure-as-Code (IaC) engine&quot;</em>, so Dynatrace generates the stack that creates the access role, and the connection is <em>&quot;fully managed by Dynatrace SaaS—no need to deploy ActiveGate compute resources for metric polling within your AWS environment.&quot;</em> See <a href="https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/aws-onboarding">AWS Cloud Platform Monitoring (DT docs)</a>.</p>
+<h3>Supported Services</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Services</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Compute</strong></td>
+<td>EC2, Lambda, ECS, EKS, Fargate</td>
+</tr>
+<tr>
+<td><strong>Database</strong></td>
+<td>RDS, DynamoDB, ElastiCache, DocumentDB</td>
+</tr>
+<tr>
+<td><strong>Storage</strong></td>
+<td>S3, EBS, EFS</td>
+</tr>
+<tr>
+<td><strong>Networking</strong></td>
+<td>ELB, ALB, NLB, API Gateway, CloudFront</td>
+</tr>
+<tr>
+<td><strong>Messaging</strong></td>
+<td>SQS, SNS, Kinesis, MSK</td>
+</tr>
+<tr>
+<td><strong>Other</strong></td>
+<td>Step Functions, Secrets Manager, and more</td>
+</tr>
+</tbody>
+</table>
+<h3>Classic Integration (Settings → Cloud and virtualization → AWS)</h3>
+<p>Use the classic integration only where the Clouds app is not used.</p>
+<table>
+<thead>
+<tr>
+<th>Authentication</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>IAM Role (role-based)</strong></td>
+<td>All new credentials outside AWS GovCloud and China</td>
+</tr>
+<tr>
+<td><strong>Access Key</strong></td>
+<td>AWS GovCloud and China partitions only — <em>&quot;Key-based authentication is allowed only for AWS GovCloud and China partitions.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p>On SaaS hosted on AWS, the classic integration needs no ActiveGate of your own for the built-in services; <em>&quot;to monitor specific non-default AWS cloud services or if your AWS account exceeds 2,000 AWS resources, you must install and configure an Environment ActiveGate.&quot;</em></p>
+<h3>IAM Role Setup (classic)</h3>
+<ol>
+<li>Create an IAM role with CloudWatch read permissions</li>
+<li>Add trust relationship for Dynatrace's AWS account</li>
+<li>Configure in Dynatrace: Settings → Cloud and virtualization → AWS</li>
+</ol>
+<p><strong>IAM policy:</strong> the first seven actions below are the ones the docs list as <em>&quot;Permissions required for AWS monitoring integration&quot;</em>. The rest are examples of service-specific permissions — take the complete per-service list from <a href="https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/cloudwatch-metrics">AWS CloudWatch metrics (DT docs)</a> rather than this sample.</p>
+<pre><code class="language-json">{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [
+    {
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Action&quot;: [
+        &quot;cloudwatch:GetMetricData&quot;,
+        &quot;cloudwatch:GetMetricStatistics&quot;,
+        &quot;cloudwatch:ListMetrics&quot;,
+        &quot;sts:GetCallerIdentity&quot;,
+        &quot;tag:GetResources&quot;,
+        &quot;tag:GetTagKeys&quot;,
+        &quot;ec2:DescribeAvailabilityZones&quot;,
+        &quot;tag:GetTagValues&quot;,
+        &quot;ec2:DescribeInstances&quot;,
+        &quot;ec2:DescribeVolumes&quot;,
+        &quot;rds:DescribeDBInstances&quot;,
+        &quot;lambda:ListFunctions&quot;,
+        &quot;lambda:GetFunction&quot;
+      ],
+      &quot;Resource&quot;: &quot;*&quot;
+    }
+  ]
+}
+</code></pre>
+<h3>Configuration Location</h3>
+<p><strong>Path:</strong> Settings → Cloud and virtualization → AWS</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Services to monitor</strong></td>
+<td>Start with core services, expand as needed</td>
+</tr>
+<tr>
+<td><strong>Regions</strong></td>
+<td>Only regions where you have resources</td>
+</tr>
+<tr>
+<td><strong>Resource tags</strong></td>
+<td>Use tags to filter monitored resources</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/aws-onboarding">AWS Cloud Platform Monitoring (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/cloudwatch-metrics">AWS CloudWatch metrics (DT docs)</a> — <em>&quot;Key-based authorization is no longer available for new credentials.&quot;</em>; the seven required actions are listed under <em>&quot;Permissions required for AWS monitoring integration&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="azure-integration"></a></p>
+<h2>3. Azure Integration</h2>
+<p>The Azure integration uses Azure Monitor to collect metrics and discover resources.</p>
+<p><strong>Default path — Clouds app.</strong> <em>&quot;Onboard your Azure subscriptions and turn them into native Dynatrace Azure connections, managing them from a dedicated Clouds app&quot;</em> — add the Azure connection in <strong>Clouds</strong>, following <a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-onboarding">Azure Cloud Platform Monitoring (DT docs)</a>. No ActiveGate is needed for metric polling.</p>
+<h3>Supported Services</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Services</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Compute</strong></td>
+<td>Virtual Machines, App Service, Functions, AKS</td>
+</tr>
+<tr>
+<td><strong>Database</strong></td>
+<td>SQL Database, Cosmos DB, Redis Cache</td>
+</tr>
+<tr>
+<td><strong>Storage</strong></td>
+<td>Blob, Files, Queues, Tables</td>
+</tr>
+<tr>
+<td><strong>Networking</strong></td>
+<td>Load Balancer, Application Gateway, VNet</td>
+</tr>
+<tr>
+<td><strong>Messaging</strong></td>
+<td>Service Bus, Event Hubs, Event Grid</td>
+</tr>
+</tbody>
+</table>
+<h3>Classic Integration via App Registration</h3>
+<p>Use only where the Clouds app is not used:</p>
+<ol>
+<li>Create an App Registration in Microsoft Entra ID (formerly Azure AD)</li>
+<li>Grant <strong>Reader</strong> role on subscriptions to monitor</li>
+<li>Create a client secret</li>
+<li>Configure in Dynatrace with:
+<ul>
+<li>Tenant ID</li>
+<li>Client ID</li>
+<li>Client Secret</li>
+<li>Subscription IDs</li>
+</ul>
+</li>
+</ol>
+<p><strong>Configuration Location:</strong> Settings → Cloud and virtualization → Azure</p>
+<p><a id="gcp-integration"></a></p>
+<h2>4. GCP Integration</h2>
+<p>The GCP integration uses Cloud Monitoring (formerly Stackdriver) APIs.</p>
+<blockquote>
+<p><strong>Status note (11/2026):</strong> Dynatrace's GCP pages record <em>&quot;GCP Cloud Platform Monitoring is now generally available.&quot;</em> (10/29/2026). The setup page: <em>&quot;Connect your Google Cloud accounts to Dynatrace and manage your GCP environment with full observability.&quot;</em> SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout) announces the new Clouds experience for Google Cloud: <em>&quot;There’s no need to deploy ActiveGate compute resources for metric polling within your Google Cloud environment.&quot;</em> Verify it has reached your tenant before planning around it. Until it does, the classic integration below is the working path. Review the <strong>CLOUD series</strong> for per-provider detail.</p>
+</blockquote>
+<h3>Supported Services</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Services</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Compute</strong></td>
+<td>Compute Engine, GKE, Cloud Run, Cloud Functions</td>
+</tr>
+<tr>
+<td><strong>Database</strong></td>
+<td>Cloud SQL, Cloud Spanner, Firestore, Bigtable</td>
+</tr>
+<tr>
+<td><strong>Storage</strong></td>
+<td>Cloud Storage</td>
+</tr>
+<tr>
+<td><strong>Networking</strong></td>
+<td>Load Balancing, Cloud CDN</td>
+</tr>
+<tr>
+<td><strong>Messaging</strong></td>
+<td>Pub/Sub</td>
+</tr>
+</tbody>
+</table>
+<h3>Classic Integration: <code>dynatrace-gcp-monitor</code></h3>
+<p>The classic integration is a collector you deploy inside Google Cloud. On SaaS it sends straight to your environment, so it needs <strong>no ActiveGate</strong>:</p>
+<ol>
+<li>Deploy <code>dynatrace-gcp-monitor</code> with Helm on a GKE cluster — a new GKE Autopilot cluster is the recommended option. The Cloud Function deployment is no longer an option: <em>&quot;Dynatrace Google Cloud metric integration in Google Cloud Functions is not supported anymore.&quot;</em></li>
+<li>Create the custom GCP role the setup page defines for the deployment (it covers GKE, Pub/Sub and related permissions, not just a read-only monitoring role).</li>
+<li>Create a Dynatrace token from the <strong>GCP Services Monitoring</strong> template (the setup page creates it in <strong>Access Tokens</strong>).</li>
+<li>Set <code>dynatraceUrl</code> to your environment: <em>&quot;For SaaS log/metric ingestion, it's your environment URL ( https://<your-environment-id>.live.dynatrace.com ).&quot;</em></li>
+</ol>
+<p>An ActiveGate appears in the classic setup only as a Managed option: <em>&quot;For Managed deployments: You can use an existing ActiveGate for log ingestion.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform">Set up Dynatrace on Google Cloud (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">SaaS 1.348 (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform-classic/gcp-integrations/gcp-guide">Google Cloud monitoring guide (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform-classic/gcp-integrations/gcp-guide/deploy-k8">Set up the Dynatrace GCP integration on GKE (DT docs)</a> — <em>&quot;Under Template , select GCP Services Monitoring .&quot;</em>, <a href="https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform-classic/gcp-integrations/gcp-guide/deploy-with-google-cloud-function">Deploy the Google Cloud metric integration in Cloud Functions (DT docs)</a></sub></p>
+</blockquote>
+<p><a id="extensions-20-framework"></a></p>
+<h2>5. Extensions Framework</h2>
+<p>Extensions are Dynatrace's framework for integrating any data source — databases, SaaS platforms, network devices, on-host integrations, and more.</p>
+<blockquote>
+<p><strong>Recommendation for new customers:</strong> build on <strong>Extensions 2.0</strong> — the current extensions framework. Extensions Framework 1.0 reached end of support on 2025-03-31 (Python EF1.0: 2024-10-31); JMX and PMI EF1.0 are deprecated (SaaS 1.347 adds an in-product banner) and reach end of support on SaaS on <strong>07/01/2027</strong> — <em>&quot;As of July 1, 2027, all Extension Framework 1.0 JMX and PMI extensions will be out of support for SaaS Environments.&quot;</em> Migrate them to the Extensions 2.0 JMX / PMI extensions (<a href="https://docs.dynatrace.com/docs/ingest-from/extensions/end-of-support/jmx-pmi-ef1-deprecation">EF1 JMX and PMI extensions end of support (DT docs)</a>). Recent Dynatrace doc pages say simply &quot;Extensions&quot; and mean Extensions 2.0.</p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5FeHRlbnNpb24gRXhlY3V0aW9uIEZsb3c8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+RnJvbSBIdWIg4oaSIEFHIGdyb3VwIG9yIE9uZUFnZW50IOKGkiBTb3VyY2Ug4oaSIER5bmF0cmFjZTwvdGV4dD4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJmbG93LWFycm93IiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIFN0YWdlIDE6IEh1YiAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMTcwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSIxMjAiIHk9IjE5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+MS4gRHluYXRyYWNlIEh1YjwvdGV4dD4KICA8dGV4dCB4PSIxMjAiIHk9IjIxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RmluZCBleHRlbnNpb248L3RleHQ+CiAgPHRleHQgeD0iMTIwIiB5PSIyMzEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPihwcmUtYnVpbHQgb3IgY3VzdG9tKTwvdGV4dD4KICA8dGV4dCB4PSIxMjAiIHk9IjI1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+QXBwcyDihpIgSHViPC90ZXh0PgoKICA8IS0tIEFycm93IDEgLS0+CiAgPGxpbmUgeDE9IjIwMCIgeTE9IjIyMCIgeDI9IjIzMiIgeTI9IjIyMCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNmbG93LWFycm93KSIvPgoKICA8IS0tIFN0YWdlIDI6IEluc3RhbGwgKyBDb25maWd1cmUgLS0+CiAgPHJlY3QgeD0iMjQwIiB5PSIxNzAiIHdpZHRoPSIxNjAiIGhlaWdodD0iMTAwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjMyMCIgeT0iMTk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj4yLiBJbnN0YWxsICZhbXA7IENvbmZpZ3VyZTwvdGV4dD4KICA8dGV4dCB4PSIzMjAiIHk9IjIxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RW5kcG9pbnQgVVJMPC90ZXh0PgogIDx0ZXh0IHg9IjMyMCIgeT0iMjMxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5DcmVkZW50aWFsczwvdGV4dD4KICA8dGV4dCB4PSIzMjAiIHk9IjI0NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UG9sbGluZyBpbnRlcnZhbDwvdGV4dD4KICA8dGV4dCB4PSIzMjAiIHk9IjI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+TW9uaXRvcmluZyBjb25maWc8L3RleHQ+CgogIDwhLS0gQXJyb3cgMiAtLT4KICA8bGluZSB4MT0iNDAwIiB5MT0iMjIwIiB4Mj0iNDMyIiB5Mj0iMjIwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Zsb3ctYXJyb3cpIi8+CgogIDwhLS0gU3RhZ2UgMzogQXNzaWduIHRvIEFHIC0tPgogIDxyZWN0IHg9IjQ0MCIgeT0iMTcwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI1MjAiIHk9IjE5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+My4gQXNzaWduIHNjb3BlPC90ZXh0PgogIDx0ZXh0IHg9IjUyMCIgeT0iMjE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5SZW1vdGU6IEFHIGdyb3VwPC90ZXh0PgogIDx0ZXh0IHg9IjUyMCIgeT0iMjMxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Mb2NhbDogT25lQWdlbnQgaG9zdDwvdGV4dD4KICA8dGV4dCB4PSI1MjAiIHk9IjI1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+UnVucyB0aGUgZXh0ZW5zaW9uPC90ZXh0PgoKICA8IS0tIEFycm93IDMgLS0+CiAgPGxpbmUgeDE9IjYwMCIgeTE9IjIyMCIgeDI9IjYzMiIgeTI9IjIyMCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNmbG93LWFycm93KSIvPgoKICA8IS0tIFN0YWdlIDQ6IFBvbGwgU291cmNlIC0tPgogIDxyZWN0IHg9IjY0MCIgeT0iMTcwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI3MjAiIHk9IjE5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+NC4gUG9sbCBEYXRhIFNvdXJjZTwvdGV4dD4KICA8dGV4dCB4PSI3MjAiIHk9IjIxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+REIgLyBBUEkgLyBTTk1QIC88L3RleHQ+CiAgPHRleHQgeD0iNzIwIiB5PSIyMzEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm9uLWhvc3QgaW50ZWdyYXRpb248L3RleHQ+CiAgPHRleHQgeD0iNzIwIiB5PSIyNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkF0IGNvbmZpZ3VyZWQgaW50ZXJ2YWw8L3RleHQ+CgogIDwhLS0gQXJyb3cgZG93biB0byBEeW5hdHJhY2UgLS0+CiAgPGxpbmUgeDE9IjcyMCIgeTE9IjI3MCIgeDI9IjcyMCIgeTI9IjMzMiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNmbG93LWFycm93KSIvPgoKICA8IS0tIFN0YWdlIDU6IER5bmF0cmFjZSBSZWNlaXZlcyAtLT4KICA8cmVjdCB4PSIzMjAiIHk9IjM0MCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDgwIiB5PSIzNjciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjUuIER5bmF0cmFjZSBSZWNlaXZlczwvdGV4dD4KICA8dGV4dCB4PSI0ODAiIHk9IjM4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+TWV0cmljcyDCtyBMb2dzIMK3IEV2ZW50cyBmcm9tIHRoZSBleHRlbnNpb248L3RleHQ+CiAgPHRleHQgeD0iNDgwIiB5PSI0MDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlJvdXRlZCB0aHJvdWdoIE9wZW5QaXBlbGluZSDihpIgR3JhaWwgYnVja2V0czwvdGV4dD4KCiAgPCEtLSBBcnJvdyBmcm9tIFN0ZXAgNCBzd2VlcGluZyBiYWNrIHRvIFN0ZXAgNSAtLT4KICA8cGF0aCBkPSJNIDcyMCAyODAgUSA3MjAgMzIwIDY0MCAzODAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1kYXNoYXJyYXk9IjQsMyIvPgoKICA8IS0tIEdlbmVyYXRpb24gbGFiZWxzIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIxMDAiIHdpZHRoPSIzODAiIGhlaWdodD0iNDAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjIzMCIgeT0iMTI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5FeHRlbnNpb25zIDIuMCDigJQgdGhlIGN1cnJlbnQgZnJhbWV3b3JrPC90ZXh0PgoKICA8cmVjdCB4PSI0NDAiIHk9IjEwMCIgd2lkdGg9IjQ1MCIgaGVpZ2h0PSI0MCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNjY1IiB5PSIxMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlJ1bnMgb24gYW4gQUcgZ3JvdXAgKHJlbW90ZSkgb3IgT25lQWdlbnQgKGxvY2FsKTwvdGV4dD4KCiAgPCEtLSBGb290ZXIgLS0+CiAgPGxpbmUgeDE9IjQwIiB5MT0iNDUwIiB4Mj0iODkwIiB5Mj0iNDUwIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDcxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjExIj5DdXN0b20gZXh0ZW5zaW9ucyDigJQgRXh0ZW5zaW9ucyBTREsgwrcgWUFNTCBzY2hlbWEgwrcgcGFja2FnZSBhbmQgdXBsb2FkPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEwIj5EZWVwZXI6IEFVVE9NIHNlcmllcyBmb3IgR2l0T3BzIGF1dG9tYXRpb24gwrcgQ0xPVUQgc2VyaWVzIGZvciBwZXItcHJvdmlkZXIgcGF0dGVybnM8L3RleHQ+Cjwvc3ZnPgo=" alt="Extension Execution Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Component | Action |
+|------|-----------|--------|
+| 1 | Dynatrace Hub | Find extension (pre-built or custom) |
+| 2 | Monitoring Config | Set endpoint, credentials, polling interval |
+| 3 | ActiveGate group or OneAgent | Remote extension: assigned AG group runs it · local extension: OneAgent runs it on the host |
+| 4 | Data Source | Extension polls DB / API / SNMP (remote) or a local source at the configured interval |
+| 5 | Dynatrace | Metrics / logs / events arrive via OpenPipeline → Grail |
+For environments where SVG doesn't render
+-->
+<h3>How Extensions Work</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Extension Package</strong></td>
+<td>Code + metadata defining what to collect</td>
+</tr>
+<tr>
+<td><strong>ActiveGate group / OneAgent</strong></td>
+<td>Runs the extension — remotely from an ActiveGate group, or locally on the monitored host through OneAgent's Extension Execution Controller</td>
+</tr>
+<tr>
+<td><strong>Monitoring Configuration</strong></td>
+<td>Instance-specific settings (endpoints, credentials)</td>
+</tr>
+<tr>
+<td><strong>Dynatrace</strong></td>
+<td>Receives metrics, logs, events from the extension</td>
+</tr>
+</tbody>
+</table>
+<h3>Extension Categories</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Database</strong></td>
+<td>Oracle, SQL Server, PostgreSQL, MongoDB, Redis, Cassandra, MariaDB, DB2, HANA</td>
+</tr>
+<tr>
+<td><strong>On-host integrations</strong></td>
+<td>NGINX, HAProxy, Kafka, RabbitMQ, Elasticsearch, Memcached, Couchbase, Consul, Apache, etcd, Varnish, Zookeeper</td>
+</tr>
+<tr>
+<td><strong>Infrastructure</strong></td>
+<td>VMware, SNMP devices, F5, NetApp</td>
+</tr>
+<tr>
+<td><strong>SaaS</strong></td>
+<td>Salesforce, ServiceNow, Jira, Confluent</td>
+</tr>
+<tr>
+<td><strong>Custom</strong></td>
+<td>Any REST API, custom protocols</td>
+</tr>
+</tbody>
+</table>
+<h3>Installing an Extension</h3>
+<ol>
+<li><strong>Find the extension</strong> in Dynatrace Hub</li>
+<li><strong>Install</strong> to your environment</li>
+<li><strong>Configure</strong> with endpoint and credentials</li>
+<li><strong>Assign</strong> it — a remote extension to an ActiveGate group, a local extension to the hosts it should run on</li>
+<li><strong>Verify</strong> data is flowing</li>
+</ol>
+<h3>Monitoring Configuration</h3>
+<p>Each extension defines its own monitoring-configuration schema — the endpoint, credential and interval fields differ per extension — so there is no generic YAML to copy. Configure it from the extension's page in Hub, or through the Extensions 2.0 API: <code>POST /api/v2/extensions/{extensionName}/monitoringConfigurations</code> with a body of the documented shape, where <code>value</code> follows that extension's schema:</p>
+<pre><code class="language-json">[
+  {
+    &quot;scope&quot;: &quot;HOST-D3A3C5A146830A79&quot;,
+    &quot;value&quot;: { }
+  }
+]
+</code></pre>
+<p><code>scope</code> sets where the configuration runs (the example above is a host, as in the API reference); remote extensions run from the ActiveGate group you select. The API needs <code>extensions:configurations:write</code> (platform token) or <code>extensionConfigurations.write</code> (classic access token).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/extensions">Extensions (DT docs)</a> — <em>&quot;Run extensions locally on the monitored host to collect data from local data sources with the Extension Execution Controller.&quot;</em>, <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/extensions-20/monitoring-configurations/post-monitoring-configuration">Extensions 2.0 API - POST a monitoring configuration (DT docs)</a> — <em>&quot;Platform Token / OAuth: Required scope: extensions:configurations:write&quot;</em></sub></p>
+</blockquote>
+<h3>Creating Custom Extensions</h3>
+<p>For SaaS platforms without a pre-built extension, you can build a custom extension:</p>
+<ol>
+<li>Use the Extensions 2.0 SDK</li>
+<li>Define metrics schema in YAML</li>
+<li>Write the polling logic</li>
+<li>Package and upload to Dynatrace</li>
+</ol>
+<p><strong>SDK Documentation:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/extensions">Extensions Development</a></p>
+<p><a id="dynatrace-hub"></a></p>
+<h2>6. Dynatrace Hub</h2>
+<p>The Dynatrace Hub is your marketplace for extensions, integrations, and apps.</p>
+<h3>Accessing the Hub</h3>
+<p><strong>Path:</strong> Apps → Dynatrace Hub</p>
+<p>Or use quick search: <strong>Cmd+K</strong> → &quot;Hub&quot;</p>
+<h3>Hub Categories</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cloud</strong></td>
+<td>AWS, Azure, GCP, Kubernetes</td>
+</tr>
+<tr>
+<td><strong>Database</strong></td>
+<td>Oracle, SQL Server, PostgreSQL</td>
+</tr>
+<tr>
+<td><strong>Infrastructure</strong></td>
+<td>VMware, SNMP, NetApp</td>
+</tr>
+<tr>
+<td><strong>Messaging</strong></td>
+<td>Kafka, RabbitMQ, IBM MQ</td>
+</tr>
+<tr>
+<td><strong>Observability</strong></td>
+<td>OpenTelemetry, Prometheus</td>
+</tr>
+<tr>
+<td><strong>Security</strong></td>
+<td>Snyk, SonarQube</td>
+</tr>
+<tr>
+<td><strong>ITSM</strong></td>
+<td>ServiceNow, Jira, PagerDuty</td>
+</tr>
+</tbody>
+</table>
+<h3>Installing from Hub</h3>
+<ol>
+<li>Search for the integration you need</li>
+<li>Click <strong>Install</strong> or <strong>Add to environment</strong></li>
+<li>Follow the configuration wizard</li>
+<li>Verify data appears in Dynatrace</li>
+</ol>
+<p><a id="common-saas-integrations"></a></p>
+<h2>7. Common SaaS Integrations</h2>
+<p>The methods below are typical starting points; Hub listings change, so confirm each platform's current listing in Hub before you plan.</p>
+<h3>Messaging Platforms</h3>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Integration Method</th>
+<th>Key Metrics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Confluent Cloud</strong></td>
+<td>Extensions 2.0</td>
+<td>Consumer lag, throughput, partitions</td>
+</tr>
+<tr>
+<td><strong>Amazon MSK</strong></td>
+<td>AWS Integration</td>
+<td>Broker metrics, topic metrics</td>
+</tr>
+<tr>
+<td><strong>RabbitMQ</strong></td>
+<td>Extensions 2.0</td>
+<td>Queue depth, message rates</td>
+</tr>
+</tbody>
+</table>
+<h3>CRM &amp; Business Apps</h3>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Integration Method</th>
+<th>Key Metrics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Salesforce</strong></td>
+<td>Extensions 2.0 / API</td>
+<td>API calls, response times, limits</td>
+</tr>
+<tr>
+<td><strong>ServiceNow</strong></td>
+<td>Extensions 2.0</td>
+<td>Incident metrics, workflow times</td>
+</tr>
+</tbody>
+</table>
+<h3>DevOps Tools</h3>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Integration Method</th>
+<th>Key Metrics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>GitHub</strong></td>
+<td>Webhooks</td>
+<td>Deployment events, commit info</td>
+</tr>
+<tr>
+<td><strong>GitLab</strong></td>
+<td>Webhooks</td>
+<td>Pipeline events, deployments</td>
+</tr>
+<tr>
+<td><strong>ArgoCD</strong></td>
+<td>Extensions 2.0</td>
+<td>Sync status, app health</td>
+</tr>
+</tbody>
+</table>
+<h3>Productivity &amp; Identity</h3>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Integration Method</th>
+<th>Key Metrics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Microsoft 365</strong></td>
+<td>Hub extension (runs on an ActiveGate) for metrics. Audit logs take two routes: Entra ID sign-ins through Azure log forwarding, and the workload audit through a collector on the Office 365 Management Activity API — see <strong>FAQ-27</strong></td>
+<td>Service health, usage, licenses (extension); who did what in Exchange, SharePoint, OneDrive and Teams (audit)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>The extension does not deliver the audit trail: <em>&quot;The extension uses audit logs to count O365 service users.&quot;</em></p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/microsoft-365-office-365">Microsoft 365, Office 365 extension (DT docs)</a> — <em>&quot;The extension runs on Dynatrace ActiveGate.&quot;</em></sub></p>
+</blockquote>
+<h3>Database-as-a-Service</h3>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Integration Method</th>
+<th>Key Metrics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MongoDB Atlas</strong></td>
+<td>Extensions 2.0</td>
+<td>Connections, ops/sec, replication lag</td>
+</tr>
+<tr>
+<td><strong>AWS DocumentDB</strong></td>
+<td>AWS Integration</td>
+<td>CloudWatch metrics</td>
+</tr>
+<tr>
+<td><strong>Snowflake</strong></td>
+<td>Snowflake integration in the Data Observability app (guided setup wizard); the Snowflake extension is deprecated</td>
+<td>Query performance, warehouse usage</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>The Snowflake extension is deprecated.</strong> Its documentation page says: <em>&quot;The Snowflake extension is deprecated and has been replaced with the new Snowflake integration.&quot;</em> The replacement is the Data Observability app, which <em>&quot;connects your Snowflake account with Dynatrace through a guided setup wizard.&quot;</em> Start new Snowflake monitoring there. Keep existing extension-based Snowflake configurations running until the integration is in place rather than tearing them down first. (A separate DSOA installation wizard in Business Observability arrived with SaaS 1.345.)</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/snowflake">Snowflake extension (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/data-observability/data-observability-app">Data Observability app (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-345">SaaS 1.345 (DT docs)</a> — <em>&quot;Introduced a Dynatrace Snowflake Observability Agent (DSOA) installation wizard that streamlines the setup process within Business Observability.&quot;</em></sub></p>
+<p><strong>Do not confuse this with the Snowflake <em>data connector</em>.</strong> The connector installed from the Hub and configured under <strong>Settings &gt; Connections</strong> powers Snowflake <em>workflow actions</em> (Execute Statement, Store Statement Result) — see the WFLOW series for that path. It is a different surface, serves a different purpose, and is unaffected by this change.</p>
+</blockquote>
+<p><a id="verifying-integrations"></a></p>
+<h2>8. Verifying Integrations</h2>
+<p>After configuring integrations, verify data is flowing into Dynatrace.</p>
+<pre><code class="language-dql">// Check for AWS Lambda functions (modern Smartscape topology query)
+smartscapeNodes &quot;AWS_LAMBDA_FUNCTION&quot;
+| fields name, id
+| limit 20
+
+// Legacy alternative (deprecated dt.entity.* — still works on hybrid tenants):
+// fetch dt.entity.aws_lambda_function
+// | fields entity.name, id
+// | limit 20
+
+</code></pre>
+<pre><code class="language-dql">// Check for Azure VMs (modern Smartscape topology query)
+// Azure node types follow AZURE_&lt;RESOURCE_PROVIDER&gt;_&lt;TYPE&gt; - &quot;AZURE_VM&quot; is not a node type and returns nothing.
+smartscapeNodes &quot;AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES&quot;
+| fields name, id
+| limit 20
+
+// Legacy alternative (deprecated dt.entity.* — still works on hybrid tenants):
+// fetch dt.entity.azure_vm
+// | fields entity.name, id
+// | limit 20
+
+</code></pre>
+<pre><code class="language-dql">// Check for cloud-sourced metrics
+//
+// The `dt.cloud.aws.*` metric namespace DOES NOT EXIST in any spelling (verified 08/12/2026).
+// AWS CloudWatch metrics are published as cloud.aws.&lt;service&gt;.&lt;CloudWatchName&gt;.By.&lt;Dimension&gt; —
+// the CloudWatch name keeps its PascalCase and the split dimension is part of the key. A
+// timeseries against a missing key returns an EMPTY result rather than an error, so this cell
+// silently drew nothing. Enumerate with:
+//   metrics | filter startsWith(metric.key, &quot;cloud.aws&quot;) | fields metric.key | sort metric.key asc
+timeseries avgDuration = avg(cloud.aws.lambda.Duration.By.FunctionName), from:-24h, by:{FunctionName}
+| fieldsAdd avg_duration_ms = arrayAvg(avgDuration)
+| fields FunctionName, avg_duration_ms
+| sort avg_duration_ms desc
+| limit 10
+
+// Or browse available cloud metrics in the Dynatrace Metrics browser:
+// Observe &amp; Explore → Metrics → search for &quot;cloud&quot; or &quot;aws&quot; / &quot;azure&quot; / &quot;gcp&quot;
+</code></pre>
+<pre><code class="language-dql">// Check Extensions 2.0 status - one row per extension, status and ActiveGate group.
+// dt.extension.status: OK = collecting; UNASSIGNED = the configuration is not bound to a
+// running ActiveGate group or host; DATASOURCE_UNSUPPORTED = the data source on that
+// host/endpoint is not supported. A dt.entity.host value marks a local extension running
+// on OneAgent; a missing group name alone does not. datapoints = data points in the
+// window, summed across hosts and configurations.
+timeseries s = count(dt.sfm.extension.status), from:-24h,
+    by:{dt.extension.name, dt.extension.status, dt.active_gate.group.name}
+| fieldsAdd datapoints = arraySum(s)
+| fields dt.extension.name, dt.extension.status, dt.active_gate.group.name, datapoints
+| sort dt.extension.status asc, dt.extension.name asc
+| limit 50
+
+</code></pre>
+<h3>Troubleshooting Integration Issues</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Common Cause</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>No data appearing</strong></td>
+<td>Credentials invalid</td>
+<td>Verify IAM role/service account</td>
+</tr>
+<tr>
+<td><strong>Partial data</strong></td>
+<td>Permissions incomplete</td>
+<td>Check required permissions list</td>
+</tr>
+<tr>
+<td><strong>Delayed data</strong></td>
+<td>Polling interval</td>
+<td>Cloud metrics arrive on the provider's publishing and polling cadence — compare against the provider console before treating it as a fault</td>
+</tr>
+<tr>
+<td><strong>Extension not running</strong></td>
+<td>Not assigned, or AG / host issue</td>
+<td>Run the status query above — <code>UNASSIGNED</code> means no running AG group or host is bound; then check AG logs</td>
+</tr>
+<tr>
+<td><strong>Metrics but no entities</strong></td>
+<td>Tag configuration</td>
+<td>Ensure resources are tagged correctly</td>
+</tr>
+</tbody>
+</table>
+<p><a id="next-steps"></a></p>
+<h2>9. Next Steps</h2>
+<p>With cloud and SaaS integrations configured:</p>
+<ol>
+<li><strong>ONBRD-05: Deploying OneAgent</strong> — Add deep application monitoring</li>
+<li><strong>ONBRD-06: Organizing Your Environment</strong> — Tag and segment integrated resources; design <code>dt.security_context</code></li>
+<li>Explore the topology in Smartscape to see cloud services</li>
+<li>Create dashboards combining cloud metrics with application data</li>
+</ol>
+<h3>Where to Go Deeper</h3>
+<ul>
+<li><strong>CLOUD series</strong> (9 notebooks) — Per-provider integration deep dives (AWS, Azure, GCP)</li>
+<li><strong>FAQ-19 / FAQ-27</strong> — Integrating a SaaS platform you do not run; FAQ-27 is the Microsoft 365 audit-log case (Entra ID through Azure log forwarding, plus a Management Activity API collector)</li>
+<li><strong>AUTOM series</strong> (14 notebooks) — GitOps / Terraform / Monaco automation for extension deployment</li>
+<li><strong>OPLOGS / OPMIG / OPIPE</strong> — OpenPipeline routing for ingested cloud and SaaS data</li>
+<li><strong>OTEL series</strong> — OpenTelemetry as the alternative ingest path</li>
+</ul>
+<h3>Integration Checklist</h3>
+<ul>
+<li>[ ] AWS / Azure / GCP integration configured (Clouds app for AWS/Azure; <code>dynatrace-gcp-monitor</code> for GCP — no AG on SaaS — until the Clouds connection reaches your tenant)</li>
+<li>[ ] Required cloud permissions granted</li>
+<li>[ ] ActiveGate group assigned for remote extensions</li>
+<li>[ ] Extensions 2.0 evaluated for custom integrations; any remaining EF1.0 extensions (JMX / PMI: end of support on SaaS 07/01/2027) identified for migration</li>
+<li>[ ] Key SaaS platforms identified for integration</li>
+<li>[ ] Extensions installed from Hub</li>
+<li>[ ] Data verified flowing into Dynatrace</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>The integration method matrix (Clouds app / AG polling / Extensions / OTel / Ingest APIs)</li>
+<li>Per-provider status (AWS GA, Azure direct connection since SaaS 1.337, GCP Clouds connection GA (10/29/2026); classic GCP needs no AG on SaaS)</li>
+<li>AWS, Azure, and GCP setup paths</li>
+<li>Extensions 2.0 as the current extensions framework</li>
+<li>Dynatrace Hub for discovery</li>
+<li>Common SaaS integration patterns</li>
+<li>DQL queries to verify integrations are landing in topology, and to check extension status</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring">Cloud Platforms</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring">Clouds App</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/aws-monitoring">AWS Monitoring</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/azure-monitoring">Azure Monitoring</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-onboarding">Azure Cloud Platform Monitoring (DT docs)</a> — the no-ActiveGate quote above</li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-337">What's new in Dynatrace SaaS 1.337 (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform">Set up Dynatrace on Google Cloud (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform-classic/gcp-integrations/gcp-guide/deploy-k8">Set up the Dynatrace GCP integration on GKE (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/cloudwatch-metrics">AWS CloudWatch metrics (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/extensions">Extensions Framework</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/hub">Dynatrace Hub</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

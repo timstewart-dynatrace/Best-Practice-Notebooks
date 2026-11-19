@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPIPE-01: OpenPipeline as a Multi-Scope Platform</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPIPE — OpenPipeline Beyond Logs</a><span class="sep">/</span><span aria-current="page">OPIPE-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPIPE-01: OpenPipeline as a Multi-Scope Platform</h1>
+<blockquote>
+<p><strong>Series:</strong> OPIPE — OpenPipeline Beyond Logs | <strong>Notebook:</strong> 1 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+</blockquote>
+<h2>Beyond Logs: Processing Spans, Metrics, and Events at Ingestion</h2>
+<p>OpenPipeline is often introduced as a log processing framework — and logs are indeed the most common entry point. But OpenPipeline operates on many <strong>configuration scopes</strong> — logs, spans, metrics, events, business events, security events and more — each with its own pipelines, routing rules, and extraction capabilities. This notebook builds intuition for how the platform works across all scopes and why pipeline design matters.</p>
+<blockquote>
+<p><strong>Companion Series</strong></p>
+<ul>
+<li><strong>OPLOGS</strong> — Deep-dive into log processing: <strong>OPLOGS-01: OpenPipeline Fundamentals</strong></li>
+<li><strong>OPMIG</strong> — Migrating from classic logs? Start with <strong>OPMIG-01: OpenPipeline Migration Guide: Part 1</strong></li>
+<li><strong>SPANS</strong> — Querying and analyzing distributed traces: <strong>SPANS-01: Fundamentals</strong></li>
+</ul>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#openpipeline-scopes">The OpenPipeline Scopes</a></li>
+<li><a href="#shared-architecture-across-scopes">Shared Architecture Across Scopes</a></li>
+<li><a href="#the-default-pipeline-anti-pattern">The Default Pipeline Anti-Pattern</a></li>
+<li><a href="#pipeline-design-principles">Pipeline Design Principles</a></li>
+<li><a href="#matching-conditions">Matching Conditions: Conditional Logic Within a Pipeline</a></li>
+<li><a href="#security-context-across-scopes">Security Context Across Scopes</a></li>
+<li><a href="#ingestion-time-vs-query-time-processing">Ingestion-Time vs. Query-Time Processing</a></li>
+<li><a href="#summary">Summary</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:logs:read</code>, <code>storage:spans:read</code>, <code>storage:metrics:read</code>, <code>storage:events:read</code>, <code>storage:bizevents:read</code></td>
+</tr>
+<tr>
+<td><strong>Recommended</strong></td>
+<td>Familiarity with <strong>OPLOGS-01</strong> (log pipeline basics)</td>
+</tr>
+</tbody>
+</table>
+<h3>OneAgent 1.333+: Primary Fields/Tags as Routing Keys</h3>
+<p>From <strong>OneAgent 1.333</strong>, OneAgent can enrich telemetry at the source with standardized <strong>primary fields</strong> and customer-defined <strong>primary tags</strong> as top-level attributes — an OpenPipeline-relevant change, because those attributes are present before routing. The agent version is what matters here, not the tenant version: verify the OneAgent version on the hosts concerned (details and configuration in <a href="#shared-architecture-across-scopes">OneAgent Attribute Enrichment</a> below).</p>
+<p><strong>Primary fields</strong> (Semantic Dictionary-defined):</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.security_context</code></td>
+<td>ABAC scope for IAM policies; also drives bucket-routing decisions</td>
+</tr>
+<tr>
+<td><code>dt.cost.costcenter</code></td>
+<td>Cost allocation tag; routes spend to org units</td>
+</tr>
+<tr>
+<td><code>dt.cost.product</code></td>
+<td>Product-line attribution for cost rollups</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Primary tags</strong> (customer-defined): set during OneAgent install via <code>oneagentctl --set-host-tag=&quot;primary_tags.&lt;key&gt;=&lt;value&gt;&quot;</code> — the <code>primary_tags.</code> prefix must be written explicitly (it is never added automatically); e.g., <code>primary_tags.team</code>, <code>primary_tags.env</code>, <code>primary_tags.app</code>, <code>primary_tags.data_classification</code>. Land as <code>primary_tags.&lt;key&gt;</code> on every signal, up to 20 primary tags per host or process — beyond 20, <em>&quot;OneAgent doesn't emit any warning and does not enrich data with the excess tags.&quot;</em></p>
+<p><strong>Pipeline implication for cross-scope design:</strong></p>
+<ol>
+<li>
+<p><strong>Routing rules</strong> can dispatch on primary fields directly without parse processors. A route's matching condition is DQL, and a route sends records to a <strong>pipeline</strong>, not to a bucket:</p>
+<table>
+<thead>
+<tr>
+<th>Route matcher (DQL)</th>
+<th>Target pipeline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.cost.costcenter == &quot;cc-1234&quot;</code></td>
+<td><code>finance-logs</code></td>
+</tr>
+<tr>
+<td><code>matchesValue(dt.security_context, &quot;*pci*&quot;)</code></td>
+<td><code>pci-audit</code> (whose Bucket assignment stage picks the 365-day bucket)</td>
+</tr>
+</tbody>
+</table>
+<p>The bucket is chosen later, by the target pipeline's <strong>Bucket assignment</strong> stage. Write substring tests as <code>matchesValue(field, &quot;*text*&quot;)</code>, not <code>contains()</code>: OpenPipeline matchers accept only a subset of DQL functions, and a condition written with <code>contains()</code> or <code>in()</code> is rejected with the verifier error <code>The function contains() isn't enabled.</code> <code>matchesValue</code> is case-insensitive and also matches any element when <code>dt.security_context</code> holds an array value (see the array rule in §6).</p>
+</li>
+<li>
+<p><strong>Cross-scope consistency:</strong> because primary fields/tags appear on logs, spans, metrics, AND business events, queries that join across scopes (OPIPE-06 cross-scope design patterns) can correlate without scope-specific lookup tables.</p>
+</li>
+<li>
+<p><strong>Non-OneAgent sources</strong> (raw syslog, third-party log shippers, OTLP-via-collector) still need OpenPipeline <code>enrichment</code> processors to surface the same fields. Document this split in your standard.</p>
+</li>
+</ol>
+<blockquote>
+<p><strong>Update (June 2026) — primary tags are now formally documented.</strong> Dynatrace published a dedicated <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags">Primary tags (DT docs)</a> page that canonicalizes the model. Two points matter for pipeline design: (1) <strong>OpenPipeline itself is a documented primary-tag source</strong> — <code>primary_tags.*</code> values can be <em>&quot;derived or transformed from any incoming field at ingest-processing time&quot;</em>, which closes the non-OneAgent-sources gap in point 3 above: instead of generic enrichment processors producing ad-hoc fields, derive proper <code>primary_tags.&lt;key&gt;</code> values so downstream routing and bucket assignment treat agent and agentless data identically. (2) The other documented sources are OneAgent, Kubernetes annotations (<code>metadata.dynatrace.com/primary_tags.&lt;key&gt;</code>), cloud-provider tags, OpenTelemetry resource attributes, and host or process metadata. Primary tags are &quot;available before data enters the processing pipeline,&quot; which is exactly what makes them usable in routing conditions like the examples above.</p>
+</blockquote>
+<p><strong>SaaS 1.337 added recommended-field suggestions to extraction processors.</strong> Per the release notes, extraction processors <em>&quot;now supply a recommended set of fields to be extracted, which helps avoid misconfiguration and exposing sensitive data&quot;</em>, and the recommendations cover permission- and cost-relevant fields, Smartscape identifiers, and Grail primary tags.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment">Primary Grail fields and tags enrichment through OneAgent (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-337">SaaS 1.337 release notes (DT docs)</a>.</sub></p>
+</blockquote>
+<hr />
+<p><a id="openpipeline-scopes"></a></p>
+<h2>1. The OpenPipeline Scopes</h2>
+<p>OpenPipeline processes data through independent <strong>configuration scopes</strong> — logs, spans, metrics, generic events, Davis events and problems, SDLC events, business events, security events, system events (limited support), Smartscape events (limited support), user events, and user sessions. Each scope has its own set of pipelines, routing rules, processors, and storage targets. They share the same architecture but operate on different data types. This series covers the six you will configure most:</p>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Data Object</th>
+<th>Primary Use Case</th>
+<th>Key Fields</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Logs</strong></td>
+<td><code>logs</code></td>
+<td>Application and infrastructure log records</td>
+<td><code>content</code>, <code>loglevel</code>, <code>log.source</code></td>
+</tr>
+<tr>
+<td><strong>Spans</strong></td>
+<td><code>spans</code></td>
+<td>Distributed trace spans from services</td>
+<td><code>span.kind</code>, <code>trace.id</code>, <code>duration</code></td>
+</tr>
+<tr>
+<td><strong>Metrics</strong></td>
+<td><code>timeseries</code></td>
+<td>Time-series measurements from agents and extensions</td>
+<td><code>metric.key</code>, <code>dt.entity.*</code></td>
+</tr>
+<tr>
+<td><strong>Events</strong></td>
+<td><code>events</code></td>
+<td>Lifecycle and configuration change events</td>
+<td><code>event.kind</code>, <code>event.type</code></td>
+</tr>
+<tr>
+<td><strong>Business Events</strong></td>
+<td><code>bizevents</code></td>
+<td>Business transactions and user actions</td>
+<td><code>event.type</code>, <code>event.provider</code></td>
+</tr>
+<tr>
+<td><strong>Security Events</strong></td>
+<td><code>security.events</code></td>
+<td>Vulnerability, detection, and compliance findings</td>
+<td><code>event.kind</code>, <code>event.type</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/data-flow">OpenPipeline data flow (DT docs)</a> — configuration scope list.</sub></p>
+</blockquote>
+<h3>What This Means in Practice</h3>
+<p>Each scope is configured <strong>independently</strong> in the Dynatrace UI under <strong>OpenPipeline</strong> settings. A processing rule you create for logs has no effect on spans. A routing rule for business events does not apply to metrics. This independence is a feature — it means you can evolve each scope's pipeline at its own pace without risk to other data types.</p>
+<h3>Discovering Your Active Scopes</h3>
+<p>The following queries show what data is flowing through each scope in your environment.</p>
+<pre><code class="language-dql">// Log pipelines: volume by pipeline and bucket
+fetch logs, from:-1h
+| summarize log_count = count(), by:{dt.openpipeline.pipelines, dt.system.bucket}
+| sort log_count desc
+</code></pre>
+<pre><code class="language-dql">// Span pipelines: volume by pipeline and bucket
+fetch spans, from:-1h
+| summarize span_count = count(), by:{dt.openpipeline.pipelines, dt.system.bucket}
+| sort span_count desc
+</code></pre>
+<pre><code class="language-dql">// Business event pipelines: volume by provider and type
+fetch bizevents, from:-1h
+| summarize event_count = count(), by:{event.provider, event.type}
+| sort event_count desc
+</code></pre>
+<p><a id="shared-architecture-across-scopes"></a></p>
+<h2>2. Shared Architecture Across Scopes</h2>
+<h3>Sprint 1.345 (August 2026): Temporary Fields (<code>dt.temp.*</code>)</h3>
+<p>A field whose name is prefixed <strong><code>dt.temp.</code></strong> (with the dot) lives for the duration of pipeline processing and is <strong>discarded before the record is written to Grail</strong>. That closes a long-standing gap in the extraction pattern this series teaches: previously, an intermediate value needed for metric, event, or bizevent extraction had to be written onto the record — where it persisted, consumed storage, and changed the shape of the stored data for every downstream consumer.</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Lifetime</td>
+<td>Available to subsequent processors in the same pipeline, from the processor that defines it; dropped at storage</td>
+</tr>
+<tr>
+<td>Persistence</td>
+<td>Never written to Grail — invisible to <code>fetch</code></td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>Not persisted, so it adds nothing to stored volume or retention</td>
+</tr>
+<tr>
+<td>Enablement</td>
+<td>None — the <code>dt.temp.</code> prefix alone marks the field temporary; a field named <code>dt.temp</code> on its own is stored normally</td>
+</tr>
+<tr>
+<td>Scope support</td>
+<td>Every scope with a Processing stage; not applicable to Smartscape upsert events</td>
+</tr>
+</tbody>
+</table>
+<p>Use it for intermediate calculations feeding extraction. Do <strong>not</strong> use it for enrichment you intend to query later — the field will not be there. SaaS 1.345 released 08/11/2026 with a <strong>staged tenant rollout</strong>; verify availability in your tenant before relying on the prefix, and note that a <code>dt.temp.</code> field written on a tenant that does not yet support the semantics would simply persist as an ordinary attribute.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — <em>&quot;Prefix a field name with dt.temp. to create a temporary field.&quot;</em>; <code>dt.temp</code> used as a field name itself <em>&quot;is not a temporary field and is stored normally&quot;</em>; <em>&quot;Temporary fields are available to the subsequent processors within the same pipeline, starting from the processor that defines them.&quot;</em>; <em>&quot;Temporary fields aren't applicable to Smartscape upsert events.&quot;</em></sub></p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibG9nc0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM2I4MmY2O3N0b3Atb3BhY2l0eToxIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzI1NjNlYjtzdG9wLW9wYWNpdHk6MSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3BhbnNHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhiNWNmNjtzdG9wLW9wYWNpdHk6MSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3YzNhZWQ7c3RvcC1vcGFjaXR5OjEiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9Im1ldHJpY3NHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzEwYjk4MTtzdG9wLW9wYWNpdHk6MSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2Njk7c3RvcC1vcGFjaXR5OjEiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImV2ZW50c0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZjU5ZTBiO3N0b3Atb3BhY2l0eToxIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Q5NzcwNjtzdG9wLW9wYWNpdHk6MSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYml6R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNmI2ZDQ7c3RvcC1vcGFjaXR5OjEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMDg5MWIyO3N0b3Atb3BhY2l0eToxIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJzZWNHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2VmNDQ0NDtzdG9wLW9wYWNpdHk6MSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkYzI2MjY7c3RvcC1vcGFjaXR5OjEiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InByb2Nlc3NHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzY0NzQ4YjtzdG9wLW9wYWNpdHk6MSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM0NzU1Njk7c3RvcC1vcGFjaXR5OjEiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWlsR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxZTI5M2I7c3RvcC1vcGFjaXR5OjEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMGYxNzJhO3N0b3Atb3BhY2l0eToxIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0ic2hhZG93Ij4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMiIgZHk9IjIiIHN0ZERldmlhdGlvbj0iMyIgZmxvb2Qtb3BhY2l0eT0iMC4xOCIvPgogICAgPC9maWx0ZXI+CiAgICA8bWFya2VyIGlkPSJhcnIiIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzk0YTNiOCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8cmVjdCB3aWR0aD0iOTMwIiBoZWlnaHQ9IjUwMCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMwZjE3MmEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk9wZW5QaXBlbGluZSBhcyBhIE11bHRpLVNjb3BlIFBsYXRmb3JtPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VGhlIG1haW4gY29uZmlndXJhdGlvbiBzY29wZXMsIGVhY2ggd2l0aCBpdHMgb3duIHBpcGVsaW5lcyBhbmQgcm91dGluZyDigJQgc2hhcmluZyB0aGUgc2FtZSBkYXRhIGZsb3c8L3RleHQ+CgogIDwhLS0gU2l4IHNjb3BlIHJvd3MgLS0+CiAgPGcgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIj4KICAgIDwhLS0gTG9ncyByb3cgLS0+CiAgICA8cmVjdCB4PSIyMCIgeT0iNzAiIHdpZHRoPSIxMTUiIGhlaWdodD0iNTAiIHJ4PSI2IiBmaWxsPSJ1cmwoI2xvZ3NHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICAgIDx0ZXh0IHg9Ijc3IiB5PSI5MCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Mb2dzPC90ZXh0PgogICAgPHRleHQgeD0iNzciIHk9IjEwNSIgZm9udC1zaXplPSI5IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuODUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5jb250ZW50LCBsb2dsZXZlbCw8L3RleHQ+CiAgICA8dGV4dCB4PSI3NyIgeT0iMTE2IiBmb250LXNpemU9IjkiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmxvZy5zb3VyY2U8L3RleHQ+CgogICAgPCEtLSBTcGFucyByb3cgLS0+CiAgICA8cmVjdCB4PSIyMCIgeT0iMTMwIiB3aWR0aD0iMTE1IiBoZWlnaHQ9IjUwIiByeD0iNiIgZmlsbD0idXJsKCNzcGFuc0dyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogICAgPHRleHQgeD0iNzciIHk9IjE1MCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TcGFuczwvdGV4dD4KICAgIDx0ZXh0IHg9Ijc3IiB5PSIxNjUiIGZvbnQtc2l6ZT0iOSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjg1KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+c3Bhbi5raW5kLCB0cmFjZS5pZCw8L3RleHQ+CiAgICA8dGV4dCB4PSI3NyIgeT0iMTc2IiBmb250LXNpemU9IjkiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmR1cmF0aW9uPC90ZXh0PgoKICAgIDwhLS0gTWV0cmljcyByb3cgLS0+CiAgICA8cmVjdCB4PSIyMCIgeT0iMTkwIiB3aWR0aD0iMTE1IiBoZWlnaHQ9IjUwIiByeD0iNiIgZmlsbD0idXJsKCNtZXRyaWNzR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgICA8dGV4dCB4PSI3NyIgeT0iMjEwIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk1ldHJpY3M8L3RleHQ+CiAgICA8dGV4dCB4PSI3NyIgeT0iMjI1IiBmb250LXNpemU9IjkiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPm1ldHJpYy5rZXksPC90ZXh0PgogICAgPHRleHQgeD0iNzciIHk9IjIzNiIgZm9udC1zaXplPSI5IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuODUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5kdC5lbnRpdHkuKjwvdGV4dD4KCiAgICA8IS0tIEV2ZW50cyByb3cgLS0+CiAgICA8cmVjdCB4PSIyMCIgeT0iMjUwIiB3aWR0aD0iMTE1IiBoZWlnaHQ9IjUwIiByeD0iNiIgZmlsbD0idXJsKCNldmVudHNHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICAgIDx0ZXh0IHg9Ijc3IiB5PSIyNzAiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RXZlbnRzPC90ZXh0PgogICAgPHRleHQgeD0iNzciIHk9IjI4NSIgZm9udC1zaXplPSI5IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuODUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ldmVudC5raW5kLDwvdGV4dD4KICAgIDx0ZXh0IHg9Ijc3IiB5PSIyOTYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjg1KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZXZlbnQudHlwZTwvdGV4dD4KCiAgICA8IS0tIEJpemV2ZW50cyByb3cgLS0+CiAgICA8cmVjdCB4PSIyMCIgeT0iMzEwIiB3aWR0aD0iMTE1IiBoZWlnaHQ9IjUwIiByeD0iNiIgZmlsbD0idXJsKCNiaXpHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICAgIDx0ZXh0IHg9Ijc3IiB5PSIzMzAiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QnVzaW5lc3MgRXZlbnRzPC90ZXh0PgogICAgPHRleHQgeD0iNzciIHk9IjM0NSIgZm9udC1zaXplPSI5IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuODUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ldmVudC50eXBlLDwvdGV4dD4KICAgIDx0ZXh0IHg9Ijc3IiB5PSIzNTYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjg1KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZXZlbnQucHJvdmlkZXI8L3RleHQ+CgogICAgPCEtLSBTZWN1cml0eSByb3cgLS0+CiAgICA8cmVjdCB4PSIyMCIgeT0iMzcwIiB3aWR0aD0iMTE1IiBoZWlnaHQ9IjUwIiByeD0iNiIgZmlsbD0idXJsKCNzZWNHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICAgIDx0ZXh0IHg9Ijc3IiB5PSIzOTAiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2VjdXJpdHkgRXZlbnRzPC90ZXh0PgogICAgPHRleHQgeD0iNzciIHk9IjQwNSIgZm9udC1zaXplPSI5IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuODUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ldmVudC5raW5kLDwvdGV4dD4KICAgIDx0ZXh0IHg9Ijc3IiB5PSI0MTYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjg1KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZXZlbnQudHlwZTwvdGV4dD4KICA8L2c+CgogIDwhLS0gQXJyb3dzIGZyb20gZWFjaCBzY29wZSB0byB0aGUgcm91dGluZyBjb2x1bW4gLS0+CiAgPHBhdGggZD0iTTEzNSw5NSBMMTYwLDk1IiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMS41IiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8cGF0aCBkPSJNMTM1LDE1NSBMMTYwLDE1NSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjEuNSIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPHBhdGggZD0iTTEzNSwyMTUgTDE2MCwyMTUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDxwYXRoIGQ9Ik0xMzUsMjc1IEwxNjAsMjc1IiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMS41IiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8cGF0aCBkPSJNMTM1LDMzNSBMMTYwLDMzNSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjEuNSIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPHBhdGggZD0iTTEzNSwzOTUgTDE2MCwzOTUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgoKICA8IS0tIFNoYXJlZCA0LXN0YWdlIGZsb3cgYm94IC0tPgogIDxyZWN0IHg9IjE2NSIgeT0iNzUiIHdpZHRoPSI2MDAiIGhlaWdodD0iMzUwIiByeD0iMTAiIGZpbGw9IiNmZmZmZmYiIHN0cm9rZT0iI2NiZDVlMSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI1IDMiLz4KICA8dGV4dCB4PSI0NjUiIHk9Ijk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjNDc1NTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TaGFyZWQgNC1zdGFnZSBkYXRhIGZsb3cgKHBlciAvY29uY2VwdHMvZGF0YS1mbG93KSDigJQgYXBwbGllZCBpbmRlcGVuZGVudGx5IHBlciBzY29wZTwvdGV4dD4KCiAgPCEtLSBSb3V0aW5nIGNvbHVtbiAtLT4KICA8cmVjdCB4PSIxODAiIHk9IjEyMCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIyODAiIHJ4PSI4IiBmaWxsPSIjZWRlOWZlIiBzdHJva2U9IiM4YjVjZjYiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iMjQwIiB5PSIxNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM1YjIxYjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjIuIFJPVVRJTkc8L3RleHQ+CiAgPHRleHQgeD0iMjQwIiB5PSIxNjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzViMjFiNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UGVyLXNjb3BlIHJ1bGVzPC90ZXh0PgogIDx0ZXh0IHg9IjI0MCIgeT0iMTgwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM1YjIxYjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkR5bmFtaWMgKERRTCk8L3RleHQ+CiAgPHRleHQgeD0iMjQwIiB5PSIxOTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzViMjFiNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U3RhdGljIChjdXN0b20pPC90ZXh0PgogIDx0ZXh0IHg9IjI0MCIgeT0iMjIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzdjM2FlZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VXAgdG8gMTAwIHBpcGVsaW5lczwvdGV4dD4KICA8dGV4dCB4PSIyNDAiIHk9IjIzNCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM3YzNhZWQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPisgMTAwIHJvdXRlczwvdGV4dD4KICA8dGV4dCB4PSIyNDAiIHk9IjI0OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM3YzNhZWQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnBlciBzY29wZTwvdGV4dD4KICA8dGV4dCB4PSIyNDAiIHk9IjI4MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM3YzNhZWQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk9uZSByb3V0ZSBwZXI8L3RleHQ+CiAgPHRleHQgeD0iMjQwIiB5PSIyOTQiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjN2MzYWVkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5yZWNvcmQ7IGdyb3VwczwvdGV4dD4KICA8dGV4dCB4PSIyNDAiIHk9IjMwOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM3YzNhZWQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmFkZCBiYXNlIHBpcGVsaW5lczwvdGV4dD4KICA8dGV4dCB4PSIyNDAiIHk9IjM1MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZvbnQtc3R5bGU9Iml0YWxpYyIgZmlsbD0iIzViMjFiNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Um91dGVzIG9yZGVyZWQ6PC90ZXh0PgogIDx0ZXh0IHg9IjI0MCIgeT0iMzY0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjNWIyMWI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5maXJzdCBtYXRjaCB3aW5zPC90ZXh0PgoKICA8IS0tIEFycm93IFJvdXRpbmcgLT4gUHJvY2Vzc2luZyAtLT4KICA8cGF0aCBkPSJNMzAwLDI2MCBMMzI1LDI2MCIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgoKICA8IS0tIFByb2Nlc3NpbmcgY29sdW1uICh0YWxsZXIgYm94IHdpdGggY2F0ZWdvcmllcykgLS0+CiAgPHJlY3QgeD0iMzMwIiB5PSIxMjAiIHdpZHRoPSIyNDAiIGhlaWdodD0iMjgwIiByeD0iOCIgZmlsbD0idXJsKCNwcm9jZXNzR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iNDUwIiB5PSIxNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4zLiBQSVBFTElORSBTVEFHRVM8L3RleHQ+CiAgPHRleHQgeD0iNDUwIiB5PSIxNjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOCkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmZpeGVkIHNlcXVlbmNlLCB0b3AgdG8gYm90dG9tIOKAlCBjYW5ub3QgYmUgcmVvcmRlcmVkPC90ZXh0PgoKICA8dGV4dCB4PSI0NTAiIHk9IjE4NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjk1KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UHJvY2Vzc2luZzwvdGV4dD4KICA8dGV4dCB4PSI0NTAiIHk9IjIwMSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RFFMIChwYXJzZSwgbWFzaykgJiM4MjI2OyBBZGQvUmVtb3ZlL1JlbmFtZSAmIzgyMjY7IERyb3A8L3RleHQ+CgogIDx0ZXh0IHg9IjQ1MCIgeT0iMjI2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOTUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TbWFydHNjYXBlICYjODIyNjsgUGVybWlzc2lvbiAmIzgyMjY7IEFsbG9jYXRpb248L3RleHQ+CiAgPHRleHQgeD0iNDUwIiB5PSIyNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOCkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNtYXJ0c2NhcGUgbm9kZSAvIGVkZ2UgJiM4MjI2OyBkdC5zZWN1cml0eV9jb250ZXh0PC90ZXh0PgogIDx0ZXh0IHg9IjQ1MCIgeT0iMjUyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjgpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EUFMgcHJvZHVjdCBhbGxvY2F0aW9uICYjODIyNjsgY29zdCBhbGxvY2F0aW9uPC90ZXh0PgoKICA8dGV4dCB4PSI0NTAiIHk9IjI3OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjk1KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QnVja2V0IGFzc2lnbm1lbnQ8L3RleHQ+CiAgPHRleHQgeD0iNDUwIiB5PSIyOTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOCkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJ1Y2tldCAmIzgyMjY7IE5vIHN0b3JhZ2UgYXNzaWdubWVudCAoZmlyc3QgbWF0Y2gpPC90ZXh0PgoKICA8dGV4dCB4PSI0NTAiIHk9IjMxNiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjk1KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TWV0cmljIGV4dHJhY3Rpb248L3RleHQ+CiAgPHRleHQgeD0iNDUwIiB5PSIzMzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOCkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNvdW50ZXIgLyBIaXN0b2dyYW0gLyBWYWx1ZSAmIzgyMjY7IHNwYW5zOiBzYW1wbGluZy1hd2FyZTwvdGV4dD4KCiAgPHRleHQgeD0iNDUwIiB5PSIzNTQiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45NSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRhdmlzICYjODIyNjsgRGF0YSBleHRyYWN0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjQ1MCIgeT0iMzY4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjgpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EYXZpcyBldmVudCAmIzgyMjY7IEJ1c2luZXNzIGV2ZW50ICYjODIyNjsgU0RMQyBldmVudDwvdGV4dD4KCiAgPHRleHQgeD0iNDUwIiB5PSIzOTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmb250LXN0eWxlPSJpdGFsaWMiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC43KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MSwwMDAgcHJvY2Vzc29ycyBwZXIgcGlwZWxpbmU8L3RleHQ+CgogIDwhLS0gQXJyb3cgUHJvY2Vzc2luZyAtPiBTdG9yYWdlIC0tPgogIDxwYXRoIGQ9Ik01NzAsMjYwIEw1OTUsMjYwIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CgogIDwhLS0gU3RvcmFnZSBjb2x1bW4gLS0+CiAgPHJlY3QgeD0iNjAwIiB5PSIxNjAiIHdpZHRoPSIxNTAiIGhlaWdodD0iMjAwIiByeD0iOCIgZmlsbD0idXJsKCNncmFpbEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjY3NSIgeT0iMTg1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+NC4gU1RPUkFHRTwvdGV4dD4KICA8dGV4dCB4PSI2NzUiIHk9IjIwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuODUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5HcmFpbCBidWNrZXRzPC90ZXh0PgogIDx0ZXh0IHg9IjY3NSIgeT0iMjI1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjg1KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QnVja2V0IHNldCBieSB0aGU8L3RleHQ+CiAgPHRleHQgeD0iNjc1IiB5PSIyNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuODUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CdWNrZXQgYXNzaWdubWVudCBzdGFnZTwvdGV4dD4KICA8dGV4dCB4PSI2NzUiIHk9IjI2NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBlci1idWNrZXQgcmV0ZW50aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjY3NSIgeT0iMjgwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjg1KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UGVyLWJ1Y2tldCBhY2Nlc3M8L3RleHQ+CiAgPHRleHQgeD0iNjc1IiB5PSIzMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmb250LXN0eWxlPSJpdGFsaWMiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC43KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MTYgTUIgbWF4IHJlY29yZDwvdGV4dD4KICA8dGV4dCB4PSI2NzUiIHk9IjMzNCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZvbnQtc3R5bGU9Iml0YWxpYyIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjcpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5hZnRlciBwcm9jZXNzaW5nPC90ZXh0PgoKICA8IS0tIEFycm93cyBmcm9tIFN0b3JhZ2Ugb3V0IHRvIHF1ZXJ5IHN1cmZhY2UgLS0+CiAgPHBhdGggZD0iTTc1MCwyNjAgTDc4MCwyNjAiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KCiAgPCEtLSBRdWVyeSAvIERRTCBzdXJmYWNlIC0tPgogIDxyZWN0IHg9Ijc4NSIgeT0iMjAwIiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjEyMCIgcng9IjgiIGZpbGw9IiNmZWYzYzciIHN0cm9rZT0iI2Q5NzcwNiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI4NTAiIHk9IjIyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzc4MzUwZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RFFMIFF1ZXJ5PC90ZXh0PgogIDx0ZXh0IHg9Ijg1MCIgeT0iMjQ1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzc4MzUwZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZmV0Y2ggbG9nczwvdGV4dD4KICA8dGV4dCB4PSI4NTAiIHk9IjI1OSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM3ODM1MGYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmZldGNoIHNwYW5zPC90ZXh0PgogIDx0ZXh0IHg9Ijg1MCIgeT0iMjczIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzc4MzUwZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+dGltZXNlcmllczwvdGV4dD4KICA8dGV4dCB4PSI4NTAiIHk9IjI4NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM3ODM1MGYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmZldGNoIGV2ZW50czwvdGV4dD4KICA8dGV4dCB4PSI4NTAiIHk9IjMwMSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM3ODM1MGYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmZldGNoIGJpemV2ZW50czwvdGV4dD4KCiAgPCEtLSBJbmRlcGVuZGVuY2UgY2FsbG91dCAtLT4KICA8cmVjdCB4PSIyMCIgeT0iNDQwIiB3aWR0aD0iODkwIiBoZWlnaHQ9IjUwIiByeD0iNiIgZmlsbD0iI2ZlZjljMyIgc3Ryb2tlPSIjY2E4YTA0IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIzNSIgeT0iNDYwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjNzEzZjEyIj5FYWNoIHNjb3BlIGlzIGNvbmZpZ3VyZWQgaW5kZXBlbmRlbnRseTo8L3RleHQ+CiAgPHRleHQgeD0iMzUiIHk9IjQ3OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNzEzZjEyIj5BIHJvdXRpbmcgcnVsZSBvbiBsb2dzIGhhcyB6ZXJvIGVmZmVjdCBvbiBzcGFucy4gQSBwcm9jZXNzb3Igb24gYml6ZXZlbnRzIGRvZXNuJ3QgYXBwbHkgdG8gbWV0cmljcy4gVGhpcyBpcyBhIGZlYXR1cmUg4oCUIHlvdSBjYW4gZXZvbHZlIGVhY2ggc2NvcGUncyBwaXBlbGluZSB3aXRob3V0IHJpc2sgdG8gdGhlIG90aGVycy48L3RleHQ+Cjwvc3ZnPgo=" alt="Multi-Scope Architecture" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Scope | Key fields | Shared data flow |
+|-------|------------|---------------------|
+| Logs | content, loglevel, log.source | Ingest → Routing → Pipeline stages → Storage |
+| Spans | span.kind, trace.id, duration | Ingest → Routing → Pipeline stages → Storage |
+| Metrics | metric.key, dt.entity.* | Ingest → Routing → Pipeline stages → Storage |
+| Events | event.kind, event.type | Ingest → Routing → Pipeline stages → Storage |
+| Business Events | event.type, event.provider | Ingest → Routing → Pipeline stages → Storage |
+| Security Events | event.kind, event.type | Ingest → Routing → Pipeline stages → Storage |
+
+Pipeline stages, in fixed order: Processing (DQL, add/remove/rename fields, drop record) → Smartscape node / edge → Permission (dt.security_context) → Product allocation → Cost allocation → Bucket assignment (bucket or no storage, first match) → Metric extraction (spans: sampling-aware) → Davis → Data extraction (business event, SDLC event).
+Limits per scope: 100 pipelines and 100 routes; 1,000 processors per pipeline; 16 MB maximum record size after processing. One route matches per record; pipeline groups add base pipelines around a member pipeline.
+-->
+<p>Every scope follows the same <strong>data flow</strong> (Ingest → Routing → Processing → Storage), with optional pre-processing on custom sources. Inside a pipeline, processing is not one step: it runs as a <strong>fixed sequence of stages</strong>, of which the stage named <em>Processing</em> is only the first. The flow is identical in concept across scopes — only the data types and available processors differ.</p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Purpose</th>
+<th>Logs Example</th>
+<th>Spans Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1. Ingest</strong></td>
+<td>Receive records from a built-in / ready-made / custom source</td>
+<td>OneAgent log ingest</td>
+<td>OTLP span ingest</td>
+</tr>
+<tr>
+<td><strong>2. Routing</strong></td>
+<td>Direct data to the right pipeline (dynamic DQL match or static for custom sources)</td>
+<td>Match by <code>log.source</code> or <code>k8s.namespace.name</code></td>
+<td>Match by <code>span.kind</code> or <code>service.name</code></td>
+</tr>
+<tr>
+<td><strong>3. Pipeline</strong></td>
+<td>A fixed sequence of stages: <strong>Processing</strong> (DQL, add / remove / rename fields, drop record, GeoIP and inline lookup) → <strong>Smartscape node</strong> → <strong>Smartscape edge</strong> → <strong>Permission</strong> (security context) → <strong>Product allocation</strong> → <strong>Cost allocation</strong> → <strong>Bucket assignment</strong> → <strong>Metric extraction</strong> → <strong>Davis</strong> → <strong>Data extraction</strong></td>
+<td>Mask credit card numbers, drop debug, parse JSON (Processing); extract error-rate metrics (Metric extraction)</td>
+<td>Mask PII, drop health-check spans (Processing); sampling-aware RED metrics (Metric extraction)</td>
+</tr>
+<tr>
+<td><strong>4. Storage</strong></td>
+<td>Persist to the Grail bucket chosen in the Bucket assignment stage (or skip with No storage assignment)</td>
+<td>Send to <code>app_logs</code> bucket</td>
+<td>Send to <code>trace_data</code> bucket</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Stage order is fixed.</strong> Per <em>Processing in OpenPipeline</em>, <em>&quot;The sequence of stages is fixed for all pipelines and cannot be modified.&quot;</em> Masking, parsing, and dropping happen in the first stage (Processing); Metric extraction, Davis, and Data extraction run <strong>after</strong> Bucket assignment. Within a stage, processors run in the order you list them, and each stage executes either all matching processors or only the first match.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — stage table, in execution order; <a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits">OpenPipeline limits (DT docs)</a> — per-scope, per-pipeline and record-size limits in the diagram.</sub></p>
+</blockquote>
+<h3>Sprint 1.346 (August 2026): <code>dt.bindplane.*</code> Is a Reserved Namespace</h3>
+<p>Verbatim: <em>&quot;The <code>dt.bindplane.*</code> namespace is now reserved exclusively for Bindplane. Dynatrace uses it to populate fields such as <code>dt.bindplane.project</code>, <code>dt.bindplane.fleet</code>, and `dt.bindplane.configuration&quot;</em> — to keep those fields populated consistently.</p>
+<p>The practical rule for pipeline authors is the same one that governs every <code>dt.*</code> namespace: <strong>do not write into it from a processor.</strong> If a processing rule of yours adds or overwrites a <code>dt.bindplane.*</code> field, move it to a namespace you own before the reservation takes effect, or the platform-populated value and yours will contend. This is worth a grep of your existing pipelines rather than an assumption — the namespace was not reserved before, so nothing stopped a rule from using it.</p>
+<p>SaaS 1.346 released 08/25/2026 with a <strong>staged tenant rollout</strong> from the same date; verify against your own tenant.</p>
+<h3>The Key Insight</h3>
+<p>If you understand how to build a log pipeline (route to a pipeline → mask, drop, and transform in Processing → set permissions and cost allocation → assign a bucket → extract metrics and events), you already understand how to build a span pipeline or an event pipeline. The concepts transfer directly — only the field names and processor options change.</p>
+<h3>Processors Available Per Scope</h3>
+<p>Not every processor is available in every scope. The following table shows key differences (refresh against <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> for the current list):</p>
+<table>
+<thead>
+<tr>
+<th>Processor</th>
+<th>Logs</th>
+<th>Spans</th>
+<th>Metrics</th>
+<th>Events</th>
+<th>Bizevents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DPL parsing</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>—</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Field enrichment (Add / Remove / Rename / DQL)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Metric extraction (Counter / Value / Histogram Preview)</td>
+<td>Yes</td>
+<td>Yes (sampling-aware variants)</td>
+<td>—</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Smartscape node / edge</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Event extraction (Business / SDLC event in Data extraction; Davis event in Davis)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>—</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Masking (DQL processor, Processing stage)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Inline lookup (Processing stage)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>GeoIP lookup (Processing stage, Early Access)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Drop record</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Bucket assignment / No storage assignment</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>—</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Set dt.security_context</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>DPS Cost Allocation (Cost Center / Product)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>—</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h3>OneAgent Attribute Enrichment (OneAgent 1.333+)</h3>
+<blockquote>
+<p><strong>Requires:</strong> OneAgent version <strong>1.333</strong> or later</p>
+</blockquote>
+<p>OneAgent can enrich <strong>all telemetry signals</strong> (metrics, spans, logs, events, entities) with custom metadata at the source — before data reaches the Dynatrace platform. This is more efficient than server-side tagging (auto-tags) because enrichment happens on the host and propagates to all Smartscape nodes.</p>
+<p><strong>Primary Fields</strong> (standardized from Semantic Dictionary):</p>
+<ul>
+<li><code>dt.security_context</code> — data governance and access control</li>
+<li><code>dt.cost.costcenter</code> — cost allocation</li>
+<li><code>dt.cost.product</code> — product attribution</li>
+</ul>
+<p><strong>Primary Tags</strong> (custom key-value pairs):</p>
+<ul>
+<li><code>primary_tags.environment</code> — environment identification (production, staging, etc.)</li>
+<li><code>primary_tags.team</code> — team ownership</li>
+<li><code>primary_tags.business_unit</code> — organizational unit</li>
+</ul>
+<p><strong>Configuration:</strong></p>
+<pre><code class="language-bash"># Set during OneAgent installation
+Dynatrace-OneAgent-Linux.sh --set-host-tag=&quot;primary_tags.environment=production&quot; --set-host-tag=&quot;dt.security_context=confidential&quot;
+
+# Set on existing agents via oneagentctl
+oneagentctl --set-host-tag=&quot;primary_tags.environment=production&quot;
+oneagentctl --set-host-tag=&quot;dt.cost.costcenter=12345&quot;
+
+# Per-process via environment variable (overrides host-level)
+DT_TAGS=&quot;primary_tags.team=platform primary_tags.environment=production&quot;
+</code></pre>
+<p><strong>Benefits over auto-tagging:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Auto-Tags (Server-Side)</th>
+<th>Attribute Enrichment (Agent-Side)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>When applied</td>
+<td>After data arrives at platform</td>
+<td>At the source, before transmission</td>
+</tr>
+<tr>
+<td>Scope</td>
+<td>Entity tags only</td>
+<td>All signals: metrics, spans, logs, events, entities</td>
+</tr>
+<tr>
+<td>Grail integration</td>
+<td>Limited</td>
+<td>Full — feeds OpenPipeline routing, bucket assignment, permissions</td>
+</tr>
+<tr>
+<td>Cost allocation</td>
+<td>Not supported</td>
+<td><code>dt.cost.costcenter</code>, <code>dt.cost.product</code> fields</td>
+</tr>
+<tr>
+<td>Security context</td>
+<td>Not supported</td>
+<td><code>dt.security_context</code> for data governance</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>See:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment">Primary Grail fields and tags enrichment through OneAgent (DT docs)</a></p>
+</blockquote>
+<p><a id="the-default-pipeline-anti-pattern"></a></p>
+<h2>3. The Default Pipeline Anti-Pattern</h2>
+<p>Every OpenPipeline scope has a built-in <strong>Default Pipeline</strong> — for logs and business events, only where the Classic pipeline is not available. It is a catch-all: any data that does not match a custom pipeline's routing rules flows through the default pipeline and lands in the default bucket (e.g., <code>default_logs</code>, <code>default_spans</code>).</p>
+<p>This is convenient for getting started. It becomes a serious problem at scale — Dynatrace's own guidance is to <em>&quot;limit the use of the default pipeline to monitoring unassigned incoming data&quot;</em>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — <em>&quot;It's not available for log and business event configuration scopes where the Classic pipeline is available.&quot;</em></sub></p>
+</blockquote>
+<h3>Why &quot;Everything in Default&quot; Fails</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Query performance</strong></td>
+<td>Every DQL query against the default bucket scans ALL data — application logs mixed with infrastructure noise, health checks mixed with business transactions. <code>fetch</code> reads at most 500 GB of uncompressed data by default (<code>scanLimitGBytes</code>), and an undifferentiated bucket reaches that sooner.</td>
+</tr>
+<tr>
+<td><strong>Cost</strong></td>
+<td>No differentiated retention. You pay to store debug-level container stdout at the same retention tier as critical security audit logs.</td>
+</tr>
+<tr>
+<td><strong>Security</strong></td>
+<td>No <code>dt.security_context</code> separation. Without dedicated pipelines, you cannot apply IAM policies to restrict who sees which data. Finance team logs are visible to infrastructure engineers and vice versa.</td>
+</tr>
+<tr>
+<td><strong>Blast radius</strong></td>
+<td>A misconfigured processing rule (bad parsing regex, aggressive drop filter) in the default pipeline affects ALL data flowing through it. One mistake breaks everything.</td>
+</tr>
+<tr>
+<td><strong>No metric extraction</strong></td>
+<td>You cannot extract targeted metrics from specific log patterns when everything is in one undifferentiated stream. Metric extraction rules become overly complex or extract noise.</td>
+</tr>
+<tr>
+<td><strong>Debugging</strong></td>
+<td>When something goes wrong, you cannot tell which data source caused the issue. Pipeline-level monitoring (<code>dt.openpipeline.pipelines</code>) shows a single pipeline name for everything.</td>
+</tr>
+</tbody>
+</table>
+<h3>The Telltale Signs</h3>
+<p>Run the following queries to check if your environment has this problem.</p>
+<pre><code class="language-dql">// Check: What percentage of logs land in the default bucket?
+fetch logs, from:-1h
+| summarize total = count(),
+    default_count = countIf(dt.system.bucket == &quot;default_logs&quot;)
+| fieldsAdd default_pct = round(toDouble(default_count) / toDouble(total) * 100, decimals: 1)
+| fieldsAdd assessment = if(default_pct &gt; 80, then: &quot;CRITICAL: Most data in default bucket&quot;,
+    else: if(default_pct &gt; 50, then: &quot;WARNING: Majority in default bucket&quot;,
+    else: &quot;OK: Data is distributed across buckets&quot;))
+</code></pre>
+<pre><code class="language-dql">// Check: How many distinct pipelines are processing your logs?
+fetch logs, from:-1h
+| summarize pipeline_count = countDistinct(dt.openpipeline.pipelines),
+    bucket_count = countDistinct(dt.system.bucket),
+    source_count = countDistinct(dt.openpipeline.source)
+| fieldsAdd assessment = if(pipeline_count &lt;= 1, then: &quot;CRITICAL: Only default pipeline in use&quot;,
+    else: if(pipeline_count &lt; 3, then: &quot;WARNING: Very few pipelines configured&quot;,
+    else: &quot;OK: Multiple pipelines configured&quot;))
+</code></pre>
+<pre><code class="language-dql">// Visualize: Volume distribution across buckets (are they balanced?)
+//
+// The grand total must be computed BEFORE the rows are split apart. After a grouped
+// summarize, log_count is a scalar per row — not an array — so arraySum(log_count) is
+// a type mismatch. The query still returns ok:true and rows, and every pct_of_total
+// reads null, with only a DATATYPE_MISMATCH warning to signal it. Collect the rows
+// into one array, total them there, then expand back to one row per bucket.
+fetch logs, from:-1h
+| summarize log_count = count(), by:{dt.system.bucket}
+| summarize rows = collectArray(record(bucket = dt.system.bucket, log_count = log_count)),
+            grand_total = sum(log_count)
+| expand rows
+| fieldsAdd bucket = rows[bucket], log_count = rows[log_count]
+| fieldsAdd pct_of_total = round(100.0 * log_count / grand_total, decimals: 1)
+| fields bucket, log_count, pct_of_total
+| sort log_count desc
+</code></pre>
+<pre><code class="language-dql">// Same check for spans: are they all in default_spans?
+fetch spans, from:-1h
+| summarize total = count(),
+    default_count = countIf(dt.system.bucket == &quot;default_spans&quot;)
+| fieldsAdd default_pct = round(toDouble(default_count) / toDouble(total) * 100, decimals: 1)
+| fieldsAdd assessment = if(default_pct &gt; 80, then: &quot;CRITICAL: Most spans in default bucket&quot;,
+    else: if(default_pct &gt; 50, then: &quot;WARNING: Majority in default bucket&quot;,
+    else: &quot;OK: Spans are distributed across buckets&quot;))
+</code></pre>
+<p><a id="pipeline-design-principles"></a></p>
+<h2>4. Pipeline Design Principles</h2>
+<p>The goal is to move from &quot;everything in default&quot; to a <strong>purpose-driven pipeline architecture</strong>. Here are the principles:</p>
+<h3>Principle 1: One Pipeline Per Source Type</h3>
+<p>Create separate pipelines based on the nature of the data, not the team that owns it.</p>
+<table>
+<thead>
+<tr>
+<th>Pipeline</th>
+<th>Routing Condition</th>
+<th>Target Bucket</th>
+<th>Retention</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kubernetes-infra</code></td>
+<td><code>k8s.namespace.name</code> exists AND <code>log.source == &quot;Container Output&quot;</code></td>
+<td><code>k8s_infra_logs</code></td>
+<td>14 days</td>
+</tr>
+<tr>
+<td><code>application-logs</code></td>
+<td><code>log.source == &quot;Log file&quot;</code> AND <code>k8s.namespace.name</code> matches app namespaces</td>
+<td><code>app_logs</code></td>
+<td>35 days</td>
+</tr>
+<tr>
+<td><code>security-audit</code></td>
+<td><code>matchesValue(log.source, &quot;*audit*&quot;)</code> or another source-identifying field (<code>AUDIT</code> is not a log level)</td>
+<td><code>security_audit</code></td>
+<td>365 days</td>
+</tr>
+<tr>
+<td><code>api-ingestion</code></td>
+<td><code>dt.openpipeline.source == &quot;/api/v2/logs/ingest&quot;</code></td>
+<td><code>external_logs</code></td>
+<td>35 days</td>
+</tr>
+<tr>
+<td>Default route</td>
+<td>Everything else (catch-all) — for logs, the Classic pipeline where it is available</td>
+<td><code>default_logs</code></td>
+<td>35 days (built-in bucket)</td>
+</tr>
+</tbody>
+</table>
+<h3>Principle 2: Filter Early, Extract Targeted</h3>
+<p>Each pipeline should drop noise <strong>before</strong> storage and extract <strong>only</strong> the metrics relevant to that data type:</p>
+<ul>
+<li><strong>kubernetes-infra pipeline</strong>: Drop health check logs, extract pod restart counts</li>
+<li><strong>application-logs pipeline</strong>: Drop DEBUG in production, extract error rates by service</li>
+<li><strong>security-audit pipeline</strong>: Never drop, never sample — extract compliance event counts</li>
+</ul>
+<h3>Principle 3: Differentiate Retention</h3>
+<p>Different data has different value over time:</p>
+<table>
+<thead>
+<tr>
+<th>Data Type</th>
+<th>Suggested Retention</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Debug/container stdout</td>
+<td>7-14 days</td>
+<td>High volume, short-term troubleshooting</td>
+</tr>
+<tr>
+<td>Application logs</td>
+<td>35 days</td>
+<td>Standard operational window</td>
+</tr>
+<tr>
+<td>Security/audit logs</td>
+<td>365+ days</td>
+<td>Compliance requirements (SOC 2, HIPAA)</td>
+</tr>
+<tr>
+<td>Business events</td>
+<td>90-365 days</td>
+<td>Trend analysis, quarterly reporting</td>
+</tr>
+</tbody>
+</table>
+<h3>Principle 4: Route Ordering Matters</h3>
+<p>Pipeline routing rules are evaluated <strong>in order — first match wins</strong>: <em>&quot;If no route matches the record, the record is routed via the Default route.&quot;</em> Place specific rules before general ones:</p>
+<ol>
+<li>Security audit logs (most specific, highest value)</li>
+<li>Application logs by namespace</li>
+<li>Kubernetes infrastructure</li>
+<li>API-ingested external logs</li>
+<li>Default route (catch-all for anything unmatched)</li>
+</ol>
+<h3>Applying This to Spans</h3>
+<p>The same principles apply to the spans scope. <code>service.name</code> is an OpenTelemetry attribute and is absent on OneAgent spans, which carry <code>dt.service.name</code> instead — match on whichever your spans actually have (OPIPE-02 §1):</p>
+<table>
+<thead>
+<tr>
+<th>Pipeline</th>
+<th>Routing Condition</th>
+<th>Target Bucket</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>frontend-traces</code></td>
+<td><code>span.kind == &quot;server&quot;</code> AND <code>service.name</code> matches frontend services</td>
+<td><code>frontend_spans</code></td>
+</tr>
+<tr>
+<td><code>backend-traces</code></td>
+<td><code>span.kind == &quot;server&quot;</code> AND <code>service.name</code> matches backend services</td>
+<td><code>backend_spans</code></td>
+</tr>
+<tr>
+<td><code>database-spans</code></td>
+<td><code>span.kind == &quot;client&quot;</code> AND <code>db.system</code> exists</td>
+<td><code>db_spans</code></td>
+</tr>
+<tr>
+<td>Default Pipeline</td>
+<td>Everything else</td>
+<td><code>default_spans</code></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Inventory: What log sources exist and how much volume do they produce?
+// Use this to plan your pipeline routing rules
+fetch logs, from:-24h
+| summarize {log_count = count(), unique_hosts = countDistinct(dt.entity.host)},
+    by:{dt.openpipeline.source, log.source}
+| sort log_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Inventory: Kubernetes namespace volume (for pipeline routing decisions)
+fetch logs, from:-24h
+| filter isNotNull(k8s.namespace.name)
+| summarize log_count = count(), by:{k8s.namespace.name}
+| sort log_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Inventory: Span volume by service (for span pipeline routing decisions)
+fetch spans, from:-24h
+| summarize span_count = count(), by:{dt.service.name, span.kind}
+| sort span_count desc
+| limit 20
+</code></pre>
+<p><a id="matching-conditions"></a></p>
+<h2>5. Matching Conditions: Conditional Logic Within a Pipeline</h2>
+<p>Sections 3 and 4 explained why you need separate pipelines and how to design them. But what happens when a single pipeline receives data from several sources that need <strong>different processing logic</strong> — without justifying an entirely new pipeline?</p>
+<p>The answer is the <strong>matching condition</strong> every processor carries.</p>
+<h3>How Conditional Processing Works</h3>
+<p>There is no grouping construct for processors inside a stage. Each processor has its own matcher: <em>&quot;it defines the target of a processor via a DQL statement and narrows down the available data to the specific set you want to process.&quot;</em> On the DQL processor the matching condition is a required field.</p>
+<table>
+<thead>
+<tr>
+<th>Behavior</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Matching</strong></td>
+<td>Each processor's matching condition is a DQL statement. Only records that satisfy it are processed; the rest pass through unchanged.</td>
+</tr>
+<tr>
+<td><strong>Order</strong></td>
+<td>Processors run in the order listed: <em>&quot;each processor output becomes the input for the next one.&quot;</em> A field one processor adds is available to the matchers of the processors after it.</td>
+</tr>
+<tr>
+<td><strong>All matches vs. first match</strong></td>
+<td>The stage decides. Processing, Smartscape, Metric extraction, Davis and Data extraction run <strong>every</strong> matching processor; Permission, Product allocation, Cost allocation and Bucket assignment run only the <strong>first</strong> match.</td>
+</tr>
+<tr>
+<td><strong>&quot;Every record&quot;</strong></td>
+<td>A matcher of <code>true</code> applies the processor to all records.</td>
+</tr>
+<tr>
+<td><strong>Matcher language</strong></td>
+<td>A subset of DQL — <code>matchesValue</code>, <code>matchesPhrase</code>, <code>isNull</code>, <code>isNotNull</code>, comparisons and boolean logic. <code>contains()</code> and <code>in()</code> are rejected (see the References note).</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>SaaS 1.344+:</strong> OpenPipeline matchers support <strong>Duration</strong>-type record fields, with the operators <code>=</code>, <code>!=</code>, <code>&gt;</code>, <code>&gt;=</code>, <code>&lt;</code>, and <code>&lt;=</code> (<a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-344">rollout from 07/29/2026</a>). On a tenant that has not yet reached 1.344, match on an equivalent <strong>numeric</strong> field instead (for example a millisecond-valued field carried alongside the record rather than the duration field itself).</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — processor anatomy and the per-stage &quot;All matches&quot; / &quot;First match only&quot; column, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing-stage">Processing stage (DT docs)</a> — <em>&quot;Set a specific matching condition on each processor to narrow down the records it applies to.&quot;</em>, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline">DQL matcher in OpenPipeline (DT docs)</a> — <em>&quot;true — the processor (DQL query) will be applied to all records&quot;</em>.</sub></p>
+</blockquote>
+<h3>Parse Once, Match on the Result</h3>
+<p>Because there is no shared group matcher, a condition used by several processors is repeated on each one. Keep it cheap and keep it in one place: parse the distinguishing value once, early in the Processing stage, into a field, and let later processors match on that field. Dynatrace's own guidance: <em>&quot;Parse it once and store the extracted values in fields for downstream processors to reuse.&quot;</em> If the field is only needed during processing, name it <code>dt.temp.*</code> (SaaS 1.345+, §2) so it is not stored.</p>
+<h3>Example: Multi-Format Log Pipeline</h3>
+<p>A single <code>application-logs</code> pipeline receives logs from Java, Node.js and Python services. Each has a different format, but they all go to the same <code>app_logs</code> bucket with 35-day retention. One pipeline, with each processor scoped by its own matcher:</p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Processor</th>
+<th>Matching condition</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Processing</td>
+<td>DQL</td>
+<td><code>matchesValue(k8s.container.name, &quot;java-*&quot;)</code></td>
+<td>Parse log4j format, extract exception class, add <code>app.framework = &quot;java&quot;</code></td>
+</tr>
+<tr>
+<td>Processing</td>
+<td>DQL</td>
+<td><code>matchesValue(k8s.container.name, &quot;node-*&quot;)</code></td>
+<td>Parse JSON structured logs, extract request ID, add <code>app.framework = &quot;nodejs&quot;</code></td>
+</tr>
+<tr>
+<td>Processing</td>
+<td>DQL</td>
+<td><code>matchesValue(k8s.container.name, &quot;python-*&quot;)</code></td>
+<td>Parse Python logging format, extract traceback, add <code>app.framework = &quot;python&quot;</code></td>
+</tr>
+<tr>
+<td>Processing</td>
+<td>Drop record</td>
+<td><code>loglevel == &quot;DEBUG&quot;</code></td>
+<td>Drop debug records from every source</td>
+</tr>
+<tr>
+<td>Permission</td>
+<td>Security context</td>
+<td><code>true</code></td>
+<td>Set <code>dt.security_context = &quot;app-team&quot;</code></td>
+</tr>
+<tr>
+<td>Bucket assignment</td>
+<td>Bucket assignment</td>
+<td><code>true</code></td>
+<td><code>app_logs</code></td>
+</tr>
+</tbody>
+</table>
+<p>Three parsing paths, one pipeline, one bucket. The alternative — three pipelines with three routes — triples the configuration surface for data whose lifecycle is identical.</p>
+<h3>Example: Span Enrichment by Service Category</h3>
+<p>In the Spans scope, a single pipeline processes server and client spans but needs different enrichment by category:</p>
+<table>
+<thead>
+<tr>
+<th>Processor matching condition</th>
+<th>Processing</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>matchesValue(http.route, &quot;/api/*&quot;)</code></td>
+<td>Add <code>span.category = &quot;api&quot;</code>, extract API version from path</td>
+</tr>
+<tr>
+<td><code>isNotNull(db.system)</code></td>
+<td>Add <code>span.category = &quot;database&quot;</code>, normalize the statement to remove parameters</td>
+</tr>
+<tr>
+<td><code>span.kind == &quot;producer&quot; or span.kind == &quot;consumer&quot;</code></td>
+<td>Add <code>span.category = &quot;messaging&quot;</code>, extract queue name</td>
+</tr>
+</tbody>
+</table>
+<h3>Matching Conditions, Pipelines, or Pipeline Groups?</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Same bucket, retention and owner; different parsing per source</td>
+<td><strong>Matching conditions</strong> on processors in one pipeline</td>
+</tr>
+<tr>
+<td>Only the destination bucket differs</td>
+<td><strong>Bucket assignment</strong> processors with conditions in one pipeline (first match wins)</td>
+</tr>
+<tr>
+<td>Different retention, security context, or data lifecycle</td>
+<td><strong>Separate pipelines</strong>, each with its own route</td>
+</tr>
+<tr>
+<td>Different teams own the configuration</td>
+<td><strong>Separate pipelines</strong> — <em>&quot;By adding custom pipelines per team, you can manage them via owner-based access control.&quot;</em></td>
+</tr>
+<tr>
+<td>A central team must enforce the same stages (for example masking) on many teams' pipelines</td>
+<td><strong>Pipeline groups</strong> — a composition of base pipelines that <em>&quot;can restrict or mandate stages&quot;</em> for its member pipelines; <strong>OPIPE-07</strong> covers running one</td>
+</tr>
+<tr>
+<td>Blast-radius isolation</td>
+<td><strong>Separate pipelines</strong> — a bad processor in one pipeline cannot affect another</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — custom pipelines and owner-based access control, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/pipeline-groups">Pipeline groups (DT docs)</a> — compositions, base and member pipelines.</sub></p>
+</blockquote>
+<h3>Common Mistakes</h3>
+<table>
+<thead>
+<tr>
+<th>Mistake</th>
+<th>Problem</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Re-parsing <code>content</code> in every processor's matcher or definition</td>
+<td>Slower processing; complex DQL processors can be disabled</td>
+<td>Parse once into a field; match on the field</td>
+</tr>
+<tr>
+<td>Overlapping matchers in an all-matches stage without intent</td>
+<td>A record processed by several processors may get conflicting field values</td>
+<td>Make matchers mutually exclusive, or order them so the last write is the one you want</td>
+</tr>
+<tr>
+<td>Overlapping matchers in a first-match stage (Permission, cost/product allocation, Bucket assignment)</td>
+<td>Only the first processor fires; later, more specific ones never run</td>
+<td>List the most specific condition first</td>
+</tr>
+<tr>
+<td>One pipeline per destination bucket when only the destination differs</td>
+<td>Pipeline proliferation for data that is otherwise processed identically</td>
+<td>Use conditional <strong>Bucket assignment</strong> processors (first match wins) inside one pipeline</td>
+</tr>
+<tr>
+<td>Dozens of source-specific processors in one pipeline</td>
+<td>As hard to reason about as separate pipelines, without the ownership boundary</td>
+<td>Split into separate pipelines when the sources have different owners or lifecycles</td>
+</tr>
+</tbody>
+</table>
+<p><a id="security-context-across-scopes"></a></p>
+<h2>6. Security Context Across Scopes</h2>
+<p>The <code>dt.security_context</code> field controls <strong>who can see which data</strong> through IAM policies. It is the mechanism that makes pipeline separation actionable from a governance perspective.</p>
+<h3>How Security Context Works</h3>
+<p>When data flows through an OpenPipeline, you can enrich it with a <code>dt.security_context</code> value. IAM policies then use this value to restrict query access:</p>
+<pre><code>Data Ingestion → OpenPipeline adds dt.security_context → Grail stores it → IAM policy enforces access
+</code></pre>
+<p>For a complete deep-dive on security context patterns, values, and IAM policy syntax, see <strong>ORGNZ-06: Security Context</strong>.</p>
+<h3>Security Context by Scope</h3>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>How to Set <code>dt.security_context</code></th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Logs</strong></td>
+<td>OpenPipeline <strong>Permission</strong> stage</td>
+<td>Most common — set based on <code>k8s.namespace.name</code>, <code>log.source</code>, or parsed fields</td>
+</tr>
+<tr>
+<td><strong>Spans</strong></td>
+<td>OpenPipeline <strong>Permission</strong> stage</td>
+<td>Set based on <code>service.name</code> or span attributes</td>
+</tr>
+<tr>
+<td><strong>Metrics</strong></td>
+<td>OpenPipeline <strong>Permission</strong> stage <strong>or</strong> extension configuration</td>
+<td>See &quot;Extension Metrics&quot; below</td>
+</tr>
+<tr>
+<td><strong>Events</strong></td>
+<td>OpenPipeline <strong>Permission</strong> stage</td>
+<td>Set based on <code>event.type</code> or other event fields</td>
+</tr>
+<tr>
+<td><strong>Business Events</strong></td>
+<td>OpenPipeline <strong>Permission</strong> stage</td>
+<td>Set based on <code>event.provider</code> or business unit</td>
+</tr>
+<tr>
+<td><strong>All signals from a host</strong></td>
+<td><code>dt.security_context</code> host tag (<code>oneagentctl --set-host-tag</code>)</td>
+<td><em>&quot;used to automatically determine the security context for all logs, spans, metrics, and events that are sent from this host&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Entities</strong></td>
+<td><strong>Settings &gt; Topology model &gt; Grail Security Context</strong>, host tag, or an extraction rule for generic types</td>
+<td>Controls access to <strong>entities only</strong> — data sent from an entity does not inherit the entity's security context</td>
+</tr>
+</tbody>
+</table>
+<h3>Extension Metrics and Security Context</h3>
+<blockquote>
+<p><strong>Extensions can now carry primary Grail tags directly</strong> (OneAgent, ActiveGate and EEC 1.343+). A monitoring configuration accepts primary tags per configuration and per endpoint; remote extensions also accept primary fields, while local extensions inherit the host's. See <strong>FAQ-26 §5.5</strong> for the local/remote difference.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-extensions">Enrich extensions with primary Grail fields and tags (DT docs)</a> — <em>&quot;Remote extensions run on the Extension Execution Controller (EEC) without a OneAgent host, so enrichment cannot be inherited automatically.&quot;</em></sub></p>
+</blockquote>
+<p>Metrics ingested via <strong>Extensions 2.0</strong> carry a <code>dt.security_context</code> only if something sets it. A common gap is to deploy extensions for database, cloud, or infrastructure metrics and assume the security context of the monitored entity carries over. It does not: an IAM policy that filters entities <em>&quot;will not filter related metrics, logs, or traces&quot;</em>.</p>
+<p>There are two approaches:</p>
+<p><strong>Approach 1: Set it in the extension configuration</strong></p>
+<p>Dynatrace documents setting <code>dt.security_context</code> <em>&quot;per extension configuration&quot;</em>. The extension then sends it as a dimension on every data point, for example <code>postgres.activity.idle,port=5432,dt.security_context=&quot;TeamA&quot;,…</code>. One configuration per team gives each team's metrics their own context. To restrict access to the extension's <strong>entities</strong> as well, add an extraction rule that maps the same dimension onto the generic entity type.</p>
+<p><strong>Approach 2: OpenPipeline Permission stage on the Metrics scope</strong></p>
+<p>When the extension configuration cannot carry it, set <code>dt.security_context</code> in the <strong>Metrics</strong> scope's Permission stage, matching on the metric key or on dimensions that identify the source:</p>
+<table>
+<thead>
+<tr>
+<th>Matching condition</th>
+<th>Security context value</th>
+<th>Use case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>matchesValue(metric.key, &quot;postgres.*&quot;)</code></td>
+<td><code>&quot;database-team&quot;</code></td>
+<td>A database extension's metrics</td>
+</tr>
+<tr>
+<td><code>matchesValue(metric.key, &quot;aws.*&quot;)</code></td>
+<td><code>&quot;cloud-team&quot;</code></td>
+<td>Cloud integration metrics</td>
+</tr>
+</tbody>
+</table>
+<p>Extension metric keys are whatever the extension defines (<code>postgres.*</code>, <code>sql-server.*</code>, …) — check the real keys with <code>metrics | filter startsWith(metric.key, &quot;postgres&quot;)</code> before writing the matcher.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context">Grant access to entities with security context (DT docs)</a> — <em>&quot;Logs, spans, metrics, and events powered by Grail that are sent from an entity do not inherit the management zones of that entity.&quot;</em>, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — Permission stage.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Structured context design:</strong> For organisations with transversal teams (database, networking, OS) that need cross-application access, a flat context value (e.g., <code>&quot;checkout&quot;</code>) does not scale. Encoding <code>comp:&lt;component&gt;/bu:&lt;business-unit&gt;/app:&lt;application&gt;</code> into the context string, then using <code>MATCH('comp:db*')</code> in the IAM policy, enables precise transversal access without a per-application context per team. The dimension needed for transversal slicing should come first in the string for compatibility with Classic entity <code>startsWith</code> matching. See <strong>IAM-04: Policy Authoring</strong> for the complete design pattern and <strong>IAM-05: Boundary Design</strong> for boundary examples.</p>
+</blockquote>
+<blockquote>
+<p><strong>Critical:</strong> When <code>dt.security_context</code> holds an array value, IAM policies must use the <code>MATCH</code> operator — not <code>=</code>, <code>STARTSWITH</code>, or <code>IN</code>. Array comparison with equality operators always returns false. See <strong>ORGNZ-06</strong> for the full rules.</p>
+</blockquote>
+<pre><code class="language-dql">// Check: Do your logs have security context assigned?
+fetch logs, from:-1h
+| summarize total = count(),
+    with_context = countIf(isNotNull(dt.security_context)),
+    without_context = countIf(isNull(dt.security_context))
+| fieldsAdd coverage_pct = round(toDouble(with_context) / toDouble(total) * 100, decimals: 1)
+</code></pre>
+<pre><code class="language-dql">// Check: Do your spans have security context assigned?
+fetch spans, from:-1h
+| summarize total = count(),
+    with_context = countIf(isNotNull(dt.security_context)),
+    without_context = countIf(isNull(dt.security_context))
+| fieldsAdd coverage_pct = round(toDouble(with_context) / toDouble(total) * 100, decimals: 1)
+</code></pre>
+<p><a id="ingestion-time-vs-query-time-processing"></a></p>
+<h2>7. Ingestion-Time vs. Query-Time Processing</h2>
+<p>A critical design decision: should you process data in OpenPipeline (at ingestion) or in DQL (at query time)? The answer depends on what you are trying to achieve.</p>
+<h3>When to Process at Ingestion (OpenPipeline)</h3>
+<table>
+<thead>
+<tr>
+<th>Use Case</th>
+<th>Why Ingestion Time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Drop noise</strong></td>
+<td>Data you never want to see should never be stored. Dropping debug logs, health check spans, or synthetic test events saves cost permanently.</td>
+</tr>
+<tr>
+<td><strong>Mask sensitive data</strong></td>
+<td>PII must be redacted before storage for compliance. You cannot &quot;un-store&quot; data.</td>
+</tr>
+<tr>
+<td><strong>Add security context</strong></td>
+<td><code>dt.security_context</code> must be set at ingestion — it cannot be added retroactively.</td>
+</tr>
+<tr>
+<td><strong>Extract metrics</strong></td>
+<td>Converting log patterns or span attributes into metrics happens at ingestion. You cannot create metrics from historical data.</td>
+</tr>
+<tr>
+<td><strong>Route to buckets</strong></td>
+<td>Bucket assignment is permanent at ingestion time. You cannot move data between buckets after storage.</td>
+</tr>
+</tbody>
+</table>
+<h3>When to Process at Query Time (DQL)</h3>
+<table>
+<thead>
+<tr>
+<th>Use Case</th>
+<th>Why Query Time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Exploratory analysis</strong></td>
+<td>When you do not yet know what you are looking for, keep the raw data and query flexibly.</td>
+</tr>
+<tr>
+<td><strong>Changing requirements</strong></td>
+<td>If the transformation logic changes frequently, DQL queries are easier to update than pipeline configurations.</td>
+</tr>
+<tr>
+<td><strong>Ad-hoc parsing</strong></td>
+<td>One-time investigations benefit from DQL <code>parse</code> rather than permanent pipeline processors.</td>
+</tr>
+<tr>
+<td><strong>Complex joins</strong></td>
+<td>Correlating across multiple data sources is a query-time operation.</td>
+</tr>
+<tr>
+<td><strong>Aggregation and visualization</strong></td>
+<td>Dashboard queries, trend analysis, and statistical aggregations belong in DQL.</td>
+</tr>
+</tbody>
+</table>
+<h3>A Third Surface: At-Source Enrichment on OneAgent (OneAgent 1.343)</h3>
+<p>The choice above is about <em>where inside Dynatrace</em> processing happens. OneAgent 1.343 adds a placement surface <strong>upstream of both</strong>: OneAgent ingests enrichment configuration directly and applies tags and metadata conditionally using <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343"><strong>DQL matcher functions</strong></a> (equality, phrase, and existence checks) at the point of capture — before the record reaches OpenPipeline.</p>
+<table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>Runs</th>
+<th>Use it for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OneAgent enrichment</strong> (1.343+)</td>
+<td>At the source, before ingest</td>
+<td>Attributes only knowable on the host — process, container, or host-local metadata you would otherwise reconstruct downstream</td>
+</tr>
+<tr>
+<td><strong>OpenPipeline</strong></td>
+<td>At ingestion</td>
+<td>Everything in the first table above: drop, mask, security context, metric extraction, bucket routing</td>
+</tr>
+<tr>
+<td><strong>DQL</strong></td>
+<td>At query time</td>
+<td>Everything in the second table above: exploration, ad-hoc parsing, joins, aggregation</td>
+</tr>
+</tbody>
+</table>
+<p>Rollout is <strong>per agent fleet, not per tenant</strong> — <strong>verify the OneAgent version on the hosts concerned</strong>; the tenant version is not the agent version, and fleets commonly lag by more than one sprint. On OneAgent 1.342 and earlier the two-surface model above is the whole picture.</p>
+<blockquote>
+<p><strong>Enriching at the source does not displace OpenPipeline.</strong> Security context, bucket routing, and masking remain OpenPipeline responsibilities — the gain is that a field is already present <em>when</em> OpenPipeline evaluates its matchers, so pipeline logic that would otherwise derive it can just match on it.</p>
+</blockquote>
+<h3>The Decision Framework</h3>
+<p>Ask these questions in order:</p>
+<ol>
+<li><strong>Is the data sensitive?</strong> → Mask at ingestion. No exceptions.</li>
+<li><strong>Is the data noise?</strong> → Drop at ingestion. Do not pay to store it.</li>
+<li><strong>Does it need access control?</strong> → Add security context at ingestion.</li>
+<li><strong>Do you need a metric from it?</strong> → Extract at ingestion.</li>
+<li><strong>Everything else?</strong> → Store raw, process at query time.</li>
+</ol>
+<hr />
+<p><a id="summary"></a></p>
+<h2>Summary</h2>
+<p>In this notebook you learned:</p>
+<ul>
+<li><strong>Configuration scopes</strong> — OpenPipeline processes logs, spans, metrics, events, business events, security events, and more, each independently</li>
+<li><strong>Shared architecture</strong> — All scopes follow the same flow (ingest → routing → pipeline → storage); inside the pipeline a fixed sequence of stages runs Processing (mask, drop, transform) first and Bucket assignment before Metric extraction, Davis, and Data extraction</li>
+<li><strong>The default pipeline anti-pattern</strong> — Sending everything through the default pipeline causes query performance, cost, security, and blast radius problems</li>
+<li><strong>Pipeline design principles</strong> — One pipeline per source type, filter early, differentiate retention, order routing rules from specific to general</li>
+<li><strong>Matching conditions</strong> — Conditional logic within a pipeline: every processor carries its own DQL matcher, so one pipeline can handle several data formats. Use matchers for different processing, separate pipelines for a different lifecycle or owner, and pipeline groups for centrally mandated stages.</li>
+<li><strong>Security context across scopes</strong> — <code>dt.security_context</code> must be set at ingestion; data does not inherit an entity's security context, so extension metrics need it set in the extension configuration or the Permission stage</li>
+<li><strong>Ingestion vs. query time</strong> — Process at ingestion for permanent actions (drop, mask, route, extract); process at query time for flexible analysis</li>
+</ul>
+<hr />
+<p><a id="next-steps"></a></p>
+<h2>Next Steps</h2>
+<p>Continue to <strong>OPIPE-02: Span Processing &amp; Enrichment</strong> to configure OpenPipeline for distributed traces — filtering noisy spans, enriching attributes, and routing traces to dedicated buckets. To run a pipeline group — ownership, mandated stages, execution order and gating — see <strong>OPIPE-07: Pipeline Group Governance Patterns</strong>.</p>
+<hr />
+<p><a id="references"></a></p>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline">OpenPipeline (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-346">What's new in Dynatrace SaaS 1.346 (DT docs)</a> — the <code>dt.bindplane.*</code> namespace reservation quoted in §2</li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/data-flow">OpenPipeline data flow (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/metric-extraction">Metric extraction stage (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/davis-stage">Davis stage (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/data-extraction">Data extraction stage (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags">Primary Grail fields and tags (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/api-ingestion-reference">OpenPipeline ingest sources (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/pipeline-groups">OpenPipeline pipeline groups (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline">DQL matcher in OpenPipeline (DT docs)</a> — <code>matchesValue</code>: <em>&quot;Accepts wildcard * at the beginning or at the end of the value&quot;</em>; the page documents <code>matchesPhrase</code>, <code>matchesValue</code>, <code>isNull</code> and <code>isNotNull</code>, and <code>contains()</code> / <code>in()</code> are rejected by the matcher verifier</li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data">Use Grail buckets to partition data (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context">Security context for access control (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-344">SaaS 1.344 release notes (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343">OneAgent 1.343 release notes (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

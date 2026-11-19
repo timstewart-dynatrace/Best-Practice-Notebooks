@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Best Practice Notebooks</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1 id="best-practice-notebooks">Best-Practice-Notebooks</h1>
+<p>Dynatrace best-practice notebooks with matching PDF, HTML and Markdown exports. These assets are not officially supported by Dynatrace.</p>
+<blockquote>
+<p><strong>Recommended:</strong> Import the JSON files from notebooks/ into a Dynatrace tenant for the best experience. These notebooks contain interactive DQL queries that execute against your environment's data.</p>
+</blockquote>
+<p><a href="-START-HERE-/"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPCEtLSBUaXRsZSBhbmQgc3VidGl0bGUsIG1hdGNoaW5nIHByb2plY3QgY29udmVudGlvbiAoeT0zOCAvIHk9NjIpIC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPlN0YXJ0IEhlcmUg4oCUIEZpbmQgWW91ciBQYXRoPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPkZvdXIgZG9vcndheXMgaW50byB0aGUgRHluYXRyYWNlIEJlc3QgUHJhY3RpY2UgVG9waWNzIOKAlCBwaWNrIHRoZSBvbmUgdGhhdCBtYXRjaGVzIHlvdXIgc2l0dWF0aW9uPC90ZXh0PgoKICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9InNoQXJyb3ciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iMTAiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gRm91ci1jYXJkIGdyaWQgZGVsaWJlcmF0ZWx5IHNoYXJlcyAwMC1kb29yd2F5cy5zdmcgZ2VvbWV0cnk6CiAgICAgICB4ID0gMzAgLyAyNTIgLyA0NzQgLyA2OTYsIHdpZHRoIDIwNCwgZ2FwIDE4IOKAlCBjZW50cmVzIDEzMiAvIDM1NCAvIDU3NiAvIDc5OC4KICAgICAgIEtlZXBpbmcgYm90aCBpbWFnZXMgb24gb25lIGdyaWQgaXMgd2hhdCBzdG9wcyB0aGVtIGRyaWZ0aW5nIGFwYXJ0IGFnYWluLiAtLT4KCiAgPCEtLSBEb29yd2F5IDEg4oCUIE5ldCBOZXcgKGdyZWVuKSAtLT4KICA8cmVjdCB4PSIzMCIgeT0iMTAwIiB3aWR0aD0iMjA0IiBoZWlnaHQ9IjE5MCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIxMzIiIHk9IjEyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCIgbGV0dGVyLXNwYWNpbmc9IjEuNSI+RE9PUldBWSAxPC90ZXh0PgogIDx0ZXh0IHg9IjEzMiIgeT0iMTU5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5OZXQgTmV3PC90ZXh0PgogIDx0ZXh0IHg9IjEzMiIgeT0iMTg5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5HcmVlbmZpZWxkIG9yIG1pZ3JhdGluZzwvdGV4dD4KICA8dGV4dCB4PSIxMzIiIHk9IjIwNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+ZnJvbSBhbm90aGVyIHRvb2w8L3RleHQ+CiAgPHRleHQgeD0iMTMyIiB5PSIyMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAiPk5vIHByaW9yIHBsYXRmb3JtPC90ZXh0PgogIDx0ZXh0IHg9IjEzMiIgeT0iMjQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwIj5Gcm9tIE5ldyBSZWxpYyAvIFNwbHVuazwvdGV4dD4KICA8dGV4dCB4PSIxMzIiIHk9IjI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMCI+TXVsdGktdG9vbCBoeWJyaWQ8L3RleHQ+CiAgPHRleHQgeD0iMTMyIiB5PSIyODEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPjLigJM5IG1vbnRoczwvdGV4dD4KCiAgPCEtLSBEb29yd2F5IDIg4oCUIEV4cGFuZGluZyAvIENvbnNvbGlkYXRpbmcgKGJsdWUpIC0tPgogIDxyZWN0IHg9IjI1MiIgeT0iMTAwIiB3aWR0aD0iMjA0IiBoZWlnaHQ9IjE5MCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIzNTQiIHk9IjEyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCIgbGV0dGVyLXNwYWNpbmc9IjEuNSI+RE9PUldBWSAyPC90ZXh0PgogIDx0ZXh0IHg9IjM1NCIgeT0iMTUxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5FeHBhbmRpbmcgLzwvdGV4dD4KICA8dGV4dCB4PSIzNTQiIHk9IjE2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+Q29uc29saWRhdGluZzwvdGV4dD4KICA8dGV4dCB4PSIzNTQiIHk9IjE4OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RXhpc3RpbmcgdGVuYW50IOKAlCBhZGRpbmc8L3RleHQ+CiAgPHRleHQgeD0iMzU0IiB5PSIyMDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnNjb3BlIG9yIGNvbnNvbGlkYXRpbmc8L3RleHQ+CiAgPHRleHQgeD0iMzU0IiB5PSIyMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAiPkFkZCBhIGRvbWFpbiAoSzhTLCBSVU0pPC90ZXh0PgogIDx0ZXh0IHg9IjM1NCIgeT0iMjQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwIj5Db25zb2xpZGF0ZSBsb2dzIG9yIEFQTTwvdGV4dD4KICA8dGV4dCB4PSIzNTQiIHk9IjI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMCI+TWF0dXJlIG9wZXJhdGlvbnMgJmFtcDsgQUk8L3RleHQ+CiAgPHRleHQgeD0iMzU0IiB5PSIyODEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPjEgd2VlayDigJMgNiBtb250aHM8L3RleHQ+CgogIDwhLS0gRG9vcndheSAzIOKAlCBEZXBsb3ltZW50IE1pZ3JhdGlvbiAocHVycGxlKSAtLT4KICA8cmVjdCB4PSI0NzQiIHk9IjEwMCIgd2lkdGg9IjIwNCIgaGVpZ2h0PSIxOTAiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNTc2IiB5PSIxMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiIGxldHRlci1zcGFjaW5nPSIxLjUiPkRPT1JXQVkgMzwvdGV4dD4KICA8dGV4dCB4PSI1NzYiIHk9IjE1MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+RGVwbG95bWVudDwvdGV4dD4KICA8dGV4dCB4PSI1NzYiIHk9IjE2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+TWlncmF0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjU3NiIgeT0iMTg5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5FeGlzdGluZyBjdXN0b21lciBjaGFuZ2luZzwvdGV4dD4KICA8dGV4dCB4PSI1NzYiIHk9IjIwNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dGhlaXIgZGVwbG95bWVudCBtb2RlbDwvdGV4dD4KICA8dGV4dCB4PSI1NzYiIHk9IjIyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMCI+TWFuYWdlZCDihpIgU2FhUzwvdGV4dD4KICA8dGV4dCB4PSI1NzYiIHk9IjI0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMCI+U2FhUyDihpIgU2FhUyBjb25zb2xpZGF0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjU3NiIgeT0iMjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwIj5SZWdpb24gY2hhbmdlPC90ZXh0PgogIDx0ZXh0IHg9IjU3NiIgeT0iMjgxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj4z4oCTOSBtb250aHM8L3RleHQ+CgogIDwhLS0gRG9vcndheSA0IOKAlCBDbGFzc2ljIOKGkiBHZW4zIFBsYXRmb3JtIChjeWFuLCBtYXRjaGluZyAwMC1kb29yd2F5cy5zdmcpIC0tPgogIDxyZWN0IHg9IjY5NiIgeT0iMTAwIiB3aWR0aD0iMjA0IiBoZWlnaHQ9IjE5MCIgZmlsbD0iIzIyRDNFRSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI3OTgiIHk9IjEyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCIgbGV0dGVyLXNwYWNpbmc9IjEuNSI+RE9PUldBWSA0PC90ZXh0PgogIDx0ZXh0IHg9Ijc5OCIgeT0iMTUxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5DbGFzc2ljIOKGkiBHZW4zPC90ZXh0PgogIDx0ZXh0IHg9Ijc5OCIgeT0iMTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5QbGF0Zm9ybTwvdGV4dD4KICA8dGV4dCB4PSI3OTgiIHk9IjE4OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+U2FtZSBlbnZpcm9ubWVudCDigJQgY2xhc3NpYzwvdGV4dD4KICA8dGV4dCB4PSI3OTgiIHk9IjIwNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+c3VyZmFjZXMgb250byB0aGUgcGxhdGZvcm08L3RleHQ+CiAgPHRleHQgeD0iNzk4IiB5PSIyMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAiPk1acyDihpIgcG9saWNpZXMgLyBzZWdtZW50czwvdGV4dD4KICA8dGV4dCB4PSI3OTgiIHk9IjI0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMCI+Q2xhc3NpYyBMb2dzIOKGkiBPcGVuUGlwZWxpbmU8L3RleHQ+CiAgPHRleHQgeD0iNzk4IiB5PSIyNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAiPlVTUUwg4oaSIERRTCwgbmV3IGRhc2hib2FyZHM8L3RleHQ+CiAgPHRleHQgeD0iNzk4IiB5PSIyODEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPjPigJM2IG1vbnRoczwvdGV4dD4KCiAgPCEtLSBDb252ZXJnZW5jZSBhcnJvd3MgZnJvbSBlYWNoIGRvb3J3YXkgZG93biB0byB0aGUgbW9kdWxlcyByb3cgLS0+CiAgPGxpbmUgeDE9IjEzMiIgeTE9IjI5MCIgeDI9IjMwMCIgeTI9IjM0NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNzaEFycm93KSIvPgogIDxsaW5lIHgxPSIzNTQiIHkxPSIyOTAiIHgyPSI0MjAiIHkyPSIzNDUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjc2hBcnJvdykiLz4KICA8bGluZSB4MT0iNTc2IiB5MT0iMjkwIiB4Mj0iNTEwIiB5Mj0iMzQ1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI3NoQXJyb3cpIi8+CiAgPGxpbmUgeDE9Ijc5OCIgeTE9IjI5MCIgeDI9IjYzMCIgeTI9IjM0NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNzaEFycm93KSIvPgoKICA8IS0tICJBbGwgcGF0aHMgY29udmVyZ2UiIGhpbnQgLS0+CiAgPHRleHQgeD0iNDY1IiB5PSIzMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtc3R5bGU9Iml0YWxpYyI+YWxsIHBhdGhzIGNvbnZlcmdlIHRocm91Z2ggdGhlIHNhbWUgbW9kdWxlczwvdGV4dD4KCiAgPCEtLSBNb2R1bGVzIHJvdzogRm91bmRhdGlvbiDihpIgRG9tYWlucyDihpIgT3BlcmF0aW9uYWxpemUg4oaSIE1hdHVyaXR5IC0tPgogIDxyZWN0IHg9IjYwIiAgeT0iMzUwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjE1MCIgeT0iMzc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5Gb3VuZGF0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjE1MCIgeT0iMzkxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5PTkJSRCArIE9SR05aICsgSUFNPC90ZXh0PgoKICA8bGluZSB4MT0iMjQwIiB5MT0iMzc1IiB4Mj0iMjYyIiB5Mj0iMzc1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI3NoQXJyb3cpIi8+CgogIDxyZWN0IHg9IjI2MiIgeT0iMzUwIiB3aWR0aD0iMTU1IiBoZWlnaHQ9IjUwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjMzOSIgeT0iMzc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5Eb21haW5zPC90ZXh0PgogIDx0ZXh0IHg9IjMzOSIgeT0iMzkxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5LOFMgwrcgQ0xPVUQgwrcgU1BBTlMgwrcg4oCmPC90ZXh0PgoKICA8bGluZSB4MT0iNDE3IiB5MT0iMzc1IiB4Mj0iNDM5IiB5Mj0iMzc1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI3NoQXJyb3cpIi8+CgogIDxyZWN0IHg9IjQzOSIgeT0iMzUwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjUyNCIgeT0iMzc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5PcGVyYXRpb25hbGl6ZTwvdGV4dD4KICA8dGV4dCB4PSI1MjQiIHk9IjM5MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+REFTSCDCtyBXRkxPVyDCtyBBVVRPTSDCtyBBSU9QUzwvdGV4dD4KCiAgPGxpbmUgeDE9IjYwOSIgeTE9IjM3NSIgeDI9IjYzMSIgeTI9IjM3NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNzaEFycm93KSIvPgoKICA8cmVjdCB4PSI2MzEiIHk9IjM1MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI1MCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI3MTEiIHk9IjM3NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+TWF0dXJpdHk8L3RleHQ+CiAgPHRleHQgeD0iNzExIiB5PSIzOTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkFET1BUIOKAlCBjb250aW51b3VzIGxvb3A8L3RleHQ+CgogIDwhLS0gTG9vcC1iYWNrIGFycm93IGZyb20gTWF0dXJpdHkgdG8ga2VlcCBpdGVyYXRpbmcgLS0+CiAgPHBhdGggZD0iTSA3OTEgMzc1IFEgODcwIDM3NSA4NzAgNDE1IFEgODcwIDQzMiA4NDUgNDMyIiBmaWxsPSJub25lIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtZGFzaGFycmF5PSI0IDMiIG1hcmtlci1lbmQ9InVybCgjc2hBcnJvdykiLz4KICA8dGV4dCB4PSI4NDUiIHk9IjQwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSI5IiBmb250LXN0eWxlPSJpdGFsaWMiPml0ZXJhdGU8L3RleHQ+CgogIDwhLS0gQWx0ZXJuYXRpdmUgcGF0aCDigJQgc2tpcCB0aGUgcGxheWJvb2sgYW5kIGJyb3dzZSB0aGUgdG9waWNzIGxpc3QgZGlyZWN0bHkgLS0+CiAgPHRleHQgeD0iNDY1IiB5PSI0MjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtc3R5bGU9Iml0YWxpYyI+4oCUIG9yIOKAlDwvdGV4dD4KICA8cmVjdCB4PSIyNDUiIHk9IjQzOCIgd2lkdGg9IjQ0MCIgaGVpZ2h0PSIzNCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjOTRBM0I4IiBzdHJva2Utd2lkdGg9IjEuMiIgc3Ryb2tlLWRhc2hhcnJheT0iNSAzIiByeD0iMTciLz4KICA8dGV4dCB4PSI0NjUiIHk9IjQ2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+QWxyZWFkeSBrbm93IHdoYXQgeW91IG5lZWQ/IEJyb3dzZSBhbGwgMzIgdG9waWMgc2VyaWVzPC90ZXh0PgogIDwhLS0gRG93biBjaGV2cm9uIGFmdGVyIHRoZSB0ZXh0LCBpbmRpY2F0aW5nIHRvcGljcyBsaXZlIGJlbG93IHRoZSBiYW5uZXIgLS0+CiAgPHBhdGggZD0iTSA2NjAgNDU0IEwgNjY4IDQ2MiBMIDY3NiA0NTQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIxLjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgoKICA8IS0tIEZvb3RlciBsaW5lIC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDkxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEwIj40IGRvb3J3YXlzICDCtyAgNCByZXVzYWJsZSBtb2R1bGVzICDCtyAgMSAvIDMgLyA1LWRheSB3b3Jrc2hvcCBhZ2VuZGFzPC90ZXh0Pgo8L3N2Zz4K" alt="Start Here — Find Your Path" /></a></p>
+<blockquote>
+<p><strong>👉 New here?</strong> Open <a href="-START-HERE-/"><code>-START-HERE-/</code></a> — a navigational playbook that picks an entry path based on your situation (net-new, expand/consolidate, deployment migration, classic → Gen3 platform), then sequences the relevant topic series in order.
+Already know what you need? Skip the playbook and <strong><a href="#all-series-az">browse all 33 topic series ↓</a></strong>.</p>
+</blockquote>
+<blockquote>
+<p><strong>🤖 Using this repo with an AI agent?</strong> It's agent-ready: point your agent
+(Claude Code, Codex, Cursor, Copilot…) at the repo root and it will find
+<a href="AGENTS.md"><code>AGENTS.md</code></a>, which routes it to the right series and notebook.
+Most tools load it automatically.</p>
+</blockquote>
+<h2 id="layout">Layout</h2>
+<p>Each topic follows the same structure:</p>
+<ul>
+<li>notebooks/ — Dynatrace notebook JSON files (import into Dynatrace)</li>
+<li>pdfs/ — Printable/exported versions of the notebooks</li>
+<li>markdown/ — Markdown exports of the same content</li>
+<li>html/ — Web pages of the same content; each file stands alone, with its diagrams built in</li>
+<li>README.md — Topic overview and usage guide</li>
+<li>AGENTS.md — Routing table for AI agents (present in every series)</li>
+</ul>
+<p>DTM (Dynatrace Managed) is the one exception: it has no notebooks/ directory, because Dynatrace Managed has no Grail and the series contains no executable queries to import.</p>
+<p>Every series uses these exact lowercase directory names. Series directory names contain spaces, so quote them in shell commands.</p>
+<h2 id="categories">Categories</h2>
+<p>Series are grouped into seven categories for navigation. An alphabetical index follows below.</p>
+<ul>
+<li><strong>Foundations &amp; Adoption</strong> — getting started, maturity, access, data organization, cost management
+<a href="#onbrd---dynatrace-onboarding">ONBRD</a> · <a href="#adopt---observability-adoption--maturity">ADOPT</a> · <a href="#iam---iam-administration">IAM</a> · <a href="#orgnz---organize-data-buckets-segments-security">ORGNZ</a> · <a href="#faq---frequently-asked-questions">FAQ</a> · <a href="#finops---cost-management--finops">FINOPS</a></li>
+<li><strong>Data Sources &amp; Instrumentation</strong> — what you monitor and how to instrument it
+<a href="#k8s---kubernetes-monitoring">K8S</a> · <a href="#cloud---cloud-provider-integrations">CLOUD</a> · <a href="#mobl---mobile-monitoring">MOBL</a> · <a href="#webrum---web-real-user-monitoring">WEBRUM</a> · <a href="#synth---synthetic-monitoring">SYNTH</a> · <a href="#dbmon---database-monitoring">DBMON</a> · <a href="#otel---opentelemetry-integration">OTEL</a></li>
+<li><strong>Data Processing &amp; Analytics</strong> — ingestion, shaping, querying, dashboards
+<a href="#oplogs---openpipeline-logs">OPLOGS</a> · <a href="#opipe---openpipeline-beyond-logs">OPIPE</a> · <a href="#spans---distributed-tracing-and-spans">SPANS</a> · <a href="#bizev---business-events--funnel-analysis">BIZEV</a> · <a href="#dash---dashboard-design--building">DASH</a></li>
+<li><strong>Automation &amp; Workflows</strong> — configuration-as-code, alerting, reliability, and operational workflows
+<a href="#autom---dynatrace-automation">AUTOM</a> · <a href="#wflow---workflows-and-alert-notifications">WFLOW</a> · <a href="#aiops---dynatrace-intelligence">AIOPS</a> · <a href="#alert---alerting-strategy-and-design">ALERT</a> · <a href="#slo---service-level-objectives">SLO</a></li>
+<li><strong>Dynatrace Managed</strong> — what is specific to a self-hosted Managed cluster
+<a href="#dtm---dynatrace-managed">DTM</a></li>
+<li><strong>Security</strong> — runtime vulnerability analytics, application protection, and security posture management
+<a href="#appsec---application-security">APPSEC</a></li>
+<li><strong>Migrations</strong> — moving to Dynatrace or between Dynatrace environments
+<a href="#m2s---managed-to-saas-migration">M2S</a> · <a href="#s2s---saas-to-saas-migration">S2S</a> · <a href="#s2d---splunk-to-dynatrace-migration">S2D</a> · <a href="#sl2dt---sumo-logic-to-dynatrace">SL2DT</a> · <a href="#nr2dt---new-relic-to-dynatrace-migration-steps">NR2DT</a> · <a href="#nrlc---new-relic-to-dynatrace-migration-deep-dives">NRLC</a> · <a href="#opmig---openpipeline-migration">OPMIG</a> · <a href="#mz2pol---management-zone-migration-segments-policies-workflows">MZ2POL</a></li>
+</ul>
+<h2 id="all-series-az">All Series (A–Z)</h2>
+<h3 id="adopt---observability-adoption--maturity"><a href="ADOPT%20-%20Observability%20Adoption%20%26%20Maturity/">ADOPT - Observability Adoption &amp; Maturity</a></h3>
+<p>Framework for assessing and advancing Dynatrace observability adoption across the organization.</p>
+<ul>
+<li><a href="ADOPT%20-%20Observability%20Adoption%20%26%20Maturity/html/-%5BADOPT%5D-01-maturity-model.html">ADOPT-01: Observability Maturity Model</a> — Five-level maturity framework</li>
+<li><a href="ADOPT%20-%20Observability%20Adoption%20%26%20Maturity/html/-%5BADOPT%5D-02-platform-health-assessment.html">ADOPT-02: Platform Health Assessment</a> — Evaluating current state and readiness</li>
+<li><a href="ADOPT%20-%20Observability%20Adoption%20%26%20Maturity/html/-%5BADOPT%5D-03-success-metrics.html">ADOPT-03: Success Metrics</a> — Defining KPIs and measuring adoption</li>
+<li><a href="ADOPT%20-%20Observability%20Adoption%20%26%20Maturity/html/-%5BADOPT%5D-04-team-enablement.html">ADOPT-04: Team Enablement</a> — Training and organization strategies</li>
+<li><a href="ADOPT%20-%20Observability%20Adoption%20%26%20Maturity/html/-%5BADOPT%5D-05-optimization-roadmap.html">ADOPT-05: Optimization Roadmap</a> — Building your adoption roadmap</li>
+<li><a href="ADOPT%20-%20Observability%20Adoption%20%26%20Maturity/html/-%5BADOPT%5D-06-maximizing-value-staged-enablement.html">ADOPT-06: Maximizing Platform Value — Coverage Audit and Staged Enablement</a> — Coverage audit workflow, staged enablement waves, and value gates for closing partial-coverage gaps</li>
+<li><a href="ADOPT%20-%20Observability%20Adoption%20%26%20Maturity/html/-%5BADOPT%5D-99-best-practice-summary.html">ADOPT-99: Best Practice Summary</a> — Consolidated best practices from the ADOPT series</li>
+</ul>
+<h3 id="aiops---dynatrace-intelligence"><a href="AIOPS%20-%20Dynatrace%20Intelligence/">AIOPS - Dynatrace Intelligence</a></h3>
+<p>Comprehensive guide to AIOps and Dynatrace Intelligence — Causal AI, Predictive AI, and Generative AI capabilities across the platform.</p>
+<ul>
+<li><a href="AIOPS%20-%20Dynatrace%20Intelligence/html/-%5BAIOPS%5D-01-dynatrace-intelligence-overview.html">AIOPS-01: Dynatrace Intelligence Overview</a> — Causal, Predictive, and Generative AI categories and where they appear in the product</li>
+<li><a href="AIOPS%20-%20Dynatrace%20Intelligence/html/-%5BAIOPS%5D-02-anomaly-detection.html">AIOPS-02: Anomaly Detection</a> — Static thresholds, auto-adaptive, seasonal baselines, and multi-dimensional detection, including how much history a baseline needs and a pre-publish checklist for custom detectors</li>
+<li><a href="AIOPS%20-%20Dynatrace%20Intelligence/html/-%5BAIOPS%5D-03-davis-ai-problems-and-root-cause.html">AIOPS-03: Davis AI — Problems and Root Cause Analysis</a> — Causal AI engine, problem grouping via Smartscape, DQL for querying problems, and when an empty root cause is expected vs. worth auditing</li>
+<li><a href="AIOPS%20-%20Dynatrace%20Intelligence/html/-%5BAIOPS%5D-04-davis-copilot-dynatrace-assist.html">AIOPS-04: Davis CoPilot — Dynatrace Assist for Investigation</a> — Generative AI surfaces, NL-to-DQL, problem summaries, and investigative patterns</li>
+<li><a href="AIOPS%20-%20Dynatrace%20Intelligence/html/-%5BAIOPS%5D-05-ai-models.html">AIOPS-05: AI Models — Causal, Predictive, and Generative</a> — Model inventory, responsibilities, costs, and governance considerations</li>
+<li><a href="AIOPS%20-%20Dynatrace%20Intelligence/html/-%5BAIOPS%5D-06-ai-integrations-and-agentic-workflows.html">AIOPS-06: AI Integrations and Agentic Workflows</a> — AI Workflow tasks, Dynatrace MCP server, external agent integration, and AI Observability for your own GenAI applications</li>
+<li><a href="AIOPS%20-%20Dynatrace%20Intelligence/html/-%5BAIOPS%5D-07-putting-it-together.html">AIOPS-07: Putting It Together — Detect, Investigate, Remediate</a> — Composing all AI categories into the full operational AIOps pattern</li>
+<li><a href="AIOPS%20-%20Dynatrace%20Intelligence/html/-%5BAIOPS%5D-99-series-summary.html">AIOPS-99: Series Summary</a> — DQL query index, cross-series pointers, and next steps for an AIOps initiative</li>
+</ul>
+<h3 id="alert---alerting-strategy-and-design"><a href="ALERT%20-%20Alerting%20Strategy%20and%20Design/">ALERT - Alerting Strategy and Design</a></h3>
+<p>Designing alerting end to end in Dynatrace — detection, routing, reliability targets, and ITSM integration — orchestrating the AIOPS, SLO, and WFLOW series into one operational pattern.</p>
+<ul>
+<li><a href="ALERT%20-%20Alerting%20Strategy%20and%20Design/html/-%5BALERT%5D-01-end-to-end-architecture.html">ALERT-01: End-to-End Alerting Architecture</a> — The whole alerting board on one canvas: what to set up, where, and how detection, routing, and reliability connect</li>
+<li><a href="ALERT%20-%20Alerting%20Strategy%20and%20Design/html/-%5BALERT%5D-02-choosing-and-building-detection.html">ALERT-02: Choosing and Building Detection</a> — Decision framework for the four detection mechanisms — which to use for which signal, and the anti-patterns that cause noise</li>
+<li><a href="ALERT%20-%20Alerting%20Strategy%20and%20Design/html/-%5BALERT%5D-03-routing-destinations-cost.html">ALERT-03: Routing, Destinations, and Cost</a> — Simple vs multi-step workflow routing, the destination landscape, the legacy alerting-profile path, and cost discipline</li>
+<li><a href="ALERT%20-%20Alerting%20Strategy%20and%20Design/html/-%5BALERT%5D-04-servicenow-integration.html">ALERT-04: ITSM Integration: ServiceNow</a> — Integration maturity ladder from one-way incident creation to ServiceNow-side event management, with the worked ServiceNow Table API path</li>
+<li><a href="ALERT%20-%20Alerting%20Strategy%20and%20Design/html/-%5BALERT%5D-99-best-practice-summary.html">ALERT-99: Best-Practice Summary and Setup Checklist</a> — The series on one page: principles, a complete end-to-end setup checklist, and the cross-series build map</li>
+</ul>
+<h3 id="appsec---application-security"><a href="APPSEC%20%E2%80%94%20Application%20Security/">APPSEC - Application Security</a></h3>
+<p>End-to-end application security observability with Dynatrace — covering Runtime Vulnerability Analytics, Runtime Application Protection, Security Posture Management, and the governance patterns to operationalize AppSec at scale.</p>
+<ul>
+<li><a href="APPSEC%20%E2%80%94%20Application%20Security/html/-%5BAPPSEC%5D-01-fundamentals.html">APPSEC-01: Fundamentals and the Three Pillars of Application Security</a> — RVA, RAP, and SPM architecture; the Gen3 Grail foundation for security findings</li>
+<li><a href="APPSEC%20%E2%80%94%20Application%20Security/html/-%5BAPPSEC%5D-02-runtime-vulnerability-analytics.html">APPSEC-02: Runtime Vulnerability Analytics</a> — Third-party library CVE detection, exposure and vulnerable-function signals, and risk prioritization</li>
+<li><a href="APPSEC%20%E2%80%94%20Application%20Security/html/-%5BAPPSEC%5D-03-code-level-vulnerability-analytics.html">APPSEC-03: Code-Level Vulnerability Analytics</a> — First-party vs. third-party detection, supported runtimes, entry point and code location, and process-group scoping</li>
+<li><a href="APPSEC%20%E2%80%94%20Application%20Security/html/-%5BAPPSEC%5D-04-runtime-application-protection.html">APPSEC-04: Runtime Application Protection</a> — Detection-to-blocking promotion, protection rules, and attack class coverage</li>
+<li><a href="APPSEC%20%E2%80%94%20Application%20Security/html/-%5BAPPSEC%5D-05-security-posture-management.html">APPSEC-05: Security Posture Management</a> — Compliance baseline evaluation (CIS, PCI, NIST) and misconfiguration findings</li>
+<li><a href="APPSEC%20%E2%80%94%20Application%20Security/html/-%5BAPPSEC%5D-06-kubernetes-and-container-security.html">APPSEC-06: Kubernetes and Container Security</a> — Cross-pillar AppSec coverage for Kubernetes workloads and container images</li>
+<li><a href="APPSEC%20%E2%80%94%20Application%20Security/html/-%5BAPPSEC%5D-07-investigator-and-davis-copilot.html">APPSEC-07: Investigations and Dynatrace Assist for Security</a> — Evidence-driven investigation over Grail data and NL-to-DQL for security work</li>
+<li><a href="APPSEC%20%E2%80%94%20Application%20Security/html/-%5BAPPSEC%5D-08-workflows-notifications-remediation.html">APPSEC-08: Workflows, Notifications and Remediation</a> — Routing findings to SOC, AppDev, and platform teams via Dynatrace Workflows</li>
+<li><a href="APPSEC%20%E2%80%94%20Application%20Security/html/-%5BAPPSEC%5D-09-iam-and-gen3-permissions.html">APPSEC-09: IAM and Gen3 Permissions for AppSec</a> — Permission catalog, persona policies, boundary patterns, and sensitive-data access controls</li>
+<li><a href="APPSEC%20%E2%80%94%20Application%20Security/html/-%5BAPPSEC%5D-10-dashboards-reporting-governance.html">APPSEC-10: Dashboards, Reporting and Governance</a> — Executive dashboard composition, governance cadence, and FinOps angle for AppSec DPS billing</li>
+</ul>
+<h3 id="autom---dynatrace-automation"><a href="AUTOM%20-%20Dynatrace%20Automation/">AUTOM - Dynatrace Automation</a></h3>
+<p>Comprehensive guide to automating Dynatrace configuration and operations.</p>
+<ul>
+<li><a href="AUTOM%20-%20Dynatrace%20Automation/html/-%5BAUTOM%5D-01-automation-landscape.html">AUTOM-01: Automation Landscape</a> — Overview of Dynatrace automation options</li>
+<li><a href="AUTOM%20-%20Dynatrace%20Automation/html/-%5BAUTOM%5D-02-settings-api.html">AUTOM-02: Settings API</a> — Working with the Settings 2.0 API</li>
+<li><a href="AUTOM%20-%20Dynatrace%20Automation/html/-%5BAUTOM%5D-03-monaco.html">AUTOM-03: Monaco</a> — Configuration as code with Monaco</li>
+<li><a href="AUTOM%20-%20Dynatrace%20Automation/html/-%5BAUTOM%5D-04-terraform.html">AUTOM-04: Terraform</a> — Infrastructure as code with Terraform provider</li>
+<li><a href="AUTOM%20-%20Dynatrace%20Automation/html/-%5BAUTOM%5D-05-workflows.html">AUTOM-05: Workflows</a> — Dynatrace Workflows automation</li>
+<li><a href="AUTOM%20-%20Dynatrace%20Automation/html/-%5BAUTOM%5D-06-sdks.html">AUTOM-06: SDKs</a> — Using Dynatrace SDKs for automation</li>
+<li><a href="AUTOM%20-%20Dynatrace%20Automation/html/-%5BAUTOM%5D-07-cicd-integration.html">AUTOM-07: CI/CD Integration</a> — Integrating Dynatrace into CI/CD pipelines</li>
+<li><a href="AUTOM%20-%20Dynatrace%20Automation/html/-%5BAUTOM%5D-08-migration-automation.html">AUTOM-08: Migration Automation</a> — Automating configuration migrations</li>
+<li><a href="AUTOM%20-%20Dynatrace%20Automation/html/-%5BAUTOM%5D-09-terraform-gitops-setup-recipe.html">AUTOM-09: Terraform GitOps Setup Recipe</a> — Repo layout, state backends, lifecycle protections, team onboarding</li>
+<li><a href="AUTOM%20-%20Dynatrace%20Automation/html/-%5BAUTOM%5D-95-%5BLAB%5D-terraform-iam.html">AUTOM-95: [LAB] Terraform IAM Management</a> — Hands-on lab: provision groups, policies, and bindings with the Terraform provider</li>
+<li><a href="AUTOM%20-%20Dynatrace%20Automation/html/-%5BAUTOM%5D-96-%5BLAB%5D-cicd-github-actions.html">AUTOM-96: [LAB] CI/CD with GitHub Actions</a> — Hands-on lab: GitHub Actions workflows for Dynatrace Terraform deployments</li>
+<li><a href="AUTOM%20-%20Dynatrace%20Automation/html/-%5BAUTOM%5D-97-%5BLAB%5D-monaco.html">AUTOM-97: [LAB] Monaco</a> — Hands-on lab: configuration as code with Monaco</li>
+<li><a href="AUTOM%20-%20Dynatrace%20Automation/html/-%5BAUTOM%5D-98-%5BLAB%5D-terraform.html">AUTOM-98: [LAB] Terraform</a> — Hands-on lab: Terraform provider basics for Dynatrace</li>
+<li><a href="AUTOM%20-%20Dynatrace%20Automation/html/-%5BAUTOM%5D-99-best-practice-summary.html">AUTOM-99: Best Practice Summary</a> — Consolidated best practices from the AUTOM series</li>
+</ul>
+<h3 id="bizev---business-events--funnel-analysis"><a href="BIZEV%20-%20Business%20Events%20%26%20Funnel%20Analysis/">BIZEV - Business Events &amp; Funnel Analysis</a></h3>
+<p>Turning business transactions into first-class observability data with Dynatrace Business Events.</p>
+<ul>
+<li><a href="BIZEV%20-%20Business%20Events%20%26%20Funnel%20Analysis/html/-%5BBIZEV%5D-01-business-events-fundamentals.html">BIZEV-01: Business Events Fundamentals</a> — Business events data model and architecture</li>
+<li><a href="BIZEV%20-%20Business%20Events%20%26%20Funnel%20Analysis/html/-%5BBIZEV%5D-02-instrumentation.html">BIZEV-02: Instrumentation</a> — Capturing business transaction events</li>
+<li><a href="BIZEV%20-%20Business%20Events%20%26%20Funnel%20Analysis/html/-%5BBIZEV%5D-03-funnel-analysis.html">BIZEV-03: Funnel Analysis</a> — Analyzing conversion and drop-off patterns</li>
+<li><a href="BIZEV%20-%20Business%20Events%20%26%20Funnel%20Analysis/html/-%5BBIZEV%5D-04-revenue-impact.html">BIZEV-04: Revenue Impact Analysis</a> — Quantifying business impact</li>
+<li><a href="BIZEV%20-%20Business%20Events%20%26%20Funnel%20Analysis/html/-%5BBIZEV%5D-05-kpis-and-metrics.html">BIZEV-05: KPIs and Metrics</a> — Business metrics and dashboarding</li>
+<li><a href="BIZEV%20-%20Business%20Events%20%26%20Funnel%20Analysis/html/-%5BBIZEV%5D-06-executive-reporting.html">BIZEV-06: Executive Reporting</a> — Creating business-focused reports</li>
+<li><a href="BIZEV%20-%20Business%20Events%20%26%20Funnel%20Analysis/html/-%5BBIZEV%5D-07-gen2-vs-gen3-adoption-paths.html">BIZEV-07: Gen2 vs Gen3 — Business Events Without (or Before) the Full Move</a> — Decision framework for Managed and classic-operated tenants: what works without Grail, adoption paths, and the migration sequence when you're ready to move</li>
+<li><a href="BIZEV%20-%20Business%20Events%20%26%20Funnel%20Analysis/html/-%5BBIZEV%5D-99-best-practice-summary.html">BIZEV-99: Best Practice Summary</a> — Consolidated best practices from the BIZEV series</li>
+</ul>
+<h3 id="cloud---cloud-provider-integrations"><a href="CLOUD%20-%20Cloud%20Provider%20Integrations/">CLOUD - Cloud Provider Integrations</a></h3>
+<p>Monitoring cloud infrastructure and services across AWS, Azure, and GCP with Dynatrace.</p>
+<ul>
+<li><a href="CLOUD%20-%20Cloud%20Provider%20Integrations/html/-%5BCLOUD%5D-01-cloud-integration-fundamentals.html">CLOUD-01: Cloud Integration Fundamentals</a> — Architecture and integration patterns</li>
+<li><a href="CLOUD%20-%20Cloud%20Provider%20Integrations/html/-%5BCLOUD%5D-02-aws-integration.html">CLOUD-02: AWS Integration</a> — Connecting AWS accounts and services</li>
+<li><a href="CLOUD%20-%20Cloud%20Provider%20Integrations/html/-%5BCLOUD%5D-03-aws-eks-monitoring.html">CLOUD-03: AWS EKS Monitoring</a> — Monitoring Kubernetes on EKS</li>
+<li><a href="CLOUD%20-%20Cloud%20Provider%20Integrations/html/-%5BCLOUD%5D-04-aws-lambda-serverless.html">CLOUD-04: AWS Lambda &amp; Serverless Monitoring</a> — Observability for serverless workloads</li>
+<li><a href="CLOUD%20-%20Cloud%20Provider%20Integrations/html/-%5BCLOUD%5D-05-azure-integration.html">CLOUD-05: Azure Integration</a> — Connecting Azure subscriptions</li>
+<li><a href="CLOUD%20-%20Cloud%20Provider%20Integrations/html/-%5BCLOUD%5D-06-gcp-integration.html">CLOUD-06: GCP Integration</a> — Connecting Google Cloud projects</li>
+<li><a href="CLOUD%20-%20Cloud%20Provider%20Integrations/html/-%5BCLOUD%5D-07-cloudwatch-log-ingestion.html">CLOUD-07: CloudWatch Log Ingestion</a> — Ingesting CloudWatch logs via OpenPipeline</li>
+<li><a href="CLOUD%20-%20Cloud%20Provider%20Integrations/html/-%5BCLOUD%5D-08-multi-cloud-patterns.html">CLOUD-08: Multi-Cloud Observability Patterns</a> — Managing multi-cloud strategies</li>
+<li><a href="CLOUD%20-%20Cloud%20Provider%20Integrations/html/-%5BCLOUD%5D-99-best-practice-summary.html">CLOUD-99: Best Practice Summary</a> — Consolidated best practices from the CLOUD series</li>
+</ul>
+<h3 id="dash---dashboard-design--building"><a href="DASH%20-%20Dashboard%20Design%20%26%20Building/">DASH - Dashboard Design &amp; Building</a></h3>
+<p>Designing and building effective dashboards for different stakeholder audiences.</p>
+<ul>
+<li><a href="DASH%20-%20Dashboard%20Design%20%26%20Building/html/-%5BDASH%5D-01-dashboard-fundamentals.html">DASH-01: Dashboard Fundamentals</a> — Dashboards vs notebooks and core concepts</li>
+<li><a href="DASH%20-%20Dashboard%20Design%20%26%20Building/html/-%5BDASH%5D-02-dashboard-hierarchy.html">DASH-02: Dashboard Hierarchy</a> — Organizing dashboards for discovery and navigation</li>
+<li><a href="DASH%20-%20Dashboard%20Design%20%26%20Building/html/-%5BDASH%5D-03-executive-dashboards.html">DASH-03: Executive Dashboards</a> — KPI dashboards for leadership</li>
+<li><a href="DASH%20-%20Dashboard%20Design%20%26%20Building/html/-%5BDASH%5D-04-operations-dashboards.html">DASH-04: Operations Dashboards</a> — Real-time operational view</li>
+<li><a href="DASH%20-%20Dashboard%20Design%20%26%20Building/html/-%5BDASH%5D-05-engineering-dashboards.html">DASH-05: Engineering Dashboards</a> — Technical deep-dive dashboards</li>
+<li><a href="DASH%20-%20Dashboard%20Design%20%26%20Building/html/-%5BDASH%5D-06-variables-and-filters.html">DASH-06: Variables and Filters</a> — Dynamic dashboard interactions</li>
+<li><a href="DASH%20-%20Dashboard%20Design%20%26%20Building/html/-%5BDASH%5D-07-sharing-and-reporting.html">DASH-07: Sharing and Reporting</a> — Distribution and scheduled exports</li>
+<li><a href="DASH%20-%20Dashboard%20Design%20%26%20Building/html/-%5BDASH%5D-99-best-practice-summary.html">DASH-99: Best Practice Summary</a> — Consolidated best practices from the DASH series</li>
+</ul>
+<h3 id="dbmon---database-monitoring"><a href="DBMON%20-%20Database%20Monitoring/">DBMON - Database Monitoring</a></h3>
+<p>End-to-end monitoring of SQL, NoSQL, cache, and messaging database platforms.</p>
+<ul>
+<li><a href="DBMON%20-%20Database%20Monitoring/html/-%5BDBMON%5D-01-database-monitoring-fundamentals.html">DBMON-01: Database Monitoring Fundamentals</a> — How Dynatrace monitors databases</li>
+<li><a href="DBMON%20-%20Database%20Monitoring/html/-%5BDBMON%5D-02-sql-databases.html">DBMON-02: SQL Database Monitoring</a> — SQL Server, PostgreSQL, Oracle, MySQL</li>
+<li><a href="DBMON%20-%20Database%20Monitoring/html/-%5BDBMON%5D-03-nosql-databases.html">DBMON-03: NoSQL Database Monitoring</a> — MongoDB, DynamoDB, Cassandra, and more</li>
+<li><a href="DBMON%20-%20Database%20Monitoring/html/-%5BDBMON%5D-04-cache-and-messaging.html">DBMON-04: Cache and Messaging Monitoring</a> — Redis, Memcached, RabbitMQ, Kafka</li>
+<li><a href="DBMON%20-%20Database%20Monitoring/html/-%5BDBMON%5D-05-query-analysis.html">DBMON-05: Query Analysis</a> — Performance analysis and optimization</li>
+<li><a href="DBMON%20-%20Database%20Monitoring/html/-%5BDBMON%5D-06-dashboards-and-alerting.html">DBMON-06: Dashboards and Alerting</a> — Database performance dashboards</li>
+<li><a href="DBMON%20-%20Database%20Monitoring/html/-%5BDBMON%5D-99-best-practice-summary.html">DBMON-99: Best Practice Summary</a> — Consolidated best practices from the DBMON series</li>
+</ul>
+<h3 id="dtm---dynatrace-managed"><a href="DTM%20-%20Dynatrace%20Managed/">DTM - Dynatrace Managed</a></h3>
+<p>What is specific to a self-hosted Dynatrace Managed cluster (Dynatrace Classic only): designing and configuring it, its ActiveGates and OneAgents, then keeping it healthy — node architecture, a five-layer health model, one notebook per layer, and a checklist. Formerly MCH — Managed Cluster Health. Markdown and PDF only.</p>
+<ul>
+<li><a href="DTM%20-%20Dynatrace%20Managed/html/-%5BDTM%5D-00-dynatrace-managed-journey.html">DTM-00: The Dynatrace Managed Journey</a> — Series map: what the series applies to, where to start by situation, the numbering bands, and where each former MCH notebook went</li>
+<li><a href="DTM%20-%20Dynatrace%20Managed/html/-%5BDTM%5D-01-cluster-design-best-practices.html">DTM-01: Cluster Design Best Practices</a> — Sizing for growth, node rules and placement, choosing single-cluster HA, rack awareness or Premium HA, storage layout, and host, operating system and cloud choices</li>
+<li><a href="DTM%20-%20Dynatrace%20Managed/html/-%5BDTM%5D-02-cluster-configuration-best-practices.html">DTM-02: Cluster Configuration Best Practices</a> — Custom properties that survive updates, reliable encrypted email, the Mission Control and remote-access trade-offs, internet proxy, sign-in and session security, privilege elevation, node traffic roles, and backups from day one</li>
+<li><a href="DTM%20-%20Dynatrace%20Managed/html/-%5BDTM%5D-03-environment-best-practices.html">DTM-03: Environment Best Practices</a> — Environment or management zone as the boundary, per-environment limits, choosing LDAP, SAML or OpenID Connect, the break-glass administrator account, keeping cluster, environment and zone permissions narrow, and additive IAM policies</li>
+<li><a href="DTM%20-%20Dynatrace%20Managed/html/-%5BDTM%5D-04-activegate-deployment-on-managed.html">DTM-04: ActiveGate Deployment on Managed</a> — ActiveGate roles and purposes, placement so OneAgents never fall back uncompressed, two per data center and sizing, network zones and load balancers, multi-environment limits and dedicated extension ActiveGates, and update modes</li>
+<li><a href="DTM%20-%20Dynatrace%20Managed/html/-%5BDTM%5D-05-oneagent-deployment-on-managed.html">DTM-05: OneAgent Deployment on Managed</a> — How OneAgent reaches the cluster, host groups and network zones decided before rollout, network-zone fallback modes, update policy with rings and restarts, and the x86-64-v2 CPU baseline</li>
+<li><a href="DTM%20-%20Dynatrace%20Managed/html/-%5BDTM%5D-10-managed-cluster-architecture-health-model.html">DTM-10: Managed Cluster Architecture and Health Model</a> — What runs on a cluster node, what a node failure costs, the five-layer health model, and where each health signal is surfaced</li>
+<li><a href="DTM%20-%20Dynatrace%20Managed/html/-%5BDTM%5D-11-server-nodes-and-processes.html">DTM-11: Server Nodes and Processes</a> — Node inventory and operation state, on-node process checks, the gated service start order, safe restarts, which node events email you, memory, time, inter-node network, and triage</li>
+<li><a href="DTM%20-%20Dynatrace%20Managed/html/-%5BDTM%5D-12-cassandra-metrics-store.html">DTM-12: Cassandra Metrics Store Health</a> — The metrics repository: replication, size ceilings and their events, 5-year retention by resolution, nodetool health checks, adding and removing nodes, repair, what the daily backup restores, rack awareness, and Cassandra versions</li>
+<li><a href="DTM%20-%20Dynatrace%20Managed/html/-%5BDTM%5D-13-elasticsearch-store.html">DTM-13: Elasticsearch Store Health</a> — User sessions (3 copies) and log events (2 copies), sizing, retention as the size lever, _cluster/health and events, log ingest pressure, storage location, the incremental backup, failover and versions</li>
+<li><a href="DTM%20-%20Dynatrace%20Managed/html/-%5BDTM%5D-14-activegates-mission-control-connectivity.html">DTM-14: Cluster ActiveGates and Mission Control Connectivity</a> — The agent traffic path and ActiveGate hierarchy, load balancers, endpoints and DNS, certificates, the Mission Control link and what breaks without it, offline clusters, remote access, and Cluster ActiveGate health</li>
+<li><a href="DTM%20-%20Dynatrace%20Managed/html/-%5BDTM%5D-15-capacity-and-scaling.html">DTM-15: Capacity and Scaling</a> — The sizing model (host units, peak user actions, Premium HA), scaling out, up and storage, one-third headroom, capacity signals and which email you, environment quotas and overload prevention, and adding or removing nodes</li>
+<li><a href="DTM%20-%20Dynatrace%20Managed/html/-%5BDTM%5D-16-backup-upgrade-disaster-recovery.html">DTM-16: Backup, Upgrade, and Disaster Recovery</a> — What a backup protects and what it doesn't, setting up backups (and the boot-time mount risk), restore preconditions and order, upgrade paths and their 24-hour rules, version support, Premium HA failover, and choosing a recovery path</li>
+<li><a href="DTM%20-%20Dynatrace%20Managed/html/-%5BDTM%5D-17-cluster-health-assessment.html">DTM-17: Running a Cluster Health Assessment</a> — A one-off, read-only review of a Managed cluster: assessment vs routine, a four-value rating scale (Pass, Pass with Risk, Gap, Not Assessed), evidence sources and what to request up front, a 59-check checklist in nine areas mapped to the five health layers, and how to roll up the findings</li>
+<li><a href="DTM%20-%20Dynatrace%20Managed/html/-%5BDTM%5D-99-best-practice-summary.html">DTM-99: Best Practice Summary and Health-Check Checklist</a> — The cluster-health notebooks on one page: a five-layer checklist, every signal that never emails you, a review cadence, the numbers worth knowing, anti-patterns, and the documentation's gaps and conflicts</li>
+</ul>
+<h3 id="faq---frequently-asked-questions"><a href="FAQ%20-%20Frequently%20Asked%20Questions/">FAQ - Frequently Asked Questions</a></h3>
+<p>Frequently asked questions and answers across the Dynatrace Best-Practice Notebooks series.</p>
+<ul>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-01-host-group-naming-strategy.html">FAQ-01: Why you need a good Host Group naming strategy</a> — How host group naming influences access control, alerting, automation, and tenant maintainability</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-02-tagging-sources-standards-strategy.html">FAQ-02: Tagging — Sources, Standards, and Strategy</a> — The four tag sources, primary tags vs. ordinary tags, and the standards that turn tag sprawl into a managed asset</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-03-oneagent-vs-otel-decision-framework.html">FAQ-03: OneAgent and OpenTelemetry — Choosing Per Workload</a> — How OneAgent and OpenTelemetry combine per workload — layer vs. convert vs. leave-alone vs. greenfield, covering Java, .NET, Node.js, Python, Go, PHP, Ruby, with async context propagation edge cases and JVM dynamic-attach guidance</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-04-managing-oneagent-updates-saas.html">FAQ-04: Managing OneAgent Updates on SaaS</a> — Update mechanism, the three modes, tenant/host-group/host precedence, update vs. maintenance windows, the DynaKube <code>autoUpdate</code> deprecation, validation, rollback, and common pitfalls</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-05-managing-activegate-updates-saas.html">FAQ-05: Managing ActiveGate Updates on SaaS</a> — Fleet management target versions and update windows vs the Classic per-AG toggle, auto-update vs manual decision, ActiveGates-before-OneAgents sequencing, HA-pair rolling updates, role-specific considerations (routing, synthetic, EF 2.0, cloud), validation, rollback, and common pitfalls</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-06-can-we-trust-davis-ai.html">FAQ-06: Can We Trust Davis AI? A Risk and Controls Walkthrough</a> — Four-surface taxonomy (Causal, Predictive, Generative/Dynatrace Assist, AI Observability) with data residency, training boundary, hallucination controls, autonomy limits, audit trail, IAM, compliance posture, and a decision framework for when to lean in vs hold back</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-07-launcher-page-setup.html">FAQ-07: How Do I Set Up a Launcher Page? (Default + Persona-Based)</a> — Default launcher configuration plus persona-based launcher patterns for tailoring the entry experience by role</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-08-oneagent-log-autodiscovery.html">FAQ-08: How Does OneAgent Decide Which Logs to Collect?</a> — Log auto-discovery rules, what gets picked up automatically vs what needs a custom log source, host scanning, include/exclude patterns, and verification checklist</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-09-metrics-instead-of-log-queries.html">FAQ-09: When Should I Query a Metric Instead of Raw Logs?</a> — Decision framework for replacing recurring log aggregations with pre-extracted metrics; covers Grail query economics, OOTB metrics, cardinality, and extraction trade-offs</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-10-activegate-sizing-and-scaling.html">FAQ-10: How Do I Size and Scale ActiveGates?</a> — Capability-to-sizing-dimension map, host-based and containerized K8s sizing tables, synthetic node sizing, HA/network-zone survivor-capacity math, and saturation detection via <code>dt.sfm.active_gate.*</code> Grail metrics</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-11-how-metrics-work.html">FAQ-11: How Do Metrics Work in Dynatrace?</a> — End-to-end metric mechanics: data-point model (gauge summaries + count deltas), Classic vs Grail dual-write backends, all ingest paths (OneAgent, API v2, OTLP, OpenPipeline), storage/rollup/retention, cardinality enforcement, timeseries querying, and DPS billing</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-12-cost-of-coverage-gaps.html">FAQ-12: Coming from Another Tool — How Partial Enablement Handicaps Your Dynatrace Coverage</a> — Per-capability habit-to-handicap matrix for migration customers; what each gap costs, when reduced coverage is right, and objection handling</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-13-openshift-scc-seccomp-injection.html">FAQ-13: How Do Dynatrace Injection and OpenShift SCCs Interact?</a> — Why anyuid + seccomp:RuntimeDefault fails at admission after Operator 1.9.0, SCC compatibility matrix, custom SCC fix, pre-upgrade impact assessment, and change-management practices</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-14-sql-server-extension-vs-custom-scripts.html">FAQ-14: Should I Replace My Custom SQL Server Monitoring Scripts with the Dynatrace Extension?</a> — Decision framework and migration sequence for mapping a homegrown script/Telegraf monitor estate onto the Dynatrace SQL Server extension; covers honest gaps, the small custom EF 2.0 fallback, and when keeping Telegraf is right</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-15-how-dpl-works.html">FAQ-15: How Does DPL Work?</a> — Canonical Dynatrace Pattern Language reference: the matcher-expression model, a regex compare/contrast (DPL does no backtracking, and character classes are the only regex-compatible construct), the full matcher catalog, the traps that return null or a silently wrong value, the five DQL surfaces that consume DPL, and a four-step failure diagnosis</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-16-entity-selectors-to-smartscape.html">FAQ-16: How Do I Migrate Classic Entity Selectors to Smartscape?</a> — Classify the query before translating it, entity type and construct mapping, <code>traverse</code> and edge discovery, and why the same entity set can return different name strings</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-17-planning-a-migration-cutover.html">FAQ-17: How Do I Plan a Migration Cutover?</a> — The eight cutover invariants, which migration series documents each, the validation ladder, rollback triggers, and entity-parity checks</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-18-monitoring-aem-cloud-service.html">FAQ-18: How Do I Monitor Adobe Experience Manager as a Cloud Service?</a> — OneAgent full-stack monitoring on Adobe-run containers: requesting enablement through Adobe, what the ticket needs, where the control boundary sits, per-environment licensing, and why enabling it is a cutover rather than a parallel run</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-19-third-party-saas-telemetry-integration.html">FAQ-19: How Do I Bring a Third-Party SaaS Platform's Telemetry Into Dynatrace?</a> — The reusable pattern: mapping questions to signal classes, letting the vendor's transport pick the ingestion route, extract-then-discard and the stage-order trap that defeats it, <code>CUSTOM_*</code> Smartscape topology from OpenPipeline, and bucket isolation</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-20-monitoring-zscaler.html">FAQ-20: How Do I Monitor Zscaler With Dynatrace?</a> — The ZIA and ZPA extensions versus build-your-own for ZDX, why ZIA and ZPA logs cannot replace ZDX, the transport split across the three product lines, direct-vs-multi-home ingestion, what to extract and what to discard, a five-node topology model, field mapping, and when synthetics add anything</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-21-alert-notification-routing.html">FAQ-21: How Do I Get the Right Alerts to the Right People?</a> — Decision layer over ALERT-03 / WFLOW-04: separates the four axes an alerting design conflates — <strong>fires</strong> (anomaly detector, scoped by segment), <strong>routes</strong> (problem-triggered workflow trigger), <strong>sees</strong> (the IAM access model), <strong>filters</strong> (segments, UI only). Built strictly on the documented trigger surface — problem state, event category, severity, affected-entity tags, Minimum duration, Updates, and the additional custom filter query — and the documented recommendation to filter on <em>&quot;Primary Grail fields, Security context, Custom attributes.&quot;</em> <strong>Ownership is the built-in answer</strong> — <code>owner</code> and <code>dt.owner</code> are default tag keys in every environment, so the affected-entity tag filter routes on ownership with no custom field; a custom attribute matched with a DQL matcher is the fallback where ownership cannot be populated (<code>matchesPhrase</code> / <code>matchesValue</code> / <code>isNotNull</code> / <code>isNull</code>, boolean and numeric operators, <code>iAny</code>). Covers denoise-before-routing via Davis correlation, the <strong>Minimum duration</strong> option for duration suppression (5 min–1 week, evaluated on <code>dt.duration_marker</code>) (the upgrade guide, rewritten 09/07/2026, now agrees), and three anti-patterns: segments-scope-notification, routing-replaces-visibility, route-before-enrich</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-22-purepath-timings-in-grail.html">FAQ-22: What Happened to My PurePath Timings in Grail?</a> — CPU time survived as <code>span.timing.cpu</code> / <code>span.timing.cpu_self</code>; IO, disk IO, lock, and suspension time were never modeled. What to use instead, why an external call is a client span with no endpoint and no service metrics, the <code>request_attribute</code> vs <code>captured_attribute</code> array trap, and the dictionary test that settles any &quot;does this field exist&quot; question</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-23-monitoring-box.html">FAQ-23: How Do I Monitor Box With Dynatrace?</a> — Why Box webhooks cannot carry an audit feed and the enterprise stream is pull-only, the two-week streaming vs one-year historical split, a worked sizing example at 1,000,000 events/day showing neither endpoint is the bottleneck, complete Workflow and Python collector implementations with the 120-second ceiling as the decision boundary, cursor rules that prevent permanent data loss, and the collector-health check that reports &quot;OK&quot; when nothing has ever arrived; also assesses the <code>restapi</code> Collector receiver as an optional third collector</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-24-can-we-trust-dynatrace-with-our-data.html">FAQ-24: Can We Trust Dynatrace With Our Data?</a> — The four questions behind &quot;is our data safe?&quot; — captured, stored, accessed, proven — and where each is documented; masking at capture vs ingest, residency and retention, the security-context array trap, and why segments are not access control.</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-25-what-carries-over-to-a-new-tenant.html">FAQ-25: What Actually Carries Over When We Migrate to a New Tenant?</a> — Three classes decide every &quot;does X survive the move?&quot; question: configuration moves and is rewritten, identity is re-minted, accumulated state is gone. Each fails differently — loudly, silently, on a delay. Includes the <code>id == id_classic</code> comparison that is always false because the fields are different types, the classic → Smartscape mapping read from the semantic dictionary, a per-host baseline-clock query, and why two OneAgents on one host is unsupported rather than merely expensive</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-26-metadata-strategy.html">FAQ-26: What Metadata Should We Set, Where, and Why?</a> — Metadata as three decisions per dimension — the job it does, the producer that owns it, and how far it reaches. Why a primary tag is not an access boundary, which values reach derived data and the pre-routing record, producer-by-producer enrichment for OneAgent, Kubernetes, OpenTelemetry, cloud, extensions, synthetic monitors and RUM, the silent failure modes, and a cross-signal coverage audit</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-27-monitoring-microsoft-365-audit-logs.html">FAQ-27: How Do I Get Microsoft 365 Audit Logs Into Dynatrace?</a> — Two routes rather than one collector: Entra ID sign-ins through Azure log forwarding, the workload audit through a Python or Workflow collector on the Office 365 Management Activity API — with the checkpoint, duplicate and 24-hour timestamp rules that keep it from losing records, and where the <code>m365</code> OpenTelemetry Collector receiver falls short of them</li>
+<li><a href="FAQ%20-%20Frequently%20Asked%20Questions/html/-%5BFAQ%5D-28-when-and-where-to-deploy-activegates.html">FAQ-28: When and Where Should I Deploy ActiveGates?</a> — Decide per job, not per organization: which jobs still need an ActiveGate, what the container image can and can't run, pros and cons of VMs compared with Kubernetes, network-zone placement, the two-set Kubernetes recommendation, and a fleet audit query.</li>
+</ul>
+<h3 id="finops---cost-management--finops"><a href="FINOPS%20-%20Cost%20Management%20%26%20FinOps/">FINOPS - Cost Management &amp; FinOps</a></h3>
+<p>Best practices for understanding, forecasting, and optimizing Dynatrace Platform Subscription (DPS) consumption.</p>
+<ul>
+<li><a href="FINOPS%20-%20Cost%20Management%20%26%20FinOps/html/-%5BFINOPS%5D-01-dps-capability-units-querying-consumption.html">FINOPS-01: DPS Capability Units and Querying Consumption with DQL</a> — Capability categories, billing event flow, and DQL patterns for consumption queries</li>
+<li><a href="FINOPS%20-%20Cost%20Management%20%26%20FinOps/html/-%5BFINOPS%5D-02-forecasting-anomaly-detection-consumption.html">FINOPS-02: Forecasting and Anomaly Detection on DPS Consumption</a> — Burn-rate trajectory, three layers of cost visibility, and anomaly detection architecture</li>
+<li><a href="FINOPS%20-%20Cost%20Management%20%26%20FinOps/html/-%5BFINOPS%5D-03-optimization-decision-framework.html">FINOPS-03: DPS Consumption Optimization — When to Cut, Tune, or Filter</a> — Optimization decision tree and cut/tune/filter trade-offs</li>
+</ul>
+<h3 id="iam---iam-administration"><a href="IAM%20-%20IAM%20Administration/">IAM - IAM Administration</a></h3>
+<p>Enterprise identity and access management administration for Dynatrace.</p>
+<ul>
+<li><a href="IAM%20-%20IAM%20Administration/html/-%5BIAM%5D-01-governance-foundations.html">IAM-01: Governance Foundations</a> — IAM governance principles and strategy</li>
+<li><a href="IAM%20-%20IAM%20Administration/html/-%5BIAM%5D-02-sso-authentication.html">IAM-02: SSO &amp; Authentication</a> — Single sign-on and authentication setup</li>
+<li><a href="IAM%20-%20IAM%20Administration/html/-%5BIAM%5D-03-group-architecture.html">IAM-03: Group Architecture</a> — Designing group structures</li>
+<li><a href="IAM%20-%20IAM%20Administration/html/-%5BIAM%5D-04-policy-authoring.html">IAM-04: Policy Authoring</a> — Writing and managing policies</li>
+<li><a href="IAM%20-%20IAM%20Administration/html/-%5BIAM%5D-05-boundary-design.html">IAM-05: Boundary Design</a> — Defining access boundaries</li>
+<li><a href="IAM%20-%20IAM%20Administration/html/-%5BIAM%5D-06-user-lifecycle.html">IAM-06: User Lifecycle</a> — Managing user provisioning and deprovisioning</li>
+<li><a href="IAM%20-%20IAM%20Administration/html/-%5BIAM%5D-07-audit-compliance.html">IAM-07: Audit &amp; Compliance</a> — Auditing access and ensuring compliance</li>
+<li><a href="IAM%20-%20IAM%20Administration/html/-%5BIAM%5D-08-multi-environment.html">IAM-08: Multi-Environment</a> — IAM across multiple environments</li>
+<li><a href="IAM%20-%20IAM%20Administration/html/-%5BIAM%5D-09-troubleshooting.html">IAM-09: Troubleshooting</a> — Diagnosing and resolving IAM issues</li>
+<li><a href="IAM%20-%20IAM%20Administration/html/-%5BIAM%5D-10-templated-policy-assignments.html">IAM-10: Templated Policy Assignments</a> — Policy templates and bulk assignments</li>
+<li><a href="IAM%20-%20IAM%20Administration/html/-%5BIAM%5D-11-%5BWORKSHOP%5D-policy-persona.html">IAM-11: [WORKSHOP] Policy Persona Simulation</a> — Interactive workshop: designing a persona-based permissions model (personas, IdP alignment, schema/app audits, data boundaries)</li>
+<li><a href="IAM%20-%20IAM%20Administration/html/-%5BIAM%5D-12-api-provisioning-validation.html">IAM-12: API Provisioning &amp; Validation</a> — Scripts and DQL for provisioning via Account Management API (curl flavor)</li>
+<li><a href="IAM%20-%20IAM%20Administration/html/-%5BIAM%5D-95-%5BLAB%5D-terraform-iam-provisioning.html">IAM-95: [LAB] Terraform IAM Provisioning</a> — Hands-on lab: groups, policies, boundaries, bindings as code (live-verified, with expected output)</li>
+<li><a href="IAM%20-%20IAM%20Administration/html/-%5BIAM%5D-96-%5BLAB%5D-python-iam-provisioning.html">IAM-96: [LAB] Python IAM Provisioning</a> — Hands-on lab: the group → policy → boundary → binding chain step by step against the raw Account Management API in Python (live-verified, with expected output)</li>
+<li><a href="IAM%20-%20IAM%20Administration/html/-%5BIAM%5D-97-permission-reference.html">IAM-97: Permission Reference</a> — What each Standard User permission actually grants: scope, risk, persona matrix, and the basis for every claim</li>
+<li><a href="IAM%20-%20IAM%20Administration/html/-%5BIAM%5D-99-best-practice-summary.html">IAM-99: Best Practice Summary</a> — Consolidated best practices from the IAM series</li>
+</ul>
+<h3 id="k8s---kubernetes-monitoring"><a href="K8S%20-%20Kubernetes%20Monitoring/">K8S - Kubernetes Monitoring</a></h3>
+<p>Best practices for monitoring Kubernetes with Dynatrace.</p>
+<ul>
+<li><a href="K8S%20-%20Kubernetes%20Monitoring/html/-%5BK8S%5D-01-fundamentals.html">K8S-01: Fundamentals</a> — Core Kubernetes monitoring concepts</li>
+<li><a href="K8S%20-%20Kubernetes%20Monitoring/html/-%5BK8S%5D-02-dynakube-deployment.html">K8S-02: Dynakube Deployment</a> — Deploying Dynatrace Operator and Dynakube</li>
+<li><a href="K8S%20-%20Kubernetes%20Monitoring/html/-%5BK8S%5D-03-gitops-dynakube.html">K8S-03: GitOps Dynakube</a> — Managing Dynakube with GitOps</li>
+<li><a href="K8S%20-%20Kubernetes%20Monitoring/html/-%5BK8S%5D-04-cluster-monitoring.html">K8S-04: Cluster Monitoring</a> — Monitoring Kubernetes clusters</li>
+<li><a href="K8S%20-%20Kubernetes%20Monitoring/html/-%5BK8S%5D-05-workload-monitoring.html">K8S-05: Workload Monitoring</a> — Monitoring workloads and applications</li>
+<li><a href="K8S%20-%20Kubernetes%20Monitoring/html/-%5BK8S%5D-06-namespace-organization.html">K8S-06: Namespace Organization</a> — Organizing and filtering by namespace</li>
+<li><a href="K8S%20-%20Kubernetes%20Monitoring/html/-%5BK8S%5D-07-events-and-logs.html">K8S-07: Events and Logs</a> — Kubernetes events and log monitoring</li>
+<li><a href="K8S%20-%20Kubernetes%20Monitoring/html/-%5BK8S%5D-08-dql-for-k8s.html">K8S-08: DQL for K8s</a> — Querying Kubernetes data with DQL</li>
+<li><a href="K8S%20-%20Kubernetes%20Monitoring/html/-%5BK8S%5D-09-troubleshooting.html">K8S-09: Troubleshooting</a> — Diagnosing Kubernetes monitoring issues</li>
+<li><a href="K8S%20-%20Kubernetes%20Monitoring/html/-%5BK8S%5D-10-metadata-telemetry-enrichment.html">K8S-10: Metadata Telemetry Enrichment</a> — Enriching telemetry with Kubernetes metadata</li>
+<li><a href="K8S%20-%20Kubernetes%20Monitoring/html/-%5BK8S%5D-11-multi-tool-coexistence.html">K8S-11: Multi-Tool Coexistence</a> — Running Dynatrace alongside other monitoring tools</li>
+<li><a href="K8S%20-%20Kubernetes%20Monitoring/html/-%5BK8S%5D-12-specialized-monitoring.html">K8S-12: Specialized Monitoring</a> — NGINX Ingress, code-module delivery (image volumes, CSI driver, ephemeral volumes), resource tuning, and StatsD</li>
+<li><a href="K8S%20-%20Kubernetes%20Monitoring/html/-%5BK8S%5D-13-kafka-monitoring-with-kpow.html">K8S-13: Kafka Monitoring with Kpow</a> — Kafka observability using Kpow Prometheus metrics</li>
+<li><a href="K8S%20-%20Kubernetes%20Monitoring/html/-%5BK8S%5D-14-%5BLAB%5D-deployment-guide.html">K8S-14: [LAB] Kubernetes Deployment Guide</a> — Hands-on lab: end-to-end Dynatrace Kubernetes deployment walkthrough</li>
+<li><a href="K8S%20-%20Kubernetes%20Monitoring/html/-%5BK8S%5D-99-best-practice-summary.html">K8S-99: Best Practice Summary</a> — Consolidated best practices from the K8S series</li>
+</ul>
+<h3 id="m2s---managed-to-saas-migration"><a href="M2S%20-%20Managed%20to%20SaaS%20Migration/">M2S - Managed to SaaS Migration</a></h3>
+<p>Guide for migrating from Dynatrace Managed to Dynatrace SaaS.</p>
+<ul>
+<li><a href="M2S%20-%20Managed%20to%20SaaS%20Migration/html/-%5BM2S%5D-01-step-1-discover.html">M2S-01: Step 1 — Discover: Understand SaaS Differences</a> — Understanding why you're migrating, the benefits of SaaS, and inventorying your Managed environment</li>
+<li><a href="M2S%20-%20Managed%20to%20SaaS%20Migration/html/-%5BM2S%5D-02-step-2-strategize.html">M2S-02: Step 2 — Strategize: Define Your Migration Approach</a> — Planning your migration strategy, phasing, and execution approach</li>
+<li><a href="M2S%20-%20Managed%20to%20SaaS%20Migration/html/-%5BM2S%5D-03-step-3-design.html">M2S-03: Step 3 — Design: Create Target Architecture</a> — Designing your target SaaS architecture and configuration</li>
+<li><a href="M2S%20-%20Managed%20to%20SaaS%20Migration/html/-%5BM2S%5D-04-step-4-prepare.html">M2S-04: Step 4 — Prepare: Readiness and Pre-Migration</a> — Assessing readiness and preparing for migration</li>
+<li><a href="M2S%20-%20Managed%20to%20SaaS%20Migration/html/-%5BM2S%5D-05-step-5-execute.html">M2S-05: Step 5 — Execute: Migrate Configuration and Agents</a> — Migrating configurations and redirecting agents to SaaS</li>
+<li><a href="M2S%20-%20Managed%20to%20SaaS%20Migration/html/-%5BM2S%5D-06-step-6-integrate.html">M2S-06: Step 6 — Integrate: Reconnect Integrations</a> — Reconnecting cloud integrations and third-party tools</li>
+<li><a href="M2S%20-%20Managed%20to%20SaaS%20Migration/html/-%5BM2S%5D-07-step-7-enable.html">M2S-07: Step 7 — Enable: User Enablement and Communication</a> — User training, support, and operations handover</li>
+<li><a href="M2S%20-%20Managed%20to%20SaaS%20Migration/html/-%5BM2S%5D-08-step-8-expand.html">M2S-08: Step 8 — Expand: Adopt New SaaS Capabilities</a> — Discovering and adopting new SaaS-only capabilities</li>
+<li><a href="M2S%20-%20Managed%20to%20SaaS%20Migration/html/-%5BM2S%5D-09-step-9-optimize.html">M2S-09: Step 9 — Optimize: Validate, Optimize, and Decommission</a> — Validating the migration, optimizing the environment, and decommissioning Managed</li>
+<li><a href="M2S%20-%20Managed%20to%20SaaS%20Migration/html/-%5BM2S%5D-95-%5BLAB%5D-terraform-migration.html">M2S-95: [LAB] Terraform for Managed-to-SaaS Migration</a> — Appendix lab: migrating with the Terraform provider — bulk vs iterative export, Managed-source auth and scopes, entity-ID preservation via <code>oneagentctl</code>, wave-ordered apply</li>
+<li><a href="M2S%20-%20Managed%20to%20SaaS%20Migration/html/-%5BM2S%5D-99-best-practice-summary.html">M2S-99: Best Practice Summary</a> — Definitive reference of all best practices from the M2S series</li>
+</ul>
+<h3 id="mobl---mobile-monitoring"><a href="MOBL%20-%20Mobile%20Monitoring/">MOBL - Mobile Monitoring</a></h3>
+<p>Dynatrace mobile Real User Monitoring (RUM) for iOS, Android, and cross-platform frameworks.</p>
+<ul>
+<li><a href="MOBL%20-%20Mobile%20Monitoring/html/-%5BMOBL%5D-01-fundamentals.html">MOBL-01: Mobile Monitoring Fundamentals</a> — Mobile RUM architecture, supported platforms, and beacon data flow</li>
+<li><a href="MOBL%20-%20Mobile%20Monitoring/html/-%5BMOBL%5D-02-sdk-setup-ios.html">MOBL-02: iOS SDK Setup</a> — Installing and configuring the Dynatrace SDK for Swift and SwiftUI</li>
+<li><a href="MOBL%20-%20Mobile%20Monitoring/html/-%5BMOBL%5D-03-sdk-setup-android.html">MOBL-03: Android SDK Setup</a> — Setting up Dynatrace RUM for Android with Gradle</li>
+<li><a href="MOBL%20-%20Mobile%20Monitoring/html/-%5BMOBL%5D-04-cross-platform-frameworks.html">MOBL-04: Cross-Platform Frameworks</a> — Instrumenting Flutter, React Native, Cordova, and .NET MAUI (Xamarin end of support)</li>
+<li><a href="MOBL%20-%20Mobile%20Monitoring/html/-%5BMOBL%5D-05-user-action-tracking.html">MOBL-05: User Action Tracking</a> — Capturing auto-detected and custom user interactions</li>
+<li><a href="MOBL%20-%20Mobile%20Monitoring/html/-%5BMOBL%5D-06-crash-reporting.html">MOBL-06: Crash Reporting &amp; ANR Detection</a> — Automatic crash capture, symbolication, and grouping</li>
+<li><a href="MOBL%20-%20Mobile%20Monitoring/html/-%5BMOBL%5D-07-network-request-monitoring.html">MOBL-07: Network Request Monitoring</a> — HTTP(S) request visibility and timing breakdown</li>
+<li><a href="MOBL%20-%20Mobile%20Monitoring/html/-%5BMOBL%5D-08-session-replay.html">MOBL-08: Session Replay for Mobile</a> — Visual session recording with privacy masking</li>
+<li><a href="MOBL%20-%20Mobile%20Monitoring/html/-%5BMOBL%5D-09-session-properties-and-privacy.html">MOBL-09: Session Properties &amp; Data Privacy</a> — Custom session enrichment and GDPR/CCPA compliance</li>
+<li><a href="MOBL%20-%20Mobile%20Monitoring/html/-%5BMOBL%5D-10-dql-for-mobile.html">MOBL-10: DQL for Mobile Analytics</a> — Query reference for mobile RUM in user.events and user.sessions</li>
+<li><a href="MOBL%20-%20Mobile%20Monitoring/html/-%5BMOBL%5D-11-dashboards-and-alerting.html">MOBL-11: Dashboards &amp; Alerting</a> — KPI dashboards, crash-rate detectors, and problem workflows</li>
+<li><a href="MOBL%20-%20Mobile%20Monitoring/html/-%5BMOBL%5D-12-advanced-instrumentation.html">MOBL-12: Advanced Instrumentation</a> — Custom events, nested actions, A/B testing, and multi-app strategies</li>
+<li><a href="MOBL%20-%20Mobile%20Monitoring/html/-%5BMOBL%5D-99-best-practice-summary.html">MOBL-99: Best Practice Summary</a> — Consolidated best practices from the MOBL series</li>
+</ul>
+<h3 id="mz2pol---management-zone-migration-segments-policies-workflows"><a href="MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL - Management Zone Migration: Segments, Policies, Workflows</a></h3>
+<p>Tools and guidance for migrating from Management Zones to Policy-based access control.</p>
+<ul>
+<li><a href="MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/html/-%5BMZ2POL%5D-00-sdk-mz-analysis-tool.html">MZ2POL-00: SDK MZ Analysis Tool</a> — Analyze existing management zones</li>
+<li><a href="MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/html/-%5BMZ2POL%5D-01-introduction-why-migrate.html">MZ2POL-01: Introduction: Why Migrate</a> — Benefits and overview</li>
+<li><a href="MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/html/-%5BMZ2POL%5D-02-access-control-model.html">MZ2POL-02: Access Control Model</a> — Policies and access control concepts</li>
+<li><a href="MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/html/-%5BMZ2POL%5D-03-assessment-planning.html">MZ2POL-03: Assessment &amp; Planning</a> — Migration assessment and planning</li>
+<li><a href="MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/html/-%5BMZ2POL%5D-04-policies-and-boundaries.html">MZ2POL-04: Policies and Boundaries</a> — Defining policies and boundaries</li>
+<li><a href="MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/html/-%5BMZ2POL%5D-05-segments-implementation.html">MZ2POL-05: Migrating Management Zone Filtering to Segments</a> — Migration scenarios, conversion blockers, and MZ-rule-to-filter mapping</li>
+<li><a href="MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/html/-%5BMZ2POL%5D-06-migration-execution.html">MZ2POL-06: Migration Execution</a> — Executing the migration</li>
+<li><a href="MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/html/-%5BMZ2POL%5D-07-validation-troubleshooting.html">MZ2POL-07: Validation &amp; Troubleshooting</a> — Validating and resolving issues</li>
+<li><a href="MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/html/-%5BMZ2POL%5D-08-templated-policies-migration.html">MZ2POL-08: Templated Policies Migration</a> — Policy templates for bulk MZ migration</li>
+<li><a href="MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/html/-%5BMZ2POL%5D-09-alerting-and-notification-migration.html">MZ2POL-09: Migrating Management Zone-Scoped Alerting and Notifications</a> — MZ-scoped alerting profiles become problem-triggered workflows; the tag prerequisite, the connector gap and delay mapping, and the deletion test</li>
+<li><a href="MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/html/-%5BMZ2POL%5D-10-tagging-at-source-foundation.html">MZ2POL-10: Tagging at Source — The Foundation</a> — Tagging at source as the prerequisite for every MZ replacement — entity-first vs data-first, what stops working, primary tags vs <code>dt.security_context</code>, the enrichment ladder, propagation, and the readiness-gate audit</li>
+<li><a href="MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/html/-%5BMZ2POL%5D-11-translating-mz-rules-to-source-attributes.html">MZ2POL-11: Translating MZ Rules into Source Attributes</a> — Translating each MZ rule into a target field — rule types, property families, operator mapping, pushing exclusions into enrichment, and a per-rule worksheet</li>
+<li><a href="MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/html/-%5BMZ2POL%5D-12-iam-reference-architecture.html">MZ2POL-12: IAM Reference Architecture</a> — IAM reference architecture for a former MZ estate — the access model, how a request is evaluated, the boundary pitfalls that widen access, the scoped-settings change, persona walkthrough and classic-role mapping</li>
+<li><a href="MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/html/-%5BMZ2POL%5D-13-spaces-what-is-coming.html">MZ2POL-13: Spaces — What Is Coming</a> — Spaces (<code>dt.space</code>) — upcoming, not yet documented as available: what is published, what is not, where it would fit, and the no-regret preparation to do now</li>
+<li><a href="MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/html/-%5BMZ2POL%5D-14-%5BWORKSHOP%5D-zone-disposition.html">MZ2POL-14: Zone Disposition Workshop</a> — Zone disposition workshop — six sessions with the zone owners (triage, jobs, dimensions and tags, rule translation, personas and boundaries, alerting and cutover), pre-work queries, stop conditions and facilitator traps</li>
+<li><a href="MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/html/-%5BMZ2POL%5D-15-finding-every-zone-consumer.html">MZ2POL-15: Finding Every Zone Consumer</a> — Find every object, script and permission that still references a zone, in all three identifier formats, and build the dependency matrix that gates deletion</li>
+<li><a href="MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/html/-%5BMZ2POL%5D-16-migrating-zone-scoped-alerting-artifacts.html">MZ2POL-16: Migrating the Rest of Zone-Scoped Alerting</a> — Metric events, maintenance windows, classic SLOs and notification payloads that zones scope, how each migrates, and how to prove parity before cutover</li>
+<li><a href="MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/html/-%5BMZ2POL%5D-95-%5BLAB%5D-end-to-end-migration.html">MZ2POL-95 LAB: End-to-End Migration</a> — End-to-end LAB — a fictional eight-zone estate migrated from inventory to cutover on simulated records (zero bytes, any tenant), then the same checks on your own data</li>
+<li><a href="MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/html/-%5BMZ2POL%5D-99-best-practice-summary.html">MZ2POL-99: Best Practice Summary</a> — Consolidated checklist across notebooks 00–13, the workshop and the LAB — every row names its source notebook</li>
+</ul>
+<h3 id="nr2dt---new-relic-to-dynatrace-migration-steps"><a href="NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/">NR2DT - New Relic to Dynatrace Migration Steps</a></h3>
+<p>Step-by-step migration path from New Relic to Dynatrace, from discovery through cutover and decommission.</p>
+<ul>
+<li><a href="NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/html/-%5BNR2DT%5D-00-step-0-prerequisites.html">NR2DT-00: Step 0 — Tenant Prerequisites</a> — Readiness gate confirming the target Dynatrace tenant is fit to receive a New Relic migration</li>
+<li><a href="NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/html/-%5BNR2DT%5D-01-step-1-discover.html">NR2DT-01: Step 1 — Discover</a> — Inventorying the New Relic environment and understanding migration scope</li>
+<li><a href="NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/html/-%5BNR2DT%5D-02-step-2-strategize.html">NR2DT-02: Step 2 — Strategize</a> — Planning the migration strategy, phasing, and execution approach</li>
+<li><a href="NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/html/-%5BNR2DT%5D-03-step-3-design.html">NR2DT-03: Step 3 — Design</a> — Designing the target Dynatrace architecture and configuration</li>
+<li><a href="NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/html/-%5BNR2DT%5D-04-step-4-translate.html">NR2DT-04: Step 4 — Translate</a> — Translating NRQL queries, dashboards, and alerts to Dynatrace equivalents</li>
+<li><a href="NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/html/-%5BNR2DT%5D-05-step-5-migrate-dashboards-alerts.html">NR2DT-05: Step 5 — Migrate Dashboards &amp; Alerts</a> — Porting dashboards and alerting rules</li>
+<li><a href="NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/html/-%5BNR2DT%5D-06-step-6-migrate-synthetics-slos-workloads.html">NR2DT-06: Step 6 — Migrate Synthetics, SLOs &amp; Workloads</a> — Moving synthetic monitors, SLOs, and workload definitions</li>
+<li><a href="NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/html/-%5BNR2DT%5D-07-step-7-migrate-logs-tags-drops.html">NR2DT-07: Step 7 — Migrate Logs, Tags &amp; Drop Rules</a> — Migrating log ingestion, tagging schemes, and drop rules</li>
+<li><a href="NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/html/-%5BNR2DT%5D-08-step-8-validate.html">NR2DT-08: Step 8 — Validate</a> — Parallel-run validation and diff checks between source and target</li>
+<li><a href="NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/html/-%5BNR2DT%5D-09-step-9-cutover-rollback-decommission.html">NR2DT-09: Step 9 — Cutover, Rollback &amp; Decommission</a> — Executing cutover, preparing rollback plans, and decommissioning New Relic</li>
+<li><a href="NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/html/-%5BNR2DT%5D-99-best-practice-summary.html">NR2DT-99: Best Practice Summary</a> — Consolidated best practices from the NR2DT series</li>
+</ul>
+<h3 id="nrlc---new-relic-to-dynatrace-migration-deep-dives"><a href="NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/">NRLC - New Relic to Dynatrace Migration Deep Dives</a></h3>
+<p>Technical deep-dive companion to the NR2DT series — focused reference notebooks for query translation, dashboard migration, alerting, synthetics, SLOs, logs, and validation.</p>
+<ul>
+<li><a href="NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/html/-%5BNRLC%5D-01-platform-comparison.html">NRLC-01: Platform Comparison</a> — Side-by-side comparison of New Relic and Dynatrace concepts</li>
+<li><a href="NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/html/-%5BNRLC%5D-02-nrql-to-dql-translation.html">NRLC-02: NRQL → DQL Translation</a> — Translating NRQL queries into DQL with worked examples</li>
+<li><a href="NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/html/-%5BNRLC%5D-03-dashboard-migration.html">NRLC-03: Dashboard Migration</a> — Rebuilding New Relic dashboards in Dynatrace</li>
+<li><a href="NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/html/-%5BNRLC%5D-04-alert-workflow-migration.html">NRLC-04: Alert &amp; Workflow Migration</a> — Migrating alert conditions and notification workflows</li>
+<li><a href="NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/html/-%5BNRLC%5D-05-synthetic-monitor-migration.html">NRLC-05: Synthetic Monitor Migration</a> — Moving synthetic monitors and private locations</li>
+<li><a href="NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/html/-%5BNRLC%5D-06-slo-workload-migration.html">NRLC-06: SLO &amp; Workload Migration</a> — Porting SLOs and workload definitions</li>
+<li><a href="NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/html/-%5BNRLC%5D-07-logs-tags-drops.html">NRLC-07: Logs, Tags &amp; Drop Rules</a> — Log pipelines, tagging strategies, and drop-rule equivalents</li>
+<li><a href="NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/html/-%5BNRLC%5D-08-validation-diff-rollback.html">NRLC-08: Validation, Diff &amp; Rollback</a> — Parallel-run validation, diff checks, and rollback strategy</li>
+<li><a href="NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/html/-%5BNRLC%5D-09-toolchain-reference.html">NRLC-09: Toolchain Reference &amp; End-to-End Runbook</a> — Tooling reference and end-to-end migration runbook</li>
+</ul>
+<h3 id="onbrd---dynatrace-onboarding"><a href="ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD - Dynatrace Onboarding</a></h3>
+<p>Step-by-step onboarding series for new Dynatrace users.</p>
+<ul>
+<li><a href="ONBRD%20-%20Dynatrace%20Onboarding/html/-%5BONBRD%5D-00-architect-sequence.html">ONBRD-00: Architect's Sequence &amp; Dependency Runbook</a> — Sequence, dependencies, and decisions for architects onboarding a new tenant</li>
+<li><a href="ONBRD%20-%20Dynatrace%20Onboarding/html/-%5BONBRD%5D-01-first-steps.html">ONBRD-01: First Steps</a> — Getting started with Dynatrace</li>
+<li><a href="ONBRD%20-%20Dynatrace%20Onboarding/html/-%5BONBRD%5D-02-iam-and-authentication.html">ONBRD-02: IAM and Authentication</a> — Identity and access management</li>
+<li><a href="ONBRD%20-%20Dynatrace%20Onboarding/html/-%5BONBRD%5D-03-deploying-activegate.html">ONBRD-03: Deploying ActiveGate</a> — Installing and configuring ActiveGate</li>
+<li><a href="ONBRD%20-%20Dynatrace%20Onboarding/html/-%5BONBRD%5D-04-cloud-saas-integrations.html">ONBRD-04: Cloud/SaaS Integrations</a> — Connecting cloud platforms</li>
+<li><a href="ONBRD%20-%20Dynatrace%20Onboarding/html/-%5BONBRD%5D-05-deploying-oneagent.html">ONBRD-05: Deploying OneAgent</a> — Deployment strategies</li>
+<li><a href="ONBRD%20-%20Dynatrace%20Onboarding/html/-%5BONBRD%5D-06-organizing-your-environment.html">ONBRD-06: Organizing Your Environment</a> — Structuring environments and entities</li>
+<li><a href="ONBRD%20-%20Dynatrace%20Onboarding/html/-%5BONBRD%5D-07-understanding-your-data.html">ONBRD-07: Understanding Your Data</a> — Data model and exploration</li>
+<li><a href="ONBRD%20-%20Dynatrace%20Onboarding/html/-%5BONBRD%5D-08-your-first-queries.html">ONBRD-08: Your First Queries</a> — Introduction to DQL</li>
+<li><a href="ONBRD%20-%20Dynatrace%20Onboarding/html/-%5BONBRD%5D-09-setting-up-alerts.html">ONBRD-09: Setting Up Alerts</a> — Alerting and notifications</li>
+<li><a href="ONBRD%20-%20Dynatrace%20Onboarding/html/-%5BONBRD%5D-10-building-dashboards.html">ONBRD-10: Building Dashboards</a> — Creating stakeholder dashboards</li>
+<li><a href="ONBRD%20-%20Dynatrace%20Onboarding/html/-%5BONBRD%5D-99-best-practice-summary.html">ONBRD-99: Best Practice Summary</a> — Consolidated best practices from the ONBRD series</li>
+</ul>
+<h3 id="opipe---openpipeline-beyond-logs"><a href="OPIPE%20-%20OpenPipeline%20Beyond%20Logs/">OPIPE - OpenPipeline Beyond Logs</a></h3>
+<p>Advanced OpenPipeline patterns for spans, metrics, business events, and security events — extending observability beyond log processing.</p>
+<ul>
+<li><a href="OPIPE%20-%20OpenPipeline%20Beyond%20Logs/html/-%5BOPIPE%5D-01-multi-scope-platform.html">OPIPE-01: OpenPipeline as a Multi-Scope Platform</a> — Beyond logs: processing spans, metrics, and events at ingestion</li>
+<li><a href="OPIPE%20-%20OpenPipeline%20Beyond%20Logs/html/-%5BOPIPE%5D-02-span-processing-and-enrichment.html">OPIPE-02: Span Processing &amp; Enrichment</a> — Filtering, enriching, and routing distributed traces at ingestion</li>
+<li><a href="OPIPE%20-%20OpenPipeline%20Beyond%20Logs/html/-%5BOPIPE%5D-03-sampling-aware-metrics.html">OPIPE-03: Sampling-Aware Metrics</a> — Extracting accurate metrics from sampled trace data</li>
+<li><a href="OPIPE%20-%20OpenPipeline%20Beyond%20Logs/html/-%5BOPIPE%5D-04-cardinality-management.html">OPIPE-04: Cardinality Management</a> — Controlling dimension explosion across all scopes</li>
+<li><a href="OPIPE%20-%20OpenPipeline%20Beyond%20Logs/html/-%5BOPIPE%5D-05-business-and-security-event-pipelines.html">OPIPE-05: Business &amp; Security Event Pipelines</a> — Processing business transactions and security events at ingestion</li>
+<li><a href="OPIPE%20-%20OpenPipeline%20Beyond%20Logs/html/-%5BOPIPE%5D-06-cross-scope-design-patterns.html">OPIPE-06: Cross-Scope Design Patterns</a> — Correlating logs, spans, metrics, and events across scopes</li>
+<li><a href="OPIPE%20-%20OpenPipeline%20Beyond%20Logs/html/-%5BOPIPE%5D-07-pipeline-group-governance.html">OPIPE-07: Pipeline Group Governance</a> — Central control and team autonomy with pipeline groups: ownership, mandated stages, execution order, routing, limits and gating</li>
+<li><a href="OPIPE%20-%20OpenPipeline%20Beyond%20Logs/html/-%5BOPIPE%5D-99-best-practice-summary.html">OPIPE-99: Best Practice Summary</a> — Consolidated best practices from the OPIPE series</li>
+</ul>
+<h3 id="oplogs---openpipeline-logs"><a href="OPLOGS%20-%20OpenPipeline%20Logs/">OPLOGS - OpenPipeline Logs</a></h3>
+<p>End-to-end guidance for managing logs with Dynatrace OpenPipeline.</p>
+<ul>
+<li><a href="OPLOGS%20-%20OpenPipeline%20Logs/html/-%5BOPLOGS%5D-01-fundamentals.html">OPLOGS-01: OpenPipeline Fundamentals</a> — Core OpenPipeline concepts and the unified data ingestion framework</li>
+<li><a href="OPLOGS%20-%20OpenPipeline%20Logs/html/-%5BOPLOGS%5D-02-migration.html">OPLOGS-02: Migration to OpenPipeline</a> — Moving from the classic log pipeline to OpenPipeline</li>
+<li><a href="OPLOGS%20-%20OpenPipeline%20Logs/html/-%5BOPLOGS%5D-03-pipeline-processing.html">OPLOGS-03: OpenPipeline Processing</a> — Transformations and processing stages</li>
+<li><a href="OPLOGS%20-%20OpenPipeline%20Logs/html/-%5BOPLOGS%5D-04-buckets-governance.html">OPLOGS-04: Buckets &amp; Data Governance</a> — Storage management, retention, and governance</li>
+<li><a href="OPLOGS%20-%20OpenPipeline%20Logs/html/-%5BOPLOGS%5D-05-querying-parsing.html">OPLOGS-05: Querying &amp; Parsing Logs</a> — DQL query techniques and parsing rules</li>
+<li><a href="OPLOGS%20-%20OpenPipeline%20Logs/html/-%5BOPLOGS%5D-06-topology.html">OPLOGS-06: Topology &amp; Entity Context</a> — Log topology and relationships to monitored entities</li>
+<li><a href="OPLOGS%20-%20OpenPipeline%20Logs/html/-%5BOPLOGS%5D-07-analytics.html">OPLOGS-07: Analytics &amp; Dashboards</a> — Advanced log analytics and dashboard patterns</li>
+<li><a href="OPLOGS%20-%20OpenPipeline%20Logs/html/-%5BOPLOGS%5D-08-security.html">OPLOGS-08: Security &amp; Data Protection</a> — Security, masking, and compliance</li>
+<li><a href="OPLOGS%20-%20OpenPipeline%20Logs/html/-%5BOPLOGS%5D-99-best-practice-summary.html">OPLOGS-99: Best Practice Summary</a> — Consolidated best practices from the OPLOGS series</li>
+</ul>
+<h3 id="opmig---openpipeline-migration"><a href="OPMIG%20-%20OpenPipeline%20Migration/">OPMIG - OpenPipeline Migration</a></h3>
+<p>Structured migration path to Dynatrace OpenPipeline.</p>
+<ul>
+<li><a href="OPMIG%20-%20OpenPipeline%20Migration/html/-%5BOPMIG%5D-01-introduction-why-migrate.html">OPMIG-01: Introduction: Why Migrate</a> — Benefits and goals</li>
+<li><a href="OPMIG%20-%20OpenPipeline%20Migration/html/-%5BOPMIG%5D-02-architecture-key-concepts.html">OPMIG-02: Architecture &amp; Key Concepts</a> — OpenPipeline architecture overview</li>
+<li><a href="OPMIG%20-%20OpenPipeline%20Migration/html/-%5BOPMIG%5D-03-migration-assessment-planning.html">OPMIG-03: Migration Assessment &amp; Planning</a> — Migration plan and readiness</li>
+<li><a href="OPMIG%20-%20OpenPipeline%20Migration/html/-%5BOPMIG%5D-04-pipeline-configuration.html">OPMIG-04: Pipeline Configuration</a> — Configuring OpenPipeline</li>
+<li><a href="OPMIG%20-%20OpenPipeline%20Migration/html/-%5BOPMIG%5D-05-routing-buckets.html">OPMIG-05: Routing &amp; Buckets</a> — Routing rules and storage strategy</li>
+<li><a href="OPMIG%20-%20OpenPipeline%20Migration/html/-%5BOPMIG%5D-06-processing-parsing.html">OPMIG-06: Processing &amp; Parsing</a> — Transformation and parsing rules</li>
+<li><a href="OPMIG%20-%20OpenPipeline%20Migration/html/-%5BOPMIG%5D-07-metric-event-extraction.html">OPMIG-07: Metric &amp; Event Extraction</a> — Deriving metrics/events from logs</li>
+<li><a href="OPMIG%20-%20OpenPipeline%20Migration/html/-%5BOPMIG%5D-08-security-masking.html">OPMIG-08: Security &amp; Masking</a> — Security controls and data masking</li>
+<li><a href="OPMIG%20-%20OpenPipeline%20Migration/html/-%5BOPMIG%5D-09-troubleshooting-validation.html">OPMIG-09: Troubleshooting &amp; Validation</a> — Validation and issue resolution</li>
+<li><a href="OPMIG%20-%20OpenPipeline%20Migration/html/-%5BOPMIG%5D-99-best-practice-summary.html">OPMIG-99: Best Practice Summary</a> — Consolidated best practices from the OPMIG series</li>
+</ul>
+<h3 id="orgnz---organize-data-buckets-segments-security"><a href="ORGNZ%20-%20Organize%20Data%3A%20Buckets%2C%20Segments%2C%20Security/">ORGNZ - Organize Data: Buckets, Segments, Security</a></h3>
+<p>Organizing data in Dynatrace Grail using buckets, segments, and security context.</p>
+<ul>
+<li><a href="ORGNZ%20-%20Organize%20Data%3A%20Buckets%2C%20Segments%2C%20Security/html/-%5BORGNZ%5D-01-introduction-to-organizing-data.html">ORGNZ-01: Introduction to Organizing Data in Grail</a> — Why data organization matters in Grail</li>
+<li><a href="ORGNZ%20-%20Organize%20Data%3A%20Buckets%2C%20Segments%2C%20Security/html/-%5BORGNZ%5D-02-understanding-grail-buckets.html">ORGNZ-02: Understanding Grail Buckets</a> — Bucket fundamentals and data types</li>
+<li><a href="ORGNZ%20-%20Organize%20Data%3A%20Buckets%2C%20Segments%2C%20Security/html/-%5BORGNZ%5D-03-bucket-strategy-and-design.html">ORGNZ-03: Bucket Strategy and Design</a> — Naming conventions and retention planning</li>
+<li><a href="ORGNZ%20-%20Organize%20Data%3A%20Buckets%2C%20Segments%2C%20Security/html/-%5BORGNZ%5D-04-permissions-in-grail.html">ORGNZ-04: Permissions in Grail Overview</a> — Permission levels and the canonical <code>dt.security_context</code> boundary pattern</li>
+<li><a href="ORGNZ%20-%20Organize%20Data%3A%20Buckets%2C%20Segments%2C%20Security/html/-%5BORGNZ%5D-05-bucket-level-access-control.html">ORGNZ-05: Bucket-Level Access Control</a> — IAM policies for bucket access and when bucket-level isolation fits</li>
+<li><a href="ORGNZ%20-%20Organize%20Data%3A%20Buckets%2C%20Segments%2C%20Security/html/-%5BORGNZ%5D-06-security-context.html">ORGNZ-06: Security Context</a> — Fine-grained record-level access with dt.security_context</li>
+<li><a href="ORGNZ%20-%20Organize%20Data%3A%20Buckets%2C%20Segments%2C%20Security/html/-%5BORGNZ%5D-07-advanced-permission-patterns.html">ORGNZ-07: Advanced Permission Patterns</a> — Record and field-level permissions</li>
+<li><a href="ORGNZ%20-%20Organize%20Data%3A%20Buckets%2C%20Segments%2C%20Security/html/-%5BORGNZ%5D-08-grail-segments.html">ORGNZ-08: Grail Segments</a> — Logical data filtering with segments</li>
+<li><a href="ORGNZ%20-%20Organize%20Data%3A%20Buckets%2C%20Segments%2C%20Security/html/-%5BORGNZ%5D-09-enterprise-patterns.html">ORGNZ-09: Enterprise Data Organization Patterns</a> — Combining buckets, segments, and security context for enterprise governance</li>
+<li><a href="ORGNZ%20-%20Organize%20Data%3A%20Buckets%2C%20Segments%2C%20Security/html/-%5BORGNZ%5D-10-advanced-segment-definitions.html">ORGNZ-10: Advanced Segment Definitions</a> — Complex segment filters with multi-include patterns</li>
+<li><a href="ORGNZ%20-%20Organize%20Data%3A%20Buckets%2C%20Segments%2C%20Security/html/-%5BORGNZ%5D-99-best-practice-summary.html">ORGNZ-99: Best Practice Summary &amp; DQL Reference</a> — Consolidated best practices and validation DQL from the ORGNZ series</li>
+</ul>
+<h3 id="otel---opentelemetry-integration"><a href="OTEL%20-%20OpenTelemetry%20Integration/">OTEL - OpenTelemetry Integration</a></h3>
+<p>Integrating OpenTelemetry with Dynatrace for observability.</p>
+<ul>
+<li><a href="OTEL%20-%20OpenTelemetry%20Integration/html/-%5BOTEL%5D-01-fundamentals.html">OTEL-01: Fundamentals</a> — Core OpenTelemetry concepts</li>
+<li><a href="OTEL%20-%20OpenTelemetry%20Integration/html/-%5BOTEL%5D-02-collector-architecture.html">OTEL-02: Collector Architecture</a> — Understanding the OTel Collector</li>
+<li><a href="OTEL%20-%20OpenTelemetry%20Integration/html/-%5BOTEL%5D-03-collector-deployment.html">OTEL-03: Collector Deployment</a> — Deploying and configuring collectors</li>
+<li><a href="OTEL%20-%20OpenTelemetry%20Integration/html/-%5BOTEL%5D-04-trace-instrumentation.html">OTEL-04: Trace Instrumentation</a> — Instrumenting applications for traces</li>
+<li><a href="OTEL%20-%20OpenTelemetry%20Integration/html/-%5BOTEL%5D-05-metrics-instrumentation.html">OTEL-05: Metrics Instrumentation</a> — Instrumenting applications for metrics</li>
+<li><a href="OTEL%20-%20OpenTelemetry%20Integration/html/-%5BOTEL%5D-06-logs-instrumentation.html">OTEL-06: Logs Instrumentation</a> — Instrumenting applications for logs</li>
+<li><a href="OTEL%20-%20OpenTelemetry%20Integration/html/-%5BOTEL%5D-07-dynatrace-integration.html">OTEL-07: Dynatrace Integration</a> — Sending OTel data to Dynatrace</li>
+<li><a href="OTEL%20-%20OpenTelemetry%20Integration/html/-%5BOTEL%5D-08-troubleshooting.html">OTEL-08: Troubleshooting</a> — Diagnosing OpenTelemetry issues</li>
+<li><a href="OTEL%20-%20OpenTelemetry%20Integration/html/-%5BOTEL%5D-99-best-practice-summary.html">OTEL-99: Best Practice Summary</a> — Consolidated best practices from the OTEL series</li>
+</ul>
+<h3 id="s2d---splunk-to-dynatrace-migration"><a href="S2D%20-%20Splunk%20to%20Dynatrace%20Migration/">S2D - Splunk to Dynatrace Migration</a></h3>
+<p>Guide for migrating monitoring capabilities from Splunk to Dynatrace.</p>
+<ul>
+<li><a href="S2D%20-%20Splunk%20to%20Dynatrace%20Migration/html/-%5BS2D%5D-01-getting-started.html">S2D-01: Getting Started</a> — Migration overview and roadmap</li>
+<li><a href="S2D%20-%20Splunk%20to%20Dynatrace%20Migration/html/-%5BS2D%5D-02-locating-logs.html">S2D-02: Locating Logs</a> — Finding and verifying log data in Dynatrace</li>
+<li><a href="S2D%20-%20Splunk%20to%20Dynatrace%20Migration/html/-%5BS2D%5D-03-spl-to-dql.html">S2D-03: SPL to DQL Translation</a> — Converting Splunk queries to DQL</li>
+<li><a href="S2D%20-%20Splunk%20to%20Dynatrace%20Migration/html/-%5BS2D%5D-04-anomaly-detectors.html">S2D-04: Davis Anomaly Detectors</a> — Migrating alerts to continuous monitoring</li>
+<li><a href="S2D%20-%20Splunk%20to%20Dynatrace%20Migration/html/-%5BS2D%5D-05-workflow-alerts.html">S2D-05: Workflow-Based Alerts</a> — Migrating alerts to scheduled workflows</li>
+<li><a href="S2D%20-%20Splunk%20to%20Dynatrace%20Migration/html/-%5BS2D%5D-06-arraymovingsum.html">S2D-06: ArrayMovingSum</a> — Rolling sums for extended timeframes</li>
+<li><a href="S2D%20-%20Splunk%20to%20Dynatrace%20Migration/html/-%5BS2D%5D-07-metric-creation.html">S2D-07: Metric Creation</a> — Extracting metrics from logs via OpenPipeline</li>
+<li><a href="S2D%20-%20Splunk%20to%20Dynatrace%20Migration/html/-%5BS2D%5D-08-dashboard-migration.html">S2D-08: Dashboard Migration</a> — Converting Splunk dashboards to Dynatrace</li>
+<li><a href="S2D%20-%20Splunk%20to%20Dynatrace%20Migration/html/-%5BS2D%5D-09-naming-standards.html">S2D-09: Naming Standards</a> — Asset naming conventions and organization</li>
+<li><a href="S2D%20-%20Splunk%20to%20Dynatrace%20Migration/html/-%5BS2D%5D-99-best-practice-summary.html">S2D-99: Best Practice Summary</a> — Consolidated best practices from the S2D series</li>
+</ul>
+<h3 id="s2s---saas-to-saas-migration"><a href="S2S%20-%20SaaS%20to%20SaaS%20Migration/">S2S - SaaS to SaaS Migration</a></h3>
+<p>Comprehensive guide to migrating between Dynatrace SaaS environments.</p>
+<ul>
+<li><a href="S2S%20-%20SaaS%20to%20SaaS%20Migration/html/-%5BS2S%5D-01-step-1-discover.html">S2S-01: Step 1 — Discover: Migration Scenarios and Inventory</a> — Understanding why you're migrating, inventorying your source environment, and identifying what migrates automatically</li>
+<li><a href="S2S%20-%20SaaS%20to%20SaaS%20Migration/html/-%5BS2S%5D-02-step-2-strategize.html">S2S-02: Step 2 — Strategize: Define Your Migration Approach</a> — Planning your migration strategy, phasing, and execution approach</li>
+<li><a href="S2S%20-%20SaaS%20to%20SaaS%20Migration/html/-%5BS2S%5D-03-step-3-design.html">S2S-03: Step 3 — Design: Target Tenant Architecture</a> — Designing your target SaaS architecture and tenant structure</li>
+<li><a href="S2S%20-%20SaaS%20to%20SaaS%20Migration/html/-%5BS2S%5D-04-step-4-prepare.html">S2S-04: Step 4 — Prepare: Export and Pre-Stage</a> — Exporting configurations and pre-staging for migration</li>
+<li><a href="S2S%20-%20SaaS%20to%20SaaS%20Migration/html/-%5BS2S%5D-05-step-5-execute.html">S2S-05: Step 5 — Execute: Configuration Import and Agent Cutover</a> — Importing configuration and redirecting agents to the target environment</li>
+<li><a href="S2S%20-%20SaaS%20to%20SaaS%20Migration/html/-%5BS2S%5D-06-step-6-integrate.html">S2S-06: Step 6 — Integrate: Cloud, Dashboards, and Workflows</a> — Migrating cloud integrations, dashboards, and workflows</li>
+<li><a href="S2S%20-%20SaaS%20to%20SaaS%20Migration/html/-%5BS2S%5D-07-step-7-expand.html">S2S-07: Step 7 — Expand: OpenPipeline, SLOs, and Alerting</a> — Configuring data pipelines, SLOs, and alerting rules</li>
+<li><a href="S2S%20-%20SaaS%20to%20SaaS%20Migration/html/-%5BS2S%5D-08-step-8-enable.html">S2S-08: Step 8 — Enable: Parallel Operation and Stakeholder Handover</a> — Running source and target in parallel and handing over to operations</li>
+<li><a href="S2S%20-%20SaaS%20to%20SaaS%20Migration/html/-%5BS2S%5D-09-step-9-optimize.html">S2S-09: Step 9 — Optimize: Cutover Validation and Decommission</a> — Validating the migration, optimizing the target, and decommissioning source</li>
+<li><a href="S2S%20-%20SaaS%20to%20SaaS%20Migration/html/-%5BS2S%5D-10-migration-scripts.html">S2S-10: Migration Scripts</a> — Reusable Bash and PowerShell scripts for Monaco export with a short-lived token, staged for direct <code>monaco deploy</code> to the target</li>
+<li><a href="S2S%20-%20SaaS%20to%20SaaS%20Migration/html/-%5BS2S%5D-94-%5BLAB%5D-aws-to-azure-cloud-retirement.html">S2S-94: [LAB] Retiring AWS for Azure</a> — Appendix lab: retiring AWS for Azure — moving the environment to an Azure-hosted cluster (standard SaaS region vs Azure Native) while workloads move in waves; dual-cloud connections, log/event cut-over, Smartscape validation queries, AWS and source decommission</li>
+<li><a href="S2S%20-%20SaaS%20to%20SaaS%20Migration/html/-%5BS2S%5D-99-best-practice-summary.html">S2S-99: Best Practice Summary</a> — Comprehensive reference of all best practices from the S2S series</li>
+</ul>
+<h3 id="sl2dt---sumo-logic-to-dynatrace"><a href="SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/">SL2DT - Sumo Logic to Dynatrace</a></h3>
+<p>Step-by-step migration path from Sumo Logic to Dynatrace, from strategy and inventory through cutover and decommission.</p>
+<ul>
+<li><a href="SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/html/-%5BSL2DT%5D-01-overview-and-migration-strategy.html">SL2DT-01: Overview &amp; Migration Strategy</a> — Migration strategy, mental model, and the five-wave pattern</li>
+<li><a href="SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/html/-%5BSL2DT%5D-02-assessment-and-inventory.html">SL2DT-02: Assessment &amp; Inventory</a> — Inventorying Sumo Logic and producing the cut-scope decision artifact</li>
+<li><a href="SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/html/-%5BSL2DT%5D-03-log-ingest-architecture.html">SL2DT-03: Log Ingest Architecture</a> — Designing Grail buckets and deploying OneAgent, OTel, and OpenPipeline</li>
+<li><a href="SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/html/-%5BSL2DT%5D-04-sumoql-to-dql-translation.html">SL2DT-04: SumoQL → DQL Translation</a> — Translating SumoQL queries, dashboards, and monitor conditions to DQL</li>
+<li><a href="SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/html/-%5BSL2DT%5D-05-monitor-and-alert-conversion.html">SL2DT-05: Monitor &amp; Alert Conversion</a> — Rebuilding Sumo Monitors using Anomaly Detection, Workflows, or Metric Events</li>
+<li><a href="SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/html/-%5BSL2DT%5D-06-dashboard-conversion.html">SL2DT-06: Dashboard Conversion</a> — Rebuilding in-scope Sumo dashboards in Dynatrace Notebooks and Dashboards</li>
+<li><a href="SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/html/-%5BSL2DT%5D-07-user-governance-and-access.html">SL2DT-07: User Governance &amp; Access</a> — Translating Sumo RBAC to Dynatrace Platform IAM groups and policies</li>
+<li><a href="SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/html/-%5BSL2DT%5D-08-automation-and-gitops.html">SL2DT-08: Automation &amp; GitOps</a> — CI/CD promotion paths for all migrated configuration, split across Terraform and Monaco</li>
+<li><a href="SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/html/-%5BSL2DT%5D-09-cutover-validation-decommission.html">SL2DT-09: Cutover, Validation &amp; Decommission</a> — Parallel validation, declaring cutover, and decommissioning Sumo</li>
+<li><a href="SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/html/-%5BSL2DT%5D-10-telegraf-metric-migration.html">SL2DT-10: Migrating Telegraf-Collected Metrics</a> — Repointing a Telegraf metric estate at Dynatrace: ingest-path choice, output-plugin mechanics, key reshaping, and parity validation</li>
+<li><a href="SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/html/-%5BSL2DT%5D-99-summary-and-runbook-index.html">SL2DT-99: Summary &amp; Runbook Index</a> — Single-page index and reference card for the entire SL2DT series</li>
+</ul>
+<h3 id="slo---service-level-objectives"><a href="SLO%20-%20Service%20Level%20Objectives/">SLO - Service Level Objectives</a></h3>
+<p>Defining and operating Service Level Objectives in Dynatrace — SLIs, error budgets, composition, burn-rate alerting, SLOs as code, and upgrading Classic SLOs.</p>
+<ul>
+<li><a href="SLO%20-%20Service%20Level%20Objectives/html/-%5BSLO%5D-01-fundamentals.html">SLO-01: SLO and SLI Fundamentals</a> — The three building blocks (SLI, SLO, error budget), the Dynatrace SLO model, and choosing your first SLOs</li>
+<li><a href="SLO%20-%20Service%20Level%20Objectives/html/-%5BSLO%5D-02-defining-slis.html">SLO-02: Defining SLIs</a> — The good ÷ total ratio as DQL: availability, latency, error-rate, and custom business SLIs, validated on a live tenant</li>
+<li><a href="SLO%20-%20Service%20Level%20Objectives/html/-%5BSLO%5D-03-composition-and-error-budgets.html">SLO-03: Composition and Error Budgets</a> — Error-budget math and burn rate, composite and weighted-global SLOs, and rolling vs calendar windows</li>
+<li><a href="SLO%20-%20Service%20Level%20Objectives/html/-%5BSLO%5D-04-alerting.html">SLO-04: SLO Alerting</a> — Burn-rate alerting over threshold-on-SLI: fast-burn and slow-burn multiwindow alerts, surfacing, routing, and avoiding fatigue</li>
+<li><a href="SLO%20-%20Service%20Level%20Objectives/html/-%5BSLO%5D-05-slos-as-code.html">SLO-05: SLOs as Code</a> — Promoting SLOs into version control: the <code>dynatrace_platform_slo</code> Terraform resource and SLO Service Public API for the modern app, the classic <code>dynatrace_slo_v2</code> / <code>builtin:monitoring.slo</code> path it replaces, Monaco, and the export-known-good API pattern</li>
+<li><a href="SLO%20-%20Service%20Level%20Objectives/html/-%5BSLO%5D-06-site-reliability-guardians.html">SLO-06: Site Reliability Guardians</a> — Point-in-time deployment validation gates: guardian types, DQL objectives (reference-SLO is Classic-only and deprecated), the Pass/Warning/Fail/Error/Info result model, creating and triggering a guardian, provisioning as code (Terraform/Monaco), CI/CD pipeline integration, and how guardians complement SLOs</li>
+<li><a href="SLO%20-%20Service%20Level%20Objectives/html/-%5BSLO%5D-07-upgrading-classic-slos.html">SLO-07: Upgrading Classic SLOs</a> — Moving SLO Classic definitions to the Service-Level Objectives app: inventory, DQL translation, proving scope, alerts and guardians, Terraform, and the parallel run</li>
+</ul>
+<h3 id="spans---distributed-tracing-and-spans"><a href="SPANS%20-%20Distributed%20Tracing%20and%20Spans/">SPANS - Distributed Tracing and Spans</a></h3>
+<p>Guidance for working with distributed traces and spans in Dynatrace.</p>
+<ul>
+<li><a href="SPANS%20-%20Distributed%20Tracing%20and%20Spans/html/-%5BSPANS%5D-01-fundamentals.html">SPANS-01: Fundamentals</a> — Core tracing concepts</li>
+<li><a href="SPANS%20-%20Distributed%20Tracing%20and%20Spans/html/-%5BSPANS%5D-02-querying.html">SPANS-02: Querying</a> — Querying spans and traces with DQL</li>
+<li><a href="SPANS%20-%20Distributed%20Tracing%20and%20Spans/html/-%5BSPANS%5D-03-troubleshooting.html">SPANS-03: Troubleshooting</a> — Using traces for issue investigation</li>
+<li><a href="SPANS%20-%20Distributed%20Tracing%20and%20Spans/html/-%5BSPANS%5D-04-topology.html">SPANS-04: Topology</a> — Service topology from traces</li>
+<li><a href="SPANS%20-%20Distributed%20Tracing%20and%20Spans/html/-%5BSPANS%5D-05-analytics.html">SPANS-05: Analytics</a> — Advanced trace analytics</li>
+<li><a href="SPANS%20-%20Distributed%20Tracing%20and%20Spans/html/-%5BSPANS%5D-06-security.html">SPANS-06: Security</a> — Span security and data protection</li>
+<li><a href="SPANS%20-%20Distributed%20Tracing%20and%20Spans/html/-%5BSPANS%5D-07-buckets-pipeline.html">SPANS-07: Buckets &amp; Pipeline</a> — Storage and processing</li>
+<li><a href="SPANS%20-%20Distributed%20Tracing%20and%20Spans/html/-%5BSPANS%5D-08-cost-optimization.html">SPANS-08: Cost Optimization</a> — Writing cost-efficient span queries (query consumption)</li>
+<li><a href="SPANS%20-%20Distributed%20Tracing%20and%20Spans/html/-%5BSPANS%5D-99-best-practice-summary.html">SPANS-99: Best Practice Summary</a> — Consolidated best practices from the SPANS series</li>
+</ul>
+<h3 id="synth---synthetic-monitoring"><a href="SYNTH%20-%20Synthetic%20Monitoring/">SYNTH - Synthetic Monitoring</a></h3>
+<p>Series covering Dynatrace Synthetic Monitoring.</p>
+<ul>
+<li><a href="SYNTH%20-%20Synthetic%20Monitoring/html/-%5BSYNTH%5D-01-fundamentals.html">SYNTH-01: Fundamentals</a> — Core synthetic monitoring concepts</li>
+<li><a href="SYNTH%20-%20Synthetic%20Monitoring/html/-%5BSYNTH%5D-02-browser-monitors.html">SYNTH-02: Browser Monitors</a> — Creating and managing browser monitors</li>
+<li><a href="SYNTH%20-%20Synthetic%20Monitoring/html/-%5BSYNTH%5D-03-http-monitors.html">SYNTH-03: HTTP Monitors</a> — HTTP/API monitors</li>
+<li><a href="SYNTH%20-%20Synthetic%20Monitoring/html/-%5BSYNTH%5D-04-private-locations.html">SYNTH-04: Private Locations</a> — Deploying private synthetic locations</li>
+<li><a href="SYNTH%20-%20Synthetic%20Monitoring/html/-%5BSYNTH%5D-05-network-monitoring.html">SYNTH-05: Network Monitoring</a> — Network performance monitoring</li>
+<li><a href="SYNTH%20-%20Synthetic%20Monitoring/html/-%5BSYNTH%5D-06-analytics.html">SYNTH-06: Analytics</a> — Analyzing synthetic monitoring data</li>
+<li><a href="SYNTH%20-%20Synthetic%20Monitoring/html/-%5BSYNTH%5D-99-best-practice-summary.html">SYNTH-99: Best Practice Summary</a> — Consolidated best practices from the SYNTH series</li>
+</ul>
+<h3 id="webrum---web-real-user-monitoring"><a href="WEBRUM%20-%20Web%20Real%20User%20Monitoring/">WEBRUM - Web Real User Monitoring</a></h3>
+<p>Client-side monitoring and observability for web applications with session replay and performance metrics.</p>
+<ul>
+<li><a href="WEBRUM%20-%20Web%20Real%20User%20Monitoring/html/-%5BWEBRUM%5D-01-rum-fundamentals.html">WEBRUM-01: Web RUM Fundamentals</a> — RUM architecture and data collection</li>
+<li><a href="WEBRUM%20-%20Web%20Real%20User%20Monitoring/html/-%5BWEBRUM%5D-02-spa-instrumentation.html">WEBRUM-02: SPA Instrumentation</a> — Monitoring single-page applications</li>
+<li><a href="WEBRUM%20-%20Web%20Real%20User%20Monitoring/html/-%5BWEBRUM%5D-03-core-web-vitals.html">WEBRUM-03: Core Web Vitals</a> — LCP, INP, CLS metrics and optimization</li>
+<li><a href="WEBRUM%20-%20Web%20Real%20User%20Monitoring/html/-%5BWEBRUM%5D-04-session-analysis.html">WEBRUM-04: Session Analysis</a> — User session insights and funnels</li>
+<li><a href="WEBRUM%20-%20Web%20Real%20User%20Monitoring/html/-%5BWEBRUM%5D-05-error-analysis.html">WEBRUM-05: Error Analysis</a> — JavaScript and XHR/fetch errors</li>
+<li><a href="WEBRUM%20-%20Web%20Real%20User%20Monitoring/html/-%5BWEBRUM%5D-06-performance-analysis.html">WEBRUM-06: Performance Analysis</a> — Page load and runtime performance</li>
+<li><a href="WEBRUM%20-%20Web%20Real%20User%20Monitoring/html/-%5BWEBRUM%5D-07-session-replay.html">WEBRUM-07: Session Replay</a> — Visual reproduction of user sessions</li>
+<li><a href="WEBRUM%20-%20Web%20Real%20User%20Monitoring/html/-%5BWEBRUM%5D-08-dashboards-and-alerting.html">WEBRUM-08: Dashboards and Alerting</a> — RUM metrics dashboards and alerts</li>
+<li><a href="WEBRUM%20-%20Web%20Real%20User%20Monitoring/html/-%5BWEBRUM%5D-09-usql-to-dql-migration.html">WEBRUM-09: Migrating USQL to DQL</a> — USQL to DQL grammar and field mapping</li>
+<li><a href="WEBRUM%20-%20Web%20Real%20User%20Monitoring/html/-%5BWEBRUM%5D-99-best-practice-summary.html">WEBRUM-99: Best Practice Summary</a> — Consolidated best practices from the WEBRUM series</li>
+</ul>
+<h3 id="wflow---workflows-and-alert-notifications"><a href="WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW - Workflows and Alert Notifications</a></h3>
+<p>Automating workflows and configuring alert notifications in Dynatrace.</p>
+<ul>
+<li><a href="WFLOW%20-%20Workflows%20and%20Alert%20Notifications/html/-%5BWFLOW%5D-01-fundamentals.html">WFLOW-01: Fundamentals</a> — Core workflow concepts</li>
+<li><a href="WFLOW%20-%20Workflows%20and%20Alert%20Notifications/html/-%5BWFLOW%5D-02-triggers.html">WFLOW-02: Triggers &amp; Event Types</a> — Workflow trigger configuration and event-driven patterns</li>
+<li><a href="WFLOW%20-%20Workflows%20and%20Alert%20Notifications/html/-%5BWFLOW%5D-03-notification-basics.html">WFLOW-03: Notification Basics</a> — Setting up basic notifications</li>
+<li><a href="WFLOW%20-%20Workflows%20and%20Alert%20Notifications/html/-%5BWFLOW%5D-04-notification-routing.html">WFLOW-04: Notification Routing</a> — Advanced notification routing</li>
+<li><a href="WFLOW%20-%20Workflows%20and%20Alert%20Notifications/html/-%5BWFLOW%5D-05-incident-management.html">WFLOW-05: Incident Management</a> — Integrating with incident management</li>
+<li><a href="WFLOW%20-%20Workflows%20and%20Alert%20Notifications/html/-%5BWFLOW%5D-06-custom-templates.html">WFLOW-06: Custom Templates</a> — Creating custom notification templates</li>
+<li><a href="WFLOW%20-%20Workflows%20and%20Alert%20Notifications/html/-%5BWFLOW%5D-07-remediation.html">WFLOW-07: Remediation</a> — Automated remediation workflows</li>
+<li><a href="WFLOW%20-%20Workflows%20and%20Alert%20Notifications/html/-%5BWFLOW%5D-08-javascript-http.html">WFLOW-08: JavaScript &amp; HTTP</a> — JavaScript actions and HTTP requests</li>
+<li><a href="WFLOW%20-%20Workflows%20and%20Alert%20Notifications/html/-%5BWFLOW%5D-09-governance.html">WFLOW-09: Security, Governance &amp; Monitoring</a> — Workflow security, secrets management, RBAC, observability, alerting on workflows, and operational best practices</li>
+<li><a href="WFLOW%20-%20Workflows%20and%20Alert%20Notifications/html/-%5BWFLOW%5D-94-%5BLAB%5D-edgeconnect-static-egress-snowflake.html">WFLOW-94: [LAB] EdgeConnect Static Egress for Snowflake</a> — Hands-on build: configure a static egress IP via EdgeConnect for Snowflake connector traffic; step-by-step network policy and Dynatrace Workflow integration</li>
+<li><a href="WFLOW%20-%20Workflows%20and%20Alert%20Notifications/html/-%5BWFLOW%5D-95-%5BLAB%5D-cmdb-host-tag-enrichment.html">WFLOW-95: [LAB] CMDB-Driven Host Tag Enrichment</a> — Hands-on build: enrich hosts from CMDB lookup tables and apply bulk tags via the Remote Configuration Management API (capstone for WFLOW-08)</li>
+<li><a href="WFLOW%20-%20Workflows%20and%20Alert%20Notifications/html/-%5BWFLOW%5D-99-best-practice-summary.html">WFLOW-99: Best Practice Summary</a> — Consolidated best practices from the WFLOW series</li>
+</ul>
+<h2 id="how-to-use">How to Use</h2>
+<ol>
+<li>Open a topic README for context and prerequisites.</li>
+<li>Choose your format:
+<ul>
+<li>Import JSON from notebooks/ into Dynatrace Notebooks for interactive use.</li>
+<li>Read pdfs/ for printable versions.</li>
+<li>Use markdown/ for lightweight viewing or diffs.</li>
+</ul>
+</li>
+<li>Follow the numbered sequence to progress through each series.</li>
+</ol>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

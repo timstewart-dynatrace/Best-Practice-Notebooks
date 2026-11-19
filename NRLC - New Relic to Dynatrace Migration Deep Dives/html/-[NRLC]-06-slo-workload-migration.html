@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NRLC-06: SLO &amp; Workload Migration</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">NRLC — New Relic to Dynatrace Migration Deep Dives</a><span class="sep">/</span><span aria-current="page">NRLC-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>NRLC-06: SLO &amp; Workload Migration</h1>
+<blockquote>
+<p><strong>Series:</strong> NRLC — New Relic to Dynatrace Migration Deep Dives | <strong>Notebook:</strong> 6 of 9 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 10/31/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>SLOs are the service contracts that survive migration only if their math survives. Workloads are the groupings that determine what an SLO targets. This deep dive covers SLO metric expression migration, what the <code>audit-slos</code> command does and does not check (it validates the Dynatrace side only; the NR-vs-DT math comparison is manual), and the conversion of NR workloads to Gen3 OpenPipeline enrichments + IAM-scoped buckets.</p>
+<p><strong>Phase 23 key transactions:</strong> <code>key_transaction_transformer</code> auto-emits a bundle for each NR Key Transaction — Platform SLO (SLO Service Public API, <code>/platform/slo/v1/slos</code>) + OpenPipeline enrichment attribute (<code>keyTransaction.name</code>) + Workflow with <code>migratedFrom</code> tag. Phase 11 <code>slo_transformer</code> handles SLO v1 / v2 and emits Platform SLO API bodies — <code>dynatrace_platform_slo</code> in the Terraform export, Monaco <code>slo-v2</code> in the Monaco export; the classic <code>builtin:monitoring.slo</code> schema is no longer emitted (<code>main</code> branch, read 10/14/2026); Phase 11 <code>workload_transformer</code> emits a Grail Filter Segment (<code>dynatrace_segment</code>; not a <code>builtin:*</code> Settings schema) + an IAM policy skeleton (Gen3 default) with <code>LegacyWorkloadTransformer</code> preserving Management Zone under <code>--legacy</code>.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#slo-models">SLO Models Compared</a></li>
+<li><a href="#expressions">Metric Expression Migration</a></li>
+<li><a href="#auditor">SLO Auditor</a></li>
+<li><a href="#workloads">Workload → OpenPipeline Enrichment + IAM Policy</a></li>
+<li><a href="#selectors">Entity Selector Translation</a></li>
+<li><a href="#validation">Validation — 7-Day SLI Delta</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>SRE leads, service owners maintaining SLOs</td>
+</tr>
+<tr>
+<td><strong>Standalone</strong></td>
+<td>This notebook is self-contained for SLO + workload migration. No required prerequisite reading.</td>
+</tr>
+<tr>
+<td><strong>Optional depth</strong></td>
+<td>NRLC-02 (full NRQL→DQL compiler), NRLC-08 (validation), NRLC-09 (toolchain)</td>
+</tr>
+<tr>
+<td><strong>Stakes</strong></td>
+<td>SLOs drive SLA reporting; arithmetic mismatch causes compliance issues</td>
+</tr>
+</tbody>
+</table>
+<p><a id="translation-ctx"></a></p>
+<h2>Embedded Translation Context — SLO Indicator Patterns</h2>
+<p>Every SLO contains a NRQL indicator query that must produce the equivalent DQL. The patterns below cover the vast majority of SLO indicators.</p>
+<h3>Availability SLO</h3>
+<pre><code class="language-sql">-- NRQL: &quot;good&quot; events / total
+SELECT percentage(count(*), WHERE error IS FALSE) FROM Transaction
+-- target: &gt; 99.9
+</code></pre>
+<pre><code class="language-dql">// DQL (SLI): share of requests that did not fail, per service, as an array of doubles
+timeseries {total = sum(dt.service.request.count), failures = sum(dt.service.request.failure_count, default:0)}, by:{dt.smartscape.service}
+| fieldsAdd sli = (((total[] - failures[]) / total[]) * 100)
+// target: 99.9
+</code></pre>
+<p>Base availability on the service request metrics (or on <code>span.status_code == &quot;error&quot;</code> for span-level SLIs), not on <code>error</code>. <code>error</code> is not a Dynatrace field: <code>isNull(error)</code> treats every request without a custom <code>error</code> attribute as good, and on the validation tenant it read 97.8% where <code>span.status_code</code> gave 96.2% over the same request spans (10/05/2026) — an SLO that reads healthier than reality.</p>
+<h3>Latency SLO</h3>
+<pre><code class="language-sql">-- NRQL
+SELECT percentage(count(*), WHERE duration &lt; 0.5) FROM Transaction
+-- target: &gt; 99
+</code></pre>
+<pre><code class="language-dql">fetch spans
+| filter isNotNull(endpoint.name)
+| makeTimeseries {total = count(), good = countIf(duration &lt; 500ms)}
+| fieldsAdd sli = 100.0 * good[] / total[]
+// target: 99
+</code></pre>
+<h3>Error budget burn rate</h3>
+<pre><code class="language-sql">-- NRQL
+SELECT count(*) FROM TransactionError SINCE 1 hour ago
+-- threshold: above (1 - SLO_target) * total
+</code></pre>
+<pre><code class="language-dql">fetch spans, from:-1h
+| filter isNotNull(endpoint.name)
+| summarize error_rate = 100.0 * countIf(span.status_code == &quot;error&quot;) / count()
+// target inverted: error budget = 100 - SLO target
+</code></pre>
+<h3>Translation Confidence for SLOs</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator pattern</th>
+<th>Confidence</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Percentage-based SLI</td>
+<td>HIGH</td>
+<td>Direct</td>
+</tr>
+<tr>
+<td>Threshold-based with <code>duration</code></td>
+<td>HIGH</td>
+<td>Use a duration literal (<code>duration &lt; 500ms</code>); <code>duration(&quot;500ms&quot;)</code> does not parse</td>
+</tr>
+<tr>
+<td>Error budget burn</td>
+<td>MEDIUM</td>
+<td>Verify alignment of denominator</td>
+</tr>
+<tr>
+<td>Multi-source SLI (joined data)</td>
+<td>LOW</td>
+<td>Manual review</td>
+</tr>
+</tbody>
+</table>
+<p><a id="slo-models"></a></p>
+<h2>1. SLO Models Compared</h2>
+<h3>NR SLO Model</h3>
+<p>An NR SLO has:</p>
+<ul>
+<li><code>target</code> (e.g., 99.9%)</li>
+<li><code>timeWindow</code> (rolling 7d, 28d, etc.)</li>
+<li><code>indicator</code> (a NRQL query computing the SLI value)</li>
+<li><code>threshold</code> (the value the SLI must satisfy)</li>
+<li>entities the SLO targets (via workload or entity selector)</li>
+</ul>
+<h3>DT SLO Model (Service-Level Objectives app)</h3>
+<p>The migration target is the Grail-based <strong>Service-Level Objectives</strong> app, reached through the <strong>SLO Service Public API</strong> (Terraform: <code>dynatrace_platform_slo</code>). A DT SLO has:</p>
+<ul>
+<li><code>name</code>, <code>description</code>, <code>tags</code></li>
+<li><code>criteria</code> — <code>target</code> (numeric percentage), optional <code>warning</code> (early-warning percentage), and the evaluation timeframe as <code>timeframeFrom</code> / <code>timeframeTo</code> (e.g. <code>now-7d</code> / <code>now</code>)</li>
+<li><code>customSli.indicator</code> — a DQL query that returns <code>sli</code> as an array of doubles, in percent</li>
+<li>optional filter segments that scope the SLI (bucket + enriched-attribute scope in Gen3)</li>
+</ul>
+<p>Structurally similar; the math layer is what migrates.</p>
+<blockquote>
+<p><strong>Not the classic SLO.</strong> <code>builtin:monitoring.slo</code> (Terraform <code>dynatrace_slo_v2</code>, API token scopes <code>slo.read</code> / <code>slo.write</code>) is <strong>SLO Classic</strong>. Use it only to manage classic SLOs that already exist; author migrated SLOs in the modern app, which authenticates with platform permissions (<code>slo:slos:read</code> / <code>slo:slos:write</code>). SLO-05 covers both paths and the classic surface's upgrade status. Dynatrace's upgrade guidance for existing classic SLOs is to <em>&quot;keep both SLOs running for one evaluation period and compare the values before you remove the Classic SLO.&quot;</em></p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives/create-slo">Create SLO (DT docs)</a> — <em>&quot;Your query must include an sli field that returns an array of double type values&quot;</em>, <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/service-level-objective-upgrade-classic">Upgrade from Service-Level Objectives Classic (DT docs)</a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_slo.md">dynatrace_platform_slo resource (Dynatrace GitHub)</a> — <em>&quot;an OAuth client including the following permissions: View SLOs (<code>slo:slos:read</code>) and Create and edit SLOs (<code>slo:slos:write</code>)&quot;</em>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/slo_v2.md">dynatrace_slo_v2 resource (Dynatrace GitHub)</a> — &quot;schemaId: <code>builtin:monitoring.slo</code>&quot;.</sub></p>
+</blockquote>
+<p><a id="expressions"></a></p>
+<h2>2. Metric Expression Migration</h2>
+<p>The SLI is a fraction:</p>
+<pre><code>SLI = good_events / total_events
+</code></pre>
+<p>Both NR and DT model this; the difference is how each side counts.</p>
+<h3>Example — Availability SLO</h3>
+<p><strong>NR NRQL indicator:</strong></p>
+<pre><code class="language-sql">SELECT count(*) FROM Transaction WHERE error IS FALSE
+</code></pre>
+<p><strong>NR threshold:</strong> result / total &gt; 0.999</p>
+<p><strong>DT SLI (DQL):</strong></p>
+<pre><code class="language-dql">// DQL (SLI): share of requests that did not fail, per service, as an array of doubles
+timeseries {total = sum(dt.service.request.count), failures = sum(dt.service.request.failure_count, default:0)}, by:{dt.smartscape.service}
+| fieldsAdd sli = (((total[] - failures[]) / total[]) * 100)
+// target: 99.9
+</code></pre>
+<p><strong>DT target:</strong> 99.9</p>
+<h3>Example — Latency SLO</h3>
+<p><strong>NR NRQL indicator:</strong></p>
+<pre><code class="language-sql">SELECT percentage(count(*), WHERE duration &lt; 0.5) FROM Transaction
+</code></pre>
+<p><strong>DT SLI (DQL):</strong></p>
+<pre><code class="language-dql">fetch spans
+| filter isNotNull(endpoint.name)
+| makeTimeseries {total = count(), good = countIf(duration &lt; 500ms)}
+| fieldsAdd sli = 100.0 * good[] / total[]
+// target: 99
+</code></pre>
+<p><strong>Conversion considerations:</strong></p>
+<ul>
+<li>NR units in NRQL are often seconds; DT durations take a duration literal (<code>500ms</code>). To turn a duration into a number, divide by a unit (<code>duration / 1ms</code>)</li>
+<li>NR's <code>error IS FALSE</code> maps to &quot;request not failed&quot;: the <code>dt.service.request.failure_count</code> metric, or <code>coalesce(span.status_code, &quot;unset&quot;) != &quot;error&quot;</code> on request spans, because <code>span.status_code</code> is null on successful requests and <code>!=</code> does not match null. <code>isNull(error)</code> is not a translation — <code>error</code> is not a Dynatrace field</li>
+<li>Time windows: NR <code>SINCE 7 days ago</code> becomes the SLO criteria timeframe <code>timeframeFrom: now-7d</code>, <code>timeframeTo: now</code></li>
+<li>Entity scope: NR's workload becomes a DT bucket + enriched-attribute filter (Gen3 pattern)</li>
+</ul>
+<p><a id="auditor"></a></p>
+<h2>3. SLO Auditor</h2>
+<p>The <code>Dynatrace-NewRelic</code> project includes an <strong>SLO auditor</strong> (<code>registry/slo_auditor.py</code>, run as <code>migrate.py audit-slos</code>). It checks the <strong>Dynatrace side only</strong>. The command's docstring describes it as an audit of the SLOs in the Dynatrace environment for metric validity: it reads the tenant's SLOs, checks whether each is evaluating, and validates every metric its DQL references against the tenant's metrics — missing metrics, invalid aggregations, and NRQL syntax that was not converted. It does not query New Relic, so it cannot tell you whether a DT SLI matches the NR one.</p>
+<pre><code class="language-bash"># Requires DYNATRACE_ENVIRONMENT_URL and DYNATRACE_OAUTH_TOKEN; exits if either is missing
+python3 migrate.py audit-slos
+</code></pre>
+<p>It prints an <em>SLO Audit Results</em> table — one row per SLO with an OK / FAIL status and the issues found — followed by the number of valid SLOs.</p>
+<p><strong>Math equivalence is a manual step.</strong> For each migrated SLO, run the original NRQL indicator in New Relic and the DQL SLI in Dynatrace over the same window, and compare the two values (§6).</p>
+<p><a id="workloads"></a></p>
+<h2>4. Workload → OpenPipeline Enrichment + IAM Policy</h2>
+<p>NR workloads are user-defined entity collections, scoped by entity tags or explicit GUID lists.</p>
+<p>In <strong>Dynatrace Gen3</strong>, the equivalent is built on <strong>OpenPipeline enrichment</strong> — ingested data is enriched with workload-identifying attributes at ingest (e.g., <code>workload.name</code>, <code>team.owner</code>, <code>environment</code>), and <strong>IAM policies</strong> + <strong>bucket routing</strong> scope access by those enriched attributes. This is fundamentally different from the Gen2 management-zone or auto-tagging approach (both of which scope entity <em>visibility</em>); the Gen3 model scopes the <em>data itself</em> via attributes that travel with every record.</p>
+<table>
+<thead>
+<tr>
+<th>NR Workload Field</th>
+<th>Gen3 Equivalent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>OpenPipeline enrichment value (e.g., <code>workload.name = &quot;checkout&quot;</code>)</td>
+</tr>
+<tr>
+<td><code>entityGuids[]</code></td>
+<td>OpenPipeline matcher resolves the entity by name/host group and emits the enriched attribute</td>
+</tr>
+<tr>
+<td><code>entitySearchQueries[]</code> (NRQL filter)</td>
+<td>OpenPipeline matcher conditions (matchesValue on namespace, host group, etc.)</td>
+</tr>
+<tr>
+<td>Tags-based selection</td>
+<td>OpenPipeline matcher reads existing tags and emits a normalized workload attribute</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>WorkloadTransformer</code> emits a segment and an IAM policy skeleton; OpenPipeline enrichment and bucket routing are yours to build. A bucket condition reads <code>storage:bucket-name = &quot;workload_checkout_logs&quot;</code>. Once enriched, the workload identifier is queryable in DQL (<code>filter workload.name == &quot;checkout&quot;</code>) and durable across dashboards, alerts, and SLOs without depending on Gen2 entity grouping.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="selectors"></a></p>
+<h2>5. Entity Selector Translation</h2>
+<p>DT entity selectors are the language for entity rules. Common patterns:</p>
+<table>
+<thead>
+<tr>
+<th>NR Concept</th>
+<th>DT Entity Selector</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>All hosts in account</td>
+<td><code>type(HOST)</code></td>
+</tr>
+<tr>
+<td>Hosts tagged <code>env:prod</code></td>
+<td><code>type(HOST),tag(&quot;env:prod&quot;)</code></td>
+</tr>
+<tr>
+<td>Specific service by name</td>
+<td><code>type(SERVICE),entityName(&quot;checkout-service&quot;)</code></td>
+</tr>
+<tr>
+<td>Services in a namespace</td>
+<td><code>type(SERVICE),fromRelationships.runsOn(type(KUBERNETES_NAMESPACE),entityName(&quot;prod&quot;))</code></td>
+</tr>
+<tr>
+<td>All entities in a workload</td>
+<td><code>tag(&quot;workload:&lt;name&gt;&quot;)</code> (Gen2 entity tag) <strong>or</strong> Gen3 DQL filter <code>filter workload.name == &quot;&lt;name&gt;&quot;</code> (attribute set by OpenPipeline enrichment)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recommendation:</strong> prefer <strong>entity selectors over GUIDs</strong> in any migrated artifact (dashboards, alerts, SLOs). Selectors are portable across tenants; GUIDs are not.</p>
+<p><a id="validation"></a></p>
+<h2>6. Validation — 7-Day SLI Delta</h2>
+<p>Over a 7-day window, run each SLO's NRQL indicator in New Relic and its DQL SLI in Dynatrace, and compare. This is manual — <code>audit-slos</code> checks only that the DT SLOs evaluate and reference real metrics. Acceptance criteria:</p>
+<ul>
+<li>Per-SLO delta ≤ 0.5% (tunable per service-criticality)</li>
+<li>All SLOs report a value (no MISSING_DATA results)</li>
+<li>Bucket + enriched-attribute scope returns the same entity count in both platforms (±5%)</li>
+</ul>
+<p>When delta exceeds tolerance:</p>
+<ol>
+<li>Compare the values day by day — is the delta consistent (suggests a math bug) or sporadic (suggests data-availability issues)?</li>
+<li>Check unit conversion (ms vs. s vs. ns)</li>
+<li>Check entity scope — is the bucket / OpenPipeline enrichment filter capturing the same set as NR's workload?</li>
+<li>Check time alignment — NR's <code>SINCE 7 days ago</code> may bin differently than DT's <code>from:-7d</code></li>
+</ol>
+<h2>Summary</h2>
+<p>SLO migration succeeds when the math is equivalent within tolerance. <code>audit-slos</code> confirms the Dynatrace SLOs evaluate and reference real metrics; the NR-vs-DT comparison itself is a manual check. The workload transformer emits a segment and an IAM policy skeleton; OpenPipeline enrichment is built by hand. Always run the 7-day delta check before declaring SLO migration complete.</p>
+<p>Continue to <strong>NRLC-07 Logs, Tags &amp; Drop Rules</strong>.</p>
+<p><a id="tooling-slos"></a></p>
+<h2>Tooling for SLO-Only Migration</h2>
+<pre><code class="language-bash"># 1. Inventory NR SLOs and Workloads
+python3 migrate.py migrate --export-only --components slos,workloads --output ./slo-run
+
+# 2. Translate metric expressions; emit SLO + OpenPipeline enrichment definitions and a report — nothing is imported
+python3 migrate.py migrate --dry-run --report --components slos,workloads --output ./slo-run
+
+# 3. Import (export → transform → import); writes ./slo-run/rollback-manifest.json
+python3 migrate.py migrate --components slos,workloads --output ./slo-run
+
+# 4. Validate the Dynatrace SLOs: evaluating, metrics exist (DT side only — needs DYNATRACE_OAUTH_TOKEN)
+python3 migrate.py audit-slos
+
+# 5. Compare NR and DT SLI values over the same 7-day window by hand (§6)
+</code></pre>
+<blockquote>
+<p><strong>Flags checked against <code>migrate.py</code> on the tool's <code>main</code> branch (10/05/2026).</strong> There is no <code>--transform-only</code>: <code>--dry-run</code> runs export and transform, writes <code>&lt;output&gt;/transformed/dynatrace_config.json</code>, and skips the import. <code>--diff</code> takes effect only on a full or dry run — with <code>--import-only</code> it is ignored, and without <code>--dry-run</code> it is computed <em>after</em> the import. <code>--import-only</code> needs <code>--input &lt;dir&gt;</code> and does not write a rollback manifest; a full run writes <code>&lt;output&gt;/rollback-manifest.json</code>. Run <code>python3 migrate.py migrate --help</code> against your checkout before relying on a flag.</p>
+</blockquote>
+<p>Note that <code>slos</code> is declared as depending on <code>alerts</code> (which depends on <code>notification_channels</code>), and the tool adds dependencies automatically — so <code>--components slos,...</code> also exports, transforms and imports alerts and notification channels. Check the step 2 report before step 3.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources, including the open-source <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities">NewRelic-to-Dynatrace-Migration-Utilities</a>, <a href="https://github.com/timstewart-dynatrace/nrql-engine">nrql-engine</a> (planned future home: the <a href="https://github.com/dynatrace-dma"><code>dynatrace-dma</code></a> Dynatrace Migration Assistant organization), and <a href="https://github.com/timstewart-dynatrace/nrql-translator">nrql-translator</a> projects. This notebook series is not officially supported by Dynatrace or New Relic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://docs.newrelic.com">New Relic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

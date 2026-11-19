@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WEBRUM-04: Session Analysis</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">WEBRUM — Web Real User Monitoring</a><span class="sep">/</span><span aria-current="page">WEBRUM-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>WEBRUM-04: Session Analysis</h1>
+<blockquote>
+<p><strong>Series:</strong> WEBRUM — Web Real User Monitoring | <strong>Notebook:</strong> 4 of 10 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/31/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>User session analysis is the foundation of understanding how real users interact with your web applications. A session represents a complete visit — from the first page load to the last interaction before timeout. By analyzing sessions, you can identify user journey patterns, measure engagement, track conversions, calculate bounce rates, and understand how geographic location and device type impact the user experience.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#session-properties">Session Properties</a></li>
+<li><a href="#session-segmentation">Session Segmentation</a></li>
+<li><a href="#user-journey-mapping">User Journey Mapping</a></li>
+<li><a href="#conversion-tracking">Conversion Tracking</a></li>
+<li><a href="#bounce-rate">Bounce Rate Analysis</a></li>
+<li><a href="#geographic-analysis">Geographic Analysis</a></li>
+<li><a href="#device-analysis">Device and Browser Analysis</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>RUM Enabled</strong></td>
+<td>Web applications with session capture active</td>
+</tr>
+<tr>
+<td><strong>Session Properties</strong></td>
+<td>Custom session properties configured (optional but recommended)</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:user.events:read</code>, <code>storage:user.sessions:read</code></td>
+</tr>
+<tr>
+<td><strong>Previous Notebook</strong></td>
+<td>WEBRUM-01: RUM Fundamentals</td>
+</tr>
+</tbody>
+</table>
+<p><a id="session-properties"></a></p>
+<h2>1. Session Properties</h2>
+<p>Dynatrace automatically captures standard session properties and allows you to define custom ones:</p>
+<h3>Standard Properties</h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Description</th>
+<th>Example Values</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.rum.session.id</code></td>
+<td>Unique session identifier</td>
+<td><code>23626166142035610_1-0</code></td>
+</tr>
+<tr>
+<td><code>dt.rum.user_type</code></td>
+<td>Session classification</td>
+<td><code>real_user</code>, <code>robot</code>, <code>synthetic</code></td>
+</tr>
+<tr>
+<td><code>start_time</code> / <code>end_time</code></td>
+<td>Session start and end — <code>user.sessions</code> has no populated <code>timestamp</code></td>
+<td><code>2026-10-05T15:18:09Z</code></td>
+</tr>
+<tr>
+<td><code>duration</code></td>
+<td>Total session duration</td>
+<td><code>300000000000</code> (nanoseconds)</td>
+</tr>
+<tr>
+<td><code>user_action_count</code></td>
+<td>Number of user actions</td>
+<td><code>15</code></td>
+</tr>
+<tr>
+<td><code>navigation_count</code></td>
+<td>Number of navigations</td>
+<td><code>4</code></td>
+</tr>
+<tr>
+<td><code>error.count</code></td>
+<td>Number of errors in session</td>
+<td><code>2</code></td>
+</tr>
+<tr>
+<td><code>geo.country.iso_code</code></td>
+<td>User's country</td>
+<td><code>US</code></td>
+</tr>
+<tr>
+<td><code>os.name</code></td>
+<td>Operating system</td>
+<td><code>Windows</code>, <code>macOS</code>, <code>iOS</code></td>
+</tr>
+<tr>
+<td><code>browser.name</code></td>
+<td>Browser</td>
+<td><code>Chrome</code>, <code>Firefox</code>, <code>Safari</code></td>
+</tr>
+<tr>
+<td><code>browser.window.width</code></td>
+<td>Browser window width in pixels</td>
+<td><code>1920</code></td>
+</tr>
+<tr>
+<td><code>browser.window.height</code></td>
+<td>Browser window height in pixels</td>
+<td><code>1080</code></td>
+</tr>
+</tbody>
+</table>
+<p>These are the New RUM names the queries below use. The classic names (<code>sessionId</code>, <code>userType</code>, <code>userActionCount</code>, <code>totalErrorCount</code>, <code>osFamily</code>, <code>browserFamily</code>) read null on New RUM data, so a query copied with them returns nothing and raises no error. Web RUM has no connection-type field: <code>network.connection.type</code> is documented as <em>&quot;Only supported by OneAgent for Mobile.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events">User events — semantic dictionary (DT docs)</a> — <em>&quot;The internet connection type. Only supported by OneAgent for Mobile.&quot;</em> <strong>Dictionary:</strong> model <code>rum.user_session</code> lists <code>start_time</code>, <code>end_time</code>, <code>duration</code>, <code>user_action_count</code>, <code>navigation_count</code>, <code>error.count</code>, <code>dt.rum.session.id</code>, <code>dt.rum.user_type</code>, <code>geo.country.iso_code</code>, <code>os.name</code>, <code>browser.name</code>, <code>browser.window.width</code> / <code>.height</code> and no <code>timestamp</code>, read 10/05/2026.</sub></p>
+</blockquote>
+<h3>Custom Session Properties</h3>
+<p>Define custom properties via <strong>Settings &gt; Web and mobile monitoring &gt; Session and user action properties</strong>. Common examples:</p>
+<ul>
+<li><code>session_properties.user_id</code> — Authenticated user identifier</li>
+<li><code>session_properties.plan_type</code> — Subscription tier (free, pro, enterprise)</li>
+<li><code>session_properties.cart_value</code> — Shopping cart total</li>
+<li><code>session_properties.ab_variant</code> — A/B test variant</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-sessions">User sessions — semantic dictionary (DT docs)</a> — <em>&quot;Contains the value for the session property named&quot;</em>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Session/performance field vocabulary corrected 08/12/2026 (New RUM). Classic camelCase RUM
+// names are null on New RUM data and fail silently. Verified against 3,261 user.sessions:
+//   userType -&gt; dt.rum.user_type      userActionCount -&gt; user_action_count
+//   totalErrorCount -&gt; error.count    sessionId -&gt; dt.rum.session.id
+//   hasSessionReplay -&gt; characteristics.has_replay
+//   browserFamily -&gt; browser.name     osFamily -&gt; os.name
+//   application -&gt; frontend.name (stable; an array on user.sessions, so expand it before grouping)
+//                  primary_tags.application exists only if your OpenPipeline adds it (corrected 10/14/2026)
+//   country/city/continent -&gt; geo.country.name / geo.city.name / geo.continent.name
+//   screen.width|height -&gt; browser.window.width|height
+//   dom.interactive.time -&gt; performance.dom_interactive
+//   load.event.time -&gt; performance.load_event_end
+//   server.time -&gt; ttfb.value (page summaries; web_vitals.time_to_first_byte where populated) —
+//                  NOT ttfb.waiting_duration, which is the pre-request wait/redirect phase
+// TWO TENANT CAVEATS on the validation tenant, both of which leave a CORRECT query empty:
+//   * every session is dt.rum.user_type == &quot;synthetic&quot;, so a real-user filter matches nothing —
+//     the documented values are &quot;real_user&quot; / &quot;robot&quot; / &quot;synthetic&quot; (lowercase);
+//   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
+// Explore session data — view available fields
+fetch user.sessions, from:-1h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| limit 5
+</code></pre>
+<p><a id="session-segmentation"></a></p>
+<h2>2. Session Segmentation</h2>
+<p>Segmenting sessions helps identify patterns across different user groups. Common segmentation dimensions include engagement level, error impact, and return frequency.</p>
+<pre><code class="language-dql">// Engagement segmentation — bucket sessions by number of actions. Sessions with zero user actions
+// get their own bucket; they used to fall into &quot;Low (2-3 actions)&quot; (corrected 10/05/2026).
+fetch user.sessions, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| fieldsAdd engagement = if(user_action_count == 0, &quot;No actions&quot;,
+    else: if(user_action_count == 1, &quot;Bounce&quot;,
+    else: if(user_action_count &lt;= 3, &quot;Low (2-3 actions)&quot;,
+    else: if(user_action_count &lt;= 10, &quot;Medium (4-10 actions)&quot;,
+    else: &quot;High (10+ actions)&quot;))))
+| summarize {session_count = count(),
+    avg_duration = avg(duration),
+    avg_errors = avg(error.count)},
+    by:{engagement}
+| sort session_count desc
+</code></pre>
+<pre><code class="language-dql">// Error-impacted sessions — how many sessions had errors?
+fetch user.sessions, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| expand frontend.name   // array on sessions: a multi-frontend session counts once per frontend
+| summarize {total_sessions = count(),
+    error_sessions = countIf(error.count &gt; 0)},
+    by:{frontend.name}
+| fieldsAdd error_session_pct = round(toDouble(error_sessions) / toDouble(total_sessions) * 100.0, decimals: 1)
+| sort error_session_pct desc
+</code></pre>
+<p><a id="user-journey-mapping"></a></p>
+<h2>3. User Journey Mapping</h2>
+<p>Understanding the sequence of actions within sessions reveals common navigation paths, dead ends, and drop-off points.</p>
+<pre><code class="language-dql">// Field vocabulary corrected 08/12/2026 — this series targets **New RUM**, but was written
+// against names that are null on New RUM data, so these cells returned nothing while erroring
+// nowhere. Verified against 5,556,127 user.events records (schema 0.24.0, javascript agent):
+//   action.type == &quot;Load&quot;              -&gt; characteristics.has_page_summary == true
+//                                        (was characteristics.classifier — &quot;not intended for query usage&quot;, SD 1.349)
+//   action.type                        -&gt; user_action.type      (hard_navigation | soft_navigation | same_view | api)
+//   action.name                        -&gt; page.detected_name
+//   LCP / CLS                          -&gt; web_vitals.largest_contentful_paint / web_vitals.cumulative_layout_shift
+//                                        (stable — the fields Dynatrace's own DQL examples use), falling back to
+//                                        the experimental lcp.start_time / cls.value (corrected 10/14/2026)
+//   app.name                           -&gt; frontend.name (stable; an array on user.sessions)
+// UNITS DIFFER BETWEEN THE TWO FAMILIES. web_vitals.largest_contentful_paint is a DURATION, so
+// `/ 1ms` turns it into milliseconds; lcp.start_time is a PLAIN NUMBER already in milliseconds,
+// and dividing it by 1ms yields null. The CWV cells therefore read
+// coalesce(web_vitals.largest_contentful_paint / 1ms, lcp.start_time) and
+// coalesce(web_vitals.cumulative_layout_shift, cls.value), against the 2500/4000 ms and 0.1/0.25 thresholds.
+// Why both: on the validation tenant every user event comes from the synthetic engine, which fills
+// lcp.* / cls.* but not web_vitals.* (0 of 243,494 page summaries in 30 days, 10/14/2026). That
+// is a property of synthetic-monitor data, not a sign that web_vitals.* is rarely populated.
+// Top entry pages — where do users start their journey?
+fetch user.events, from:-24h
+| filter characteristics.has_page_summary == true
+| summarize first_action = takeFirst(page.detected_name), by:{dt.rum.session.id}
+| summarize entry_count = count(), by:{first_action}
+| sort entry_count desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Top exit pages — where do users leave?
+fetch user.events, from:-24h
+| filter characteristics.has_page_summary == true
+| summarize last_action = takeLast(page.detected_name), by:{dt.rum.session.id}
+| summarize exit_count = count(), by:{last_action}
+| sort exit_count desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Session duration distribution by hour of day — when are users most active?
+fetch user.sessions, from:-7d
+| filter dt.rum.user_type == &quot;real_user&quot;
+| fieldsAdd hour = getHour(start_time)   // user.sessions has no populated timestamp
+| summarize {session_count = count(),
+    avg_duration_sec = avg(duration / 1s)},
+    by:{hour}
+| sort hour asc
+</code></pre>
+<p><a id="conversion-tracking"></a></p>
+<h2>4. Conversion Tracking</h2>
+<p>Conversion tracking identifies which sessions completed a desired business action (purchase, signup, form submission). This requires either:</p>
+<ul>
+<li><strong>Session properties</strong> marking conversion events</li>
+<li><strong>Specific user actions</strong> that indicate conversion (e.g., a &quot;Thank You&quot; page load)</li>
+</ul>
+<h3>Conversion via Action Name Detection</h3>
+<p>If your conversion page has a recognizable URL pattern, you can detect conversions from user actions:</p>
+<pre><code class="language-dql">// Conversion rate — share of real-user sessions that reached a checkout/confirmation page.
+// Adapt the page-name tests to match your conversion page URL pattern.
+// Computed from the events side alone (corrected 10/05/2026): the previous version appended two
+// unrelated row sets and never produced a rate.
+fetch user.events, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| filter characteristics.has_page_summary == true
+| fieldsAdd is_conversion_page = contains(page.detected_name, &quot;confirmation&quot;) or contains(page.detected_name, &quot;thank-you&quot;) or contains(page.detected_name, &quot;checkout-success&quot;)
+| summarize {conversion_views = countIf(is_conversion_page)}, by:{dt.rum.session.id}
+| summarize {sessions = count(), converted_sessions = countIf(conversion_views &gt; 0)}
+| fieldsAdd conversion_rate_pct = round(toDouble(converted_sessions) / toDouble(sessions) * 100.0, decimals: 2)
+</code></pre>
+<blockquote>
+<p><strong>Tip:</strong> For accurate conversion tracking, use Dynatrace session properties to flag conversion events. This avoids reliance on URL pattern matching, which can be fragile.</p>
+</blockquote>
+<p><a id="bounce-rate"></a></p>
+<h2>5. Bounce Rate Analysis</h2>
+<p>A &quot;bounce&quot; is a session with only one user action — the user loaded one page and left. High bounce rates may indicate poor landing page relevance, slow performance, or broken functionality.</p>
+<p>Dynatrace's own definition: <em>&quot;A session with only one user action or navigation is tagged as bounced.&quot;</em> The queries in this series count a bounce as <code>user_action_count == 1</code>, the same rule in WEBRUM-04, -05, -08 and -09. Sessions with zero user actions are kept out of the bounce count and shown separately in the engagement query above. Dynatrace's definition also counts a session whose only activity is a single navigation, so compare the result with the <strong>Bounced Sessions</strong> filter in Users &amp; Sessions on your tenant before treating the two as identical.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/rum/web-frontends/concepts/user-sessions-web">User sessions in web frontends (DT docs)</a> — <em>&quot;A session with only one user action or navigation is tagged as bounced.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Bounce rate by application
+fetch user.sessions, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| expand frontend.name   // array on sessions: a multi-frontend session counts once per frontend
+| summarize {total_sessions = count(),
+    bounced_sessions = countIf(user_action_count == 1)},
+    by:{frontend.name}
+| fieldsAdd bounce_rate_pct = round(toDouble(bounced_sessions) / toDouble(total_sessions) * 100.0, decimals: 1)
+| sort bounce_rate_pct desc
+</code></pre>
+<pre><code class="language-dql">// Bounce rate trend over 7 days — track improvement over time
+fetch user.sessions, from:-7d
+| filter dt.rum.user_type == &quot;real_user&quot;
+| fieldsAdd is_bounce = if(user_action_count == 1, 1, else: 0)
+| makeTimeseries {total = count(), bounces = sum(is_bounce)}, interval:24h
+| fieldsAdd bounce_rate = bounces[] * 100.0 / total[]   // per-day rate, not one collapsed number
+</code></pre>
+<p><a id="geographic-analysis"></a></p>
+<h2>6. Geographic Analysis</h2>
+<p>RUM data includes geographic information derived from the user's IP address. This helps identify regional performance differences and target optimization efforts.</p>
+<pre><code class="language-dql">// Sessions by country — top 15 countries by volume
+fetch user.sessions, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| filter isNotNull(geo.country.name)
+| summarize {session_count = count(),
+    avg_actions = avg(user_action_count),
+    avg_errors = avg(error.count),
+    avg_duration_sec = avg(duration / 1s)},
+    by:{geo.country.name}
+| sort session_count desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Top 10 cities by session count with average performance
+fetch user.sessions, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| filter isNotNull(geo.city.name) and isNotNull(geo.country.name)
+| summarize session_count = count(), by:{geo.city.name, geo.country.name}
+| sort session_count desc
+| limit 10
+</code></pre>
+<p><a id="device-analysis"></a></p>
+<h2>7. Device and Browser Analysis</h2>
+<p>Understanding the device and browser mix helps prioritize testing and optimization efforts.</p>
+<pre><code class="language-dql">// Session distribution by browser
+fetch user.sessions, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| filter isNotNull(browser.name)
+| summarize {session_count = count(),
+    avg_errors = avg(error.count)},
+    by:{browser.name}
+| sort session_count desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Session distribution by operating system
+fetch user.sessions, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| filter isNotNull(os.name)
+| summarize {session_count = count(),
+    avg_duration_sec = avg(duration / 1s)},
+    by:{os.name}
+| sort session_count desc
+</code></pre>
+<pre><code class="language-dql">// Screen resolution distribution — identify common viewport sizes
+fetch user.sessions, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| filter isNotNull(browser.window.width) and isNotNull(browser.window.height)
+| fieldsAdd resolution = concat(toString(browser.window.width), &quot;x&quot;, toString(browser.window.height))
+| summarize session_count = count(), by:{resolution}
+| sort session_count desc
+| limit 10
+</code></pre>
+<p><a id="summary"></a></p>
+<h2>8. Summary and Next Steps</h2>
+<p>In this notebook, we covered:</p>
+<ul>
+<li><strong>Session properties</strong> — Standard and custom properties for segmentation</li>
+<li><strong>Engagement segmentation</strong> — Bucketing sessions by interaction depth</li>
+<li><strong>User journey mapping</strong> — Entry/exit pages and activity by time of day</li>
+<li><strong>Conversion tracking</strong> — Identifying sessions that completed business goals</li>
+<li><strong>Bounce rate analysis</strong> — Measuring and trending single-action sessions</li>
+<li><strong>Geographic analysis</strong> — Session distribution by country and city</li>
+<li><strong>Device/browser analysis</strong> — Understanding the technology mix of your users</li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li><strong>WEBRUM-05: Error Analysis</strong> — JavaScript error tracking and impact analysis</li>
+<li><strong>WEBRUM-06: Performance Analysis</strong> — Deep dive into page load waterfall timings</li>
+</ul>
+<h3>References</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/additional-configuration/define-user-action-and-session-properties">Define user action and session properties (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data">USQL — custom session queries (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events">User events — semantic dictionary (DT docs)</a> — <em>&quot;Used for internal optimization when storing the data and not intended for query usage.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-349">Semantic Dictionary changelog 1.349 (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTM-14: Cluster ActiveGates and Mission Control Connectivity</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DTM — Dynatrace Managed</a><span class="sep">/</span><span aria-current="page">DTM-14</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DTM-14: Cluster ActiveGates and Mission Control Connectivity</h1>
+<blockquote>
+<p><strong>Series:</strong> DTM — Dynatrace Managed | <strong>Reference:</strong> 14 — Cluster ActiveGates and Mission Control Connectivity | <strong>Created:</strong> September 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<blockquote>
+<p><strong>Dynatrace Classic only.</strong> This series applies to <strong>Dynatrace Managed</strong>, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.</p>
+</blockquote>
+<h2>Overview</h2>
+<p>A Managed cluster can be healthy inside and still be failing, if data can't get in or the cluster can't get out. This notebook is layer 4 of the DTM-10 health model: <strong>connectivity</strong>. It covers the path monitoring data takes into the cluster through the ActiveGate hierarchy and the per-node NGINX, the load balancers, DNS and certificates that path depends on, and the cluster's single outbound dependency, its link to Dynatrace Mission Control.</p>
+<p><strong>What you'll learn:</strong></p>
+<ul>
+<li>How OneAgents and ActiveGates pick a route into the cluster, and when you need a Cluster ActiveGate</li>
+<li>What a load balancer in front of the cluster must and must not do</li>
+<li>Which certificate events never email you, including an expired certificate</li>
+<li>What Mission Control receives, how often, and what stops working when it can't be reached</li>
+<li>How to tell whether your Cluster ActiveGates are healthy and current</li>
+</ul>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#traffic-path">The Agent Traffic Path</a></li>
+<li><a href="#load-balancers">NGINX and Load Balancers</a></li>
+<li><a href="#endpoints">Endpoints, DNS and Node Roles</a></li>
+<li><a href="#certificates">Certificates</a></li>
+<li><a href="#mission-control">The Mission Control Link</a></li>
+<li><a href="#mc-unreachable">When Mission Control Is Unreachable — and Offline Clusters</a></li>
+<li><a href="#remote-access">Remote Access for Dynatrace Support</a></li>
+<li><a href="#activegate-health">Cluster ActiveGate Health and Agent-Side Events</a></li>
+<li><a href="#doc-gaps">What the Documentation Does Not Say</a></li>
+<li><a href="#recommendation">Recommended Approach</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace deployment</strong></td>
+<td>A self-hosted <strong>Dynatrace Managed</strong> cluster. Nothing in this series applies to Dynatrace SaaS.</td>
+</tr>
+<tr>
+<td><strong>Access</strong></td>
+<td>Cluster Management Console (CMC) administrator access; network access to review firewall, proxy, load-balancer and DNS configuration</td>
+</tr>
+<tr>
+<td><strong>Query language</strong></td>
+<td>None. Managed has no Grail, so this series has <strong>no DQL cells</strong>. Every check is a CMC view, a cluster event, or a configuration setting</td>
+</tr>
+<tr>
+<td><strong>Read first</strong></td>
+<td>DTM-10 (health model) and DTM-11 §8 (the ports between cluster nodes)</td>
+</tr>
+<tr>
+<td><strong>Version basis</strong></td>
+<td>Written against the Managed documentation read 09/29/2026. Release-specific changes are labeled with the Managed version that introduced them</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<ul>
+<li><strong>Keep the cluster internal.</strong> The docs recommend Cluster ActiveGates as the entry point for anything outside your network, not an exposed cluster.</li>
+<li><strong>Data only flows up the hierarchy:</strong> Environment ActiveGate → Cluster ActiveGate → the ActiveGate embedded in each node. OneAgent falls back down that list, and connects directly to the cluster if nothing else is reachable.</li>
+<li><strong>A load balancer in front of the cluster is optional for OneAgent traffic</strong> and useful for web UI and beacon traffic. It must forward to port 443 unaltered and health-check <code>/rest/health</code>.</li>
+<li><strong>Certificate expiry is not emailed.</strong> The expired, expiring and refresh-failed events go only to Mission Control and the CMC Events list.</li>
+<li><strong>The Mission Control link is outbound only</strong>, over 443. When it drops, monitoring continues, but after 14 days a cluster on classic licensing can no longer exceed its license limit. That drop <em>is</em> emailed.</li>
+<li><strong>Watch Cluster ActiveGate status in the CMC.</strong> An ActiveGate losing its connection is not emailed; running an unsupported ActiveGate version is.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/basics/managed-deployments">Managed deployments (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/supported-connectivity-schemes-for-activegates">Supported connectivity schemes for ActiveGates (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/set-up-load-balancer">Set up load balancer (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-proactive-support">Mission Control proactive support (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="traffic-path"></a></p>
+<h2>2. The Agent Traffic Path</h2>
+<h3>2.1 The hierarchy</h3>
+<p>Dynatrace arranges ActiveGates in levels: <em>&quot;Level 1—Environment ActiveGates&quot;</em>, <em>&quot;Level 2—Cluster ActiveGates&quot;</em>, and <em>&quot;Level 3—Embedded ActiveGates—ActiveGates embedded within cluster nodes&quot;</em>. Data moves one way: <em>&quot;ActiveGates can only send data to higher hierarchy levels.&quot;</em> OneAgent picks its route from that list: <em>&quot;OneAgent will connect to an Environment ActiveGate, if one is present. It will, however, connect to a Cluster ActiveGate, if no connection to an Environment ActiveGate is possible, and it can even connect directly to a Dynatrace Managed Cluster.&quot;</em></p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+SG93IFRyYWZmaWMgUmVhY2hlcyBhIE1hbmFnZWQgQ2x1c3RlciDigJQgYW5kIExlYXZlcyBJdDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5Nb25pdG9yaW5nIGRhdGEgb25seSBmbG93cyB1cCB0aGUgQWN0aXZlR2F0ZSBoaWVyYXJjaHk7IHRoZSBNaXNzaW9uIENvbnRyb2wgbGluayBpcyBhbHdheXMgb3BlbmVkIGJ5IHRoZSBjbHVzdGVyPC90ZXh0PgoKICA8IS0tIHpvbmUgbGFiZWxzIC0tPgogIDx0ZXh0IHg9IjMwIiB5PSI5MiIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+RXh0ZXJuYWwgLyBETVo8L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjI4MiIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+SW50ZXJuYWwgbmV0d29yazwvdGV4dD4KCiAgPCEtLSBleHRlcm5hbCBzb3VyY2VzIC0tPgogIDxyZWN0IHg9IjMwIiB5PSIxMDQiIHdpZHRoPSIxNzAiIGhlaWdodD0iMTIwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNERTM1MEIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTE1IiB5PSIxMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkV4dGVybmFsIHNvdXJjZXM8L3RleHQ+CiAgPHRleHQgeD0iMTE1IiB5PSIxNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk9uZUFnZW50czwvdGV4dD4KICA8dGV4dCB4PSIxMTUiIHk9IjE3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YWdlbnRsZXNzIGFuZCBtb2JpbGUgUlVNPC90ZXh0PgogIDx0ZXh0IHg9IjExNSIgeT0iMTg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5wdWJsaWMgc3ludGhldGljPC90ZXh0PgogIDxsaW5lIHgxPSIyMDIiIHkxPSIxNjQiIHgyPSIyNTAiIHkyPSIxNjQiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CiAgPHRleHQgeD0iMjI2IiB5PSIxNTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iOSI+SFRUUFM8L3RleHQ+CgogIDwhLS0gY2x1c3RlciBhY3RpdmVnYXRlIC0tPgogIDxyZWN0IHg9IjI1NCIgeT0iMTA0IiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIzNjQiIHk9IjEyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+Q2x1c3RlciBBY3RpdmVHYXRlPC90ZXh0PgogIDx0ZXh0IHg9IjM2NCIgeT0iMTQ0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5sZXZlbCAyPC90ZXh0PgogIDx0ZXh0IHg9IjM2NCIgeT0iMTY0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5wdWJsaWMgSVAgwrcgb3duIGRvbWFpbiwgbm90IHRoZSB3ZWIgVUknczwvdGV4dD4KICA8dGV4dCB4PSIzNjQiIHk9IjE4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+dHJ1c3RlZCBjZXJ0aWZpY2F0ZSBmb3IgUlVNIC8gbW9iaWxlPC90ZXh0PgogIDx0ZXh0IHg9IjM2NCIgeT0iMjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5ubyB3ZWIgVUkgcHJveHlpbmc8L3RleHQ+CgogIDwhLS0gaW50ZXJuYWwgc291cmNlcyAtLT4KICA8cmVjdCB4PSIzMCIgeT0iMjk0IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTE1IiB5PSIzMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkludGVybmFsIE9uZUFnZW50czwvdGV4dD4KICA8dGV4dCB4PSIxMTUiIHk9IjM0MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dXNlIGFuIEVudmlyb25tZW50PC90ZXh0PgogIDx0ZXh0IHg9IjExNSIgeT0iMzU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5BY3RpdmVHYXRlIGlmIHByZXNlbnQ8L3RleHQ+CiAgPGxpbmUgeDE9IjIwMiIgeTE9IjMzNCIgeDI9IjI1MCIgeTI9IjMzNCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KICA8dGV4dCB4PSIyMjYiIHk9IjMyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSI5Ij45OTk5PC90ZXh0PgoKICA8IS0tIGVudmlyb25tZW50IGFjdGl2ZWdhdGUgLS0+CiAgPHJlY3QgeD0iMjU0IiB5PSIyOTQiIHdpZHRoPSIyMjAiIGhlaWdodD0iODAiIGZpbGw9IiMyMkQzRUUiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMzY0IiB5PSIzMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkVudmlyb25tZW50IEFjdGl2ZUdhdGU8L3RleHQ+CiAgPHRleHQgeD0iMzY0IiB5PSIzMzYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmxldmVsIDE8L3RleHQ+CiAgPHRleHQgeD0iMzY0IiB5PSIzNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPnJlY2VpdmVzIG9uIDk5OTk8L3RleHQ+CgogIDwhLS0gZGlyZWN0IHBhdGggLS0+CiAgPHBhdGggZD0iTSAxMTUgMzc2IEwgMTE1IDQyMCBMIDUwMCA0MjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1kYXNoYXJyYXk9IjUgNCIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KICA8dGV4dCB4PSIzMDAiIHk9IjQxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMCI+b3IgZGlyZWN0bHkgdG8gdGhlIGNsdXN0ZXIgd2hlbiBubyBBY3RpdmVHYXRlIGlzIHJlYWNoYWJsZTwvdGV4dD4KCiAgPCEtLSBhcnJvd3MgdG8gY2x1c3RlciAtLT4KICA8bGluZSB4MT0iNDc2IiB5MT0iMTY0IiB4Mj0iNTAwIiB5Mj0iMjIwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgogIDxsaW5lIHgxPSI0NzYiIHkxPSIzMzQiIHgyPSI1MDAiIHkyPSIzMDAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CgogIDwhLS0gY2x1c3RlciAtLT4KICA8cmVjdCB4PSI1MDQiIHk9IjIwMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMzYiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNjA0IiB5PSIyMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPk1hbmFnZWQgQ2x1c3RlcjwvdGV4dD4KICA8dGV4dCB4PSI2MDQiIHk9IjI0MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+aW50ZXJuYWwgb25seSDCtyBwb3J0IDQ0MzwvdGV4dD4KICA8cmVjdCB4PSI1MTgiIHk9IjI1NiIgd2lkdGg9IjE3MiIgaGVpZ2h0PSIzNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiByeD0iNiIvPgogIDx0ZXh0IHg9IjYwNCIgeT0iMjc5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5OR0lOWCBvbiBldmVyeSBub2RlPC90ZXh0PgogIDxyZWN0IHg9IjUxOCIgeT0iMzAwIiB3aWR0aD0iMTcyIiBoZWlnaHQ9IjQ4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNjA0IiB5PSIzMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPmVtYmVkZGVkIEFjdGl2ZUdhdGU8L3RleHQ+CiAgPHRleHQgeD0iNjA0IiB5PSIzMzYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmxldmVsIDM8L3RleHQ+CiAgPHRleHQgeD0iNjA0IiB5PSIzNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnVuaGVhbHRoeSBub2RlcyBhcmU8L3RleHQ+CiAgPHRleHQgeD0iNjA0IiB5PSIzODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnNraXBwZWQgYnkgTkdJTlg8L3RleHQ+CgogIDwhLS0gbWlzc2lvbiBjb250cm9sIC0tPgogIDxsaW5lIHgxPSI3MDYiIHkxPSIzMDAiIHgyPSI3NDAiIHkyPSIzMDAiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CiAgPHJlY3QgeD0iNzQ0IiB5PSIyMDAiIHdpZHRoPSIxNjAiIGhlaWdodD0iMjM2IiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjgyNCIgeT0iMjI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5NaXNzaW9uIENvbnRyb2w8L3RleHQ+CiAgPHRleHQgeD0iODI0IiB5PSIyNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPm91dGJvdW5kIG9ubHk8L3RleHQ+CiAgPHRleHQgeD0iODI0IiB5PSIyNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkhUVFBTICsgV1NTLCA0NDM8L3RleHQ+CiAgPHRleHQgeD0iODI0IiB5PSIyOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlRMUyAxLjI8L3RleHQ+CiAgPHRleHQgeD0iODI0IiB5PSIzMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmEgcHJveHkgbXVzdCBzdXBwb3J0PC90ZXh0PgogIDx0ZXh0IHg9IjgyNCIgeT0iMzMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5XZWJTb2NrZXRzIGFuZCBTTkk8L3RleHQ+CiAgPHRleHQgeD0iODI0IiB5PSIzNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPmxpY2Vuc2luZyDCtyB1cGRhdGVzPC90ZXh0PgogIDx0ZXh0IHg9IjgyNCIgeT0iMzc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5oZWFsdGggwrcgcmVtb3RlIGFjY2VzczwvdGV4dD4KCiAgPGxpbmUgeDE9IjQwIiB5MT0iNDYwIiB4Mj0iODkwIiB5Mj0iNDYwIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEwIj5Tb3VyY2U6IFN1cHBvcnRlZCBjb25uZWN0aXZpdHkgc2NoZW1lcyBmb3IgQWN0aXZlR2F0ZXM7IE1hbmFnZWQgZGVwbG95bWVudHM7IFNldCB1cCBsb2FkIGJhbGFuY2VyOyBDbHVzdGVyIG5vZGUgcG9ydHMgKERUIGRvY3MsIHJlYWQgMDkvMjkvMjAyNik8L3RleHQ+Cjwvc3ZnPgo=" alt="How Traffic Reaches a Managed Cluster — and Leaves It" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Source | First hop | Next hop | Notes |
+|--------|-----------|----------|-------|
+| External OneAgents, agentless/mobile RUM, public synthetic | Cluster ActiveGate (level 2), over HTTPS | Managed Cluster | Public IP; own domain distinct from the web UI; trusted certificate for RUM/mobile; no web UI proxying |
+| Internal OneAgents | Environment ActiveGate (level 1), port 9999, if present | Managed Cluster | Falls back to a Cluster ActiveGate, then directly to the cluster |
+| Managed Cluster | NGINX on every node, port 443; embedded ActiveGate (level 3) | — | Internal only; NGINX skips unhealthy nodes |
+| Managed Cluster → Mission Control | Outbound only | — | HTTPS + WSS on 443, TLS 1.2; a proxy must support WebSockets and SNI |
+For environments where SVG doesn't render
+-->
+<p>The routes are discovered automatically: <em>&quot;All Dynatrace components (OneAgents, ActiveGates, Dynatrace Cluster) detect their hostnames and distribute them as communication endpoints among each other to achieve the highest possible connection robustness. This works automatically, unless there are networking devices (proxies, load balancers)&quot;</em> in between. §3 covers those.</p>
+<h3>2.2 Keep the cluster internal</h3>
+<p>A basic deployment is one where the <em>&quot;Managed Cluster is only accessible internally and exposes port 443 for the REST API, OneAgent traffic, and web UI access&quot;</em>. Reaching it from outside should go through Cluster ActiveGates: <em>&quot;Exposing the Managed Cluster directly to external networks is not recommended for security reasons. Instead, use one or more Cluster ActiveGates as mediating proxies for pre-processing of OneAgent and DEM traffic.&quot;</em></p>
+<h3>2.3 What a Cluster ActiveGate needs</h3>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>From the docs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A public address</td>
+<td><em>&quot;A publicly available IP address&quot;</em></td>
+</tr>
+<tr>
+<td>Its own domain and certificate</td>
+<td><em>&quot;A domain name with a valid SSL certificate&quot;</em>. <em>&quot;The domain must differ from the Dynatrace web UI domain.&quot;</em></td>
+</tr>
+<tr>
+<td>Scope</td>
+<td><em>&quot;Cluster ActiveGates do not support proxying of web UI traffic.&quot;</em></td>
+</tr>
+<tr>
+<td>Scale</td>
+<td><em>&quot;For high-load installations with many external hosts, applications, sessions, and synthetic monitors, set up multiple load-balanced Cluster ActiveGates sharing the same domain name and certificate.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p>A Cluster ActiveGate installed with the <em>Route traffic</em> purpose <em>&quot;routes OneAgent, public synthetic, mobile, Real User Monitoring, and REST API traffic&quot;</em>. Once it's in place, it is added as an endpoint: <em>&quot;After the Cluster ActiveGate connects to Dynatrace, installation is complete, and every OneAgent that can reach Dynatrace receives the Cluster ActiveGate as an endpoint.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/supported-connectivity-schemes-for-activegates">Supported connectivity schemes for ActiveGates (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/basics/managed-deployments">Managed deployments (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/install-cluster-activegate">Install a Cluster ActiveGate (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="load-balancers"></a></p>
+<h2>3. NGINX and Load Balancers</h2>
+<p><strong>Inside the cluster, NGINX already balances.</strong> <em>&quot;NGINX, which is installed on each Cluster node, performs load balancing and routing of traffic between nodes.&quot;</em> It routes around failed nodes: <em>&quot;If a node is unreachable, that node is marked as unhealthy, and traffic is forwarded only to healthy nodes.&quot;</em></p>
+<p><strong>For OneAgent traffic, an external load balancer is optional.</strong> <em>&quot;Load balancing is less needed for OneAgent traffic because OneAgent is capable of switching between endpoints and performing client-side load balancing.&quot;</em> It pays off for beacon traffic: <em>&quot;offloading TLS termination to a load balancer is beneficial, particularly if the load balancer has hardware-accelerated TLS handling or autoscaling capabilities&quot;</em>, and it <em>&quot;can shield the Managed Cluster from overload and separate the access path between beacon traffic and web UI/OneAgent traffic.&quot;</em></p>
+<p><strong>If you put one in front, it must:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>From the docs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Forward to NGINX on 443, unaltered</td>
+<td><em>&quot;Forward traffic to HTTPS port 443 of NGINX. Do not alter the request path or parameters in any way; custom path suffixes are not supported.&quot;</em></td>
+</tr>
+<tr>
+<td>Allow long responses</td>
+<td>Timeout <em>&quot;no less than what's configured in NGINX by default (120 seconds).&quot;</em></td>
+</tr>
+<tr>
+<td>Health-check every node</td>
+<td><em>&quot;Use the /rest/health endpoint for the health check, with an expected response code of HTTP 200.&quot;</em></td>
+</tr>
+<tr>
+<td>Leave sessions to the cluster</td>
+<td><em>&quot;Session persistence and affinity are configured and realized by the Dynatrace Managed Cluster. No configuration is required.&quot;</em></td>
+</tr>
+<tr>
+<td>Track node changes</td>
+<td><em>&quot;This list needs to be updated after node join or removal.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p>The last rule is the one most easily forgotten: adding or removing a node (DTM-11 §5, DTM-15) is also a load-balancer change.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/managed-load-balancing-explained">Load balancing in Dynatrace Managed (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/set-up-load-balancer">Set up load balancer (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="endpoints"></a></p>
+<h2>4. Endpoints, DNS and Node Roles</h2>
+<p><strong>Public endpoints.</strong> The cluster advertises itself through the address you enter under <strong>Settings &gt; Public endpoints</strong>. Get it wrong and the whole cluster suffers: <em>&quot;Invalid configuration of DNS might result in data mismatch or lead to a Managed Cluster outage.&quot;</em> The docs' pattern is one name resolving to every node, plus a name per node, for example <code>dynatrace.mycompany.com A 10.176.0.1, 10.176.0.2, 10.176.0.3</code> and <code>n01.dynatrace.mycompany.com A 10.176.0.1</code>.</p>
+<p><strong>Node roles.</strong> Each node can take web UI traffic, OneAgent traffic, or both (DTM-11 §2.2). Large clusters change the default: <em>&quot;web UI traffic is by default turned off when installing the thirteenth and subsequent nodes (or the seventh and subsequent nodes in a data center for Premium High Availability).&quot;</em> A load balancer or DNS name for the web UI should therefore list only nodes that actually serve it.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-dns-entries">Configure cluster DNS entries (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-capabilities">Configure cluster capabilities (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/set-up-load-balancer">Set up load balancer (DT docs)</a>. <strong>Derived:</strong> &quot;list only nodes that serve the web UI&quot; combines the web UI default with the load-balancer rule that its target list must track the cluster's nodes.</sub></p>
+</blockquote>
+<p><a id="certificates"></a></p>
+<h2>5. Certificates</h2>
+<p><strong>The cluster's certificate.</strong> By default, <em>&quot;each Managed Cluster receives a dedicated subdomain of dynatrace-managed.com with a trusted SSL certificate.&quot;</em> If you turn that management off, <em>&quot;Without automatic certificate management, Dynatrace falls back to a self-signed certificate.&quot;</em> To use your own certificate, upload it in PEM format. <em>&quot;Encrypted private keys are not supported.&quot;</em> Decrypt the key first:</p>
+<pre><code class="language-bash">openssl rsa -in encrypted.ssl.key -out decrypted.ssl.key
+</code></pre>
+<p><strong>Cluster ActiveGate certificates are managed centrally.</strong> <em>&quot;After installation, a Cluster ActiveGate uses a self-signed certificate generated by Dynatrace.&quot;</em> Don't change them on the ActiveGate host itself: <em>&quot;Do not configure SSL certificates directly on the Cluster ActiveGate device, because automatic certificate management overwrites any certificate uploaded this way.&quot;</em></p>
+<p><strong>Certificate events never email you.</strong> Every one of them goes only to Mission Control and the CMC Events list:</p>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Severity</th>
+<th>Emailed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>&quot;SSL certificate expired.&quot;</em></td>
+<td>SEVERE</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><em>&quot;Your SSL certificate will expire soon.&quot;</em></td>
+<td>WARNING</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><em>&quot;Let's Encrypt SSL certificate fetching failure.&quot;</em></td>
+<td>WARNING</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><em>&quot;SSL certificate ( %s ) refresh failed.&quot;</em></td>
+<td>WARNING</td>
+<td><strong>No</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The docs don't say what stops working when the certificate expires (§10). Two Dynatrace community threads fill some of it. In 2019 a Dynatrace product manager wrote that an expired certificate shows as a browser warning on the web UI and that monitoring should not be affected, and that the automatically managed certificate is refreshed 14 days before it expires (<a href="https://community.dynatrace.com/t/we-are-seeing-that-the-ssl-certificate-of-the-cluster-hosts-expire-in-a-few-days/21799">SSL certificate of the cluster hosts (Dynatrace community)</a>). In 2021, OneAgent and ActiveGate downloads from Managed clusters failed with <em>certificate has expired</em> errors during Let's Encrypt's certificate-chain change (<a href="https://community.dynatrace.com/t/dynatrace-managed-oneagent-and-activegate-download-fails-cannot-verify-certificate-expired/32954">download fails — certificate expired (Dynatrace community)</a>). Both are community sources; treat them as community practice.</p>
+<p>The docs don't settle it either way. Beacon traffic needs a valid certificate on the Cluster ActiveGate (§2.3), so in community practice certificate expiry dates are tracked outside the cluster, in whatever system already watches your other certificates — verify the expiry dates your cluster presents against that system.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/ssl-certificate-managed-cluster">SSL certificate for the Managed Cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/ssl-certificate-cluster-activegate">SSL certificate for a Cluster ActiveGate (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/basics/managed-deployments">Managed deployments (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="mission-control"></a></p>
+<h2>6. The Mission Control Link</h2>
+<p><strong>Direction and transport.</strong> <em>&quot;All communication between a Managed Cluster and Mission Control is encrypted and initiated only by the Cluster.&quot;</em> <em>&quot;Mission Control communication uses HTTPS and WSS over port 443 with TLS v1.2.&quot;</em> <em>&quot;All cluster nodes must be able to communicate with Mission Control to receive software updates and exchange data.&quot;</em> The documented hosts are <code>mcsvc.dynatrace.com</code>, <code>mcsvc-us.dynatrace.com</code>, <code>mcsvc-eu.dynatrace.com</code> and <code>mcsvc-ap.dynatrace.com</code>. The cluster-node-ports page also lists their IP addresses, for firewalls that allow by address.</p>
+<p><strong>What is sent, and how often:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Exchange</th>
+<th>Frequency</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>License check</td>
+<td><em>&quot;Once every 5 minutes&quot;</em></td>
+</tr>
+<tr>
+<td>License data</td>
+<td><em>&quot;Once each hour&quot;</em></td>
+</tr>
+<tr>
+<td>Health check</td>
+<td><em>&quot;Once every 2 minutes&quot;</em></td>
+</tr>
+<tr>
+<td>Updates</td>
+<td><em>&quot;Once each hour&quot;</em></td>
+</tr>
+<tr>
+<td>Nodekeeper health check</td>
+<td><em>&quot;Once per minute for each Cluster node&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p>The health check includes Cluster ActiveGates: <em>&quot;Per Cluster ActiveGate: ActiveGate ID, ActiveGate IP address, ActiveGate type, ActiveGate state&quot;</em>, among other fields.</p>
+<p><strong>Through a proxy.</strong> <em>&quot;The proxy must support WebSockets and the SNI TLS extension.&quot;</em> Set the proxy at install time with <code>--network-proxy protocol://[user:password@]server-address:port</code>, or later in the CMC: <em>&quot;Go to Settings &gt; Internet proxy and edit Proxy configuration for a particular data center.&quot;</em></p>
+<p><strong>Ciphers (Managed 1.318+).</strong> From 1.318, <em>&quot;The Mission Control ciphers have been reduced&quot;</em>. <em>&quot;Ensure that all connections you establish to Mission Control support these ciphers. If they don't support the listed ciphers, no connection to Mission Control can be established.&quot;</em> In community practice, a TLS-inspecting proxy or firewall in the path is the first thing to check when the link fails after an upgrade — verify its cipher list against the release note.</p>
+<p><strong>Checking it.</strong> <em>&quot;To verify your connection to Mission Control , select &gt; Check Mission Control connection .&quot;</em> The link is also watched for you: <em>&quot;There is lack of connection to Dynatrace Mission Control.&quot;</em> is a WARNING that <strong>is emailed</strong>, and <em>&quot;Connection to Dynatrace Mission Control is back again.&quot;</em> follows when it recovers.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-data-exchange">Mission Control data exchange (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/cluster-node-ports">Cluster node ports (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-internet-proxy">Configure internet proxy (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console">Cluster Management Console (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-318">Managed 1.318 release notes (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="mc-unreachable"></a></p>
+<h2>7. When Mission Control Is Unreachable — and Offline Clusters</h2>
+<h3>7.1 What a lost link costs</h3>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>What the docs say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Monitoring</td>
+<td>Under DPS, <em>&quot;Monitoring of your applications isn't affected by a connection outage.&quot;</em></td>
+</tr>
+<tr>
+<td>Licensing — classic</td>
+<td><em>&quot;If a connection outage to Mission Control lasts longer than 14 days (seven days for free trial accounts), the Managed Cluster disallows the ability to exceed the license limit (overages).&quot;</em></td>
+</tr>
+<tr>
+<td>Licensing — DPS</td>
+<td><em>&quot;the Managed Cluster collects usage data and sends it to Mission Control as soon as the connection is restored.&quot;</em></td>
+</tr>
+<tr>
+<td>Retries</td>
+<td><em>&quot;critical communication requests (such as billing requests or license checks) are automatically resent once the connection is restored.&quot;</em></td>
+</tr>
+<tr>
+<td>Updates</td>
+<td><em>&quot;If you have turned off the automatic download of installation packages or there is no connection to Mission Control, you will receive an email notification whenever a new installation package is available.&quot;</em></td>
+</tr>
+<tr>
+<td>Premium High Availability</td>
+<td><em>&quot;PHA is available only for online Managed Clusters.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p>The 14-day overage limit is the one with a deadline. Count from the first <em>lack of connection</em> email.</p>
+<h3>7.2 Offline clusters</h3>
+<p>An offline cluster makes the outage permanent by design. It uses an offline license: <em>&quot;The offline license turns off all features that need an internet connection, such as license reporting and health checks through Mission Control and automatic Managed Cluster updates.&quot;</em> Its certificates are self-signed by default, and license and update changes become manual work.</p>
+<p><strong>Converting to online (Managed 1.338+).</strong> The conversion requires <em>&quot;Dynatrace Managed version 1.338+&quot;</em> and <em>&quot;Cluster connectivity to Mission Control (the conversion script verifies this)&quot;</em>:</p>
+<pre><code class="language-bash">/bin/sh /opt/dynatrace-managed/installer/convert-to-online.sh --api-token &lt;api-token-value&gt; --online-license &lt;online-license-key&gt;
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-proactive-support">Mission Control proactive support (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/update-cluster">Update a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/multi-data-centers">Multi-data center high availability (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/dynatrace-managed-offline">Dynatrace Managed offline (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/cluster-offline-to-online">Convert an offline cluster to online (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="remote-access"></a></p>
+<h2>8. Remote Access for Dynatrace Support</h2>
+<p>The Mission Control link also carries remote access for Dynatrace product experts, and it starts switched on: <em>&quot;By default, remote access to Mission Control is enabled to provide you with proactive support.&quot;</em> It's controlled in the CMC under <strong>Settings &gt; Remote access permissions</strong>, with three scopes: full access, read-only access, or <em>Approved</em>, where <em>&quot;The cluster administrator needs to approve each request to grant permissions.&quot;</em></p>
+<p>What it can and can't do:</p>
+<ul>
+<li><strong>Logged.</strong> <em>&quot;All Dynatrace Managed configuration changes are fully audit-logged and each remote access is logged as a separate event&quot;</em>, in the CMC Events list.</li>
+<li><strong>Bounded.</strong> <em>&quot;The Mission Control team cannot access certificates or user credentials, and it cannot gain root access to any servers.&quot;</em></li>
+</ul>
+<p>Decide the scope deliberately rather than inheriting the default. The docs don't spell out a revoke procedure (§10); the settings page is where the scope is changed.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/basics/managed-deployments">Managed deployments (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-remote-access">Configure cluster remote access (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="activegate-health"></a></p>
+<h2>9. Cluster ActiveGate Health and Agent-Side Events</h2>
+<h3>9.1 Where to look</h3>
+<p>CMC <strong>Home</strong> shows the ActiveGate count and links to <strong>Deployment Status &gt; ActiveGates</strong>, which lists each one. Two states matter:</p>
+<ul>
+<li><strong>Out of date.</strong> <em>&quot;The yellow warning icon indicates that your ActiveGate is behind by more than five versions.&quot;</em></li>
+<li><strong>Lost.</strong> Status <em>Unknown</em>: <em>&quot;The connection to this ActiveGate has been lost and no status can be determined.&quot;</em> <em>&quot;The availability check is performed at 30-minute intervals.&quot;</em>, so a lost ActiveGate can take up to half an hour to show.</li>
+</ul>
+<p>The ActiveGate update page was published in 2020 and carries no later update date. Treat its screens as indicative.</p>
+<h3>9.2 Events</h3>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Severity</th>
+<th>Emailed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>&quot;ActiveGate (host=…) lost connection to cluster.&quot;</em></td>
+<td>INFO</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><em>&quot;ActiveGate (host=…) unregistered on cluster.&quot;</em></td>
+<td>INFO</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td>Cluster ActiveGates on an unsupported version (<em>&quot;Update your Cluster ActiveGate… immediately&quot;</em>)</td>
+<td>SEVERE</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><em>&quot;ActiveGate Token(s) will expire soon.&quot;</em></td>
+<td>WARNING</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><em>&quot;A cluster node can't receive OneAgent traffic.&quot;</em></td>
+<td>SEVERE</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><em>&quot;Cluster traffic control: OneAgent monitoring was disabled on recently connected hosts to avoid cluster overload.&quot;</em></td>
+<td>SEVERE</td>
+<td><strong>No</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The last two are what connectivity trouble looks like from the cluster's side. One node refusing agent traffic, or the cluster turning off monitoring on new hosts to protect itself, is the point where layer 4 meets layer 3 (capacity, DTM-15).</p>
+<p><strong>Tenant token rotation (Managed 1.346).</strong> <em>&quot;The tenant token is used by OneAgents and ActiveGates to report data to Dynatrace.&quot;</em> Rotating it means putting the new token on every ActiveGate and OneAgent, then finishing the rotation, which <em>&quot;renders the old token invalid.&quot;</em> Until then, <em>&quot;both old and new tokens are valid during the rotation process.&quot;</em> Managed 1.346 made an unfinished rotation visible: <em>&quot;You can now query the current status of a tenant token rotation in your Dynatrace Managed environment using the new api/v2/tenantTokenRotation/status endpoint. While a rotation is in progress, a severe Cluster event is raised daily for the duration of the rotation&quot;</em>. The reason it matters: <em>&quot;An incomplete rotation persisted undetected and directly affected monitoring continuity.&quot;</em> The event reference (read 11/11/2026) doesn't list this event, so whether it emails is not documented; on a cluster before 1.346, track rotations yourself.</p>
+<h3>9.3 Self-monitoring metrics</h3>
+<p>ActiveGates report self-monitoring metrics under <code>dsfm:active_gate.*</code>. The Managed docs list 70 of them, with descriptions. Four worth charting for Cluster ActiveGates:</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>What the docs say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dsfm:active_gate.communication.messages.dropped</code></td>
+<td><em>&quot;Number of messages dropped due to timeouts. Non-zero value may indicate data loss.&quot;</em></td>
+</tr>
+<tr>
+<td><code>dsfm:active_gate.communication.queue.outgoing.usage</code></td>
+<td><em>&quot;Number of messages queued. Growing value indicates messages are being received at a faster pace than sent out.&quot;</em></td>
+</tr>
+<tr>
+<td><code>dsfm:active_gate.jvm.heap_memory_used</code></td>
+<td>JVM heap in use, against <code>dsfm:active_gate.jvm.heap_memory_available</code></td>
+</tr>
+<tr>
+<td><code>dsfm:active_gate.system.cpu_usage</code></td>
+<td>Host CPU, for the 50% guidance below</td>
+</tr>
+</tbody>
+</table>
+<p>The page says these metrics <em>&quot;are available in every Dynatrace Managed and SaaS environment&quot;</em>, but some keys describe Grail ingest, which Managed doesn't have. It also doesn't say which environment a Cluster ActiveGate reports into. Find them in the metric browser of the environment where your ActiveGates appear.</p>
+<h3>9.4 Sizing and currency</h3>
+<p>The hardware guide for routing/monitoring ActiveGates says the machine <em>&quot;should not exceed 50% CPU and 80% memory&quot;</em>, and that <em>&quot;operating ActiveGates should be able to takeover traffic of the unavailable ActiveGates&quot;</em>. The guide doesn't mention Cluster ActiveGates, and it sizes by OneAgent count, not by the RUM, mobile and synthetic beacon traffic a Cluster ActiveGate also carries. In community practice, its CPU and memory ceilings are applied to Cluster ActiveGates as well — size beacon load from your own measurements.</p>
+<p>Release changes that affect Cluster ActiveGates and the agents behind them:</p>
+<ul>
+<li><strong>Managed 1.332:</strong> <em>&quot;Removed backward compatibility for ActiveGates older than version 1.172&quot;</em>. Very old ActiveGates stop working once the cluster reaches 1.332.</li>
+<li><strong>Managed 1.344:</strong> <em>&quot;ActiveGate download links now require a token with the UnattendedInstall or ServiceApiProvider scope.&quot;</em> <em>&quot;Existing UI workflows are not affected.&quot;</em>, but scripted downloads need such a token from 1.344. The same release adds <em>&quot;Configurable update windows and target versions for Environment ActiveGate&quot;</em> — update control is covered in DTM-16.</li>
+<li><strong>Managed 1.342:</strong> <em>&quot;Dynatrace rejects connections from OneAgent versions 1.141 and earlier.&quot;</em></li>
+<li><strong>Managed 1.346:</strong> <em>&quot;Dynatrace now rejects connections from OneAgent version 1.215 and earlier.&quot;</em></li>
+<li><strong>Managed 1.348:</strong> <em>&quot;Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier.&quot;</em></li>
+</ul>
+<p>The release-notes page (read 11/10/2026) lists 1.346, 1.348 and 1.350 as currently supported, 1.344 as supported <em>&quot;Only with Enterprise Success and Support&quot;</em>, and 1.342 as out of support. Each cutoff applies once the cluster reaches that release: every cluster in standard support (1.346 or later) already rejects OneAgent 1.215 and earlier, while the 1.241 cutoff applies only from Managed 1.348 — a cluster still on 1.346 does not yet apply it. An agent that stops connecting right after a cluster update may simply be too old.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console">Cluster Management Console (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/update-dynatrace-managed-activegate">Update Cluster ActiveGate (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens/rotate-tenant-token">Tenant token (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-346">Managed 1.346 (DT docs)</a> release notes</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/activegate-sfm-metrics">ActiveGate self-monitoring metrics (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements">ActiveGate hardware and system requirements (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-332">Managed 1.332 (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-344">Managed 1.344 (DT docs)</a> release notes, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/install-cluster-activegate">Install a Cluster ActiveGate (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-342">Managed 1.342 (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-346">Managed 1.346 (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-348">Managed 1.348 (DT docs)</a> release notes, <a href="https://docs.dynatrace.com/managed/whats-new/managed">Dynatrace Managed release notes (DT docs)</a> (read 11/10/2026)</sub></li>
+</ul>
+</blockquote>
+<p><a id="doc-gaps"></a></p>
+<h2>10. What the Documentation Does Not Say</h2>
+<p><strong>Not found</strong>, in the Managed documentation read 09/29/2026 (the <code>dsfm:active_gate.*</code> gap recorded here earlier was filled on 10/02/2026 — §9.3):</p>
+<table>
+<thead>
+<tr>
+<th>Gap</th>
+<th>Working assumption in this notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>What stops working when the cluster certificate expires</td>
+<td>Community answers say monitoring continues and the UI warns (§5); track expiry outside the cluster</td>
+</tr>
+<tr>
+<td>A procedure for revoking remote access</td>
+<td>Change the scope under Settings &gt; Remote access permissions (§8)</td>
+</tr>
+<tr>
+<td>How agents fail over when a node is removed</td>
+<td>The remove-node procedure disables OneAgent traffic on the node first (DTM-11 §5)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Conflicts between pages:</strong></p>
+<ul>
+<li><strong>Cluster ActiveGate port.</strong> The connectivity-schemes page says <em>&quot;Cluster ActiveGate receives connections on port 9999.&quot;</em>; the deployments page says <em>&quot;External communication is only supported over HTTPS (port 443).&quot;</em> This notebook states neither for the Cluster ActiveGate's inbound hop. Confirm in your firewall rules.</li>
+<li><strong>Health-check interval.</strong> The data-exchange table says <em>&quot;Once every 2 minutes&quot;</em>; the offline-vs-online comparison table says <em>&quot;Health-check is updated every 5 minutes&quot;</em>. This notebook follows the data-exchange page.</li>
+<li><strong>Where the certificate toggle lives.</strong> The cluster certificate page puts it under <strong>Settings &gt; Preferences</strong>; the Cluster ActiveGate certificate page under <strong>Settings &gt; Public endpoints</strong>.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/analyze-explore-automate/metrics-classic/self-monitoring-metrics">Self-monitoring metrics (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/supported-connectivity-schemes-for-activegates">Supported connectivity schemes for ActiveGates (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/basics/managed-deployments">Managed deployments (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-data-exchange">Mission Control data exchange (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/offline-and-online-mode-differences">Offline and online mode differences (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/ssl-certificate-managed-cluster">SSL certificate for the Managed Cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/ssl-certificate-cluster-activegate">SSL certificate for a Cluster ActiveGate (DT docs)</a>. <strong>Observed 09/29/2026:</strong> the four gaps then listed were searched for across the Managed cluster, ActiveGate and release-note pages (115 pages crawled); none was filled at the time. One (the <code>dsfm:</code> gap) was filled on 10/02/2026, so three remain.</sub></p>
+</blockquote>
+<p><a id="recommendation"></a></p>
+<h2>11. Recommended Approach</h2>
+<ol>
+<li><strong>Keep the cluster internal</strong>, and route every external source through load-balanced Cluster ActiveGates with their own domain and a trusted certificate.</li>
+<li><strong>Health-check <code>/rest/health</code> on every node</strong> from any load balancer, and add &quot;update the load balancer&quot; to the add-node and remove-node runbooks.</li>
+<li><strong>Track certificate expiry outside the cluster.</strong> The cluster reports expiry only to Mission Control and the CMC Events list.</li>
+<li><strong>Route the Mission Control events to a watched mailbox.</strong> Lost and restored are both emailed. Treat a lost link as a 14-day clock if you're on classic licensing.</li>
+<li><strong>Test the Mission Control link after every proxy or firewall change</strong> with <em>Check Mission Control connection</em>. On 1.318+, include cipher support in the test.</li>
+<li><strong>Review the remote-access scope</strong> and choose it deliberately.</li>
+<li><strong>Check CMC Deployment Status &gt; ActiveGates weekly</strong> for <em>Unknown</em> and out-of-date ActiveGates. Losing an ActiveGate is not emailed.</li>
+</ol>
+<p><a id="summary"></a></p>
+<h2>12. Summary and Next Steps</h2>
+<p>Connectivity has two directions. Inbound, data climbs a three-level ActiveGate hierarchy into per-node NGINX, which already routes around failed nodes. An external load balancer must forward to 443 unaltered, health-check <code>/rest/health</code>, and follow every node change. Outbound, the cluster keeps a single encrypted link to Mission Control for licensing, updates, health and support. Monitoring survives losing it, but license overages, PHA and hands-off updates don't. Two of the most consequential signals here, certificate expiry and a lost ActiveGate, never reach your mailbox.</p>
+<p><strong>Next in the series:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Layer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DTM-15: Capacity and Scaling</td>
+<td>3 — Capacity (overload and traffic-control events lead here)</td>
+</tr>
+<tr>
+<td>DTM-16: Backup, Upgrade, and Disaster Recovery</td>
+<td>5 — Lifecycle (updates depend on the Mission Control link)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/managed">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

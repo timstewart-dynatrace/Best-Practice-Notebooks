@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ONBRD-05: Deploying OneAgent</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ONBRD — Dynatrace Onboarding</a><span class="sep">/</span><span aria-current="page">ONBRD-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ONBRD-05: Deploying OneAgent</h1>
+<blockquote>
+<p><strong>Series:</strong> ONBRD — Dynatrace Onboarding | <strong>Notebook:</strong> 5 of 10 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 11/16/2026</p>
+</blockquote>
+<h2>Getting Data Into Dynatrace</h2>
+<p>OneAgent is the foundation of Dynatrace monitoring. This notebook covers deployment strategies, installation methods, and verification steps to ensure your infrastructure is reporting data.</p>
+<blockquote>
+<p><strong>On Dynatrace Managed?</strong> This notebook is written for SaaS. How OneAgent reaches a Managed cluster, host groups and network zones to decide before rollout, and update policy on Managed are covered in DTM-05: OneAgent Deployment on Managed.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#what-is-oneagent">What is OneAgent?</a></li>
+<li><a href="#deployment-strategy">Deployment Strategy</a></li>
+<li><a href="#generating-a-deployment-token">Generating a Deployment Token</a></li>
+<li><a href="#installation-methods">Installation Methods</a></li>
+<li><a href="#kubernetes-deployment">Kubernetes Deployment</a></li>
+<li><a href="#verifying-deployment">Verifying Deployment</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>Admin access to Dynatrace environment</li>
+<li>A token that can download the OneAgent installer — a platform token with <code>fleet-management:oneagents:download</code>, or, where classic access tokens still exist, an access token with <code>InstallerDownload</code> (see section 3)</li>
+<li>Root/admin access to target hosts</li>
+<li>Network access from hosts to Dynatrace (port 443) or ActiveGate (ONBRD-03)</li>
+<li>Cloud integrations configured (ONBRD-04) for full context</li>
+</ul>
+<p><a id="what-is-oneagent"></a></p>
+<h2>1. What is OneAgent?</h2>
+<p>OneAgent is Dynatrace's unified monitoring agent that:</p>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Auto-discovery</strong></td>
+<td>Automatically detects hosts, processes, services</td>
+</tr>
+<tr>
+<td><strong>Full-stack</strong></td>
+<td>Infrastructure, application, and user experience</td>
+</tr>
+<tr>
+<td><strong>Zero configuration</strong></td>
+<td>Works immediately after installation</td>
+</tr>
+<tr>
+<td><strong>Distributed tracing</strong></td>
+<td>End-to-end transaction visibility</td>
+</tr>
+<tr>
+<td><strong>Log collection</strong></td>
+<td>Collects and forwards log data</td>
+</tr>
+</tbody>
+</table>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzQwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iaG9zdEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNjQ3NDhiO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM0NzU1Njk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJhZ2VudEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTQ5NmZmO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwYTY0YmM7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJwcm9jZXNzR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxMGI5ODE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzA1OTY2OTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImNsdXN0ZXJHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhiNWNmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojN2MzYWVkO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9ImFnZW50U2hhZG93Ij4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMSIgZHk9IjEiIHN0ZERldmlhdGlvbj0iMiIgZmxvb2Qtb3BhY2l0eT0iMC4xNSIvPgogICAgPC9maWx0ZXI+CiAgICA8bWFya2VyIGlkPSJhZ2VudEFycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iMzQwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0MDAiIHk9IjI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PbmVBZ2VudCBBcmNoaXRlY3R1cmU8L3RleHQ+CiAgPHRleHQgeD0iNDAwIiB5PSI0OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5VbmlmaWVkIGFnZW50IGZvciBmdWxsLXN0YWNrIG1vbml0b3Jpbmc8L3RleHQ+CgogIDwhLS0gSG9zdCBDb250YWluZXIgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjcwIiB3aWR0aD0iNTIwIiBoZWlnaHQ9IjIyMCIgcng9IjEyIiBmaWxsPSIjZmZmIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI2FnZW50U2hhZG93KSIvPgogIDxyZWN0IHg9IjQwIiB5PSI3MCIgd2lkdGg9IjUyMCIgaGVpZ2h0PSIzNSIgcng9IjEyIiBmaWxsPSJ1cmwoI2hvc3RHcmFkKSIvPgogIDxyZWN0IHg9IjQwIiB5PSI5NSIgd2lkdGg9IjUyMCIgaGVpZ2h0PSIxMCIgZmlsbD0idXJsKCNob3N0R3JhZCkiLz4KICA8dGV4dCB4PSIzMDAiIHk9Ijk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SE9TVDwvdGV4dD4KCiAgPCEtLSBPbmVBZ2VudCBDb250YWluZXIgLS0+CiAgPHJlY3QgeD0iNjAiIHk9IjExNSIgd2lkdGg9IjQ4MCIgaGVpZ2h0PSIxNjAiIHJ4PSIxMCIgZmlsbD0iI2VmZjZmZiIgc3Ryb2tlPSIjMTQ5NmZmIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cmVjdCB4PSI2MCIgeT0iMTE1IiB3aWR0aD0iNDgwIiBoZWlnaHQ9IjI4IiByeD0iMTAiIGZpbGw9InVybCgjYWdlbnRHcmFkKSIvPgogIDxyZWN0IHg9IjYwIiB5PSIxMzUiIHdpZHRoPSI0ODAiIGhlaWdodD0iOCIgZmlsbD0idXJsKCNhZ2VudEdyYWQpIi8+CiAgPHRleHQgeD0iMzAwIiB5PSIxMzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PbmVBZ2VudDwvdGV4dD4KCiAgPCEtLSBQcm9jZXNzIE1vbml0b3JzIC0tPgogIDxyZWN0IHg9IjgwIiB5PSIxNTUiIHdpZHRoPSIxNDAiIGhlaWdodD0iNTAiIHJ4PSI2IiBmaWxsPSJ1cmwoI3Byb2Nlc3NHcmFkKSIvPgogIDx0ZXh0IHg9IjE1MCIgeT0iMTc3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UHJvY2VzczwvdGV4dD4KICA8dGV4dCB4PSIxNTAiIHk9IjE5MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk1vbml0b3Jpbmc8L3RleHQ+CgogIDxyZWN0IHg9IjIzNSIgeT0iMTU1IiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjUwIiByeD0iNiIgZmlsbD0idXJsKCNwcm9jZXNzR3JhZCkiLz4KICA8dGV4dCB4PSIzMDUiIHk9IjE3NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlByb2Nlc3M8L3RleHQ+CiAgPHRleHQgeD0iMzA1IiB5PSIxOTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Nb25pdG9yaW5nPC90ZXh0PgoKICA8cmVjdCB4PSIzOTAiIHk9IjE1NSIgd2lkdGg9IjE0MCIgaGVpZ2h0PSI1MCIgcng9IjYiIGZpbGw9InVybCgjcHJvY2Vzc0dyYWQpIi8+CiAgPHRleHQgeD0iNDYwIiB5PSIxNzciIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Qcm9jZXNzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2MCIgeT0iMTkyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TW9uaXRvcmluZzwvdGV4dD4KCiAgPCEtLSBJbmZyYXN0cnVjdHVyZSBNb25pdG9yaW5nIC0tPgogIDxyZWN0IHg9IjgwIiB5PSIyMTUiIHdpZHRoPSIzMDAiIGhlaWdodD0iMzUiIHJ4PSI2IiBmaWxsPSIjZGJlYWZlIiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjIzMCIgeT0iMjM4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiMxZTQwYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkluZnJhc3RydWN0dXJlIE1vbml0b3JpbmcgKENQVSwgTWVtb3J5LCBEaXNrKTwvdGV4dD4KCiAgPCEtLSBMb2cgQ29sbGVjdGlvbiAtLT4KICA8cmVjdCB4PSIzOTAiIHk9IjIxNSIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIzNSIgcng9IjYiIGZpbGw9IiNmZWYzYzciIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDYwIiB5PSIyMzgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzkyNDAwZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TG9nIENvbGxlY3Rpb248L3RleHQ+CgogIDwhLS0gQ29ubmVjdGlvbiBBcnJvdyAtLT4KICA8cGF0aCBkPSJNNTYwLDE4MCBMNjMwLDE4MCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYWdlbnRBcnJvdykiLz4KICA8dGV4dCB4PSI1OTUiIHk9IjE3MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5IVFRQUzwvdGV4dD4KICA8dGV4dCB4PSI1OTUiIHk9IjE5NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4oNDQzKTwvdGV4dD4KCiAgPCEtLSBEeW5hdHJhY2UgQ2x1c3RlciAtLT4KICA8cmVjdCB4PSI2NDAiIHk9IjEyMCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIxMjAiIHJ4PSIxMCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjOGI1Y2Y2IiBzdHJva2Utd2lkdGg9IjIiIGZpbHRlcj0idXJsKCNhZ2VudFNoYWRvdykiLz4KICA8cmVjdCB4PSI2NDAiIHk9IjEyMCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIzMCIgcng9IjEwIiBmaWxsPSJ1cmwoI2NsdXN0ZXJHcmFkKSIvPgogIDxyZWN0IHg9IjY0MCIgeT0iMTQyIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjgiIGZpbGw9InVybCgjY2x1c3RlckdyYWQpIi8+CiAgPHRleHQgeD0iNzEwIiB5PSIxNDIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EeW5hdHJhY2U8L3RleHQ+CiAgPHRleHQgeD0iNzEwIiB5PSIxNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q2x1c3RlcjwvdGV4dD4KICA8dGV4dCB4PSI3MTAiIHk9IjE5NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BbmFseXNpczwvdGV4dD4KICA8dGV4dCB4PSI3MTAiIHk9IjIxNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TdG9yYWdlPC90ZXh0PgogIDx0ZXh0IHg9IjcxMCIgeT0iMjM1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFsZXJ0aW5nPC90ZXh0PgoKICA8IS0tIENhcGFiaWxpdGllcyBMZWdlbmQgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjMwMCIgd2lkdGg9IjcyMCIgaGVpZ2h0PSIzMCIgcng9IjYiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPGNpcmNsZSBjeD0iNzAiIGN5PSIzMTUiIHI9IjgiIGZpbGw9IiMxMGI5ODEiLz4KICA8dGV4dCB4PSI4NSIgeT0iMzE5IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPkF1dG8tZGlzY292ZXJ5PC90ZXh0PgogIDxjaXJjbGUgY3g9IjE4NSIgY3k9IjMxNSIgcj0iOCIgZmlsbD0iIzNiODJmNiIvPgogIDx0ZXh0IHg9IjIwMCIgeT0iMzE5IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPkZ1bGwtc3RhY2s8L3RleHQ+CiAgPGNpcmNsZSBjeD0iMjgwIiBjeT0iMzE1IiByPSI4IiBmaWxsPSIjZjU5ZTBiIi8+CiAgPHRleHQgeD0iMjk1IiB5PSIzMTkiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+WmVybyBjb25maWc8L3RleHQ+CiAgPGNpcmNsZSBjeD0iMzg1IiBjeT0iMzE1IiByPSI4IiBmaWxsPSIjOGI1Y2Y2Ii8+CiAgPHRleHQgeD0iNDAwIiB5PSIzMTkiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+RGlzdHJpYnV0ZWQgdHJhY2luZzwvdGV4dD4KICA8Y2lyY2xlIGN4PSI1MTUiIGN5PSIzMTUiIHI9IjgiIGZpbGw9IiNlZjQ0NDQiLz4KICA8dGV4dCB4PSI1MzAiIHk9IjMxOSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5Mb2cgY29sbGVjdGlvbjwvdGV4dD4KPC9zdmc+Cg==" alt="OneAgent Architecture" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Component | Location | Function |
+|-----------|----------|----------|
+| OneAgent | Host | Unified monitoring agent |
+| Process Monitoring | Inside OneAgent | Monitors each running process |
+| Infrastructure Monitoring | Inside OneAgent | CPU, Memory, Disk metrics |
+| Log Collection | Inside OneAgent | Collects application logs |
+| Dynatrace Cluster | Cloud | Analysis, storage, alerting |
+-->
+<p><a id="deployment-strategy"></a></p>
+<h2>2. Deployment Strategy</h2>
+<h3>Phased Rollout (Recommended)</h3>
+<p>Don't deploy everywhere at once. Use a phased approach:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5PbmVBZ2VudCBQaGFzZWQgUm9sbG91dDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5QaWxvdCDihpIgRXhwYW5kIOKGkiBQcm9kdWN0aW9uIOKAlCByZWNvbW1lbmRlZCBkZXBsb3ltZW50IGNhZGVuY2U8L3RleHQ+CgogIDwhLS0gVGltZWxpbmUgYmFja2JvbmUgLS0+CiAgPGxpbmUgeDE9IjgwIiB5MT0iMjUwIiB4Mj0iODUwIiB5Mj0iMjUwIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMyIvPgoKICA8IS0tIFBoYXNlIG1pbGVzdG9uZSBtYXJrZXJzIC0tPgogIDxjaXJjbGUgY3g9IjE4MCIgY3k9IjI1MCIgcj0iMTQiIGZpbGw9IiM3M0JFMjgiLz4KICA8dGV4dCB4PSIxODAiIHk9IjI1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzBGMTcyQSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+MTwvdGV4dD4KCiAgPGNpcmNsZSBjeD0iNDY1IiBjeT0iMjUwIiByPSIxNCIgZmlsbD0iI0ZGQjgwMCIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMEYxNzJBIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj4yPC90ZXh0PgoKICA8Y2lyY2xlIGN4PSI3NTAiIGN5PSIyNTAiIHI9IjE0IiBmaWxsPSIjMTQ5NkZGIi8+CiAgPHRleHQgeD0iNzUwIiB5PSIyNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMwRjE3MkEiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPjM8L3RleHQ+CgogIDwhLS0gUGhhc2UgMTogUGlsb3QgLS0+CiAgPHJlY3QgeD0iODAiIHk9IjEwMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxMjAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIxMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPlBoYXNlIDEg4oCUIFBpbG90PC90ZXh0PgogIDx0ZXh0IHg9IjE4MCIgeT0iMTQzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIj5XZWVrIDEg4oCTIDI8L3RleHQ+CiAgPGxpbmUgeDE9IjEwMCIgeTE9IjE1MyIgeDI9IjI2MCIgeTI9IjE1MyIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1kYXNoYXJyYXk9IjIsMiIvPgogIDx0ZXh0IHg9IjE4MCIgeT0iMTcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4y4oCTNSBub24tY3JpdGljYWwgaG9zdHM8L3RleHQ+CiAgPHRleHQgeD0iMTgwIiB5PSIxODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkRldiAvIHN0YWdpbmcgdGllcjwvdGV4dD4KICA8dGV4dCB4PSIxODAiIHk9IjIwNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+VmVyaWZ5IGhvc3QgZ3JvdXAgKyB0YWdzPC90ZXh0PgoKICA8IS0tIFBoYXNlIDEgb3V0Y29tZXMgKGJlbG93IHRpbWVsaW5lKSAtLT4KICA8cmVjdCB4PSI4MCIgeT0iMjkwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNiIvPgogIDx0ZXh0IHg9IjE4MCIgeT0iMzEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5WYWxpZGF0ZTwvdGV4dD4KICA8dGV4dCB4PSIxODAiIHk9IjMzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+SG9zdHMgYXBwZWFyIGluIEhvc3RzIGFwcDwvdGV4dD4KICA8dGV4dCB4PSIxODAiIHk9IjM0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+U2VydmljZXMgYXV0by1kaXNjb3ZlcmVkPC90ZXh0PgogIDx0ZXh0IHg9IjE4MCIgeT0iMzY0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5TbWFydHNjYXBlIHRvcG9sb2d5IHBvcHVsYXRlczwvdGV4dD4KICA8dGV4dCB4PSIxODAiIHk9IjM4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+UHJpbWFyeSB0YWdzIGVtaXQgYXQgc291cmNlPC90ZXh0PgogIDx0ZXh0IHg9IjE4MCIgeT0iMzk4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj7ihpIgQ29uZmlybSBob3N0IGdyb3VwIHRheG9ub215PC90ZXh0PgoKICA8IS0tIFBoYXNlIDI6IEV4cGFuZCAtLT4KICA8cmVjdCB4PSIzNjUiIHk9IjEwMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxMjAiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIxMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPlBoYXNlIDIg4oCUIEV4cGFuZDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjE0MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+V2VlayAzIOKAkyA0PC90ZXh0PgogIDxsaW5lIHgxPSIzODUiIHkxPSIxNTMiIHgyPSI1NDUiIHkyPSIxNTMiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxIiBzdHJva2UtZGFzaGFycmF5PSIyLDIiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjE3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+T25lIGZ1bGwgYXBwbGljYXRpb24gdGllcjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjE4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+T3Igb25lIHRlYW0gLyBuYW1lc3BhY2U8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIyMDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlZhbGlkYXRlIGF0IHNjYWxlPC90ZXh0PgoKICA8IS0tIFBoYXNlIDIgb3V0Y29tZXMgLS0+CiAgPHJlY3QgeD0iMzY1IiB5PSIyOTAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTIwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIzMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlZhbGlkYXRlIGF0IFNjYWxlPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5TZXJ2aWNlIHBlcmZvcm1hbmNlIGJhc2VsaW5lPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzQ4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5EUFMgY29uc3VtcHRpb24gcGF0dGVybjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjM2NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+QWxlcnRpbmcgdm9sdW1lIHNhbmU8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIzODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPk5vIHByb2Nlc3MtcmVzdGFydCBzdXJwcmlzZXM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIzOTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPuKGkiBBZGp1c3QgYmVmb3JlIGZ1bGwgcm9sbG91dDwvdGV4dD4KCiAgPCEtLSBQaGFzZSAzOiBQcm9kdWN0aW9uIC0tPgogIDxyZWN0IHg9IjY1MCIgeT0iMTAwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI3NTAiIHk9IjEyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+UGhhc2UgMyDigJQgUHJvZHVjdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI3NTAiIHk9IjE0MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMSI+V2VlayA1KzwvdGV4dD4KICA8bGluZSB4MT0iNjcwIiB5MT0iMTUzIiB4Mj0iODMwIiB5Mj0iMTUzIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLWRhc2hhcnJheT0iMiwyIi8+CiAgPHRleHQgeD0iNzUwIiB5PSIxNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkZ1bGwgcHJvZHVjdGlvbiBmbGVldDwvdGV4dD4KICA8dGV4dCB4PSI3NTAiIHk9IjE4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+QXV0by11cGRhdGUgb24gYnkgZGVmYXVsdDwvdGV4dD4KICA8dGV4dCB4PSI3NTAiIHk9IjIwNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+T3BlcmF0ZSBhdCBzdGVhZHkgc3RhdGU8L3RleHQ+CgogIDwhLS0gUGhhc2UgMyBvdXRjb21lcyAtLT4KICA8cmVjdCB4PSI2NTAiIHk9IjI5MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxMjAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgcng9IjYiLz4KICA8dGV4dCB4PSI3NTAiIHk9IjMxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+T3BlcmF0ZTwvdGV4dD4KICA8dGV4dCB4PSI3NTAiIHk9IjMzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+V29ya2Zsb3dzIGFsZXJ0aW5nIGxpdmU8L3RleHQ+CiAgPHRleHQgeD0iNzUwIiB5PSIzNDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkRhc2hib2FyZHMgaW4gdXNlPC90ZXh0PgogIDx0ZXh0IHg9Ijc1MCIgeT0iMzY0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5JQU0gc2NvcGluZyBieSBzZWN1cml0eV9jb250ZXh0PC90ZXh0PgogIDx0ZXh0IHg9Ijc1MCIgeT0iMzgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5TTE9zIC8gRGF2aXMgdHVuZWQ8L3RleHQ+CiAgPHRleHQgeD0iNzUwIiB5PSIzOTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPuKGkiBIYW5kIHRvIG9wcyArIFNSRXM8L3RleHQ+CgogIDwhLS0gQ29ubmVjdG9yIGFycm93cyBvbiB0aW1lbGluZSBzaG93aW5nIGZvcndhcmQgcHJvZ3Jlc3Npb24gLS0+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJwaGFzZS1hcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM5NEEzQjgiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8bGluZSB4MT0iMjAwIiB5MT0iMjUwIiB4Mj0iNDQ1IiB5Mj0iMjUwIiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI3BoYXNlLWFycm93KSIvPgogIDxsaW5lIHgxPSI0ODUiIHkxPSIyNTAiIHgyPSI3MzAiIHkyPSIyNTAiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjcGhhc2UtYXJyb3cpIi8+CgogIDwhLS0gRm9vdGVyIC0tPgogIDxsaW5lIHgxPSI0MCIgeTE9IjQ0NSIgeDI9Ijg5MCIgeTI9IjQ0NSIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjQ2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMSI+U2V0IGhvc3QgZ3JvdXAgKyBwcmltYXJ5IHRhZ3MgYXQgaW5zdGFsbCB0aW1lIOKAlCByZXRyb2ZpdCBicmVha3MgaGlzdG9yeS1iYXNlZCB0aHJlc2hvbGRzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEwIj5GQVEtMDEgaG9zdCBncm91cCBuYW1pbmcgwrcgRkFRLTAyIHRhZ2dpbmcgc3RyYXRlZ3kgwrcgSzhTIHNlcmllcyBmb3IgY2x1c3Rlci1zY2FsZSByb2xsb3V0PC90ZXh0Pgo8L3N2Zz4K" alt="OneAgent Phased Rollout" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Phase | Window | Scope | Validation Focus |
+|-------|--------|-------|------------------|
+| 1 Pilot | Week 1–2 | 2–5 non-critical hosts | Hosts appear; Smartscape populates; primary tags emit |
+| 2 Expand | Week 3–4 | One application tier or team | Service baseline; DPS pattern; alerting volume sane |
+| 3 Production | Week 5+ | Full production fleet | Workflows alerting live; SLOs/Davis tuned; IAM scoping confirmed |
+For environments where SVG doesn't render
+-->
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Scope</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Pilot</strong></td>
+<td>2-5 non-critical hosts</td>
+<td>Validate installation, network, discovery</td>
+</tr>
+<tr>
+<td><strong>Expand</strong></td>
+<td>One application tier</td>
+<td>Test service detection, tracing</td>
+</tr>
+<tr>
+<td><strong>Production</strong></td>
+<td>Full environment</td>
+<td>Complete coverage</td>
+</tr>
+</tbody>
+</table>
+<h3>Deployment Methods by Environment</h3>
+<table>
+<thead>
+<tr>
+<th>Environment</th>
+<th>Recommended Method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Bare metal/VMs</strong></td>
+<td>Direct install or package manager</td>
+</tr>
+<tr>
+<td><strong>Kubernetes</strong></td>
+<td>Dynatrace Operator</td>
+</tr>
+<tr>
+<td><strong>OpenShift</strong></td>
+<td>Dynatrace Operator</td>
+</tr>
+<tr>
+<td><strong>AWS ECS</strong></td>
+<td>Task definition sidecar</td>
+</tr>
+<tr>
+<td><strong>Azure</strong></td>
+<td>VM Extension or AKS Operator</td>
+</tr>
+<tr>
+<td><strong>GCP</strong></td>
+<td>Direct install or GKE Operator</td>
+</tr>
+</tbody>
+</table>
+<h3>Network Requirements</h3>
+<p>OneAgent needs outbound HTTPS (443) to:</p>
+<ul>
+<li><code>{tenant-id}.live.dynatrace.com</code> (SaaS) — the host the Deployment API serves the installer from</li>
+<li>every endpoint <code>oneagentctl --get-server</code> reports once the agent is installed — the parameter is used <em>&quot;to display the endpoints that OneAgent is to send the data to. These can be Dynatrace Server, Dynatrace Managed Cluster or ActiveGate.&quot;</em></li>
+</ul>
+<p>The <code>{tenant-id}.apps.dynatrace.com</code> domain is where the platform UI and apps live; the classic <code>/api/v1/deployment/...</code> paths are not served there.</p>
+<p>If direct access isn't possible, OneAgents connect through <strong>ActiveGate</strong> (see ONBRD-03).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/oneagent/download-oneagent-latest">Deployment API - Download latest OneAgent (DT docs)</a> — <em>&quot;GET SaaS https://{your-environment-id}.live.dynatrace.com/api/v1/deployment/installer/agent/{osType}/{installerType}/latest&quot;</em>, <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface">OneAgent configuration via CLI (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="generating-a-deployment-token"></a></p>
+<h2>3. Generating a Deployment Token</h2>
+<p>The installer download accepts two kinds of token. Which one you have depends on the state of your environment: on a latest environment, <em>&quot;Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available.&quot;</em>, while environments migrating to Latest Dynatrace have both.</p>
+<table>
+<thead>
+<tr>
+<th>Environment</th>
+<th>Token</th>
+<th>Required scope</th>
+<th>Request header</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Latest Dynatrace</strong> (platform tokens only)</td>
+<td>Platform token (or OAuth client)</td>
+<td><code>fleet-management:oneagents:download</code></td>
+<td><code>Authorization: Bearer &lt;token&gt;</code></td>
+</tr>
+<tr>
+<td><strong>Classic or hybrid</strong> (classic access tokens still exist)</td>
+<td>Access token — <strong>Access Tokens</strong> app → <strong>Generate new token</strong></td>
+<td><code>InstallerDownload</code> (<em>PaaS integration - Installer download</em>)</td>
+<td><code>Authorization: Api-Token &lt;token&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<p>Create new automation with a platform token where your environment offers one; keep a classic <code>InstallerDownload</code> token only where scripts still depend on it.</p>
+<h3>Token Naming Convention</h3>
+<p>Use descriptive names:</p>
+<ul>
+<li><code>prod-oneagent-deployment</code></li>
+<li><code>dev-installer-token</code></li>
+<li><code>k8s-operator-token</code></li>
+</ul>
+<blockquote>
+<p><strong>Important:</strong> Copy the token immediately after creation. It won't be shown again.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/oneagent/download-oneagent-latest">Deployment API - Download latest OneAgent (DT docs)</a> — <em>&quot;Platform Token / OAuth: Required scope: fleet-management:oneagents:download&quot;</em>, <a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic">Upgrade from access tokens classic (DT docs)</a> — <em>&quot;Replace Authorization: Api-Token <token> with Authorization: Bearer <platform-token> in every migrated integration.&quot;</em></sub></p>
+</blockquote>
+<p><a id="installation-methods"></a></p>
+<h2>4. Installation Methods</h2>
+<h3>Linux (Direct Download)</h3>
+<p>The Deployment API is served from <code>{tenant-id}.live.dynatrace.com</code>. Pass the token in the <code>Authorization</code> header — Dynatrace recommends <em>&quot;the header approach, as URLs (along with tokens passed within them) might be logged in various locations.&quot;</em></p>
+<pre><code class="language-bash"># Download the installer (platform token; for a classic access token use
+# --header=&quot;Authorization: Api-Token {token}&quot; instead)
+wget -O Dynatrace-OneAgent.sh \
+  --header=&quot;Authorization: Bearer {platform-token}&quot; \
+  &quot;https://{tenant-id}.live.dynatrace.com/api/v1/deployment/installer/agent/unix/default/latest?arch=x86&amp;flavor=default&quot;
+
+# Run the installer
+sudo /bin/sh Dynatrace-OneAgent.sh
+</code></pre>
+<h3>Linux (One-liner)</h3>
+<pre><code class="language-bash">wget -O Dynatrace-OneAgent.sh --header=&quot;Authorization: Bearer {platform-token}&quot; &quot;https://{tenant-id}.live.dynatrace.com/api/v1/deployment/installer/agent/unix/default/latest?arch=x86&amp;flavor=default&quot; &amp;&amp; sudo /bin/sh Dynatrace-OneAgent.sh
+</code></pre>
+<h3>Windows (PowerShell)</h3>
+<pre><code class="language-powershell"># Download the installer (classic access token: &quot;Api-Token {token}&quot; instead of &quot;Bearer ...&quot;)
+Invoke-WebRequest -Uri &quot;https://{tenant-id}.live.dynatrace.com/api/v1/deployment/installer/agent/windows/default/latest&quot; `
+  -Headers @{ Authorization = &quot;Bearer {platform-token}&quot; } -OutFile Dynatrace-OneAgent.exe
+
+# Run the installer
+.\Dynatrace-OneAgent.exe
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/oneagent/download-oneagent-latest">Deployment API - Download latest OneAgent (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-api/basics/dynatrace-api-authentication">Dynatrace API - Authentication (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens">Platform tokens (DT docs)</a> — <em>&quot;Authorization: Bearer <platformtoken>&quot;</em></sub></p>
+</blockquote>
+<blockquote>
+<p><strong>OneAgent 1.337 Windows network insight (Npcap):</strong> <em>&quot;OneAgent on Windows now requires Npcap to provide network metrics generated by Network Agent. Winpcap is no longer supported.&quot;</em> Plan an Npcap install / redistribution into your Windows golden image when rolling out OneAgent on hosts that need network insight. Source: <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-337">What's new in OneAgent 1.337 (DT docs)</a>.</p>
+</blockquote>
+<h3>Setting Primary Tags (OneAgent 1.333+)</h3>
+<p>Set <code>dt.security_context</code>, environment, team, cost-center, and other primary tags with <code>--set-host-tag</code> — on the installer command line at install time, or with <code>oneagentctl</code> on a host that is already running. Primary tags are <em>&quot;identified by the reserved primary_tags. prefix&quot;</em> (<a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment">Primary Grail fields and tags enrichment through OneAgent (DT docs)</a>), so write it out in every key. Primary tags emit at the source on every signal (metrics, spans, logs, events) and feed directly into OpenPipeline routing, bucket assignment, and IAM scoping — more efficient than view-time auto-tagging.</p>
+<pre><code class="language-bash"># At install time (preferred): pass primary tags and the host group to the installer
+# The primary_tags. prefix must be written explicitly - without it you set a classic host tag
+sudo /bin/sh Dynatrace-OneAgent.sh \
+  --set-host-tag=&quot;primary_tags.environment=prod&quot; \
+  --set-host-tag=&quot;primary_tags.team=payments&quot; \
+  --set-host-tag=&quot;dt.security_context=team-payments&quot; \
+  --set-host-group=prod-app-payments
+
+# On an existing host: oneagentctl set parameters apply only after a OneAgent restart,
+# so chain them into one command with --restart-service
+sudo /opt/dynatrace/oneagent/agent/tools/oneagentctl \
+  --set-host-tag=&quot;primary_tags.environment=prod&quot; \
+  --set-host-tag=&quot;primary_tags.team=payments&quot; \
+  --set-host-tag=&quot;dt.security_context=team-payments&quot; \
+  --restart-service
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment">Primary Grail fields and tags enrichment through OneAgent (DT docs)</a> — <em>&quot;You can set primary Grail fields and tags at installation time by passing --set-host-tag parameters directly to the OneAgent installer.&quot;</em>, <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface">OneAgent configuration via CLI (DT docs)</a> — <em>&quot;When you use the set parameters, you need to restart OneAgent service to apply changes.&quot;</em></sub></p>
+</blockquote>
+<p>Decide your primary-tag and host-group taxonomy <em>before</em> the first install — retrofitting breaks history-based thresholds, IAM scoping, and any automation keyed on those values. See <strong>FAQ-01 (host group naming strategy)</strong> and <strong>FAQ-02 (tagging sources, standards, strategy)</strong> for the canonical guidance.</p>
+<h3>Configuration Management</h3>
+<p>For orchestrated rollout, Dynatrace provides an Ansible collection — <em>&quot;Dynatrace provides an Ansible collection that you can use to orchestrate OneAgent deployment in your environment.&quot;</em> See <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent-classic/deployment-orchestration/ansible">Install OneAgent using Ansible (DT docs)</a>.</p>
+<p>The Dynatrace Puppet module and Chef cookbook repositories are archived — Puppet: <em>&quot;Official support for this project has been discontinued.&quot;</em> Treat them as unmaintained code; with Puppet, Chef, or any other tool, wrap the installer download and command line shown above.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent-classic/deployment-orchestration">OneAgent deployment orchestration (DT docs)</a>, <a href="https://github.com/Dynatrace/Dynatrace-OneAgent-Puppet-DEPRECATED">Dynatrace-OneAgent-Puppet (Dynatrace GitHub)</a>, <a href="https://github.com/Dynatrace/Dynatrace-OneAgent-Chef">Dynatrace-OneAgent-Chef (Dynatrace GitHub)</a> — <em>&quot;This repository has been archived and is no longer maintained.&quot;</em></sub></p>
+</blockquote>
+<p><a id="kubernetes-deployment"></a></p>
+<h2>5. Kubernetes Deployment</h2>
+<p>For Kubernetes environments, use the Dynatrace Operator—the recommended approach for deploying and managing OneAgent in containerized environments.</p>
+<h3>OneAgent Deployment Modes</h3>
+<p>The Dynatrace Operator supports multiple deployment modes. Choose based on your requirements:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgNTAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iY2xhc3NpY0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM2I4MmY2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxZDRlZDg7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJjbG91ZE5hdGl2ZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2Njk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJhcHBPbmx5R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4YjVjZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdjM2FlZDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImluZnJhR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmNTllMGI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Q5NzcwNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9Im5vZGVHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzY0NzQ4YjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNDc1NTY5O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9ImNhcmRTaGFkb3ciPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIxIiBkeT0iMiIgc3RkRGV2aWF0aW9uPSIzIiBmbG9vZC1vcGFjaXR5PSIwLjE1Ii8+CiAgICA8L2ZpbHRlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjUwMCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDAwIiB5PSIzMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+T25lQWdlbnQgS3ViZXJuZXRlcyBEZXBsb3ltZW50IE1vZGVzPC90ZXh0PgogIDx0ZXh0IHg9IjQwMCIgeT0iNTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q2hvb3NlIHRoZSByaWdodCBtb2RlIGZvciB5b3VyIEt1YmVybmV0ZXMgZW52aXJvbm1lbnQ8L3RleHQ+CgogIDwhLS0gQ2xhc3NpYyBGdWxsU3RhY2sgLS0+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjAsIDcwKSI+CiAgICA8cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgcng9IjEwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI2NhcmRTaGFkb3cpIi8+CiAgICA8cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjM1IiByeD0iMTAiIGZpbGw9InVybCgjY2xhc3NpY0dyYWQpIi8+CiAgICA8cmVjdCB5PSIyNyIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI4IiBmaWxsPSJ1cmwoI2NsYXNzaWNHcmFkKSIvPgogICAgPHRleHQgeD0iOTAiIHk9IjI1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q2xhc3NpYyBGdWxsU3RhY2s8L3RleHQ+CgogICAgPCEtLSBOb2RlIHJlcHJlc2VudGF0aW9uIC0tPgogICAgPHJlY3QgeD0iMTUiIHk9IjUwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjYwIiByeD0iNiIgZmlsbD0iI2UyZThmMCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjEiLz4KICAgIDx0ZXh0IHg9IjkwIiB5PSI2OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNDc1NTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5LOHMgTm9kZTwvdGV4dD4KICAgIDxyZWN0IHg9IjI1IiB5PSI3NSIgd2lkdGg9IjEzMCIgaGVpZ2h0PSIyNSIgcng9IjQiIGZpbGw9IiNkYmVhZmUiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgICA8dGV4dCB4PSI5MCIgeT0iOTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjMWU0MGFmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PbmVBZ2VudCBEYWVtb25TZXQ8L3RleHQ+CgogICAgPHRleHQgeD0iOTAiIHk9IjEzMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7inJMgQ29kZS1MZXZlbDwvdGV4dD4KICAgIDx0ZXh0IHg9IjkwIiB5PSIxNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4pyTIEhvc3QgTWV0cmljczwvdGV4dD4KICAgIDx0ZXh0IHg9IjkwIiB5PSIxNjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Ob3Qgc3VwcG9ydGVkIG9uIExhdGVzdCBEVDwvdGV4dD4KICA8L2c+CgogIDwhLS0gQ2xvdWQgTmF0aXZlIEZ1bGxTdGFjayAtLT4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyMTUsIDcwKSI+CiAgICA8cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgcng9IjEwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI2NhcmRTaGFkb3cpIi8+CiAgICA8cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjM1IiByeD0iMTAiIGZpbGw9InVybCgjY2xvdWROYXRpdmVHcmFkKSIvPgogICAgPHJlY3QgeT0iMjciIHdpZHRoPSIxODAiIGhlaWdodD0iOCIgZmlsbD0idXJsKCNjbG91ZE5hdGl2ZUdyYWQpIi8+CiAgICA8dGV4dCB4PSI5MCIgeT0iMjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5DbG91ZCBOYXRpdmUgRnVsbFN0YWNrPC90ZXh0PgoKICAgIDwhLS0gUG9kIHdpdGggaW5pdCBjb250YWluZXIgLS0+CiAgICA8cmVjdCB4PSIxNSIgeT0iNTAiIHdpZHRoPSIxNTAiIGhlaWdodD0iNjAiIHJ4PSI2IiBmaWxsPSIjZTJlOGYwIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMSIvPgogICAgPHRleHQgeD0iOTAiIHk9IjY4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM0NzU1NjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBvZDwvdGV4dD4KICAgIDxyZWN0IHg9IjI1IiB5PSI3NSIgd2lkdGg9IjYwIiBoZWlnaHQ9IjI1IiByeD0iNCIgZmlsbD0iI2QxZmFlNSIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjEiLz4KICAgIDx0ZXh0IHg9IjU1IiB5PSI5MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjgiIGZpbGw9IiMwNDc4NTciIHRleHQtYW5jaG9yPSJtaWRkbGUiPkluaXQgQ29udGFpbmVyPC90ZXh0PgogICAgPHJlY3QgeD0iOTUiIHk9Ijc1IiB3aWR0aD0iNTAiIGhlaWdodD0iMjUiIHJ4PSI0IiBmaWxsPSIjZmZmIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMSIvPgogICAgPHRleHQgeD0iMTIwIiB5PSI5MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjgiIGZpbGw9IiM0NzU1NjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFwcDwvdGV4dD4KCiAgICA8dGV4dCB4PSI5MCIgeT0iMTMwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuKckyBDb2RlLUxldmVsPC90ZXh0PgogICAgPHRleHQgeD0iOTAiIHk9IjE0NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7inJMgSG9zdCBNZXRyaWNzPC90ZXh0PgogICAgPHRleHQgeD0iOTAiIHk9IjE2NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJlc3QgZm9yOiBNb2Rlcm4gSzhzPC90ZXh0PgogIDwvZz4KCiAgPCEtLSBBcHBsaWNhdGlvbiBPbmx5IC0tPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDQxMCwgNzApIj4KICAgIDxyZWN0IHdpZHRoPSIxODAiIGhlaWdodD0iMTgwIiByeD0iMTAiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzhiNWNmNiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjY2FyZFNoYWRvdykiLz4KICAgIDxyZWN0IHdpZHRoPSIxODAiIGhlaWdodD0iMzUiIHJ4PSIxMCIgZmlsbD0idXJsKCNhcHBPbmx5R3JhZCkiLz4KICAgIDxyZWN0IHk9IjI3IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjgiIGZpbGw9InVybCgjYXBwT25seUdyYWQpIi8+CiAgICA8dGV4dCB4PSI5MCIgeT0iMjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BcHBsaWNhdGlvbiBPbmx5PC90ZXh0PgoKICAgIDwhLS0gUG9kIHdpdGggaW5pdCBjb250YWluZXIgKHdlYmhvb2staW5qZWN0ZWQpIC0tPgogICAgPHJlY3QgeD0iMTUiIHk9IjUwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjYwIiByeD0iNiIgZmlsbD0iI2UyZThmMCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjEiLz4KICAgIDx0ZXh0IHg9IjkwIiB5PSI2OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNDc1NTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Qb2Q8L3RleHQ+CiAgICA8cmVjdCB4PSIyNSIgeT0iNzUiIHdpZHRoPSI2MCIgaGVpZ2h0PSIyNSIgcng9IjQiIGZpbGw9IiNlZGU5ZmUiIHN0cm9rZT0iIzhiNWNmNiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgICA8dGV4dCB4PSI1NSIgeT0iOTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4IiBmaWxsPSIjNWIyMWI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Jbml0IENvbnRhaW5lcjwvdGV4dD4KICAgIDxyZWN0IHg9Ijk1IiB5PSI3NSIgd2lkdGg9IjUwIiBoZWlnaHQ9IjI1IiByeD0iNCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjEiLz4KICAgIDx0ZXh0IHg9IjEyMCIgeT0iOTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4IiBmaWxsPSIjNDc1NTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BcHA8L3RleHQ+CgogICAgPHRleHQgeD0iOTAiIHk9IjEzMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7inJMgQ29kZS1MZXZlbDwvdGV4dD4KICAgIDx0ZXh0IHg9IjkwIiB5PSIxNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4pyXIEhvc3QgTWV0cmljczwvdGV4dD4KICAgIDx0ZXh0IHg9IjkwIiB5PSIxNjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CZXN0IGZvcjogUGFhUywgU2hhcmVkPC90ZXh0PgogIDwvZz4KCiAgPCEtLSBJbmZyYXN0cnVjdHVyZSBPbmx5IC0tPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDYwNSwgNzApIj4KICAgIDxyZWN0IHdpZHRoPSIxODAiIGhlaWdodD0iMTgwIiByeD0iMTAiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjY2FyZFNoYWRvdykiLz4KICAgIDxyZWN0IHdpZHRoPSIxODAiIGhlaWdodD0iMzUiIHJ4PSIxMCIgZmlsbD0idXJsKCNpbmZyYUdyYWQpIi8+CiAgICA8cmVjdCB5PSIyNyIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI4IiBmaWxsPSJ1cmwoI2luZnJhR3JhZCkiLz4KICAgIDx0ZXh0IHg9IjkwIiB5PSIyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkluZnJhc3RydWN0dXJlIE9ubHk8L3RleHQ+CgogICAgPCEtLSBOb2RlIHJlcHJlc2VudGF0aW9uIC0tPgogICAgPHJlY3QgeD0iMTUiIHk9IjUwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjYwIiByeD0iNiIgZmlsbD0iI2UyZThmMCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjEiLz4KICAgIDx0ZXh0IHg9IjkwIiB5PSI2OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNDc1NTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5LOHMgTm9kZTwvdGV4dD4KICAgIDxyZWN0IHg9IjI1IiB5PSI3NSIgd2lkdGg9IjEzMCIgaGVpZ2h0PSIyNSIgcng9IjQiIGZpbGw9IiNmZWYzYzciIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgICA8dGV4dCB4PSI5MCIgeT0iOTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PbmVBZ2VudCAoSW5mcmEpPC90ZXh0PgoKICAgIDx0ZXh0IHg9IjkwIiB5PSIxMzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4pyXIENvZGUtTGV2ZWw8L3RleHQ+CiAgICA8dGV4dCB4PSI5MCIgeT0iMTQ1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuKckyBIb3N0IE1ldHJpY3M8L3RleHQ+CiAgICA8dGV4dCB4PSI5MCIgeT0iMTY1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QmVzdCBmb3I6IE1ldHJpY3Mgb25seTwvdGV4dD4KICA8L2c+CgogIDwhLS0gRGVjaXNpb24gRmxvdyAtLT4KICA8dGV4dCB4PSI0MDAiIHk9IjI4MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGVjaXNpb24gR3VpZGU8L3RleHQ+CgogIDwhLS0gRGVjaXNpb24gYm94ZXMgLS0+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNTAsIDMwMCkiPgogICAgPHJlY3Qgd2lkdGg9IjcwMCIgaGVpZ2h0PSIxODAiIHJ4PSIxMCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjEiIGZpbHRlcj0idXJsKCNjYXJkU2hhZG93KSIvPgoKICAgIDwhLS0gUXVlc3Rpb24gMSAtLT4KICAgIDxyZWN0IHg9IjIwIiB5PSIxNSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI1MCIgcng9IjYiIGZpbGw9IiNmMWY1ZjkiIHN0cm9rZT0iI2NiZDVlMSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgICA8dGV4dCB4PSIxMjAiIHk9IjM1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5lZWQgY29kZS1sZXZlbDwvdGV4dD4KICAgIDx0ZXh0IHg9IjEyMCIgeT0iNTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+dmlzaWJpbGl0eT88L3RleHQ+CgogICAgPCEtLSBZZXMgYnJhbmNoIC0tPgogICAgPGxpbmUgeDE9IjIyMCIgeTE9IjQwIiB4Mj0iMjYwIiB5Mj0iNDAiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSIyNDAiIHk9IjM1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzEwYjk4MSI+WWVzPC90ZXh0PgoKICAgIDwhLS0gUXVlc3Rpb24gMiAtLT4KICAgIDxyZWN0IHg9IjI2MCIgeT0iMTUiIHdpZHRoPSIyMDAiIGhlaWdodD0iNTAiIHJ4PSI2IiBmaWxsPSIjZjFmNWY5IiBzdHJva2U9IiNjYmQ1ZTEiIHN0cm9rZS13aWR0aD0iMSIvPgogICAgPHRleHQgeD0iMzYwIiB5PSIzNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5IYXZlIGhvc3QgYWNjZXNzPC90ZXh0PgogICAgPHRleHQgeD0iMzYwIiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4obm90IFBhYVMpPzwvdGV4dD4KCiAgICA8IS0tIFllcyB0byBDbG91ZCBOYXRpdmUgLS0+CiAgICA8bGluZSB4MT0iNDYwIiB5MT0iNDAiIHgyPSI1MDAiIHkyPSI0MCIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9IjQ4MCIgeT0iMzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjMTBiOTgxIj5ZZXM8L3RleHQ+CiAgICA8cmVjdCB4PSI1MDAiIHk9IjIwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0iI2QxZmFlNSIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9IjU5MCIgeT0iNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMwNDc4NTciIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNsb3VkIE5hdGl2ZSBGdWxsU3RhY2s8L3RleHQ+CgogICAgPCEtLSBObyB0byBBcHAgT25seSAtLT4KICAgIDxsaW5lIHgxPSIzNjAiIHkxPSI2NSIgeDI9IjM2MCIgeTI9IjkwIiBzdHJva2U9IiNlZjQ0NDQiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPHRleHQgeD0iMzc1IiB5PSI4MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiNlZjQ0NDQiPk5vPC90ZXh0PgogICAgPHJlY3QgeD0iMjYwIiB5PSI5MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9IiNlZGU5ZmUiIHN0cm9rZT0iIzhiNWNmNiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSIzNjAiIHk9IjExNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzViMjFiNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QXBwbGljYXRpb24gT25seTwvdGV4dD4KCiAgICA8IS0tIE5vIGJyYW5jaCBmcm9tIFExIC0tPgogICAgPGxpbmUgeDE9IjEyMCIgeTE9IjY1IiB4Mj0iMTIwIiB5Mj0iMTEwIiBzdHJva2U9IiNlZjQ0NDQiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPHRleHQgeD0iMTM1IiB5PSI5MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiNlZjQ0NDQiPk5vPC90ZXh0PgogICAgPHJlY3QgeD0iMjAiIHk9IjExMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9IiNmZWYzYzciIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSIxMjAiIHk9IjEzNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzkyNDAwZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW5mcmFzdHJ1Y3R1cmUgT25seTwvdGV4dD4KICA8L2c+CgogIDwhLS0gTGVnZW5kIC0tPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDUwLCA0ODUpIj4KICAgIDx0ZXh0IHg9IjAiIHk9IjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+RGFlbW9uU2V0ID0gUnVucyBvbiBldmVyeSBub2RlIHwgSW5pdCBDb250YWluZXIgPSBBZGRlZCBieSB0aGUgT3BlcmF0b3Igd2ViaG9vayBhdCBwb2Qgc3RhcnQ8L3RleHQ+CiAgPC9nPgo8L3N2Zz4K" alt="OneAgent Deployment Modes" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Mode | Description | Use Case |
+|------|-------------|----------|
+| Cloud Native FullStack | Init container injection | Kubernetes-native, automatic (recommended) |
+| Application Only | Init container injection, no host monitoring | PaaS, no host access |
+| Host Monitoring | Host metrics only | When code-level not needed |
+-->
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Deployment</th>
+<th>Code-Level</th>
+<th>Host Metrics</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cloud Native FullStack</strong></td>
+<td>Init container; code modules via image volume (Operator 1.11.0+), CSI driver or ephemeral volume</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Modern K8s (recommended)</td>
+</tr>
+<tr>
+<td><strong>Application Only</strong></td>
+<td>Init container; same code-module delivery options as Cloud Native FullStack</td>
+<td>Yes</td>
+<td>No</td>
+<td>PaaS, shared nodes, OpenShift</td>
+</tr>
+<tr>
+<td><strong>Host Monitoring</strong></td>
+<td>DaemonSet</td>
+<td>No</td>
+<td>Yes</td>
+<td>When code-level monitoring not needed</td>
+</tr>
+</tbody>
+</table>
+<p>Both code-level modes inject the same way: the Operator's webhook mutates each new pod in a monitored namespace and adds an init container that delivers the OneAgent code modules. Nothing runs alongside the application as a sidecar. Application Only simply has no OneAgent on the node, so there are no host metrics.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/how-it-works/components/dynatrace-operator">Dynatrace Operator components (DT docs)</a> — the webhook <em>&quot;Attaches Init container to download (in case no CSI driver is used) and configure the code modules on Pod startup.&quot;</em></sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> Classic Full-Stack is <strong>not supported</strong> in Latest Dynatrace environments or with a platform token: <em>&quot;Classic Full-Stack mode is not supported when using a platform token as well as in Latest Dynatrace environments.&quot;</em> Use Cloud Native Full-Stack. (<a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters">DynaKube parameters (DT docs)</a>)</p>
+</blockquote>
+<h3>Deployment Method: Helm vs Manifests</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Pros</th>
+<th>Cons</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Helm Charts</strong></td>
+<td>Version management, easy upgrades, values override</td>
+<td>Requires Helm</td>
+<td>Production, GitOps</td>
+</tr>
+<tr>
+<td><strong>Manifest Files</strong></td>
+<td>Simple, no dependencies</td>
+<td>Manual version tracking</td>
+<td>Air-gapped, constrained environments</td>
+</tr>
+</tbody>
+</table>
+<h3>Prerequisites</h3>
+<ul>
+<li><code>kubectl</code> access to cluster</li>
+<li>API token with required scopes</li>
+<li>Cluster admin permissions</li>
+</ul>
+<h3>Tokens for Kubernetes</h3>
+<p>On <strong>Latest Dynatrace</strong>, the Operator documentation now directs you to two <strong>platform tokens</strong> — an Operator token and a Data Ingest token — on a dedicated service user: <em>&quot;For each Kubernetes cluster, Dynatrace Operator uses two platform tokens associated with a dedicated service user&quot;</em> (<a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/tokens-permissions/tokens-permissions">Platform tokens for Dynatrace Operator (DT docs)</a>). Existing classic access tokens keep working — the Operator 1.10.0 notes say <em>&quot;No immediate action is required and existing access tokens continue to be accepted.&quot;</em> See <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/tokens-permissions">Tokens and permissions (DT docs)</a> for the platform-token scopes, and <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-0">Dynatrace Operator 1.10.0 (DT docs)</a>.</p>
+<h4>Classic access-token scopes (Dynatrace Classic, or until you move to platform tokens)</h4>
+<p>Create the Operator token in <strong>Access Tokens</strong> from the <em>Kubernetes: Dynatrace Operator</em> template, which adds these scopes:</p>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>InstallerDownload</code></td>
+<td>Download OneAgent</td>
+</tr>
+<tr>
+<td><code>entities.read</code></td>
+<td>Read topology — <em>no longer required from Operator v1.7.0</em></td>
+</tr>
+<tr>
+<td><code>settings.read</code></td>
+<td>Manage the ActiveGate object for Kubernetes API monitoring (optional from Operator v1.7.0)</td>
+</tr>
+<tr>
+<td><code>settings.write</code></td>
+<td>Manage the ActiveGate object for Kubernetes API monitoring (optional from Operator v1.7.0)</td>
+</tr>
+<tr>
+<td><code>DataExport</code></td>
+<td>Export data (optional)</td>
+</tr>
+<tr>
+<td><code>activeGateTokenManagement.create</code></td>
+<td>Create ActiveGate token (API v2) — needed for any DynaKube that deploys an ActiveGate</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/tokens-permissions/tokens-permissions-classic">Tokens and permissions Classic (DT docs)</a> — <em>&quot;Creates an authentication token for your ActiveGate to connect to the Dynatrace Cluster.&quot;</em>; <code>entities.read</code>: <em>&quot;No longer required with Dynatrace Operator version v1.7.0+&quot;</em>.</sub></p>
+</blockquote>
+<h3>Installation Option 1: Helm (Recommended)</h3>
+<pre><code class="language-bash"># Create namespace and secret
+kubectl create namespace dynatrace
+kubectl -n dynatrace create secret generic dynakube --from-literal=&quot;apiToken=&lt;API_TOKEN&gt;&quot; --from-literal=&quot;dataIngestToken=&lt;DATA_INGEST_TOKEN&gt;&quot;
+
+# Install from the OCI registry, pinned to the version you validated
+helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator \
+  --version 1.10.4 \
+  --namespace dynatrace \
+  --install --atomic \
+  --set installCRD=true
+</code></pre>
+<blockquote>
+<p><strong>Install from the OCI registry.</strong> The Operator 1.11.0 release notes direct Helm installs to <code>oci://public.ecr.aws/dynatrace/dynatrace-operator</code>: the legacy <code>dynatrace/helm-charts</code> repository is archived, and <em>&quot;If you can't use OCI, point your Helm repository to dynatrace/dynatrace-operator instead&quot;</em> (<code>helm repo add dynatrace https://raw.githubusercontent.com/Dynatrace/dynatrace-operator/main/config/helm/repos/stable</code>). <code>1.10.4</code> (<a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-4">released 10/22/2026</a>; it adds the CSI driver cleanup fix from 1.10.3 and fixes CVE-2026-111943) is the version validated across these notebooks — it is <em>&quot;released only on GitHub (Helm and manifests)&quot;</em>, so OperatorHub and marketplace installs take 1.11.1; Operator <strong>1.11.1</strong> (<a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-1">released 10/22/2026</a>) is the newest — validate it on a non-production cluster before moving the pin.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0">Operator 1.11.0 release notes (DT docs)</a> — <em>&quot;The Helm repository located in dynatrace/helm-charts is archived and no longer receives updates.&quot;</em></sub></p>
+</blockquote>
+<h3>Installation Option 2: Manifest Files</h3>
+<ol>
+<li>
+<p><strong>Navigate to Kubernetes monitoring</strong></p>
+<ul>
+<li>Infrastructure → Kubernetes → Add cluster</li>
+</ul>
+</li>
+<li>
+<p><strong>Follow the wizard</strong></p>
+<ul>
+<li>Select your distribution</li>
+<li>Choose observability options</li>
+<li>Download dynakube.yaml</li>
+</ul>
+</li>
+<li>
+<p><strong>Apply to cluster</strong></p>
+<pre><code class="language-bash">kubectl apply -f https://github.com/Dynatrace/dynatrace-operator/releases/download/v1.10.4/kubernetes.yaml
+kubectl apply -f dynakube.yaml
+</code></pre>
+<blockquote>
+<p><strong>Pin a version you have validated.</strong> The URL above is pinned rather than tracking a moving <code>latest</code> on purpose — a manifest install is the path you reach for precisely when you need reproducibility (air-gapped, GitOps, change-controlled clusters). <code>1.10.4</code> (published 10/22/2026) is the version validated across these notebooks: it adds the CSI driver cleanup fix from 1.10.3 and fixes CVE-2026-111943 (<em>&quot;We recommend that you upgrade to this version.&quot;</em> — <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-4">Operator 1.10.4 release notes (DT docs)</a>). <strong>Skip <code>1.10.0</code>:</strong> its own release notes advise waiting for <code>1.10.1</code>, and GitHub now marks the <code>v1.10.0</code> release a prerelease — the machine-readable trace of that advice. The 1.10.2 <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-2">release notes (DT docs)</a> published on 07/30/2026 and carry four fixes — a Kubernetes workload/namespace <strong>tagging-precedence regression</strong> (from 1.10.2 only the first matching rule for a key applies, a behavior change as well as a fix), <code>dynatrace-webhook</code> <code>CrashLoopBackOff</code> on <strong>gVisor</strong> runtime-class nodes, injected pods hanging on the OneAgent-binary download (timeout raised to 15 minutes), and metadata-enrichment rules that could not be applied now being logged rather than silently ignored. <code>1.10.1</code> and <code>1.10.2</code> keep running until you move — estates adopt on their own schedule — but lack those two fixes. <strong>Operator 1.11.1</strong> (<a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-1">released 10/22/2026</a>) is the newest release; <strong>1.11.0</strong> (released 10/01/2026) removes the <code>v1beta4</code> DynaKube API from the CRD (below) and adds image-volume code-module injection, and its notes set the upgrade floor at <em>&quot;Minimum operator version required for direct upgrade: 1.6.0&quot;</em> — validate it before moving the pin. <strong>On OpenShift, read the 1.10.2 Known Issue before pinning either</strong>: the <code>RuntimeDefault</code> seccomp profile applied since 1.9.0 can collide with SecurityContextConstraints — see FAQ-13. Whatever you pin, validate it in a non-production cluster before it reaches the rest of the fleet, and check the <a href="https://github.com/Dynatrace/dynatrace-operator/releases">Dynatrace Operator releases</a> page for the version current when you read this.</p>
+</blockquote>
+</li>
+<li>
+<p><strong>Verify deployment</strong></p>
+<pre><code class="language-bash">kubectl get pods -n dynatrace
+</code></pre>
+</li>
+</ol>
+<h3>DynaKube Custom Resource Configuration</h3>
+<p>The DynaKube CR is the primary configuration for the Dynatrace Operator. Here are examples for each deployment mode:</p>
+<blockquote>
+<p><strong>Important:</strong> Use <code>apiVersion: dynatrace.com/v1beta6</code> for new DynaKubes (<code>v1beta5</code> is still served by Operator 1.11.0 but marked deprecated in its CRD from Operator 1.10.0). Operator <strong>1.9.0</strong> removed <code>v1beta3</code> from the CRD (<em>&quot;Applying DynaKube resources using this version will fail&quot;</em>) and deprecated <code>v1beta4</code>; Operator <strong>1.10.0</strong> (July 15, 2026) stopped serving <code>v1beta4</code> (its CRD sets <code>served: false</code>, while its notes repeat <em>&quot;The <code>v1beta4</code> version is now deprecated&quot;</em>); and Operator <strong>1.11.0</strong> (released 10/01/2026) removes it from the CRD — <em>&quot;Applying DynaKube resources that still use v1beta4 will fail.&quot;</em> Check <code>kubectl get dynakube -A -o jsonpath='{.items[*].apiVersion}'</code> before upgrading the Operator, and move any <code>v1beta4</code> DynaKube to <code>v1beta6</code> first. The examples below use <code>v1beta6</code> (validated against the Operator 1.11.0 CRD). v1beta6 adds OTLP exporter configuration.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-9-0">Operator 1.9.0 release notes (DT docs)</a> — <em>&quot;Additionally, <code>v1beta4</code> is now deprecated.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-0">Operator 1.10.0 release notes (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0">Operator 1.11.0 release notes (DT docs)</a> — <em>&quot;The v1beta4 version has been removed from the DynaKube CRD.&quot;</em> <code>served</code> / <code>deprecated</code> per version read from the DynaKube CRD in each release's <code>kubernetes.yaml</code> (<a href="https://github.com/Dynatrace/dynatrace-operator/releases">Operator releases (Dynatrace GitHub)</a>), 10/02/2026.</sub></p>
+</blockquote>
+<p><strong>Cloud Native FullStack (Recommended for most K8s):</strong></p>
+<pre><code class="language-yaml">apiVersion: dynatrace.com/v1beta6
+kind: DynaKube
+metadata:
+  name: dynakube
+  namespace: dynatrace
+spec:
+  apiUrl: https://{tenant-id}.live.dynatrace.com/api
+
+  # Cloud Native FullStack - automatic init container injection
+  oneAgent:
+    cloudNativeFullStack:
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+          operator: Exists
+      args:
+        - --set-host-group=my-k8s-cluster
+
+  # ActiveGate for Kubernetes API monitoring and OneAgent routing
+  activeGate:
+    capabilities:
+      - kubernetes-monitoring
+      - routing
+</code></pre>
+<blockquote>
+<p>Leave out the <code>dynatrace-api</code> capability unless you need it: the DynaKube reference marks it <em>&quot;A custom certificate is required for this capability&quot;</em> (set <code>tlsSecretName</code>). For production sizing and the two-ActiveGate-set recommendation, see ONBRD-03 § 7.</p>
+</blockquote>
+<p><strong>Application Only (for PaaS or shared nodes):</strong></p>
+<pre><code class="language-yaml">apiVersion: dynatrace.com/v1beta6
+kind: DynaKube
+metadata:
+  name: dynakube
+  namespace: dynatrace
+spec:
+  apiUrl: https://{tenant-id}.live.dynatrace.com/api
+
+  # Application Only - init-container injection, no host monitoring
+  oneAgent:
+    applicationMonitoring: {}
+</code></pre>
+<blockquote>
+<p><code>useCSIDriver</code> is not a <code>v1beta5</code> or <code>v1beta6</code> field — the DynaKube parameters reference lists it only for the retired <code>v1beta1</code>/<code>v1beta2</code> APIs. Through Operator 1.10.x, whether code modules come from the CSI driver is decided when the Operator is installed (CSI or <em>Without CSI driver</em> variant), and that remains the working path on those versions.</p>
+<p><strong>Operator 1.11.0+ (released 10/01/2026): image volumes.</strong> Dynatrace now recommends image volume-based code-module injection, which <em>&quot;replaces the CSI driver as the recommended approach&quot;</em>: each node pulls the code-modules image once and shares it with every instrumented pod, with no CSI DaemonSet. Turn it on per DynaKube with the annotation <code>feature.dynatrace.com/mount-code-modules-via-image-volume: &quot;true&quot;</code> (mutually exclusive with <code>feature.dynatrace.com/node-image-pull</code>). It needs <strong>Kubernetes 1.35+</strong> and <strong>containerd 2.2+ or CRI-O 1.33+</strong>, and <em>&quot;Image volume injection is not compatible with the Dynatrace built-in tenant registry.&quot;</em> Try it on one workload first with the pod annotation <code>oneagent.dynatrace.com/volume-type: &quot;image&quot;</code>; <em>&quot;A full migration requires a rolling restart of all injected workloads.&quot;</em> Clusters that do not meet those requirements stay on the CSI driver or ephemeral volumes. K8S-12 § 2 compares the three delivery modes.</p>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters">DynaKube parameters (DT docs)</a> — <em>&quot;DynaKube API version v1beta2 is no longer available with Dynatrace Operator version 1.7.0&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/application-observability">Application observability setup (DT docs)</a> — <em>&quot;CSI driver is optional (see step 2). If enabled, it gets deployed as DaemonSet and results in a CSI driver pod on each node.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0">Operator 1.11.0 release notes (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/use-image-volumes">Use image volumes for code modules injection (DT docs)</a> — requirements, both annotations, and the registry limit</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/migrate-to-image-volume">Migrate to image volumes (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<p><strong>Host Monitoring (host metrics only):</strong></p>
+<pre><code class="language-yaml">apiVersion: dynatrace.com/v1beta6
+kind: DynaKube
+metadata:
+  name: dynakube
+  namespace: dynatrace
+spec:
+  apiUrl: https://{tenant-id}.live.dynatrace.com/api
+
+  # Host monitoring only - no code-level visibility
+  oneAgent:
+    hostMonitoring: {}
+</code></pre>
+<h3>Air-Gapped / Private Registry Deployment</h3>
+<p>For environments without internet access, host the images in a private registry. Five things go wrong in an air-gapped rollout more often than the DynaKube itself: the mirror copies one architecture, injected pods have no pull credentials, a component nobody listed still points at a public registry, auto-update silently stops, and the Helm chart itself is fetched from the internet.</p>
+<pre><code class="language-yaml">apiVersion: dynatrace.com/v1beta6
+kind: DynaKube
+metadata:
+  name: dynakube
+  namespace: dynatrace
+spec:
+  apiUrl: https://{tenant-id}.live.dynatrace.com/api
+
+  # Pull secret for the Operator-managed components in the dynatrace namespace only.
+  # Injected application pods need their own credentials (see &quot;Pull credentials&quot; below).
+  customPullSecret: my-registry-pull-secret
+
+  # Custom image locations for air-gapped environments
+  # Point every image at the mirrored copy, pinned to an immutable tag.
+  # Setting image / codeModulesImage turns off auto-update for that component.
+  oneAgent:
+    cloudNativeFullStack:
+      image: my-registry.example.com/dynatrace/dynatrace-oneagent:1.347.49.20260928-064841
+      codeModulesImage: my-registry.example.com/dynatrace/dynatrace-codemodules:1.347.49.20260928-064841
+
+  activeGate:
+    capabilities:
+      - kubernetes-monitoring
+    image: my-registry.example.com/dynatrace/dynatrace-activegate:1.345.70.20260918-003121
+</code></pre>
+<p><strong>Mirror every architecture, with its signatures.</strong> Dynatrace publishes multi-arch images, and the mirroring guide says: <em>&quot;We strongly recommend that you use the Skopeo CLI instead of Docker CLI for copying Dynatrace container images from public to private registries, as the Docker CLI does not provide an easy way to copy multi-arch images and signatures.&quot;</em> A <code>docker pull</code> / <code>tag</code> / <code>push</code> loop copies only the architecture of the machine that ran it, so a mixed-architecture node pool (K8S-02 §3) would find no image on its other nodes. <code>skopeo copy --all</code> copies the whole multi-arch index. Signatures are copied only when Skopeo's registries configuration sets <code>use-sigstore-attachments</code> to <code>true</code>.</p>
+<p><strong>Image Mirroring Script:</strong></p>
+<pre><code class="language-bash"># Mirror required images to a private registry, keeping every architecture.
+# Copy from a supported public registry; the guide says &quot;Please do not use the Dynatrace
+# built-in registry for copying images to private registries&quot; (Classic Full-Stack excepted).
+# These repositories publish no :latest tag - pin immutable tags. The tags below existed on
+# 10/02/2026 (operator: 11/03/2026); pick current ones from gallery.ecr.aws/dynatrace before you mirror.
+OPERATOR_TAG=v1.10.4
+ONEAGENT_TAG=1.347.49.20260928-064841
+CODEMODULES_TAG=1.347.49.20260928-064841
+ACTIVEGATE_TAG=1.345.70.20260918-003121
+
+IMAGES=(
+  &quot;public.ecr.aws/dynatrace/dynatrace-operator:${OPERATOR_TAG}&quot;
+  &quot;public.ecr.aws/dynatrace/dynatrace-oneagent:${ONEAGENT_TAG}&quot;
+  &quot;public.ecr.aws/dynatrace/dynatrace-codemodules:${CODEMODULES_TAG}&quot;
+  &quot;public.ecr.aws/dynatrace/dynatrace-activegate:${ACTIVEGATE_TAG}&quot;
+)
+
+# Optional: verify the signatures first (requires cosign)
+cosign verify \
+  --certificate-identity-regexp 'https://github\.com/Dynatrace/dynatrace-operator/\.github/workflows/.+' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  &quot;public.ecr.aws/dynatrace/dynatrace-operator:${OPERATOR_TAG}&quot;
+for img in &quot;${IMAGES[@]:1}&quot;; do
+  cosign verify --insecure-ignore-tlog --key https://ca.dynatrace.com/v1/cosign.pub &quot;$img&quot;
+done
+
+# Copies to my-registry.example.com/dynatrace/&lt;image&gt;:&lt;tag&gt; - the paths the DynaKube above uses
+for img in &quot;${IMAGES[@]}&quot;; do
+  skopeo copy --all &quot;docker://${img}&quot; &quot;docker://my-registry.example.com/${img#*/}&quot;
+done
+</code></pre>
+<blockquote>
+<p>Without <code>codeModulesImage</code>, Cloud Native Full-Stack and Application Only still fetch code modules from the tenant. The DynaKube reference says of it: <em>&quot;Avoid mutable tags such as latest and use a digest or immutable tag for reproducible deployments.&quot;</em> Mirror only what your observability option uses: the guide maps each option to the images it needs.</p>
+</blockquote>
+<p><strong>Pull credentials reach the <code>dynatrace</code> namespace only.</strong> The <em>Use a private registry</em> page says <em>&quot;The <code>customPullSecret</code> field in a DynaKube configuration authenticates only the components that Dynatrace Operator manages in the <code>dynatrace</code> namespace.&quot;</em> Injected pods run a Dynatrace init container whose image the node pulls, and the Operator does not copy the secret into application namespaces. Provide credentials at one of three levels: on each <strong>node</strong>, as a pull secret in every application <strong>namespace</strong> and its service accounts, or through <code>imagePullSecrets</code> on the <strong>pod</strong>. This matters more from Kubernetes 1.35: <em>&quot;the <code>KubeletEnsureSecretPulledImages</code> feature gate is enabled by default and the kubelet verifies pull credentials per pod, even for images already cached on the node. If you don't distribute pull secrets as described above, injected pods fail with <code>ImagePullBackOff</code>.&quot;</em></p>
+<p><strong>Every component you deploy needs a mirrored image.</strong> OneAgent, code modules and ActiveGate are only the start. Components configured under <code>spec.templates</code> take their own <code>imageRef</code> — the log module, Extension Execution Controller, SQL extension executor, OpenTelemetry Collector and Node Configuration Collector. The <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters">DynaKube parameters (DT docs)</a> reference states, per field, when <code>imageRef</code> is required and from which version it applies, and K8S-02 §2 summarizes which components resolve automatically on which Operator and SaaS versions; the log module's, for example, is marked <em>&quot;imageRef parameter is Required.&quot;</em> Automatic resolution hands back public-registry image URIs, so in a cluster that cannot reach a public registry, point every component you enable at the mirror.</p>
+<p><strong>Pinning an image turns off auto-update for that component.</strong> The auto-update guide: <em>&quot;To disable auto-update, set the image field in the DynaKube. Omit the field to keep auto-update enabled.&quot;</em> With a mirror, updating becomes your job: re-mirror every architecture you run, then move the tag. The Operator is not among the components it updates for you either — upgrade it as in K8S-02 §8.</p>
+<p><strong>The Helm chart also comes from a public registry.</strong> <code>helm install</code> / <code>helm upgrade</code> with <code>oci://public.ecr.aws/dynatrace/dynatrace-operator</code> pulls the chart from the internet, and the <em>Use a private registry</em> page lists <em>&quot;Allow egress traffic to public registry&quot;</em> as a prerequisite. For a cluster with no internet path, <code>helm pull</code> the chart on a connected machine and install from the <code>.tgz</code>, <code>helm push</code> it to your own OCI registry, or render manifests with <code>helm template</code> and apply those. Point the Operator's own image at the mirror with the chart's <code>imageRef.repository</code>, <code>imageRef.tag</code> and <code>customPullSecret</code> values (K8S-02 §3).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/container-registries/prepare-private-registry">Store Dynatrace images in private registries (DT docs)</a> — <em>&quot;Requires use-sigstore-attachments to be set to true in Skopeo's container registries configuration.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/container-registries/verify-image-signature">Verify Dynatrace image signatures (DT docs)</a> — <em>&quot;For other images, the <code>--insecure-ignore-tlog</code> flag is required during verification.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/container-registries/use-private-registry">Use a private registry (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/updates-and-maintenance/auto-update-components">Configure auto-update for Dynatrace Operator managed components (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters">DynaKube parameters (DT docs)</a></sub></li>
+<li><sub><a href="https://helm.sh/docs/helm/helm_pull/">helm pull (Helm docs)</a> — <em>&quot;Retrieve a package from a package repository, and download it locally&quot;</em>; <a href="https://helm.sh/docs/topics/registries/">Use OCI-based registries (Helm docs)</a></sub></li>
+<li><sub><strong>Derived:</strong> the single-architecture failure combines Dynatrace's multi-arch images with the Docker CLI limitation quoted above; &quot;automatic resolution hands back public-registry image URIs&quot; reads the auto-update guide's description of resolving <em>&quot;the latest public image URIs&quot;</em>; the Operator not being self-updated reads its list of managed components, which does not include it.</sub></li>
+</ul>
+</blockquote>
+<h3>Kubernetes Metadata and Dynatrace Tags</h3>
+<p>Dynatrace can leverage Kubernetes labels and annotations for observability:</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Behavior</th>
+<th>Limitations</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Pod labels</strong></td>
+<td>Appear as <code>[Kubernetes]</code> context tags on processes</td>
+<td>Requires OneAgent code module injection</td>
+</tr>
+<tr>
+<td><strong>Annotations</strong></td>
+<td>Available as custom metadata at Process level</td>
+<td>Requires view RBAC permissions</td>
+</tr>
+<tr>
+<td><strong>Namespace labels</strong></td>
+<td>Available via Primary Grail tags</td>
+<td>Does not enrich K8s metrics or events</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Requirements:</strong></p>
+<ul>
+<li>Service accounts need <code>view</code> access via rolebinding/clusterrolebinding</li>
+<li>Labels are read via Kubernetes REST API at deployment time</li>
+<li>Not all entities receive automatic tags (namespaces, pods, workloads have limited support)</li>
+</ul>
+<p>For more control, configure automatic tagging rules: <strong>Settings → Automatically applied tags</strong></p>
+<h3>Multi-Tenant / Namespace Isolation</h3>
+<p>For large clusters with multiple teams, give each team's DynaKube a namespace selector — with <strong>Application Only</strong>, because Cloud Native Full-Stack also deploys the host OneAgent to every node it selects:</p>
+<pre><code class="language-yaml">apiVersion: dynatrace.com/v1beta6
+kind: DynaKube
+metadata:
+  name: team-a-dynakube
+  namespace: dynatrace
+spec:
+  apiUrl: https://team-a-tenant.live.dynatrace.com/api
+
+  oneAgent:
+    applicationMonitoring:
+      namespaceSelector:
+        matchLabels:
+          dynatrace-tenant: team-a
+</code></pre>
+<p>Keep the selectors disjoint, and let only one DynaKube deploy the host OneAgent on any node (Cloud Native Full-Stack or Host Monitoring, or separate them with non-overlapping <code>nodeSelector</code>s). <em>&quot;Dynatrace Operator rejects a DynaKube that conflicts with another one over OneAgent node assignment, namespace injection, or telemetry ingest service names.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-9-0">Dynatrace Operator 1.9.0 release notes (DT docs)</a> — the <code>v1beta3</code> CRD removal quoted above; <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/double-dynakube-to-single">Consolidate Kubernetes monitoring into a single DynaKube (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="verifying-deployment"></a></p>
+<h2>6. Verifying Deployment</h2>
+<p>After installation, verify OneAgent is reporting data.</p>
+<pre><code class="language-dql">// Check all hosts with OneAgent that are reporting now (default 2 h window).
+// Hosts that stopped reporting drop out of this window - use the state query
+// below (from:-7d) to find OFFLINE hosts.
+fetch dt.entity.host
+| fields entity.name, state
+| filter state == &quot;RUNNING&quot;
+| sort entity.name
+| limit 50
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
+// classic-only field state, which has NO Smartscape node equivalent
+// (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
+// query above for state detail. For monitoring mode, do not use monitoringMode — it is
+// empty on Kubernetes and Fargate hosts; read billing events instead (see the billing query in this section).
+// Other fields do map: entity.name -&gt; name.
+</code></pre>
+<pre><code class="language-dql">// Check hosts by monitoring mode — read from billing, not from monitoringMode.
+// monitoringMode on dt.entity.host is empty for Kubernetes and Fargate hosts, even when
+// they are billed Full-Stack. A host billed for more than one capability (for example
+// Full-Stack and Code Monitoring) is counted in each row, so do not add the rows up.
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;BILLING_USAGE_EVENT&quot;
+// SaaS 1.347 moves the host ID to dt.smartscape.host; coalesce reads whichever field your tenant writes.
+| fieldsAdd host = coalesce(toString(dt.smartscape.host), dt.entity.host)
+| filter isNotNull(host)
+| summarize {hosts = countDistinctExact(host)}, by:{billed_as = event.type}
+| sort hosts desc
+</code></pre>
+<pre><code class="language-dql">// Check hosts by monitoring state - useful for verifying deployment.
+// from:-7d matters: without it, only hosts seen in the default 2 h window are
+// returned, so a host that went OFFLINE never appears and every row reads RUNNING.
+fetch dt.entity.host, from:-7d
+| summarize host_count = count(), by: {state}
+| sort host_count desc
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
+// classic-only field state, which has NO Smartscape node equivalent
+// (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
+// query above for state detail. For monitoring mode, do not use monitoringMode — it is
+// empty on Kubernetes and Fargate hosts; read billing events instead (see the billing query in this section).
+// Other fields do map: entity.name -&gt; name.
+</code></pre>
+<pre><code class="language-dql">// Check discovered services
+fetch dt.entity.service
+| fields entity.name, serviceType
+| summarize service_count = count(), by: {serviceType}
+| sort service_count desc
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;SERVICE&quot;
+//   | fields name, dt.service.sdv1_type
+//   | summarize service_count = count(), by: {dt.service.sdv1_type}
+//   | sort service_count desc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
+// Field maps: serviceType -&gt; dt.service.sdv1_type; entity.name -&gt; name.
+// dt.service.sdv1_type is set only when dt.service_detection.version is 1; on SDv2 services it is null — add dt.service_detection.version to the by: list to see which applies.
+</code></pre>
+<pre><code class="language-dql">// Check for processes discovered
+fetch dt.entity.process_group
+| fields entity.name
+| sort entity.name
+| limit 50
+
+// Smartscape note (dt.entity.* is deprecated but still functional): Smartscape models
+// individual processes, not process GROUPS — smartscapeNodes &quot;PROCESS&quot; is a different
+// granularity (process instances), so its results are not comparable to a process-group
+// query. Keep the classic dt.entity.process_group query above.
+</code></pre>
+<h3>Host Verification Commands</h3>
+<p><strong>Linux:</strong></p>
+<pre><code class="language-bash"># Check OneAgent status
+sudo systemctl status oneagent
+
+# Show the endpoints OneAgent sends data to (* marks the one in use)
+sudo /opt/dynatrace/oneagent/agent/tools/oneagentctl --get-server
+
+# Check OneAgent logs (default log directory)
+sudo ls -lt /var/log/dynatrace/oneagent/
+</code></pre>
+<p><strong>Windows:</strong></p>
+<pre><code class="language-powershell"># Check service status
+Get-Service -Name &quot;Dynatrace OneAgent&quot;
+
+# Show the endpoints OneAgent sends data to
+&amp; &quot;$env:ProgramFiles\dynatrace\oneagent\agent\tools\oneagentctl.exe&quot; --get-server
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface">OneAgent configuration via CLI (DT docs)</a> — <em>&quot;An asterisk ( * ) indicates the endpoint to which OneAgent currently sends the data.&quot;</em>, <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/installation-and-operation/linux/installation/customize-oneagent-installation-on-linux">Customize OneAgent installation on Linux (DT docs)</a> — <em>&quot;Log path Default value : /var/log/dynatrace/oneagent&quot;</em></sub></p>
+</blockquote>
+<h3>What You'll See on Modern Tenants</h3>
+<p>Once OneAgent is reporting and services appear in the verification queries above, <strong>Enhanced Endpoints for SDv1</strong> (available from Dynatrace 1.330; from 1.333 on environments created in 1.329 or earlier) shapes what shows up under each service:</p>
+<table>
+<thead>
+<tr>
+<th>Tenant creation date</th>
+<th>Default state</th>
+<th>What you do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>v1.333 or later</td>
+<td><strong>Always on, not configurable</strong></td>
+<td>Nothing — each service automatically exposes individual endpoints with <code>dt.service.request.*</code> metrics</td>
+</tr>
+<tr>
+<td>v1.330 – v1.332</td>
+<td>On by default (toggleable)</td>
+<td>Verify the toggle hasn't been disabled</td>
+</tr>
+<tr>
+<td>v1.329 or earlier</td>
+<td>Off by default</td>
+<td>Enable at <em>Settings → Process and contextualize → Services → Service detection v1</em> if you want per-endpoint metrics</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why it matters during onboarding:</strong> before Enhanced Endpoints, only manually marked &quot;key requests&quot; emitted individual metrics — everything else collapsed into a single <code>NON_KEY_REQUEST</code> entry. Now every detected endpoint is named and tracked automatically, which materially changes what's visible on day one.</p>
+<p><strong>Services not affected:</strong> external services, background activity, queue listeners, key-value stores — these never get per-endpoint metrics regardless of the setting.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1">Enhanced endpoints for SDv1 (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="troubleshooting"></a></p>
+<h2>7. Troubleshooting</h2>
+<h3>Common Issues</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Cause</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Host not appearing</strong></td>
+<td>Network blocked</td>
+<td>Check firewall rules for 443</td>
+</tr>
+<tr>
+<td><strong>Host showing but no data</strong></td>
+<td>Agent not running</td>
+<td>Restart OneAgent service</td>
+</tr>
+<tr>
+<td><strong>Services not discovered</strong></td>
+<td>Processes not restarted</td>
+<td>Restart monitored applications</td>
+</tr>
+<tr>
+<td><strong>Old OneAgent version</strong></td>
+<td>Auto-update disabled</td>
+<td>Enable auto-update or manual upgrade</td>
+</tr>
+<tr>
+<td><strong>Host stopped reporting after a SaaS update</strong></td>
+<td>OneAgent 1.241 or earlier — SaaS 1.347 (staged tenant rollout) rejects these connections once it reaches your tenant</td>
+<td>Upgrade the agent; inventory with <code>fetch dt.entity.host, from:-30d | fields entity.name, installerVersion, last_seen = lifetime[end] | sort installerVersion asc</code> — <code>from:-30d</code> matters, because a rejected agent stops reporting and drops out of the default 2 h window — see <strong>FAQ-04: Managing OneAgent updates on Dynatrace SaaS</strong></td>
+</tr>
+<tr>
+<td><strong>Connection errors</strong></td>
+<td>Proxy required</td>
+<td>Configure ActiveGate or proxy</td>
+</tr>
+</tbody>
+</table>
+<h3>Network Verification</h3>
+<pre><code class="language-bash"># Test connectivity to Dynatrace
+curl -v https://{tenant-id}.live.dynatrace.com/api/v1/time
+
+# Check DNS resolution
+nslookup {tenant-id}.live.dynatrace.com
+
+# Test with OpenSSL
+openssl s_client -connect {tenant-id}.live.dynatrace.com:443
+</code></pre>
+<h3>Process Restart Requirement</h3>
+<p>OneAgent injects into running processes. After initial installation:</p>
+<ul>
+<li><strong>New processes</strong> - Automatically monitored</li>
+<li><strong>Existing processes</strong> - Restart required for full monitoring</li>
+</ul>
+<p>For deep code-level visibility, restart:</p>
+<ul>
+<li>Application servers (Tomcat, JBoss, etc.)</li>
+<li>Web servers (Apache, Nginx, IIS)</li>
+<li>.NET/Java applications</li>
+<li>Node.js applications</li>
+</ul>
+<p><a id="next-steps"></a></p>
+<h2>8. Next Steps</h2>
+<p>With OneAgent deployed and verified:</p>
+<ol>
+<li><strong>ONBRD-06: Organizing Your Environment</strong> — Set up tags, segments, naming conventions, and <code>dt.security_context</code></li>
+<li>Wait 15-30 minutes for full topology discovery</li>
+<li>Check Smartscape for service dependencies</li>
+<li>Plan broader rollout based on pilot results</li>
+</ol>
+<h3>Where to Go Deeper</h3>
+<ul>
+<li><strong>K8S series</strong> (15 notebooks) — Cluster monitoring, DynaKube depth, GitOps for K8s deployments</li>
+<li><strong>FAQ-01</strong> — Host group naming strategy (decide before first install)</li>
+<li><strong>FAQ-02</strong> — Tagging sources, standards, and strategy (primary tags vs auto-tags vs cloud tags)</li>
+</ul>
+<h3>Deployment Checklist</h3>
+<ul>
+<li>[ ] Pilot hosts deployed (2-5 hosts)</li>
+<li>[ ] Hosts appearing in Dynatrace</li>
+<li>[ ] No hosts in <code>OFFLINE</code> state over the last 7 days (state query in section 6)</li>
+<li>[ ] Services being discovered</li>
+<li>[ ] <code>oneagentctl --get-server</code> shows the expected endpoints</li>
+<li>[ ] Smartscape showing topology</li>
+<li>[ ] Host groups set at install time (not retrofitted later)</li>
+<li>[ ] Primary tags (environment, team, <code>dt.security_context</code>) emitted at source</li>
+<li>[ ] Windows hosts: Npcap install path planned (required from OneAgent 1.337)</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>What OneAgent does and how it works</li>
+<li>Phased deployment strategy</li>
+<li>How to generate deployment tokens</li>
+<li>Installation methods for Linux, Windows, and Kubernetes</li>
+<li>Setting primary tags and host groups at install time (OneAgent 1.333+)</li>
+<li>Windows Npcap requirement (OneAgent 1.337)</li>
+<li>How to verify successful deployment</li>
+<li>Common troubleshooting steps</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent">OneAgent Overview</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/installation-and-operation/linux/installation/install-oneagent-on-linux">Linux Installation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/installation-and-operation/windows/installation/install-oneagent-on-windows">Windows Installation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s">Kubernetes Operator</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment">Deployment API</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/oneagent/download-oneagent-latest">Deployment API - Download latest OneAgent (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment">OneAgent Attribute Enrichment</a></li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-347">What's new in Dynatrace SaaS 1.347 (DT docs)</a> — <em>&quot;Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier.&quot;</em></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

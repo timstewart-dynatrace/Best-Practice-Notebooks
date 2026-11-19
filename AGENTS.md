@@ -30,10 +30,10 @@ Every series has the same layout. Only one format is for you:
 | `AGENTS.md` | Per-series routing table | **Read this** |
 | `README.md` | Human overview + import instructions | Fallback index |
 | `notebooks/` | Dynatrace notebook JSON for tenant import | Only when the user asks to import |
-| `pdfs/`, `markdown/images/` | Print/visual duplicates | Ignore |
+| `pdfs/`, `html/`, `markdown/images/` | Print/web/visual duplicates | Ignore |
 
 Every series uses these exact lowercase directory names — `markdown/`,
-`notebooks/`, `pdfs/`. One exception: `DTM - Dynatrace Managed` has no
+`notebooks/`, `pdfs/`, `html/`. One exception: `DTM - Dynatrace Managed` has no
 `notebooks/` directory, because it contains no executable queries (Dynatrace
 Managed has no Grail) and so has nothing to import. Series directory *names* do vary: they contain spaces, so
 quote them in shell commands, and `APPSEC — Application Security` uses an em

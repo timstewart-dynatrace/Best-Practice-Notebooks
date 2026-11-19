@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NRLC-05: Synthetic Monitor Migration</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">NRLC — New Relic to Dynatrace Migration Deep Dives</a><span class="sep">/</span><span aria-current="page">NRLC-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>NRLC-05: Synthetic Monitor Migration</h1>
+<blockquote>
+<p><strong>Series:</strong> NRLC — New Relic to Dynatrace Migration Deep Dives | <strong>Notebook:</strong> 5 of 9 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 10/31/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>New Relic has seven synthetic monitor types: Ping, Simple Browser, Step, Scripted Browser, Scripted API, Certificate Check, and Broken Links. Dynatrace offers HTTP, Browser, and Multi-step HTTP monitors. This deep dive maps the NR types to their DT equivalents, covers locations (the transformer does not map them), and flags the scripted-browser caveat that drives most of the manual migration effort.</p>
+<p><strong>Phase 24 specialized synthetics (post-2026-04-15):</strong> <code>synthetic_specialized_transformer</code> now auto-converts <strong>Certificate Check</strong> monitors → DT HTTP Monitor with a certificate-expiry validation rule (the documented rule type is <code>certificateExpiryDateConstraint</code>; see §1 — the transformer emits <code>certificateExpiryDate</code>), and <strong>Broken Links</strong> monitors → DT Multi-step HTTP Monitor (capped at 50 links). Ping + Simple Browser continue to auto-convert via <code>synthetic_transformer</code> (Phase 11). Scripted API and Scripted Browser remain manual: the transformer emits a shell and a warning.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#type-map">Synthetic Type Mapping</a></li>
+<li><a href="#ping">Ping → HTTP Monitor</a></li>
+<li><a href="#browser">Simple Browser → Browser Monitor</a></li>
+<li><a href="#api">API (Multi-step) → Multi-step HTTP Monitor</a></li>
+<li><a href="#step">Scripted Browser → Browser Monitor</a></li>
+<li><a href="#locations">Location Mapping</a></li>
+<li><a href="#auth">Authentication &amp; Secrets</a></li>
+<li><a href="#validation">Validation Pattern</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Engineers migrating synthetic monitors</td>
+</tr>
+<tr>
+<td><strong>Standalone</strong></td>
+<td>This notebook is self-contained for synthetic migration. No required prerequisite reading.</td>
+</tr>
+<tr>
+<td><strong>Optional depth</strong></td>
+<td>NRLC-08 (validation), NRLC-09 (toolchain)</td>
+</tr>
+<tr>
+<td><strong>NR access</strong></td>
+<td>Read scope on Synthetics</td>
+</tr>
+<tr>
+<td><strong>DT access</strong></td>
+<td>Synthetic create permission; private location IDs if used</td>
+</tr>
+</tbody>
+</table>
+<p><a id="embedded-context"></a></p>
+<h2>Embedded Context — Location &amp; Credential Resolution</h2>
+<p>Synthetic monitors don't contain NRQL queries, so there's no translation context. The standalone considerations are <strong>location mapping</strong> and <strong>credential re-entry</strong>.</p>
+<h3>Public location lookup (run at migration time)</h3>
+<pre><code class="language-bash"># List the DT location IDs to remap monitors to.
+# Classic Environment API v2 endpoint: access token (dt0c01.*) with
+# the syntheticLocations.read scope, sent as Api-Token — not a platform token.
+curl -H &quot;Authorization: Api-Token $DT_API_TOKEN&quot; \
+  https://&lt;tenant&gt;.live.dynatrace.com/api/v2/synthetic/locations
+</code></pre>
+<p>The transformer assigns every monitor one default public location (<code>GEOLOCATION-9999453BE4BDB3CD</code>) and does not query this list. Use it to remap <code>locations[]</code> by hand (§6).</p>
+<blockquote>
+<p><strong>Platform alternative (early adopter):</strong> <code>GET https://&lt;tenant&gt;.apps.dynatrace.com/platform/synthetic/v1/locations?type=PUBLIC</code> with a platform token holding <code>synthetic:locations:read</code> — Dynatrace recommends migrating to it, and documents all of its endpoints as Early Adopter — they <em>&quot;can change in non-compatible ways&quot;</em>. The classic call keeps working.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-synthetic-v1/locations-get">GET locations — platform API (DT docs)</a> — <em>&quot;The response includes all matching public and private locations available for your environment.&quot;</em>; <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-access-control">Access control — Synthetic (DT docs)</a> — <em>&quot;Dynatrace recommends migrating to the Synthetic platform permissions and the Synthetic Platform API&quot;</em>; <em>&quot;All Synthetic Platform API endpoints are currently in Early Adopter maturity.&quot;</em>; <em>&quot;can change in non-compatible ways&quot;</em></sub></p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/synthetic-v2/synthetic-locations-v2/get-all-locations">GET all locations (DT docs)</a> — <em>&quot;To execute this request, you need an access token with <code>syntheticLocations.read</code> scope.&quot;</em></sub></p>
+</blockquote>
+<h3>Credential migration checklist</h3>
+<p>Every synthetic monitor that uses authentication needs its secrets re-entered in DT — not migrated:</p>
+<table>
+<thead>
+<tr>
+<th>Auth Type</th>
+<th>NR Storage</th>
+<th>DT Storage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bearer token</td>
+<td>Inline in script</td>
+<td>DT credentials vault</td>
+</tr>
+<tr>
+<td>Basic auth</td>
+<td>Inline</td>
+<td>DT credentials vault</td>
+</tr>
+<tr>
+<td>OAuth client secret</td>
+<td>Inline</td>
+<td>DT credentials vault</td>
+</tr>
+<tr>
+<td>API key in header</td>
+<td>Inline</td>
+<td>DT credentials vault</td>
+</tr>
+</tbody>
+</table>
+<p>The transformer captures the <em>shape</em> of the auth (which header, which step) but emits placeholder values.</p>
+<p><a id="type-map"></a></p>
+<h2>1. Synthetic Type Mapping</h2>
+<table>
+<thead>
+<tr>
+<th>NR Type</th>
+<th>DT Type</th>
+<th>Transformer</th>
+<th>Manual Effort</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ping</td>
+<td>HTTP Monitor</td>
+<td><code>synthetic_transformer</code> (Phase 11)</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Simple Browser</td>
+<td>Browser Monitor</td>
+<td><code>synthetic_transformer</code> (Phase 11)</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Scripted API</td>
+<td>Multi-step HTTP Monitor</td>
+<td><code>synthetic_transformer</code> (Phase 11): shell + warning</td>
+<td><strong>High — rebuild the script logic by hand (§4)</strong></td>
+</tr>
+<tr>
+<td><strong>Certificate Check</strong></td>
+<td>HTTP Monitor w/ <code>certificateExpiryDateConstraint</code> rule</td>
+<td><code>synthetic_specialized_transformer</code> (Phase 24)</td>
+<td>Rename the rule type: the transformer emits <code>certificateExpiryDate</code> (<code>main</code> branch, read 10/14/2026), which is not one of the documented values (<code>patternConstraint</code>, <code>regexConstraint</code>, <code>httpStatusesList</code>, <code>certificateExpiryDateConstraint</code>) — <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/http_monitor.md">http_monitor resource (Dynatrace GitHub)</a></td>
+</tr>
+<tr>
+<td><strong>Broken Links</strong></td>
+<td>Multi-step HTTP Monitor (50-link cap)</td>
+<td><code>synthetic_specialized_transformer</code> (Phase 24)</td>
+<td>Low — verify link list discovery</td>
+</tr>
+<tr>
+<td>Scripted Browser</td>
+<td>Browser Monitor (clickpath)</td>
+<td>Stub + manual</td>
+<td><strong>High — 30–60 min per script</strong></td>
+</tr>
+<tr>
+<td>Step</td>
+<td>No branch in the transformer (<code>STEP_MONITOR</code>): it falls through to the HTTP monitor default</td>
+<td>None</td>
+<td>Review each one: the output is an HTTP monitor, not a browser monitor</td>
+</tr>
+</tbody>
+</table>
+<p>Ping, Simple Browser, Certificate Check and Broken Links auto-convert. For Scripted Browser monitors, the engine emits a navigate event plus a JavaScript TODO event, with a warning; the original NR script is not attached.</p>
+<p><a id="ping"></a></p>
+<h2>2. Ping → HTTP Monitor</h2>
+<table>
+<thead>
+<tr>
+<th>NR Field</th>
+<th>DT Field</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td><code>name</code></td>
+</tr>
+<tr>
+<td><code>uri</code></td>
+<td><code>requests[0].url</code></td>
+</tr>
+<tr>
+<td><code>period</code> (1, 5, 10, 15, 30, 60 min)</td>
+<td><code>frequencyMin</code></td>
+</tr>
+<tr>
+<td><code>locations[]</code></td>
+<td><code>locations[]</code> (one default location; remap by hand, §6)</td>
+</tr>
+<tr>
+<td><code>verifyName</code>, <code>verifySSL</code></td>
+<td><code>requests[0].validation.rules</code></td>
+</tr>
+<tr>
+<td><code>bypassHEADRequest</code></td>
+<td><code>requests[0].requestBody</code>/method config</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Output:</strong> a single-request HTTP monitor that runs from the locations you set on the mapped frequency.</p>
+<p><a id="browser"></a></p>
+<h2>3. Simple Browser → Browser Monitor</h2>
+<p>Same structure as Ping but <code>type: BROWSER</code>. The browser engine differences:</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>NR</th>
+<th>DT</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Browser engine</td>
+<td>Chromium-based</td>
+<td>Chromium (private locations) / multi-engine (public)</td>
+</tr>
+<tr>
+<td>Page load metrics</td>
+<td>first-paint, DCL, LCP, etc.</td>
+<td>LCP, FCP, TBT, CLS, page load (DT W3C-aligned)</td>
+</tr>
+<tr>
+<td>RUM injection</td>
+<td>optional</td>
+<td>optional (separate from synthetic; DT RUM is its own module)</td>
+</tr>
+</tbody>
+</table>
+<p>Migration is structural; the metrics are roughly equivalent but not bit-identical (different timing methodologies). Document this for any dashboard that compared NR/DT browser timings during dual-run.</p>
+<p><a id="api"></a></p>
+<h2>4. API (Multi-step) → Multi-step HTTP Monitor</h2>
+<p>NR API monitors are JS scripts with multiple <code>$http.get/post/...</code> calls and chained variable extraction. DT Multi-step HTTP monitors use a declarative request chain.</p>
+<p><strong>The transformer does not convert the script.</strong> It emits an HTTP monitor shell and a warning: <em>&quot;The script logic needs manual recreation in Dynatrace.&quot;</em> The steps below are yours:</p>
+<ol>
+<li>Read the NR JS script statement by statement</li>
+<li>Rebuild each <code>$http.*</code> call as a DT request step</li>
+<li>Rebuild response parsing and chained variables (e.g., <code>var token = response.body.token; ...next request uses token</code>) with pre- and post-execution scripts, which allow <em>&quot;parsing the response, modifying the request URL, or skipping requests under certain conditions&quot;</em></li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor">Create and configure an HTTP monitor (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="step"></a></p>
+<h2>5. Scripted Browser → Browser Monitor</h2>
+<p><strong>This is the migration's biggest manual cost.</strong></p>
+<p>NR Scripted Browsers use a Selenium-style JS DSL with arbitrary code:</p>
+<pre><code class="language-javascript">$browser.get('https://example.com/login')
+  .then(() =&gt; $browser.findElement($driver.By.name('username')).sendKeys('user'))
+  .then(() =&gt; $browser.findElement($driver.By.name('password')).sendKeys('pass'))
+  .then(() =&gt; $browser.findElement($driver.By.name('submit')).click())
+  .then(() =&gt; $browser.waitForAndFindElement($driver.By.id('dashboard'), 5000));
+</code></pre>
+<p>DT Browser Monitors use a <strong>clickpath</strong> model: a sequence of typed actions (navigate, click, type, validate).</p>
+<p><strong>Migration approach:</strong></p>
+<ol>
+<li>The transformer emits a stub DT Browser Monitor with the target URL; it does not attach the original NR script</li>
+<li>Engineer rebuilds the user journey using DT's clickpath recorder or DSL</li>
+<li>Validation: confirm the new clickpath catches the same regressions during a 1-week dual-run</li>
+</ol>
+<p><strong>Effort estimate:</strong> ~30–60 min per scripted browser monitor, depending on complexity.</p>
+<p><a id="locations"></a></p>
+<h2>6. Location Mapping</h2>
+<p>The transformer does not map NR locations. It assigns every monitor one default public location (<code>GEOLOCATION-9999453BE4BDB3CD</code>). Remap <code>locations[]</code> by hand from <code>GET /api/v2/synthetic/locations</code>.</p>
+<p><strong>Private locations:</strong></p>
+<table>
+<thead>
+<tr>
+<th>NR Private Location</th>
+<th>DT Private Location</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Minion installation in your VPC</td>
+<td>ActiveGate with synthetic capability</td>
+</tr>
+</tbody>
+</table>
+<p>Private locations require DT ActiveGate setup (see Dynatrace docs). Private locations are not mapped either: assign them by hand.</p>
+<p><a id="auth"></a></p>
+<h2>7. Authentication &amp; Secrets</h2>
+<p><strong>Credentials never auto-migrate.</strong> This includes:</p>
+<ul>
+<li>Bearer tokens / API keys in headers</li>
+<li>Basic auth username + password</li>
+<li>Cookie values</li>
+<li>OAuth client secrets</li>
+</ul>
+<p>The transformer captures the <strong>shape</strong> of the auth (which header, which step) but emits placeholders. Engineers re-enter secrets in the DT credentials vault and reference them from the migrated monitor.</p>
+<p>Document every secret in the migration's secret-rotation runbook so nothing gets missed during cutover.</p>
+<p><a id="validation"></a></p>
+<h2>8. Validation Pattern</h2>
+<p>After migration, validate synthetics with this pattern:</p>
+<ol>
+<li><strong>Run-level:</strong> confirm the new DT monitor executes successfully on its first scheduled run</li>
+<li><strong>Frequency match:</strong> verify DT runs at the same cadence as NR (no gaps, no double-runs)</li>
+<li><strong>Location coverage:</strong> confirm all remapped locations are reporting</li>
+<li><strong>Failure detection:</strong> intentionally break the target (in a non-prod env) and confirm DT detects the failure within the same window NR would have</li>
+<li><strong>SLA continuity:</strong> during dual-run, confirm DT's availability % matches NR's within ±0.5%</li>
+</ol>
+<h2>Summary</h2>
+<p>Synthetic migration is mostly mechanical for Ping and Simple Browser monitors. Scripted API monitors are rebuilt by hand, and Scripted Browser monitors are the long pole — budget 30–60 min per script. Locations are remapped by hand for every monitor. Plan for credential re-entry as a coordinated event, not as part of the auto-import.</p>
+<p>Continue to <strong>NRLC-06 SLO &amp; Workload Migration</strong> for service-level migration.</p>
+<p><a id="tooling-synthetics"></a></p>
+<h2>Tooling for Synthetic-Only Migration</h2>
+<pre><code class="language-bash"># 1. Inventory NR synthetic monitors (Ping, Browser, API, Step)
+python3 migrate.py migrate --export-only --components synthetics --output ./synthetics-run
+
+# 2. Transform (auto-converts Ping/Simple Browser; emits shells for scripted monitors; Step monitors become HTTP monitors) and write a report — nothing is imported
+python3 migrate.py migrate --dry-run --report --components synthetics --output ./synthetics-run
+
+# 3. Import (export → transform → import); writes ./synthetics-run/rollback-manifest.json
+python3 migrate.py migrate --components synthetics --output ./synthetics-run
+
+# 4. Re-enter credentials in the DT credentials vault
+# 5. Validate via DT UI: confirm first scheduled run executes successfully
+</code></pre>
+<blockquote>
+<p><strong>Flags checked against <code>migrate.py</code> on the tool's <code>main</code> branch (10/05/2026).</strong> There is no <code>--transform-only</code>: <code>--dry-run</code> runs export and transform, writes <code>&lt;output&gt;/transformed/dynatrace_config.json</code>, and skips the import. <code>--diff</code> takes effect only on a full or dry run — with <code>--import-only</code> it is ignored, and without <code>--dry-run</code> it is computed <em>after</em> the import. <code>--import-only</code> needs <code>--input &lt;dir&gt;</code> and does not write a rollback manifest; a full run writes <code>&lt;output&gt;/rollback-manifest.json</code>. Run <code>python3 migrate.py migrate --help</code> against your checkout before relying on a flag.</p>
+</blockquote>
+<p><code>--diff</code> is left out here because it matches only dashboards and management zones by name — every monitor is reported as <code>CREATE</code>, so it cannot find synthetics that already exist. Check for them in the Synthetic app before step 3.</p>
+<p><strong>Scripted browser monitors</strong> require manual rebuild as DT clickpaths — budget 30–60 min per script.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources, including the open-source <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities">NewRelic-to-Dynatrace-Migration-Utilities</a>, <a href="https://github.com/timstewart-dynatrace/nrql-engine">nrql-engine</a> (planned future home: the <a href="https://github.com/dynatrace-dma"><code>dynatrace-dma</code></a> Dynatrace Migration Assistant organization), and <a href="https://github.com/timstewart-dynatrace/nrql-translator">nrql-translator</a> projects. This notebook series is not officially supported by Dynatrace or New Relic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://docs.newrelic.com">New Relic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

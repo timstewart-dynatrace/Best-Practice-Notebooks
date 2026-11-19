@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ONBRD-07: Understanding Your Data</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ONBRD — Dynatrace Onboarding</a><span class="sep">/</span><span aria-current="page">ONBRD-07</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ONBRD-07: Understanding Your Data</h1>
+<blockquote>
+<p><strong>Series:</strong> ONBRD — Dynatrace Onboarding | <strong>Notebook:</strong> 7 of 10 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 11/16/2026</p>
+</blockquote>
+<h2>Exploring What Dynatrace Discovered</h2>
+<p>With OneAgent deployed, Dynatrace has automatically discovered your infrastructure, processes, and services. This notebook helps you understand what's been found and how to explore your data.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#the-dynatrace-data-model">The Dynatrace Data Model</a></li>
+<li><a href="#entities-and-relationships">Entities and Relationships</a></li>
+<li><a href="#exploring-topology">Exploring Topology</a></li>
+<li><a href="#data-types-in-grail">Data Types in Grail</a></li>
+<li><a href="#discovery-queries">Discovery Queries</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>OneAgent deployed on at least one host (ONBRD-05)</li>
+<li>Environment organized with tags (ONBRD-06)</li>
+<li>15-30 minutes elapsed since deployment for full discovery</li>
+<li>DQL query permissions</li>
+</ul>
+<p><a id="the-dynatrace-data-model"></a></p>
+<h2>1. The Dynatrace Data Model</h2>
+<p>Dynatrace organizes data into a unified model:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzIwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhaWxHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE0OTZmZjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMGE2NGJjO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZGF0YVR5cGVHcmFkMSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxMGI5ODE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzA1OTY2OTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImRhdGFUeXBlR3JhZDIiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM2I4MmY2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyNTYzZWI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJkYXRhVHlwZUdyYWQzIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y1OWUwYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZDk3NzA2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZGF0YVR5cGVHcmFkNCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4YjVjZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdjM2FlZDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImRhdGFUeXBlR3JhZDUiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWY0NDQ0O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkYzI2MjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0iZ3JhaWxTaGFkb3ciPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIxIiBkeT0iMSIgc3RkRGV2aWF0aW9uPSIyIiBmbG9vZC1vcGFjaXR5PSIwLjE1Ii8+CiAgICA8L2ZpbHRlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjMyMCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDAwIiB5PSIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RHluYXRyYWNlIERhdGEgTW9kZWw8L3RleHQ+CiAgPHRleHQgeD0iNDAwIiB5PSI0OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5VbmlmaWVkIGRhdGEgbGFrZWhvdXNlIChHcmFpbCkgc3RvcmluZyBhbGwgb2JzZXJ2YWJpbGl0eSBkYXRhPC90ZXh0PgoKICA8IS0tIEdyYWlsIENvbnRhaW5lciAtLT4KICA8cmVjdCB4PSI0MCIgeT0iNjUiIHdpZHRoPSI3MjAiIGhlaWdodD0iMjQwIiByeD0iMTIiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzE0OTZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjZ3JhaWxTaGFkb3cpIi8+CiAgPHJlY3QgeD0iNDAiIHk9IjY1IiB3aWR0aD0iNzIwIiBoZWlnaHQ9IjM1IiByeD0iMTIiIGZpbGw9InVybCgjZ3JhaWxHcmFkKSIvPgogIDxyZWN0IHg9IjQwIiB5PSI5MiIgd2lkdGg9IjcyMCIgaGVpZ2h0PSI4IiBmaWxsPSJ1cmwoI2dyYWlsR3JhZCkiLz4KICA8dGV4dCB4PSI0MDAiIHk9IjkwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+R1JBSUwgKFVuaWZpZWQgRGF0YSBMYWtlaG91c2UpPC90ZXh0PgoKICA8IS0tIFJvdyAxOiBDb3JlIERhdGEgVHlwZXMgLS0+CiAgPHJlY3QgeD0iNjAiIHk9IjExNSIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI1NSIgcng9IjgiIGZpbGw9InVybCgjZGF0YVR5cGVHcmFkMSkiIGZpbHRlcj0idXJsKCNncmFpbFNoYWRvdykiLz4KICA8dGV4dCB4PSIxNDAiIHk9IjE0MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkVudGl0aWVzPC90ZXh0PgogIDx0ZXh0IHg9IjE0MCIgeT0iMTU4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SG9zdHMsIFNlcnZpY2VzLCBQcm9jZXNzZXM8L3RleHQ+CgogIDxyZWN0IHg9IjIzNSIgeT0iMTE1IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjU1IiByeD0iOCIgZmlsbD0idXJsKCNkYXRhVHlwZUdyYWQyKSIgZmlsdGVyPSJ1cmwoI2dyYWlsU2hhZG93KSIvPgogIDx0ZXh0IHg9IjMxNSIgeT0iMTQwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TWV0cmljczwvdGV4dD4KICA8dGV4dCB4PSIzMTUiIHk9IjE1OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNQVSwgTWVtb3J5LCBDdXN0b208L3RleHQ+CgogIDxyZWN0IHg9IjQxMCIgeT0iMTE1IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjU1IiByeD0iOCIgZmlsbD0idXJsKCNkYXRhVHlwZUdyYWQzKSIgZmlsdGVyPSJ1cmwoI2dyYWlsU2hhZG93KSIvPgogIDx0ZXh0IHg9IjQ5MCIgeT0iMTQwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TG9nczwvdGV4dD4KICA8dGV4dCB4PSI0OTAiIHk9IjE1OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFwcGxpY2F0aW9uLCBTeXN0ZW08L3RleHQ+CgogIDxyZWN0IHg9IjU4NSIgeT0iMTE1IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjU1IiByeD0iOCIgZmlsbD0idXJsKCNkYXRhVHlwZUdyYWQ0KSIgZmlsdGVyPSJ1cmwoI2dyYWlsU2hhZG93KSIvPgogIDx0ZXh0IHg9IjY2NSIgeT0iMTQwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U3BhbnMgKFRyYWNlcyk8L3RleHQ+CiAgPHRleHQgeD0iNjY1IiB5PSIxNTgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EaXN0cmlidXRlZCBUcmFjaW5nPC90ZXh0PgoKICA8IS0tIFJvdyAyOiBFdmVudCBEYXRhIFR5cGVzIC0tPgogIDxyZWN0IHg9IjYwIiB5PSIxODUiIHdpZHRoPSIxNjAiIGhlaWdodD0iNTUiIHJ4PSI4IiBmaWxsPSJ1cmwoI2RhdGFUeXBlR3JhZDUpIiBmaWx0ZXI9InVybCgjZ3JhaWxTaGFkb3cpIi8+CiAgPHRleHQgeD0iMTQwIiB5PSIyMTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FdmVudHM8L3RleHQ+CiAgPHRleHQgeD0iMTQwIiB5PSIyMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EZXBsb3ltZW50cywgQ2hhbmdlczwvdGV4dD4KCiAgPHJlY3QgeD0iMjM1IiB5PSIxODUiIHdpZHRoPSIxNjAiIGhlaWdodD0iNTUiIHJ4PSI4IiBmaWxsPSIjZmVmMmYyIiBzdHJva2U9IiNlZjQ0NDQiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjMxNSIgeT0iMjEwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZGMyNjI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Qcm9ibGVtczwvdGV4dD4KICA8dGV4dCB4PSIzMTUiIHk9IjIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EQVZJUyBBSSBEZXRlY3RlZDwvdGV4dD4KCiAgPHJlY3QgeD0iNDEwIiB5PSIxODUiIHdpZHRoPSIxNjAiIGhlaWdodD0iNTUiIHJ4PSI4IiBmaWxsPSIjZjBmZGY0IiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjQ5MCIgeT0iMjEwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMDU5NjY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CaXpldmVudHM8L3RleHQ+CiAgPHRleHQgeD0iNDkwIiB5PSIyMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QnVzaW5lc3MgVHJhbnNhY3Rpb25zPC90ZXh0PgoKICA8cmVjdCB4PSI1ODUiIHk9IjE4NSIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI1NSIgcng9IjgiIGZpbGw9IiNmZWYzYzciIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNjY1IiB5PSIyMTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNkOTc3MDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNlY3VyaXR5PC90ZXh0PgogIDx0ZXh0IHg9IjY2NSIgeT0iMjI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlZ1bG5lcmFiaWxpdGllcywgQXR0YWNrczwvdGV4dD4KCiAgPCEtLSBEUUwgUXVlcnkgQWNjZXNzIC0tPgogIDxyZWN0IHg9IjYwIiB5PSIyNTUiIHdpZHRoPSI2ODUiIGhlaWdodD0iMzUiIHJ4PSI2IiBmaWxsPSIjZWZmNmZmIiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iMjc4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiMxZTQwYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlF1ZXJ5IGFsbCBkYXRhIHR5cGVzIHVzaW5nIERRTCAoRHluYXRyYWNlIFF1ZXJ5IExhbmd1YWdlKTwvdGV4dD4KPC9zdmc+Cg==" alt="Grail Data Model" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Data Type | Description | Example |
+|-----------|-------------|---------|
+| Entities | Monitored components | Host, Service, Process |
+| Metrics | Numeric measurements | CPU usage, response time |
+| Logs | Textual event records | Application log entry |
+| Spans | Trace operations | HTTP request, DB query |
+| Events | Point-in-time occurrences | Deployment, config change |
+| Problems | DAVIS-detected issues | Service slowdown |
+| Bizevents | Business transactions | Order placed, payment |
+| Security | Vulnerabilities/attacks | CVE detection |
+-->
+<h3>Key Concepts</h3>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Entity</strong></td>
+<td>Any monitored component</td>
+<td>Host, Service, Process</td>
+</tr>
+<tr>
+<td><strong>Metric</strong></td>
+<td>Numeric measurement over time</td>
+<td>CPU usage, response time</td>
+</tr>
+<tr>
+<td><strong>Log</strong></td>
+<td>Textual event record</td>
+<td>Application log entry</td>
+</tr>
+<tr>
+<td><strong>Span</strong></td>
+<td>Single operation in a trace</td>
+<td>HTTP request, DB query</td>
+</tr>
+<tr>
+<td><strong>Event</strong></td>
+<td>Point-in-time occurrence</td>
+<td>Deployment, config change</td>
+</tr>
+<tr>
+<td><strong>Problem</strong></td>
+<td>DAVIS-detected issue</td>
+<td>Service slowdown</td>
+</tr>
+</tbody>
+</table>
+<p><a id="entities-and-relationships"></a></p>
+<h2>2. Entities and Relationships</h2>
+<p>Dynatrace automatically discovers and relates entities:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MDAgMzQwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYXBwTGF5ZXJHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhiNWNmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojN2MzYWVkO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3ZjTGF5ZXJHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjU2M2ViO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icGdMYXllckdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2Njk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJob3N0TGF5ZXJHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y1OWUwYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZDk3NzA2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iazhzTGF5ZXJHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzY0NzQ4YjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNDc1NTY5O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9ImhpZXJTaGFkb3ciPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIxIiBkeT0iMSIgc3RkRGV2aWF0aW9uPSIyIiBmbG9vZC1vcGFjaXR5PSIwLjE1Ii8+CiAgICA8L2ZpbHRlcj4KICAgIDxtYXJrZXIgaWQ9ImhpZXJBcnJvdyIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iNiIgcmVmWD0iNCIgcmVmWT0iMyIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDggMywgMCA2IiBmaWxsPSIjOTRhM2I4Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iNTAwIiBoZWlnaHQ9IjM0MCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iMjUwIiB5PSIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RW50aXR5IEhpZXJhcmNoeTwvdGV4dD4KICA8dGV4dCB4PSIyNTAiIHk9IjQ4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkhvdyBlbnRpdGllcyByZWxhdGUgdG8gZWFjaCBvdGhlcjwvdGV4dD4KCiAgPCEtLSBBcHBsaWNhdGlvbnMgTGF5ZXIgLS0+CiAgPHJlY3QgeD0iMTMwIiB5PSI2NSIgd2lkdGg9IjI0MCIgaGVpZ2h0PSI0NSIgcng9IjgiIGZpbGw9InVybCgjYXBwTGF5ZXJHcmFkKSIgZmlsdGVyPSJ1cmwoI2hpZXJTaGFkb3cpIi8+CiAgPHRleHQgeD0iMjUwIiB5PSI4NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFwcGxpY2F0aW9uczwvdGV4dD4KICA8dGV4dCB4PSIyNTAiIHk9IjEwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPihGcm9udGVuZCk8L3RleHQ+CgogIDwhLS0gQXJyb3cgLS0+CiAgPHBhdGggZD0iTTI1MCwxMTUgTDI1MCwxMzAiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2hpZXJBcnJvdykiLz4KICA8dGV4dCB4PSIyNzAiIHk9IjEyNyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj5jYWxsczwvdGV4dD4KCiAgPCEtLSBTZXJ2aWNlcyBMYXllciAtLT4KICA8cmVjdCB4PSIxMzAiIHk9IjE0MCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSI0NSIgcng9IjgiIGZpbGw9InVybCgjc3ZjTGF5ZXJHcmFkKSIgZmlsdGVyPSJ1cmwoI2hpZXJTaGFkb3cpIi8+CiAgPHRleHQgeD0iMjUwIiB5PSIxNjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TZXJ2aWNlczwvdGV4dD4KICA8dGV4dCB4PSIyNTAiIHk9IjE3NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPihCYWNrZW5kKTwvdGV4dD4KCiAgPCEtLSBBcnJvdyAtLT4KICA8cGF0aCBkPSJNMjUwLDE5MCBMMjUwLDIwNSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjaGllckFycm93KSIvPgogIDx0ZXh0IHg9IjI4MCIgeT0iMjAyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiPnJ1bnMgb248L3RleHQ+CgogIDwhLS0gUHJvY2VzcyBHcm91cHMgTGF5ZXIgLS0+CiAgPHJlY3QgeD0iMTMwIiB5PSIyMTUiIHdpZHRoPSIyNDAiIGhlaWdodD0iNDAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3BnTGF5ZXJHcmFkKSIgZmlsdGVyPSJ1cmwoI2hpZXJTaGFkb3cpIi8+CiAgPHRleHQgeD0iMjUwIiB5PSIyNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Qcm9jZXNzIEdyb3VwczwvdGV4dD4KCiAgPCEtLSBBcnJvdyAtLT4KICA8cGF0aCBkPSJNMjUwLDI2MCBMMjUwLDI3NSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjaGllckFycm93KSIvPgogIDx0ZXh0IHg9IjI4MCIgeT0iMjcyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiPnJ1bnMgb248L3RleHQ+CgogIDwhLS0gSG9zdHMgTGF5ZXIgLS0+CiAgPHJlY3QgeD0iMTMwIiB5PSIyODUiIHdpZHRoPSIyNDAiIGhlaWdodD0iNDAiIHJ4PSI4IiBmaWxsPSJ1cmwoI2hvc3RMYXllckdyYWQpIiBmaWx0ZXI9InVybCgjaGllclNoYWRvdykiLz4KICA8dGV4dCB4PSIyNTAiIHk9IjMxMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkhvc3RzPC90ZXh0PgoKICA8IS0tIE9wdGlvbmFsIEs4cyBpbmRpY2F0b3IgLS0+CiAgPGxpbmUgeDE9IjI1MCIgeTE9IjMyNSIgeDI9IjI1MCIgeTI9IjMzNSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1kYXNoYXJyYXk9IjMsMiIvPgogIDx0ZXh0IHg9IjI1MCIgeT0iMzQ1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPihvcHRpb25hbDogS3ViZXJuZXRlcyBDbHVzdGVycyk8L3RleHQ+CgogIDwhLS0gU2lkZSBMZWdlbmQgLS0+CiAgPHJlY3QgeD0iNDAwIiB5PSI5MCIgd2lkdGg9Ijg1IiBoZWlnaHQ9IjE2MCIgcng9IjYiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDQyIiB5PSIxMTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRRTCBOYW1lczwvdGV4dD4KCiAgPHJlY3QgeD0iNDA4IiB5PSIxMjAiIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCIgcng9IjIiIGZpbGw9IiM4YjVjZjYiLz4KICA8dGV4dCB4PSI0MjMiIHk9IjEyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj5hcHBsaWNhdGlvbjwvdGV4dD4KCiAgPHJlY3QgeD0iNDA4IiB5PSIxNDAiIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCIgcng9IjIiIGZpbGw9IiMzYjgyZjYiLz4KICA8dGV4dCB4PSI0MjMiIHk9IjE0OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj5zZXJ2aWNlPC90ZXh0PgoKICA8cmVjdCB4PSI0MDgiIHk9IjE2MCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiByeD0iMiIgZmlsbD0iIzEwYjk4MSIvPgogIDx0ZXh0IHg9IjQyMyIgeT0iMTY4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiPnByb2Nlc3NfZ3JvdXA8L3RleHQ+CgogIDxyZWN0IHg9IjQwOCIgeT0iMTgwIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHJ4PSIyIiBmaWxsPSIjZjU5ZTBiIi8+CiAgPHRleHQgeD0iNDIzIiB5PSIxODgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+aG9zdDwvdGV4dD4KCiAgPHJlY3QgeD0iNDA4IiB5PSIyMDAiIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCIgcng9IjIiIGZpbGw9IiM2NDc0OGIiLz4KICA8dGV4dCB4PSI0MjMiIHk9IjIwOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj5rOHNfY2x1c3RlcjwvdGV4dD4KPC9zdmc+Cg==" alt="Entity Hierarchy" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Entity Type | DQL Name | What It Represents |
+|-------------|----------|--------------------|
+| Application | dt.entity.application | Frontend application |
+| Service | dt.entity.service | Logical backend service |
+| Process Group | dt.entity.process_group | Set of identical processes |
+| Host | dt.entity.host | Physical or virtual machine |
+| K8s Cluster | dt.entity.kubernetes_cluster | Kubernetes cluster |
+-->
+<h3>Common Entity Types</h3>
+<table>
+<thead>
+<tr>
+<th>Entity Type</th>
+<th>DQL Name</th>
+<th>What It Represents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Host</strong></td>
+<td><code>dt.entity.host</code></td>
+<td>Physical or virtual machine</td>
+</tr>
+<tr>
+<td><strong>Process Group</strong></td>
+<td><code>dt.entity.process_group</code></td>
+<td>Set of identical processes</td>
+</tr>
+<tr>
+<td><strong>Service</strong></td>
+<td><code>dt.entity.service</code></td>
+<td>Logical backend service</td>
+</tr>
+<tr>
+<td><strong>Application</strong></td>
+<td><code>dt.entity.application</code></td>
+<td>Frontend application</td>
+</tr>
+<tr>
+<td><strong>K8s Cluster</strong></td>
+<td><code>dt.entity.kubernetes_cluster</code></td>
+<td>Kubernetes cluster</td>
+</tr>
+<tr>
+<td><strong>K8s Namespace</strong></td>
+<td><code>dt.entity.cloud_application_namespace</code></td>
+<td>K8s namespace</td>
+</tr>
+<tr>
+<td><strong>K8s Workload</strong></td>
+<td><code>dt.entity.cloud_application</code></td>
+<td>Deployment, DaemonSet, etc.</td>
+</tr>
+</tbody>
+</table>
+<p><a id="exploring-topology"></a></p>
+<h2>3. Exploring Topology</h2>
+<p>The topology view shows the visual representation of your environment.</p>
+<p><strong>Location:</strong> Infrastructure app → Hosts → Select any host → Dependencies</p>
+<h3>Understanding Topology Layers</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5TbWFydHNjYXBlIFRvcG9sb2d5IExheWVyczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5BdXRvLWRpc2NvdmVyZWQgZW50aXR5IGhpZXJhcmNoeSDigJQgQXBwbGljYXRpb24g4oaSIFNlcnZpY2Ug4oaSIFByb2Nlc3Mg4oaSIEhvc3Qg4oaSIENvbnRhaW5lci9DbG91ZDwvdGV4dD4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJsYXllci1hcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBMYXllciAxOiBBcHBsaWNhdGlvbiAodG9wKSAtLT4KICA8cmVjdCB4PSIyODAiIHk9IjkwIiB3aWR0aD0iMzcwIiBoZWlnaHQ9IjU1IiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjE1IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMiIgcng9IjYiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjExMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+QXBwbGljYXRpb24gLyBGcm9udGVuZDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjEzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UlVNIC8gTW9iaWxlIEFwcCDCtyB1c2VyLWZhY2luZyBlbnRyeSBwb2ludCDCtyBBcGRleC1zY29yZWQ8L3RleHQ+CgogIDxsaW5lIHgxPSI0NjUiIHkxPSIxNDUiIHgyPSI0NjUiIHkyPSIxNjciIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjbGF5ZXItYXJyb3cpIi8+CgogIDwhLS0gTGF5ZXIgMjogU2VydmljZSAtLT4KICA8cmVjdCB4PSIyNDAiIHk9IjE3MCIgd2lkdGg9IjQ1MCIgaGVpZ2h0PSI1NSIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIxOTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPlNlcnZpY2U8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIyMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkF1dG8tZGV0ZWN0ZWQgYnkgT25lQWdlbnQgY29kZSBpbnN0cnVtZW50YXRpb24gwrcgZHQuc2VydmljZS5uYW1lIG9uIGV2ZXJ5IHNwYW48L3RleHQ+CgogIDxsaW5lIHgxPSI0NjUiIHkxPSIyMjUiIHgyPSI0NjUiIHkyPSIyNDciIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjbGF5ZXItYXJyb3cpIi8+CgogIDwhLS0gTGF5ZXIgMzogUHJvY2VzcyBHcm91cCAvIFByb2Nlc3MgLS0+CiAgPHJlY3QgeD0iMjAwIiB5PSIyNTAiIHdpZHRoPSI1MzAiIGhlaWdodD0iNTUiIGZpbGw9IiMyMkQzRUUiIG9wYWNpdHk9IjAuMTIiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjczIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5Qcm9jZXNzIEdyb3VwIC8gUHJvY2VzczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjI5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RGV0ZWN0ZWQgYnkgT25lQWdlbnQgwrcgZ3JvdXBlZCBieSBjb21tYW5kIGxpbmUgKyB2ZXJzaW9uIMK3IG11bHRpcGxlIGluc3RhbmNlcyBwZXIgZ3JvdXA8L3RleHQ+CgogIDxsaW5lIHgxPSI0NjUiIHkxPSIzMDUiIHgyPSI0NjUiIHkyPSIzMjciIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjbGF5ZXItYXJyb3cpIi8+CgogIDwhLS0gTGF5ZXIgNDogSG9zdCAtLT4KICA8cmVjdCB4PSIxNjAiIHk9IjMzMCIgd2lkdGg9IjYxMCIgaGVpZ2h0PSI1NSIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkhvc3Q8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIzNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk9uZUFnZW50LW1vbml0b3JlZCDCtyBncm91cGVkIGJ5IGhvc3QgZ3JvdXAgwrcgcHJpbWFyeSB0YWdzICsgcHJvcGVydGllcyBhdCBzb3VyY2U8L3RleHQ+CgogIDwhLS0gTGF5ZXIgNTogQ29udGFpbmVyICYgQ2xvdWQgKHBhcmFsbGVsIGNvbnRleHQpIC0tPgogIDxyZWN0IHg9IjEyMCIgeT0iNDEwIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjU1IiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjI4MCIgeT0iNDMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5Db250YWluZXIgLyBLOHMgUG9kPC90ZXh0PgogIDx0ZXh0IHg9IjI4MCIgeT0iNDUxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5rOHMubmFtZXNwYWNlIMK3IGs4cy5kZXBsb3ltZW50IMK3IHBvZCBsYWJlbHM8L3RleHQ+CgogIDxyZWN0IHg9IjQ5MCIgeT0iNDEwIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjU1IiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjY1MCIgeT0iNDMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5DbG91ZCBSZXNvdXJjZTwvdGV4dD4KICA8dGV4dCB4PSI2NTAiIHk9IjQ1MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+QVdTIC8gQXp1cmUgLyBHQ1AgwrcgY2xvdWQtdGFnIGVucmljaGVkIMK3IHZpYSBDbG91ZHMgYXBwIG9yIEFHIHBvbGxpbmc8L3RleHQ+CgogIDwhLS0gTGluZXMgc2hvd2luZyBob3N0IHBhcmVudCBvZiBjb250YWluZXIvY2xvdWQgLS0+CiAgPGxpbmUgeDE9IjI4MCIgeTE9IjM4NSIgeDI9IjI4MCIgeTI9IjQxMCIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1kYXNoYXJyYXk9IjMsMyIvPgogIDxsaW5lIHgxPSI2NTAiIHkxPSIzODUiIHgyPSI2NTAiIHkyPSI0MTAiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxIiBzdHJva2UtZGFzaGFycmF5PSIzLDMiLz4KCiAgPCEtLSBTaWRlIGFubm90YXRpb246IHF1ZXJ5IHN5bnRheCAtLT4KICA8cmVjdCB4PSI0MCIgeT0iOTAiIHdpZHRoPSIxNjAiIGhlaWdodD0iMTU1IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8dGV4dCB4PSIxMjAiIHk9IjExMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+TW9kZXJuIFF1ZXJ5PC90ZXh0PgogIDx0ZXh0IHg9IjEyMCIgeT0iMTM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5zbWFydHNjYXBlTm9kZXM8L3RleHQ+CiAgPHRleHQgeD0iMTIwIiB5PSIxNTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPiJIT1NUIiAvICJTRVJWSUNFIjwvdGV4dD4KICA8dGV4dCB4PSIxMjAiIHk9IjE2NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+IlBST0NFU1MiPC90ZXh0PgogIDx0ZXh0IHg9IjEyMCIgeT0iMTgzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj4iRlJPTlRFTkQiPC90ZXh0PgogIDx0ZXh0IHg9IjEyMCIgeT0iMjA4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5zbWFydHNjYXBlRWRnZXM8L3RleHQ+CiAgPHRleHQgeD0iMTIwIiB5PSIyMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnRyYXZlcnNlPC90ZXh0PgoKICA8cmVjdCB4PSI3MzAiIHk9IjkwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjE1NSIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iODEwIiB5PSIxMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkxlZ2FjeSBRdWVyeTwvdGV4dD4KICA8dGV4dCB4PSI4MTAiIHk9IjEzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMCI+4pqgIERlcHJlY2F0ZWQ8L3RleHQ+CiAgPHRleHQgeD0iODEwIiB5PSIxNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmZldGNoIGR0LmVudGl0eS5ob3N0PC90ZXh0PgogIDx0ZXh0IHg9IjgxMCIgeT0iMTcxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5mZXRjaCBkdC5lbnRpdHkuc2VydmljZTwvdGV4dD4KICA8dGV4dCB4PSI4MTAiIHk9IjE4NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+ZmV0Y2ggZHQuZW50aXR5LnByb2Nlc3NfKjwvdGV4dD4KICA8dGV4dCB4PSI4MTAiIHk9IjIxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+U3RpbGwgd29ya3Mgb24gaHlicmlkPC90ZXh0PgogIDx0ZXh0IHg9IjgxMCIgeT0iMjI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj50ZW5hbnRzIOKAlCBtaWdyYXRlPC90ZXh0PgoKICA8IS0tIEZvb3RlciAtLT4KICA8bGluZSB4MT0iNDAiIHkxPSI0NzgiIHgyPSI4OTAiIHkyPSI0NzgiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDY1IiB5PSI0OTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAiPlNtYXJ0c2NhcGUgcmVsYXRpb25zaGlwcyBhcmUgYXV0by1kaXNjb3ZlcmVkIMK3IE9SR05aICsgSUFNIHVzZSB0aGVzZSBsYXllcnMgZm9yIHNjb3Bpbmc8L3RleHQ+Cjwvc3ZnPgo=" alt="Smartscape Topology Layers" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Layer | What It Is | Modern Query |
+|-------|------------|--------------|
+| Application / Frontend | RUM web and mobile frontends; user-facing entry point | smartscapeNodes "FRONTEND" (frontend.type == "web" / "mobile") |
+| Service | Auto-detected by OneAgent code instrumentation; `dt.service.name` on every span | smartscapeNodes "SERVICE" |
+| Process Group / Process | Detected processes, grouped by command line + version | smartscapeNodes "PROCESS" (process instances — there is no process-group node) |
+| Host | OneAgent-monitored; grouped by host group | smartscapeNodes "HOST" |
+| Container / K8s Pod | k8s.namespace · k8s.deployment · pod labels | smartscapeNodes for K8s entity types |
+| Cloud Resource | AWS/Azure/GCP; cloud-tag enriched | smartscapeNodes for cloud entity types |
+Legacy fetch dt.entity.* still works on hybrid tenants but is deprecated
+For environments where SVG doesn't render
+-->
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Shows</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Applications</strong></td>
+<td>Frontend apps, user sessions</td>
+<td>User experience</td>
+</tr>
+<tr>
+<td><strong>Services</strong></td>
+<td>Backend services, APIs</td>
+<td>Service dependencies</td>
+</tr>
+<tr>
+<td><strong>Processes</strong></td>
+<td>Running processes</td>
+<td>Process mapping</td>
+</tr>
+<tr>
+<td><strong>Hosts</strong></td>
+<td>Servers, VMs, containers</td>
+<td>Infrastructure view</td>
+</tr>
+</tbody>
+</table>
+<h3>Reading Topology Views</h3>
+<ul>
+<li><strong>Nodes</strong> = Entities</li>
+<li><strong>Lines</strong> = Relationships (calls, runs on)</li>
+<li><strong>Line thickness</strong> = Traffic volume</li>
+<li><strong>Colors</strong> = Health status (green/yellow/red)</li>
+</ul>
+<h3>Navigation Tips</h3>
+<ul>
+<li>Click any entity to see details</li>
+<li>Use filters to focus on specific services</li>
+<li>Hover over connections to see traffic metrics</li>
+<li>Use the Services app for service-to-service dependencies</li>
+</ul>
+<p><a id="data-types-in-grail"></a></p>
+<h2>4. Data Types in Grail</h2>
+<p>Grail stores different data types — each queried via a specific DQL command. Each built-in bucket has a documented default retention; custom buckets are configurable.</p>
+<table>
+<thead>
+<tr>
+<th>Data Type</th>
+<th>DQL Fetch / Command</th>
+<th>Typical Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Logs</strong></td>
+<td><code>fetch logs</code></td>
+<td>Troubleshooting, audit, compliance</td>
+</tr>
+<tr>
+<td><strong>Spans</strong></td>
+<td><code>fetch spans</code></td>
+<td>Distributed tracing</td>
+</tr>
+<tr>
+<td><strong>Metrics</strong></td>
+<td><code>timeseries</code> <em>(not <code>fetch</code>)</em></td>
+<td>Performance monitoring, SLOs</td>
+</tr>
+<tr>
+<td><strong>Events</strong></td>
+<td><code>fetch events</code></td>
+<td>Change tracking, infra events</td>
+</tr>
+<tr>
+<td><strong>Bizevents</strong></td>
+<td><code>fetch bizevents</code></td>
+<td>Business transactions, conversion funnels</td>
+</tr>
+<tr>
+<td><strong>Davis problems</strong></td>
+<td><code>fetch dt.davis.problems</code></td>
+<td>Detected incidents (uses <code>event.status</code> / <code>event.end</code> fields)</td>
+</tr>
+<tr>
+<td><strong>Davis events</strong></td>
+<td><code>fetch dt.davis.events</code></td>
+<td>Raw signals that feed problem detection (kind = <code>DAVIS_EVENT</code>)</td>
+</tr>
+<tr>
+<td><strong>Security events</strong></td>
+<td><code>fetch security.events</code></td>
+<td>Vulnerabilities, security signals</td>
+</tr>
+<tr>
+<td><strong>RUM sessions</strong></td>
+<td><code>fetch user.sessions</code></td>
+<td>RUM sessions (New RUM)</td>
+</tr>
+<tr>
+<td><strong>RUM individual events</strong></td>
+<td><code>fetch user.events</code></td>
+<td>Page views, clicks, requests, errors</td>
+</tr>
+<tr>
+<td><strong>RUM session replays</strong></td>
+<td><code>fetch user.replays</code></td>
+<td>Recorded session replays</td>
+</tr>
+<tr>
+<td><strong>Entities (topology)</strong></td>
+<td><code>smartscapeNodes &quot;&lt;TYPE&gt;&quot;</code> <em>(modern)</em> / <code>fetch dt.entity.&lt;type&gt;</code> <em>(legacy)</em></td>
+<td>Topology queries; <code>dt.entity.*</code> is deprecated, prefer <code>smartscapeNodes</code> for new queries</td>
+</tr>
+</tbody>
+</table>
+<h3>Data Retention</h3>
+<p>Retention is <strong>bucket-scoped</strong>. Each built-in bucket ships with a documented default retention, and custom buckets can be set from 1 day to 10 years. Inspect your tenant's bucket retention with:</p>
+<pre><code class="language-dql">// List configured Grail buckets and their retention (use Bucket Management UI for full detail)
+fetch dt.system.buckets
+| fields name, display_name, dt.system.table, retention_days
+| sort name asc
+</code></pre>
+<p>Documented defaults for the built-in buckets (confirm against the query above):</p>
+<table>
+<thead>
+<tr>
+<th>Data Type</th>
+<th>Built-in Bucket</th>
+<th>Default Retention</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Logs</td>
+<td><code>default_logs</code></td>
+<td>35 days</td>
+</tr>
+<tr>
+<td>Spans</td>
+<td><code>default_spans</code></td>
+<td>10 days (distributed tracing on Grail is configurable from 10 days to 10 years)</td>
+</tr>
+<tr>
+<td>Metrics</td>
+<td><code>default_metrics</code></td>
+<td>15 months at 1-minute granularity (Metrics Classic: 5 years)</td>
+</tr>
+<tr>
+<td>Events / Bizevents</td>
+<td><code>default_events</code> / <code>default_bizevents</code></td>
+<td>35 days</td>
+</tr>
+<tr>
+<td>Davis problems and events</td>
+<td><code>default_davis_events</code></td>
+<td>14 months per the data-retention page; the bucket's own display name reads &quot;Davis events and problems (15 months)&quot; — check yours with the query</td>
+</tr>
+<tr>
+<td>Security events</td>
+<td><code>default_securityevents_builtin</code> / <code>default_securityevents</code></td>
+<td>3 years (Dynatrace-generated) / 1 year (third-party)</td>
+</tr>
+<tr>
+<td>Self-monitoring and billing events</td>
+<td><code>dt_system_events</code></td>
+<td>1 year</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data">How to organize your data stored in Grail (DT docs)</a> — <em>&quot;default_logs logs 35 days default_metrics metrics 15 months default_spans spans 10 days&quot;</em>, <a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods">Data retention periods (DT docs)</a> — <em>&quot;Davis problems and events 14 months&quot;</em>.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Forthcoming — SaaS 1.353 (planned December 2026), announced in the SaaS 1.350 release notes:</strong> <em>&quot;With Dynatrace SaaS version 1.353, planned for December 2026, security events become fully configurable in OpenPipeline, and security event storage consolidates into a single Grail bucket with a new default retention period.&quot;</em> <em>&quot;All events will flow into the new default_security bucket automatically.&quot;</em> Act before it reaches your tenant if you query security events by bucket name — <em>&quot;Notebooks, dashboards, and workflows filtering on default_securityevents or default_securityevents_builtin need updating.&quot;</em> — or if <em>&quot;You rely on retention beyond 35 days.&quot;</em> Until SaaS 1.353 reaches your tenant, the security-event buckets and retention listed above remain current.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-350">What's new in Dynatrace SaaS 1.350 (DT docs)</a> — <em>&quot;Rollout start on Nov 4, 2026&quot;</em>.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Where to go deeper:</strong></p>
+<ul>
+<li><strong>ORGNZ-02 / ORGNZ-99</strong> — Grail bucket strategy and retention design</li>
+<li><strong>OPLOGS series</strong> — Log processing in OpenPipeline</li>
+<li><strong>OPMIG series</strong> — Classic Logs → OpenPipeline migration</li>
+<li><strong>OPIPE series</strong> — OpenPipeline beyond logs (spans, metrics, events, bizevents)</li>
+<li><strong>SPANS series</strong> — Distributed tracing and span analysis</li>
+</ul>
+</blockquote>
+<p><a id="discovery-queries"></a></p>
+<h2>5. Discovery Queries</h2>
+<p>Use these queries to understand what Dynatrace has discovered in your environment.</p>
+<h3>Infrastructure Discovery</h3>
+<pre><code class="language-dql">// Count all entity types in your environment. from:-7d also counts entities that
+// have not reported in the last 2 h; without it only the default timeframe counts.
+fetch dt.entity.host, from:-7d | summarize hosts = count()
+// Run separately for other types:
+// fetch dt.entity.service, from:-7d | summarize services = count()
+// fetch dt.entity.process_group, from:-7d | summarize process_groups = count()
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;HOST&quot;, from:-7d | summarize hosts = count()
+// Caveat: Smartscape can report fewer entities than the classic entity store; both
+// return only entities seen in the query timeframe, so keep the from:-7d.
+</code></pre>
+<pre><code class="language-dql">// List all hosts with key details
+fetch dt.entity.host
+| fields entity.name, 
+         state, 
+         osType,
+         cpuCores,
+         physicalMemory
+| sort entity.name
+| limit 100
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
+// classic-only field state, which has NO Smartscape node equivalent
+// (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
+// query above for state detail. For monitoring mode, do not use monitoringMode — it is
+// empty on Kubernetes and Fargate hosts; read billing events instead (ONBRD-05 § 6).
+// Other fields do map: osType -&gt; os.type (LINUX -&gt; OS_TYPE_LINUX); cpuCores -&gt; cores; physicalMemory -&gt; host.physical.memory; entity.name -&gt; name.
+</code></pre>
+<pre><code class="language-dql">// Group hosts by OS type
+fetch dt.entity.host
+| summarize count = count(), by: {osType}
+| sort count desc
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;HOST&quot;
+//   | summarize count = count(), by: {os.type}
+//   | sort count desc
+// Caveat: Smartscape can report fewer entities than the classic entity store, and
+// both return only entities seen in the query timeframe (default 2 h) - for a
+// discovery inventory add a timeframe such as from:-7d to either query.
+// Field maps: osType -&gt; os.type (LINUX -&gt; OS_TYPE_LINUX).
+</code></pre>
+<h3>Service Discovery</h3>
+<pre><code class="language-dql">// List all discovered services
+fetch dt.entity.service
+| fields entity.name, serviceType
+| sort entity.name
+| limit 100
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;SERVICE&quot;
+//   | fields name, dt.service.sdv1_type
+//   | sort name
+//   | limit 100
+// Caveat: Smartscape can report fewer entities than the classic entity store, and
+// both return only entities seen in the query timeframe (default 2 h) - for a
+// discovery inventory add a timeframe such as from:-7d to either query.
+// Field maps: serviceType -&gt; dt.service.sdv1_type (SDv1 services only - null when
+// dt.service_detection.version == 2; group by dt.service_detection.version to see
+// which model applies); entity.name -&gt; name.
+</code></pre>
+<pre><code class="language-dql">// Group services by type
+fetch dt.entity.service
+| summarize count = count(), by: {serviceType}
+| sort count desc
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;SERVICE&quot;
+//   | summarize count = count(), by: {dt.service.sdv1_type}
+//   | sort count desc
+// Caveat: Smartscape can report fewer entities than the classic entity store, and
+// both return only entities seen in the query timeframe (default 2 h) - for a
+// discovery inventory add a timeframe such as from:-7d to either query.
+// Field maps: serviceType -&gt; dt.service.sdv1_type (SDv1 services only - null when
+// dt.service_detection.version == 2; group by dt.service_detection.version to see
+// which model applies).
+</code></pre>
+<pre><code class="language-dql">// Find services with recent traffic (spans)
+// dt.service.name is set on every span, whatever the ingest source
+fetch spans, from: now() - 1h
+| filter span.kind == &quot;server&quot;
+| summarize request_count = count(), by: {dt.service.name}
+| sort request_count desc
+| limit 20
+</code></pre>
+<h3>Process Discovery</h3>
+<pre><code class="language-dql">// List process groups
+fetch dt.entity.process_group
+| fields entity.name
+| sort entity.name
+| limit 50
+
+// Smartscape note (dt.entity.* is deprecated but still functional): Smartscape models
+// individual processes, not process GROUPS — smartscapeNodes &quot;PROCESS&quot; is a different
+// granularity (process instances), so its results are not comparable to a process-group
+// query. Keep the classic dt.entity.process_group query above.
+</code></pre>
+<pre><code class="language-dql">// Count process groups
+fetch dt.entity.process_group
+| summarize count = count()
+
+// Smartscape note (dt.entity.* is deprecated but still functional): Smartscape models
+// individual processes, not process GROUPS — smartscapeNodes &quot;PROCESS&quot; is a different
+// granularity (process instances), so its results are not comparable to a process-group
+// query. Keep the classic dt.entity.process_group query above.
+</code></pre>
+<h3>Log Discovery</h3>
+<h4>Coverage: what was discovered vs. ingested</h4>
+<blockquote>
+<p><strong>Coverage vs. volume — the log-module self-monitoring events.</strong> During onboarding, confirm not just <em>what volume</em> is arriving but <em>what OneAgent discovered and whether each source is actually being ingested</em>. The log module emits a <code>log_source.status</code> event per discovered source into <code>dt.system.events</code>, carrying <code>log.source.file_status</code> and <code>log.source.ingest_status</code> — so it reveals sources OneAgent <strong>detected but is not ingesting</strong>, which a <code>fetch logs</code> count cannot show (no stored records means nothing to count). It scans events, not raw logs; reading them requires <code>storage:system:read</code> on <code>dt.system.events</code>.</p>
+<p>The log module emits these self-monitoring (SFM) events <strong>by default</strong> — the feature is generally available from <strong>OneAgent 1.339+ and SaaS 1.340+</strong>, and is adjusted through the <code>builtin:logmonitoring.log-sfm-settings</code> settings schema. The same events feed the ready-made <em>Log ingest overview</em> dashboard. Hosts on older agents send none, so confirm the stream is flowing before relying on it. See <strong>FAQ-08</strong> (Recommended Approach) for the full file-status × ingest-status coverage matrix and the <code>fetch logs</code> fallback.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-log-agent-sfm">Monitor log source health with SFM events (DT docs)</a> — <em>&quot;generally available and turned on by default in OneAgent version 1.339+ and SaaS version 1.340+&quot;</em>, <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Assign permissions in Grail (DT docs)</a>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Log-source coverage from the OneAgent log-module self-monitoring events.
+// Unlike `fetch logs` (which sees only sources that produced records), this
+// surfaces sources OneAgent DETECTED but is NOT ingesting. Scans events, not raw logs.
+fetch dt.system.events, from: now() - 24h
+| filter event.provider == &quot;Log Module&quot; and event.type == &quot;log_source.status&quot;
+| dedup event.id, sort:{ timestamp desc }
+| filter event.status == &quot;Active&quot;
+| fieldsAdd coverage =
+    if(log.source.file_status == &quot;FILE_STATUS_OK&quot; and log.source.ingest_status == &quot;Ingested&quot;, &quot;Available | Ingesting&quot;, else:
+    if(log.source.file_status == &quot;FILE_STATUS_OK&quot; and log.source.ingest_status == &quot;Not ingested&quot;, &quot;Available | NOT ingesting&quot;, else:
+    if(log.source.ingest_status == &quot;Partially ingested&quot;, &quot;Partial ingestion&quot;,
+    else: &quot;Unsupported or issue&quot;)))
+| summarize sources = count(), by:{coverage}
+| sort sources desc
+</code></pre>
+<pre><code class="language-dql">// Check log volume by source
+fetch logs, from: now() - 1h
+| summarize log_count = count(), by: {log.source}
+| sort log_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Check log volume by severity
+fetch logs, from: now() - 1h
+| summarize log_count = count(), by: {loglevel}
+| sort log_count desc
+</code></pre>
+<pre><code class="language-dql">// Sample recent logs
+fetch logs, from: now() - 15m
+| fields timestamp, loglevel, log.source, content
+| sort timestamp desc
+| limit 25
+</code></pre>
+<h3>Kubernetes Discovery (if applicable)</h3>
+<pre><code class="language-dql">// List Kubernetes clusters
+fetch dt.entity.kubernetes_cluster
+| fields entity.name
+| sort entity.name
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;K8S_CLUSTER&quot;
+//   | fields name
+//   | sort name
+// Caveat: Smartscape can report fewer entities than the classic entity store, and
+// both return only entities seen in the query timeframe (default 2 h) - for a
+// discovery inventory add a timeframe such as from:-7d to either query.
+// Field maps: entity.name -&gt; name.
+</code></pre>
+<pre><code class="language-dql">// List namespaces
+fetch dt.entity.cloud_application_namespace
+| fields entity.name
+| sort entity.name
+| limit 50
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;K8S_NAMESPACE&quot;
+//   | fields name
+//   | sort name
+//   | limit 50
+// Caveat: Smartscape can report fewer entities than the classic entity store, and
+// both return only entities seen in the query timeframe (default 2 h) - for a
+// discovery inventory add a timeframe such as from:-7d to either query.
+// Field maps: entity.name -&gt; name.
+</code></pre>
+<pre><code class="language-dql">// List workloads (deployments, etc.)
+fetch dt.entity.cloud_application
+| fields entity.name
+| sort entity.name
+| limit 50
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes {&quot;K8S_DEPLOYMENT&quot;, &quot;K8S_DAEMONSET&quot;, &quot;K8S_STATEFULSET&quot;, &quot;K8S_CRONJOB&quot;}
+//   | fields name, type
+//   | sort name
+//   | limit 50
+// (classic cloud_application spans all of these kinds; add &quot;K8S_JOB&quot; to include Jobs)
+// Caveat: Smartscape can report fewer entities than the classic entity store, and
+// both return only entities seen in the query timeframe (default 2 h) - for a
+// discovery inventory add a timeframe such as from:-7d to either query.
+// Field maps: entity.name -&gt; name.
+</code></pre>
+<h3>Problems Discovery</h3>
+<pre><code class="language-dql">// Check for recent problems
+fetch dt.davis.problems, from: now() - 7d
+| fields timestamp, display_id, event.name, event.status, affected_entity_types
+| sort timestamp desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Problem summary by status
+fetch dt.davis.problems, from: now() - 30d
+| summarize problem_count = count(), by: {event.status}
+| sort problem_count desc
+</code></pre>
+<p><a id="next-steps"></a></p>
+<h2>6. Next Steps</h2>
+<p>Now that you understand your data:</p>
+<ol>
+<li><strong>ONBRD-08: Your First Queries</strong> — Learn DQL fundamentals</li>
+<li>Explore topology for dependency visualization</li>
+<li>Review any detected problems</li>
+<li>Plan which additional hosts to instrument</li>
+</ol>
+<h3>Where to Go Deeper</h3>
+<ul>
+<li><strong>ORGNZ-02 / ORGNZ-99</strong> — Grail bucket strategy</li>
+<li><strong>OPLOGS / OPMIG / OPIPE</strong> — Log and OpenPipeline depth</li>
+<li><strong>SPANS series</strong> — Distributed tracing depth</li>
+<li><strong>AIOPS series</strong> — Davis problems, RCA, anomaly detection deep dives</li>
+<li><strong>K8S series</strong> — Kubernetes monitoring depth</li>
+</ul>
+<h3>Discovery Checklist</h3>
+<ul>
+<li>[ ] Hosts discovered and showing data</li>
+<li>[ ] Services detected and mapped</li>
+<li>[ ] Process groups visible</li>
+<li>[ ] Topology showing relationships</li>
+<li>[ ] Log ingestion working (if applicable)</li>
+<li>[ ] Kubernetes entities visible (if applicable)</li>
+<li>[ ] Bucket retention reviewed against expected data class</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>The Dynatrace data model (entities, metrics, logs, spans, events, bizevents, security, RUM)</li>
+<li>How entities relate to each other</li>
+<li>How to navigate topology views</li>
+<li>Different data types stored in Grail and their DQL fetch commands</li>
+<li>That <code>dt.davis.problems</code> uses <code>event.status</code> / <code>event.end</code> fields (not <code>status</code> / <code>end_time</code>)</li>
+<li>Discovery queries for infrastructure, services, and logs</li>
+<li>That each built-in bucket has a documented default retention, and how to check yours</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/smartscape-on-grail">Smartscape on Grail (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/application-observability/services/services-smartscape">Service entity in Smartscape (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail">Grail Data Model</a></li>
+<li><a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/smartscape/core">Smartscape core entities (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app">Davis Problems App</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data">How to organize your data stored in Grail (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods">Data retention periods (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-log-agent-sfm">Monitor log source health with SFM events (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

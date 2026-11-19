@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OTEL-05: Metrics Instrumentation</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OTEL — OpenTelemetry Integration</a><span class="sep">/</span><span aria-current="page">OTEL-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OTEL-05: Metrics Instrumentation</h1>
+<blockquote>
+<p><strong>Series:</strong> OTEL — OpenTelemetry Integration | <strong>Notebook:</strong> 5 of 8 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 10/02/2026</p>
+</blockquote>
+<h2>Creating Custom Metrics with OpenTelemetry</h2>
+<p>OpenTelemetry metrics provide quantitative measurements of your application's behavior over time. This notebook covers metric types, instrumentation patterns, and integration with Dynatrace.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#metric-types">Metric Types</a></li>
+<li><a href="#instrument-selection">Instrument Selection</a></li>
+<li><a href="#creating-metrics">Creating Metrics</a></li>
+<li><a href="#metric-attributes">Metric Attributes</a></li>
+<li><a href="#aggregation-and-views">Aggregation and Views</a></li>
+<li><a href="#prometheus-integration">Prometheus Integration</a></li>
+<li><a href="#best-practices">Best Practices</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>OTEL-01 and OTEL-03</td>
+</tr>
+<tr>
+<td><strong>Environment</strong></td>
+<td>Collector with metrics pipeline</td>
+</tr>
+</tbody>
+</table>
+<p><a id="metric-types"></a></p>
+<h2>1. Metric Types</h2>
+<h3>OTel Metric Instruments</h3>
+<table>
+<thead>
+<tr>
+<th>Instrument</th>
+<th>Aggregation</th>
+<th>Use Case</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Counter</strong></td>
+<td>Sum (monotonic)</td>
+<td>Cumulative events</td>
+<td>Total requests</td>
+</tr>
+<tr>
+<td><strong>UpDownCounter</strong></td>
+<td>Sum (non-monotonic)</td>
+<td>Current values</td>
+<td>Active connections</td>
+</tr>
+<tr>
+<td><strong>Histogram</strong></td>
+<td>Distribution</td>
+<td>Value ranges</td>
+<td>Response time</td>
+</tr>
+<tr>
+<td><strong>Gauge</strong></td>
+<td>Last value</td>
+<td>Current measurement</td>
+<td>Temperature</td>
+</tr>
+</tbody>
+</table>
+<h3>Sync vs Async</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>When Recorded</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Synchronous</strong></td>
+<td>On each operation</td>
+<td>Request handling</td>
+</tr>
+<tr>
+<td><strong>Asynchronous (Observable)</strong></td>
+<td>On collection</td>
+<td>System stats, gauges</td>
+</tr>
+</tbody>
+</table>
+<p><a id="instrument-selection"></a></p>
+<h2>2. Instrument Selection</h2>
+<h3>Decision Guide</h3>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>If Yes</th>
+<th>If No</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Value only goes up?</td>
+<td>Counter</td>
+<td>UpDownCounter or Histogram</td>
+</tr>
+<tr>
+<td>Measuring duration/size?</td>
+<td>Histogram</td>
+<td>Counter or UpDownCounter</td>
+</tr>
+<tr>
+<td>Current state?</td>
+<td>Gauge</td>
+<td>Counter or Histogram</td>
+</tr>
+<tr>
+<td>Recording in request path?</td>
+<td>Sync</td>
+<td>Async (Observable)</td>
+</tr>
+</tbody>
+</table>
+<h3>Common Patterns</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Instrument</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Request count</td>
+<td>Counter</td>
+<td>Monotonically increasing</td>
+</tr>
+<tr>
+<td>Request duration</td>
+<td>Histogram</td>
+<td>Distribution needed</td>
+</tr>
+<tr>
+<td>Active requests</td>
+<td>UpDownCounter</td>
+<td>Goes up and down</td>
+</tr>
+<tr>
+<td>Queue size</td>
+<td>ObservableGauge</td>
+<td>Current state</td>
+</tr>
+<tr>
+<td>CPU usage</td>
+<td>ObservableGauge</td>
+<td>Periodic measurement</td>
+</tr>
+</tbody>
+</table>
+<p><a id="creating-metrics"></a></p>
+<h2>3. Creating Metrics</h2>
+<h3>Python Examples</h3>
+<pre><code class="language-python">from opentelemetry import metrics
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+
+# Setup
+exporter = OTLPMetricExporter(endpoint=&quot;http://collector:4317&quot;)
+reader = PeriodicExportingMetricReader(exporter, export_interval_millis=60000)
+provider = MeterProvider(metric_readers=[reader])
+metrics.set_meter_provider(provider)
+
+# Get meter
+meter = metrics.get_meter(__name__)
+
+# Counter
+request_counter = meter.create_counter(
+    name=&quot;http.server.request.count&quot;,
+    description=&quot;Total HTTP requests&quot;,
+    unit=&quot;1&quot;
+)
+
+# Histogram
+request_duration = meter.create_histogram(
+    name=&quot;http.server.request.duration&quot;,
+    description=&quot;HTTP request duration&quot;,
+    unit=&quot;s&quot;   # the semantic convention's unit — seconds, not ms
+)
+
+# UpDownCounter
+active_requests = meter.create_up_down_counter(
+    name=&quot;http.server.active_requests&quot;,
+    description=&quot;Active HTTP requests&quot;,
+    unit=&quot;1&quot;
+)
+</code></pre>
+<blockquote>
+<p><strong>Keep the semantic-convention unit.</strong> <code>http.server.request.duration</code> is defined as a <strong>Histogram in seconds (<code>s</code>)</strong>. Auto-instrumentation libraries emit it in seconds; a hand-written instrument with the same name in milliseconds puts two units under one metric key, and every average or percentile across services becomes meaningless. Use your own metric name if you need different units.</p>
+<p><sub><strong>Sources:</strong> <a href="https://opentelemetry.io/docs/specs/semconv/http/http-metrics/">HTTP metrics semantic conventions (opentelemetry.io)</a>.</sub></p>
+</blockquote>
+<h3>Using Metrics</h3>
+<pre><code class="language-python">import time
+
+def handle_request(request):
+    # Increment active requests
+    active_requests.add(1, {&quot;method&quot;: request.method})
+    start = time.time()
+    
+    try:
+        response = process_request(request)
+        status = response.status_code
+    except Exception:
+        status = 500
+        raise
+    finally:
+        # Record duration
+        duration_s = time.time() - start
+        request_duration.record(duration_s, {
+            &quot;method&quot;: request.method,
+            &quot;status&quot;: str(status)
+        })
+        
+        # Increment counter
+        request_counter.add(1, {
+            &quot;method&quot;: request.method,
+            &quot;status&quot;: str(status)
+        })
+        
+        # Decrement active requests
+        active_requests.add(-1, {&quot;method&quot;: request.method})
+    
+    return response
+</code></pre>
+<h3>Observable (Async) Metrics</h3>
+<pre><code class="language-python">import psutil
+
+# Observable gauge for CPU
+def get_cpu_usage(options):
+    yield metrics.Observation(psutil.cpu_percent(), {})
+
+cpu_gauge = meter.create_observable_gauge(
+    name=&quot;system.cpu.usage&quot;,
+    callbacks=[get_cpu_usage],
+    description=&quot;CPU usage percentage&quot;,
+    unit=&quot;%&quot;
+)
+
+# Observable counter for network bytes
+last_bytes = {&quot;sent&quot;: 0, &quot;recv&quot;: 0}
+
+def get_network_io(options):
+    net = psutil.net_io_counters()
+    yield metrics.Observation(net.bytes_sent, {&quot;direction&quot;: &quot;sent&quot;})
+    yield metrics.Observation(net.bytes_recv, {&quot;direction&quot;: &quot;recv&quot;})
+
+network_counter = meter.create_observable_counter(
+    name=&quot;system.network.io&quot;,
+    callbacks=[get_network_io],
+    description=&quot;Network I/O bytes&quot;,
+    unit=&quot;By&quot;
+)
+</code></pre>
+<p><a id="metric-attributes"></a></p>
+<h2>4. Metric Attributes</h2>
+<h3>Common Attributes</h3>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Example</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>http.request.method</code></td>
+<td><code>GET</code>, <code>POST</code></td>
+<td>HTTP method breakdown (was <code>http.method</code>)</td>
+</tr>
+<tr>
+<td><code>http.response.status_code</code></td>
+<td><code>200</code>, <code>500</code></td>
+<td>Response status (was <code>http.status_code</code>)</td>
+</tr>
+<tr>
+<td><code>service.name</code></td>
+<td><code>checkout-api</code></td>
+<td>Service identification</td>
+</tr>
+<tr>
+<td><code>environment</code></td>
+<td><code>production</code></td>
+<td>Environment</td>
+</tr>
+</tbody>
+</table>
+<h3>Cardinality Considerations</h3>
+<table>
+<thead>
+<tr>
+<th>High Cardinality (Avoid)</th>
+<th>Low Cardinality (Good)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>User ID</td>
+<td>Region</td>
+</tr>
+<tr>
+<td>Request ID</td>
+<td>HTTP method</td>
+</tr>
+<tr>
+<td>Timestamp</td>
+<td>Status code class</td>
+</tr>
+<tr>
+<td>Full URL</td>
+<td>Route template</td>
+</tr>
+</tbody>
+</table>
+<h3>Attribute Best Practices</h3>
+<pre><code class="language-python"># Good - Low cardinality
+request_counter.add(1, {
+    &quot;method&quot;: &quot;GET&quot;,
+    &quot;route&quot;: &quot;/api/users/{id}&quot;,  # Template, not actual ID
+    &quot;status&quot;: &quot;2xx&quot;  # Status class
+})
+
+# Bad - High cardinality
+request_counter.add(1, {
+    &quot;user_id&quot;: &quot;user-12345&quot;,  # Millions of values
+    &quot;url&quot;: &quot;/api/users/12345&quot;,  # Every request different
+    &quot;timestamp&quot;: &quot;2026-01-26T10:00:00&quot;  # Every second different
+})
+</code></pre>
+<h3>Advanced OTLP metric dimensions changes which attributes you pay for</h3>
+<p>Everything above assumes Dynatrace keeps only some of your attributes as dimensions. Without the setting below, the <em>Allow list: resource and scope attributes</em> setting decides which resource and scope attributes become dimensions. One setting changes that. With <strong>Advanced OTLP metric dimensions</strong> turned on:</p>
+<blockquote>
+<p><em>&quot;Dynatrace ingests all resource, scope, and data-point attributes as metric dimensions by default, except for attributes on the Deny list: all attributes.&quot;</em></p>
+</blockquote>
+<p>The same page gives the consequence for existing content: <em>&quot;dimension keys that were previously normalized are now ingested as-is. For example, ingested dimension keys will preserve uppercase characters. This can increase the cardinality of some metrics and may affect dashboards, charts, alerts, and saved queries that depend on specific dimension sets.&quot;</em> It also notes that <em>&quot;Relaxed ingestion limits apply when this feature is enabled.&quot;</em></p>
+<p>Two practical consequences:</p>
+<ul>
+<li><strong>The cardinality table above now depends on your code, not on the allow list.</strong> A high-cardinality data-point attribute that used to be dropped at ingest becomes a dimension. Use <strong>Deny list: all attributes</strong> to drop anything you do not want. Attribute names there are case-sensitive and must match the original name.</li>
+<li><strong>Turn it on deliberately, and early, if you are heading to the latest Dynatrace.</strong> The ready-made <em>Check your upgrade readiness</em> dashboard lists this setting as a pre-upgrade opt-in, so that nothing built on today's dimension set changes unnoticed at upgrade time. Enable it, then check the dashboards and alerts that group or filter by OTLP dimensions, and look especially for keys whose case changed.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/configure-otlp-metrics">Configure OTLP metrics ingestion (DT docs)</a> — all quotes above. The pre-upgrade opt-in comes from the ready-made <em>Check your upgrade readiness</em> dashboard (OpenTelemetry metrics section, read 09/29/2026), which has no public URL.</sub></p>
+</blockquote>
+<p><a id="aggregation-and-views"></a></p>
+<h2>5. Aggregation and Views</h2>
+<h3>Histogram Buckets</h3>
+<p>Configure explicit bucket boundaries:</p>
+<pre><code class="language-python">from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.view import View, ExplicitBucketHistogramAggregation
+
+# Custom histogram buckets for response times
+duration_view = View(
+    instrument_name=&quot;http.server.request.duration&quot;,
+    aggregation=ExplicitBucketHistogramAggregation(
+        boundaries=[0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]  # seconds
+    )
+)
+
+provider = MeterProvider(
+    metric_readers=[reader],
+    views=[duration_view]
+)
+</code></pre>
+<h3>Choosing Bucket Boundaries</h3>
+<p>The bucket boundaries decide what shape of latency distribution your histogram can describe. Pick them once — changing them later forces a metric reset and breaks dashboards built on the old layout.</p>
+<p><strong>Rule of thumb:</strong></p>
+<ul>
+<li>8–12 buckets, log-spaced.</li>
+<li>Span from <code>P50 / 10</code> to <code>P99 × 2</code> of observed latency.</li>
+<li>Add <code>+Inf</code> (implicit in OpenTelemetry; explicit in Prometheus client libraries).</li>
+</ul>
+<p><strong>Two realistic patterns:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Workload</th>
+<th>Buckets (seconds)</th>
+<th>Why this shape</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HTTP request latency (sub-second SLO)</td>
+<td><code>0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0, +Inf</code></td>
+<td>Tight resolution under 1s where the SLO lives; tail tops out at 10s</td>
+</tr>
+<tr>
+<td>Long-running event processor</td>
+<td><code>0.2, 0.4, 1.0, 2.0, 4.0, 16.0, 96.0, +Inf</code></td>
+<td>Spans two orders of magnitude; coarse at the tail because operators only care whether jobs exceed 96s</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Cardinality cost.</strong> A histogram produces <code>(buckets + 2) × series</code> timeseries — one <code>_bucket{le=...}</code> per boundary (including <code>+Inf</code>), plus <code>_count</code> and <code>_sum</code>. A histogram with 8 buckets broken down by <code>method</code> (5 values) and <code>status_code</code> (10 values) yields <code>10 × 50 = 500</code> timeseries <strong>per pod</strong>. Multiply by replicas and pod count; tens of thousands of series is not unusual.</p>
+<p>Trim labels before adding buckets. The cardinality multiplier on labels is larger than on bucket count.</p>
+<h3>Drop Metrics via Views</h3>
+<pre><code class="language-python">from opentelemetry.sdk.metrics.view import DropAggregation
+
+# Drop noisy metrics
+drop_view = View(
+    instrument_name=&quot;internal.debug.*&quot;,
+    aggregation=DropAggregation()
+)
+</code></pre>
+<p><a id="prometheus-integration"></a></p>
+<h2>6. Prometheus Integration</h2>
+<p>OpenTelemetry and Prometheus both expose metrics, and an OTel Collector can bridge them in either direction:</p>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Pattern</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Prometheus → OTLP</strong></td>
+<td>Collector <code>prometheus</code> receiver scrapes app; <code>otlphttp</code> exporter sends to Dynatrace</td>
+<td>App already exposes <code>/metrics</code>; you want it in Dynatrace without changing app code</td>
+</tr>
+<tr>
+<td><strong>OTel SDK → Prometheus</strong></td>
+<td>App uses <code>PrometheusMetricReader</code>; existing Prometheus stack scrapes it</td>
+<td>App is OTel-instrumented but an existing Prometheus-based monitoring stack must keep working</td>
+</tr>
+</tbody>
+</table>
+<p>The first direction is the common path in Dynatrace deployments. The rest of this section walks the end-to-end pattern.</p>
+<blockquote>
+<p><strong>This section shows the single-collector pattern</strong> — one collector scrapes a fixed set of annotated pods. It does not scale horizontally (a second replica would scrape every target again, double-counting). For thousands of targets or millions of data points per minute, use the tiered <strong>Target Allocator</strong> architecture in <strong>OTEL-03 — Collector Deployment Patterns, §5 Scaling Prometheus Scraping</strong> (scraper Deployment + gateway StatefulSet + resource-hash routing).</p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyb3dTbSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjQiIG1hcmtlckhlaWdodD0iNCIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+UHJvbWV0aGV1cyBTY3JhcGUgdmlhIE9UZWwgQ29sbGVjdG9yIHRvIER5bmF0cmFjZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5FbmQtdG8tZW5kIG1ldHJpYyBmbG93OiBzY3JhcGUgY29udHJhY3QsIHByb2Nlc3NvciBwaXBlbGluZSwgT1RMUCBleHBvcnQ8L3RleHQ+CgogIDwhLS0gPT09PT09PT09PT09IEFwcCBQb2QgPT09PT09PT09PT09IC0tPgogIDxyZWN0IHg9IjIwIiB5PSI4MCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSIzNjAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTMwIiB5PSIxMDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkFwcCBQb2Q8L3RleHQ+CiAgPHRleHQgeD0iMTMwIiB5PSIxMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPm5hbWVzcGFjZTogYXBwLXByb2Q8L3RleHQ+CgogIDxyZWN0IHg9IjM1IiB5PSIxMzUiIHdpZHRoPSIxOTAiIGhlaWdodD0iNjAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjEzMCIgeT0iMTU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5wcm9tZXRoZXVzX2NsaWVudDwvdGV4dD4KICA8dGV4dCB4PSIxMzAiIHk9IjE3NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+SGlzdG9ncmFtIHdpdGggY3VzdG9tPC90ZXh0PgogIDx0ZXh0IHg9IjEzMCIgeT0iMTg3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5sYXRlbmN5IGJ1Y2tldHM8L3RleHQ+CgogIDxyZWN0IHg9IjM1IiB5PSIyMTAiIHdpZHRoPSIxOTAiIGhlaWdodD0iNTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjEzMCIgeT0iMjMxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj4vbWV0cmljcyBvbiA6ODAwMDwvdGV4dD4KICA8dGV4dCB4PSIxMzAiIHk9IjI0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+UHJvbWV0aGV1cyBleHBvc2l0aW9uIGZvcm1hdDwvdGV4dD4KCiAgPHJlY3QgeD0iMzUiIHk9IjI3NSIgd2lkdGg9IjE5MCIgaGVpZ2h0PSI3OCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1kYXNoYXJyYXk9IjMsMiIgcng9IjYiLz4KICA8dGV4dCB4PSIxMzAiIHk9IjI5NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+UG9kIGFubm90YXRpb25zPC90ZXh0PgogIDx0ZXh0IHg9IjEzMCIgeT0iMzEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEwIj5wcm9tZXRoZXVzLmlvL3NjcmFwZTogInRydWUiPC90ZXh0PgogIDx0ZXh0IHg9IjEzMCIgeT0iMzI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEwIj5wcm9tZXRoZXVzLmlvL3BvcnQ6ICI4MDAwIjwvdGV4dD4KICA8dGV4dCB4PSIxMzAiIHk9IjM0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMCI+cHJvbWV0aGV1cy5pby9wYXRoOiAiL21ldHJpY3MiPC90ZXh0PgoKICA8dGV4dCB4PSIxMzAiIHk9IjM3NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCIgZm9udC1zdHlsZT0iaXRhbGljIj5kaXNjb3ZlcnkgY29udHJhY3Q8L3RleHQ+CiAgPHRleHQgeD0iMTMwIiB5PSIzOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtc3R5bGU9Iml0YWxpYyI+4oCUIE9URUwtMDUgwqc2LjI8L3RleHQ+CgogIDwhLS0gU2NyYXBlIGFycm93IC0tPgogIDxsaW5lIHgxPSIyNDAiIHkxPSIyMzAiIHgyPSIyOTUiIHkyPSIyMzAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CiAgPHRleHQgeD0iMjY3IiB5PSIyMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnNjcmFwZTwvdGV4dD4KICA8dGV4dCB4PSIyNjciIHk9IjI0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+MTVzPC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PSBDb2xsZWN0b3IgUG9kID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSIzMDAiIHk9IjgwIiB3aWR0aD0iMzk1IiBoZWlnaHQ9IjQwMCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0OTciIHk9IjEwNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+T1RlbCBDb2xsZWN0b3IgUG9kIChPcGVyYXRvci1tYW5hZ2VkKTwvdGV4dD4KICA8dGV4dCB4PSI0OTciIHk9IjEyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+bmFtZXNwYWNlOiBvMTF5PC90ZXh0PgoKICA8IS0tIFJlY2VpdmVyIC0tPgogIDxyZWN0IHg9IjMxNSIgeT0iMTM1IiB3aWR0aD0iMzY1IiBoZWlnaHQ9IjUwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8dGV4dCB4PSI0OTciIHk9IjE1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+cHJvbWV0aGV1cyByZWNlaXZlcjwvdGV4dD4KICA8dGV4dCB4PSI0OTciIHk9IjE3MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+a3ViZXJuZXRlc19zZF9jb25maWdzIMK3IHJlbGFiZWxfY29uZmlncyDCtyBtZXRyaWNfcmVsYWJlbF9jb25maWdzPC90ZXh0PgoKICA8IS0tIERvd24gYXJyb3cgLS0+CiAgPGxpbmUgeDE9IjQ5NyIgeTE9IjE5MCIgeDI9IjQ5NyIgeTI9IjIwMCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dTbSkiIG9wYWNpdHk9IjAuNiIvPgoKICA8IS0tIFBpcGVsaW5lIGxhYmVsIC0tPgogIDx0ZXh0IHg9IjQ5NyIgeT0iMjEzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPnByb2Nlc3NvciBwaXBlbGluZTwvdGV4dD4KCiAgPCEtLSBGaXZlIHByb2Nlc3NvciBwaWxscyAtIHZlcnRpY2FsIHN0YWNrIC0tPgogIDxyZWN0IHg9IjM3MCIgeT0iMjIwIiB3aWR0aD0iMjU1IiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMSIgcng9IjQiLz4KICA8dGV4dCB4PSI0OTciIHk9IjIzOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+bWVtb3J5X2xpbWl0ZXI8L3RleHQ+CgogIDxyZWN0IHg9IjM3MCIgeT0iMjUzIiB3aWR0aD0iMjU1IiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMSIgcng9IjQiLz4KICA8dGV4dCB4PSI0OTciIHk9IjI3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+Y3VtdWxhdGl2ZXRvZGVsdGE8L3RleHQ+CiAgPHRleHQgeD0iNjM1IiB5PSIyNzAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOSI+ZGVsdGEgdGVtcG9yYWxpdHk8L3RleHQ+CgogIDxyZWN0IHg9IjM3MCIgeT0iMjg2IiB3aWR0aD0iMjU1IiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMSIgcng9IjQiLz4KICA8dGV4dCB4PSI0OTciIHk9IjMwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+azhzYXR0cmlidXRlczwvdGV4dD4KICA8dGV4dCB4PSI2MzUiIHk9IjMwMyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5Ij5lbnRpdHkgZW5yaWNobWVudDwvdGV4dD4KCiAgPHJlY3QgeD0iMzcwIiB5PSIzMTkiIHdpZHRoPSIyNTUiIGhlaWdodD0iMjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNCIvPgogIDx0ZXh0IHg9IjQ5NyIgeT0iMzM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj50cmFuc2Zvcm0gKE9UVEwpPC90ZXh0PgogIDx0ZXh0IHg9IjYzNSIgeT0iMzM2IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkiPndvcmtsb2FkIG1hcHBpbmc8L3RleHQ+CgogIDxyZWN0IHg9IjM3MCIgeT0iMzUyIiB3aWR0aD0iMjU1IiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMSIgcng9IjQiLz4KICA8dGV4dCB4PSI0OTciIHk9IjM3MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+YmF0Y2gvbWV0cmljczwvdGV4dD4KCiAgPCEtLSBQaXBlbGluZSBmbG93IGFycm93cyBvbiBsZWZ0IC0tPgogIDxsaW5lIHgxPSIzNTgiIHkxPSIyMzQiIHgyPSIzNTgiIHkyPSIyNjciIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxIiBvcGFjaXR5PSIwLjUiLz4KICA8bGluZSB4MT0iMzU4IiB5MT0iMjY3IiB4Mj0iMzU4IiB5Mj0iMzAwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMSIgb3BhY2l0eT0iMC41Ii8+CiAgPGxpbmUgeDE9IjM1OCIgeTE9IjMwMCIgeDI9IjM1OCIgeTI9IjMzMyIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEiIG9wYWNpdHk9IjAuNSIvPgogIDxsaW5lIHgxPSIzNTgiIHkxPSIzMzMiIHgyPSIzNTgiIHkyPSIzNjYiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxIiBvcGFjaXR5PSIwLjUiLz4KCiAgPCEtLSBEb3duIGFycm93IHRvIGV4cG9ydGVyIC0tPgogIDxsaW5lIHgxPSI0OTciIHkxPSIzODUiIHgyPSI0OTciIHkyPSI0MDAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93U20pIiBvcGFjaXR5PSIwLjYiLz4KCiAgPCEtLSBFeHBvcnRlciAtLT4KICA8cmVjdCB4PSIzMTUiIHk9IjQwNSIgd2lkdGg9IjM2NSIgaGVpZ2h0PSI1NSIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDk3IiB5PSI0MjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPm90bHBodHRwIGV4cG9ydGVyPC90ZXh0PgogIDx0ZXh0IHg9IjQ5NyIgeT0iNDQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5lbmRwb2ludDogJHtEVF9FTkRQT0lOVH0vYXBpL3YyL290bHA8L3RleHQ+CiAgPHRleHQgeD0iNDk3IiB5PSI0NTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkF1dGhvcml6YXRpb246IEFwaS1Ub2tlbiAvIEJlYXJlciAke0RUX1RPS0VOfTwvdGV4dD4KCiAgPCEtLSBFeHBvcnQgYXJyb3cgLS0+CiAgPGxpbmUgeDE9IjY5NSIgeTE9IjQzMCIgeDI9Ijc0NSIgeTI9IjQzMCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KICA8dGV4dCB4PSI3MjAiIHk9IjQyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+T1RMUC9IVFRQPC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PSBEeW5hdHJhY2UgVGVuYW50ID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSI3NTUiIHk9IjgwIiB3aWR0aD0iMTU1IiBoZWlnaHQ9IjQwMCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI4MzIiIHk9IjEwNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+RHluYXRyYWNlPC90ZXh0PgogIDx0ZXh0IHg9IjgzMiIgeT0iMTIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj50ZW5hbnQ8L3RleHQ+CgogIDxyZWN0IHg9Ijc3MCIgeT0iMTM1IiB3aWR0aD0iMTI1IiBoZWlnaHQ9IjY1IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8dGV4dCB4PSI4MzIiIHk9IjE1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+L2FwaS92Mi9vdGxwPC90ZXh0PgogIDx0ZXh0IHg9IjgzMiIgeT0iMTcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj4vdjEvbWV0cmljczwvdGV4dD4KICA8dGV4dCB4PSI4MzIiIHk9IjE4NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+L3YxL3RyYWNlczwvdGV4dD4KCiAgPHJlY3QgeD0iNzcwIiB5PSIyMTUiIHdpZHRoPSIxMjUiIGhlaWdodD0iNjUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjgzMiIgeT0iMjM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5FbnRpdHkgbW9kZWw8L3RleHQ+CiAgPHRleHQgeD0iODMyIiB5PSIyNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmpvaW5zIG9uIGs4cy4qPC90ZXh0PgogIDx0ZXh0IHg9IjgzMiIgeT0iMjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5hdHRyaWJ1dGVzPC90ZXh0PgoKICA8cmVjdCB4PSI3NzAiIHk9IjI5NSIgd2lkdGg9IjEyNSIgaGVpZ2h0PSI2MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iODMyIiB5PSIzMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPkRRTCByZWFkeTwvdGV4dD4KICA8dGV4dCB4PSI4MzIiIHk9IjMzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+dGltZXNlcmllcyguLi4pPC90ZXh0PgogIDx0ZXh0IHg9IjgzMiIgeT0iMzQ2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5pbiBub3RlYm9va3M8L3RleHQ+CgogIDxyZWN0IHg9Ijc3MCIgeT0iMzc1IiB3aWR0aD0iMTI1IiBoZWlnaHQ9IjU1IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLWRhc2hhcnJheT0iMywyIiByeD0iNiIvPgogIDx0ZXh0IHg9IjgzMiIgeT0iMzk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5BdXRoIHNjaGVtZTwvdGV4dD4KICA8dGV4dCB4PSI4MzIiIHk9IjQxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSI5Ij5BcGktVG9rZW4gKGNsYXNzaWMpPC90ZXh0PgogIDx0ZXh0IHg9IjgzMiIgeT0iNDIyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjkiPkJlYXJlciAoUGxhdGZvcm0pPC90ZXh0PgoKICA8IS0tIEZvb3RlciAtLT4KICA8bGluZSB4MT0iMjAiIHkxPSI0NzUiIHgyPSI5MTAiIHkyPSI0NzUiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDY1IiB5PSI0OTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAiPlBpcGVsaW5lIG9yZGVyOiBtZW1vcnlfbGltaXRlciDihpIgY3VtdWxhdGl2ZXRvZGVsdGEg4oaSIGs4c2F0dHJpYnV0ZXMg4oaSIHRyYW5zZm9ybSDihpIgYmF0Y2gg4oaSIGV4cG9ydCDCtyBTZWUgT1RFTC0wNSDCpzYgZm9yIGZ1bGwgY29uZmlnPC90ZXh0Pgo8L3N2Zz4K" alt="Prometheus scrape via OTel Collector to Dynatrace" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Component | Purpose |
+|-------|-----------|---------|
+| 1 | App pod | Exposes Prometheus `/metrics` on container port; carries discovery annotations |
+| 2 | OTel Collector pod | Scrapes via `kubernetes_sd_configs`; runs processor pipeline |
+| 3 | Processor pipeline | `memory_limiter` → `cumulativetodelta` → `k8sattributes` → `transform` → `batch` |
+| 4 | otlphttp exporter | Sends OTLP/HTTP to Dynatrace tenant `/api/v2/otlp` endpoint |
+For environments where SVG does not render
+-->
+<h3>6.1. Step 1: Expose Prometheus Metrics from the App</h3>
+<p>The application uses <code>prometheus_client</code> and declares histograms with explicit buckets matching the workload's latency shape (see §5 <em>Choosing Bucket Boundaries</em>):</p>
+<pre><code class="language-python">from prometheus_client import Histogram, start_http_server
+
+# HTTP latency — sub-second SLO
+request_latency = Histogram(
+    &quot;myapp_http_request_duration_seconds&quot;,
+    &quot;HTTP request duration in seconds&quot;,
+    buckets=(0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0, float(&quot;inf&quot;))
+)
+
+# Long-running processor — different distribution, different buckets
+process_latency = Histogram(
+    &quot;myapp_event_processor_duration_seconds&quot;,
+    &quot;Event processor duration in seconds&quot;,
+    buckets=(0.2, 0.4, 1.0, 2.0, 4.0, 16.0, 96.0, float(&quot;inf&quot;))
+)
+
+# Expose /metrics on container port 8000
+start_http_server(8000)
+</code></pre>
+<p>The exposition format produces one timeseries per bucket boundary plus <code>_count</code> and <code>_sum</code>:</p>
+<pre><code class="language-text">myapp_http_request_duration_seconds_bucket{le=&quot;0.1&quot;} 12
+myapp_http_request_duration_seconds_bucket{le=&quot;0.2&quot;} 47
+myapp_http_request_duration_seconds_bucket{le=&quot;0.5&quot;} 113
+...
+myapp_http_request_duration_seconds_bucket{le=&quot;+Inf&quot;} 130
+myapp_http_request_duration_seconds_count 130
+myapp_http_request_duration_seconds_sum 47.31
+</code></pre>
+<h3>6.2. Step 2: Discovery Contract — Pod Annotations</h3>
+<p>Pods opt into scraping via well-known Prometheus annotations. The collector's <code>relabel_configs</code> (next step) use them to discover scrape targets:</p>
+<pre><code class="language-yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: &quot;true&quot;
+        prometheus.io/path:   &quot;/metrics&quot;
+        prometheus.io/port:   &quot;8000&quot;
+        prometheus.io/scheme: &quot;http&quot;
+</code></pre>
+<p>A pod without <code>prometheus.io/scrape: &quot;true&quot;</code> is invisible to the collector — annotations are the explicit opt-in.</p>
+<h3>6.3. Step 3: Collector Receiver with Kubernetes Service Discovery</h3>
+<p>The collector's <code>prometheus</code> receiver uses <code>kubernetes_sd_configs</code> to find pods and <code>relabel_configs</code> to convert annotations into scrape targets:</p>
+<pre><code class="language-yaml">receivers:
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: &quot;kubernetes-pods&quot;
+          scrape_interval: 15s
+          kubernetes_sd_configs:
+            - role: pod
+              namespaces:
+                names:
+                  - app-prod
+                  - app-stage
+          relabel_configs:
+            # Keep only pods explicitly annotated for scraping
+            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+              regex: true
+              action: keep
+            # Override target address with annotated port
+            - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+              regex: ([^:]+)(?::\d+)?;(\d+)
+              replacement: $$1:$$2
+              target_label: __address__
+            # Override metrics path
+            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+              regex: (.+)
+              action: replace
+              target_label: __metrics_path__
+            # Drop pods that are Failed or Succeeded (not running)
+            - source_labels: [__meta_kubernetes_pod_phase]
+              regex: (Failed|Succeeded)
+              action: drop
+</code></pre>
+<p>The collector needs RBAC to list pods cluster-wide — see <strong>OTEL-03 — Collector Deployment</strong> for the <code>ClusterRole</code> and <code>ClusterRoleBinding</code> shape.</p>
+<h3>6.4. Step 4: Cardinality Control via metric_relabel_configs</h3>
+<p>A pod-discovery scrape will collect every <code>_bucket</code>, <code>_count</code>, <code>_sum</code>, and platform metric on the target. Without filtering, an OTel-instrumented Python app can produce thousands of unique series per replica. <code>metric_relabel_configs</code> runs <strong>after</strong> scrape and <strong>before</strong> the pipeline, so it is the cheapest place to drop noise:</p>
+<pre><code class="language-yaml">metric_relabel_configs:
+  # Keep only metric families this collector cares about
+  - source_labels: [__name__]
+    regex: (myapp_.*|webservice_.*|process_.+|go_.+|jvm_.+|http_server_requests_.+|up)
+    action: keep
+  # Keep only labels that downstream queries actually use
+  - regex: (le|method|status_code|route|pod|namespace|cluster|service_name)
+    action: labelkeep
+</code></pre>
+<p>The keep-list is a deliberate allow-list — easier to extend than to chase down new noisy series later. Match against <code>__name__</code> first (cheapest), then narrow labels.</p>
+<h3>6.5. Step 5: Full Pipeline</h3>
+<p>The processor pipeline shapes scraped Prometheus data for Dynatrace ingest. Order matters: <code>memory_limiter</code> first protects the collector under load; <code>batch</code> last reduces network round-trips:</p>
+<pre><code class="language-yaml">processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 75
+    spike_limit_percentage: 15
+
+  cumulativetodelta:
+    max_staleness: 3m
+
+  k8sattributes:
+    extract:
+      metadata:
+        - k8s.pod.name
+        - k8s.namespace.name
+        - k8s.deployment.name
+        - k8s.node.name
+        - k8s.cluster.uid
+        - k8s.container.name
+    pod_association:
+      - sources:
+          - from: resource_attribute
+            name: k8s.pod.ip
+
+  transform:
+    metric_statements:
+      - context: resource
+        statements:
+          - set(attributes[&quot;k8s.workload.name&quot;], attributes[&quot;k8s.deployment.name&quot;]) where IsString(attributes[&quot;k8s.deployment.name&quot;])
+          - set(attributes[&quot;k8s.workload.kind&quot;], &quot;deployment&quot;) where IsString(attributes[&quot;k8s.deployment.name&quot;])
+
+  batch/metrics:
+    send_batch_max_size: 5000
+    send_batch_size: 500
+    timeout: 10s
+
+exporters:
+  otlphttp:
+    endpoint: ${env:DT_ENDPOINT}
+    headers:
+      Authorization: Api-Token ${env:DT_API_TOKEN}
+
+service:
+  pipelines:
+    metrics:
+      receivers: [prometheus]
+      processors: [memory_limiter, cumulativetodelta, k8sattributes, transform, batch/metrics]
+      exporters: [otlphttp]
+</code></pre>
+<p><strong>Why each processor matters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Processor</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>memory_limiter</code></td>
+<td>Sheds load before the collector OOMs. First in the pipeline.</td>
+</tr>
+<tr>
+<td><code>cumulativetodelta</code></td>
+<td>Prometheus emits cumulative counters; Dynatrace requires delta temporality, and its instrument mapping gives a cumulative Counter no Dynatrace metric type. Convert before export.</td>
+</tr>
+<tr>
+<td><code>k8sattributes</code></td>
+<td>Enriches each metric with pod / deployment / namespace / node so Dynatrace's entity model can join the data.</td>
+</tr>
+<tr>
+<td><code>transform</code></td>
+<td>Normalizes workload metadata — <code>k8s.workload.{name,kind,uid}</code> are derived from whichever workload kind (deployment / statefulset / daemonset / etc.) owns the pod.</td>
+</tr>
+<tr>
+<td><code>batch/metrics</code></td>
+<td>Reduces export overhead. <code>send_batch_size: 500</code> keeps batches small enough for OTLP/HTTP without hitting tenant-side payload limits.</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>otlphttp</code> exporter posts to <code>https://&lt;tenant&gt;.live.dynatrace.com/api/v2/otlp/v1/metrics</code>. The <code>Api-Token</code> auth scheme is for classic API Tokens (prefix <code>dt0c01.*</code>); Platform Tokens use <code>Bearer ${TOKEN}</code> instead. See <strong>OTEL-07 — Dynatrace Integration</strong> for the full token / endpoint / scope matrix.</p>
+<h3>6.6. Operator-Managed vs Raw Deployment</h3>
+<p>The collector itself can be deployed two ways:</p>
+<table>
+<thead>
+<tr>
+<th>Deployment style</th>
+<th>Spec kind</th>
+<th>What you write</th>
+<th>What manages the collector</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Raw</strong></td>
+<td><code>Deployment</code> + <code>ConfigMap</code></td>
+<td>Container image + collector YAML in a ConfigMap</td>
+<td>You — manual rollout, RBAC, lifecycle</td>
+</tr>
+<tr>
+<td><strong>Operator-managed</strong></td>
+<td><code>OpenTelemetryCollector</code> (CRD)</td>
+<td>Collector config inline in the custom resource</td>
+<td>The OpenTelemetry Operator reconciles Deployment, ConfigMap, ServiceAccount; cluster-scoped RBAC for pod discovery is provisioned separately (OTEL-03 §4)</td>
+</tr>
+</tbody>
+</table>
+<p>In community practice, the operator-managed pattern is preferred once you run more than one collector — it owns rollout, auto-restart on config change, and OTLP-auto-instrumentation injection for application pods. The trade-off is one more controller in the cluster.</p>
+<p>See <strong>OTEL-03 — Collector Deployment</strong> for both deployment shapes side-by-side.</p>
+<h3>6.7. The Reverse Direction: Exposing OTel Metrics as Prometheus</h3>
+<p>If an existing Prometheus stack must continue scraping the application, the OTel SDK can expose itself as a Prometheus endpoint instead of pushing OTLP:</p>
+<pre><code class="language-python">from opentelemetry.exporter.prometheus import PrometheusMetricReader
+from prometheus_client import start_http_server
+
+# Start Prometheus endpoint
+start_http_server(8080)
+
+# Use Prometheus reader
+reader = PrometheusMetricReader()
+provider = MeterProvider(metric_readers=[reader])
+</code></pre>
+<p>This path is rarer in greenfield Dynatrace deployments — it preserves the Prometheus scrape contract at the cost of duplicating the metric pipeline.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/prometheusreceiver">Prometheus Receiver (OpenTelemetry Collector Contrib GitHub)</a></sub></li>
+<li><sub><a href="https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/k8sattributesprocessor">k8sattributes processor (OpenTelemetry Collector Contrib GitHub)</a></sub></li>
+<li><sub><a href="https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/cumulativetodeltaprocessor">Cumulative to Delta processor (OpenTelemetry Collector Contrib GitHub)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/about-metrics-ingest">Ingest OTLP metrics (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/about-metrics-ingest">About OTLP metrics ingest (DT docs)</a> — <em>&quot;The Dynatrace backend exclusively works with delta values and requires the respective aggregation temporality.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/open-telemetry/opentelemetry-operator/blob/main/docs/api/opentelemetrycollectors.md">OpenTelemetryCollector CRD reference (opentelemetry-operator GitHub)</a> — <em>&quot;When set, the operator will not automatically create a ServiceAccount for the collector.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<pre><code class="language-dql">// Query OTel metrics in Dynatrace
+// Dimension names follow the stable semantic conventions: http.request.method,
+// not the pre-1.0 http.method (which groups everything into one null series).
+timeseries avg(http.server.request.duration), from:-1h, by:{http.request.method}
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Request count by status — from spans, not from the duration metric.
+//
+// count(http.server.request.duration) is NOT the number of requests: it counts data
+// points (its rollup is &quot;availability&quot;). On 10/02/2026 it returned 112 for both status
+// codes of one service over an hour — one per series per minute, whatever the traffic.
+// Without Advanced OTLP metric dimensions, an explicit-bucket histogram is stored as a
+// Dynatrace Counter, so the per-request count is not in the metric. Count the server spans.
+// gRPC services have no http.response.status_code, so they appear with a null status.
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot; and dt.openpipeline.source == &quot;/api/v2/otlp/v1/traces&quot;
+| summarize {requests = count()}, by:{dt.service.name, http.response.status_code}
+| sort requests desc
+| limit 10
+</code></pre>
+<p><a id="best-practices"></a></p>
+<h2>7. Best Practices</h2>
+<h3>Naming Conventions</h3>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Example</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;domain&gt;.&lt;component&gt;.&lt;metric&gt;</code></td>
+<td><code>myapp.orders.processed</code></td>
+<td>Hierarchical naming; reuse semantic-convention names only with their defined instrument and unit</td>
+</tr>
+<tr>
+<td>Use lowercase</td>
+<td><code>request_count</code> not <code>RequestCount</code></td>
+<td>Consistency</td>
+</tr>
+<tr>
+<td>Include units</td>
+<td><code>duration_ms</code>, <code>size_bytes</code></td>
+<td>Clarity</td>
+</tr>
+</tbody>
+</table>
+<h3>Performance Tips</h3>
+<table>
+<thead>
+<tr>
+<th>Tip</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Limit attribute cardinality</td>
+<td>Memory, query performance</td>
+</tr>
+<tr>
+<td>Use appropriate export interval</td>
+<td>Balance freshness vs. load</td>
+</tr>
+<tr>
+<td>Batch metrics</td>
+<td>Reduce network calls</td>
+</tr>
+<tr>
+<td>Use observable for system stats</td>
+<td>Avoid polling in hot path</td>
+</tr>
+</tbody>
+</table>
+<h3>What to Measure</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Metrics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RED</strong></td>
+<td>Rate, Errors, Duration (for services)</td>
+</tr>
+<tr>
+<td><strong>USE</strong></td>
+<td>Utilization, Saturation, Errors (for resources)</td>
+</tr>
+<tr>
+<td><strong>Business</strong></td>
+<td>Revenue, conversions, user actions</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Metric types: Counter, UpDownCounter, Histogram, Gauge</li>
+<li>Sync vs async instruments</li>
+<li>Creating and recording metrics</li>
+<li>Attribute best practices and cardinality</li>
+<li>Views and aggregation configuration</li>
+<li>Prometheus integration patterns</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://opentelemetry.io/docs/specs/otel/metrics/">OTel Metrics Specification</a></li>
+<li><a href="https://opentelemetry.io/docs/languages/python/instrumentation/">OTel Python Metrics</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/about-metrics-ingest">Dynatrace OTLP Metrics Ingest</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/configure-otlp-metrics">Configure OTLP Metrics</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/about-metrics-ingest">About OTLP metrics ingest (DT docs)</a> — instrument-to-metric-type mapping</li>
+<li><a href="https://opentelemetry.io/docs/specs/semconv/http/http-metrics/">HTTP metrics semantic conventions (opentelemetry.io)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

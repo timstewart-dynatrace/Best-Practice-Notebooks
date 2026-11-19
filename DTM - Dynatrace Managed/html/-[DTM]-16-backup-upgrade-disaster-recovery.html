@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTM-16: Backup, Upgrade, and Disaster Recovery</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DTM — Dynatrace Managed</a><span class="sep">/</span><span aria-current="page">DTM-16</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DTM-16: Backup, Upgrade, and Disaster Recovery</h1>
+<blockquote>
+<p><strong>Series:</strong> DTM — Dynatrace Managed | <strong>Reference:</strong> 16 — Backup, Upgrade, and Disaster Recovery | <strong>Created:</strong> September 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<blockquote>
+<p><strong>Dynatrace Classic only.</strong> This series applies to <strong>Dynatrace Managed</strong>, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.</p>
+</blockquote>
+<h2>Overview</h2>
+<p>The last layer of the DTM-10 health model is <strong>lifecycle</strong>: whether the cluster can be recovered when something is lost, and whether it stays current. Both are easy to neglect because they don't fail loudly. A backup that stopped working weeks ago and a cluster that has drifted out of support look exactly like healthy ones until the day they're needed.</p>
+<p>This notebook covers what a backup protects and what it doesn't, how to set backups up and keep them working, what a restore needs before it can succeed, how upgrades run and what slows them down, how long each version is supported, how Premium High Availability recovers from losing a data center, and how to pick the right recovery path for what was actually lost.</p>
+<p><strong>What you'll learn:</strong></p>
+<ul>
+<li>Exactly which data a restore brings back, and which it can't</li>
+<li>The backup-storage mistake that can stop a node from starting</li>
+<li>The preconditions a restore needs, prepared before you need them</li>
+<li>The 24-hour rules, the skip rule and the maintenance window behind every upgrade</li>
+<li>How long a version is supported, and how failover works across two data centers</li>
+</ul>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#backup-scope">What a Backup Protects — and What It Doesn't</a></li>
+<li><a href="#backup-setup">Setting Up Backups</a></li>
+<li><a href="#restore">Restore Readiness</a></li>
+<li><a href="#upgrades">Upgrades</a></li>
+<li><a href="#version-support">Version Support</a></li>
+<li><a href="#pha">Premium High Availability and Data-Center Failover</a></li>
+<li><a href="#recovery-paths">Choosing a Recovery Path</a></li>
+<li><a href="#doc-gaps">What the Documentation Does Not Say</a></li>
+<li><a href="#recommendation">Recommended Approach</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace deployment</strong></td>
+<td>A self-hosted <strong>Dynatrace Managed</strong> cluster. Nothing in this series applies to Dynatrace SaaS.</td>
+</tr>
+<tr>
+<td><strong>Access</strong></td>
+<td>Cluster Management Console (CMC) administrator access; root (or <code>sudo</code>) on the cluster nodes; for Premium HA recovery, a Cluster API token with the <code>ServiceProviderAPI</code> scope</td>
+</tr>
+<tr>
+<td><strong>Shared storage</strong></td>
+<td>A shared file system (for example NFS) mounted at the same path on every node, for backups</td>
+</tr>
+<tr>
+<td><strong>Query language</strong></td>
+<td>None. Managed has no Grail, so this series has <strong>no DQL cells</strong></td>
+</tr>
+<tr>
+<td><strong>Read first</strong></td>
+<td>DTM-10 (health model), DTM-12 §9 and DTM-13 §8 (what each store's backup contains)</td>
+</tr>
+<tr>
+<td><strong>Version basis</strong></td>
+<td>Written against the Managed documentation read 10/01/2026. Support dates come from the Managed release-notes page as it stood that day</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<ul>
+<li><strong>A backup is not a full copy.</strong> It restores configuration, longer-term metrics and (unless excluded) user sessions. It never restores transaction storage, never restores recent 1-minute and 5-minute metrics, and restores log events only if you opted in.</li>
+<li><strong>A missing backup mount can stop a node from starting.</strong> <em>&quot;If the shared file system mount point is not available on system boot, Dynatrace services will not start on that node&quot;</em>. Make the mount persistent.</li>
+<li><strong>Prepare the restore before you need it.</strong> It needs the exact installer version from the backup, the same number of nodes (<em>&quot;In exceptional cases&quot;</em> up to two fewer), matching user IDs, and the old cluster stopped. Afterwards, backups are <strong>off</strong> until you turn them back on.</li>
+<li><strong>Upgrades have built-in waits:</strong> 24 hours after a download, and 24 hours between updates. Clusters under three nodes are unavailable while they update.</li>
+<li><strong>Three releases are supported</strong>, plus a fourth with Enterprise Success and Support. A new release arrives roughly every four weeks, so falling behind happens quickly.</li>
+<li><strong>Premium HA repairs a lost data center automatically for up to 72 hours — through Mission Control.</strong> <em>&quot;There is no manual or local failover option that bypasses MC.&quot;</em> After 72 hours, the data center has to be rebuilt.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster">Backup and restore a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/update-cluster">Update a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/whats-new/managed">Dynatrace Managed release notes (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-proactive-support">Mission Control proactive support (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/failover">Multi-data center failover (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/recover-from-data-center">Recover from another data center (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="backup-scope"></a></p>
+<h2>2. What a Backup Protects — and What It Doesn't</h2>
+<p><em>&quot;You can automatically back up Dynatrace Managed configuration data (naming rules, tags, management zones, alerting profiles, and more), time series metric data, and user sessions.&quot;</em> Each of those comes with conditions:</p>
+<table>
+<thead>
+<tr>
+<th>Data</th>
+<th>In the backup?</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Configuration</td>
+<td><strong>Yes</strong></td>
+<td>Daily, with the metrics snapshot. A configuration-only backup is an option: <em>&quot;Exclude time series metric data from the backup&quot;</em></td>
+</tr>
+<tr>
+<td>Metrics</td>
+<td><strong>Partly</strong></td>
+<td>Daily; excludes the most frequently changing column families (about 80% of storage) and 1-minute and 5-minute data (DTM-12 §9)</td>
+</tr>
+<tr>
+<td>User sessions</td>
+<td><strong>Yes, unless excluded</strong></td>
+<td><em>&quot;Exclude user sessions from the backup to remain compliant with the General Data Protection Regulation.&quot;</em> (DTM-13 §8)</td>
+</tr>
+<tr>
+<td>Log Monitoring events</td>
+<td><strong>Only if included</strong></td>
+<td><em>&quot;Include backup of Log Monitoring events.&quot;</em></td>
+</tr>
+<tr>
+<td>Transaction storage (traces, code-level data)</td>
+<td><strong>No</strong></td>
+<td><em>&quot;Transaction storage data is not backed up, so after a restore you might see gaps in deep monitoring data (for example, distributed traces and code-level traces).&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p>The docs' reasoning for leaving transaction storage out: <em>&quot;By default, Dynatrace retains transaction storage data for only 10 days, so including it in backups is not necessary for long-term retention.&quot;</em> The consequence is that after a restore, trace history starts again from the restore point.</p>
+<p><strong>Recovery objectives.</strong> The <em>Pre-upgrade information</em> page's Managed-vs-SaaS comparison gives Managed backup an <em>RPO = 24h; RTO = 24h</em>: up to a day of data lost, and up to a day to restore.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster">Backup and restore a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/upgrade/up-information">Pre-upgrade information (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="backup-setup"></a></p>
+<h2>3. Setting Up Backups</h2>
+<p><strong>Where.</strong> In the CMC: <em>&quot;Go to Settings &gt; Backup.&quot;</em> Enable the backup, choose the scope (§2), give <em>&quot;a full path to the mounted network file storage where backup archives are stored&quot;</em>, and set a start time. Then keep a copy elsewhere: <em>&quot;To maximize resilience, save your backup files to an off-site location.&quot;</em></p>
+<p><strong>The shared file system.</strong> Every node writes to the same place: <em>&quot;the shared file system needs to be mounted at the same shared directory on each node.&quot;</em> The docs' preference: <em>&quot;NFSv4 is the recommended protocol. CIFS is not recommended, due to its low performance and resilience.&quot;</em> Test that the Dynatrace user can write there, on each node:</p>
+<pre><code class="language-bash">su - dynatrace -s /bin/bash -c &quot;touch /nfs/dynatrace/backup/$(uname -n)&quot;
+</code></pre>
+<p><strong>The mount that can stop a node.</strong> This is the backup setting most likely to cause an outage:</p>
+<blockquote>
+<p><em>&quot;If the shared file system mount point is not available on system boot, Dynatrace services will not start on that node, which might make the Managed Cluster unavailable. You must disable backups manually to allow Dynatrace to start.&quot;</em></p>
+</blockquote>
+<p>So <em>&quot;The shared file system mount must be available at system restart.&quot;</em> Make it persistent, for example in <code>fstab</code>. Then a reboot during an NFS outage won't take Dynatrace down with it.</p>
+<p>If it happens anyway, the docs give the way out: <em>&quot;Edit the <install-dir>/elasticsearch/config/elasticsearch.yml file. Remove the line with the path.repo: parameter.&quot;</em> Then start the node again (DTM-11 §3), and re-enable backups once the mount is back.</p>
+<p><strong>How much space.</strong> Plan for twice 20% of the metrics store plus the full Elasticsearch store (DTM-12 §9, DTM-13 §8).</p>
+<p><strong>Watching it.</strong> Neither <em>&quot;Cassandra backup problem.&quot;</em> nor <em>&quot;ElasticSearch backup problem.&quot;</em> is emailed (DTM-10 §7). CMC <strong>Home</strong> has a <em>Last backup</em> field, which <em>&quot;Displays the date and storage location of the last backup.&quot;</em> Check it on a schedule. One backup event does email: <em>&quot;Backup has been disabled because the configuration is no longer supported.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster">Backup and restore a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/estimating-cluster-backup-size">Estimating cluster backup size (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console">Cluster Management Console (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="restore"></a></p>
+<h2>4. Restore Readiness</h2>
+<p>A restore is a reinstall from backup onto prepared machines. Most of what can make it fail is decided before it starts.</p>
+<h3>4.1 Preconditions</h3>
+<table>
+<thead>
+<tr>
+<th>Precondition</th>
+<th>From the docs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Clean target hosts</td>
+<td><em>&quot;To restore a Managed Cluster on the same host as the source Managed Cluster, make sure to uninstall it first.&quot;</em></td>
+</tr>
+<tr>
+<td>Comparable hardware</td>
+<td><em>&quot;Make sure the machines prepared for the Managed Cluster restore have a similar hardware and disk layout as the original Managed Cluster and sufficient capacity to handle the load after the restore.&quot;</em></td>
+</tr>
+<tr>
+<td>Node count</td>
+<td><em>&quot;Restore the Managed Cluster to the same number of nodes as the backed-up Managed Cluster whenever possible.&quot;</em> At most two fewer: <em>&quot;In exceptional cases, you can restore to up to two nodes fewer, but a larger shortfall risks losing the Managed Cluster configuration.&quot;</em></td>
+</tr>
+<tr>
+<td>Old cluster stopped</td>
+<td><em>&quot;Make sure the existing Managed Cluster is stopped to prevent two Managed Clusters with the same ID from connecting to Dynatrace Mission Control.&quot;</em></td>
+</tr>
+<tr>
+<td>Matching identities</td>
+<td><em>&quot;Make sure that system users created for Dynatrace Managed have the same UID:GID identifiers on all nodes.&quot;</em></td>
+</tr>
+<tr>
+<td>The same installer</td>
+<td><em>&quot;To restore the cluster, you need to use the exact same installer version as in the original one.&quot;</em> It is in the backup itself, under each node's <code>files/&lt;backup-version-number&gt;/</code> directory</td>
+</tr>
+</tbody>
+</table>
+<p>Before you start, also prepare an inventory: the node IDs (each backup sits in a <code>node_&lt;node-id&gt;</code> directory), the new IP address for each node, and which node will be the seed.</p>
+<h3>4.2 The restore order</h3>
+<ol>
+<li><strong>Run the installer in restore mode</strong> on every node, in parallel, with <code>--restore</code>, <code>--cluster-ip</code>, <code>--cluster-nodes</code>, <code>--seed-ip</code> and <code>--backup-file</code>.</li>
+<li><strong>Start the firewall, Cassandra and Elasticsearch</strong> on each node, then verify both: Cassandra <em>Status = Up / State = Normal</em>, Elasticsearch <code>green</code> (DTM-12 §5, DTM-13 §5).</li>
+<li><strong>Restore Elasticsearch once, on the seed node:</strong> <code>restore-elasticsearch-data.sh &lt;path-to-backup&gt;/&lt;UUID&gt;</code>.</li>
+<li><strong>Restore Cassandra node by node, seed first:</strong> <code>restore-cassandra-data.sh</code>, using each node's backup file.</li>
+<li><strong>Optionally repair Cassandra</strong> (DTM-12 §8), then <strong>start Dynatrace</strong> on each node, starting with the seed node.</li>
+<li><strong>Finish the restore.</strong> Turn backups back on: <em>&quot;the backup is automatically disabled after the restore. Once you have finished restoring, you should enable the backup again.&quot;</em> If you restored to fewer nodes, remove the nodes marked <strong>Offline</strong> in the CMC. If the cluster address changed, point OneAgents and Cluster ActiveGates at it (the page gives the <code>PUT /api/v1.0/onpremise/endpoint/publicIp/agents/&lt;node-id&gt;</code> call), or update DNS if they connect by name.</li>
+</ol>
+<p><strong>After the restore (Managed 1.350).</strong> Managed 1.350 shortened the time a restored cluster is only partly usable: <em>&quot;Key monitoring features, such as the Hosts page and filtering in Data Explorer, are now automatically restored after a backup-and-restore migration of a large environment.&quot;</em> Before that release, <em>&quot;these features could remain unavailable for up to five days after a restore.&quot;</em> A restore runs on the backup's own installer version (§4.1), so a cluster backed up on 1.348 or earlier comes back on that version, and the gap applies to it. The release note doesn't say whether updating such a cluster to 1.350 afterwards starts the recovery, so plan the restore, and what you tell users, around up to five days for a large environment.</p>
+<h3>4.3 Rehearse it</h3>
+<p>The docs don't prescribe a restore test. In community practice, a restore that has never been rehearsed is treated as unproven. Teams run it on spare hosts, with the production cluster left running and the rehearsal kept off the Mission Control network, so the two clusters never connect at once — verify the approach with Dynatrace support before relying on it.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster">Backup and restore a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-350">Managed 1.350 release notes (DT docs)</a>. <strong>Derived:</strong> &quot;comes back on that version&quot; combines the exact-installer precondition with the 1.350 note.</sub></p>
+</blockquote>
+<p><a id="upgrades"></a></p>
+<h2>5. Upgrades</h2>
+<h3>5.1 The three paths</h3>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>How it works</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Automatic</strong> (the docs' recommendation)</td>
+<td><em>&quot;By default, installation packages are downloaded automatically from Mission Control as soon as they're available to your Managed Cluster.&quot;</em> The update runs in the maintenance window set under <strong>Settings &gt; Automatic update</strong></td>
+</tr>
+<tr>
+<td><strong>Semi-automatic</strong></td>
+<td>Without automatic downloads or a Mission Control connection, you get an email for each new package, download it, and upload it in the CMC</td>
+</tr>
+<tr>
+<td><strong>Manual</strong></td>
+<td>Run the update script on each node: <em>&quot;it's crucial that you manually update one node at a time.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<h3>5.2 The rules that pace it</h3>
+<ul>
+<li><strong>A day after download.</strong> <em>&quot;After an installation package is downloaded, a 24-hour waiting period is required before an automatic update can run.&quot;</em> An update downloaded today won't run in tonight's window.</li>
+<li><strong>A day between updates.</strong> <em>&quot;You wait 24 hours between cluster updates to ensure that all post-processing steps are completed before initiating another update.&quot;</em></li>
+<li><strong>Disk.</strong> <em>&quot;You have at least 5 GB of available disk space on the partition where Dynatrace Managed is installed.&quot;</em></li>
+<li><strong>Downtime below three nodes.</strong> <em>&quot;If your Managed Cluster consists of fewer than three nodes, Dynatrace Managed will not be accessible during the update process.&quot;</em></li>
+<li><strong>Kubernetes workloads.</strong> <em>&quot;keep the Docker OneAgent installation package for every OneAgent version that's still in use, because without it the Managed Cluster fails to build the OneAgent image and your pods fail to pull it.&quot;</em></li>
+<li><strong>The built-in container registry is deprecated (Managed 1.346).</strong> The Kubernetes deployment form now offers <em>&quot;Amazon ECR (new default)&quot;</em>, Docker Hub, a private container registry, or <em>&quot;Built-in registry (deprecated)&quot;</em>, and <em>&quot;You must manually update the image locations in the generated dynakube.yaml before deployment.&quot;</em> The deadline: <em>&quot;The built-in cluster container registry will be shut down on January 1, 2028, and will no longer function because it doesn't support ARM architectures.&quot;</em> The action plan is <em>&quot;Migrate to Amazon ECR or Docker Hub.&quot;</em></li>
+</ul>
+<h3>5.3 Skipping versions</h3>
+<p><em>&quot;You can skip a Managed version only if its installed version is divisible by 4.&quot;</em> A cluster on 1.300 can skip 1.302 once 1.304 is released; a cluster on 1.302 can't skip. And skipping can become the only option. In the docs' own example, a cluster on 1.340 must update to 1.342 before 1.344 is released, <em>&quot;because once version 1.344 is released, version 1.342 is no longer available for download&quot;</em> — which matters most for offline and semi-automatic clusters. If you would rather never skip, since Managed 1.324 there's a switch for that: <em>&quot;Turn on Run Dynatrace cluster updates sequentially without skipping a version.&quot;</em> For clusters that can skip, the docs advise: <em>&quot;it's recommended to wait until the target version is released if you are unable to complete the update process within one month.&quot;</em></p>
+<h3>5.4 Cadence</h3>
+<p><em>&quot;These software updates are mandatory and are typically released every four weeks.&quot;</em> With the 24-hour rules, a weekly maintenance window, and only some versions skippable, a cluster can only catch up so fast.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/update-cluster">Update a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/managed-version-update-logic">Managed version update logic (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-proactive-support">Mission Control proactive support (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-346">Managed 1.346 release notes (DT docs)</a>. <strong>Derived:</strong> &quot;can only catch up so fast&quot; combines the four-week cadence with the 24-hour rules and the skip rule.</sub></p>
+</blockquote>
+<p><a id="version-support"></a></p>
+<h2>6. Version Support</h2>
+<p><em>&quot;New versions are rolled out within configurable maintenance windows.&quot;</em> The release-notes page lists which versions are currently supported. As it stood when read on 11/10/2026 (page updated Nov 06, 2026):</p>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Rollout start</th>
+<th>Currently supported</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.350</td>
+<td>Nov 05, 2026</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>1.348</td>
+<td>Oct 27, 2026</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>1.346</td>
+<td>Aug 31, 2026</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>1.344</td>
+<td>Aug 03, 2026</td>
+<td>Only with Enterprise Success and Support</td>
+</tr>
+</tbody>
+</table>
+<p>1.342 (rolled out Jul 06, 2026) is in the previous-versions table: standard support ended Oct 27, 2026, and Enterprise Success and Support ended Nov 05, 2026.</p>
+<p>The table of earlier versions shows the pattern. Standard support for a version ends when the release three versions later rolls out, and Enterprise Success and Support covers it for one more release. For example, 1.338 rolled out May 11, 2026; its standard support ended Aug 03, 2026 (when 1.344 rolled out), and Enterprise Success and Support ended Aug 31, 2026.</p>
+<p><strong>The cluster flags it too (Managed 1.346+).</strong> <em>&quot;When you're using an unsupported version of Dynatrace Managed, you will be informed with a notification and a special tag on the Licensing page.&quot;</em> A cluster older than 1.346 shows neither, and the note doesn't say whether the tag distinguishes Enterprise Success and Support coverage, so the release-notes table stays the check.</p>
+<p><strong>Managed's future.</strong> No end-of-life has been announced. Dynatrace's annual report for fiscal 2026 still describes the offering: <em>&quot;We also provide options to deploy our platform in customer-provisioned infrastructure, which we call Dynatrace Managed.&quot;</em> It also notes that <em>&quot;The majority of our customers deploy Dynatrace as a Software-as-a-Service&quot;</em>. For clusters planning that move, M2S is the series.</p>
+<p><strong>What falling behind costs</strong> goes beyond support. Several changes in this series only reach you through updates: Cassandra and Elasticsearch fixes (DTM-12 §10, DTM-13 §9), and changes to ActiveGate compatibility and Mission Control ciphers (DTM-14).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/whats-new/managed">Dynatrace Managed release notes (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-346">Managed 1.346 release notes (DT docs)</a>. <a href="https://ir.dynatrace.com/sec-filings/all-sec-filings/content/0001773383-26-000019/dt-20260331.htm">Dynatrace FY2026 Form 10-K (Dynatrace IR)</a>. <strong>Derived:</strong> the &quot;three versions later&quot; pattern reads the rollout and support-end dates in the page's previous-versions table.</sub></p>
+</blockquote>
+<p><a id="pha"></a></p>
+<h2>7. Premium High Availability and Data-Center Failover</h2>
+<h3>7.1 What it is, and what it needs</h3>
+<p><em>&quot;Premium High Availability (PHA) extends Dynatrace Managed high availability across two data centers (DC).&quot;</em> <em>&quot;PHA keeps a full, active copy of your data in the second DC.&quot;</em> Its requirements:</p>
+<ul>
+<li><em>&quot;Deploy at least six nodes, with three nodes per DC.&quot;</em> <em>&quot;Size both DCs symmetrically.&quot;</em></li>
+<li><em>&quot;PHA is available only for online Managed Clusters.&quot;</em></li>
+<li><em>&quot;Keep round-trip network latency at 100 ms or less.&quot;</em></li>
+<li><em>&quot;Encrypt the connections between nodes in different DCs. Dynatrace Managed doesn't create or install the required certificates.&quot;</em></li>
+<li>It's a one-way decision: <em>&quot;You cannot reverse a migration to PHA.&quot;</em></li>
+</ul>
+<h3>7.2 How failover works</h3>
+<p>Mission Control drives it — and nothing else can: <em>&quot;There is no manual or local failover option that bypasses MC.&quot;</em> <em>&quot;Without access to MC, the secondary DC doesn't autonomously detect that it needs to take over.&quot;</em> <em>&quot;If Mission Control (MC) detects that two or more Elasticsearch or Cassandra nodes in a data center (DC) are down for 15 minutes, MC automatically stops the server processes in that DC. MC then marks the DC as unhealthy.&quot;</em> The healthy data center takes over, and a healthy server sends an event and an email. When you start the failed processes again (<em>&quot;After you start the Elasticsearch processes on the nodes that were down&quot;</em> …), the servers come back. If Mission Control is unreachable, shut down any nodes still running in the failed data center yourself (§7.3). Where Cassandra was down for three hours or more, Cassandra repairs also run, and responsibility moves back only after they finish: <em>&quot;Thirty minutes after all Cassandra nodes are repaired, Mission Control requests the Nodekeepers to change the responsibility override&quot;</em> (DTM-12 §8).</p>
+<p>Two conditions apply. <em>&quot;To transfer responsibility to another DC, it must be healthy at the time of failover.&quot;</em> And the mechanism handles a window: <em>&quot;PHA automatically repairs network disconnections of up to 72 hours between DCs.&quot;</em></p>
+<h3>7.3 While a data center is down, and after 72 hours</h3>
+<ul>
+<li><strong>During the outage:</strong> <em>&quot;To avoid data inconsistency while a DC is unavailable, shut down the Dynatrace Server service on all Cluster nodes in the affected DC. Start the services only when network connectivity is stable again.&quot;</em></li>
+<li><strong>Past 72 hours:</strong> <em>&quot;After 72 hours, Mission Control marks the Managed Cluster as not repaired after failover. Such a Managed Cluster is not reliable.&quot;</em> The data center must then be rebuilt, either from the surviving data center (<em>Rebuild data center</em>) or from backup (<em>Recover from a backup</em>). Both are long, Cluster-API-driven procedures.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/multi-data-centers">Multi-data center high availability (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/failover">Multi-data center failover (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/recover-from-data-center">Recover from another data center (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/rebuild-data-center">Rebuild data center (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/recover-from-backup">Recover from a backup (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="recovery-paths"></a></p>
+<h2>8. Choosing a Recovery Path</h2>
+<p>What was lost decides the path:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+Q2hvb3NpbmcgYSBSZWNvdmVyeSBQYXRoPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPldoYXQgd2FzIGxvc3QgZGVjaWRlcyB3aGF0IGhhcHBlbnMgb24gaXRzIG93biDigJQgYW5kIHdoYXQgeW91IGhhdmUgdG8gZG88L3RleHQ+CiAgPHRleHQgeD0iMTI1IiB5PSI5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+V0hBVCBXQVMgTE9TVDwvdGV4dD4KICA8dGV4dCB4PSI0NDUiIHk9IjkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5XSEFUIEhBUFBFTlM8L3RleHQ+CiAgPHRleHQgeD0iNzYwIiB5PSI5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+V0hBVCBZT1UgRE88L3RleHQ+CgogIDxyZWN0IHg9IjMwIiB5PSIxMDIiIHdpZHRoPSIxOTAiIGhlaWdodD0iNzQiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTI1IiB5PSIxMzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPk9uZSBub2RlPC90ZXh0PgogIDx0ZXh0IHg9IjEyNSIgeT0iMTU0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4zKyBub2RlIGNsdXN0ZXI8L3RleHQ+CiAgPGxpbmUgeDE9IjIyMiIgeTE9IjEzOSIgeDI9IjI2MiIgeTI9IjEzOSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KICA8cmVjdCB4PSIyNjYiIHk9IjEwMiIgd2lkdGg9IjM1OCIgaGVpZ2h0PSI3NCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ0NSIgeT0iMTM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5jbHVzdGVyIGtlZXBzIHJ1bm5pbmcgb24gdGhyZWUgY29waWVzOzwvdGV4dD4KICA8dGV4dCB4PSI0NDUiIHk9IjE1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+dGhhdCBub2RlJ3MgdHJhbnNhY3Rpb24gc2hhcmUgaXMgZ29uZTwvdGV4dD4KICA8bGluZSB4MT0iNjI2IiB5MT0iMTM5IiB4Mj0iNjQ2IiB5Mj0iMTM5IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgogIDxyZWN0IHg9IjY1MCIgeT0iMTAyIiB3aWR0aD0iMjUwIiBoZWlnaHQ9Ijc0IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzc1IiB5PSIxMzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPnJlbW92ZSB0aGUgbm9kZSwgaW5zdGFsbCBhIHJlcGxhY2VtZW50PC90ZXh0PgogIDx0ZXh0IHg9Ijc3NSIgeT0iMTUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4oRFRNLTEyIMKnNyk8L3RleHQ+CiAgPHJlY3QgeD0iMzAiIHk9IjE5MCIgd2lkdGg9IjE5MCIgaGVpZ2h0PSI3NCIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIxMjUiIHk9IjIyMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+VGhlIHdob2xlIGNsdXN0ZXI8L3RleHQ+CiAgPHRleHQgeD0iMTI1IiB5PSIyNDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm5vIHN1cnZpdmluZyBub2RlczwvdGV4dD4KICA8bGluZSB4MT0iMjIyIiB5MT0iMjI3IiB4Mj0iMjYyIiB5Mj0iMjI3IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgogIDxyZWN0IHg9IjI2NiIgeT0iMTkwIiB3aWR0aD0iMzU4IiBoZWlnaHQ9Ijc0IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDQ1IiB5PSIyMjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPnJlc3RvcmUgZnJvbSBiYWNrdXAgb250byBuZXcgaG9zdHM7PC90ZXh0PgogIDx0ZXh0IHg9IjQ0NSIgeT0iMjQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5yZWNlbnQgMS0vNS1taW4gbWV0cmljcywgdHJhY2VzIG5vdCByZXN0b3JlZDwvdGV4dD4KICA8bGluZSB4MT0iNjI2IiB5MT0iMjI3IiB4Mj0iNjQ2IiB5Mj0iMjI3IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgogIDxyZWN0IHg9IjY1MCIgeT0iMTkwIiB3aWR0aD0iMjUwIiBoZWlnaHQ9Ijc0IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNERTM1MEIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzc1IiB5PSIyMjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPnNhbWUgbm9kZSBjb3VudCAo4omkIDIgZmV3ZXIpLCBzYW1lIGluc3RhbGxlcjwvdGV4dD4KICA8dGV4dCB4PSI3NzUiIHk9IjI0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dmVyc2lvbjsgb2xkIGNsdXN0ZXIgc3RvcHBlZDwvdGV4dD4KICA8cmVjdCB4PSIzMCIgeT0iMjc4IiB3aWR0aD0iMTkwIiBoZWlnaHQ9Ijc0IiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjEyNSIgeT0iMzEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5PbmUgZGF0YSBjZW50ZXIsICZsdDsgNzIgaDwvdGV4dD4KICA8dGV4dCB4PSIxMjUiIHk9IjMzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UHJlbWl1bSBIQTwvdGV4dD4KICA8bGluZSB4MT0iMjIyIiB5MT0iMzE1IiB4Mj0iMjYyIiB5Mj0iMzE1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgogIDxyZWN0IHg9IjI2NiIgeT0iMjc4IiB3aWR0aD0iMzU4IiBoZWlnaHQ9Ijc0IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDQ1IiB5PSIzMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPmFmdGVyIDE1IG1pbiBNQyBmYWlscyBvdmVyIHRvIHRoZSBoZWFsdGh5IERDOzwvdGV4dD4KICA8dGV4dCB4PSI0NDUiIHk9IjMyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+cmVwYWlyZWQgd2hlbiBpdCByZXR1cm5zIChuZWVkcyBNQyk8L3RleHQ+CiAgPGxpbmUgeDE9IjYyNiIgeTE9IjMxNSIgeDI9IjY0NiIgeTI9IjMxNSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KICA8cmVjdCB4PSI2NTAiIHk9IjI3OCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI3NCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc3NSIgeT0iMzEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5zdG9wIHRoZSBTZXJ2ZXIgc2VydmljZSBpbiB0aGUgYWZmZWN0ZWQgREM7PC90ZXh0PgogIDx0ZXh0IHg9Ijc3NSIgeT0iMzI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5yZXN0YXJ0IGl0cyBzZXJ2aWNlcyBvbmNlIHRoZSBuZXR3b3JrIGlzIHN0YWJsZTwvdGV4dD4KICA8cmVjdCB4PSIzMCIgeT0iMzY2IiB3aWR0aD0iMTkwIiBoZWlnaHQ9Ijc0IiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjEyNSIgeT0iMzk4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5PbmUgZGF0YSBjZW50ZXIsID4gNzIgaDwvdGV4dD4KICA8dGV4dCB4PSIxMjUiIHk9IjQxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UHJlbWl1bSBIQTwvdGV4dD4KICA8bGluZSB4MT0iMjIyIiB5MT0iNDAzIiB4Mj0iMjYyIiB5Mj0iNDAzIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgogIDxyZWN0IHg9IjI2NiIgeT0iMzY2IiB3aWR0aD0iMzU4IiBoZWlnaHQ9Ijc0IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDQ1IiB5PSIzOTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPm1hcmtlZCAibm90IHJlcGFpcmVkIGFmdGVyIGZhaWxvdmVyIjs8L3RleHQ+CiAgPHRleHQgeD0iNDQ1IiB5PSI0MTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPnRoZSBjbHVzdGVyIGlzIG5vdCByZWxpYWJsZTwvdGV4dD4KICA8bGluZSB4MT0iNjI2IiB5MT0iNDAzIiB4Mj0iNjQ2IiB5Mj0iNDAzIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgogIDxyZWN0IHg9IjY1MCIgeT0iMzY2IiB3aWR0aD0iMjUwIiBoZWlnaHQ9Ijc0IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzc1IiB5PSIzOTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPnJlYnVpbGQgdGhlIERDIGZyb20gdGhlIHN1cnZpdmluZyBvbmUsPC90ZXh0PgogIDx0ZXh0IHg9Ijc3NSIgeT0iNDE2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5vciByZXN0b3JlIGl0IGZyb20gYmFja3VwPC90ZXh0PgogIDxsaW5lIHgxPSI0MCIgeTE9IjQ2MiIgeDI9Ijg5MCIgeTI9IjQ2MiIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjQ4NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMCI+U291cmNlOiBTaW5nbGUtY2x1c3RlciBIQTsgQmFja3VwIGFuZCByZXN0b3JlIGEgY2x1c3RlcjsgTXVsdGktZGF0YSBjZW50ZXIgZmFpbG92ZXI7IFJlY292ZXIgZnJvbSBhbm90aGVyIGRhdGEgY2VudGVyIChEVCBkb2NzLCByZWFkIDEwLzAxLzIwMjYpPC90ZXh0Pgo8L3N2Zz4K" alt="Choosing a Recovery Path" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| What was lost | What happens | What you do |
+|---------------|--------------|-------------|
+| One node (3+ node cluster) | Cluster keeps running on three copies; that node's transaction share is gone | Remove the node, install a replacement (DTM-12 §7) |
+| The whole cluster | Restore from backup onto new hosts; recent 1-/5-min metrics and traces are not restored | Same node count (at most two fewer), same installer version, old cluster stopped |
+| One data center, under 72 h (Premium HA) | After 15 minutes Mission Control fails over to the healthy DC; repaired when it returns (needs MC) | Stop the Server service in the affected DC; restart its services once the network is stable |
+| One data center, over 72 h (Premium HA) | Marked "not repaired after failover"; the cluster is not reliable | Rebuild the DC from the surviving one, or restore it from backup |
+For environments where SVG doesn't render
+-->
+<p>A single node is the common case, and it needs no restore: <em>&quot;The Managed Cluster maintains three copies of this data, so Dynatrace Managed continues to operate after the loss of one node.&quot;</em> A full restore from backup is for losing the cluster. Once the cluster's data is gone, the gaps in §2 become permanent.</p>
+<h3>8.1 A second, independent cluster</h3>
+<p>Some organizations keep a second Managed cluster as a standby. The documentation describes two recovery mechanisms, restore from backup and Premium HA, and no standby arrangement between independent clusters (§9). Nothing keeps the two in step for you. If a second cluster is your recovery path, four questions decide whether it works, and each needs an owner:</p>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Why it matters</th>
+<th>How to check</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Is its configuration the same?</td>
+<td>Dashboards, alerting, management zones and settings exist only on the cluster where someone created them</td>
+<td>Export each environment on both sides and compare, or deploy both from one source. Each environment in the CMC has an <strong>Export configuration</strong> action: <em>&quot;To export the configuration of the selected Dynatrace environment&quot;</em></td>
+</tr>
+<tr>
+<td>Does it hold enough history?</td>
+<td>Each cluster keeps only the data sent to it, under its own retention settings</td>
+<td>Compare retention per environment (DTM-13 §4) with the history the business needs after a failover</td>
+</tr>
+<tr>
+<td>Can agents and users reach it?</td>
+<td>OneAgents carry the endpoints from their installer (DTM-05 §2)</td>
+<td>A documented switch: DNS names that can be repointed, or a reconfiguration procedure, and sign-in set up on both clusters</td>
+</tr>
+<tr>
+<td>Can it carry the load?</td>
+<td>After a failover it takes the primary's traffic on top of its own</td>
+<td>Its headroom (DTM-15 §4.1) against the combined load</td>
+</tr>
+</tbody>
+</table>
+<p>The second cluster also has its own backups, versions and certificates, so the rest of this notebook applies to it unchanged. DTM-17 (D8) turns these questions into assessment checks.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability">Single-cluster high availability (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster">Backup and restore a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/failover">Multi-data center failover (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/recover-from-data-center">Recover from another data center (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="doc-gaps"></a></p>
+<h2>9. What the Documentation Does Not Say</h2>
+<p><strong>Not found</strong>, in the Managed documentation read 10/01/2026:</p>
+<table>
+<thead>
+<tr>
+<th>Gap</th>
+<th>Working assumption in this notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A procedure for testing a restore without disturbing production</td>
+<td>Rehearse on isolated hosts, kept off Mission Control (§4.3)</td>
+</tr>
+<tr>
+<td>Whether Session Replay data is backed up</td>
+<td>Assume it isn't. It isn't in the documented scope (§2)</td>
+</tr>
+<tr>
+<td>A replacement procedure for a single failed node in a single-DC cluster</td>
+<td>Remove the node and add a new one (DTM-12 §7)</td>
+</tr>
+<tr>
+<td>A standby arrangement between two independent clusters, or a way to keep their configuration in step</td>
+<td>Treat the second cluster as a cluster in its own right and check it as in §8.1</td>
+</tr>
+</tbody>
+</table>
+<p><strong>One conflict.</strong> The Elasticsearch snapshot interval: the backup page says <em>&quot;every two hours&quot;</em>, while the <em>Pre-upgrade information</em> comparison table says <em>&quot;Elasticsearch snapshots every 2 days&quot;</em>. This series follows the backup page (DTM-13 §10). Confirm in CMC <strong>Settings &gt; Backup</strong>.</p>
+<p><strong>One caution.</strong> The backup-and-restore page was reworded on Oct 22, 2026 (<em>Updated on Oct 22, 2026</em>, read 11/10/2026). Read its procedure against your installed version.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster">Backup and restore a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/upgrade/up-information">Pre-upgrade information (DT docs)</a>. <strong>Observed 10/01/2026:</strong> the first three gaps were searched for across the Managed cluster operation and high-availability pages; none is filled. The standby row was added 10/29/2026 after the same pages and the <a href="https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console">Cluster Management Console (DT docs)</a> page were re-read.</sub></p>
+</blockquote>
+<p><a id="recommendation"></a></p>
+<h2>10. Recommended Approach</h2>
+<ol>
+<li><strong>Enable backups with a deliberate scope.</strong> Decide on user sessions (GDPR) and log events explicitly, and keep an off-site copy.</li>
+<li><strong>Make the backup mount persistent.</strong> A mount that's missing at boot stops Dynatrace starting on that node.</li>
+<li><strong>Check CMC Home's <em>Last backup</em> weekly.</strong> Backup <em>problems</em> are never emailed; only a backup disabled for an unsupported configuration is.</li>
+<li><strong>Keep the restore kit ready:</strong> node inventory, seed choice, matching UID:GID, and the installer version taken from the latest backup. After any restore, re-enable backups.</li>
+<li><strong>Let automatic updates run</strong> in a weekly maintenance window, and plan around the two 24-hour waits.</li>
+<li><strong>Stay inside the supported releases.</strong> Treat the &quot;Currently supported&quot; column as the deadline.</li>
+<li><strong>On Premium HA, know your 72 hours.</strong> Stop the Server service in a failed data center, bring it back while it's still inside 72 hours, and treat anything longer as a rebuild.</li>
+</ol>
+<p><a id="summary"></a></p>
+<h2>11. Summary and Next Steps</h2>
+<p>Lifecycle health is the layer you only find out about when it's needed. Backups restore configuration, longer-term metrics and (by default) user sessions. They don't restore transaction storage, recent fine-grained metrics, or log events you didn't opt into, and a missing backup mount can keep a node from starting. A restore needs the exact installer version, a matching node count and the old cluster stopped. Upgrades are paced by two 24-hour waits and the skip rule, and a version is supported for about three releases. Premium HA repairs a lost data center by itself for 72 hours; after that it's a rebuild.</p>
+<p><strong>Next in the series:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Layer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DTM-17: Running a Cluster Health Assessment</td>
+<td>A one-off rated review across all five layers</td>
+</tr>
+<tr>
+<td>DTM-99: Best Practice Summary and Health-Check Checklist</td>
+<td>All five layers on one page</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/managed">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

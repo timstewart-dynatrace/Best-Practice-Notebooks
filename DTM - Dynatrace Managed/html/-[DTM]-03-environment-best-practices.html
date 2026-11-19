@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTM-03: Environment Best Practices</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DTM — Dynatrace Managed</a><span class="sep">/</span><span aria-current="page">DTM-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DTM-03: Environment Best Practices</h1>
+<blockquote>
+<p><strong>Series:</strong> DTM — Dynatrace Managed | <strong>Reference:</strong> 03 — Environment Best Practices | <strong>Created:</strong> October 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<blockquote>
+<p><strong>Dynatrace Classic only.</strong> This series applies to <strong>Dynatrace Managed</strong>, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.</p>
+</blockquote>
+<h2>Overview</h2>
+<p>A Managed cluster hosts one or more <strong>monitoring environments</strong>, and it decides who may sign in to each. Those two choices — how the cluster is divided, and how people get in — are made once and lived with for years. This notebook covers when to create a separate environment and when a management zone is enough, how to set an environment's limits, how to choose an identity source, and how to keep permissions narrow.</p>
+<p><strong>What you'll learn:</strong></p>
+<ul>
+<li>When an environment is the right boundary, and when a management zone is</li>
+<li>Which environment limits to set deliberately</li>
+<li>How LDAP, SAML and OpenID Connect change who can sign in</li>
+<li>Why the installation administrator account needs special care</li>
+<li>How cluster, environment and management-zone permissions combine</li>
+<li>How IAM policies interact with classic role permissions on Managed</li>
+</ul>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#environment-or-zone">Environment or Management Zone?</a></li>
+<li><a href="#environment-limits">Set Each Environment's Limits Deliberately</a></li>
+<li><a href="#identity-source">Choose an Identity Source</a></li>
+<li><a href="#admin-account">Protect the Installation Administrator Account</a></li>
+<li><a href="#permissions">Keep Permissions Narrow</a></li>
+<li><a href="#iam-policies">IAM Policies on Managed</a></li>
+<li><a href="#doc-gaps">What the Documentation Does Not Say</a></li>
+<li><a href="#recommendation">Recommended Approach</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace deployment</strong></td>
+<td>A Dynatrace Managed cluster</td>
+</tr>
+<tr>
+<td><strong>Access</strong></td>
+<td>Cluster Management Console (CMC) cluster administrator</td>
+</tr>
+<tr>
+<td><strong>Query language</strong></td>
+<td>None. Managed has no Grail, so this series has <strong>no DQL cells</strong></td>
+</tr>
+<tr>
+<td><strong>Version basis</strong></td>
+<td>Written against the Managed documentation read 10/21/2026</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<p>Use a <strong>separate environment</strong> where you need separate limits, retention or settings, and <strong>management zones</strong> for team views inside one environment. Set every environment's <strong>quotas and retention</strong> on purpose. Sign users in through <strong>LDAP, SAML or OpenID Connect</strong>, map groups from the identity provider, and remember that <strong>every user needs a group with at least one environment</strong> to sign in. Treat the <strong>installation administrator account</strong> as a break-glass account. Keep the <strong>cluster-permission group small</strong>, grant sensitive permissions narrowly, and grant restricted access at the <strong>management-zone</strong> level, because environment-level permissions override it.</p>
+<p><a id="environment-or-zone"></a></p>
+<h2>2. Environment or Management Zone?</h2>
+<p>The two are different kinds of boundary.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Environment</th>
+<th>Management zone</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>What it is</strong></td>
+<td>A monitoring environment in the cluster, created and configured in the CMC</td>
+<td>A partition <em>within</em> an environment: <em>&quot;Each customizable management zone comprises a set of monitored entities or dimensional data (such as logs and metrics) in your environment&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Limits and retention</strong></td>
+<td>Its own quotas, storage and retention settings (§3)</td>
+<td>None of its own; it shares the environment's</td>
+</tr>
+<tr>
+<td><strong>Access</strong></td>
+<td>Permissions assigned per environment to user groups (§6)</td>
+<td>Permissions assigned per zone; <em>&quot;Users may be granted access to entire environments, a specific management zone, or a subset of related management zones.&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Cross-team problems</strong></td>
+<td>—</td>
+<td><em>&quot;when a problem spans multiple management zones, users see a full end-to-end view of the problem&quot;</em>, limited to what they may see</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Best practice:</strong> create a separate environment when the separation must be hard — different quotas, different retention, different settings, or data that must never be visible together (for example production and non-production). Use management zones when teams share one estate and need their own views of it. In community practice, services that call each other are kept in the same environment, so their traces and problems stay connected — confirm against how your applications are split.</p>
+<p><strong>On SaaS</strong>, management zones are replaced by segments and IAM policies; the MZ2POL series covers that migration. On Managed, management zones remain the access mechanism inside an environment.</p>
+<p><strong>Resource attributes in rules (Managed 1.350).</strong> Managed 1.350 makes <em>&quot;Resource attributes available as part of the topology model, management zones, and auto-tagging rules&quot;</em>: <em>&quot;You can define Monitored Entities rules and Auto-Tagging rules based on resource attributes.&quot;</em> They are <em>&quot;available for hosts, processes, process groups, containers, and container groups&quot;</em>, and you set your own <em>&quot;on monitored hosts and in Kubernetes Clusters via the dt_metadata.properties custom property file.&quot;</em> Once the cluster reaches 1.350, zone and tag rules can key on metadata set where the workload is deployed, instead of on host or process names.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/manage/identity-access-management-classic/permission-management/management-zones">Management zones (Dynatrace Classic) (DT docs)</a> — <em>&quot;Management zones may overlap, just as team responsibilities might overlap.&quot;</em>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/manage-your-monitoring-environments">Manage your monitoring environments (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-350">Managed 1.350 release notes (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="environment-limits"></a></p>
+<h2>3. Set Each Environment's Limits Deliberately</h2>
+<p>Each environment's configuration page in the CMC (<strong>Environments</strong> → the environment) holds its limits:</p>
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>Settings</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Total quotas</strong></td>
+<td>Host units, custom metrics</td>
+</tr>
+<tr>
+<td><strong>Monthly and annual quotas</strong></td>
+<td>User sessions, synthetic monitors, average daily log volume</td>
+</tr>
+<tr>
+<td><strong>Storage and retention</strong></td>
+<td>Transaction storage, mobile symbol files, service request and code-level retention, Real User Monitoring retention, synthetic retention, Session Replay retention, Log Monitoring storage and retention</td>
+</tr>
+</tbody>
+</table>
+<p>They are hard limits: <em>&quot;Once any one of these limits is consumed, the respective monitoring will no longer be available and you'll need to purchase more monitoring.&quot;</em> So set them from the cluster's capacity and the environment's purpose, not by leaving the defaults. A non-production environment rarely needs production retention.</p>
+<p><strong>Two related decisions:</strong></p>
+<ul>
+<li><strong>Synthetic monitors</strong> can be switched off when the environment is created: <em>&quot;To disable synthetic monitors, turn off Enable synthetic monitors .&quot;</em></li>
+<li><strong>Overload prevention and the ingest limit</strong> are on the same page and are covered in DTM-15 §6. Revisit them after every hardware change.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/manage-your-monitoring-environments">Manage your monitoring environments (DT docs)</a> — <em>&quot;On the configuration page, you can set the total as well as the monthly and annual quotas for your environment.&quot;</em></sub></p>
+</blockquote>
+<p><a id="identity-source"></a></p>
+<h2>4. Choose an Identity Source</h2>
+<p>The cluster can authenticate users from its internal database, an LDAP directory, or a single sign-on provider over SAML 2.0 or OpenID Connect. DTM-02 §6 covers the password policy for internal accounts. What changes when you connect a directory:</p>
+<p><strong>LDAP</strong> (<strong>User authentication &gt; User repository</strong>):</p>
+<ul>
+<li><strong>Local accounts stop working.</strong> <em>&quot;Local accounts (other than the administrator account) will stop working: it will be impossible to log in with a local account.&quot;</em></li>
+<li><strong>Encrypt the connection.</strong> <em>&quot;To enable encrypted communication with the LDAP server, select Use SSL .&quot;</em> The standard secure port is 636.</li>
+<li><strong>Use a read-only system account to bind.</strong> <em>&quot;Bind DN typically is a system user (not an actual person) used to connect to the LDAP server.&quot;</em> It <em>&quot;does not need write access&quot;</em>.</li>
+<li><strong>Groups are yours to create; users appear on sign-in.</strong> <em>&quot;Groups needs to be created manually by the admin. Users are created automatically, but only after a successful authentication attempt.&quot;</em></li>
+</ul>
+<p><strong>SAML 2.0 and OpenID Connect</strong> (<strong>User authentication &gt; Single sign-on settings</strong>):</p>
+<ul>
+<li><strong>Choose the login page.</strong> <em>Standard + SSO</em> keeps the local sign-in alongside SSO. <em>SSO</em> <em>&quot;skips the Dynatrace login page, so the user cannot sign in using a local user account&quot;</em>. Decide which local accounts you still need before choosing <em>SSO</em> (§5).</li>
+<li><strong>Map groups from the identity provider, and spell them exactly.</strong> With automatic assignment, <em>&quot;any assignments made within Dynatrace Managed are overwritten by the list of groups sent in your IdP's authentication response&quot;</em>. For SAML, <em>&quot;Make sure group names exactly match existing Dynatrace user group names (case-sensitive, no extra spaces).&quot;</em></li>
+<li><strong>Every user needs a group with an environment.</strong> <em>&quot;Each Dynatrace Managed user must be assigned to at least one user group, with at least one associated monitoring environment .&quot;</em> Without that, the user <em>&quot;can't sign in to Dynatrace Managed&quot;</em>.</li>
+<li><strong>OpenID Connect needs one redirect URI per environment, or a wildcard.</strong> <em>&quot;Configure one URI per environment or use a wildcard ( https://{dynatrace-server}/e/</em> ) to match all environment URIs.&quot;* A new environment without one can't be reached through SSO.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/managed/manage/identity-access-management/user-and-group-management/manage-users-and-groups-with-ldap">Manage users and groups via LDAP (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/manage/identity-access-management/user-and-group-management/manage-users-and-groups-with-saml">Manage users and groups with SAML in Dynatrace Managed (DT docs)</a> — <em>&quot;SAML can use either HTTP POST (preferred) or HTTP Redirect bindings.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/manage/identity-access-management/user-and-group-management/manage-users-and-groups-with-openid">Manage users and groups with OpenID in Dynatrace Managed (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="admin-account"></a></p>
+<h2>5. Protect the Installation Administrator Account</h2>
+<p>One account outlives every identity decision. <em>&quot;A default administrator account is created during Dynatrace Managed installation. This account exists regardless of the authentication type you select (internal or LDAP).&quot;</em> The LDAP page says the same: <em>&quot;The administrator account you created during installation will continue to work regardless of the selected authentication provider.&quot;</em> It <em>&quot;has cluster permissions&quot;</em>.</p>
+<p>That makes it both the way back in when the directory or identity provider fails, and a standing privileged credential. Best practice:</p>
+<ul>
+<li>Give it a long, unique password that meets the policy in DTM-02 §6, stored where your organization keeps break-glass credentials.</li>
+<li>Don't use it for day-to-day administration; sign in through your identity source instead.</li>
+<li>If you choose the <em>SSO</em> login page (§4), confirm how the administrator account would sign in during an identity-provider outage before you rely on it. The docs don't describe that path (§8).</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/manage/identity-access-management/user-and-group-management/user-groups-and-permissions">User groups, permissions, and policies (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/manage/identity-access-management/user-and-group-management/manage-users-and-groups-with-ldap">Manage users and groups via LDAP (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="permissions"></a></p>
+<h2>6. Keep Permissions Narrow</h2>
+<p>Permissions are granted to <strong>groups</strong>, at three levels.</p>
+<p><strong>Cluster permissions — keep this group small.</strong> <em>&quot;Users assigned to groups with this permission are automatically given administrator access rights for all environments.&quot;</em> They can also <em>&quot;Add new Dynatrace Server nodes&quot;</em>, <em>&quot;Upgrade Dynatrace Server&quot;</em>, <em>&quot;Manage Dynatrace Managed users and user groups&quot;</em>, and <em>&quot;Configure monitoring settings for any monitoring environment&quot;</em>.</p>
+<p><strong>Environment permissions — grant the sensitive ones narrowly.</strong> <em>View environment</em> is the base; the others add to it. Three deserve particular care:</p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>View logs</em></td>
+<td><em>&quot;Allows access to sensitive log file data in the Logs tab.&quot;</em> It also <em>&quot;bypasses any existing conditional access you may have defined in policy boundaries through the storage logs permission&quot;</em></td>
+</tr>
+<tr>
+<td><em>View sensitive request data</em></td>
+<td><em>&quot;Allows viewing of potentially personal data captured by Dynatrace , including downloading memory dumps.&quot;</em></td>
+</tr>
+<tr>
+<td><em>Replay session data without masking</em></td>
+<td>Replays recorded user sessions without playback masking</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Management-zone permissions — use them to restrict, because the environment level wins.</strong> <em>&quot;Any permission you provide at the environment level supersedes and adds to those at the management-zone level. In other words, management-zone permissions cannot be used to limit permissions already provided at the environment level.&quot;</em> So a group that should see only part of an environment gets its permissions on the zone, not on the environment. The docs recommend it directly: <em>&quot;If you wish to provide a permission to users accessing a management zone, we recommend that you use the management-zone-level permissions .&quot;</em></p>
+<p><strong>Group membership adds up.</strong> <em>&quot;Users can belong to more than one group and inherit the permissions of the groups that they belong to.&quot;</em> Review a user's effective access across all their groups, not one group at a time.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/manage/identity-access-management/user-and-group-management/user-groups-and-permissions">User groups, permissions, and policies (DT docs)</a> — <em>&quot;A group cannot be assigned if no permissions are specified for the group.&quot;</em></sub></p>
+</blockquote>
+<p><a id="iam-policies"></a></p>
+<h2>7. IAM Policies on Managed</h2>
+<p>Managed also supports IAM policies alongside the role permissions: <em>&quot;Starting with Dynatrace version 1.252+, Dynatrace supports defining user and group permissions using IAM policies alongside classic role-based access control.&quot;</em> Policies can scope a role to management zones, for example:</p>
+<pre><code class="language-text">ALLOW environment:roles:viewer WHERE environment:management-zone IN (&quot;prod&quot;);
+</code></pre>
+<p><strong>They add; they don't subtract.</strong> <em>&quot;Policies do not restrict classic role-based permissions&quot;</em>: <em>&quot;role-based permissions and security policies are additive.&quot;</em> A user who still holds an environment permission through a classic group keeps access to the whole environment, whatever their policies say. When moving a group to policies, remove its classic environment permissions in the same change, or the narrower policy has no effect.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/manage/identity-access-management-classic/permission-management/manage-user-permissions-policies/advanced/migrate-roles-classic">Upgrade role-based permissions to Dynatrace IAM policies (Dynatrace Classic) (DT docs)</a> — <em>&quot;the environment permission still grants access to a whole environment, including all management zones.&quot;</em></sub></p>
+</blockquote>
+<p><a id="doc-gaps"></a></p>
+<h2>8. What the Documentation Does Not Say</h2>
+<p><strong>Not found</strong>, in the Managed documentation read 10/21/2026:</p>
+<table>
+<thead>
+<tr>
+<th>Gap</th>
+<th>Working assumption in this notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A recommended number of environments, or criteria for splitting one</td>
+<td>Split where quotas, retention, settings or visibility must differ (§2)</td>
+</tr>
+<tr>
+<td>How the administrator account signs in when the login page is set to <em>SSO</em> and the identity provider is down</td>
+<td>Confirm the recovery path before choosing <em>SSO</em> (§5)</td>
+</tr>
+<tr>
+<td>Default values for an environment's quotas and retention</td>
+<td>Set every one deliberately (§3)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Old pages.</strong> The user-group, LDAP, SAML and OpenID pages carry publication dates from 2017 and 2018 and no later update date. The environment page was updated 10/22/2026 and the IAM policy page 10/28/2026. Check the CMC itself where a page and the console disagree.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/manage-your-monitoring-environments">Manage your monitoring environments (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/manage/identity-access-management/user-and-group-management/user-groups-and-permissions">User groups, permissions, and policies (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/manage/identity-access-management-classic/permission-management/manage-user-permissions-policies/advanced/migrate-roles-classic">Upgrade role-based permissions to Dynatrace IAM policies (Dynatrace Classic) (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="recommendation"></a></p>
+<h2>9. Recommended Approach</h2>
+<ol>
+<li><strong>Draw the environment boundaries first</strong>: separate environments where limits, retention, settings or visibility must differ; management zones for team views inside one (§2).</li>
+<li><strong>Set each environment's quotas and retention on purpose</strong>, and switch off synthetic monitors where they aren't wanted (§3).</li>
+<li><strong>Connect LDAP, SAML or OpenID Connect.</strong> Use SSL for LDAP and a read-only bind account; map groups automatically from the identity provider with exact names; give every user a group with at least one environment (§4).</li>
+<li><strong>Store the installation administrator account as a break-glass credential</strong> and keep it out of daily use (§5).</li>
+<li><strong>Keep the cluster-permission group small</strong>, grant <em>View logs</em>, <em>View sensitive request data</em> and unmasked replay narrowly, and restrict access on management zones rather than environments (§6).</li>
+<li><strong>When adopting IAM policies, remove the classic environment permissions they replace</strong> in the same change (§7).</li>
+<li><strong>Review effective access per user</strong> across all groups at least once a quarter (community practice).</li>
+</ol>
+<p><a id="summary"></a></p>
+<h2>10. Summary and Next Steps</h2>
+<p>Environments are the hard boundary in a Managed cluster: their own limits, retention and settings. Management zones are the soft one, for team views inside an environment. Access comes from groups at three levels, and the broadest level always wins, so restriction has to be granted at the narrowest level and classic permissions have to go when policies replace them.</p>
+<p><strong>Next in the series:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Covers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DTM-02: Cluster Configuration Best Practices</td>
+<td>Password, session and sign-out policy</td>
+</tr>
+<tr>
+<td>DTM-15: Capacity and Scaling</td>
+<td>Environment quotas, overload prevention and the ingest limit</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Series map:</strong> DTM-00: The Dynatrace Managed Journey routes every notebook in this series.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/managed">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

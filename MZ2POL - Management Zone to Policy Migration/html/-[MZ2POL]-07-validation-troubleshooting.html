@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MZ2POL-07: Validation and Troubleshooting</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MZ2POL — Management Zone Migration: Segments, Policies, Workflows</a><span class="sep">/</span><span aria-current="page">MZ2POL-07</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MZ2POL-07: Validation and Troubleshooting</h1>
+<blockquote>
+<p><strong>Series:</strong> MZ2POL — Management Zone Migration: Segments, Policies, Workflows | <strong>Notebook:</strong> 8 of 17 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 10/14/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook provides comprehensive validation procedures and troubleshooting guidance for your migration from Management Zones to Policies, Boundaries, and Segments. Use this guide to verify your migration success and resolve common issues.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#migration-validation-checklist">Migration Validation Checklist</a></li>
+<li><a href="#security-context-validation">Security Context Validation</a></li>
+<li><a href="#access-control-validation">Access Control Validation</a></li>
+<li><a href="#segment-validation">Segment Validation</a></li>
+<li><a href="#common-issues-and-troubleshooting">Common Issues and Troubleshooting</a></li>
+<li><a href="#diagnostic-queries">Diagnostic Queries</a></li>
+<li><a href="#ongoing-maintenance">Ongoing Maintenance</a></li>
+<li><a href="#health-monitoring-queries">Health Monitoring Queries</a></li>
+<li><a href="#best-practices-summary">Best Practices Summary</a></li>
+<li><a href="#migration-complete">Migration Complete!</a></li>
+<li><a href="#additional-resources">Additional Resources</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>Completed migration (MZ2POL-06), including the tag readiness gate (MZ2POL-10 §9–§10) and, if zones scoped alerting, the workflow cutover (MZ2POL-09)</li>
+<li>Admin access to Dynatrace — to confirm data exists, never to judge access</li>
+<li>Pilot user accounts for validation, one per persona (MZ2POL-12 §7)</li>
+</ul>
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ol>
+<li>Be able to validate migration completeness</li>
+<li>Know how to troubleshoot common access issues</li>
+<li>Understand ongoing maintenance requirements</li>
+<li>Have queries for monitoring access health</li>
+</ol>
+<hr />
+<p><a id="migration-validation-checklist"></a></p>
+<h2>1. Migration Validation Checklist</h2>
+<h3>Component Validation</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Validation</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>User Groups</td>
+<td>All groups created and populated</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>Policies</td>
+<td>Policies bound to all groups</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>Boundaries</td>
+<td>Boundaries applied where needed</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>Tag readiness</td>
+<td>MZ2POL-10 readiness gate passed</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>Security Context</td>
+<td>Records (logs, spans, events) carry it at the agreed coverage — measured per table, not on entities (§2)</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>Segments</td>
+<td>Segments created for all filtering needs</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>Dashboards</td>
+<td>Updated to use segments</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>Alerts</td>
+<td>Zone-scoped alerting profiles rebuilt as problem-triggered workflows; alert parity confirmed by the receiving teams (MZ2POL-09) — segments do not scope alerting</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<h3>Access Validation Matrix</h3>
+<p>For each user type, verify:</p>
+<table>
+<thead>
+<tr>
+<th>User Type</th>
+<th>Can Access</th>
+<th>Cannot Access</th>
+<th>Verified</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Frontend Dev</td>
+<td>Frontend services</td>
+<td>Backend services</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>SRE</td>
+<td>All production</td>
+<td>Development</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>Viewer</td>
+<td>View dashboards</td>
+<td>Edit settings</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="security-context-validation"></a></p>
+<h2>2. Security Context Validation</h2>
+<h3>Check Coverage on Records, Not Entities</h3>
+<p>Measure security context on the <strong>data</strong> — logs, spans, events — the same way as MZ2POL-06 §3 and MZ2POL-12 §10. Entity coverage proves nothing: the classic <em>Grail Security Context</em> mapping can copy zone names onto entities, and the records those entities send <em>&quot;do not inherit the management zones of that entity.&quot;</em> On the validation tenant on 10/13/2026, all 35 services and all 24 hosts carried a security context, while 41.1% of logs and 75.3% of events in the same hour carried none.</p>
+<p><code>dt.security_context</code> is an <strong>array</strong> on classic entities, Smartscape nodes, events and problem records alike, and a string on logs and spans on the validation tenant. Count events with <code>arraySize()</code>, not <code>isNull()</code>; check the type per table with MZ2POL-12 §10 Check 1.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context">Grant access to entities with security context (DT docs)</a> — <em>&quot;Logs, spans, metrics, and events powered by Grail that are sent from an entity do not inherit the management zones of that entity.&quot;</em> Counts executed against the validation tenant, 10/13/2026.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Validate: security-context coverage on the DATA, per table (same pattern as MZ2POL-06 §3).
+// Records without it are invisible to users scoped only by dt.security_context.
+// Executed 10/13/2026: logs 58.9% / spans 100% / events 24.7% covered (last hour).
+fetch logs, from:-1h
+| summarize {records = count(), without_sc = countIf(isNull(dt.security_context))}
+| fieldsAdd table = &quot;logs&quot;
+| append [fetch spans, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context))} | fieldsAdd table = &quot;spans&quot;]
+| append [fetch events, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context) or arraySize(dt.security_context) == 0)} | fieldsAdd table = &quot;events&quot;]
+| fieldsAdd coverage_pct = round(100.0 * (records - without_sc) / records, decimals: 1)
+| fields table, records, without_sc, coverage_pct
+</code></pre>
+<pre><code class="language-dql">// Find the PRODUCERS whose records lack a security context.
+// Fix these at the source (MZ2POL-10 §5) — not on the entity.
+// Executed 10/13/2026: the top rows were Kubernetes namespaces (log collectors, platform namespaces).
+fetch logs, from:-1h
+| filter isNull(dt.security_context)
+| summarize {records = count()}, by:{dt.entity.host, k8s.namespace.name}
+| sort records desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Validate: event coverage per event kind. dt.security_context is an ARRAY on events.
+// Executed 10/13/2026 over 24 h: DAVIS_EVENT 79.1%, DAVIS_PROBLEM 77.7%, FLEET_EVENT 77.5%,
+// SYNTHETIC_EVENT 14.6% without a security context.
+fetch events, from:-24h
+| summarize {records = count(),
+             without_sc = countIf(isNull(dt.security_context) or arraySize(dt.security_context) == 0)},
+  by:{event.kind}
+| fieldsAdd without_pct = round(100.0 * without_sc / records, decimals: 1)
+| sort without_sc desc
+</code></pre>
+<h3>Verify Security Context Distribution</h3>
+<pre><code class="language-dql">// Distribution of security-context values on the DATA.
+// Verify expected teams/environments are represented — and nothing unexpected.
+// On logs the field is a string on the validation tenant; for events, expand the array first.
+fetch logs, from:-1h
+| filter isNotNull(dt.security_context)
+| summarize {records = count()}, by:{dt.security_context}
+| sort records desc
+| limit 20
+</code></pre>
+<hr />
+<p><a id="access-control-validation"></a></p>
+<h2>3. Access Control Validation</h2>
+<h3>Test User Access Scenarios</h3>
+<p>Test <strong>permissions</strong>, not views. A segment narrows what a query returns whether or not the user is allowed to see more, so a scenario that selects a segment and then sees &quot;only frontend services&quot; proves nothing about access. Run every scenario <strong>with no segment selected</strong>, signed in as a <strong>pilot user</strong> who holds only the persona's groups — never an admin, whose grants hide boundary problems (§5, step 5).</p>
+<p>For each test scenario:</p>
+<ol>
+<li>Resolve the pilot user's effective permissions first (MZ2POL-12 §10) — look for any <code>storage:*:read</code> without a condition</li>
+<li>Sign in as the pilot user, with no segment selected</li>
+<li>Run the same DQL query the persona will use, and an equivalent query for data outside its scope</li>
+<li>Document results, including record counts</li>
+</ol>
+<h3>Scenario 1: Team-Based Access</h3>
+<p><strong>Test User</strong>: Pilot user holding only the <code>frontend-team</code> group
+<strong>Expected</strong>: Records carrying the frontend security context only</p>
+<p><strong>Validation Steps</strong>:</p>
+<ol>
+<li>With no segment selected, run <code>fetch logs, from:-1h | summarize {records = count()}, by:{dt.security_context}</code> → only the frontend value(s) should appear</li>
+<li>Open the Services app with no segment selected → only frontend services visible</li>
+<li>Open a backend service directly by link → should fail or show no data</li>
+<li>Compare the record count with an admin run of the same query filtered to the frontend value — they should match; a lower count means records without the field (§2)</li>
+</ol>
+<h3>Scenario 2: Environment Restriction</h3>
+<p><strong>Test User</strong>: Pilot user holding only the <code>prod-viewers</code> group
+<strong>Expected</strong>: Production data only, no edit</p>
+<p><strong>Validation Steps</strong>:</p>
+<ol>
+<li>With no segment selected, query logs → only production security-context values appear</li>
+<li>Query for a non-production value explicitly (<code>filter dt.security_context == &quot;&lt;non-prod value&gt;&quot;</code>) → zero records; confirm with an admin that such records exist, so the zero is the boundary and not an empty table</li>
+<li>Try editing settings → should fail</li>
+<li>Only then select the &quot;Production&quot; segment and confirm it changes the <strong>view</strong>, not the access — the results should be a subset of step 1</li>
+</ol>
+<h3>Scenario 3: Full Access (SRE)</h3>
+<p><strong>Test User</strong>: Pilot user holding only the <code>sre-team</code> group
+<strong>Expected</strong>: Full access to production environment</p>
+<p><strong>Validation Steps</strong>:</p>
+<ol>
+<li>Open any app with no segment selected</li>
+<li>Verify data visible across all services, including records <strong>without</strong> a security context (an unscoped grant is the only way to see those)</li>
+<li>Verify edit capabilities work</li>
+<li>Verify settings access</li>
+</ol>
+<hr />
+<p><a id="segment-validation"></a></p>
+<h2>4. Segment Validation</h2>
+<h3>Verify Segment Data Match</h3>
+<p>Compare segment results with expected MZ results:</p>
+<pre><code class="language-dql">// Compare: MZ entity count vs Segment entity count
+// Replace with your MZ name and segment filter
+fetch dt.entity.service
+| summarize 
+    viaMZ = countIf(in(managementZones, {&quot;Frontend-Team&quot;})),
+    viaSegment = countIf(matchesValue(tags, &quot;team:frontend&quot;))
+| fields viaMZ, viaSegment,
+         match = if(viaMZ == viaSegment, then: &quot;MATCH&quot;, else: &quot;MISMATCH&quot;)
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
+//   - on Smartscape nodes `tags` is a record read as tags[&lt;key&gt;], and it carries no classic
+//     auto-tags (MZ2POL-10 §2) — this check reads the classic tag array on purpose.
+</code></pre>
+<pre><code class="language-dql">// Find entities in MZ but not matching segment filter
+// These are migration gaps
+fetch dt.entity.service
+| filter in(managementZones, {&quot;Frontend-Team&quot;})
+| filter NOT matchesValue(tags, &quot;team:frontend&quot;)
+| fields entity.name, tags, managementZones
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
+//   - on Smartscape nodes `tags` is a record read as tags[&lt;key&gt;], and it carries no classic
+//     auto-tags (MZ2POL-10 §2) — this check reads the classic tag array on purpose.
+</code></pre>
+<pre><code class="language-dql">// Find entities matching segment but not in MZ
+// May indicate over-inclusion in new model
+fetch dt.entity.service
+| filter matchesValue(tags, &quot;team:frontend&quot;)
+| filter NOT in(managementZones, {&quot;Frontend-Team&quot;})
+| fields entity.name, tags, managementZones
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
+//   - on Smartscape nodes `tags` is a record read as tags[&lt;key&gt;], and it carries no classic
+//     auto-tags (MZ2POL-10 §2) — this check reads the classic tag array on purpose.
+</code></pre>
+<hr />
+<p><a id="common-issues-and-troubleshooting"></a></p>
+<h2>5. Common Issues and Troubleshooting</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+QWNjZXNzIFRyb3VibGVzaG9vdGluZyBBZnRlciB0aGUgTWlncmF0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIuNSI+U3RhcnQgZnJvbSB0aGUgc3ltcHRvbTsgbW9zdCBjYXVzZXMgYXJlIGEgbWlzc2luZyBmaWVsZCBvbiB0aGUgZGF0YSBvciBhIGdyYW50IGZyb20gc29tZXdoZXJlIGVsc2U8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9Ijc2IiB3aWR0aD0iMjg1IiBoZWlnaHQ9IjE5NiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzMCIgeT0iOTUiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+U2VlcyBub3RoaW5nPC90ZXh0PgogIDx0ZXh0IHg9IjMwIiB5PSIxMTIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIEJ1Y2tldCBwZXJtaXNzaW9uIG1pc3Npbmcg4oCUPC90ZXh0PgogIDx0ZXh0IHg9IjMwIiB5PSIxMzYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+ICAgdGFibGUgKyBidWNrZXQgYm90aCBuZWVkZWQ8L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjE2MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgUmVjb3JkcyBsYWNrIGR0LnNlY3VyaXR5X2NvbnRleHQ8L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjE4NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgPSAvIElOIG9uIGFuIGFycmF5IGZpZWxkIChldmVudHMpPC90ZXh0PgogIDx0ZXh0IHg9IjMwIiB5PSIyMDgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIEJvdW5kYXJ5IHZhbHVlIHNwZWxsZWQgZGlmZmVyZW50bHk8L3RleHQ+CiAgPHJlY3QgeD0iMzIyIiB5PSI3NiIgd2lkdGg9IjI4NSIgaGVpZ2h0PSIxOTYiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzMyIiB5PSI5NSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5TZWVzIHRvbyBtdWNoPC90ZXh0PgogIDx0ZXh0IHg9IjMzMiIgeT0iMTEyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBVbnNjb3BlZCBkYXRhIHBvbGljeSBpbiBhbm90aGVyPC90ZXh0PgogIDx0ZXh0IHg9IjMzMiIgeT0iMTM2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPiAgIG9mIHRoZSB1c2VyJ3MgZ3JvdXBzPC90ZXh0PgogIDx0ZXh0IHg9IjMzMiIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBab25lLW9ubHkgYm91bmRhcnkgb24gYSBkZWZhdWx0PC90ZXh0PgogIDx0ZXh0IHg9IjMzMiIgeT0iMTg0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPiAgIHBvbGljeSAoR3JhaWwgdW5zY29wZWQpPC90ZXh0PgogIDx0ZXh0IHg9IjMzMiIgeT0iMjA4IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBTZWNvbmQgYm91bmRhcnkgbGVha2luZyBhIHBlcm1pc3Npb248L3RleHQ+CiAgPHJlY3QgeD0iNjI0IiB5PSI3NiIgd2lkdGg9IjI4NSIgaGVpZ2h0PSIxOTYiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNjM0IiB5PSI5NSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5DbGFzc2ljIE9LLCBHcmFpbCB3cm9uZzwvdGV4dD4KICA8dGV4dCB4PSI2MzQiIHk9IjExMiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgQm91bmRhcnkgaGFzIG9ubHkgdGhlIHpvbmUgbGluZTwvdGV4dD4KICA8dGV4dCB4PSI2MzQiIHk9IjEzNiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgRGF0YSBuZXZlciBnb3QgdGhlIGZpZWxkIOKAlDwvdGV4dD4KICA8dGV4dCB4PSI2MzQiIHk9IjE2MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4gICBhdXRvLXRhZ3MgZG9uJ3QgcmVhY2ggR3JhaWw8L3RleHQ+CiAgPHRleHQgeD0iNjM0IiB5PSIxODQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIEVudGl0aWVzOiBvbmx5IGR0LnNlY3VyaXR5X2NvbnRleHQ8L3RleHQ+CiAgPHRleHQgeD0iNjM0IiB5PSIyMDgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+ICAgc2NvcGVzIHN0b3JhZ2U6ZW50aXRpZXM6cmVhZDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+U3lzdGVtYXRpYyBzdGVwczwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iMzE0IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjY0IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjMyIiB5PSIzNDAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MSDCtyBFZmZlY3RpdmU8L3RleHQ+CiAgPHRleHQgeD0iMzIiIHk9IjM2MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5wZXJtaXNzaW9ucyBBUEk8L3RleHQ+CiAgPHJlY3QgeD0iMjAwIiB5PSIzMTQiIHdpZHRoPSIxNzAiIGhlaWdodD0iNjQiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMjEyIiB5PSIzNDAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MiDCtyBMaXN0IGV2ZXJ5PC90ZXh0PgogIDx0ZXh0IHg9IjIxMiIgeT0iMzYwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmJpbmRpbmcgKyBncm91cDwvdGV4dD4KICA8cmVjdCB4PSIzODAiIHk9IjMxNCIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI2NCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzOTIiIHk9IjM0MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4zIMK3IEVhY2ggYm91bmRhcnk6PC90ZXh0PgogIDx0ZXh0IHg9IjM5MiIgeT0iMzYwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmV2ZXJ5IGRvbWFpbj88L3RleHQ+CiAgPHJlY3QgeD0iNTYwIiB5PSIzMTQiIHdpZHRoPSIxNzAiIGhlaWdodD0iNjQiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTcyIiB5PSIzNDAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+NCDCtyBSZWNvcmQgZmllbGQ8L3RleHQ+CiAgPHRleHQgeD0iNTcyIiB5PSIzNjAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+cHJlc2VudCwgd2hpY2ggdHlwZT88L3RleHQ+CiAgPHJlY3QgeD0iNzQwIiB5PSIzMTQiIHdpZHRoPSIxNzAiIGhlaWdodD0iNjQiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNzUyIiB5PSIzNDAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+NSDCtyBSZXRlc3QgYXM8L3RleHQ+CiAgPHRleHQgeD0iNzUyIiB5PSIzNjAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+cGlsb3QgdXNlcjwvdGV4dD4KICA8bGluZSB4MT0iMTkwIiB5MT0iMzQ2IiB4Mj0iMTk5IiB5Mj0iMzQ2IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogIDxsaW5lIHgxPSIzNzAiIHkxPSIzNDYiIHgyPSIzNzkiIHkyPSIzNDYiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgPGxpbmUgeDE9IjU1MCIgeTE9IjM0NiIgeDI9IjU1OSIgeTI9IjM0NiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICA8bGluZSB4MT0iNzMwIiB5MT0iMzQ2IiB4Mj0iNzM5IiB5Mj0iMzQ2IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogIDxyZWN0IHg9IjIwIiB5PSIzOTYiIHdpZHRoPSI4OTAiIGhlaWdodD0iODIiIHJ4PSI3IiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iMjAiIHk9IjM5NiIgd2lkdGg9Ijg5MCIgaGVpZ2h0PSI4MiIgcng9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzNiIgeT0iNDIwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTIuNSIgZm9udC13ZWlnaHQ9IjcwMCI+VGVzdCB3aXRoIGEgcGlsb3QgdXNlciwgbmV2ZXIgYW4gYWRtaW48L3RleHQ+CiAgPHRleHQgeD0iMzYiIHk9IjQ0MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5BbiBhZG1pbiBob2xkcyB1bnNjb3BlZCBncmFudHMgdGhhdCBoaWRlIGV2ZXJ5IGJvdW5kYXJ5IHByb2JsZW0uIE1aMlBPTC0xMiDCpzEwIGhhcyB0aGUgQVBJIGNhbGwgYW5kIHRoZSBEUUw8L3RleHQ+CiAgPHRleHQgeD0iMzYiIHk9IjQ1OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5jaGVja3MgZm9yIGFycmF5LXR5cGVkIGFuZCBtaXNzaW5nIHNlY3VyaXR5IGNvbnRleHRzLjwvdGV4dD4KPC9zdmc+Cg==" alt="Access troubleshooting after the migration" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Symptom | Likely causes |
+|---|---|
+| Sees nothing | Bucket permission missing (table + bucket both needed); records lack dt.security_context; = / IN on an array field (events); boundary value spelled differently |
+| Sees too much | Unscoped data policy in another of the user's groups; zone-only boundary on a default policy (Grail unscoped); second boundary leaking a permission |
+| Classic OK, Grail wrong | Boundary has only the zone line; data never got the field (auto-tags don't reach Grail); entities are scoped only by dt.security_context |
+| Steps | 1 effective-permissions API → 2 list every binding and group → 3 each boundary covers every domain? → 4 record field present, which type? → 5 retest as a pilot user (never an admin) |
+For environments where SVG doesn't render
+-->
+<h3>Issue 1: User Can't See Any Data</h3>
+<p><strong>Symptoms</strong>:</p>
+<ul>
+<li>Apps show empty results</li>
+<li>DQL queries return no records</li>
+</ul>
+<p><strong>Troubleshooting</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Group membership</td>
+<td>Verify user is in correct group</td>
+</tr>
+<tr>
+<td>Policy binding</td>
+<td>Verify group has policy bound</td>
+</tr>
+<tr>
+<td>Boundary scope</td>
+<td>Verify boundary isn't too restrictive</td>
+</tr>
+<tr>
+<td>Data policy</td>
+<td>Verify a data-read policy (<code>Read Logs</code> / <code>All Grail data read access</code>) is included</td>
+</tr>
+<tr>
+<td>Segment selection</td>
+<td>Check if restrictive segment is active</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Resolution Steps</strong>:</p>
+<ol>
+<li>Check user's group membership in Account Management</li>
+<li>Verify group has appropriate policy binding</li>
+<li>Review boundary conditions</li>
+<li>Test with admin account to verify data exists</li>
+</ol>
+<h3>Issue 2: User Sees Too Much Data</h3>
+<p><strong>Symptoms</strong>:</p>
+<ul>
+<li>User sees data outside their scope</li>
+<li>Cross-team data visible</li>
+</ul>
+<p><strong>Troubleshooting</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Boundary conditions</td>
+<td>Verify boundary is correctly restrictive</td>
+</tr>
+<tr>
+<td>Multiple group membership</td>
+<td>User may be in multiple groups</td>
+</tr>
+<tr>
+<td>Security context</td>
+<td>Verify the <strong>records</strong> carry the correct value (§2) — entity contexts may be copied from zone names</td>
+</tr>
+<tr>
+<td>Policy conditions</td>
+<td>Check for overly broad conditions</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Resolution Steps</strong>:</p>
+<ol>
+<li>Review all groups user belongs to</li>
+<li>Check all policy bindings for those groups</li>
+<li>Verify boundary conditions are correct</li>
+<li>Check the security-context values on the visible records (§2, distribution query)</li>
+</ol>
+<h3>Issue 3: Segment Filter Not Working</h3>
+<p><strong>Symptoms</strong>:</p>
+<ul>
+<li>Segment selected but data not filtered</li>
+<li>Same data visible with/without segment</li>
+</ul>
+<p><strong>Troubleshooting</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Segment syntax</td>
+<td>Verify DQL filter is correct</td>
+</tr>
+<tr>
+<td>Tag existence</td>
+<td>Verify entities have expected tags</td>
+</tr>
+<tr>
+<td>App support</td>
+<td>Verify app supports segments</td>
+</tr>
+<tr>
+<td>Segment sharing</td>
+<td>Verify segment is shared with user</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Resolution Steps</strong>:</p>
+<ol>
+<li>Test segment filter as standalone DQL query</li>
+<li>Verify tags exist on target entities</li>
+<li>Check segment is shared/public</li>
+<li>Try segment in different app</li>
+</ol>
+<h3>Issue 4: Classic Apps Work, New Apps Don't</h3>
+<p><strong>Symptoms</strong>:</p>
+<ul>
+<li>Legacy UI shows expected data</li>
+<li>New apps (Services, Logs) show no/wrong data</li>
+</ul>
+<p><strong>Causes</strong> (the diagram's <em>Classic OK, Grail wrong</em> row; MZ2POL-12 §4):</p>
+<ul>
+<li><strong>The boundary has only the zone line.</strong> It scopes classic pages; the Grail permissions bound with it get no condition from it. On a default policy they come out <strong>unscoped</strong> (MZ2POL-12 §4.2), so the Grail app shows the team more than the classic page did</li>
+<li><strong>The data lacks the field.</strong> Records the team needs carry no <code>dt.security_context</code> value it is granted — typically because the value lived in an auto-tag or a zone, neither of which reaches Grail records (§2, MZ2POL-10 §2)</li>
+<li><strong>Entities are scoped only by <code>dt.security_context</code>.</strong> <code>storage:entities:read</code> accepts <code>dt.security_context</code> and <code>entity.type</code>; zone membership does not scope entity reads in Grail apps, so an entity whose context is missing or zone-derived behaves differently from the classic page</li>
+</ul>
+<p><strong>Resolution</strong>:</p>
+<ol>
+<li>Resolve the user's effective permissions (MZ2POL-12 §10) and confirm the boundary has a <code>storage:</code> line as well as the zone line</li>
+<li>Run the §2 record-coverage queries for the team's producers; set the value at the source (MZ2POL-10 §5)</li>
+<li>Retest as the pilot user with <strong>no segment selected</strong> — a segment changes the view, never the access, so it cannot fix this</li>
+</ol>
+<hr />
+<p><a id="diagnostic-queries"></a></p>
+<h2>6. Diagnostic Queries</h2>
+<h3>Check Entity Tag Distribution</h3>
+<pre><code class="language-dql">// Analyze tag patterns for segment creation
+fetch dt.entity.service
+| expand tag = tags
+| filter contains(tag, &quot;:&quot;)   // key-less tags (no ':') would otherwise form a null key row
+| parse tag, &quot;LD:key ':' LD:value&quot;
+| summarize count = count(), by:{key}
+| sort count desc
+| limit 20
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - on Smartscape nodes `tags` is a record read as tags[&lt;key&gt;], and it carries no classic
+//     auto-tags (MZ2POL-10 §2) — this check reads the classic tag array on purpose.
+</code></pre>
+<pre><code class="language-dql">// Find entities without standard tags
+// These may need tagging for segment filters
+fetch dt.entity.service
+| filter NOT matchesValue(tags, &quot;team:*&quot;)
+| filter NOT matchesValue(tags, &quot;env:*&quot;)
+| fields entity.name, tags
+| limit 50
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - on Smartscape nodes `tags` is a record read as tags[&lt;key&gt;], and it carries no classic
+//     auto-tags (MZ2POL-10 §2) — this check reads the classic tag array on purpose.
+</code></pre>
+<h3>Check MZ Assignment Health</h3>
+<pre><code class="language-dql">// Entities with MZ but no security context.
+// dt.security_context is an ARRAY on classic entities (and on Smartscape nodes): test arraySize(), not isNull().
+// A pass here proves little — an MZ-derived context counts as present (MZ2POL-12 §10, Check 3).
+// Executed 10/13/2026: 0 rows; control: all 35 services carry a one-element array.
+fetch dt.entity.service
+| filter arraySize(managementZones) &gt; 0
+| filter isNull(dt.security_context) or arraySize(dt.security_context) == 0
+| fields entity.name, managementZones, tags
+| limit 50
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
+</code></pre>
+<pre><code class="language-dql">// MZ to tag alignment check
+// Verify MZ membership aligns with tags used in segments
+fetch dt.entity.service
+| expand mz = managementZones
+| summarize {
+    entityCount = count(),
+    withTeamTag = countIf(matchesValue(tags, &quot;team:*&quot;)),
+    withEnvTag = countIf(matchesValue(tags, &quot;env:*&quot;))
+  }, by:{mz}
+| sort entityCount desc
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
+//   - on Smartscape nodes `tags` is a record read as tags[&lt;key&gt;], and it carries no classic
+//     auto-tags (MZ2POL-10 §2) — this check reads the classic tag array on purpose.
+</code></pre>
+<hr />
+<p><a id="ongoing-maintenance"></a></p>
+<h2>7. Ongoing Maintenance</h2>
+<h3>Regular Validation Tasks</h3>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>Frequency</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Security context audit</td>
+<td>Weekly</td>
+<td>Ensure new producers' records carry it (§2)</td>
+</tr>
+<tr>
+<td>Segment effectiveness</td>
+<td>Monthly</td>
+<td>Verify segments return expected data</td>
+</tr>
+<tr>
+<td>Access review</td>
+<td>Quarterly</td>
+<td>Verify user access is appropriate</td>
+</tr>
+<tr>
+<td>Policy review</td>
+<td>Quarterly</td>
+<td>Ensure policies match requirements</td>
+</tr>
+</tbody>
+</table>
+<h3>New Entity Onboarding</h3>
+<p>When new services/hosts are deployed:</p>
+<ol>
+<li><strong>Enrichment at source</strong>: Ensure the deployment sets the team and environment values — <code>--set-host-tag</code>, <code>DT_TAGS</code>, Kubernetes annotations, OTel resource attributes or the central ingest enrichment configuration (MZ2POL-10 §5). Auto-tagging rules do not reach Grail data</li>
+<li><strong>Security context</strong>: Verify the new producer's <strong>records</strong> carry it (§2)</li>
+<li><strong>Segment inclusion</strong>: Verify entity appears in appropriate segments</li>
+<li><strong>Access verification</strong>: Test user access to new entity</li>
+</ol>
+<h3>New User Onboarding</h3>
+<p>When new users join:</p>
+<ol>
+<li>Add user to appropriate group(s)</li>
+<li>Communicate available segments</li>
+<li>Provide access documentation</li>
+<li>Verify access works as expected</li>
+</ol>
+<hr />
+<p><a id="health-monitoring-queries"></a></p>
+<h2>8. Health Monitoring Queries</h2>
+<h3>Create Monitoring Dashboard</h3>
+<p>Use these queries for an access health dashboard:</p>
+<pre><code class="language-dql">// KPI: security-context coverage on the DATA, per table (one bar per table).
+// Same pattern as §2 and MZ2POL-06 §3.
+fetch logs, from:-1h
+| summarize {records = count(), without_sc = countIf(isNull(dt.security_context))}
+| fieldsAdd table = &quot;logs&quot;
+| append [fetch spans, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context))} | fieldsAdd table = &quot;spans&quot;]
+| append [fetch events, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context) or arraySize(dt.security_context) == 0)} | fieldsAdd table = &quot;events&quot;]
+| fieldsAdd coverage_pct = round(100.0 * (records - without_sc) / records, decimals: 1)
+| fields table, coverage_pct
+</code></pre>
+<pre><code class="language-dql">// KPI: log records per security-context value.
+// Monitor for unexpected growth/decline, and for values no boundary grants.
+fetch logs, from:-1h
+| filter isNotNull(dt.security_context)
+| summarize {records = count()}, by:{dt.security_context}
+| sort records desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// KPI: log records no scope can reach — no security context, no team tag,
+// and no built-in field a boundary or segment could use (migration gaps).
+// Executed 10/13/2026: 15,432 of 796,892 log records (1.9%) in the last hour.
+fetch logs, from:-1h
+| summarize {records = count(),
+             no_scope = countIf(isNull(dt.security_context) and isNull(primary_tags.team)
+                                and isNull(k8s.namespace.name) and isNull(dt.host_group.id))}
+| fieldsAdd no_scope_pct = round(100.0 * no_scope / records, decimals: 1)
+</code></pre>
+<hr />
+<p><a id="best-practices-summary"></a></p>
+<h2>9. Best Practices Summary</h2>
+<h3>Access Control</h3>
+<ul>
+<li>✅ Use groups, not individual user permissions</li>
+<li>✅ Apply least privilege principle</li>
+<li>✅ Document all policy bindings</li>
+<li>✅ Regular access reviews</li>
+</ul>
+<h3>Segments</h3>
+<ul>
+<li>✅ Align with organizational structure</li>
+<li>✅ Use consistent naming conventions</li>
+<li>✅ Test filters before deployment</li>
+<li>✅ Share segments appropriately</li>
+</ul>
+<h3>Boundaries</h3>
+<ul>
+<li>✅ Create reusable boundaries</li>
+<li>✅ Use security context for entity-level control</li>
+<li>✅ Document boundary purpose</li>
+<li>✅ Keep conditions simple</li>
+</ul>
+<h3>Maintenance</h3>
+<ul>
+<li>✅ Automate security context assignment</li>
+<li>✅ Monitor access health metrics</li>
+<li>✅ Review and update documentation</li>
+<li>✅ Train new team members</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ol>
+<li><strong>Validation procedures</strong>: How to verify migration success</li>
+<li><strong>Troubleshooting</strong>: Common issues and resolutions</li>
+<li><strong>Diagnostic queries</strong>: DQL for investigating access problems</li>
+<li><strong>Ongoing maintenance</strong>: Regular tasks for access health</li>
+<li><strong>Health monitoring</strong>: Queries for access dashboards</li>
+</ol>
+<p><a id="migration-complete"></a></p>
+<h2>Migration Complete!</h2>
+<p>Congratulations on completing the MZ2POL migration series. You have:</p>
+<ul>
+<li>✅ Understood why migration is necessary (MZ2POL-01)</li>
+<li>✅ Learned the new access control model (MZ2POL-02)</li>
+<li>✅ Assessed and planned your migration (MZ2POL-03)</li>
+<li>✅ Configured policies and boundaries (MZ2POL-04)</li>
+<li>✅ Implemented segments (MZ2POL-05)</li>
+<li>✅ Executed the migration (MZ2POL-06)</li>
+<li>✅ Validated and can troubleshoot (MZ2POL-07)</li>
+<li>✅ Templated policies for scale (MZ2POL-08)</li>
+<li>✅ Rebuilt zone-scoped alerting as problem-triggered workflows (MZ2POL-09)</li>
+<li>✅ Put the context on the data and passed the readiness gate (MZ2POL-10)</li>
+<li>✅ Translated zone rules to values at the source (MZ2POL-11)</li>
+<li>✅ Checked the access design against the IAM reference architecture (MZ2POL-12)</li>
+<li>✅ Know what is and is not documented about Spaces (MZ2POL-13)</li>
+<li>✅ Ran the zone-disposition workshop (MZ2POL-14)</li>
+</ul>
+<p><a id="additional-resources"></a></p>
+<h2>Additional Resources</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/access-concepts">Access Management Concepts</a></li>
+<li><a href="https://community.dynatrace.com/t/boundaries-policies-best-practices-advice/53107">Dynatrace Community - Boundaries + Policies Best Practices</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-queries">Segments Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM Policy Reference</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating">Policy Templating</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

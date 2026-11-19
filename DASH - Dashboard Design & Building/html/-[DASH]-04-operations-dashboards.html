@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DASH-04: Operations Dashboards</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DASH — Dashboard Design &amp; Building</a><span class="sep">/</span><span aria-current="page">DASH-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DASH-04: Operations Dashboards</h1>
+<blockquote>
+<p><strong>Series:</strong> DASH — Dashboard Design &amp; Building | <strong>Notebook:</strong> 4 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/25/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Operations dashboards serve as the real-time control panel for SREs, platform engineers, and NOC teams. Unlike executive dashboards that summarize weekly trends, operations dashboards focus on what is happening right now — service response times, error rates, log volume anomalies, active problems, and infrastructure health. This notebook covers tile selection, query patterns for real-time monitoring, and layout strategies for operations-tier dashboards.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#service-response-time">Service Response Time Monitoring</a></li>
+<li><a href="#error-rate-by-service">Error Rate by Service</a></li>
+<li><a href="#log-volume-tracking">Log Volume and Anomaly Tracking</a></li>
+<li><a href="#active-problems">Active Problems and Alerts</a></li>
+<li><a href="#infrastructure-health">Infrastructure Health</a></li>
+<li><a href="#deployment-correlation">Deployment Correlation</a></li>
+<li><a href="#ops-layout">Operations Dashboard Layout</a></li>
+<li><a href="#summary-and-next-steps">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS with Grail — the Dashboards app and DQL are not available on Dynatrace Managed, which keeps classic dashboards</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:logs:read</code>, <code>storage:metrics:read</code>, <code>storage:events:read</code>, <code>storage:spans:read</code></td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>Active services with span data, log ingestion, host metrics</td>
+</tr>
+<tr>
+<td><strong>Prior Reading</strong></td>
+<td>DASH-01, DASH-02</td>
+</tr>
+</tbody>
+</table>
+<p><a id="service-response-time"></a></p>
+<h2>1. Service Response Time Monitoring</h2>
+<p>Response time is the most watched metric on an operations dashboard. Show it as a timeseries line chart with p50, p90, and p95 lines for context.</p>
+<h3>Response Time Trend (All Services)</h3>
+<pre><code class="language-dql">// Service response time trend — p50, p90, p95 over last 2 hours
+//
+// Corrected 08/12/2026: `makeTimeseries` takes a BARE aggregation — dividing inside it
+// (`percentile(duration, 50) / 1ms`) fails with &quot;the parameter has to be an expression-based
+// timeseries aggregation&quot;. Aggregate first, convert afterwards in `fieldsAdd`. Note the unit
+// conversion also changes: makeTimeseries yields a numeric array in NANOSECONDS, not a duration,
+// so `/ 1ms` silently yields null on the array — divide by 1000000.0 instead.
+fetch spans, from:-2h
+| filter span.kind == &quot;server&quot;
+| makeTimeseries {p50 = percentile(duration, 50), p90 = percentile(duration, 90), p95 = percentile(duration, 95)}, interval:5m
+| fieldsAdd p50_ms = p50[] / 1000000.0, p90_ms = p90[] / 1000000.0, p95_ms = p95[] / 1000000.0
+| fieldsRemove p50, p90, p95
+</code></pre>
+<h3>Response Time by Service (Top 10 Slowest)</h3>
+<pre><code class="language-dql">// Top 10 slowest services by average response time
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| summarize {avg_ms = avg(duration) / 1ms, p95_ms = percentile(duration, 95) / 1ms, request_count = count()}, by:{dt.entity.service}
+| sort p95_ms desc
+| limit 10
+</code></pre>
+<p><a id="error-rate-by-service"></a></p>
+<h2>2. Error Rate by Service</h2>
+<p>Error rate as a percentage shows which services are degraded. Display as a bar chart sorted by error rate descending.</p>
+<h3>Current Error Rate Table</h3>
+<pre><code class="language-dql">// Error rate by service — operations bar chart
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| summarize {total = count(), errors = countIf(span.status_code == &quot;error&quot;)}, by:{dt.entity.service}
+| fieldsAdd error_rate_pct = round(100.0 * errors / total, decimals: 2)
+| sort error_rate_pct desc
+| limit 15
+</code></pre>
+<h3>Error Rate Trend Over Time</h3>
+<pre><code class="language-dql">// Overall error rate trend — operations line chart
+// Divide the arrays element by element so each 5-minute bucket gets its own rate;
+// arrayAvg(errors) / arrayAvg(total) would collapse the trend to a single number.
+// coalesce() turns buckets with no errors (null) into 0 instead of a gap.
+fetch spans, from:-2h
+| filter span.kind == &quot;server&quot;
+| makeTimeseries {total = count(), errors = countIf(span.status_code == &quot;error&quot;)}, interval:5m
+| fieldsAdd error_rate = 100.0 * coalesce(errors[], 0) / total[]
+| fieldsKeep timeframe, interval, error_rate
+</code></pre>
+<p><a id="log-volume-tracking"></a></p>
+<h2>3. Log Volume and Anomaly Tracking</h2>
+<p>Sudden log volume changes often indicate problems before Dynatrace Intelligence detects them. Track log volume by level and source.</p>
+<h3>Log Volume by Severity Level</h3>
+<pre><code class="language-dql">// Log volume by severity — stacked area chart
+fetch logs, from:-2h
+| filterOut loglevel == &quot;NONE&quot;
+| makeTimeseries log_count = count(), interval:5m, by:{loglevel}
+</code></pre>
+<h3>Top Log Sources by Error Volume</h3>
+<pre><code class="language-dql">// Top 10 log sources generating errors — operations table
+fetch logs, from:-1h
+// status == &quot;ERROR&quot; also counts SEVERE, CRITICAL and FATAL logs; loglevel == &quot;ERROR&quot; misses them
+| filter status == &quot;ERROR&quot;
+| summarize error_count = count(), by:{log.source}
+| sort error_count desc
+| limit 10
+</code></pre>
+<h3>Log Volume Spike Detection</h3>
+<p>Compare current hour to the same hour yesterday to detect anomalous volume increases.</p>
+<pre><code class="language-dql">// Log volume comparison: current hour vs same hour yesterday
+fetch logs, from:-1h
+| summarize current_count = count()
+| append [
+    fetch logs, from:now() - 25h, to:now() - 24h
+    | summarize yesterday_count = count()
+  ]
+</code></pre>
+<p><a id="active-problems"></a></p>
+<h2>4. Active Problems and Alerts</h2>
+<p>Active problems should be front and center on every operations dashboard. Show both the count and the detail.</p>
+<h3>Active Problems List</h3>
+<pre><code class="language-dql">// Active problems detail table — operations dashboard
+fetch dt.davis.problems, from:-24h
+| filter event.status == &quot;ACTIVE&quot;
+| filter dt.davis.is_duplicate == false
+| fieldsAdd duration_min = (now() - event.start) / 1m
+| fieldsKeep display_id, event.name, event.category, duration_min
+| sort duration_min desc
+</code></pre>
+<h3>Problem Status Over Time</h3>
+<pre><code class="language-dql">// Concurrently open problems over time — area chart
+fetch dt.davis.problems, from:-24h
+| makeTimeseries concurrent = count(), spread:timeframe(from:event.start, to:coalesce(event.end, now()))
+</code></pre>
+<p><a id="infrastructure-health"></a></p>
+<h2>5. Infrastructure Health</h2>
+<p>Infrastructure tiles provide context for service-level issues. CPU, memory, and disk metrics help operations teams determine if a problem is service-specific or infrastructure-wide.</p>
+<h3>Host CPU Usage</h3>
+<pre><code class="language-dql">// Host CPU usage — operations line chart
+timeseries avg_cpu = avg(dt.host.cpu.usage), from:-2h, by:{dt.entity.host}
+</code></pre>
+<h3>Top Hosts by CPU — Identifying Hot Spots</h3>
+<pre><code class="language-dql">// Top 5 hosts by average CPU usage
+timeseries avg_cpu = avg(dt.host.cpu.usage), from:-1h, by:{dt.entity.host}
+| fieldsAdd avg_cpu_val = arrayAvg(avg_cpu)
+| sort avg_cpu_val desc
+| limit 5
+</code></pre>
+<h3>Host Memory Usage</h3>
+<pre><code class="language-dql">// Host memory usage — operations line chart
+timeseries avg_mem = avg(dt.host.memory.usage), from:-2h, by:{dt.entity.host}
+</code></pre>
+<p><a id="deployment-correlation"></a></p>
+<h2>6. Deployment Correlation</h2>
+<p>Deployments are the most common cause of production issues. Overlaying deployment events on service metrics helps operations teams immediately correlate &quot;what changed.&quot;</p>
+<h3>Recent Deployment Events</h3>
+<p>Deployment events arrive in two shapes: classic Events-API deployments (<code>event.type == &quot;CUSTOM_DEPLOYMENT&quot;</code>) and SDLC deployment task events, where <code>event.kind</code> is always <code>SDLC_EVENT</code>, <code>event.category</code> is <code>task</code> and <code>event.type</code> is <code>deployment</code>. The query below catches both. The SDLC branch follows the semantic dictionary's model; it executes, but the validation tenant (09/28/2026) held no deployment events of either shape over 365 days, so it has not been checked against live SDLC data — confirm it returns your pipeline's deployments before putting it on a dashboard.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/sdlc-events">SDLC events (DT docs)</a> — <code>event.kind</code>: <em>&quot;Automatically and unconditionally set to value <code>SDLC_EVENT</code>.&quot;</em> <strong>Dictionary:</strong> models <code>sdlc.task.deployment.started.event</code> and <code>sdlc.task.deployment.finished.event</code> (<code>data_object</code> <code>events</code>), read 09/28/2026; no model uses the kind <code>DEPLOYMENT_EVENT</code> that an earlier version of this cell filtered on.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Recent deployment events — classic (Events API) and SDLC deployment events
+fetch events, from:-6h
+| filter event.type == &quot;CUSTOM_DEPLOYMENT&quot;
+    or (event.kind == &quot;SDLC_EVENT&quot; and event.category == &quot;task&quot; and event.type == &quot;deployment&quot;)
+| fieldsKeep timestamp, event.kind, event.type, event.status, event.name, dt.entity.service, cicd.deployment.name, cicd.deployment.release_stage
+| sort timestamp desc
+| limit 20
+</code></pre>
+<p><a id="ops-layout"></a></p>
+<h2>7. Operations Dashboard Layout</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+T3BlcmF0aW9ucyBEYXNoYm9hcmQg4oCUIFJlY29tbWVuZGVkIExheW91dDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj41IHNlY3Rpb25zIMK3IFotcGF0dGVybiByZWFkaW5nIG9yZGVyIMK3IHRvcC1sZWZ0IGFuY2hvciBvbiB0aGUgbW9zdC1hY3Rpb25hYmxlIHNpZ25hbDwvdGV4dD4KCiAgPCEtLSBPdXRlciBkYXNoYm9hcmQgZnJhbWUgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjgwIiB3aWR0aD0iNjYwIiBoZWlnaHQ9IjM5NSIgZmlsbD0iIzBGMTcyQSIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI4Ii8+CgogIDwhLS0gPT09PT09PT09PT09IFN0YXR1cyBCYXIgKHRvcCkgPT09PT09PT09PT09IC0tPgogIDxyZWN0IHg9IjUwIiB5PSI5MiIgd2lkdGg9IjY0MCIgaGVpZ2h0PSI2MCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI1OCIgeT0iMTA4IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj7ikaAgU3RhdHVzIEJhcjwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjExNiIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIzMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiByeD0iMyIvPgogIDx0ZXh0IHg9IjE2MCIgeT0iMTI5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjkiPkFjdGl2ZSBQcm9ibGVtczwvdGV4dD4KICA8dGV4dCB4PSIxNjAiIHk9IjE0MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+MzwvdGV4dD4KCiAgPHJlY3QgeD0iMjcwIiB5PSIxMTYiIHdpZHRoPSIyMDAiIGhlaWdodD0iMzAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjMiLz4KICA8dGV4dCB4PSIzNzAiIHk9IjEyOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSI5Ij5FcnJvciBSYXRlICgxaCk8L3RleHQ+CiAgPHRleHQgeD0iMzcwIiB5PSIxNDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPjAuNDIlPC90ZXh0PgoKICA8cmVjdCB4PSI0ODAiIHk9IjExNiIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIzMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiByeD0iMyIvPgogIDx0ZXh0IHg9IjU4MCIgeT0iMTI5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjkiPkxvZyBFcnJvcnMgKDFoKTwvdGV4dD4KICA8dGV4dCB4PSI1ODAiIHk9IjE0MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+ODQ3PC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PSBTZXJ2aWNlIEhlYWx0aCA9PT09PT09PT09PT0gLS0+CiAgPHJlY3QgeD0iNTAiIHk9IjE2MCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNTgiIHk9IjE3NiIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+4pGhIFNlcnZpY2UgSGVhbHRoPC90ZXh0PgoKICA8cmVjdCB4PSI2MCIgeT0iMTg0IiB3aWR0aD0iMTQ4IiBoZWlnaHQ9IjY4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSIzIi8+CiAgPHRleHQgeD0iMTM0IiB5PSIxOTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iOSI+UmVzcG9uc2UgVGltZSAoUDk1KTwvdGV4dD4KICA8cG9seWxpbmUgcG9pbnRzPSI2OCwyMzggODAsMjMyIDkyLDIyOCAxMDQsMjM0IDExNiwyMjUgMTI4LDIyMiAxNDAsMjI4IDE1MiwyMzIgMTY0LDIyNSAxNzYsMjIwIDE4OCwyMjUgMjAwLDIyMiIKICAgICAgICAgICAgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjQkZEQkZFIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxsaW5lIHgxPSI2NSIgeTE9IjI0NSIgeDI9IjIwMCIgeTI9IjI0NSIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjAuNSIvPgoKICA8cmVjdCB4PSIyMTUiIHk9IjE4NCIgd2lkdGg9IjE0OCIgaGVpZ2h0PSI2OCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iMyIvPgogIDx0ZXh0IHg9IjI4OSIgeT0iMTk3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjkiPkVycm9yIFJhdGUgYnkgU2VydmljZTwvdGV4dD4KICA8cmVjdCB4PSIyMjUiIHk9IjIyNSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjIwIiBmaWxsPSIjMTQ5NkZGIi8+CiAgPHJlY3QgeD0iMjUyIiB5PSIyMTUiIHdpZHRoPSIyMiIgaGVpZ2h0PSIzMCIgZmlsbD0iIzE0OTZGRiIvPgogIDxyZWN0IHg9IjI3OSIgeT0iMjIwIiB3aWR0aD0iMjIiIGhlaWdodD0iMjUiIGZpbGw9IiMxNDk2RkYiLz4KICA8cmVjdCB4PSIzMDYiIHk9IjIxMCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjM1IiBmaWxsPSIjMTQ5NkZGIi8+CiAgPHJlY3QgeD0iMzMzIiB5PSIyMzIiIHdpZHRoPSIyMiIgaGVpZ2h0PSIxMyIgZmlsbD0iIzE0OTZGRiIvPgogIDxsaW5lIHgxPSIyMjIiIHkxPSIyNDYiIHgyPSIzNTgiIHkyPSIyNDYiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIwLjUiLz4KCiAgPCEtLSA9PT09PT09PT09PT0gTG9nIEludGVsbGlnZW5jZSA9PT09PT09PT09PT0gLS0+CiAgPHJlY3QgeD0iMzgwIiB5PSIxNjAiIHdpZHRoPSIzMTAiIGhlaWdodD0iMTAwIiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjM4OCIgeT0iMTc2IiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj7ikaIgTG9nIEludGVsbGlnZW5jZTwvdGV4dD4KCiAgPHJlY3QgeD0iMzkwIiB5PSIxODQiIHdpZHRoPSIxNDMiIGhlaWdodD0iNjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgcng9IjMiLz4KICA8dGV4dCB4PSI0NjEiIHk9IjE5NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSI5Ij5Mb2cgVm9sdW1lIGJ5IExldmVsPC90ZXh0PgogIDwhLS0gc3RhY2tlZCBhcmVhIG1vY2sgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSIzOTgsMjQ3IDQxMCwyNDMgNDIyLDI0MCA0MzQsMjM4IDQ0NiwyMzYgNDU4LDIzNCA0NzAsMjM1IDQ4MiwyMzIgNDk0LDIzMyA1MDYsMjMxIDUxOCwyMjkgNTMwLDIzMiA1MzAsMjQ3IgogICAgICAgICAgIGZpbGw9IiNGQ0E1QTUiIG9wYWNpdHk9IjAuNyIvPgogIDxwb2x5Z29uIHBvaW50cz0iMzk4LDI0MyA0MTAsMjM4IDQyMiwyMzYgNDM0LDIzNCA0NDYsMjMyIDQ1OCwyMzEgNDcwLDIzMSA0ODIsMjI5IDQ5NCwyMjkgNTA2LDIyOCA1MTgsMjI1IDUzMCwyMjggNTMwLDI0MyIKICAgICAgICAgICBmaWxsPSIjRkNEMzREIiBvcGFjaXR5PSIwLjciLz4KICA8cG9seWdvbiBwb2ludHM9IjM5OCwyMzggNDEwLDIzNCA0MjIsMjMyIDQzNCwyMjkgNDQ2LDIyOCA0NTgsMjI4IDQ3MCwyMjcgNDgyLDIyNSA0OTQsMjI1IDUwNiwyMjMgNTE4LDIyMSA1MzAsMjI0IDUzMCwyMzgiCiAgICAgICAgICAgZmlsbD0iIzg2RUZBQyIgb3BhY2l0eT0iMC43Ii8+CgogIDxyZWN0IHg9IjU0MCIgeT0iMTg0IiB3aWR0aD0iMTQzIiBoZWlnaHQ9IjY4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHJ4PSIzIi8+CiAgPHRleHQgeD0iNjExIiB5PSIxOTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iOSI+VG9wIEVycm9yIFNvdXJjZXM8L3RleHQ+CiAgPGxpbmUgeDE9IjU0OCIgeTE9IjIwMyIgeDI9IjY3OCIgeTI9IjIwMyIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjAuNSIvPgogIDx0ZXh0IHg9IjU0OCIgeT0iMjE0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjgiPmNoZWNrb3V0LXN2YzwvdGV4dD4KICA8dGV4dCB4PSI2NzgiIHk9IjIxNCIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSI4Ij4zMTI8L3RleHQ+CiAgPHRleHQgeD0iNTQ4IiB5PSIyMjYiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOCI+cGF5bWVudC1zdmM8L3RleHQ+CiAgPHRleHQgeD0iNjc4IiB5PSIyMjYiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iOCI+MTg5PC90ZXh0PgogIDx0ZXh0IHg9IjU0OCIgeT0iMjM4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjgiPmNhcnQtc3ZjPC90ZXh0PgogIDx0ZXh0IHg9IjY3OCIgeT0iMjM4IiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjgiPjg3PC90ZXh0PgogIDx0ZXh0IHg9IjU0OCIgeT0iMjUwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjgiPmF1dGgtc3ZjPC90ZXh0PgogIDx0ZXh0IHg9IjY3OCIgeT0iMjUwIiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjgiPjQyPC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PSBJbmZyYXN0cnVjdHVyZSA9PT09PT09PT09PT0gLS0+CiAgPHJlY3QgeD0iNTAiIHk9IjI3MCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNTgiIHk9IjI4NiIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+4pGjIEluZnJhc3RydWN0dXJlPC90ZXh0PgoKICA8cmVjdCB4PSI2MCIgeT0iMjk0IiB3aWR0aD0iMTQ4IiBoZWlnaHQ9IjY4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHJ4PSIzIi8+CiAgPHRleHQgeD0iMTM0IiB5PSIzMDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iOSI+Q1BVIGJ5IEhvc3QgKHRvcCAxMCk8L3RleHQ+CiAgPHBvbHlsaW5lIHBvaW50cz0iNjgsMzQ4IDgwLDM0NCA5MiwzNDAgMTA0LDM0NiAxMTYsMzQyIDEyOCwzMzggMTQwLDM0NCAxNTIsMzQwIDE2NCwzMzUgMTc2LDMzOCAxODgsMzQwIDIwMCwzMzUiCiAgICAgICAgICAgIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzg2RUZBQyIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8cG9seWxpbmUgcG9pbnRzPSI2OCwzNTUgODAsMzUyIDkyLDM1MCAxMDQsMzUzIDExNiwzNDggMTI4LDM0NSAxNDAsMzUwIDE1MiwzNDYgMTY0LDM0MiAxNzYsMzQ0IDE4OCwzNDYgMjAwLDM0MiIKICAgICAgICAgICAgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjODZFRkFDIiBzdHJva2Utd2lkdGg9IjEuNSIgb3BhY2l0eT0iMC42Ii8+CiAgPGxpbmUgeDE9IjY1IiB5MT0iMzU3IiB4Mj0iMjAwIiB5Mj0iMzU3IiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMC41Ii8+CgogIDxyZWN0IHg9IjIxNSIgeT0iMjk0IiB3aWR0aD0iMTQ4IiBoZWlnaHQ9IjY4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHJ4PSIzIi8+CiAgPHRleHQgeD0iMjg5IiB5PSIzMDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iOSI+TWVtb3J5IGJ5IEhvc3QgKHRvcCAxMCk8L3RleHQ+CiAgPHBvbHlsaW5lIHBvaW50cz0iMjIyLDM0OCAyMzQsMzQ2IDI0NiwzNDQgMjU4LDM0OCAyNzAsMzQ0IDI4MiwzNDIgMjk0LDM0NiAzMDYsMzQyIDMxOCwzMzggMzMwLDM0MCAzNDIsMzQ0IDM1NCwzNDAiCiAgICAgICAgICAgIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzg2RUZBQyIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8bGluZSB4MT0iMjIwIiB5MT0iMzU3IiB4Mj0iMzU4IiB5Mj0iMzU3IiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMC41Ii8+CgogIDwhLS0gPT09PT09PT09PT09IENoYW5nZSBDb250ZXh0ID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSIzODAiIHk9IjI3MCIgd2lkdGg9IjMxMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiMyMkQzRUUiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMzg4IiB5PSIyODYiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPuKRpCBDaGFuZ2UgQ29udGV4dDwvdGV4dD4KCiAgPHJlY3QgeD0iMzkwIiB5PSIyOTQiIHdpZHRoPSIyOTMiIGhlaWdodD0iNjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgcng9IjMiLz4KICA8dGV4dCB4PSI1MzYiIHk9IjMwNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSI5IiBmb250LXdlaWdodD0iNzAwIj5SZWNlbnQgRGVwbG95bWVudHMgKGxhc3QgMjRoKTwvdGV4dD4KICA8bGluZSB4MT0iMzk4IiB5MT0iMzEzIiB4Mj0iNjc4IiB5Mj0iMzEzIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMC41Ii8+CiAgPHRleHQgeD0iMzk4IiB5PSIzMjQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOCI+Y2hlY2tvdXQtc3ZjPC90ZXh0PgogIDx0ZXh0IHg9IjUwMCIgeT0iMzI0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjgiPnYyLjE0LjE8L3RleHQ+CiAgPHRleHQgeD0iNjc4IiB5PSIzMjQiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOCI+MmggYWdvPC90ZXh0PgogIDx0ZXh0IHg9IjM5OCIgeT0iMzM3IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjgiPnBheW1lbnQtc3ZjPC90ZXh0PgogIDx0ZXh0IHg9IjUwMCIgeT0iMzM3IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjgiPnYzLjcuMDwvdGV4dD4KICA8dGV4dCB4PSI2NzgiIHk9IjMzNyIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI4Ij41aCBhZ288L3RleHQ+CiAgPHRleHQgeD0iMzk4IiB5PSIzNTAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOCI+Y2FydC1zdmM8L3RleHQ+CiAgPHRleHQgeD0iNTAwIiB5PSIzNTAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOCI+djEuMjIuMzwvdGV4dD4KICA8dGV4dCB4PSI2NzgiIHk9IjM1MCIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI4Ij4xMmggYWdvPC90ZXh0PgoKICA8IS0tIFotcGF0dGVybiBhcnJvd3MgYW5ub3RhdGluZyByZWFkaW5nIG9yZGVyIC0tPgogIDx0ZXh0IHg9IjUwIiB5PSIzOTUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPlJlYWRpbmcgb3JkZXI6IOKRoCB0b3Agc3RhdHVzIOKGkiDikaEgc2VydmljZSBoZWFsdGggKHRvcC1sZWZ0KSDihpIg4pGiIGxvZ3Mg4oaSIOKRoyBpbmZyYSDihpIg4pGkIGNoYW5nZSBjb250ZXh0IChib3R0b20tcmlnaHQpPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSI0MTIiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iOSI+OOKAkzEyIHRpbGVzIHRvdGFsIMK3IHJlZnJlc2ggMeKAkzUgbWluIMK3IHRvcC1sZWZ0IGFuY2hvcjogbW9zdC1hY3Rpb25hYmxlIEtQSTwvdGV4dD4KCiAgPCEtLSBBbnRpLXBhdHRlcm5zIHNpZGUgcGFuZWwgLS0+CiAgPHJlY3QgeD0iNzE1IiB5PSI4MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIzOTUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iODA1IiB5PSIxMDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkFudGktUGF0dGVybnMgdG8gQXZvaWQ8L3RleHQ+CgogIDxyZWN0IHg9IjcyNSIgeT0iMTE4IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMEYxNzJBIiBzdHJva2U9IiM0NzU1NjkiIHJ4PSIzIi8+CiAgPHRleHQgeD0iNzM1IiB5PSIxMzQiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPlNwYWdoZXR0aSBjaGFydDwvdGV4dD4KICA8dGV4dCB4PSI3MzUiIHk9IjE0OSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5Ij5BbGwgc2VydmljZXMgb24gb25lIGNoYXJ0PC90ZXh0PgogIDx0ZXh0IHg9IjczNSIgeT0iMTYxIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkiPuKGkiB1bnJlYWRhYmxlPC90ZXh0PgogIDx0ZXh0IHg9IjczNSIgeT0iMTczIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjkiPkZpeDogdG9wLU4gKyB2YXJpYWJsZXM8L3RleHQ+CgogIDxyZWN0IHg9IjcyNSIgeT0iMTg1IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMEYxNzJBIiBzdHJva2U9IiM0NzU1NjkiIHJ4PSIzIi8+CiAgPHRleHQgeD0iNzM1IiB5PSIyMDEiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPkFsbC0yNGggdGlsZXM8L3RleHQ+CiAgPHRleHQgeD0iNzM1IiB5PSIyMTYiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOSI+SGlkZXMgcmVhbC10aW1lIHNwaWtlczwvdGV4dD4KICA8dGV4dCB4PSI3MzUiIHk9IjIyOCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSI5Ij5GaXg6IDHigJMyaCBmb3IgcmVhbC10aW1lPC90ZXh0PgogIDx0ZXh0IHg9IjczNSIgeT0iMjQwIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjkiPnRpbGVzLCAyNGggZm9yIHRyZW5kPC90ZXh0PgoKICA8cmVjdCB4PSI3MjUiIHk9IjI1MiIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzBGMTcyQSIgc3Ryb2tlPSIjNDc1NTY5IiByeD0iMyIvPgogIDx0ZXh0IHg9IjczNSIgeT0iMjY4IiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5ObyBwcm9ibGVtIGNvbnRleHQ8L3RleHQ+CiAgPHRleHQgeD0iNzM1IiB5PSIyODMiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOSI+VGVhbSBzZWVzIHN5bXB0b21zLDwvdGV4dD4KICA8dGV4dCB4PSI3MzUiIHk9IjI5NSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5Ij5ub3Qgcm9vdCBjYXVzZTwvdGV4dD4KICA8dGV4dCB4PSI3MzUiIHk9IjMwNyIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSI5Ij5GaXg6IGFjdGl2ZSBwcm9ibGVtcyB0YWJsZTwvdGV4dD4KCiAgPHJlY3QgeD0iNzI1IiB5PSIzMTkiIHdpZHRoPSIxNjAiIGhlaWdodD0iNjAiIGZpbGw9IiMwRjE3MkEiIHN0cm9rZT0iIzQ3NTU2OSIgcng9IjMiLz4KICA8dGV4dCB4PSI3MzUiIHk9IjMzNSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+TWlzc2luZyBkZXBsb3lzPC90ZXh0PgogIDx0ZXh0IHg9IjczNSIgeT0iMzUwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkiPkNhbm5vdCBjb3JyZWxhdGU8L3RleHQ+CiAgPHRleHQgeD0iNzM1IiB5PSIzNjIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOSI+Y2hhbmdlcyB3aXRoIGluY2lkZW50czwvdGV4dD4KICA8dGV4dCB4PSI3MzUiIHk9IjM3NCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSI5Ij5GaXg6IGRlcGxveSBtYXJrZXJzPC90ZXh0PgoKICA8dGV4dCB4PSI4MDUiIHk9IjQwMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSI5Ij5TZWUgREFTSC0wNCDCpzc8L3RleHQ+CiAgPHRleHQgeD0iODA1IiB5PSI0MTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iOSI+Zm9yIGZ1bGwgYW50aS1wYXR0ZXJuIGxpc3Q8L3RleHQ+CiAgPHRleHQgeD0iODA1IiB5PSI0NDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPuKGkiBQYWlyIHdpdGggV0ZMT1c8L3RleHQ+CiAgPHRleHQgeD0iODA1IiB5PSI0NjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOSI+Zm9yIGFsZXJ0IHJvdXRpbmc8L3RleHQ+Cjwvc3ZnPgo=" alt="Operations Dashboard Layout" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Section | Tiles | Reading Order |
+|---------|-------|---------------|
+| 1. Status Bar (top) | Active problems, error rate, log errors | First — always visible |
+| 2. Service Health | Response time trend, error rate by service | Top-left anchor (most actionable) |
+| 3. Log Intelligence | Log volume by level, top error sources | Z-pattern reading |
+| 4. Infrastructure | CPU by host, memory by host | Continue Z-pattern |
+| 5. Change Context | Recent deployments | Bottom-right (correlates with above) |
+Anti-patterns to avoid: spaghetti charts, all-24h tiles, no problem context, missing deploys.
+For environments where SVG doesn't render
+-->
+<h3>Recommended Tile Arrangement</h3>
+<table>
+<thead>
+<tr>
+<th>Section</th>
+<th>Tiles</th>
+<th>Chart Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Status Bar</strong> (top)</td>
+<td>Active problems count, overall error rate, log error count</td>
+<td>Single values</td>
+</tr>
+<tr>
+<td><strong>Service Health</strong></td>
+<td>Response time trend, error rate by service</td>
+<td>Line chart, bar chart</td>
+</tr>
+<tr>
+<td><strong>Log Intelligence</strong></td>
+<td>Log volume by level, top error sources</td>
+<td>Stacked area, table</td>
+</tr>
+<tr>
+<td><strong>Infrastructure</strong></td>
+<td>CPU by host, memory by host</td>
+<td>Line charts</td>
+</tr>
+<tr>
+<td><strong>Change Context</strong></td>
+<td>Recent deployments</td>
+<td>Table</td>
+</tr>
+</tbody>
+</table>
+<h3>Operations Dashboard Anti-Patterns</h3>
+<table>
+<thead>
+<tr>
+<th>Anti-Pattern</th>
+<th>Problem</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Too many services on one chart</td>
+<td>Unreadable spaghetti lines</td>
+<td>Use variables or top-N filtering</td>
+</tr>
+<tr>
+<td>All tiles show 24h data</td>
+<td>Hides real-time spikes</td>
+<td>Use 1-2h for real-time tiles</td>
+</tr>
+<tr>
+<td>No problem context</td>
+<td>Team sees metrics but not root cause</td>
+<td>Add active problems table</td>
+</tr>
+<tr>
+<td>Missing deployment markers</td>
+<td>Cannot correlate changes with incidents</td>
+<td>Add deployment events section</td>
+</tr>
+</tbody>
+</table>
+<p><a id="summary-and-next-steps"></a></p>
+<h2>8. Summary and Next Steps</h2>
+<p>In this notebook you learned:</p>
+<ul>
+<li>How to build service response time and error rate tiles for real-time monitoring</li>
+<li>Log volume tracking and spike detection queries</li>
+<li>Active problem tables with duration tracking</li>
+<li>Infrastructure health tiles for CPU and memory</li>
+<li>Deployment event tracking for change correlation</li>
+<li>Recommended layout and common anti-patterns for operations dashboards</li>
+</ul>
+<p><strong>Next:</strong> In <strong>DASH-05: Engineering Dashboards</strong>, we move to the deepest tier — trace-level analysis, database performance, endpoint metrics, and before/after deployment comparisons.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

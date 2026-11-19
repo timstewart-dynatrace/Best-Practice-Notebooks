@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NRLC-03: Dashboard Migration</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">NRLC — New Relic to Dynatrace Migration Deep Dives</a><span class="sep">/</span><span aria-current="page">NRLC-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>NRLC-03: Dashboard Migration</h1>
+<blockquote>
+<p><strong>Series:</strong> NRLC — New Relic to Dynatrace Migration Deep Dives | <strong>Notebook:</strong> 3 of 9 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 10/31/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Dashboards are the highest-volume migration artifact and the most user-visible. This deep dive covers the structural differences between NR dashboards and DT documents, the conversion behavior of the <code>DashboardTransformer</code>, the widget-level translation pipeline, the gaps you should plan for (variables, dynamic content), and the validation pattern.</p>
+<p><strong>Phase 19 widget parity</strong> — funnel composites (<code>countIf</code> per stage + <code>funnelEmulation: true</code>), native honeycomb for heatmap, event-feed table with canonical sort + <code>eventFeedMode</code>, cascading variables with <code>dependsOn</code>, dashboard permissions (public read / public read-write / private), and saved filter sets via <code>savedViews</code> all land automatically via <code>migrate.py --components dashboards</code>. <strong>Phase 24</strong> added <code>saved_filter_notebook_transformer</code> for NR Data Apps → DT <code>type=='notebook'</code> Documents (markdown + DQL cells).</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#nr-model">NR Dashboard Model</a></li>
+<li><a href="#dt-model">DT Dashboard Model (Document API)</a></li>
+<li><a href="#transformer">DashboardTransformer Behavior</a></li>
+<li><a href="#widgets">Widget-Level Translation</a></li>
+<li><a href="#multi-page">Multi-Page Dashboards</a></li>
+<li><a href="#variables">Variables &amp; Dynamic Content</a></li>
+<li><a href="#layout">Layout Preservation</a></li>
+<li><a href="#validation">Validation Strategy</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Engineers migrating dashboards; UX reviewers comparing NR ↔ DT visualizations</td>
+</tr>
+<tr>
+<td><strong>Standalone</strong></td>
+<td>This notebook is self-contained for dashboard migration. No required prerequisite reading.</td>
+</tr>
+<tr>
+<td><strong>Optional depth</strong></td>
+<td>NRLC-02 (full NRQL→DQL compiler), NRLC-08 (validation reference), NRLC-09 (toolchain reference)</td>
+</tr>
+<tr>
+<td><strong>Tooling</strong></td>
+<td><code>Dynatrace-NewRelic</code> <code>DashboardTransformer</code> (Python) or <code>nrql-engine</code> <code>DashboardTransformer</code> (TypeScript)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="translation-ctx"></a></p>
+<h2>Embedded Translation Context — Dashboard Query Patterns</h2>
+<p>Every dashboard widget contains a query. These are the NRQL→DQL patterns that show up in 95% of dashboard widgets — enough to migrate dashboards without consulting the full NRLC-02 compiler reference.</p>
+<h3>Simple aggregation</h3>
+<pre><code class="language-sql">-- NRQL
+SELECT count(*), average(duration) FROM Transaction
+WHERE appName = 'checkout' SINCE 1 hour ago FACET host
+</code></pre>
+<pre><code class="language-dql">fetch spans, from:-1h
+| filter dt.service.name == &quot;checkout&quot; and isNotNull(endpoint.name)
+| summarize {count = count(), avg_dur = avg(duration)}, by:{host.name}
+</code></pre>
+<p>Every <code>FROM Transaction</code> translation needs both filters: <code>isNotNull(endpoint.name)</code> keeps request root spans only (one per NR transaction — without it <code>fetch spans</code> also counts database, outbound and internal spans), and <code>dt.service.name</code> is the Dynatrace service name (<code>service.name</code> is the OpenTelemetry attribute and misses spans that do not carry it). See NRLC-02 §6.</p>
+<h3>Time series widget</h3>
+<pre><code class="language-sql">-- NRQL
+SELECT count(*) FROM Transaction TIMESERIES 5 minutes
+</code></pre>
+<pre><code class="language-dql">fetch spans, from:-1h
+| filter isNotNull(endpoint.name)
+| makeTimeseries count = count(), interval:5m
+</code></pre>
+<h3>Percentage widget</h3>
+<pre><code class="language-sql">-- NRQL
+SELECT percentage(count(*), WHERE httpResponseCode = 200) FROM Transaction
+</code></pre>
+<pre><code class="language-dql">fetch spans, from:-1h
+| filter isNotNull(endpoint.name) and isNotNull(http.response.status_code)
+| summarize success_pct = 100.0 * countIf(http.response.status_code == 200) / count()
+</code></pre>
+<p>Map NR <code>httpResponseCode</code> to <code>http.response.status_code</code>. <code>http.status_code</code> is not a Dynatrace span field; a widget built on it runs and shows a near-zero percentage.</p>
+<h3>COMPARE WITH (week-over-week)</h3>
+<pre><code class="language-sql">-- NRQL
+SELECT count(*) FROM Transaction COMPARE WITH 1 week ago SINCE 1 day ago
+</code></pre>
+<pre><code class="language-dql">fetch spans, from:-1d
+| filter isNotNull(endpoint.name)
+| summarize current = count()
+| append [
+    fetch spans, from:-192h, to:-168h
+    | filter isNotNull(endpoint.name)
+    | summarize previous = count()
+  ]
+</code></pre>
+<h3>Translation Confidence</h3>
+<table>
+<thead>
+<tr>
+<th>Widget pattern</th>
+<th>Confidence</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Simple count / average / sum</td>
+<td>HIGH</td>
+<td>Direct mapping</td>
+</tr>
+<tr>
+<td>Aggregation with FACET</td>
+<td>HIGH</td>
+<td><code>by:{...}</code> syntax</td>
+</tr>
+<tr>
+<td>TIMESERIES with interval</td>
+<td>HIGH</td>
+<td><code>makeTimeseries interval:Nm</code></td>
+</tr>
+<tr>
+<td>Percentage / filter aggregation</td>
+<td>HIGH</td>
+<td><code>countIf(condition)</code></td>
+</tr>
+<tr>
+<td>COMPARE WITH</td>
+<td>MEDIUM</td>
+<td>Verify time alignment after migration</td>
+</tr>
+<tr>
+<td>Subquery with <code>lookup</code></td>
+<td>MEDIUM</td>
+<td>Check looked-up data exists</td>
+</tr>
+<tr>
+<td><code>apdex()</code> widget</td>
+<td>LOW</td>
+<td>Configure DT Apdex separately</td>
+</tr>
+<tr>
+<td><code>funnel()</code> widget</td>
+<td>LOW</td>
+<td>Manual reformulation</td>
+</tr>
+</tbody>
+</table>
+<p><a id="nr-model"></a></p>
+<h2>1. NR Dashboard Model</h2>
+<p>An NR dashboard is a hierarchical structure:</p>
+<pre><code>Dashboard
+  ├─ Page (multiple per dashboard)
+  │   ├─ Widget
+  │   │   ├─ visualization (line, bar, table, billboard, ...)
+  │   │   ├─ NRQL query
+  │   │   └─ layout (row, column, width, height)
+  │   └─ ...
+  └─ permissions (per dashboard)
+</code></pre>
+<p>Key fields exposed via NerdGraph (<code>DashboardEntity</code>):</p>
+<ul>
+<li><code>name</code>, <code>description</code>, <code>permissions</code></li>
+<li><code>pages[]</code> — each with <code>name</code>, <code>widgets[]</code></li>
+<li><code>widgets[].rawConfiguration</code> — JSON containing <code>nrqlQueries[]</code>, <code>colors</code>, <code>axis</code>, <code>thresholds</code>, etc.</li>
+<li><code>widgets[].title</code>, <code>widgets[].layout</code></li>
+<li><code>widgets[].visualization.id</code> — identifies widget type</li>
+</ul>
+<p><a id="dt-model"></a></p>
+<h2>2. DT Dashboard Model (Document API)</h2>
+<p>Dynatrace Gen3 dashboards are stored as <strong>Documents</strong> in the Document API (<code>/platform/document/v1</code>). Each dashboard is a single-page JSON document:</p>
+<pre><code class="language-json">{
+  &quot;version&quot;: 13,
+  &quot;variables&quot;: [],
+  &quot;tiles&quot;: {
+    &quot;&lt;tile-id&gt;&quot;: {
+      &quot;type&quot;: &quot;data&quot;,
+      &quot;title&quot;: &quot;...&quot;,
+      &quot;query&quot;: &quot;fetch logs | filter ...&quot;,
+      &quot;visualization&quot;: &quot;lineChart&quot;,
+      &quot;visualizationSettings&quot;: { ... }
+    }
+  },
+  &quot;layouts&quot;: {
+    &quot;&lt;tile-id&gt;&quot;: { &quot;x&quot;: 0, &quot;y&quot;: 0, &quot;w&quot;: 8, &quot;h&quot;: 6 }
+  }
+}
+</code></pre>
+<p>Critical structural differences from NR:</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>NR</th>
+<th>DT</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pages</td>
+<td>Multiple per dashboard</td>
+<td>One per document (multi-page → multiple documents)</td>
+</tr>
+<tr>
+<td>Query language</td>
+<td>NRQL</td>
+<td>DQL</td>
+</tr>
+<tr>
+<td>Layout grid</td>
+<td>Row-based, fixed widths</td>
+<td>Free grid (<code>x, y, w, h</code>)</td>
+</tr>
+<tr>
+<td>Widget identity</td>
+<td>UUIDs in raw config</td>
+<td>Tile IDs in <code>tiles</code> map</td>
+</tr>
+<tr>
+<td>Storage</td>
+<td>Account-scoped</td>
+<td>Document with sharing settings (private/shared/public)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="transformer"></a></p>
+<h2>3. DashboardTransformer Behavior</h2>
+<p>The transformer (in both <code>Dynatrace-NewRelic/transformers/dashboard_transformer.py</code> and <code>nrql-engine/src/transformers/dashboard.ts</code>) handles the full conversion pipeline:</p>
+<pre><code>NR Dashboard JSON
+      ↓
+  for each page:
+      ↓
+    [Convert page name → document name]
+      ↓
+    for each widget:
+        [Translate NRQL → DQL via NRQLCompiler]
+        [Map widget.visualization.id → DT visualization type]
+        [Convert layout (row/col) → (x, y, w, h)]
+        [Convert thresholds, colors, axis settings]
+      ↓
+  Emit one DT Document per page
+</code></pre>
+<p><strong>Output:</strong> N documents per source dashboard (where N = number of NR pages). Each document has:</p>
+<ul>
+<li>A name like <code>&lt;dashboard-name&gt; — &lt;page-name&gt;</code> (avoids name collisions)</li>
+<li>A migration-metadata tile (optional) with the source GUID for traceability</li>
+</ul>
+<p><a id="widgets"></a></p>
+<h2>4. Widget-Level Translation</h2>
+<table>
+<thead>
+<tr>
+<th>NR Widget Type</th>
+<th>DT Visualization</th>
+<th>Phase 19 Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>viz.line</code></td>
+<td><code>lineChart</code></td>
+<td>direct</td>
+</tr>
+<tr>
+<td><code>viz.area</code></td>
+<td><code>areaChart</code></td>
+<td>direct</td>
+</tr>
+<tr>
+<td><code>viz.bar</code></td>
+<td><code>barChart</code></td>
+<td>direct</td>
+</tr>
+<tr>
+<td><code>viz.pie</code></td>
+<td><code>pieChart</code></td>
+<td>direct</td>
+</tr>
+<tr>
+<td><code>viz.table</code></td>
+<td><code>table</code></td>
+<td>direct</td>
+</tr>
+<tr>
+<td><code>viz.billboard</code></td>
+<td><code>singleValue</code></td>
+<td>direct</td>
+</tr>
+<tr>
+<td><code>viz.heatmap</code></td>
+<td><strong><code>honeycomb</code> (native)</strong></td>
+<td>Phase 19 — upgraded from table fallback</td>
+</tr>
+<tr>
+<td><code>viz.histogram</code></td>
+<td><code>histogram</code></td>
+<td>direct</td>
+</tr>
+<tr>
+<td><code>viz.markdown</code></td>
+<td><code>markdown</code></td>
+<td>direct (no query)</td>
+</tr>
+<tr>
+<td><code>viz.json</code></td>
+<td><code>code</code> (DQL block)</td>
+<td>direct</td>
+</tr>
+<tr>
+<td><code>viz.event-feed</code></td>
+<td><strong><code>table</code> with canonical timestamp sort + <code>eventFeedMode</code></strong></td>
+<td>Phase 19 — upgraded from table fallback</td>
+</tr>
+<tr>
+<td><code>viz.funnel</code></td>
+<td><strong><code>barChart</code> composite with <code>countIf</code> per stage + <code>funnelEmulation: true</code></strong></td>
+<td>Phase 19 — upgraded from markdown placeholder</td>
+</tr>
+<tr>
+<td>Custom Nerdpack widget</td>
+<td>not portable</td>
+<td>document in gap analysis / see the tool's <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/main/docs/out-of-scope.md">out-of-scope list (migration utilities GitHub)</a></td>
+</tr>
+</tbody>
+</table>
+<p>Each translation preserves the title; data thresholds (red/yellow/green) map to DT <code>visualizationSettings.thresholds</code>.</p>
+<p>Visualization-specific settings (axis labels, color overrides, sort order) are converted where DT has an equivalent. Some NR-specific settings (e.g., <code>nullValues: zero</code> semantics) emit a translation note rather than failing silently.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5OUiDihpQgRHluYXRyYWNlIEVudGl0eSBNYXBwaW5nPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPjExIGVudGl0eSBjbGFzc2VzIMK3IHRoZSBtaWdyYXRpb24gdHJhbnNsYXRpb24gc3VyZmFjZTwvdGV4dD4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJucjRhcnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iMTAiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gTEVGVCBjb2x1bW46IE5SIGVudGl0aWVzIC0tPgogIDx0ZXh0IHg9IjE2MCIgeT0iOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPk5ldyBSZWxpYzwvdGV4dD4KCiAgPGcgZm9udC1zaXplPSIxMSI+CiAgICA8cmVjdCB4PSI0MCIgeT0iMTEwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjMyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMwMEFDNjkiIHJ4PSI0Ii8+CiAgICA8dGV4dCB4PSIxNjAiIHk9IjEzMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyI+RGFzaGJvYXJkIChtdWx0aS1wYWdlKTwvdGV4dD4KCiAgICA8cmVjdCB4PSI0MCIgeT0iMTQ4IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjMyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMwMEFDNjkiIHJ4PSI0Ii8+CiAgICA8dGV4dCB4PSIxNjAiIHk9IjE2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyI+QWxlcnQgUG9saWN5ICsgTlJRTCBDb25kaXRpb248L3RleHQ+CgogICAgPHJlY3QgeD0iNDAiIHk9IjE4NiIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIzMiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMDBBQzY5IiByeD0iNCIvPgogICAgPHRleHQgeD0iMTYwIiB5PSIyMDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiPkFQTSBDb25kaXRpb24gKGJ1aWx0LWluKTwvdGV4dD4KCiAgICA8cmVjdCB4PSI0MCIgeT0iMjI0IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjMyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMwMEFDNjkiIHJ4PSI0Ii8+CiAgICA8dGV4dCB4PSIxNjAiIHk9IjI0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyI+U3ludGhldGljIChQaW5nL0Jyb3dzZXIvQVBJL1N0ZXApPC90ZXh0PgoKICAgIDxyZWN0IHg9IjQwIiB5PSIyNjIiIHdpZHRoPSIyNDAiIGhlaWdodD0iMzIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzAwQUM2OSIgcng9IjQiLz4KICAgIDx0ZXh0IHg9IjE2MCIgeT0iMjgzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIj5TTE88L3RleHQ+CgogICAgPHJlY3QgeD0iNDAiIHk9IjMwMCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIzMiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMDBBQzY5IiByeD0iNCIvPgogICAgPHRleHQgeD0iMTYwIiB5PSIzMjEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiPldvcmtsb2FkPC90ZXh0PgoKICAgIDxyZWN0IHg9IjQwIiB5PSIzMzgiIHdpZHRoPSIyNDAiIGhlaWdodD0iMzIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzAwQUM2OSIgcng9IjQiLz4KICAgIDx0ZXh0IHg9IjE2MCIgeT0iMzU5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIj5Ob3RpZmljYXRpb24gQ2hhbm5lbDwvdGV4dD4KCiAgICA8cmVjdCB4PSI0MCIgeT0iMzc2IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjMyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMwMEFDNjkiIHJ4PSI0Ii8+CiAgICA8dGV4dCB4PSIxNjAiIHk9IjM5NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyI+RHJvcCBSdWxlPC90ZXh0PgoKICAgIDxyZWN0IHg9IjQwIiB5PSI0MTQiIHdpZHRoPSIyNDAiIGhlaWdodD0iMzIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzAwQUM2OSIgcng9IjQiLz4KICAgIDx0ZXh0IHg9IjE2MCIgeT0iNDM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIj5Mb2cgUGFyc2luZyBSdWxlIChHcm9rKTwvdGV4dD4KCiAgICA8cmVjdCB4PSI0MCIgeT0iNDUyIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjMyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMwMEFDNjkiIHJ4PSI0Ii8+CiAgICA8dGV4dCB4PSIxNjAiIHk9IjQ3MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyI+VGFnIFJ1bGU8L3RleHQ+CiAgPC9nPgoKICA8IS0tIEFycm93cyAtLT4KICA8ZyBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBmaWxsPSJub25lIj4KICAgIDxsaW5lIHgxPSIyODUiIHkxPSIxMjYiIHgyPSIzODUiIHkyPSIxMjYiIG1hcmtlci1lbmQ9InVybCgjbnI0YXJyKSIvPgogICAgPGxpbmUgeDE9IjI4NSIgeTE9IjE2NCIgeDI9IjM4NSIgeTI9IjE2NCIgbWFya2VyLWVuZD0idXJsKCNucjRhcnIpIi8+CiAgICA8bGluZSB4MT0iMjg1IiB5MT0iMjAyIiB4Mj0iMzg1IiB5Mj0iMjAyIiBtYXJrZXItZW5kPSJ1cmwoI25yNGFycikiLz4KICAgIDxsaW5lIHgxPSIyODUiIHkxPSIyNDAiIHgyPSIzODUiIHkyPSIyNDAiIG1hcmtlci1lbmQ9InVybCgjbnI0YXJyKSIvPgogICAgPGxpbmUgeDE9IjI4NSIgeTE9IjI3OCIgeDI9IjM4NSIgeTI9IjI3OCIgbWFya2VyLWVuZD0idXJsKCNucjRhcnIpIi8+CiAgICA8bGluZSB4MT0iMjg1IiB5MT0iMzE2IiB4Mj0iMzg1IiB5Mj0iMzE2IiBtYXJrZXItZW5kPSJ1cmwoI25yNGFycikiLz4KICAgIDxsaW5lIHgxPSIyODUiIHkxPSIzNTQiIHgyPSIzODUiIHkyPSIzNTQiIG1hcmtlci1lbmQ9InVybCgjbnI0YXJyKSIvPgogICAgPGxpbmUgeDE9IjI4NSIgeTE9IjM5MiIgeDI9IjM4NSIgeTI9IjM5MiIgbWFya2VyLWVuZD0idXJsKCNucjRhcnIpIi8+CiAgICA8bGluZSB4MT0iMjg1IiB5MT0iNDMwIiB4Mj0iMzg1IiB5Mj0iNDMwIiBtYXJrZXItZW5kPSJ1cmwoI25yNGFycikiLz4KICAgIDxsaW5lIHgxPSIyODUiIHkxPSI0NjgiIHgyPSIzODUiIHkyPSI0NjgiIG1hcmtlci1lbmQ9InVybCgjbnI0YXJyKSIvPgogIDwvZz4KCiAgPCEtLSBSSUdIVCBjb2x1bW46IERUIGVudGl0aWVzIC0tPgogIDx0ZXh0IHg9IjU1NSIgeT0iOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkR5bmF0cmFjZTwvdGV4dD4KCiAgPGcgZm9udC1zaXplPSIxMSI+CiAgICA8cmVjdCB4PSIzOTAiIHk9IjExMCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIzMiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNCIvPgogICAgPHRleHQgeD0iNTEwIiB5PSIxMzEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiPkRvY3VtZW50IMOXIE4gKG9uZSBwZXIgcGFnZSk8L3RleHQ+CgogICAgPHJlY3QgeD0iMzkwIiB5PSIxNDgiIHdpZHRoPSIyNDAiIGhlaWdodD0iMzIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgcng9IjQiLz4KICAgIDx0ZXh0IHg9IjUxMCIgeT0iMTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIj5Xb3JrZmxvdyArIGFub21hbHkgZGV0ZWN0b3I8L3RleHQ+CgogICAgPHJlY3QgeD0iMzkwIiB5PSIxODYiIHdpZHRoPSIyNDAiIGhlaWdodD0iMzIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjQiLz4KICAgIDx0ZXh0IHg9IjUxMCIgeT0iMjA3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkVGM0M3Ij5EeW5hdHJhY2UgSW50ZWxsaWdlbmNlIEFkYXB0aXZlIEJhc2VsaW5lIChtYW51YWwpPC90ZXh0PgoKICAgIDxyZWN0IHg9IjM5MCIgeT0iMjI0IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjMyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI0Ii8+CiAgICA8dGV4dCB4PSI1MTAiIHk9IjI0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSI+SFRUUCAvIEJyb3dzZXIgLyBNdWx0aS1zdGVwIE1vbi48L3RleHQ+CgogICAgPHJlY3QgeD0iMzkwIiB5PSIyNjIiIHdpZHRoPSIyNDAiIGhlaWdodD0iMzIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgcng9IjQiLz4KICAgIDx0ZXh0IHg9IjUxMCIgeT0iMjgzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIj5TTE8gKFNMTyBhcHApPC90ZXh0PgoKICAgIDxyZWN0IHg9IjM5MCIgeT0iMzAwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjMyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI0Ii8+CiAgICA8dGV4dCB4PSI1MTAiIHk9IjMyMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSI+T3BlblBpcGVsaW5lIGVucmljaG1lbnQgKyBJQU08L3RleHQ+CgogICAgPHJlY3QgeD0iMzkwIiB5PSIzMzgiIHdpZHRoPSIyNDAiIGhlaWdodD0iMzIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgcng9IjQiLz4KICAgIDx0ZXh0IHg9IjUxMCIgeT0iMzU5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIj5Xb3JrZmxvdyB0YXNrIChjb25uZWN0b3IgLyBIVFRQKTwvdGV4dD4KCiAgICA8cmVjdCB4PSIzOTAiIHk9IjM3NiIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIzMiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNCIvPgogICAgPHRleHQgeD0iNTEwIiB5PSIzOTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiPk9wZW5QaXBlbGluZSBEcm9wIHJlY29yZDwvdGV4dD4KCiAgICA8cmVjdCB4PSIzOTAiIHk9IjQxNCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIzMiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNCIvPgogICAgPHRleHQgeD0iNTEwIiB5PSI0MzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiPk9wZW5QaXBlbGluZSBEUEwgcGFyc2VyPC90ZXh0PgoKICAgIDxyZWN0IHg9IjM5MCIgeT0iNDUyIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjMyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI0Ii8+CiAgICA8dGV4dCB4PSI1MTAiIHk9IjQ3MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSI+T3BlblBpcGVsaW5lIGVucmljaG1lbnQ8L3RleHQ+CiAgPC9nPgoKICA8IS0tIFJpZ2h0IHNpZGU6IGRlZXAgZGl2ZSByZWZlcmVuY2VzIC0tPgogIDx0ZXh0IHg9Ijc4MCIgeT0iOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkRlZXAgRGl2ZTwvdGV4dD4KCiAgPGcgZm9udC1zaXplPSIxMCI+CiAgICA8dGV4dCB4PSI3ODAiIHk9IjEzMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyI+TlJMQy0wMzwvdGV4dD4KICAgIDx0ZXh0IHg9Ijc4MCIgeT0iMTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTVGM0ZDIj5OUkxDLTA0PC90ZXh0PgogICAgPHRleHQgeD0iNzgwIiB5PSIyMDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiPk5STEMtMDQgKG1hbnVhbCk8L3RleHQ+CiAgICA8dGV4dCB4PSI3ODAiIHk9IjI0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyI+TlJMQy0wNTwvdGV4dD4KICAgIDx0ZXh0IHg9Ijc4MCIgeT0iMjgzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTVGM0ZDIj5OUkxDLTA2PC90ZXh0PgogICAgPHRleHQgeD0iNzgwIiB5PSIzMjEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiPk5STEMtMDY8L3RleHQ+CiAgICA8dGV4dCB4PSI3ODAiIHk9IjM1OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyI+TlJMQy0wNDwvdGV4dD4KICAgIDx0ZXh0IHg9Ijc4MCIgeT0iMzk3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTVGM0ZDIj5OUkxDLTA3PC90ZXh0PgogICAgPHRleHQgeD0iNzgwIiB5PSI0MzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiPk5STEMtMDc8L3RleHQ+CiAgICA8dGV4dCB4PSI3ODAiIHk9IjQ3MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyI+TlJMQy0wNzwvdGV4dD4KICA8L2c+Cjwvc3ZnPgo=" alt="NR ↔ Dynatrace Entity Mapping (overview)" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| NR | DT | Notes |
+|----|----|-------|
+| Dashboard (multi-page) | Document × N | one per page |
+| Alert Policy + Condition | Workflow + anomaly detector (Gen3) | decoupled |
+| APM Condition | Dynatrace Intelligence Adaptive Baseline | manual review |
+| Synthetic (4 types) | HTTP/Browser/Multi-step (3 types) | scripted browser is manual |
+| SLO | SLO (SLO app) | metric expression must match |
+| Workload | OpenPipeline enrichment + IAM policy condition on enriched attribute | rules-based |
+| Drop Rule | OpenPipeline Drop record processor | NRQL → DQL matching condition |
+For environments where SVG doesn't render
+-->
+<p><a id="multi-page"></a></p>
+<h2>5. Multi-Page Dashboards</h2>
+<p>NR's multi-page dashboards become <strong>N separate DT documents</strong>. There's no native multi-page concept in DT Gen3 documents.</p>
+<p><strong>Naming pattern (default):</strong> <code>&lt;dashboard-name&gt; — &lt;page-name&gt;</code></p>
+<p>The transformer does not tag the documents it creates with the source dashboard.</p>
+<h3>Cross-page links</h3>
+<p>If an NR widget linked to another page, the transformer emits a markdown tile in the target document with a hyperlink (<code>open in DT → &lt;document URL&gt;</code>). Cross-page link metadata is preserved.</p>
+<p><a id="variables"></a></p>
+<h2>6. Variables &amp; Dynamic Content</h2>
+<p>NR dashboards support <code>variables</code> (dropdowns, text inputs, query-driven lists). DT documents also support variables but with a different schema.</p>
+<table>
+<thead>
+<tr>
+<th>NR Variable Type</th>
+<th>DT Variable</th>
+<th>Conversion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>enum</code> (static list)</td>
+<td><code>csv</code> variable</td>
+<td>direct</td>
+</tr>
+<tr>
+<td><code>nrql</code> (query-driven)</td>
+<td><code>query</code> variable</td>
+<td>NRQL→DQL via translator</td>
+</tr>
+<tr>
+<td><code>string</code> (free text)</td>
+<td><code>text</code> variable</td>
+<td>direct</td>
+</tr>
+<tr>
+<td><code>default value</code></td>
+<td><code>defaultValue</code> field</td>
+<td>direct</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Gotchas:</strong></p>
+<ul>
+<li><strong>Cascading variables</strong> (variable B depends on variable A) work in DT but the dependency chain must be re-declared explicitly.</li>
+<li><strong>Multi-select variables</strong> translate, but the DQL must use <code>in()</code> filter syntax instead of NRQL's <code>IN</code>.</li>
+<li><strong>Variable interpolation in queries</strong> changes from <code>{{varName}}</code> (NRQL) to <code>$varName</code> or <code>$(varName)</code> (DT — schema-version dependent).</li>
+</ul>
+<p>The transformer handles all three patterns; complex interpolation cases emit a MEDIUM-confidence translation note.</p>
+<p><a id="layout"></a></p>
+<h2>7. Layout Preservation</h2>
+<p>NR uses a <strong>row-based</strong> layout (12-column grid implied). DT uses a <strong>free grid</strong> with explicit <code>x, y, w, h</code> per tile.</p>
+<p>The transformer's layout conversion:</p>
+<ol>
+<li>Walk NR widgets in display order</li>
+<li>Maintain a <code>currentX</code> cursor and <code>currentRowY</code></li>
+<li>For each widget: emit <code>{x: currentX, y: currentRowY, w: widget.column, h: widget.row}</code></li>
+<li>Advance <code>currentX += w</code>; wrap to next row when <code>currentX &gt;= 12</code></li>
+<li>Track tallest widget in row to advance <code>currentRowY</code> correctly</li>
+</ol>
+<p><strong>Result:</strong> visually equivalent in 90%+ of cases; the remainder needs manual touch-up (typically dashboards with nonstandard widget aspect ratios). Document this as a MEDIUM-effort review item per dashboard.</p>
+<p><a id="validation"></a></p>
+<h2>8. Validation Strategy</h2>
+<p>After migration, validate dashboards with a three-tier check:</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Method</th>
+<th>What It Catches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Tier 1: Schema</strong></td>
+<td>DT API rejects malformed documents, <strong>plus</strong> opening each imported dashboard in the Dashboards app</td>
+<td>Invalid JSON, missing required fields, tiles the API stored but the app cannot render</td>
+</tr>
+<tr>
+<td><strong>Tier 2: Query validity</strong></td>
+<td><code>DQLSyntaxValidator</code> offline checks, then each tile's DQL run against the tenant</td>
+<td>Bad DQL syntax. An unknown field is not caught: it runs and returns nothing, with no notification</td>
+</tr>
+<tr>
+<td><strong>Tier 3: Visual diff</strong></td>
+<td>Open NR dashboard side-by-side with DT document</td>
+<td>Layout drift, missing data, color/axis mismatches</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Tier 1 needs both checks, not just the API response.</strong> A document the API <em>accepts</em> can still fail dashboard validation at render time — API acceptance means the document was stored, not that it draws. For a bulk transformer run that distinction is the whole game: a systematic defect in the transformer produces the same malformed tile in every dashboard it touches, and if the only gate is the HTTP status code, N dashboards ship unusable with N successful <code>2xx</code> responses in the log. <strong>Sample-open imported dashboards even when every call returned 2xx</strong> — the failure mode is silent by construction.</p>
+<p>This got sharper with <strong>SaaS 1.344</strong> (published 07/27/2026, staged tenant rollout from 07/29/2026 — verify whether it has reached your tenant). Before 1.344, a dashboard failing validation still loaded and showed validation warnings, so a defect surfaced as a warning nobody read. Once 1.344 reaches your tenant it does not load at all, and Dynatrace names <strong>API- and AI-authored</strong> dashboards as the most affected population — which is exactly what a transformer emits. The tiered strategy below is unchanged; what changed is that a skipped Tier 1 open now produces a dead dashboard rather than a noisy one.</p>
+<p><strong>Recommended:</strong> run Tier 3 on a 10–20% sample of dashboards. Full visual review is rarely cost-justified; sampling catches systemic issues (transformer bugs) without exhaustive manual work. Tier 1's open-and-check is cheaper than Tier 3's side-by-side comparison, so sample it more aggressively — or exhaustively on the first transformer run against a new dashboard family.</p>
+<h2>Summary</h2>
+<p>Dashboard migration is mostly mechanical — the transformer handles widgets, layout, variables, and queries. The non-mechanical work is:</p>
+<ul>
+<li>Splitting multi-page dashboards into multiple documents (and rebuilding navigation)</li>
+<li>Reviewing variable cascades and interpolation</li>
+<li>Validating visual fidelity on a sample</li>
+<li>Documenting MEDIUM-confidence translations for follow-up</li>
+</ul>
+<p>Continue to <strong>NRLC-04 Alert &amp; Notification Migration</strong> for the higher-stakes work (alerts directly affect on-call).</p>
+<p><a id="tooling-dashboards"></a></p>
+<h2>Tooling for Dashboard-Only Migration</h2>
+<p>End-to-end commands for migrating only dashboards — no other components touched.</p>
+<pre><code class="language-bash"># 1. Inventory NR dashboards (export only — nothing is written to Dynatrace)
+python3 migrate.py migrate --export-only --components dashboards --output ./dashboards-run
+
+# 2. Translate widget queries, diff against existing DT dashboards (by name),
+#    and write a conversion report — nothing is imported
+python3 migrate.py migrate --dry-run --diff --report --components dashboards --output ./dashboards-run
+
+# 3a. Direct API import (export → transform → import); writes ./dashboards-run/rollback-manifest.json
+python3 migrate.py migrate --components dashboards --output ./dashboards-run
+
+# 3b. Or export the transformed config from step 2 as Terraform for GitOps management
+python3 migrate.py export-terraform --input ./dashboards-run --output ./tf-dashboards
+
+# 4. Rollback if needed — --rollback takes the manifest file itself
+python3 migrate.py migrate --rollback ./dashboards-run/rollback-manifest.json
+</code></pre>
+<blockquote>
+<p><strong>Flags checked against <code>migrate.py</code> on the tool's <code>main</code> branch (10/05/2026).</strong> There is no <code>--transform-only</code>: <code>--dry-run</code> runs export and transform, writes <code>&lt;output&gt;/transformed/dynatrace_config.json</code>, and skips the import. <code>--diff</code> takes effect only on a full or dry run — with <code>--import-only</code> it is ignored, and without <code>--dry-run</code> it is computed <em>after</em> the import. <code>--import-only</code> needs <code>--input &lt;dir&gt;</code> and does not write a rollback manifest; a full run writes <code>&lt;output&gt;/rollback-manifest.json</code>. Run <code>python3 migrate.py migrate --help</code> against your checkout before relying on a flag.</p>
+</blockquote>
+<p><strong>Single-query translation</strong> for an ad-hoc widget:</p>
+<pre><code class="language-bash">npm run cli -- query &quot;SELECT count(*) FROM Transaction FACET host&quot;
+</code></pre>
+<p><strong>Batch Excel translation</strong> (for very large dashboard portfolios):</p>
+<pre><code class="language-bash">npm run cli -- excel dashboards-queries.xlsx --output dashboards-dql.xlsx
+</code></pre>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources, including the open-source <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities">NewRelic-to-Dynatrace-Migration-Utilities</a>, <a href="https://github.com/timstewart-dynatrace/nrql-engine">nrql-engine</a> (planned future home: the <a href="https://github.com/dynatrace-dma"><code>dynatrace-dma</code></a> Dynatrace Migration Assistant organization), and <a href="https://github.com/timstewart-dynatrace/nrql-translator">nrql-translator</a> projects. This notebook series is not officially supported by Dynatrace or New Relic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://docs.newrelic.com">New Relic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

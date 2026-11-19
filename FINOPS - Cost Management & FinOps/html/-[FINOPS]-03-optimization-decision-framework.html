@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FINOPS-03: DPS Consumption Optimization — When to Cut, Tune, or Filter</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">FINOPS — Cost Management &amp; FinOps</a><span class="sep">/</span><span aria-current="page">FINOPS-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>FINOPS-03: DPS Consumption Optimization — When to Cut, Tune, or Filter</h1>
+<blockquote>
+<p><strong>Series:</strong> FINOPS — Cost Management &amp; FinOps | <strong>Reference:</strong> 03 — DPS Consumption Optimization — When to Cut, Tune, or Filter | <strong>Created:</strong> May 2026 | <strong>Last Updated:</strong> 11/19/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>FINOPS-01 told you what's being consumed. FINOPS-02 told you when an alert should fire. <strong>FINOPS-03 answers the only question that matters after the alert fires: what do you actually change?</strong></p>
+<p>Most cost-optimization conversations stall because the team treats every reduction option as roughly equivalent — <em>&quot;let's just sample more,&quot;</em> or <em>&quot;let's just shorten retention.&quot;</em> They are not equivalent. Each option has a different blast radius, a different reversibility profile, and a different relationship to the observability the business actually needs. Picking the wrong lever produces savings that erode the value of the platform.</p>
+<p><strong>The framework: three levers — Cut, Tune, Filter.</strong> Cut drops a signal entirely at the source. Tune adjusts a parameter on an otherwise-flowing signal (sample rate, retention period, resolution). Filter drops a <em>subset</em> of a flowing signal conditionally (specific severities, specific paths, specific apps). Each lever applies in different situations; mixing them up is the most common failure mode.</p>
+<p><strong>Bias toward upstream levers.</strong> The further upstream a change happens, the cheaper it is and the more reversible. Cut at the source (don't emit) beats Filter at OpenPipeline (don't ingest) beats Tune at storage (ingest cheaply). A flowing log stream that's been DEBUG-filtered at OpenPipeline still cost something to transit; the same stream that never emitted DEBUG didn't.</p>
+<blockquote>
+<p><strong>Scope:</strong> Dynatrace SaaS on DPS. The decision framework is platform-agnostic but the implementation handles (OpenPipeline filter syntax, retention configuration, sampling controls) are Dynatrace-specific. Implementation depth lives in cross-referenced series (ORGNZ for buckets and retention; OPLOGS for sampling; OPIPE for non-log pipeline shapes).</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#three-levers">The Three Levers — Cut / Tune / Filter</a></li>
+<li><a href="#when-to-cut">When to Cut</a></li>
+<li><a href="#when-to-tune">When to Tune</a></li>
+<li><a href="#when-to-filter">When to Filter</a></li>
+<li><a href="#decision-tree">Decision Tree by Data Type</a></li>
+<li><a href="#tradeoffs">Trade-offs and Hidden Costs</a></li>
+<li><a href="#wx-logs">Worked Example — Production Log Stream</a></li>
+<li><a href="#wx-metrics">Worked Example — High-Cardinality Metric</a></li>
+<li><a href="#cross-refs">Cross-References to Implementation Depth</a></li>
+<li><a href="#recommendation">Recommended Approach</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Familiarity with FINOPS-01</strong></td>
+<td>Understanding of per-capability schema and the <code>dt.system.events</code> / <code>dt.billing.*</code> surfaces — this entry assumes the <em>what is being consumed</em> picture is already in place.</td>
+</tr>
+<tr>
+<td><strong>Familiarity with FINOPS-02</strong></td>
+<td>This entry is the <em>response</em> layer to the alerts FINOPS-02 sets up.</td>
+</tr>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Platform / Observability Lead (primary); Executive / Procurement (TL;DR, §7 trade-offs, §11 recommendation).</td>
+</tr>
+<tr>
+<td><strong>Companion series</strong></td>
+<td>ORGNZ (bucket strategy and retention), OPLOGS (OpenPipeline filtering and sampling), OPIPE (OpenPipeline for non-log signals), ADOPT-05 (optimization in the maturity-roadmap context).</td>
+</tr>
+<tr>
+<td><strong>Posture</strong></td>
+<td>This is a decision framework, not a tuning recipe. Decisions belong to the team that owns the affected workload; this notebook structures the conversation.</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<table>
+<thead>
+<tr>
+<th>Lever</th>
+<th>What it does</th>
+<th>When to reach for it</th>
+<th>Reversibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cut</strong></td>
+<td>Stop emitting the signal at the source (agent setting, app config, integration disabled)</td>
+<td>The signal has no consumer that depends on it; or the cost-of-emission consistently exceeds the value</td>
+<td>High — turn the signal back on</td>
+</tr>
+<tr>
+<td><strong>Tune</strong></td>
+<td>Keep the signal flowing but adjust a parameter (sample rate, retention, metric resolution)</td>
+<td>The signal is useful but at a different fidelity than current; rate / depth can be reduced without losing the workload</td>
+<td>Medium — re-tune the parameter</td>
+</tr>
+<tr>
+<td><strong>Filter</strong></td>
+<td>Drop a subset of an otherwise-flowing signal at OpenPipeline (or equivalent)</td>
+<td>The signal is useful overall but specific subsets are noise (DEBUG logs, healthcheck spans, synthetic-test bots)</td>
+<td>High — remove the filter</td>
+</tr>
+</tbody>
+</table>
+<p>The three-lever split is this entry's framing, not a Dynatrace taxonomy — Dynatrace's own Optimize guide names two levers, sending and keeping less data and querying it more efficiently. Cut, Tune, and Filter subdivide the first; query-side tuning (§4) covers the second.</p>
+<p><strong>The headline:</strong> match the lever to the question. <em>&quot;Is this signal still load-bearing?&quot;</em> → Cut. <em>&quot;Is the granularity right?&quot;</em> → Tune. <em>&quot;Is some-but-not-all of it noise?&quot;</em> → Filter. Reach for the upstream-most option that solves the problem — emission-time changes are cheaper than ingest-time, which are cheaper than storage-time.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage-your-costs/optimize">Optimize (DT docs)</a> — <em>&quot;Two levers drive DPS cost down: Send and keep less data. Query your data more efficiently with DQL, dashboards, workflows.&quot;</em> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/best-practices-metrics">Best practices for optimizing metrics cost (DT docs)</a> — <em>&quot;Generally, the closer to the client you drop data, the lower the overall cost.&quot;</em> <a href="https://docs.dynatrace.com/docs/shortlink/dps-log-management">DPS Log Management (DT docs)</a> — <em>&quot;filtering generates usage for Ingest &amp; Process, but not for Retain&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="three-levers"></a></p>
+<h2>2. The Three Levers — Cut / Tune / Filter</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJkdC1hcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+T3B0aW1pemF0aW9uIERlY2lzaW9uIFRyZWU8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+RnJvbSBidXJuLXJhdGUgYWxlcnQgdG8gcm9vdC1jYXVzZSBsZXZlciDigJQgbWF0Y2ggdGhlIHF1ZXN0aW9uIHRvIHRoZSByaWdodCBsZXZlcjwvdGV4dD4KCiAgPCEtLSBSb290OiBhbGVydCBmaXJlcyAtLT4KICA8cmVjdCB4PSIzODUiIHk9IjgwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjQ0IiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjE1IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMiIgcng9IjYiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjEwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+RklOT1BTLTAyIGFsZXJ0IGZpcmVzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTE2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5idXJuIHJhdGUgLyBhbm9tYWx5IC8gcHJvamVjdGlvbjwvdGV4dD4KCiAgPGxpbmUgeDE9IjQ2NSIgeTE9IjEyNCIgeDI9IjQ2NSIgeTI9IjE0OCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNkdC1hcnJvdykiLz4KCiAgPCEtLSBEaWFnbm9zZSAtLT4KICA8cmVjdCB4PSIzNjUiIHk9IjE0OCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI0NCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjE2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+RGlhZ25vc2U8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIxODQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkRyaWxsIHRvIGJ1Y2tldCAvIGNhcGFiaWxpdHkgLyBkaW1lbnNpb248L3RleHQ+CgogIDxsaW5lIHgxPSI0NjUiIHkxPSIxOTIiIHgyPSI0NjUiIHkyPSIyMTYiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZHQtYXJyb3cpIi8+CgogIDwhLS0gRnJhbWUgdGhlIHF1ZXN0aW9uIChkaWFtb25kKSAtLT4KICA8cG9seWdvbiBwb2ludHM9IjQ2NSwyMTYgNjg1LDI2MCA0NjUsMzA0IDI0NSwyNjAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIyNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkZyYW1lIHRoZSBxdWVzdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjI2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+TG9hZC1iZWFyaW5nPyDCtyBQYXJhbWV0ZXIgd3Jvbmc/IMK3IFN1YnNldCBub2lzeT88L3RleHQ+CgogIDwhLS0gVGhyZWUgYnJhbmNoZXMgZnJvbSBmcmFtZSB0byBDdXQgLyBUdW5lIC8gRmlsdGVyIC0tPgogIDwhLS0gQ3V0IGJyYW5jaCAobGVmdCkgLS0+CiAgPGxpbmUgeDE9IjMyMCIgeTE9IjI4NCIgeDI9IjE4MCIgeTI9IjM1MCIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjZHQtYXJyb3cpIi8+CiAgPHRleHQgeD0iMjIyIiB5PSIzMTQiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPk5vdCBsb2FkLWJlYXJpbmc/PC90ZXh0PgoKICA8cmVjdCB4PSI2MCIgeT0iMzUwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4xIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMiIgcng9IjgiLz4KICA8dGV4dCB4PSIxODAiIHk9IjM3NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+Q3V0PC90ZXh0PgogIDx0ZXh0IHg9IjE4MCIgeT0iMzkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TdG9wIGVtaXR0aW5nIGF0IHNvdXJjZTwvdGV4dD4KICA8dGV4dCB4PSIxODAiIHk9IjQwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+RGlzYWJsZSBtb25pdG9yIC8gcmVtb3ZlIGxvZ2dpbmc8L3RleHQ+CiAgPHRleHQgeD0iMTgwIiB5PSI0MjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnN0YXRlbWVudCAvIGRlY29tbWlzc2lvbiBob3N0PC90ZXh0PgogIDx0ZXh0IHg9IjE4MCIgeT0iNDQxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPuKaoCBDb29yZGluYXRlIHdpdGggd29ya2xvYWQgb3duZXI8L3RleHQ+CgogIDwhLS0gVHVuZSBicmFuY2ggKGNlbnRlcikgLS0+CiAgPGxpbmUgeDE9IjQ2NSIgeTE9IjMwNCIgeDI9IjQ2NSIgeTI9IjM1MCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjZHQtYXJyb3cpIi8+CiAgPHRleHQgeD0iNDc1IiB5PSIzMzEiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+UGFyYW1ldGVyIHdyb25nPzwvdGV4dD4KCiAgPHJlY3QgeD0iMzQ1IiB5PSIzNTAiIHdpZHRoPSIyNDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjEiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iOCIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5UdW5lPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5BZGp1c3Qgc2lnbmFsIHBhcmFtZXRlcjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+UmV0ZW50aW9uIMK3IHNhbXBsaW5nIHJhdGUgwrc8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0MjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmluZ2VzdCBpbnRlcnZhbCDCtyByZXNvbHV0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDQxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPkVhc2llc3QgbGV2ZXI7IG92ZXItdXNlZDwvdGV4dD4KCiAgPCEtLSBGaWx0ZXIgYnJhbmNoIChyaWdodCkgLS0+CiAgPGxpbmUgeDE9IjYxMCIgeTE9IjI4NCIgeDI9Ijc1MCIgeTI9IjM1MCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjZHQtYXJyb3cpIi8+CiAgPHRleHQgeD0iNzEyIiB5PSIzMTQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+U3Vic2V0IG5vaXN5PzwvdGV4dD4KCiAgPHJlY3QgeD0iNjMwIiB5PSIzNTAiIHdpZHRoPSIyNDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjEiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iOCIvPgogIDx0ZXh0IHg9Ijc1MCIgeT0iMzc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5GaWx0ZXI8L3RleHQ+CiAgPHRleHQgeD0iNzUwIiB5PSIzOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkRyb3Agc3Vic2V0IG9mIGZsb3dpbmcgc2lnbmFsPC90ZXh0PgogIDx0ZXh0IHg9Ijc1MCIgeT0iNDA4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5ERUJVRyBsb2dzIMK3IGhlYWx0aGNoZWNrIHNwYW5zIMK3PC90ZXh0PgogIDx0ZXh0IHg9Ijc1MCIgeT0iNDIyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5oaWdoLWNhcmRpbmFsaXR5IGRpbWVuc2lvbnM8L3RleHQ+CiAgPHRleHQgeD0iNzUwIiB5PSI0NDEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtc3R5bGU9Iml0YWxpYyI+TW9zdCB0YXJnZXRlZDsgZHJpZnRzIG92ZXIgdGltZTwvdGV4dD4KCiAgPCEtLSBGb290ZXIgLS0+CiAgPHRleHQgeD0iNDY1IiB5PSI0NzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkJpYXMgdG93YXJkIHVwc3RyZWFtIGxldmVyczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQ5MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMCI+Q3V0IChlbWlzc2lvbikg4oaSIEZpbHRlciAoQ29sbGVjdG9yIG9yIE9wZW5QaXBlbGluZSkg4oaSIFR1bmUgKHN0b3JhZ2UpPC90ZXh0Pgo8L3N2Zz4K" alt="Optimization Decision Tree" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Lever | Question that triggers it | What it does |
+|-------|---------------------------|---------------|
+| Cut | Not load-bearing? | Stop emitting at source — disable monitor, remove logging, decommission host |
+| Tune | Parameter wrong? | Adjust signal parameter — retention, sampling rate, ingest interval, resolution |
+| Filter | Subset noisy? | Drop subset of flowing signal at OpenPipeline or in an OpenTelemetry Collector — DEBUG logs, healthcheck spans, high-cardinality dimensions |
+Bias toward upstream levers: Cut (emission) → Filter (Collector or OpenPipeline) → Tune (storage).
+-->
+<p>This entry sorts every consumption-reduction option into one of three patterns. Naming them helps the conversation move past &quot;reduce cost&quot; to deciding which signal-emission behavior to change.</p>
+<h3>Cut</h3>
+<p>Stop emitting the signal at the source. Examples:</p>
+<ul>
+<li>Disable a synthetic monitor that no one looks at</li>
+<li>Remove a logging statement from application code</li>
+<li>Disable verbose collector exporters</li>
+<li>Disable a Dynatrace integration that no team owns</li>
+<li>Decommission a host that no longer hosts production workload</li>
+</ul>
+<p>Cut is the strongest lever — it eliminates the underlying activity, not just its observability. It is also the lever with the most organizational friction, because <em>someone</em> originally chose to emit the signal and someone has to confirm it's safe to stop.</p>
+<h3>Tune</h3>
+<p>Keep the signal flowing but adjust a parameter. Examples:</p>
+<ul>
+<li>Reduce log retention from 35 days to 14 days (Logs - Retain)</li>
+<li>Lower trace sampling rate (Traces - Ingest)</li>
+<li>Increase metric ingestion interval beyond one minute (Metrics - Ingest — sub-minute collection is already billed as at most one data point per minute)</li>
+<li>Move a bucket from Retain with Included Queries to standard Retain</li>
+<li>Switch a synthetic monitor from 1-minute to 5-minute frequency</li>
+<li>Slow a dashboard's auto-refresh from 1 minute to 5 minutes (Logs / Events / Traces - Query)</li>
+<li>Narrow a dashboard tile's default time range from 30 days to 24 hours</li>
+<li>Reduce session retention for a RUM application</li>
+</ul>
+<p>Note that the last three examples are <strong>query-side</strong>, not ingest- or storage-side: Logs, Events, and Traces bill on query execution as well as on ingest and retention (Digital Experience Monitoring data has its own query billing event too — FINOPS-01 §9), so how often a dashboard re-reads its data is a tunable parameter in exactly the same sense as retention. § 4 covers this surface in full. Tune preserves the signal's existence — useful for cases where the signal is load-bearing but at lower fidelity than current. In community practice, Tune is the lever most often over-used because it requires no organizational conversation: the platform team can lower retention without consulting any application team.</p>
+<h3>Filter</h3>
+<p>Drop a subset of an otherwise-flowing signal, typically at OpenPipeline (logs / events / spans) or at the source SDK (custom metrics).</p>
+<p>Examples:</p>
+<ul>
+<li>OpenPipeline pipeline that drops DEBUG / TRACE level logs in production buckets</li>
+<li>Span filter that excludes spans from healthcheck endpoints</li>
+<li>Metric filter that excludes test / synthetic-traffic dimensions</li>
+<li>Log filter that drops noisy known-benign error patterns (e.g., expected 404s on /favicon.ico)</li>
+</ul>
+<p>Filter is the most targeted lever — keep the load-bearing subset, drop the noise. In community practice it is also the lever most likely to drift over time: a filter that was correct in 2024 may suppress a signal that became load-bearing in 2026. Filters need ownership and periodic review.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline">OpenPipeline (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage-your-costs/optimize">Optimize (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/best-practices-metrics">Best practices for optimizing metrics cost (DT docs)</a> — <em>&quot;each timeseries is billed for no more than one data point per minute.&quot;</em> Examples are illustrative; the underlying mechanisms are documented per-capability.</sub></p>
+</blockquote>
+<p><a id="when-to-cut"></a></p>
+<h2>3. When to Cut</h2>
+<p>Cut applies when the signal has no consumer that justifies the cost-of-emission. In community practice, three diagnostic questions settle it:</p>
+<h3>Q1 — Who looks at this signal?</h3>
+<p>If the answer is &quot;nobody for the last 90 days,&quot; the signal is a candidate. The audit pattern: query notebook open events, dashboard queries, and alert configurations that reference the signal. If none exist over a 90-day window, the signal is operationally dark.</p>
+<p><strong>Counter-question:</strong> is the signal a <em>compliance</em> requirement (audit logs, security events, regulator-mandated retention)? Compliance retention is not a value question — the signal must exist for the contract / regulation even if no one looks at it. Do not Cut compliance signals; Tune retention to the minimum mandated period instead — and verify that period against your specific regulatory framework.</p>
+<h3>Q2 — Does any alert / SLO depend on this signal?</h3>
+<p>If the signal feeds a workflow, an SLO calculation, a Davis problem-detection input, or a Cost Monitor, it is load-bearing in a way that's hard to see by reading logs / dashboards. Cross-check alert configurations before recommending Cut.</p>
+<h3>Q3 — Has this signal generated actionable insight in the last incident?</h3>
+<p>An audit by incident — for the last 5 production incidents, did this signal contribute to detection, diagnosis, or post-mortem? If consistently no, the signal is operationally low-value and Cut is appropriate.</p>
+<h3>How to Cut safely</h3>
+<ol>
+<li><strong>Communicate before disabling.</strong> Find the team that owns the workload emitting the signal, even if they're not the team consuming it. The emit-side team may have a non-obvious dependency.</li>
+<li><strong>Stage the Cut.</strong> Disable in a non-production environment first, observe for one week, then promote to production.</li>
+<li><strong>Document the Cut.</strong> A short note in the team's runbook on what was disabled, when, and why. If the signal needs to come back, the documentation tells the next operator how.</li>
+<li><strong>Set a review date.</strong> Cuts that were correct in 2024 may be wrong in 2026 — schedule a 6-month review of the disabled signals list.</li>
+</ol>
+<p><a id="when-to-tune"></a></p>
+<h2>4. When to Tune</h2>
+<p>Tune applies when the signal is load-bearing but at lower fidelity than the current configuration. Three categories of tuning:</p>
+<h3>Retention tuning</h3>
+<p>In community practice, the most common Tune: logs / spans / events stored for 35 days when the use case only references the last 7 days. Retention is set per bucket and can be re-configured at any time. The workflow that works:</p>
+<ol>
+<li>Audit query history: what's the longest lookback that actually fired against this bucket in the last 90 days?</li>
+<li>Add a buffer — typically 1.5-2× the longest observed lookback.</li>
+<li>Verify the buffer covers known periodic patterns: month-end batch jobs, quarterly audits, annual cleanups.</li>
+<li>Apply the new retention; observe for one full periodic cycle (often a month) before declaring success.</li>
+</ol>
+<p>Retention tuning is the easiest lever to justify because it has no impact on emission, ingestion, or current investigation — only on historical lookback that wasn't being used anyway. It is the lever to reach for first when in doubt.</p>
+<h3>Sampling tuning</h3>
+<p>For traces especially. Reduce trace-ingest sample rate from 100% (all spans) to a lower rate (e.g., 25% — keep 1 in 4 traces). Workflow:</p>
+<ol>
+<li>Determine the <em>statistical</em> requirement: at what sampling rate do you still detect error patterns reliably? (In community practice, 10-25% is often enough for apps with sustained traffic — verify against your own error rates.)</li>
+<li>Prefer head-based sampling (deterministic per-trace) where it meets the need — it is simpler to reason about.</li>
+<li>Keep error and exception traces at a higher rate where your sampling mechanism supports it (for example, tail-based sampling in an OpenTelemetry Collector) — confirm what your ingest path offers before relying on it.</li>
+<li>Measure investigation success after one month — can your team still root-cause issues with the new sample rate?</li>
+</ol>
+<p><strong>In an OpenTelemetry Collector, sample whole traces, not single spans.</strong> The Dynatrace OTel Collector includes two trace-consistent samplers: <code>tail_sampling</code>, which decides after a trace completes (the mechanism in step 3), and <code>probabilistic_sampler</code>, a rate sampler whose decision is keyed to the trace — <em>&quot;For traces pipelines, the source of randomness is always the TraceID.&quot;</em> Avoid any processor that drops a random fraction of spans one span at a time: it cuts volume by the same ratio, but leaves most traces with spans missing. OTEL-04 (Trace Instrumentation) covers head versus tail sampling and the two-tier Collector layout tail sampling needs; SPANS-07 (Grail Buckets &amp; OpenPipeline) covers the OneAgent and OpenPipeline sides.</p>
+<h3>Resolution tuning</h3>
+<p>For metrics. Lengthening a metric's collection interval lowers <code>data_points</code> consumption — <strong>but only above one minute</strong>. Dynatrace aggregates sub-minute measurements into one-minute buckets and bills each timeseries for at most one data point per minute, so moving a metric from 10-second to 1-minute collection changes nothing on the bill, while moving it from 1-minute to 5-minute cuts its billed points ~5×. Workflow:</p>
+<ol>
+<li>What SLO depends on this metric? If it's a high-criticality SLO (sub-minute MTTD), keep one-minute resolution.</li>
+<li>Otherwise, consider 5-minute or longer — Dynatrace names less-critical metrics, metrics read over hours or days, and slow-changing metrics such as disk usage as candidates. Longer intervals leave gaps at one-minute resolution, which can affect existing alerts.</li>
+<li>Apply per-metric, not globally — some metrics warrant high resolution; most do not.</li>
+</ol>
+<h3>Query-side tuning</h3>
+<p>The three tuning categories above are all ingest- or storage-side. <strong>Logs, Events, and Traces also bill on query execution</strong> — a Query capability separate from Ingest and Retain (FINOPS-01 §9 documents the schema; <code>client.source</code> — a dashboard URL for dashboard tiles — attributes the scan to a dashboard rather than a person). That makes query volume a fourth Tune surface — Dynatrace's own guidance is that with log queries <em>you are charged per execution</em> of every auto-refresh. In community practice, on a tenant with a wall-mounted dashboard estate it is often the largest one nobody is looking at. Note the asymmetry: metric queries through the <code>timeseries</code> command are always included and never billed, so this lever is about dashboards and notebooks reading <strong>logs, events, and traces</strong>, not metric tiles. A <code>makeTimeseries</code> over logs is a log query, not a metric query, and bills like one.</p>
+<p>Three dials, in the order worth pulling them:</p>
+<p><strong>1. Refresh cadence.</strong> A dashboard on a 1-minute auto-refresh runs every one of its tile queries roughly <strong>1,440 times a day</strong>. Moving it to 5 minutes cuts that by ~5× and changes nothing about what the dashboard <em>shows</em> — the same tiles, the same queries, the same data, just re-read less often. It is among the cheapest consumption reductions in the platform because it costs no fidelity at all. DASH-02 §6 has the per-audience cadence table (NOC wall 1-2 min, on-call 2-5 min, executive wall 10-15 min, investigation manual); the FinOps read on that table is that anything faster than its audience needs is pure waste. Start by finding dashboards refreshing faster than their tier warrants.</p>
+<p><strong>Caveat — log buckets on Retain with Included Queries.</strong> Customers who choose that bucket option <em>&quot;are not charged for those queries executed within the scope of the Included Queries retention period&quot;</em>; only the logs a query reads outside that period bill under Log - Query. A dashboard whose log tiles read only such a bucket, inside that period, costs the same at any refresh cadence — check which bucket and time range a tile reads before tuning its cadence for cost. Cadence still matters for event and trace tiles, and for log tiles on buckets without the option.</p>
+<p><strong>2. Tile default time ranges.</strong> A tile whose default range is 30 days scans 30 days on every refresh, even when every viewer immediately narrows to the last hour. Multiply by cadence and this dominates. Set each tile default to the range the tile is actually <em>read</em> at, and let viewers widen deliberately.</p>
+<p><strong>3. Dashboard count.</strong> Duplicate near-identical dashboards multiply query volume by the number of copies. Consolidating five team-specific clones behind one <code>$team</code> variable is a <strong>Cut</strong>, not a Tune — it removes the queries rather than adjusting them — and it belongs in §3 with the other Cut decisions. It appears here because it is usually discovered while auditing cadence.</p>
+<blockquote>
+<p><strong>Rolling out (SaaS 1.344): dashboard queries now stop automatically when the browser tab closes.</strong> Published 07/27/2026, staged tenant rollout from 07/29/2026 — verify whether it has reached your tenant. This removes a small, hard-to-attribute slice of consumption from queries that outlived the tab that started them. <strong>It is not a lever you operate</strong>, and it does not change the arithmetic above: an <strong>open</strong> tab still refreshes on its interval and still bills for every scan. Cadence and tile scope remain the load-bearing controls; treat 1.344 as removing an accounting nuisance, not as a substitute for tuning.</p>
+</blockquote>
+<p>Query-side tuning has one property that makes it unusually easy to sell: unlike retention or sampling, it is <strong>fully reversible and costs no fidelity</strong>. If a team discovers that 5 minutes is too slow for their incident workflow, put it back. Nothing was discarded.</p>
+<h3>When NOT to Tune</h3>
+<ul>
+<li><strong>Compliance-mandated retention:</strong> tune <em>down to the minimum</em>, not below.</li>
+<li><strong>Security-investigation logs:</strong> under-sampling here is paid for during the next breach investigation. Sampling decisions on security signals merit security-team sign-off.</li>
+<li><strong>SLO-feeder metrics:</strong> if the metric is the foundation of an availability SLO, reducing resolution may break the SLO calculation. Verify before tuning.</li>
+<li><strong>The dashboard that is your detection surface:</strong> if a NOC wall dashboard is how an incident is actually noticed, slowing its refresh trades money for detection time. Tune cadence on the dashboards nobody watches in real time first, and leave the ones on the wall alone.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-best-practices">Best practices for Log Management and Analytics (DT docs)</a> — per-bucket retention periods</sub></li>
+<li><sub><a href="https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/probabilisticsamplerprocessor">Probabilistic Sampling Processor (OpenTelemetry Collector Contrib GitHub)</a> — <em>&quot;To achieve consistency, sampling randomness is taken from a deterministic aspect of the input data.&quot;</em>; <em>&quot;For traces pipelines, the source of randomness is always the TraceID.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/Dynatrace/dynatrace-otel-collector/blob/main/manifest.yaml">Dynatrace OTel Collector manifest (Dynatrace GitHub)</a> — lists <code>probabilisticsamplerprocessor</code> and <code>tailsamplingprocessor</code>, read 10/29/2026; <a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector">Dynatrace OTel Collector (DT docs)</a> — <em>&quot;This support covers only the components and their versions that are included in the Dynatrace OTel Collector.&quot;</em></sub></li>
+<li><sub><strong>Derived:</strong> a sampler that decides span by span, rather than by trace ID, keeps partial traces — the contrast with the probabilistic-sampler quote above.</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/best-practices-metrics">Best practices for optimizing metrics cost (DT docs)</a> — <em>&quot;For metrics collected at intervals shorter than one minute, Dynatrace aggregates the incoming measurements into fixed one‑minute buckets for efficient storage and querying. Therefore, each timeseries is billed for no more than one data point per minute.&quot;</em>; <em>&quot;Longer ingest intervals can introduce gaps when you view data at one‑minute resolution. This can impact existing alerting setups.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/license/capabilities/telemetry/dps-metrics#query">Metrics consumption (DPS) (DT docs)</a> — <em>&quot;Querying metrics with the DQL timeseries command is included with Metrics - Ingest &amp; Process, regardless of where the query originates&quot;</em>; <em>&quot;A query that reads logs, traces, or events can generate query consumption for that data type even when it outputs a timeseries.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-use-cases/lma-log-query-dashboard">Optimize dashboards running log queries (DT docs)</a> — <em>&quot;If you are using log queries, you are charged per execution.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/license/capabilities/log-analytics">Log Analytics overview (DT docs)</a> — <em>&quot;Customers who select the Retain with Included Queries option in the bucket configuration are not charged for those queries executed within the scope of the Included Queries retention period.&quot;</em>; <em>&quot;only these logs outside of the Retain with Included Queries are billed individually with the usage based Log - Query model.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="when-to-filter"></a></p>
+<h2>5. When to Filter</h2>
+<p>Filter applies when the signal is useful overall but specific subsets are noise. The most common filter targets:</p>
+<h3>Logs — severity-based filters</h3>
+<p>DEBUG / TRACE logs in production. Dynatrace lists <em>debug-level logging left on in production</em> among the typical causes of an ingest spike, and in community practice it is the highest-impact filter. Logs can be filtered on ingest with OneAgent log ingest rules or OpenPipeline — sent to a different bucket or dropped outright — conditionally on app or environment.</p>
+<p>Implementation: OpenPipeline pipeline with a drop processor whose matching condition combines <code>in(loglevel, {&quot;DEBUG&quot;, &quot;TRACE&quot;})</code> with a predicate that scopes it to production sources (for example a host-group or Kubernetes-namespace field). Full syntax covered in OPLOGS.</p>
+<p><strong>Common mistake:</strong> dropping ALL DEBUG everywhere. Some pre-production environments need DEBUG; some pre-incident-replay scenarios need DEBUG. Filter on environment, not globally.</p>
+<h3>Spans — endpoint-based filters</h3>
+<p>Healthcheck endpoints (<code>/health</code>, <code>/ping</code>, <code>/readiness</code>, <code>/liveness</code>) emit one span per check, often every few seconds, and almost never carry diagnostic value. A trace filter that drops these is high-impact, low-risk.</p>
+<p><strong>Common mistake:</strong> dropping spans from any endpoint matching <code>/health</code> — some apps have legitimate <code>/health/&lt;subsystem&gt;</code> endpoints that are diagnostically valuable. Be specific.</p>
+<h3>Logs — pattern-based filters for known-benign noise</h3>
+<p>Repetitive log lines that are <em>known to be benign</em> (e.g., favicon.ico 404s, robots.txt 404s, expected timeout messages from a known-flaky third-party). Drop them; they were never going to be investigated.</p>
+<p><strong>Common mistake:</strong> filtering on broad patterns. <em>&quot;Drop all 404s&quot;</em> hides the day a real customer flow starts 404-ing. Filter on the specific path or message pattern, not the category.</p>
+<h3>Metrics — high-cardinality dimension filters</h3>
+<p>Custom metrics emitted with a high-cardinality dimension (user.id, request.id, span.id as a label) produce one time series per unique value, and every series that sends data points is billed for them. Filter the dimension at the SDK or at ingest — an OpenPipeline DQL or Remove-fields processor — keep the metric, drop the high-cardinality label.</p>
+<p><strong>Common mistake:</strong> assuming the dimension is the data. Often, the metric is useful at aggregate (counts per minute) and the dimension was added for debug-style exploration. Confirm before dropping the dimension.</p>
+<h3>Where the filter runs — OpenPipeline or the Collector</h3>
+<p>An OpenPipeline drop saves Retain, not Ingest &amp; Process. Log ingest is metered on <em>&quot;raw data in bytes sent to Dynatrace before enrichment and transformation&quot;</em>, and Dynatrace states that filtering incoming logs <em>&quot;generates usage for Ingest &amp; Process&quot;</em>. A record dropped in OpenPipeline has already been sent.</p>
+<p>For data that reaches Dynatrace through an OpenTelemetry Collector, the same filter can run in the Collector instead. The <code>filter</code> and <code>transform</code> processors are both in the Dynatrace OTel Collector, so they are within Dynatrace support. A record the Collector drops is never sent, so it never reaches the ingest meter.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJkdC1hcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+V2hlcmUgdGhlIEZpbHRlciBSdW5zIOKAlCBhbmQgV2hpY2ggTWV0ZXJzIEl0IEF2b2lkczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5BIENvbGxlY3RvciBkcm9wIGlzIG5ldmVyIHNlbnQ7IGFuIE9wZW5QaXBlbGluZSBkcm9wIGhhcyBhbHJlYWR5IGJlZW4gc2VudCBhbmQgbWV0ZXJlZCBmb3IgSW5nZXN0ICZhbXA7IFByb2Nlc3M8L3RleHQ+CgogIDwhLS0gTWFpbiBsYW5lOiBTb3VyY2UgLT4gQ29sbGVjdG9yIC0+IEluZ2VzdCAmIFByb2Nlc3MgbWV0ZXIgLT4gT3BlblBpcGVsaW5lIC0+IFJldGFpbiBtZXRlciAtPiBidWNrZXQgLS0+CiAgPHJlY3QgeD0iMjUiIHk9IjExMCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjkwIiBmaWxsPSIjNjQ3NDhCIiBvcGFjaXR5PSIwLjEyIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjcwIiB5PSIxNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlNvdXJjZTwvdGV4dD4KICA8dGV4dCB4PSI3MCIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj50ZWxlbWV0cnk8L3RleHQ+CgogIDxsaW5lIHgxPSIxMTUiIHkxPSIxNTUiIHgyPSIxMzUiIHkyPSIxNTUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZHQtYXJyb3cpIi8+CgogIDxyZWN0IHg9IjEzNSIgeT0iMTEwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjkwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjEiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMjEwIiB5PSIxMzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPk9UZWwgQ29sbGVjdG9yPC90ZXh0PgogIDx0ZXh0IHg9IjIxMCIgeT0iMTU0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5maWx0ZXIgwrcgdHJhbnNmb3JtPC90ZXh0PgogIDx0ZXh0IHg9IjIxMCIgeT0iMTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5wcm9jZXNzb3JzPC90ZXh0PgogIDx0ZXh0IHg9IjIxMCIgeT0iMTg5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPmRyb3AgPSBuZXZlciBzZW50PC90ZXh0PgoKICA8bGluZSB4MT0iMjg1IiB5MT0iMTU1IiB4Mj0iMzA1IiB5Mj0iMTU1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2R0LWFycm93KSIvPgoKICA8cmVjdCB4PSIzMDUiIHk9IjExMCIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI5MCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMzkwIiB5PSIxMzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkluZ2VzdCAmYW1wOyBQcm9jZXNzPC90ZXh0PgogIDx0ZXh0IHg9IjM5MCIgeT0iMTQ4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEwIj5tZXRlcjwvdGV4dD4KICA8dGV4dCB4PSIzOTAiIHk9IjE2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+4oCccmF3IGRhdGEgaW4gYnl0ZXMgc2VudCB0bzwvdGV4dD4KICA8dGV4dCB4PSIzOTAiIHk9IjE3OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+RHluYXRyYWNlIGJlZm9yZSBlbnJpY2htZW50PC90ZXh0PgogIDx0ZXh0IHg9IjM5MCIgeT0iMTkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5hbmQgdHJhbnNmb3JtYXRpb27igJ08L3RleHQ+CgogIDxsaW5lIHgxPSI0NzUiIHkxPSIxNTUiIHgyPSI0OTUiIHkyPSIxNTUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZHQtYXJyb3cpIi8+CgogIDxyZWN0IHg9IjQ5NSIgeT0iMTEwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjkwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjEiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNTc1IiB5PSIxMzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPk9wZW5QaXBlbGluZTwvdGV4dD4KICA8dGV4dCB4PSI1NzUiIHk9IjE1NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+ZHJvcCB0aGUgcmVjb3JkLCBvcjwvdGV4dD4KICA8dGV4dCB4PSI1NzUiIHk9IjE2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+cm91dGUgaXQgdG8gYTwvdGV4dD4KICA8dGV4dCB4PSI1NzUiIHk9IjE4NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+c2hvcnQtcmV0ZW50aW9uIGJ1Y2tldDwvdGV4dD4KCiAgPGxpbmUgeDE9IjY1NSIgeTE9IjE1NSIgeDI9IjY3NSIgeTI9IjE1NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNkdC1hcnJvdykiLz4KCiAgPHJlY3QgeD0iNjc1IiB5PSIxMTAiIHdpZHRoPSI5MCIgaGVpZ2h0PSI5MCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzIwIiB5PSIxNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlJldGFpbjwvdGV4dD4KICA8dGV4dCB4PSI3MjAiIHk9IjE2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMCI+bWV0ZXI8L3RleHQ+CgogIDxsaW5lIHgxPSI3NjUiIHkxPSIxNTUiIHgyPSI3ODUiIHkyPSIxNTUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZHQtYXJyb3cpIi8+CgogIDxyZWN0IHg9Ijc4NSIgeT0iMTEwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjkwIiBmaWxsPSIjMjJEM0VFIiBvcGFjaXR5PSIwLjEiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iODQ1IiB5PSIxNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkJ1Y2tldDwvdGV4dD4KICA8dGV4dCB4PSI4NDUiIHk9IjE2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+c3RvcmVkIGFuZCByZXRhaW5lZDwvdGV4dD4KCiAgPCEtLSBXaGF0IGVhY2ggZHJvcCBhdm9pZHMgLS0+CiAgPGxpbmUgeDE9IjIxMCIgeTE9IjIwMCIgeDI9IjIxMCIgeTI9IjIyMiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iNCwzIi8+CiAgPHJlY3QgeD0iMTI1IiB5PSIyMjIiIHdpZHRoPSIxNzAiIGhlaWdodD0iNTIiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMSIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSIyMTAiIHk9IjI0MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+Q29sbGVjdG9yIGRyb3AgYXZvaWRzPC90ZXh0PgogIDx0ZXh0IHg9IjIxMCIgeT0iMjYxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Jbmdlc3QgJmFtcDsgUHJvY2VzcyBhbmQgUmV0YWluPC90ZXh0PgoKICA8bGluZSB4MT0iNTc1IiB5MT0iMjAwIiB4Mj0iNTc1IiB5Mj0iMjIyIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtZGFzaGFycmF5PSI0LDMiLz4KICA8cmVjdCB4PSI0OTUiIHk9IjIyMiIgd2lkdGg9IjQxMCIgaGVpZ2h0PSI1MiIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjcwMCIgeT0iMjQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5PcGVuUGlwZWxpbmUgZHJvcCBhdm9pZHMgUmV0YWluIG9ubHk8L3RleHQ+CiAgPHRleHQgeD0iNzAwIiB5PSIyNjEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmZpbHRlcmluZyDigJxnZW5lcmF0ZXMgdXNhZ2UgZm9yIEluZ2VzdCAmYW1wOyBQcm9jZXNzLCBidXQgbm90IGZvciBSZXRhaW7igJ08L3RleHQ+CgogIDwhLS0gT25lQWdlbnQgbGFuZTogYnlwYXNzZXMgdGhlIENvbGxlY3RvciAtLT4KICA8cmVjdCB4PSIyNSIgeT0iMjk2IiB3aWR0aD0iOTAiIGhlaWdodD0iNDgiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMSIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI3MCIgeT0iMzE3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5PbmVBZ2VudDwvdGV4dD4KICA8dGV4dCB4PSI3MCIgeT0iMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5sb2dzPC90ZXh0PgoKICA8cGF0aCBkPSJNIDExNSAzMjAgTCAzOTAgMzIwIEwgMzkwIDIwMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNkdC1hcnJvdykiLz4KICA8dGV4dCB4PSIyMTAiIHk9IjMxMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMCI+ZG9lcyBub3QgcGFzcyB0aHJvdWdoIGEgQ29sbGVjdG9yPC90ZXh0PgogIDx0ZXh0IHg9IjQwOCIgeT0iMzExIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5PbmVBZ2VudCBsb2dzOjwvdGV4dD4KICA8dGV4dCB4PSI0MDgiIHk9IjMyNyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+ZmlsdGVyIHdpdGggT25lQWdlbnQgbG9nIGluZ2VzdCBydWxlcyBvciBpbiBPcGVuUGlwZWxpbmU8L3RleHQ+CgogIDwhLS0gQ29sbGVjdG9yLWZpbHRlciB0cmFkZS1vZmZzIC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5GaWx0ZXJpbmcgaW4gdGhlIENvbGxlY3RvciDigJQgdGhlIHRyYWRlLW9mZnM8L3RleHQ+CgogIDxyZWN0IHg9IjMwIiB5PSIzODQiIHdpZHRoPSIyNzAiIGhlaWdodD0iNzAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTY1IiB5PSI0MDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkEgQ29sbGVjdG9yIGRyb3AgaXMgZmluYWw8L3RleHQ+CiAgPHRleHQgeD0iMTY1IiB5PSI0MjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPk5vIHJvdXRpbmcgdG8gYSBzaG9ydC1yZXRlbnRpb24gYnVja2V0LDwvdGV4dD4KICA8dGV4dCB4PSIxNjUiIHk9IjQzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+bm8gbGF0ZXIgcnVsZSBjaGFuZ2UsIGZvciBkYXRhIG5ldmVyIHNlbnQ8L3RleHQ+CgogIDxyZWN0IHg9IjMzMCIgeT0iMzg0IiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjcwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDA2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5UaGUgcnVsZSBtdXN0IGJlIGluIGV2ZXJ5IENvbGxlY3RvcjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+VGhleSBkcmlmdCBhcGFydCB1bmxlc3MgZGVwbG95ZWQgZnJvbSBvbmU8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0MzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmNvbmZpZ3VyYXRpb247IGFuIE9wZW5QaXBlbGluZSBydWxlIGlzIG9uZSBwbGFjZTwvdGV4dD4KCiAgPHJlY3QgeD0iNjMwIiB5PSIzODQiIHdpZHRoPSIyNzAiIGhlaWdodD0iNzAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzY1IiB5PSI0MDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkNvdmVycyBDb2xsZWN0b3Itcm91dGVkIGRhdGEgb25seTwvdGV4dD4KICA8dGV4dCB4PSI3NjUiIHk9IjQyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+T25lQWdlbnQgbG9ncyBkbyBub3QgcGFzcyB0aHJvdWdoIGl0OzwvdGV4dD4KICA8dGV4dCB4PSI3NjUiIHk9IjQzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+YW4gT3BlblBpcGVsaW5lIHJ1bGUgY292ZXJzIGV2ZXJ5IHNvdXJjZTwvdGV4dD4KCiAgPCEtLSBGb290ZXIgLS0+CiAgPHRleHQgeD0iNDY1IiB5PSI0ODQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPldoZXJlIHRoZSByYXcgcmVjb3JkcyBtYXkgYmUgbmVlZGVkIGxhdGVyLCBrZWVwIE9wZW5QaXBlbGluZSBhcyB0aGUgZGVmYXVsdCBmaWx0ZXIgcG9pbnQ8L3RleHQ+Cjwvc3ZnPgo=" alt="Where the Filter Runs — and Which Meters It Avoids" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Filter point | Saves Ingest & Process | Saves Retain | Can route instead of drop | Rule lives in | Covers |
+|--------------|------------------------|--------------|---------------------------|---------------|--------|
+| OTel Collector | Yes | Yes | No — drop is final | Every Collector | Collector-routed data only |
+| OpenPipeline | No | Yes | Yes — short-retention bucket | One place | All sources |
+OneAgent logs do not pass through a Collector: filter them with OneAgent log ingest rules or in OpenPipeline.
+Where the raw records may be needed later, keep OpenPipeline as the default filter point.
+-->
+<p>The trade-offs decide which to use:</p>
+<ul>
+<li><strong>A Collector drop is final.</strong> The data never reaches Dynatrace, so the OpenPipeline alternatives — routing it to a short-retention bucket instead of dropping it, or changing the rule later and keeping what arrives — are gone for that data. Where the raw records may be needed later, keep OpenPipeline as the default.</li>
+<li><strong>A Collector rule lives in every Collector.</strong> Each Collector that carries the data needs the same rule, and they drift apart unless they are deployed from one configuration. An OpenPipeline rule is one place for every source.</li>
+<li><strong>It only covers data that passes through a Collector.</strong> OneAgent logs do not. Filter those with OneAgent log ingest rules (above; FAQ-08 explains how they decide what is stored) or in OpenPipeline.</li>
+</ul>
+<h3>When to Filter vs Tune</h3>
+<p>In this entry's framing, Filter targets a <em>known-noisy subset</em>. Tune adjusts a <em>parameter applied to everything</em>. If the noise is concentrated in a subset you can name (&quot;DEBUG logs in prod,&quot; &quot;healthcheck spans,&quot; &quot;synthetic-traffic dimension on app metric X&quot;), Filter. If the noise is <em>diffuse</em> (&quot;all our traces are too detailed for the value they provide&quot;), Tune the sample rate.</p>
+<h3>Filter ownership and review</h3>
+<p>In community practice, filters drift: a rule that was correct in 2024 may suppress a signal that became load-bearing in 2026. Every filter needs:</p>
+<ul>
+<li>An owner (the team responsible for the filtered signal)</li>
+<li>A rationale (what makes the filtered subset noise)</li>
+<li>A review date (6-12 months)</li>
+</ul>
+<p>Filters without owners become invisible cost optimization that no one can safely change.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage-your-costs/control/investigate-a-spike">Trace a cost spike to its root cause (DT docs)</a> — typical ingest-spike causes include <em>&quot;debug-level logging left on in production&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-best-practices">Best practices for Log Management and Analytics (DT docs)</a> — filter logs on ingest with OneAgent or OpenPipeline</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/best-practices-metrics">Best practices for optimizing metrics cost (DT docs)</a> — <em>&quot;High-cardinality dimensions, such as user IDs or request IDs, significantly increase metric storage requirements. Removing a high-cardinality dimension reduces the number of stored timeseries and can lower cost.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/openpipeline">OpenPipeline (DT docs)</a>, OPLOGS series (OpenPipeline Logs) — full filter-syntax depth</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/license/capabilities/log-analytics/dps-log-ingest">Log Management &amp; Analytics - Ingest &amp; Process (DT docs)</a> — <em>&quot;Ingested data is the amount of raw data in bytes sent to Dynatrace before enrichment and transformation.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/dps-log-management">DPS Log Management (DT docs)</a> — <em>&quot;filtering generates usage for Ingest &amp; Process, but not for Retain&quot;</em></sub></li>
+<li><sub><a href="https://github.com/Dynatrace/dynatrace-otel-collector/blob/main/manifest.yaml">Dynatrace OTel Collector manifest (Dynatrace GitHub)</a> — lists <code>filterprocessor</code> and <code>transformprocessor</code>, read 10/29/2026; <a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector">Dynatrace OTel Collector (DT docs)</a> — <em>&quot;This support covers only the components and their versions that are included in the Dynatrace OTel Collector.&quot;</em></sub></li>
+<li><sub><strong>Derived:</strong> a record dropped in the Collector is never sent, so the ingest definition above does not count it.</sub></li>
+</ul>
+</blockquote>
+<p><a id="decision-tree"></a></p>
+<h2>6. Decision Tree by Data Type</h2>
+<p>A working version of this entry's framework for each major data type — verify each recommendation against your tenant's actual usage patterns before applying it:</p>
+<h3>Logs</h3>
+<ol>
+<li><strong>Cut first?</strong> Is the log-emitting application code still relevant? If a service emits logs no one reads and the service itself is on a deprecation path, Cut at the application.</li>
+<li><strong>Filter next?</strong> Are DEBUG / TRACE logs being emitted in production? Filter at OpenPipeline — or, for logs that arrive through an OpenTelemetry Collector and will not be needed later, in the Collector, which also saves Ingest &amp; Process (§5). Are known-benign patterns repeating (favicon 404s, etc.)? Filter pattern-by-pattern.</li>
+<li><strong>Tune last?</strong> Adjust retention per bucket based on actual lookback patterns. Move buckets between Retain and Retain-with-Included-Queries tiers based on query frequency.</li>
+</ol>
+<h3>Traces</h3>
+<ol>
+<li><strong>Cut first?</strong> Is the service still in active use? If not, OneAgent / OTel SDK can be disabled for the service entirely.</li>
+<li><strong>Filter next?</strong> Are healthcheck spans dominating volume? Filter them at the OpenPipeline pipeline. Are synthetic-test traces inflating ingest? Filter them.</li>
+<li><strong>Tune last?</strong> Reduce overall sample rate, keeping error traces at higher rate (differential sampling).</li>
+</ol>
+<h3>Metrics</h3>
+<ol>
+<li><strong>Cut first?</strong> Is the custom metric still in use? Audit Notebooks, Dashboards, and alerts.</li>
+<li><strong>Filter next?</strong> Are high-cardinality dimensions inflating data_points without value? Drop the dimension at the SDK.</li>
+<li><strong>Tune last?</strong> Lengthen the ingest interval for non-SLO-feeder metrics beyond one minute (e.g., 1 min → 5 min). Going from 10 s to 1 min saves nothing — sub-minute collection is already billed as one data point per minute.</li>
+</ol>
+<h3>Synthetic monitors</h3>
+<ol>
+<li><strong>Cut first?</strong> Is anyone watching this monitor? Disable monitors no one has touched in 90 days.</li>
+<li><strong>Tune next?</strong> Reduce frequency (5min → 15min) for monitors that don't feed sub-15-minute SLOs.</li>
+<li><strong>Filter</strong> — N/A for synthetic; synthetic actions are atomic, no subset to filter.</li>
+</ol>
+<h3>Real User Monitoring (RUM)</h3>
+<p>RUM bills <strong>per session</strong> (<code>billed_sessions</code> — FINOPS-01 §7), so the unit of waste is a session nobody looks at.</p>
+<ol>
+<li><strong>Cut first?</strong> Is anyone watching this RUM application? An instrumented application with no dashboard, no SLO, and no owner is pure cost — every session it produces is billed and none is read. This is the highest-yield RUM lever and the one most often missed, because RUM instrumentation is usually added once and never revisited. Audit applications against actual dashboard, SLO, and alert references before assuming any of them is load-bearing.</li>
+<li><strong>Tune next?</strong> Session retention. Apply the same discipline as log retention in §4 — audit the longest lookback that actually fired against session data in the last 90 days, then add a 1.5–2× buffer, then verify the buffer covers known periodic patterns before applying. <strong><code>userSessionRetention</code> was added to the environment storage configuration in API 1.344</strong> (published 07/15/2026, staged rollout from 07/29/2026) — <em>verify the field exists on your tenant before scripting against it</em>. Until it lands, set session retention through the environment storage settings UI; that path works today and is unaffected by the API addition.</li>
+<li><strong>Filter last?</strong> Session Replay sampling is the main subset dial — replay is the expensive part of a session, and a sampled replay rate usually preserves the investigative value. Excluding specific user actions (health-probe clicks, synthetic-traffic paths, internal admin routes) trims the rest.</li>
+</ol>
+<h3>Dashboards and other query volume</h3>
+<p>Cross-cutting rather than a data type — this is the consumption caused by <em>reading</em> logs, events, and traces, and Digital Experience Monitoring data, which has its own query billing event (see the query-side tuning subsection in §4). Metric queries through <code>timeseries</code> are always included and never billed, so metric-only dashboards are out of scope here.</p>
+<ol>
+<li><strong>Cut first?</strong> Duplicate and abandoned dashboards. Five team-specific clones of one dashboard run five times the queries; consolidate them behind a <code>$team</code> variable. A dashboard nobody has opened in 90 days that is still auto-refreshing on a wall screen is the pure-waste case.</li>
+<li><strong>Tune next?</strong> Refresh cadence, then tile default time ranges. A 1-minute refresh runs each tile query ~1,440×/day; 5 minutes cuts that ~5× with no change to what the dashboard shows. Match cadence to audience using the DASH-02 §6 table. Log tiles reading a Retain with Included Queries bucket inside its included period are not billed per query, so cadence is not a cost lever for them (§4).</li>
+<li><strong>Filter</strong> — the query equivalent of a filter is scoping the tile query itself: narrow the bucket, and add the filter early in the pipeline. This is DQL optimization rather than a consumption lever per se, but it reduces bytes scanned on every one of those 1,440 executions. Dropping fields you do not render is not part of this lever: it shrinks the result, not the scan. On a validation tenant (10/23/2026) the same filtered <code>summarize</code> over 15 minutes of logs scanned 419.4 MB with or without a <code>fields</code> command straight after <code>fetch</code>.</li>
+</ol>
+<h3>Host monitoring (Full-Stack / Infrastructure)</h3>
+<ol>
+<li><strong>Cut first?</strong> Decommission hosts that no longer host workload. Downgrade Full-Stack to Infrastructure for hosts that don't need code-level visibility.</li>
+<li><strong>Tune</strong> — no granularity dial for host monitoring; the lever is monitoring mode (Full-Stack / Infrastructure / Foundation).</li>
+<li><strong>Filter</strong> — N/A; host monitoring is per-host billed.</li>
+</ol>
+<h3>Automation Workflows</h3>
+<p>Automation Workflow bills <strong>workflow-hours</strong>: every deployed standard workflow is billed for each hour it exists, run or not (FINOPS-01 §7).</p>
+<ol>
+<li><strong>Cut first?</strong> Delete standard workflows nobody uses — they bill every hour they exist, whether they ran in the last 90 days or not. Deleting moves a workflow to the trash, where a standard workflow stops consuming workflow-hours and can be restored for 30 days, so the cut is reversible inside that window.</li>
+<li><strong>Tune next?</strong> Where a workflow qualifies, make it a simple workflow, and leave unfinished work as a draft — neither consumes workflow-hours. <strong>Reducing schedule frequency does not reduce Automation Workflow consumption</strong>; it only reduces the Standard Function Calls and query usage of the tasks each run executes.</li>
+<li><strong>Filter</strong> — workflow filtering is at the trigger condition (only fire if X), which is an action-level filter. Like schedule frequency, it trims the AppEngine and query usage of the runs, not the workflow-hours.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> Per-capability billing semantics: <a href="https://docs.dynatrace.com/docs/license">DPS docs</a>. <a href="https://docs.dynatrace.com/docs/license/capabilities/automation/automation">Calculate your consumption of Automation Workflow (DT docs)</a> — <em>&quot;Standard workflows consume workflow hours.&quot;</em>; <em>&quot;Simple workflows do not directly consume workflow hours&quot;</em>; <em>&quot;Draft-only workflows do not directly consume workflow hours&quot;</em>; <em>&quot;Each workflow execution triggers Standard Function Calls that execute tasks&quot;</em> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/manage-workflows/workflows-delete">Delete and restore workflows (DT docs)</a> — <em>&quot;A standard workflow no longer consumes workflow hours.&quot;</em>; <em>&quot;Trashed workflows are kept for 30 days.&quot;</em> <a href="https://docs.dynatrace.com/docs/license/capabilities/telemetry/dps-metrics#query">Metrics consumption (DPS) (DT docs)</a> — <em>&quot;Querying metrics with the DQL timeseries command is included with Metrics - Ingest &amp; Process, regardless of where the query originates&quot;</em> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/best-practices-metrics">Best practices for optimizing metrics cost (DT docs)</a> — <em>&quot;each timeseries is billed for no more than one data point per minute.&quot;</em> <a href="https://docs.dynatrace.com/docs/license/capabilities/log-analytics/dps-log-query">Log Management &amp; Analytics - Query (DT docs)</a> — <em>&quot;It is calculated per gibibyte scanned (GiB scanned).&quot;</em> <a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/dql-best-practices">DQL best practices (DT docs)</a> — <em>&quot;Select the amount of processed data by selecting fields early&quot;</em> (processed, not scanned).</sub></p>
+</blockquote>
+<p><a id="tradeoffs"></a></p>
+<h2>7. Trade-offs and Hidden Costs</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+Q3V0IMK3IFR1bmUgwrcgRmlsdGVyIOKAlCBMZXZlciBUcmFkZS1vZmZzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPkVhY2ggbGV2ZXIgaGFzIGEgZGlmZmVyZW50IGJsYXN0IHJhZGl1cywgcmV2ZXJzaWJpbGl0eSwgYW5kIGhpZGRlbi1jb3N0IHByb2ZpbGU8L3RleHQ+CgogIDwhLS0gQ3V0IGNvbHVtbiAtLT4KICA8cmVjdCB4PSI0MCIgeT0iODAiIHdpZHRoPSIyODAiIGhlaWdodD0iMzk0IiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjE4MCIgeT0iMTA1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iNzAwIj5DdXQ8L3RleHQ+CiAgPHRleHQgeD0iMTgwIiB5PSIxMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlN0b3AgZW1pdHRpbmcgYXQgc291cmNlPC90ZXh0PgoKICA8dGV4dCB4PSI2MCIgeT0iMTUwIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5JbXBhY3Q8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjE2NiIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSI+4piF4piF4piFIOKAlCBFbGltaW5hdGVzIGFjdGl2aXR5PC90ZXh0PgoKICA8dGV4dCB4PSI2MCIgeT0iMTg2IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5GcmljdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMjAyIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIj5IaWdoIOKAlCBlbWl0LXNpZGUgdGVhbSBjb29yZGluYXRpb248L3RleHQ+CgogIDx0ZXh0IHg9IjYwIiB5PSIyMjIiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlJldmVyc2liaWxpdHk8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjIzOCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSI+SGlnaCDigJQgcmUtZW5hYmxlIHRoZSBzaWduYWw8L3RleHQ+CgogIDx0ZXh0IHg9IjYwIiB5PSIyNTgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkhpZGRlbiBjb3N0PC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIyNzQiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiPkxvc3QgdmlzaWJpbGl0eSBkdXJpbmcgZnV0dXJlPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIyODgiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiPnVucmVsYXRlZCBpbmNpZGVudDwvdGV4dD4KCiAgPHRleHQgeD0iNjAiIHk9IjMyNCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+TWl0aWdhdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMzQwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgNi1tb250aCByZXZpZXcgY2FkZW5jZTwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMzU0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgU3RhZ2UgaW4gbm9uLXByb2QgZmlyc3Q8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjM2OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIERvY3VtZW50IHJhdGlvbmFsZTwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMzgyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgQ3Jvc3MtY2hlY2sgaW5jaWRlbnQgd29ya2Zsb3dzPC90ZXh0PgoKICA8dGV4dCB4PSI2MCIgeT0iNDE4IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5CZXN0IGZvcjwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iNDM0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgU3ludGhldGljIG1vbml0b3JzIG5vIG9uZSB3YXRjaGVzPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSI0NDgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBEZWNvbW1pc3Npb25lZCBob3N0czwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iNDYyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgVW51c2VkIGludGVncmF0aW9uczwvdGV4dD4KCiAgPCEtLSBUdW5lIGNvbHVtbiAtLT4KICA8cmVjdCB4PSIzMzAiIHk9IjgwIiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjM5NCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjEwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9IjcwMCI+VHVuZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjEyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+QWRqdXN0IGEgcGFyYW1ldGVyPC90ZXh0PgoKICA8dGV4dCB4PSIzNTAiIHk9IjE1MCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+SW1wYWN0PC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iMTY2IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIj7imIXimIUg4oCUIFByb3BvcnRpb25hbCByZWR1Y3Rpb248L3RleHQ+CgogIDx0ZXh0IHg9IjM1MCIgeT0iMTg2IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5GcmljdGlvbjwvdGV4dD4KICA8dGV4dCB4PSIzNTAiIHk9IjIwMiIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSI+TG93IOKAlCBwbGF0Zm9ybS10ZWFtIHVuaWxhdGVyYWw8L3RleHQ+CgogIDx0ZXh0IHg9IjM1MCIgeT0iMjIyIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5SZXZlcnNpYmlsaXR5PC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iMjM4IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIj5NZWRpdW0g4oCUIHJlLXR1bmUgdGhlIHBhcmFtZXRlcjwvdGV4dD4KCiAgPHRleHQgeD0iMzUwIiB5PSIyNTgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkhpZGRlbiBjb3N0PC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iMjc0IiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIj5Gb3JlbnNpYyBsb29rYmFjayBzaG9ydGVuZWQ7PC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iMjg4IiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIj50YWlsLWRpc3RyaWJ1dGlvbiBwYXR0ZXJucyBzYW1wbGVkIG91dDwvdGV4dD4KCiAgPHRleHQgeD0iMzUwIiB5PSIzMjQiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPk1pdGlnYXRpb248L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSIzNDAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBCdWZmZXIgMS41LTLDlyBsb25nZXN0IGxvb2tiYWNrPC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iMzU0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgRGlmZmVyZW50aWFsIHNhbXBsaW5nIChlcnJvcnMgaGlnaCk8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSIzNjgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBQZXItbWV0cmljLCBub3QgZ2xvYmFsPC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iMzgyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgU2VjdXJpdHkvU0xPIHNpZ25hbHM6IG1pbmltdW0gY3V0PC90ZXh0PgoKICA8dGV4dCB4PSIzNTAiIHk9IjQxOCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+QmVzdCBmb3I8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSI0MzQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBPdmVyLXJldGFpbmVkIGxvZ3MgKDM1ZCDihpIgMTRkKTwvdGV4dD4KICA8dGV4dCB4PSIzNTAiIHk9IjQ0OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIE92ZXItc2FtcGxlZCB0cmFjZXM8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSI0NjIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBPdmVyLXJlc29sdXRpb24gbWV0cmljczwvdGV4dD4KCiAgPCEtLSBGaWx0ZXIgY29sdW1uIC0tPgogIDxyZWN0IHg9IjYxMCIgeT0iODAiIHdpZHRoPSIyODAiIGhlaWdodD0iMzk0IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9Ijc1MCIgeT0iMTA1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iNzAwIj5GaWx0ZXI8L3RleHQ+CiAgPHRleHQgeD0iNzUwIiB5PSIxMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkRyb3AgYSBzdWJzZXQg4oCUIE9wZW5QaXBlbGluZSBvciBDb2xsZWN0b3I8L3RleHQ+CgogIDx0ZXh0IHg9IjYzMCIgeT0iMTUwIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5JbXBhY3Q8L3RleHQ+CiAgPHRleHQgeD0iNjMwIiB5PSIxNjYiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiPuKYheKYheKYhSDigJQgVGFyZ2V0ZWQ7IHByZXNlcnZlcyByZXN0PC90ZXh0PgoKICA8dGV4dCB4PSI2MzAiIHk9IjE4NiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+RnJpY3Rpb248L3RleHQ+CiAgPHRleHQgeD0iNjMwIiB5PSIyMDIiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiPk1lZGl1bSDigJQgcGF0dGVybiBvd25lciBzaWduLW9mZjwvdGV4dD4KCiAgPHRleHQgeD0iNjMwIiB5PSIyMjIiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlJldmVyc2liaWxpdHk8L3RleHQ+CiAgPHRleHQgeD0iNjMwIiB5PSIyMzgiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiPkhpZ2gg4oCUIHJlbW92ZSB0aGUgZmlsdGVyPC90ZXh0PgoKICA8dGV4dCB4PSI2MzAiIHk9IjI1OCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+SGlkZGVuIGNvc3Q8L3RleHQ+CiAgPHRleHQgeD0iNjMwIiB5PSIyNzQiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiPkZpbHRlciBkcmlmdCDigJQgcGF0dGVybiB0aGF0IHdhczwvdGV4dD4KICA8dGV4dCB4PSI2MzAiIHk9IjI4OCIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSI+bm9pc2UgYmVjb21lcyBzaWduYWwgb3ZlciB0aW1lOzwvdGV4dD4KICA8dGV4dCB4PSI2MzAiIHk9IjMwMiIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSI+Q29sbGVjdG9yIHJ1bGVzIGRyaWZ0IGFjcm9zcyBDb2xsZWN0b3JzPC90ZXh0PgoKICA8dGV4dCB4PSI2MzAiIHk9IjMyNCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+TWl0aWdhdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI2MzAiIHk9IjM0MCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIE93bmVyIHBlciBmaWx0ZXI8L3RleHQ+CiAgPHRleHQgeD0iNjMwIiB5PSIzNTQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiA2LW1vbnRoIHJldmlldyBjYWRlbmNlPC90ZXh0PgogIDx0ZXh0IHg9IjYzMCIgeT0iMzY4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgU3BlY2lmaWMgKG5vdCBjYXRlZ29yeS13aWRlKTwvdGV4dD4KICA8dGV4dCB4PSI2MzAiIHk9IjM4MiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIEVudmlyb25tZW50LXNjb3BlZCAocHJvZCBvbmx5KTwvdGV4dD4KICA8dGV4dCB4PSI2MzAiIHk9IjM5NiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIENvbGxlY3RvcnM6IGRlcGxveSBmcm9tIG9uZSBjb25maWd1cmF0aW9uPC90ZXh0PgoKICA8dGV4dCB4PSI2MzAiIHk9IjQxOCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+QmVzdCBmb3I8L3RleHQ+CiAgPHRleHQgeD0iNjMwIiB5PSI0MzQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBERUJVRyBsb2dzIGluIHByb2Q8L3RleHQ+CiAgPHRleHQgeD0iNjMwIiB5PSI0NDgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBIZWFsdGhjaGVjayBzcGFuczwvdGV4dD4KICA8dGV4dCB4PSI2MzAiIHk9IjQ2MiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIEhpZ2gtY2FyZGluYWxpdHkgbWV0cmljIGxhYmVsczwvdGV4dD4KCiAgPCEtLSBGb290ZXIgLS0+CiAgPHRleHQgeD0iNDY1IiB5PSI0OTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTEiPkFsbCB0aHJlZSBuZWVkIG93bmVyc2hpcCBhbmQgZG9jdW1lbnRlZCByZXZpZXcgY2FkZW5jZSDigJQgdW4tb3duZWQgb3B0aW1pemF0aW9ucyBiZWNvbWUgaW52aXNpYmxlIGNvc3QgdGhhdCBubyBvbmUgY2FuIHNhZmVseSBjaGFuZ2U8L3RleHQ+Cjwvc3ZnPgo=" alt="Cut · Tune · Filter — Lever Trade-offs" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Lever | Impact | Friction | Reversibility | Hidden cost | Mitigation |
+|-------|--------|----------|---------------|-------------|------------|
+| Cut | ★★★ Eliminates activity | High (emit-side coordination) | High (re-enable) | Lost visibility during future unrelated incident | 6-month review, stage in non-prod, document rationale |
+| Tune | ★★ Proportional reduction | Low (platform-team unilateral) | Medium (re-tune) | Forensic lookback shortened; tail-distribution sampled out | Buffer 1.5-2× longest lookback, differential sampling, per-metric not global |
+| Filter | ★★★ Targeted; preserves rest (OpenPipeline or Collector) | Medium (pattern owner sign-off) | High (remove filter) | Filter drift — noise becomes signal over time; Collector rules drift across Collectors | Owner per filter, 6-month review, specific not category-wide, env-scoped; deploy Collector rules from one configuration |
+-->
+<table>
+<thead>
+<tr>
+<th>Lever</th>
+<th>Visible benefit</th>
+<th>Hidden cost</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cut</strong></td>
+<td>Largest cost reduction; eliminates underlying activity</td>
+<td>Lost visibility may surface during an unrelated future incident — &quot;I wish we still had X&quot;</td>
+<td>6-month review cadence; documented Cut rationale; non-prod staging before prod</td>
+</tr>
+<tr>
+<td><strong>Tune (retention)</strong></td>
+<td>Easy to apply; no emit-side coordination</td>
+<td>Forensic / audit lookback becomes shorter — the next breach investigation may exceed the new retention window</td>
+<td>Audit longest <em>historical</em> lookback used; buffer 1.5-2×; coordinate with security on logs of audit interest</td>
+</tr>
+<tr>
+<td><strong>Tune (sampling)</strong></td>
+<td>Reduces trace volume proportionally</td>
+<td>Tail-of-distribution patterns (rare errors, edge-case latency) may sample out</td>
+<td>Keep error / exception traces at higher rate (differential sampling); review investigation-success metrics after first month</td>
+</tr>
+<tr>
+<td><strong>Tune (resolution)</strong></td>
+<td>Reduces metric data_points</td>
+<td>SLO calculations with sub-resolution sensitivity may break or become noisy</td>
+<td>Per-metric, not global; preserve high resolution for SLO-feeder metrics</td>
+</tr>
+<tr>
+<td><strong>Filter (severity)</strong></td>
+<td>Drops known-noisy log volume</td>
+<td>A real DEBUG-level diagnostic might be needed during a future deep-investigation</td>
+<td>Filter on environment (prod only), not globally; keep DEBUG flowing in pre-prod</td>
+</tr>
+<tr>
+<td><strong>Filter (endpoint)</strong></td>
+<td>Drops healthcheck-span volume</td>
+<td>If a healthcheck endpoint starts misbehaving, the noise <em>was</em> the signal</td>
+<td>Filter on specific paths, not patterns; monitor health endpoints at the underlying-app layer instead</td>
+</tr>
+<tr>
+<td><strong>Filter (pattern)</strong></td>
+<td>Drops known-benign error patterns</td>
+<td>The known-benign pattern may shift to known-malign without a clear signal</td>
+<td>Pattern-specific, not category-wide; document the rationale per filter</td>
+</tr>
+<tr>
+<td><strong>Filter (cardinality)</strong></td>
+<td>Reduces metric series explosion</td>
+<td>The cardinality may have been load-bearing for a specific debug workflow</td>
+<td>Confirm with the team that added the high-cardinality dimension; preserve the dimension on a subset if needed</td>
+</tr>
+</tbody>
+</table>
+<h3>The category of trade-off that hurts most</h3>
+<p><strong>Coverage gaps surface at the worst moment.</strong> A Cut to a synthetic monitor that no one watches is fine — until the day the corresponding service has a real outage and the absent monitor would have caught it 20 minutes earlier. In community practice, the cost-savings math from optimization tends to understate this risk by treating signals as if their value were proportional to their use-frequency. Signal value is observed to be highly skewed — most signals are operationally dark most of the time and load-bearing during specific incidents. The exact distribution depends on your workload and incident patterns; verify it in your own environment.</p>
+<p><strong>Mitigation:</strong> never optimize a signal that participates in incident-response workflows without explicit incident-team sign-off. <em>&quot;Did the last 3 incidents reference this signal?&quot;</em> is a better question than <em>&quot;is anyone querying this dashboard regularly?&quot;</em></p>
+<p><a id="wx-logs"></a></p>
+<h2>8. Worked Example — Production Log Stream</h2>
+<p><strong>Scenario:</strong> The FINOPS-02 weekly burn-rate alert fires on Monday morning. The <code>payments-prod</code> bucket grew 60% week-over-week. The platform team wants to act before the next Cost Monitor anomaly.</p>
+<h3>Step 1 — Diagnose</h3>
+<p>Run the FINOPS-01 §6 query to confirm the bucket-level numbers. Then drill in. The drill-down is itself a 7-day log query, so it scopes to the bucket and samples: <code>samplingRatio:100</code> reads about one record in a hundred, and the query scales the counts back up. On a validation tenant (10/23/2026), one hour of one bucket broken down by log level scanned 987.6 MB unsampled and 15.3 MB sampled, and the large levels came back within about 1% of the exact counts. Rare levels are much less precise (ERROR was estimated at 800 against 1,161), so re-run a level you care about unsampled over a short window.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/data-source-commands">DQL data source commands (DT docs)</a> — the <code>fetch</code> sampling example, <em>&quot;to get an estimation&quot;</em>, multiplies by <code>takeAny(dt.system.sampling_ratio)</code>. <a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/dql-best-practices">DQL best practices (DT docs)</a> — <em>&quot;a fraction ( 1/<samplingRatio> ) of all available raw records is returned.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Diagnose the spike — payments-prod log volume by loglevel over the last 7 days
+// samplingRatio:100 reads ~1/100 of the records; counts are scaled back up.
+// Good for the shape of the distribution; rare levels are imprecise.
+fetch logs, bucket:{&quot;payments-prod&quot;}, from:-7d, samplingRatio:100
+| summarize { record_count = count() * takeAny(dt.system.sampling_ratio) }, by:{ loglevel }
+| sort record_count desc
+</code></pre>
+<p>Suppose the result shows DEBUG = 14M records, INFO = 800K, WARN = 50K, ERROR = 5K. DEBUG is overwhelmingly dominant.</p>
+<h3>Step 2 — Frame the levers</h3>
+<ul>
+<li><strong>Cut?</strong> The payments service is in active use — its logs are load-bearing. Cut is not the right lever.</li>
+<li><strong>Tune?</strong> Retention is already 14 days. Lowering retention won't help the ingest spike.</li>
+<li><strong>Filter?</strong> DEBUG logs in production are the canonical Filter target — Dynatrace's own spike tutorial names debug logging left on in production as a typical ingest-spike cause. The application team may have left a feature-flag DEBUG enabled in a recent deploy, or DEBUG is on permanently and shouldn't be.</li>
+</ul>
+<p><strong>Filter is the right lever.</strong> Specifically, an OpenPipeline pipeline that drops <code>loglevel == &quot;DEBUG&quot;</code> records bound for the <code>payments-prod</code> bucket.</p>
+<h3>Step 3 — Coordinate before filtering</h3>
+<p>Ping the payments team before adding the filter. Two outcomes possible:</p>
+<ol>
+<li><strong>Team confirms DEBUG should not be on in prod:</strong> they fix the application config; the ingest returns to baseline; no filter needed. (Best outcome — root-cause fix.)</li>
+<li><strong>Team explains DEBUG was intentionally enabled for an ongoing investigation:</strong> add the filter with a time-boxed expiry (e.g., 30 days), and notify the team when the filter is removed.</li>
+</ol>
+<h3>Step 4 — Implement (after coordination)</h3>
+<p>Implementation depth lives in OPLOGS. The filter spec at the framework level:</p>
+<ul>
+<li>Scope: records bound for the <code>payments-prod</code> bucket</li>
+<li>Condition: <code>in(loglevel, {&quot;DEBUG&quot;, &quot;TRACE&quot;})</code></li>
+<li>Action: drop</li>
+<li>Owner: platform team (with payments team as informed party)</li>
+<li>Review: 6 months</li>
+</ul>
+<h3>Step 5 — Verify and measure</h3>
+<p>After deploying the filter, the FINOPS-02 daily burn-rate alert should show the bucket returning to baseline within 24-48 hours. If it doesn't, the spike has a different root cause (volume from non-DEBUG levels) and the framework loops back to Step 1 with a sharper question.</p>
+<p>The diagnose → frame → coordinate → implement → verify loop is this entry's practice rather than a Dynatrace procedure — adapt it to your team's actual change-management process.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline">OpenPipeline (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage-your-costs/control/investigate-a-spike">Trace a cost spike to its root cause (DT docs)</a> — typical ingest-spike causes include <em>&quot;debug-level logging left on in production&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="wx-metrics"></a></p>
+<h2>9. Worked Example — High-Cardinality Metric</h2>
+<p><strong>Scenario:</strong> Metrics-Ingest billable usage is climbing. The FINOPS-01 §8 query shows <code>monitoring_source == &quot;other&quot;</code> (custom metrics, with no included quota) dominating. One specific custom metric, <code>app.request.processed</code>, is contributing 70% of the volume.</p>
+<h3>Step 1 — Diagnose the cardinality</h3>
+<p>Query the metric's dimensions to find the high-cardinality one:</p>
+<pre><code class="language-dql">// Cardinality audit — how many distinct series a metric is producing
+//
+// Corrected 08/12/2026: `describe` is a STANDALONE command taking a data object
+// (`describe metric.series`), not a pipeline stage — appending `| describe` failed with
+// &quot;1 mandatory parameter is missing: dataObject&quot;. It also reports the SCHEMA, not per-dimension
+// cardinality, so it cannot answer this question. Count distinct dimension values directly.
+//
+// For the scenario: filter metric.key == &quot;app.request.processed&quot; and count distinct app.name, endpoint, request.id.
+// Runnable demo of the same pattern on an ActiveGate self-monitoring metric:
+fetch metric.series, from:-24h
+| filter metric.key == &quot;dt.sfm.active_gate.thread_pool.queue_size&quot;
+| summarize {
+    series          = count(),
+    distinct_gates  = countDistinctExact(dt.active_gate.id),
+    distinct_pools  = countDistinctExact(thread_pool_name)
+  }
+
+// Read it as: `series` is the metric's cardinality. A dimension whose distinct count runs to
+// thousands or millions is the one multiplying your series count — that is the cost driver.
+</code></pre>
+<p>Suppose the result shows: <code>app.name</code> (12 values), <code>endpoint</code> (47 values), <code>request.id</code> (8.4M values). <code>request.id</code> is the runaway dimension — every request creates a new time series.</p>
+<h3>Step 2 — Frame the levers</h3>
+<ul>
+<li><strong>Cut?</strong> The metric itself (<code>app.request.processed</code>) is useful — it's the count of processed requests. Cut would lose load-bearing data.</li>
+<li><strong>Tune?</strong> Lengthening the ingest interval helps proportionally but doesn't address the cardinality root cause.</li>
+<li><strong>Filter?</strong> Drop the <code>request.id</code> dimension at the SDK or at ingest. The metric remains; the cardinality explosion stops.</li>
+</ul>
+<p><strong>Filter is the right lever.</strong> Specifically, remove the <code>request.id</code> label from the metric emission.</p>
+<h3>Step 3 — Coordinate before changing</h3>
+<p><code>request.id</code> was added for some reason. The application team may have used it for per-request debugging via traces or logs (where high cardinality is appropriate). If yes — confirm the use case is satisfied via spans / logs, not metrics. If no — the label can be removed.</p>
+<h3>Step 4 — Implement</h3>
+<p>Implementation lives in the application's metric-emission code (OneAgent SDK, OpenTelemetry SDK, etc.). The framework-level spec:</p>
+<ul>
+<li>Source: application emitting <code>app.request.processed</code></li>
+<li>Change: remove <code>request.id</code> label</li>
+<li>Owner: app team</li>
+<li>Review: not needed — root-cause fix</li>
+</ul>
+<h3>Step 5 — Verify</h3>
+<p>After the app team deploys the change, the metric's cardinality should drop to the cross-product of remaining dimensions (<code>app.name</code> × <code>endpoint</code> = ~564 series instead of 8.4M+). Billable data_points should drop accordingly.</p>
+<h3>The pattern</h3>
+<p>High-cardinality metrics are a documented cost driver — Dynatrace's guidance names user IDs and request IDs, and advises avoiding volatile dimensions when creating custom metrics. In community practice the root cause is usually a label that belongs on a span or log record rather than a metric dimension. The fix is structural — emit it as a span attribute (where high cardinality is fine) and remove it from the metric.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/license/capabilities/telemetry/dps-metrics">Metrics consumption (DPS) (DT docs)</a>. <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/best-practices-metrics">Best practices for optimizing metrics cost (DT docs)</a> — <em>&quot;High-cardinality dimensions, such as user IDs or request IDs, significantly increase metric storage requirements. Removing a high-cardinality dimension reduces the number of stored timeseries and can lower cost.&quot;</em>; <em>&quot;avoid using volatile dimensions&quot;</em>. The demo cardinality query executed on a SaaS tenant 10/05/2026 (136 series, 5 ActiveGates, 17 thread pools; no notifications).</sub></p>
+</blockquote>
+<p><a id="cross-refs"></a></p>
+<h2>10. Cross-References to Implementation Depth</h2>
+<p>This entry is the <em>framework</em> — it answers <em>which lever, when, why</em>. The implementation depth (how to write the OpenPipeline filter, how to configure retention per bucket, how to tune sample rate) lives in adjacent series:</p>
+<table>
+<thead>
+<tr>
+<th>For depth on...</th>
+<th>See</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bucket strategy and retention configuration</td>
+<td><strong>ORGNZ</strong> topic series</td>
+</tr>
+<tr>
+<td>OpenPipeline filter syntax for logs</td>
+<td><strong>OPLOGS</strong> topic series</td>
+</tr>
+<tr>
+<td>OpenPipeline for non-log signals (spans, metrics, events)</td>
+<td><strong>OPIPE</strong> topic series</td>
+</tr>
+<tr>
+<td>Trace sampling configuration</td>
+<td><strong>SPANS</strong> topic series</td>
+</tr>
+<tr>
+<td>Custom metric emission with OneAgent SDK or OpenTelemetry</td>
+<td><strong>OTEL</strong> topic series</td>
+</tr>
+<tr>
+<td>Synthetic monitor configuration and frequency tuning</td>
+<td><strong>SYNTH</strong> topic series</td>
+</tr>
+<tr>
+<td>Optimization in the maturity-roadmap context</td>
+<td><strong>ADOPT-05</strong> notebook</td>
+</tr>
+<tr>
+<td><code>dt.cost.costcenter</code> / <code>dt.cost.product</code> label setup at ingest</td>
+<td><strong>FAQ-02</strong> (tagging sources, standards, strategy)</td>
+</tr>
+</tbody>
+</table>
+<p>This entry is intentionally shallow on syntax — the goal is to structure the decision before the team reaches for the implementation depth in the adjacent series. Reach for the right <em>lever</em> first; then read the adjacent series for the <em>handle</em>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> Cross-reference targets are the project's existing topic series. Implementation depth is owned in those series, not duplicated here.</sub></p>
+</blockquote>
+<p><a id="recommendation"></a></p>
+<h2>11. Recommended Approach</h2>
+<p>A repeatable workflow for using the three-lever framework when an alert (FINOPS-02) fires:</p>
+<ol>
+<li><strong>Diagnose at the bucket / capability / dimension level.</strong> Use the FINOPS-01 §6-§10 queries to pinpoint <em>where</em> the consumption is. &quot;Logs are up&quot; is not enough — <em>which bucket, which loglevel, which app</em>.</li>
+<li><strong>Frame the lever before reaching for syntax.</strong> Ask the three diagnostic questions: is this signal load-bearing (Cut?), is the parameter wrong (Tune?), is a subset noisy (Filter?). Pick one lever; reaching for two at once muddies the diagnosis.</li>
+<li><strong>Reach for the upstream-most lever that solves the problem.</strong> Cut at source &gt; Filter at OpenPipeline &gt; Tune at storage. Each step downstream is cheaper to implement but moves further from the root cause.</li>
+<li><strong>Coordinate before implementing.</strong> The team that owns the workload should be informed (Cut, Filter) or consulted (Tune on their signal). Cost optimization done unilaterally erodes trust faster than it saves money.</li>
+<li><strong>Implement, verify, document.</strong> The FINOPS-02 burn-rate alert is also the verification mechanism — if the change worked, the alert should clear within 24-48 hours. Document the change with owner, rationale, review date.</li>
+<li><strong>Set the review cadence.</strong> Every Cut and every Filter should have a documented review date (6 months default). Reviews catch the case where the optimization was correct at the time and isn't anymore.</li>
+<li><strong>Resist the urge to combine optimizations across teams in one change.</strong> One team, one lever, one change at a time. Bundled cost reductions become un-debuggable when something breaks.</li>
+</ol>
+<p><a id="summary"></a></p>
+<h2>12. Summary</h2>
+<p>Every DPS consumption-reduction option reduces to one of three levers: Cut (stop emitting), Tune (adjust a parameter), or Filter (drop a subset). Match the lever to the question — <em>is the signal load-bearing</em>, <em>is the parameter wrong</em>, <em>is a subset noisy</em>. Bias toward upstream levers — emission-time changes beat ingest-time changes beat storage-time changes. Coordinate before changing; document with owner, rationale, and review date. The cost savings that hurt most are the ones that surface six months later during an incident, because someone optimized a signal that turned out to be load-bearing — mitigate by treating signals that participate in incident response as off-limits without incident-team sign-off.</p>
+<h2>Next Steps</h2>
+<ul>
+<li>Read <strong>FINOPS-01</strong> if you skipped it — the <em>what is being consumed</em> picture is the diagnostic foundation for the levers in this entry.</li>
+<li>Read <strong>FINOPS-02</strong> for the alert-and-forecast layer that signals <em>when</em> a lever needs to be reached for.</li>
+<li>Read <strong>ORGNZ</strong> for bucket strategy and retention configuration — the structural decisions that make Tune effective.</li>
+<li>Read <strong>OPLOGS</strong> for log-pipeline filter syntax — the implementation depth for the Filter lever on logs.</li>
+<li>Read <strong>OPIPE</strong> for OpenPipeline beyond logs — Filter implementations for spans, metrics, and events.</li>
+<li>Audit your tenant's most-expensive bucket against the §8 worked example. Apply the diagnose → frame → coordinate → implement → verify loop once; build the muscle.</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 # Best-Practice-Notebooks
 
-Dynatrace best-practice notebooks with matching PDF and Markdown exports. These assets are not officially supported by Dynatrace.
+Dynatrace best-practice notebooks with matching PDF, HTML and Markdown exports. These assets are not officially supported by Dynatrace.
 
 > **Recommended:** Import the JSON files from notebooks/ into a Dynatrace tenant for the best experience. These notebooks contain interactive DQL queries that execute against your environment's data.
 
@@ -23,6 +23,7 @@ Each topic follows the same structure:
 - notebooks/ — Dynatrace notebook JSON files (import into Dynatrace)
 - pdfs/ — Printable/exported versions of the notebooks
 - markdown/ — Markdown exports of the same content
+- html/ — Web pages of the same content; each file stands alone, with its diagrams built in
 - README.md — Topic overview and usage guide
 - AGENTS.md — Routing table for AI agents (present in every series)
 
@@ -47,7 +48,7 @@ Series are grouped into seven categories for navigation. An alphabetical index f
 - **Security** — runtime vulnerability analytics, application protection, and security posture management
   [APPSEC](#appsec---application-security)
 - **Migrations** — moving to Dynatrace or between Dynatrace environments
-  [M2S](#m2s---managed-to-saas-migration) · [S2S](#s2s---saas-to-saas-migration) · [S2D](#s2d---splunk-to-dynatrace-migration) · [SL2DT](#sl2dt---sumo-logic-to-dynatrace) · [NR2DT](#nr2dt---new-relic-to-dynatrace-migration-steps) · [NRLC](#nrlc---new-relic-to-dynatrace-migration-deep-dives) · [OPMIG](#opmig---openpipeline-migration) · [MZ2POL](#mz2pol---management-zone-to-policy-migration)
+  [M2S](#m2s---managed-to-saas-migration) · [S2S](#s2s---saas-to-saas-migration) · [S2D](#s2d---splunk-to-dynatrace-migration) · [SL2DT](#sl2dt---sumo-logic-to-dynatrace) · [NR2DT](#nr2dt---new-relic-to-dynatrace-migration-steps) · [NRLC](#nrlc---new-relic-to-dynatrace-migration-deep-dives) · [OPMIG](#opmig---openpipeline-migration) · [MZ2POL](#mz2pol---management-zone-migration-segments-policies-workflows)
 
 ## All Series (A–Z)
 

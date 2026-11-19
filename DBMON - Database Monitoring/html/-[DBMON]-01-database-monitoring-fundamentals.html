@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DBMON-01: Database Monitoring Fundamentals</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DBMON — Database Monitoring</a><span class="sep">/</span><span aria-current="page">DBMON-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DBMON-01: Database Monitoring Fundamentals</h1>
+<blockquote>
+<p><strong>Series:</strong> DBMON — Database Monitoring | <strong>Notebook:</strong> 1 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook introduces how Dynatrace monitors databases across your environment. You will learn how OneAgent automatically detects database calls through distributed tracing, how database spans capture query-level detail, and how the Dynatrace entity model represents database services. We also cover ActiveGate extensions for remote database monitoring and the full range of supported database technologies.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#how-database-monitoring-works">How Database Monitoring Works</a></li>
+<li><a href="#database-span-anatomy">Database Span Anatomy</a></li>
+<li><a href="#discovering-database-services">Discovering Database Services</a></li>
+<li><a href="#database-span-exploration">Database Span Exploration</a></li>
+<li><a href="#database-types-and-technologies">Database Types and Technologies</a></li>
+<li><a href="#activegate-extensions">ActiveGate Extensions for Remote Monitoring</a></li>
+<li><a href="#baseline-database-metrics">Baseline Database Metrics</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS with Grail (Managed has no Grail, so these DQL cells do not run there)</td>
+</tr>
+<tr>
+<td><strong>OneAgent</strong></td>
+<td>Deployed on application hosts making database calls</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:spans:read</code>, <code>storage:entities:read</code>, <code>storage:metrics:read</code></td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>At least 1 hour of application traffic generating database calls</td>
+</tr>
+</tbody>
+</table>
+<p><a id="how-database-monitoring-works"></a></p>
+<h2>1. How Database Monitoring Works</h2>
+<p>Dynatrace monitors databases through two complementary approaches:</p>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>How It Works</th>
+<th>What It Captures</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OneAgent Code-Level Instrumentation</strong></td>
+<td>Automatically instruments database client libraries (JDBC, ADO.NET, database drivers)</td>
+<td>Query text, execution time, result counts, connection details</td>
+</tr>
+<tr>
+<td><strong>ActiveGate Extensions</strong></td>
+<td>Connects remotely to database management interfaces (SQL queries against system tables)</td>
+<td>Internal DB metrics: tablespace usage, lock waits, buffer cache hit ratio</td>
+</tr>
+</tbody>
+</table>
+<p>OneAgent captures every database call as a <strong>span</strong> in the distributed trace. These spans contain:</p>
+<ul>
+<li><strong><code>db.system</code></strong> — The database technology (e.g., <code>postgresql</code>, <code>mysql</code>, <code>mongodb</code>)</li>
+<li><strong><code>db.query.text</code></strong> — The query or command executed. Literals in a SQL <code>WHERE</code> clause are masked; parameterized statements keep their own placeholders (<code>?</code>, <code>@p0</code>)</li>
+<li><strong><code>db.operation.name</code></strong> — The operation type (<code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>, <code>find</code>, <code>aggregate</code>)</li>
+<li><strong><code>db.namespace</code></strong> — The database or schema name</li>
+<li><strong><code>server.address</code></strong> — The database server hostname or IP</li>
+<li><strong><code>server.port</code></strong> — The database server port</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> Dynatrace masks literals in a SQL <code>WHERE</code> clause — <em>&quot;Literals that are part of the WHERE clause of an SQL statement are replaced with *****&quot;</em>. Parameterized statements (prepared statements, ORMs) already carry placeholders such as <code>?</code> or <code>@p0</code>, so they group by <code>db.query.text</code> cleanly; SQL built with inline values outside the <code>WHERE</code> clause (for example <code>INSERT … VALUES (1, 'x')</code>) does not.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/personal-data-captured-by-dynatrace">Personal data captured by Dynatrace (DT docs)</a> — <em>&quot;Literals that are part of the WHERE clause of an SQL statement are replaced with ***** , for example, WHERE userId = '</em>*******<em>' .&quot;</em></sub></p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+VHdvIENvbXBsZW1lbnRhcnkgUGF0aHMgdG8gRGF0YWJhc2UgVmlzaWJpbGl0eTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5PbmVBZ2VudCBjbGllbnQtc2lkZSBzcGFucyArIEFjdGl2ZUdhdGUgc2VydmVyLXNpZGUgZXh0ZW5zaW9uczwvdGV4dD4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnJvd0dyYXlEYiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyb3dCbHVlRGIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFycm93UHVycGxlRGIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjQTc4QkZBIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gTEVGVCBQQU5FTDogT25lQWdlbnQgY2xpZW50LXNpZGUgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjgwIiB3aWR0aD0iNDEwIiBoZWlnaHQ9IjM3MCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIyNDUiIHk9IjEwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+T25lQWdlbnQg4oCUIENsaWVudC1TaWRlIFNwYW5zPC90ZXh0PgogIDx0ZXh0IHg9IjI0NSIgeT0iMTIzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4iV2hhdCBkaWQgdGhlIGFwcGxpY2F0aW9uIG9ic2VydmU/IjwvdGV4dD4KCiAgPHJlY3QgeD0iODAiIHk9IjE0NSIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI3MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNiIvPgogIDx0ZXh0IHg9IjE1NSIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5BcHBsaWNhdGlvbjwvdGV4dD4KICA8dGV4dCB4PSIxNTUiIHk9IjE4NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+SlZNIC8gLk5FVCAvIE5vZGUgLzwvdGV4dD4KICA8dGV4dCB4PSIxNTUiIHk9IjIwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+R28gLyBQeXRob24gLyBSdWJ5PC90ZXh0PgoKICA8cmVjdCB4PSI4MCIgeT0iMjI1IiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjM1IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTU1IiB5PSIyNDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPisgT25lQWdlbnQ8L3RleHQ+CgogIDxsaW5lIHgxPSIyMzAiIHkxPSIxODAiIHgyPSIyOTAiIHkyPSIxODAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dHcmF5RGIpIi8+CiAgPHRleHQgeD0iMjYwIiB5PSIxNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOSI+REIgY2FsbDwvdGV4dD4KCiAgPHJlY3QgeD0iMjkwIiB5PSIxNTUiIHdpZHRoPSIxMzAiIGhlaWdodD0iNTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjYiLz4KICA8dGV4dCB4PSIzNTUiIHk9IjE3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+RGF0YWJhc2U8L3RleHQ+CiAgPHRleHQgeD0iMzU1IiB5PSIxOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlBvc3RncmVTUUwgLyBldGMuPC90ZXh0PgoKICA8cmVjdCB4PSI2MCIgeT0iMjg1IiB3aWR0aD0iMzcwIiBoZWlnaHQ9IjE1NSIgZmlsbD0iIzBGMTcyQSIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMjQ1IiB5PSIzMDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlNwYW4gYXR0cmlidXRlcyBjYXB0dXJlZDwvdGV4dD4KICA8dGV4dCB4PSI4MCIgeT0iMzI1IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj7igKIgc3Bhbi5raW5kID0gImNsaWVudCI8L3RleHQ+CiAgPHRleHQgeD0iODAiIHk9IjM0MSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+4oCiIGRiLnN5c3RlbSA9ICJwb3N0Z3Jlc3FsIiAvICJtb25nb2RiIiAvIGV0Yy48L3RleHQ+CiAgPHRleHQgeD0iODAiIHk9IjM1NyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+4oCiIGRiLnF1ZXJ5LnRleHQgKFdIRVJFIGxpdGVyYWxzIG1hc2tlZCk8L3RleHQ+CiAgPHRleHQgeD0iODAiIHk9IjM3MyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+4oCiIGRiLm9wZXJhdGlvbi5uYW1lIChTRUxFQ1QgLyBJTlNFUlQgLyBmaW5kIC8gZXRjLik8L3RleHQ+CiAgPHRleHQgeD0iODAiIHk9IjM4OSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+4oCiIGRiLm5hbWVzcGFjZSAoc2NoZW1hIC8gZGF0YWJhc2UgbmFtZSk8L3RleHQ+CiAgPHRleHQgeD0iODAiIHk9IjQwNSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+4oCiIHNlcnZlci5hZGRyZXNzLCBzZXJ2ZXIucG9ydDwvdGV4dD4KICA8dGV4dCB4PSI4MCIgeT0iNDIxIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj7igKIgZHVyYXRpb24gKGR1cmF0aW9uIHR5cGUg4oCUIGRpdmlkZSBieSAxbXMpPC90ZXh0PgogIDx0ZXh0IHg9IjI0NSIgeT0iNDM3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj7ihpIgZmV0Y2ggc3BhbnMsIGZyb206LTFoIHwgZmlsdGVyIGRiLnN5c3RlbSA9PSAicG9zdGdyZXNxbCI8L3RleHQ+CgogIDwhLS0gUklHSFQgUEFORUw6IEFjdGl2ZUdhdGUgRXh0ZW5zaW9ucyBzZXJ2ZXItc2lkZSAtLT4KICA8cmVjdCB4PSI0ODAiIHk9IjgwIiB3aWR0aD0iNDEwIiBoZWlnaHQ9IjM3MCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI2ODUiIHk9IjEwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+QWN0aXZlR2F0ZSBFeHRlbnNpb25zIOKAlCBTZXJ2ZXItU2lkZTwvdGV4dD4KICA8dGV4dCB4PSI2ODUiIHk9IjEyMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+IldoYXQncyBoYXBwZW5pbmcgaW5zaWRlIHRoZSBkYXRhYmFzZT8iPC90ZXh0PgoKICA8cmVjdCB4PSI1MjAiIHk9IjE0NSIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI3MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiByeD0iNiIvPgogIDx0ZXh0IHg9IjU5NSIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5BY3RpdmVHYXRlPC90ZXh0PgogIDx0ZXh0IHg9IjU5NSIgeT0iMTg2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5FbnZpcm9ubWVudCBBY3RpdmVHYXRlPC90ZXh0PgogIDx0ZXh0IHg9IjU5NSIgeT0iMjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5vciBLOHMgRXhlY3V0b3IgKDEuMzQ2Kyk8L3RleHQ+CgogIDxyZWN0IHg9IjUyMCIgeT0iMjI1IiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjM1IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNTk1IiB5PSIyNDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPisgRUVDICsgRXh0ZW5zaW9uIFlBTUw8L3RleHQ+CgogIDxsaW5lIHgxPSI2NzAiIHkxPSIxODAiIHgyPSI3MzAiIHkyPSIxODAiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1kYXNoYXJyYXk9IjMsMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd1B1cnBsZURiKSIvPgogIDx0ZXh0IHg9IjcwMCIgeT0iMTcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjkiPnBvbGwgc3lzdGVtIHRhYmxlczwvdGV4dD4KCiAgPHJlY3QgeD0iNzMwIiB5PSIxNTUiIHdpZHRoPSIxMzAiIGhlaWdodD0iNTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjYiLz4KICA8dGV4dCB4PSI3OTUiIHk9IjE3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+RGF0YWJhc2U8L3RleHQ+CiAgPHRleHQgeD0iNzk1IiB5PSIxOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnBnX3N0YXRfKiAvIHN5cy5kbV8qPC90ZXh0PgoKICA8cmVjdCB4PSI1MDAiIHk9IjI4NSIgd2lkdGg9IjM3MCIgaGVpZ2h0PSIxNTUiIGZpbGw9IiMwRjE3MkEiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjY4NSIgeT0iMzA1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5TZXJ2ZXItaW50ZXJuYWwgbWV0cmljcyBjYXB0dXJlZDwvdGV4dD4KICA8dGV4dCB4PSI1MjAiIHk9IjMyNSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+4oCiIENvbm5lY3Rpb25zIC8gc2Vzc2lvbnMgLyB3YWl0IGV2ZW50czwvdGV4dD4KICA8dGV4dCB4PSI1MjAiIHk9IjM0MSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+4oCiIEJ1ZmZlciAvIGNhY2hlIGhpdCByYXRpb3M8L3RleHQ+CiAgPHRleHQgeD0iNTIwIiB5PSIzNTciIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPuKAoiBUYWJsZXNwYWNlIC8gdGFibGUgLyBpbmRleCBzaXplczwvdGV4dD4KICA8dGV4dCB4PSI1MjAiIHk9IjM3MyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+4oCiIFJlcGxpY2F0aW9uIGxhZyAvIHJlZG8gbG9nIHdhaXRzPC90ZXh0PgogIDx0ZXh0IHg9IjUyMCIgeT0iMzg5IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj7igKIgTG9jayB3YWl0cywgZGVhZGxvY2tzLCBzbG93IHF1ZXJpZXM8L3RleHQ+CiAgPHRleHQgeD0iNTIwIiB5PSI0MDUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPuKAoiBWZW5kb3Itc3BlY2lmaWMgaGVhbHRoIChQRyBibG9hdCwgTVMgUExFLCBldGMuKTwvdGV4dD4KICA8dGV4dCB4PSI1MjAiIHk9IjQyMSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+4oCiIExvZ3MgbGFuZCBpbiBgZGVmYXVsdF9kYXRhYmFzZV9tb25pdG9yaW5nYCBidWNrZXQ8L3RleHQ+CiAgPHRleHQgeD0iNjg1IiB5PSI0MzciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPuKGkiB0aW1lc2VyaWVzIG9uIGV4dGVuc2lvbi1lbWl0dGVkIG1ldHJpY3M8L3RleHQ+CgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjExIj5Vc2UgYm90aDogc3BhbnMgZm9yIGFwcC1zaWRlIGxhdGVuY3kgJmFtcDsgZmFpbHVyZSBhdHRyaWJ1dGlvbjsgZXh0ZW5zaW9ucyBmb3IgY2FwYWNpdHksIGhlYWx0aCAmYW1wOyBjb25maWcgZHJpZnQuPC90ZXh0Pgo8L3N2Zz4K" alt="OneAgent vs ActiveGate Extensions Architecture" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Path | Captures | DQL pattern |
+|------|----------|-------------|
+| OneAgent client-side | Span attributes (db.system, db.query.text with WHERE literals masked, duration as a duration type — divide by 1ms) for every DB call from app | fetch spans \| filter db.system == "..." |
+| ActiveGate Extensions server-side (Environment ActiveGate + EEC, or SQL Extension Executor on Kubernetes, Dynatrace 1.346+) | Server-internal metrics (connections, buffer hit ratio, table sizes, deadlocks) | timeseries on extension-emitted metric keys |
+For environments where SVG doesn't render
+-->
+<p><a id="database-span-anatomy"></a></p>
+<h2>2. Database Span Anatomy</h2>
+<p>Let's examine the structure of a database span by querying for recent database calls and inspecting the available fields.</p>
+<pre><code class="language-dql">// dt.service.name: dt.entity.service is deprecated in the semantic dictionary (dt.service.name is stable).
+// Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
+// used throughout, and none of them has a row in the semantic dictionary (older OTel
+// instrumentations may still emit db.statement). They fail SILENTLY: a filter on a
+// non-existent field matches nothing and a summarize groups everything under null, so these cells
+// returned empty or single-null-group results without ever erroring.
+//   db.operation         -&gt; db.operation.name    (stable; set on 50,379 of 57,295 db spans)
+//   db.statement         -&gt; db.query.text        (stable; 33,463)
+//   db.mongodb.collection-&gt; db.collection.name   (stable; 6,912)
+//   db.name              -&gt; db.namespace         (stable; 57,281)
+// Confirm the catalog for your tenant with:
+//   fetch dt.semantic_dictionary.fields | filter startsWith(name, &quot;db.&quot;) | fields name, stability
+// Inspect database span fields — sample 10 recent DB calls
+fetch spans, from:-1h
+| filter isNotNull(db.system)
+| fields start_time, db.system, db.operation.name, db.namespace,
+        db.query.text, server.address, server.port,
+        duration, span.kind, dt.service.name
+| sort start_time desc
+| limit 10
+</code></pre>
+<p>The query above returns the key attributes of each database span:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>db.system</code></td>
+<td>Database technology identifier</td>
+<td><code>postgresql</code>, <code>mysql</code>, <code>mongodb</code></td>
+</tr>
+<tr>
+<td><code>db.operation.name</code></td>
+<td>SQL command or DB operation</td>
+<td><code>SELECT</code>, <code>INSERT</code>, <code>find</code></td>
+</tr>
+<tr>
+<td><code>db.namespace</code></td>
+<td>Database or schema name</td>
+<td><code>orders_db</code>, <code>inventory</code></td>
+</tr>
+<tr>
+<td><code>db.query.text</code></td>
+<td>Normalized query text</td>
+<td><code>SELECT * FROM orders WHERE id = ?</code></td>
+</tr>
+<tr>
+<td><code>server.address</code></td>
+<td>Database host</td>
+<td><code>db-prod-01.internal</code></td>
+</tr>
+<tr>
+<td><code>duration</code></td>
+<td>Execution time — a <code>duration</code> value; divide by <code>1ms</code> for milliseconds</td>
+<td><code>1.5 ms</code></td>
+</tr>
+<tr>
+<td><code>span.kind</code></td>
+<td><code>client</code> for outgoing DB calls (lowercase)</td>
+<td><code>client</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>db.system</code> is <code>experimental</code> in the semantic dictionary and <code>db.query.text</code> is not always present — on the validation tenant (10/02/2026) it was set on 58% of SQL Server spans and on no Redis spans.</p>
+<p><a id="discovering-database-services"></a></p>
+<h2>3. Discovering Database Services</h2>
+<p>Dynatrace records each database call as a <strong>client span on the calling service</strong>, described by <code>db.*</code> attributes — the service, not a separate database entity, is where the impact shows. Let's discover which services call which databases.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/application-observability/services/services-database-monitoring">Database query monitoring in Services (DT docs)</a> — <em>&quot;When a service makes a database call, Dynatrace captures it as a database client span.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Discover which services call databases, and what they call.
+// dt.service.name: dt.entity.service is deprecated in the semantic dictionary (dt.service.name is stable).
+// Note: `serviceType`, `databaseVendor`, `databaseHostNames` and `softwareTechnologies` are
+// CLASSIC dt.entity.service attributes — the Smartscape SERVICE node does not carry them
+// (its model is id / id_classic / name / type / tags / lifetime / references), so filtering
+// a Smartscape node on serviceType == &quot;DATABASE_SERVICE&quot; matches nothing. Under service
+// detection v2 there is no separate DATABASE_SERVICE entity at all: a database call is a
+// client span on the calling service, described by db.* attributes. Start from the spans
+// and resolve the service identity from there.
+fetch spans, from:-24h
+| filter isNotNull(db.system)
+| summarize call_count = count(), by:{calling_service = dt.service.name, db.system, server.address}
+| sort call_count desc
+| limit 50
+</code></pre>
+<p>You can also discover databases through the spans themselves, which is useful when entity detection hasn't yet completed or when you want to see databases called from specific services.</p>
+<pre><code class="language-dql">// Discover database technologies from span data
+fetch spans, from:-1h
+| filter isNotNull(db.system)
+| summarize {
+    call_count = count(),
+    avg_duration_ms = avg(duration) / 1ms,
+    distinct_statements = countDistinct(db.query.text)
+}, by:{db.system, db.namespace, server.address}
+| sort call_count desc
+| limit 20
+</code></pre>
+<p><a id="database-span-exploration"></a></p>
+<h2>4. Database Span Exploration</h2>
+<p>Understanding the distribution of database calls helps identify which databases are most heavily used and where optimization efforts should focus.</p>
+<blockquote>
+<p><strong>Calls are not statements.</strong> A database span is one <em>call</em> from the client. On SQL spans, many calls are not statements: <code>CONNECT</code> opens a connection and <code>COMMIT</code> ends a transaction (neither carries <code>db.query.text</code>), while <code>PREPARE</code> and <code>RESULTSET</code> are driver phases that repeat the text of a statement span in the same trace. On the validation tenant (SQL Server, 1 h, 10/02/2026) those four operations were 19,379 of 42,314 calls, <code>CONNECT</code> alone 16,723 at about 1 ms each. That inflates a query count by more than 80% and pulls every latency percentile down. Cells in this series that measure queries or query latency drop those four operations with:</p>
+<pre><code class="language-dql">| filter not(in(coalesce(db.operation.name, &quot;&quot;), {&quot;CONNECT&quot;, &quot;COMMIT&quot;, &quot;PREPARE&quot;, &quot;RESULTSET&quot;}))
+</code></pre>
+<p><code>coalesce</code> keeps spans with no <code>db.operation.name</code> (MongoDB and Redis on the validation tenant). Without it, <code>in()</code> returns null for them and the filter drops them. Cells that count calls or failures keep every span.</p>
+</blockquote>
+<pre><code class="language-dql">// Database call volume by technology over the last hour
+fetch spans, from:-1h
+| filter isNotNull(db.system)
+| summarize {
+    total_calls = count(),
+    avg_duration_ms = avg(duration) / 1ms,
+    p95_duration_ms = percentile(duration, 95) / 1ms,
+    max_duration_ms = max(duration) / 1ms
+}, by:{db.system}
+| sort total_calls desc
+</code></pre>
+<pre><code class="language-dql">// Database call volume over time — identify traffic patterns
+fetch spans, from:-6h
+| filter isNotNull(db.system)
+| makeTimeseries call_count = count(), by:{db.system}, interval:5m
+</code></pre>
+<pre><code class="language-dql">// Distribution of database operations (SELECT vs INSERT vs UPDATE vs DELETE)
+fetch spans, from:-1h
+| filter isNotNull(db.system) and isNotNull(db.operation.name)
+| summarize op_count = count(), by:{db.system, db.operation.name}
+| sort db.system asc, op_count desc
+</code></pre>
+<p><a id="database-types-and-technologies"></a></p>
+<h2>5. Database Types and Technologies</h2>
+<p>Dynatrace supports a broad range of database technologies through OneAgent auto-instrumentation.</p>
+<blockquote>
+<p><strong>Coverage is per client library, not per database.</strong> &quot;Auto-instrumented&quot; describes the <em>driver</em> the
+application uses, so support arrives library by library and OneAgent version by OneAgent version. Redis on
+.NET is the clearest example: <strong>StackExchange.Redis</strong> is auto-instrumented from <strong>OneAgent 1.337</strong> and
+<strong>ServiceStack.Redis</strong> only from <strong>OneAgent 1.343</strong> — the same database, two client libraries, six sprints
+apart. Where a <code>db.system</code> value below is missing from your spans, check the client library and the OneAgent
+version on the calling host before concluding the database is unmonitored.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Technologies</th>
+<th><code>db.system</code> Values</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Relational (SQL)</strong></td>
+<td>PostgreSQL, MySQL, MariaDB, Microsoft SQL Server, Oracle, IBM Db2</td>
+<td><code>postgresql</code>, <code>mysql</code>, <code>mariadb</code>, <code>mssql</code>, <code>oracle</code>, <code>db2</code></td>
+</tr>
+<tr>
+<td><strong>NoSQL Document</strong></td>
+<td>MongoDB, Couchbase, Amazon DynamoDB, Azure Cosmos DB</td>
+<td><code>mongodb</code>, <code>couchbase</code>, <code>dynamodb</code>, <code>cosmosdb</code></td>
+</tr>
+<tr>
+<td><strong>NoSQL Key-Value</strong></td>
+<td>Redis, Memcached, Amazon ElastiCache</td>
+<td><code>redis</code>, <code>memcached</code></td>
+</tr>
+<tr>
+<td><strong>NoSQL Column</strong></td>
+<td>Apache Cassandra, Apache HBase, ScyllaDB</td>
+<td><code>cassandra</code>, <code>hbase</code></td>
+</tr>
+<tr>
+<td><strong>Search Engines</strong></td>
+<td>Elasticsearch, OpenSearch, Apache Solr</td>
+<td><code>elasticsearch</code>, <code>opensearch</code> (Solr: no dictionary value)</td>
+</tr>
+<tr>
+<td><strong>Message Brokers</strong></td>
+<td>Apache Kafka, RabbitMQ, Amazon SQS</td>
+<td>not <code>db.system</code> — brokers use <strong><code>messaging.system</code></strong> (<code>kafka</code>, <code>rabbitmq</code>, <code>aws_sqs</code>); see DBMON-04</td>
+</tr>
+<tr>
+<td><strong>Graph</strong></td>
+<td>Neo4j, Amazon Neptune</td>
+<td><code>neo4j</code>, <code>neptune</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> The <code>db.system</code> field follows the OpenTelemetry semantic conventions. The exact values may vary depending on the database driver and instrumentation version.</p>
+</blockquote>
+<blockquote>
+<p><strong>Semantic Dictionary 1.340 (May 2026) — first-class Smartscape database models.</strong> The Semantic Dictionary now defines dedicated Smartscape models for major database technologies: Oracle Database (ASM disk group, cluster, instance, database), SQL Server (availability database / group / replica, instance, database), SAP HANA (database, instance, service), IBM Db2 (database member, instance, tablespace), MySQL, MariaDB, and PostgreSQL (database + instance each) — <strong>21 models</strong> in total, each with <code>belongs_to</code> / <code>runs_on</code> / <code>is_part_of</code> / <code>same_as</code> / <code>uses</code> relationship properties. (Verified against the live Semantic Dictionary: <code>fetch dt.semantic_dictionary.models | filter startsWith(name, &quot;dt.smartscape.db_&quot;)</code> returns 21.) As these roll out, expect database topology to surface as typed Smartscape nodes alongside the span-based view in §3. The span-level <code>db.system</code> analysis in this series is unaffected.</p>
+</blockquote>
+<blockquote>
+<p><strong>OneAgent 1.339 (June 2026) — Db2 naming is now mixed case.</strong> Under <em>Improved consistency of database technology naming in filters</em>, the release note says: <em>&quot;Db2 is now displayed using mixed case, aligning with IBM's official naming convention.&quot;</em> (<a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-339">OneAgent 1.339 (DT docs)</a>). Saved filters that match the Db2 technology name case-sensitively may need updating. The <code>db.system == &quot;db2&quot;</code> span-attribute filters used throughout this series follow the OpenTelemetry semantic convention (lowercase value) and are unaffected.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/technology-support">Technology support (DT docs)</a> — .NET <em>Database framework</em> table: StackExchange.Redis <em>&quot;2.0.0+&quot;</em>, ServiceStack.Redis <em>&quot;5.0.0+&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-337">What's new in OneAgent 1.337 (DT docs)</a> — StackExchange.Redis auto-instrumentation, <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343">What's new in OneAgent 1.343 (DT docs)</a> — ServiceStack.Redis auto-instrumentation. <strong>Derived:</strong> the per-client-library-not-per-database framing generalizes the Redis pair; no single page states it as a rule. <strong>Dictionary:</strong> <code>db.system</code> (<code>experimental</code>) — <code>supported_values</code> include <code>mysql</code> and <code>mariadb</code> as separate values, and no <code>solr</code>, <code>kafka</code> or <code>rabbitmq</code>, read 10/23/2026.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Discover which database technologies are active in your environment
+fetch spans, from:-24h
+| filter isNotNull(db.system)
+| summarize {
+    call_count = count(),
+    unique_databases = countDistinct(db.namespace),
+    unique_servers = countDistinct(server.address)
+}, by:{db.system}
+| sort call_count desc
+</code></pre>
+<p><a id="activegate-extensions"></a></p>
+<h2>6. ActiveGate Extensions for Remote Monitoring</h2>
+<p>While OneAgent captures database calls from the application side (client spans), ActiveGate extensions monitor the database server itself. This provides internal metrics that are invisible from the application perspective.</p>
+<blockquote>
+<p><strong>Recommendation for new customers:</strong> build on <strong>Extensions 2.0</strong> — the current extensions framework. Extensions Framework 1.0 reached end of support on 2025-03-31 (Python EF1.0: 2024-10-31). JMX and PMI EF1.0 extensions were the exception, supported past March 2025 as deprecated; they now have their own end-of-support date of <strong>July 1, 2027</strong> for SaaS environments. Note that recent Dynatrace doc pages say simply &quot;Extensions&quot; and mean Extensions 2.0.</p>
+</blockquote>
+<h3>Extension Architecture</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ActiveGate</strong></td>
+<td>Hosts the extension runtime. Two deployments: an <strong>Environment ActiveGate</strong> (the classic path), or — for SQL extensions, from Dynatrace 1.346 with Dynatrace Operator 1.8+ — <strong>SQL Extension Executor pods in Kubernetes</strong>, coordinated by the EEC and forwarding through an ActiveGate pod. Dynatrace 1.346 is rolling out to tenants in stages — verify it has reached yours; until then the Environment ActiveGate is the working path.</td>
+</tr>
+<tr>
+<td><strong>Extension Package</strong></td>
+<td>YAML-defined declarative package executed by the Extension Execution Controller (EEC). Most database extensions ship with built-in SQL/Prometheus/SNMP data sources; custom logic can be added via an optional Python data source</td>
+</tr>
+<tr>
+<td><strong>Monitoring Configuration</strong></td>
+<td>Defines connection string, credentials, polling interval, and the destination Grail bucket</td>
+</tr>
+<tr>
+<td><strong><code>default_database_monitoring</code> bucket</strong></td>
+<td>Where extension logs land by default; reference this bucket in IAM policies for DB-team access scoping (see ORGNZ-02 + IAM-04/05)</td>
+</tr>
+</tbody>
+</table>
+<h3>Available Extensions</h3>
+<table>
+<thead>
+<tr>
+<th>Extension</th>
+<th>Metrics Captured</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>PostgreSQL</strong></td>
+<td>Connections, transactions/sec, tuple operations, table/index sizes, lock waits, replication lag</td>
+</tr>
+<tr>
+<td><strong>MySQL</strong></td>
+<td>Connections, queries/sec, buffer pool hit ratio, InnoDB row operations, slow queries</td>
+</tr>
+<tr>
+<td><strong>MS SQL Server</strong></td>
+<td>Batch requests/sec, page life expectancy, buffer cache hit ratio, deadlocks, wait stats</td>
+</tr>
+<tr>
+<td><strong>Oracle</strong></td>
+<td>Sessions, tablespace usage, SGA/PGA memory, redo log waits, library cache hit ratio</td>
+</tr>
+<tr>
+<td><strong>MongoDB</strong></td>
+<td>Connections, operations/sec, document metrics, replica set health, storage engine stats</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> the SQL / Prometheus / SNMP data sources these database extensions use run on an <strong>Environment (host-based) ActiveGate</strong>, which remains the working path. <strong>SQL</strong> extensions now have a second option: <em>Run SQL extensions on Kubernetes</em> documents Oracle, Microsoft SQL Server, PostgreSQL, MySQL / MariaDB, SAP HANA, IBM Db2 and Generic JDBC running on SQL Extension Executor pods that Dynatrace Operator 1.8+ deploys, with Dynatrace 1.346+ and SQL Extension Executor / EEC 1.345+ as prerequisites. Dynatrace 1.346 reaches tenants through a staged rollout — confirm your tenant version before choosing it. Both pages are cited below; Prometheus and SNMP data sources are not covered by them.</p>
+</blockquote>
+<h3>Where to Go Deeper</h3>
+<ul>
+<li><strong>AUTOM series</strong> (14 notebooks) — GitOps / Monaco / Terraform automation for extension deployment at scale</li>
+<li><strong>ORGNZ-02</strong> — Bucket strategy (including <code>default_database_monitoring</code>)</li>
+<li><strong>IAM-04 / IAM-05</strong> — Policy design that scopes extension log access by bucket</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/extensions">Extensions (DT docs)</a> — the Extensions 2.0 framework and the EEC execution model; note recent pages say simply <em>&quot;Extensions&quot;</em> and mean 2.0, <a href="https://docs.dynatrace.com/docs/ingest-from/extensions/supported-extensions/data-sources">Extension data sources (DT docs)</a> — the built-in SQL / Prometheus / SNMP data sources and the optional Python data source, <a href="https://docs.dynatrace.com/docs/ingest-from/extensions/kubernetes">Run SQL extensions on Kubernetes (DT docs)</a> — <em>&quot;The following database types are supported, both as official Dynatrace Hub extensions and as custom extensions&quot;</em>; prerequisites Dynatrace 1.346+, SQL Extension Executor 1.345+, Extension Execution Controller 1.345+, <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/extend-observability-k8s/sql-database-extensions">Enable Dynatrace SQL database extensions (DT docs)</a> — <em>&quot;Executor pods query your databases and collect metrics. The EEC distributes tasks across executor pods and forwards data to the ActiveGate, which enriches and routes it to the Dynatrace backend.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news">End-of-support announcements (DT docs)</a> — lists <em>&quot;Dynatrace Extension Framework 1.0&quot;</em> under the 2025-03-31 end-of-support date and <em>&quot;Dynatrace Extension Framework 1.0 (Python 3.8)&quot;</em> under 2024-10-31, with the note <em>&quot;Note that JMX and PMI Extensions Framework 1.0 are supported past March 2025 but are deprecated&quot;</em>, re-read 09/28/2026, <a href="https://docs.dynatrace.com/docs/ingest-from/extensions/end-of-support/jmx-pmi-ef1-deprecation">EF1 JMX and PMI extensions end of support (DT docs)</a> — <em>&quot;As of July 1, 2027, all Extension Framework 1.0 JMX and PMI extensions will be out of support for SaaS Environments&quot;</em>.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>New (SaaS 1.346 — staged rollout from 08/25/2026): a <code>definity</code> extension for data-pipeline observability.</strong> Verbatim: <em>&quot;The new definity extension is introduced. It ingests pipeline health, performance, and cost data into Dynatrace, giving you visibility into your lakehouse and Spark pipeline ecosystem.&quot;</em></p>
+<p>This sits <strong>adjacent to</strong> the database monitoring in this series rather than inside it. The extensions above monitor a <em>database</em> — connections, queries, locks, replication. Definity monitors the <em>pipelines that move data into and around a lakehouse</em>, and adds <strong>cost</strong> as a first-class signal, which none of the database extensions do. If your estate runs Spark or a lakehouse alongside the databases covered here, it fills a gap this series does not otherwise address; if it does not, there is nothing to do. Check the Hub for availability on your tenant.</p>
+</blockquote>
+<blockquote>
+<p><strong>Since then (updated 11/11/2026):</strong> SaaS 1.348 (rollout from 10/12/2026) makes pipeline failures and degradations that definity detects create Dynatrace Problems automatically. SaaS 1.350 (<strong>staged rollout from 11/04/2026</strong>) adds a definity Pipeline Events dashboard, and lets you set problem categories and severities per event type in the extension configuration. Pipeline incidents can therefore follow the same problem-triggered workflow routing as your database and application alerts (DBMON-06). Check that each release has reached your tenant before you build on it.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-346">What's new in Dynatrace SaaS 1.346 (DT docs)</a> — the definity extension entry quoted above; <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">What's new in Dynatrace SaaS 1.348 (DT docs)</a> — <em>&quot;bringing pipeline incidents into the unified Dynatrace incident feed alongside application and infrastructure alerts.&quot;</em>; <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-350">What's new in Dynatrace SaaS 1.350 (DT docs)</a> — <em>&quot;Problem categories and severities can be customized per event type in the extension configuration settings&quot;</em>; all re-read 11/11/2026. <strong>Derived:</strong> routing through DBMON-06's workflows follows from definity events becoming Davis Problems.</sub></p>
+</blockquote>
+<h3>Where Extension Logs Land in Grail</h3>
+<p>Monitoring logs generated by the official Dynatrace database extensions are stored in a dedicated Grail bucket: <strong><code>default_database_monitoring</code></strong> (introduced in Dynatrace SaaS 1.337, through a default bucket-assignment rule that is applied first and cannot be overwritten). The Databases app itself now filters via this bucket for performance; filtering your own queries on the bucket narrows the scan the same way, and lets you scope IAM policies tightly to database-monitoring data.</p>
+<pre><code class="language-dql">fetch logs, from:-1h
+| filter dt.system.bucket == &quot;default_database_monitoring&quot;
+| filter dt.extension.name == &quot;com.dynatrace.extension.postgres&quot;
+| limit 50
+</code></pre>
+<p>Grant access to this bucket with a bucket-scoped policy — both the bucket permission and the <code>logs</code> table permission are needed:</p>
+<pre><code class="language-text">ALLOW storage:buckets:read WHERE storage:bucket-name = &quot;default_database_monitoring&quot;;
+ALLOW storage:logs:read WHERE storage:bucket-name = &quot;default_database_monitoring&quot;;
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-337">What's new in Dynatrace SaaS 1.337 (DT docs)</a> — introduces the <code>default_database_monitoring</code> bucket, <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Assign permissions in Grail (DT docs)</a> — <em>&quot;All bucket permissions need to start with storage:buckets:read&quot;</em> and the table-permission form <em>&quot;ALLOW storage:logs:read WHERE storage:bucket-name=&quot;default_logs&quot;;&quot;</em>. The extension IDs on this bucket (including <code>com.dynatrace.extension.postgres</code>) are listed in the SaaS 1.337 entry above, alongside <em>&quot;The new default rule is always applied first and cannot be overwritten&quot;</em>.</sub></p>
+</blockquote>
+<h3>Dynatrace Database App — Analysis-First Observability</h3>
+<p>Beyond OneAgent spans and ActiveGate extension metrics, Dynatrace ships a dedicated <strong>Databases app</strong> that layers automated analysis on top of both data sources. Announced 08/04/2026 as available for PostgreSQL and MySQL; the docs page (updated 08/05/2026) now lists monitored vendors <em>&quot;such as PostgreSQL, MySQL, MSSQL, Oracle, MariaDB, and HanaDB&quot;</em>. (Neither source applies a <strong>GA</strong> or preview label, so none is used here.) Verify the app is enabled on your tenant before relying on it.</p>
+<p>The announcement describes five analysis areas — configuration, schema, query, execution plan, and a rolled-up <strong>Health Score</strong> — with AI-generated remediation. The health-score concept page documents the score: <em>&quot;The health score is the weighted average of all checks&quot;</em>, combined into <em>&quot;a unified score from 0 to 100&quot;</em>, and the checks are vendor-specific — <em>&quot;Dynatrace health checks are vendor-specific, such as PostgreSQL, MySQL, and Microsoft SQL Server&quot;</em>. The instance list separately shows health as alert state: <em>&quot;Health highlights instances with critical, warning, or no active alerts&quot;</em>.</p>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>What it adds beyond this notebook's DQL approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Health Score</strong></td>
+<td>Single 0–100 rating per database instance for triage before deep analysis</td>
+</tr>
+<tr>
+<td><strong>Query &amp; execution-plan insights</strong></td>
+<td>Interactive execution-plan visualization, normalized across PostgreSQL, MySQL, and SQL Server</td>
+</tr>
+<tr>
+<td><strong>Configuration insights</strong></td>
+<td>Flags parameter mismatches against recommended settings</td>
+</tr>
+<tr>
+<td><strong>Schema insights</strong></td>
+<td>Structural warning signals (missing indexes, oversized tables)</td>
+</tr>
+<tr>
+<td><strong>AI-powered remediation</strong></td>
+<td>Suggested fix with reasoning, generated by Dynatrace Intelligence</td>
+</tr>
+</tbody>
+</table>
+<p>Treat the app as a triage front end, not a replacement for the span- and extension-level analysis in this series — the DQL patterns in DBMON-01/05/06 remain the way to build the custom dashboards, alerts, and SLOs the app's UI doesn't cover.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://www.dynatrace.com/news/blog/introducing-intelligent-database-observability-from-alerts-to-answers-at-scale/">Introducing Intelligent Database Observability (DT blog)</a> — the announcement is the <strong>only</strong> source for the vendor list (PostgreSQL, MySQL), the five analysis areas and the AI-generated remediation; treat those as announcement-backed, not documentation-backed. <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/concepts/health-score-overview">Database health score overview (DT docs)</a> — <em>&quot;The health score is the weighted average of all checks.&quot;</em> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases">Databases app (DT docs)</a> — the vendor list <em>&quot;such as PostgreSQL, MySQL, MSSQL, Oracle, MariaDB, and HanaDB&quot;</em> and the alert-based Health column, re-read 10/23/2026.</sub></p>
+</blockquote>
+<p><a id="baseline-database-metrics"></a></p>
+<h2>7. Baseline Database Metrics</h2>
+<p>Establishing a performance baseline is essential for detecting anomalies. The following queries help you understand your typical database performance characteristics.</p>
+<pre><code class="language-dql">// Database response time baseline — hourly P50, P95, P99 over the last 24 hours
+fetch spans, from:-24h
+| filter isNotNull(db.system)
+| filter not(in(coalesce(db.operation.name, &quot;&quot;), {&quot;CONNECT&quot;, &quot;COMMIT&quot;, &quot;PREPARE&quot;, &quot;RESULTSET&quot;}))  // statements only (DBMON-01 § 4)
+| makeTimeseries {
+    p50_ms = percentile(duration / 1ms, 50),
+    p95_ms = percentile(duration / 1ms, 95),
+    p99_ms = percentile(duration / 1ms, 99)
+  }, interval:1h
+</code></pre>
+<pre><code class="language-dql">// Error rate baseline — database call failures over time
+fetch spans, from:-24h
+| filter isNotNull(db.system)
+| makeTimeseries {
+    total = count(),
+    errors = countIf(span.status_code == &quot;error&quot;, default:0)
+  }, interval:1h
+| fieldsAdd error_rate_pct = round(arraySum(errors) / arraySum(total) * 100, decimals:2)
+</code></pre>
+<p><a id="summary"></a></p>
+<h2>8. Summary and Next Steps</h2>
+<p>In this notebook you learned:</p>
+<ul>
+<li>How Dynatrace captures database activity through OneAgent span instrumentation</li>
+<li>The key span attributes (<code>db.system</code>, <code>db.query.text</code>, <code>db.operation.name</code>, <code>db.namespace</code>) that describe each database call</li>
+<li>How to discover which services call which databases, and which technologies are active</li>
+<li>The role of ActiveGate extensions for server-side database metrics</li>
+<li>How to establish a performance baseline using span data</li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li><strong>DBMON-02: SQL Database Monitoring</strong> — Deep dive into relational database analysis with PostgreSQL, MySQL, MS SQL, and Oracle</li>
+<li><strong>DBMON-03: NoSQL Database Monitoring</strong> — MongoDB, Cassandra, DynamoDB, and Cosmos DB analysis</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

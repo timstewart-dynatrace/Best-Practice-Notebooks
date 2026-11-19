@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPIPE-03: Sampling-Aware Metrics</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPIPE — OpenPipeline Beyond Logs</a><span class="sep">/</span><span aria-current="page">OPIPE-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPIPE-03: Sampling-Aware Metrics</h1>
+<blockquote>
+<p><strong>Series:</strong> OPIPE — OpenPipeline Beyond Logs | <strong>Notebook:</strong> 3 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/26/2026</p>
+</blockquote>
+<h2>Extracting Accurate Metrics from Sampled Trace Data</h2>
+<p>When distributed tracing uses sampling (head sampling, tail sampling, or adaptive sampling), only a fraction of spans are stored. Extracting metrics from these sampled spans requires special handling — a naive <code>count()</code> on sampled data gives you a fraction of reality, not the truth.</p>
+<p>This notebook explains what sampling-aware metrics are, why they matter, and how to configure OpenPipeline to extract accurate RED metrics (Rate, Errors, Duration) from sampled span data.</p>
+<p>For log-derived metrics (which are not affected by sampling), see <strong>OPMIG-07: Metric &amp; Event Extraction</strong>.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#the-sampling-problem">The Sampling Problem</a></li>
+<li><a href="#what-makes-a-metric-sampling-aware">What Makes a Metric Sampling-Aware</a></li>
+<li><a href="#red-metrics-from-spans">RED Metrics from Spans</a></li>
+<li><a href="#configuring-metric-extraction">Configuring Metric Extraction in OpenPipeline</a></li>
+<li><a href="#comparing-metrics">Comparing Standard vs. Sampling-Aware Metrics</a></li>
+<li><a href="#cardinality-considerations">Cardinality Considerations</a></li>
+<li><a href="#summary">Summary</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail and distributed tracing</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:spans:read</code>, <code>storage:metrics:read</code>; <code>settings:objects:write</code> on <code>builtin:openpipeline.spans.pipelines</code> to configure extraction (OpenPipeline configuration is stored as Settings objects)</td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>Active span data from instrumented services</td>
+</tr>
+<tr>
+<td><strong>Recommended</strong></td>
+<td><strong>OPIPE-02</strong> (span processing) and <strong>SPANS-01</strong> (fundamentals)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="the-sampling-problem"></a></p>
+<h2>1. The Sampling Problem</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3BhbnNCZ0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojOGI1Y2Y2O3N0b3Atb3BhY2l0eToxIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdjM2FlZDtzdG9wLW9wYWNpdHk6MSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic2FtcGxlZEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojYTc4YmZhO3N0b3Atb3BhY2l0eToxIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhiNWNmNjtzdG9wLW9wYWNpdHk6MSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZHJvcHBlZEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojY2JkNWUxO3N0b3Atb3BhY2l0eToxIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6Izk0YTNiODtzdG9wLW9wYWNpdHk6MSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibmFpdmVHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2VmNDQ0NDtzdG9wLW9wYWNpdHk6MSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkYzI2MjY7c3RvcC1vcGFjaXR5OjEiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImF3YXJlR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxMGI5ODE7c3RvcC1vcGFjaXR5OjEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMDU5NjY5O3N0b3Atb3BhY2l0eToxIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0ic2hkU2FtcCI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMTgiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0iYXJyU2FtcCIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjOTRhM2I4Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzBmMTcyYSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2FtcGxpbmctQXdhcmUgTWV0cmljcyBmb3IgU3BhbnM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5XaHkgYSBzcGFuIG1ldHJpYyBleHRyYWN0ZWQgbmFpdmVseSBpcyBiaWFzZWQgYnkgdHJhY2Ugc2FtcGxpbmcsIGFuZCBob3cgdGhlIHNhbXBsaW5nLWF3YXJlIHZhcmlhbnQgY29tcGVuc2F0ZXM8L3RleHQ+CgogIDwhLS0gT3JpZ2luYWwgcG9wdWxhdGlvbiBib3ggLS0+CiAgPHJlY3QgeD0iMjAiIHk9IjcwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjEwMCIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2NiZDVlMSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSIxMTAiIHk9IjkyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzM0MTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BcHBsaWNhdGlvbiB0cmFmZmljPC90ZXh0PgogIDx0ZXh0IHg9IjExMCIgeT0iMTEyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjEwLDAwMCBhY3R1YWwgc3BhbnM8L3RleHQ+CiAgPHRleHQgeD0iMTEwIiB5PSIxMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+KHRydWUgcG9wdWxhdGlvbik8L3RleHQ+CiAgPHRleHQgeD0iMTEwIiB5PSIxNTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmb250LXN0eWxlPSJpdGFsaWMiIGZpbGw9IiM0NzU1NjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmUuZy4gODAwIGVycm9ycyBvdXQgb2YgMTAsMDAwPC90ZXh0PgogIDx0ZXh0IHg9IjExMCIgeT0iMTYyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjNDc1NTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj49IDglIHJlYWwgZXJyb3IgcmF0ZTwvdGV4dD4KCiAgPCEtLSBBcnJvdyBpbnRvIHNhbXBsaW5nIC0tPgogIDxwYXRoIGQ9Ik0yMDAsMTIwIEwyMzUsMTIwIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhcnJTYW1wKSIvPgoKICA8IS0tIFRyYWNlIHNhbXBsZXIgLS0+CiAgPHJlY3QgeD0iMjQwIiB5PSI4MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI5MCIgcng9IjgiIGZpbGw9InVybCgjc3BhbnNCZ0dyYWQpIiBmaWx0ZXI9InVybCgjc2hkU2FtcCkiLz4KICA8dGV4dCB4PSIzMjAiIHk9IjEwMyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlRyYWNlIFNhbXBsZXI8L3RleHQ+CiAgPHRleHQgeD0iMzIwIiB5PSIxMjEiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjg1KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SGVhZC1iYXNlZCwgZS5nLiBPbmVBZ2VudCBBVE08L3RleHQ+CiAgPHRleHQgeD0iMzIwIiB5PSIxMzgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuODUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FYWNoIHNwYW4gY2FycmllczwvdGV4dD4KICA8dGV4dCB4PSIzMjAiIHk9IjE1MSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmEgc2FtcGxpbmcgcmF0aW88L3RleHQ+CiAgPHRleHQgeD0iMzIwIiB5PSIxNjQiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmb250LXN0eWxlPSJpdGFsaWMiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45NSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmUuZy4ga2VlcCAxIGluIDEwPC90ZXh0PgoKICA8IS0tIFR3byBvdXRwdXQgbGFuZXMgLS0+CiAgPHBhdGggZD0iTTQwMCwxMDUgTDQzNSwxMDUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2FyclNhbXApIi8+CiAgPHBhdGggZD0iTTQwMCwxNTAgTDQzNSwxNTAiIHN0cm9rZT0iI2NiZDVlMSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI0IDMiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYXJyU2FtcCkiLz4KCiAgPCEtLSBLZXB0IHNwYW5zIC0tPgogIDxyZWN0IHg9IjQ0MCIgeT0iODAiIHdpZHRoPSIxNjAiIGhlaWdodD0iNTAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3NhbXBsZWRHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoZFNhbXApIi8+CiAgPHRleHQgeD0iNTIwIiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4xLDAwMCBzYW1wbGVkIHNwYW5zPC90ZXh0PgogIDx0ZXh0IHg9IjUyMCIgeT0iMTE4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjg1KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+YXJyaXZlIGF0IE9wZW5QaXBlbGluZSAoMTAlIGtlcHQpPC90ZXh0PgoKICA8IS0tIERyb3BwZWQgc3BhbnMgKGdyZXllZCBvdXQpIC0tPgogIDxyZWN0IHg9IjQ0MCIgeT0iMTM1IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0idXJsKCNkcm9wcGVkR3JhZCkiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIxIiBzdHJva2UtZGFzaGFycmF5PSI0IDMiLz4KICA8dGV4dCB4PSI1MjAiIHk9IjE1NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzQ3NTU2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+OSwwMDAgc3BhbnMgZHJvcHBlZDwvdGV4dD4KICA8dGV4dCB4PSI1MjAiIHk9IjE3MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM0NzU1NjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPm5ldmVyIHJlYWNoIHRoZSBwaXBlbGluZTwvdGV4dD4KCiAgPCEtLSBBcnJvdyBpbnRvIGJvdGggZXh0cmFjdGlvbiBwYXRocyAtLT4KICA8cGF0aCBkPSJNNjAwLDEwNSBMNjM1LDEwNSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYXJyU2FtcCkiLz4KCiAgPCEtLSBTcGxpdCBpbnRvIG5haXZlIHZzIGF3YXJlIC0tPgogIDxsaW5lIHgxPSI2NTAiIHkxPSIxMDUiIHgyPSI2NTAiIHkyPSIyMjAiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1kYXNoYXJyYXk9IjMgMiIvPgogIDxwYXRoIGQ9Ik02NTAsMTA1IEw2ODUsMTA1IiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhcnJTYW1wKSIvPgogIDxwYXRoIGQ9Ik02NTAsMjIwIEw2ODUsMjIwIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhcnJTYW1wKSIvPgoKICA8IS0tIE5BSVZFIGNvdW50ZXIgKHJlZCkgLS0+CiAgPHJlY3QgeD0iNjkwIiB5PSI4MCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSIxMDAiIHJ4PSI4IiBmaWxsPSJ1cmwoI25haXZlR3JhZCkiIGZpbHRlcj0idXJsKCNzaGRTYW1wKSIvPgogIDx0ZXh0IHg9IjgwMCIgeT0iMTAzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TmFpdmUgQ291bnRlciBNZXRyaWM8L3RleHQ+CiAgPHRleHQgeD0iODAwIiB5PSIxMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuODUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5jb3VudHMgZWFjaCBhcnJpdmluZyBzcGFuID0gMTwvdGV4dD4KICA8dGV4dCB4PSI4MDAiIHk9IjE0MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJlcG9ydGVkIGVycm9ycyA9IDgwPC90ZXh0PgogIDx0ZXh0IHg9IjgwMCIgeT0iMTU4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjg1KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+KDgwIG91dCBvZiAxLDAwMCBzYW1wbGVkIHNwYW5zKTwvdGV4dD4KICA8dGV4dCB4PSI4MDAiIHk9IjE3MyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmVlMmUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5VTkRFUkNPVU5UUyBieSAxMCYjMjE1OyAmIzEwMDYwOzwvdGV4dD4KCiAgPCEtLSBTQU1QTElORy1BV0FSRSBjb3VudGVyIChncmVlbikgLS0+CiAgPHJlY3QgeD0iNjkwIiB5PSIxOTUiIHdpZHRoPSIyMjAiIGhlaWdodD0iMTAwIiByeD0iOCIgZmlsbD0idXJsKCNhd2FyZUdyYWQpIiBmaWx0ZXI9InVybCgjc2hkU2FtcCkiLz4KICA8dGV4dCB4PSI4MDAiIHk9IjIxOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNhbXBsaW5nLUF3YXJlIENvdW50ZXI8L3RleHQ+CiAgPHRleHQgeD0iODAwIiB5PSIyMzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuODUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5tdWx0aXBsaWVzIGJ5IDEgLyBzYW1wbGluZyBwcm9iYWJpbGl0eTwvdGV4dD4KICA8dGV4dCB4PSI4MDAiIHk9IjI1NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJlcG9ydGVkIGVycm9ycyAmIzg3NzY7IDgwMDwvdGV4dD4KICA8dGV4dCB4PSI4MDAiIHk9IjI3MyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPig4MCBzYW1wbGVkICYjMjE1OyAxMCA9IDgwMCBlc3RpbWF0ZWQpPC90ZXh0PgogIDx0ZXh0IHg9IjgwMCIgeT0iMjg4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNkMWZhZTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlVOQklBU0VEIGVzdGltYXRlICYjOTk4OTs8L3RleHQ+CgogIDwhLS0gVmFyaWFudCB0YWJsZSAtLT4KICA8cmVjdCB4PSIyMCIgeT0iMjAwIiB3aWR0aD0iNjAwIiBoZWlnaHQ9IjE4MCIgcng9IjgiIGZpbGw9IiNmZmZmZmYiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMzIwIiB5PSIyMjMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMwZjE3MmEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNhbXBsaW5nLWF3YXJlIHByb2Nlc3NvciB2YXJpYW50cyBmb3Igc3BhbnM8L3RleHQ+CgogIDx0ZXh0IHg9IjQwIiB5PSIyNTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxZTI5M2IiPkNvdW50ZXIgKHNhbXBsaW5nLWF3YXJlKTwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iMjY4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzQ3NTU2OSI+RXN0aW1hdGVzIHRvdGFsIG9jY3VycmVuY2VzIGluIHRoZSBvcmlnaW5hbCAocHJlLXNhbXBsZSkgcG9wdWxhdGlvbi48L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjI4MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM0NzU1NjkiPlVzZSBmb3I6IHNwYW4tZGVyaXZlZCByZXF1ZXN0IGNvdW50cywgZXJyb3IgY291bnRzLCByZXRyeSBjb3VudHMuPC90ZXh0PgoKICA8dGV4dCB4PSI0MCIgeT0iMzA0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMWUyOTNiIj5WYWx1ZSAoc2FtcGxpbmctYXdhcmUpPC90ZXh0PgogIDx0ZXh0IHg9IjQwIiB5PSIzMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjNDc1NTY5Ij5BZ2dyZWdhdGVzIGEgbnVtZXJpYyBhdHRyaWJ1dGUgd2VpZ2h0ZWQgYnkgMSAvIHNhbXBsaW5nIHByb2JhYmlsaXR5LjwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iMzMyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzQ3NTU2OSI+VXNlIGZvcjogdG90YWwgcmVxdWVzdCBieXRlcywgdG90YWwgZXJyb3IgY291bnQgYnkgc2VydmljZSwgc3VtIG9mIGR1cmF0aW9ucy48L3RleHQ+CgogIDx0ZXh0IHg9IjQwIiB5PSIzNTYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxZTI5M2IiPkhpc3RvZ3JhbSAoc2FtcGxpbmctYXdhcmUsIFByZXZpZXcpPC90ZXh0PgogIDx0ZXh0IHg9IjQwIiB5PSIzNzIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjNDc1NTY5Ij5EaXN0cmlidXRpb24gY2FwdHVyZS4gVXNlIGZvciB1bmJpYXNlZCBsYXRlbmN5IFA1MCAvIFA5NSAvIFA5OSBmcm9tIHNhbXBsZWQgc3BhbnMuPC90ZXh0PgoKICA8IS0tIEZvb3RlciBydWxlIC0tPgogIDxyZWN0IHg9IjIwIiB5PSI0MDAiIHdpZHRoPSI4OTAiIGhlaWdodD0iODAiIHJ4PSI2IiBmaWxsPSIjZmVmOWMzIiBzdHJva2U9IiNjYThhMDQiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjM1IiB5PSI0MjIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM3MTNmMTIiPlJ1bGUgb2YgdGh1bWI8L3RleHQ+CiAgPHRleHQgeD0iMzUiIHk9IjQ0MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNzEzZjEyIj5BbHdheXMgdXNlIHRoZSBzYW1wbGluZy1hd2FyZSB2YXJpYW50IHdoZW4gZXh0cmFjdGluZyBtZXRyaWNzIGZyb20gc3BhbnMuIE5haXZlIGNvdW50ZXIvdmFsdWUvaGlzdG9ncmFtIHByb2Nlc3NvcnMgd2lsbCBzaWxlbnRseSB1bmRlcmNvdW50PC90ZXh0PgogIDx0ZXh0IHg9IjM1IiB5PSI0NTYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzcxM2YxMiI+d2hlbmV2ZXIgdGhlIHRyYWNlIHNhbXBsZXIga2VlcHMgbGVzcyB0aGFuIDEwMCUgb2Ygc3BhbnMuPC90ZXh0PgogIDx0ZXh0IHg9IjM1IiB5PSI0NzIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjNzEzZjEyIj5Gb3IgbG9ncyBhbmQgZXZlbnRzICh3aGljaCBhcmUgbm90IHRyYWNlLXNhbXBsZWQpIHRoZSBzdGFuZGFyZCBjb3VudGVyIC8gdmFsdWUgLyBoaXN0b2dyYW0gcHJvY2Vzc29ycyBhcmUgY29ycmVjdC48L3RleHQ+Cjwvc3ZnPgo=" alt="Sampling-Aware Metric Extraction" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Path | What happens | Reported errors (10K real, 800 errors, 10% sample) |
+|------|--------------|----------------------------------------------------|
+| Trace sampler keeps 10% | 1,000 spans reach OpenPipeline | — |
+| Naive counter | Counts each arriving span = 1 | 80 (undercounts by 10×) |
+| Sampling-aware counter | Multiplies by 1 / sampling probability | ~800 (unbiased estimate) |
+-->
+<h3>Why Sampling Exists</h3>
+<p>Distributed tracing generates enormous volumes of data. A single user request can produce dozens of spans across multiple services. At scale — thousands of requests per second — storing every span is prohibitively expensive.</p>
+<p>Sampling solves this by retaining a representative subset:</p>
+<table>
+<thead>
+<tr>
+<th>Sampling Type</th>
+<th>How It Works</th>
+<th>Trade-off</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Head sampling</strong></td>
+<td>Decision at trace start (e.g., keep 10% of traces)</td>
+<td>Simple but misses rare errors</td>
+</tr>
+<tr>
+<td><strong>Tail sampling</strong></td>
+<td>Decision after trace completes (keep errors, slow traces)</td>
+<td>Captures important traces, needs collector buffer</td>
+</tr>
+<tr>
+<td><strong>Adaptive sampling</strong></td>
+<td>Adjusts rate based on traffic volume</td>
+<td>Balances cost and coverage dynamically</td>
+</tr>
+</tbody>
+</table>
+<h3>The Metric Accuracy Problem</h3>
+<p>When you extract metrics from sampled spans, the raw numbers are wrong:</p>
+<table>
+<thead>
+<tr>
+<th>Reality</th>
+<th>10% Head Sampling</th>
+<th>Naive Metric</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10,000 requests/min</td>
+<td>1,000 spans stored</td>
+<td><code>count() = 1,000</code> (10x under-reported)</td>
+</tr>
+<tr>
+<td>500 errors/min</td>
+<td>~50 error spans stored</td>
+<td><code>countIf(error) = 50</code> (10x under-reported)</td>
+</tr>
+<tr>
+<td>Avg latency 200ms</td>
+<td>~1,000 spans sampled</td>
+<td><code>avg(duration) = ~200ms</code> (approximately correct)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key insight</strong>: Counts and rates are severely affected by sampling. Averages and percentiles stay approximately correct <strong>when every request had the same chance of being kept</strong> — the sample is then representative. This distinction drives how sampling-aware metrics work.</p>
+<blockquote>
+<p><strong>When the sample is not representative.</strong> Two common cases break the &quot;averages are fine&quot; rule. <strong>Tail sampling</strong> keeps errors and slow traces on purpose, so averages, percentiles and error <em>rates</em> computed from the kept spans are biased toward the bad cases. <strong>Adaptive Traffic Management</strong> samples different request types at different rates, so an average or ratio that pools request types without weighting by each span's multiplicity over-represents the rarely-sampled ones. In both cases, weight by multiplicity (next cells) or compute per request type.</p>
+</blockquote>
+<pre><code class="language-dql">// Check: Is trace sampling in effect, and from which mechanism?
+//
+// `dt.system.sampling_ratio` is NOT the trace sampler — it is the query's own read
+// sampling (`fetch ..., samplingRatio:`), so it reads 1 unless you set samplingRatio.
+// Verified 10/02/2026: `samplingRatio:10` turns it into 10 on every span.
+// The trace-sampling fields are:
+//   supportability.atm_sampling_ratio  agent-side Adaptive Traffic Management, denominator
+//                                      (16 means 1 in 16 kept) — experimental
+//   supportability.alr_sampling_ratio  cluster-side Adaptive Load Reduction, denominator
+//                                      — experimental, only set while ALR is active
+//   sampling.threshold                 W3C trace-state threshold used by the documented
+//                                      extrapolation formula (next cell)
+// and `aggregation.count` (stable) is the number of spans OneAgent aggregated into one.
+fetch spans, from:-1h
+| summarize {
+    spans = count(),
+    with_threshold = countIf(isNotNull(sampling.threshold)),
+    aggregated = countIf(isNotNull(aggregation.count))
+  }, by:{dt.service.name, supportability.atm_sampling_ratio, supportability.alr_sampling_ratio}
+| sort spans desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Stored spans vs. extrapolated spans, using the multiplicity formula from
+// &quot;Advanced Tracing Analytics powered by Grail&quot; (DT docs). A factor of 1.0 means
+// nothing was sampled or aggregated away; 16.0 means each stored span stands for 16.
+fetch spans, from:-1h
+| fieldsAdd sampling.probability = (power(2, 56) - coalesce(sampling.threshold, 0)) * power(2, -56)
+| fieldsAdd sampling.multiplicity = 1 / sampling.probability
+| fieldsAdd multiplicity = coalesce(sampling.multiplicity, 1) * coalesce(aggregation.count, 1) * dt.system.sampling_ratio
+| summarize {stored_spans = count(), extrapolated_spans = sum(multiplicity)}
+| fieldsAdd factor = round(extrapolated_spans / stored_spans, decimals: 2)
+</code></pre>
+<p><a id="what-makes-a-metric-sampling-aware"></a></p>
+<h2>2. What Makes a Metric Sampling-Aware</h2>
+<p>A <strong>sampling-aware metric</strong> adjusts its calculation based on the sampling rate that was applied to the source data. Instead of counting raw spans, it compensates for the sampling ratio to produce values that reflect the actual traffic.</p>
+<h3>How It Works</h3>
+<p>Each sampled span carries metadata about the sampling decision — typically a sampling ratio or probability. When OpenPipeline extracts a metric, it can use this information.</p>
+<blockquote>
+<p><strong>OpenTelemetry caveat.</strong> The method depends on that metadata being present. Per the Metric extraction stage docs, <em>&quot;Note that OpenTelemetry spans don't typically expose sampling rate metadata, making extrapolation less effective.&quot;</em> Check whether your OTel spans carry <code>sampling.threshold</code> (cells above) before trusting extrapolated counts from them.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/metric-extraction">Metric extraction stage (DT docs)</a>.</sub></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Metric Type</th>
+<th>Standard Extraction</th>
+<th>Sampling-Aware Extraction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Request count</strong></td>
+<td><code>count()</code> → 1,000</td>
+<td>each span weighted by 1 / sampling probability → 10,000</td>
+</tr>
+<tr>
+<td><strong>Error count</strong></td>
+<td><code>countIf(error)</code> → 50</td>
+<td><code>countIf(error)</code> weighted → 500</td>
+</tr>
+<tr>
+<td><strong>Error rate</strong></td>
+<td>50/1,000 = 5%</td>
+<td>500/10,000 = 5% (same — ratio cancels out)</td>
+</tr>
+<tr>
+<td><strong>Avg duration</strong></td>
+<td><code>avg(duration)</code> → 200ms</td>
+<td><code>avg(duration)</code> → 200ms (same — sample is representative)</td>
+</tr>
+<tr>
+<td><strong>P95 duration</strong></td>
+<td><code>percentile(duration, 95)</code> → 800ms</td>
+<td><code>percentile(duration, 95)</code> → ~800ms (approximately same)</td>
+</tr>
+</tbody>
+</table>
+<h3>When Sampling-Awareness Matters</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Sampling-Aware Needed?</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Request rate (throughput)</td>
+<td><strong>Yes</strong></td>
+<td>Absolute counts are under-reported</td>
+</tr>
+<tr>
+<td>Error rate (ratio)</td>
+<td>No, if sampling is uniform</td>
+<td>Representative only when every request had the same chance of being kept — not under tail sampling</td>
+</tr>
+<tr>
+<td>Error count (absolute)</td>
+<td><strong>Yes</strong></td>
+<td>Absolute counts are under-reported</td>
+</tr>
+<tr>
+<td>Average latency</td>
+<td>No, if sampling is uniform</td>
+<td>Sample mean approximates population mean under uniform sampling</td>
+</tr>
+<tr>
+<td>P95/P99 latency</td>
+<td>Partially</td>
+<td>Approximation degrades at extreme percentiles with aggressive sampling</td>
+</tr>
+<tr>
+<td>Throughput for SLO</td>
+<td><strong>Yes</strong></td>
+<td>SLO calculations need accurate request volume</td>
+</tr>
+</tbody>
+</table>
+<p><a id="red-metrics-from-spans"></a></p>
+<h2>3. RED Metrics from Spans</h2>
+<p>The <strong>RED method</strong> (Rate, Errors, Duration) is the standard framework for service-level metrics. OpenPipeline can extract all three from span data.</p>
+<h3>Rate (Request Throughput)</h3>
+<p>Measures how many requests a service handles per unit of time.</p>
+<ul>
+<li><strong>Source</strong>: Request root spans (<code>span.kind == &quot;server&quot; and isNotNull(endpoint.name)</code>)</li>
+<li><strong>Aggregation</strong>: Count, weighted by sampling ratio</li>
+<li><strong>Dimensions</strong>: <code>dt.service.name</code>, <code>http.route</code>, <code>k8s.namespace.name</code></li>
+<li><strong>Sampling-aware</strong>: <strong>Yes</strong> — must compensate for sampling to get true request rate</li>
+</ul>
+<blockquote>
+<p><strong>Count requests, not server spans.</strong> One request can produce several server spans, so <code>span.kind == &quot;server&quot;</code> alone over-counts. The extract-metrics tutorial filters <code>span.kind == &quot;server&quot; and isNotNull(endpoint.name)</code>, which <em>&quot;ensures the span represents a request to an endpoint that Dynatrace considers in its endpoint detection rules&quot;</em>. On the validation tenant (10/15/2026, 1 h) that reduced 131,455 server spans to 122,517 request roots, against 123,161 requests in <code>dt.service.request.count</code>; one service recorded exactly two server spans per request.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-metrics-from-spans">Extract metrics from spans and distributed traces (DT docs)</a>. <strong>Dictionary:</strong> <code>endpoint.name</code> (<code>stable</code>), read 10/15/2026.</sub></p>
+</blockquote>
+<h3>Errors (Failure Rate)</h3>
+<p>Measures the proportion of requests that fail.</p>
+<ul>
+<li><strong>Source</strong>: Request root spans where <code>http.response.status_code &gt;= 500</code> or <code>span.status_code == &quot;error&quot;</code></li>
+<li><strong>Aggregation</strong>: Count of errors / count of total requests</li>
+<li><strong>Dimensions</strong>: <code>dt.service.name</code>, <code>http.route</code>, <code>http.response.status_code</code></li>
+<li><strong>Sampling-aware</strong>: Error rate (ratio) is naturally sampling-tolerant; absolute error count is not</li>
+</ul>
+<blockquote>
+<p><strong>The failure field is <code>span.status_code</code>, and it is lowercase.</strong> <code>otel.status_code</code> does not exist in Grail — it has no row in <code>dt.semantic_dictionary.fields</code> — and the value is <code>&quot;error&quot;</code>, not the SDK's uppercase <code>ERROR</code>. Both mistakes return <strong>zero rows without an error</strong>, which on a sampling notebook is doubly dangerous: a zero error count reads as &quot;sampling is discarding my errors&quot; and sends you tuning the sampler instead of fixing the field name.</p>
+<p>A third trap compounds it: <strong><code>span.status_code</code> is null on successful spans</strong> (<code>&quot;ok&quot;</code> is written vanishingly rarely). So <code>countIf(span.status_code != &quot;error&quot;)</code> counts almost nothing — derive successes as <strong><code>total - errors</code></strong>. A sampling-compensation factor applied to a zero is still zero, so this error survives every downstream correction.</p>
+</blockquote>
+<h3>Duration (Latency)</h3>
+<p>Measures how long requests take to complete.</p>
+<ul>
+<li><strong>Source</strong>: Request root spans, <code>duration</code> field</li>
+<li><strong>Aggregation</strong>: Average, P50, P95, P99</li>
+<li><strong>Dimensions</strong>: <code>dt.service.name</code>, <code>http.route</code></li>
+<li><strong>Sampling-aware</strong>: No — duration distributions from sampled data are statistically representative</li>
+</ul>
+<pre><code class="language-dql">// RED: Request rate by service (from stored spans)
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot; and isNotNull(endpoint.name)
+| makeTimeseries request_count = count(), by:{dt.service.name}, interval:5m
+</code></pre>
+<pre><code class="language-dql">// RED: Error rate by service
+// Counts both HTTP 5xx and spans the instrumentation marked failed.
+// span.status_code is the real field (not otel.status_code) and its value is
+// lowercase &quot;error&quot;; it is null on successful spans, so successes = total - errors.
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot; and isNotNull(endpoint.name)
+| summarize {
+    total = count(),
+    errors = countIf(http.response.status_code &gt;= 500 or span.status_code == &quot;error&quot;)
+  }, by:{dt.service.name}
+| fieldsAdd successes = total - errors
+| fieldsAdd error_rate_pct = round(100.0 * errors / total, decimals: 2)
+| sort error_rate_pct desc
+</code></pre>
+<pre><code class="language-dql">// RED: Duration percentiles by service
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot; and isNotNull(endpoint.name)
+| summarize {p50 = percentile(duration, 50), p95 = percentile(duration, 95), p99 = percentile(duration, 99)},
+    by:{dt.service.name}
+| sort p95 desc
+| limit 15
+</code></pre>
+<p><a id="configuring-metric-extraction"></a></p>
+<h2>4. Configuring Metric Extraction in OpenPipeline</h2>
+<p>Metric extraction from spans is configured in the <strong>Spans scope</strong> of OpenPipeline, in the <strong>Metric extraction</strong> stage — which runs after the Processing and Bucket assignment stages.</p>
+<h3>Configuration Steps</h3>
+<ol>
+<li><strong>Navigate</strong> to OpenPipeline &gt; Spans &gt; select your pipeline &gt; Metric extraction</li>
+<li><strong>Add a metric extraction processor</strong> with:
+<ul>
+<li><strong>Metric key</strong>: The name of the metric to create (e.g., <code>span.request_count</code>)</li>
+<li><strong>Processor</strong>: <em>Sampling aware counter metric</em> (request and error counts), <em>Sampling aware histogram metric</em> or <em>Sampling aware value metric</em> (duration — set <strong>Measurement: Duration</strong>), or the plain <em>Counter</em> / <em>Histogram</em> / <em>Value</em> metric processors for non-span scopes</li>
+<li><strong>Condition</strong>: Which spans to extract from (e.g., <code>span.kind == &quot;server&quot; and isNotNull(endpoint.name)</code>)</li>
+<li><strong>Dimensions</strong>: Fields to carry as metric dimensions (e.g., <code>dt.service.name</code>, <code>http.route</code>)</li>
+<li><strong>Sampling aware settings</strong> (counter rows): enable <strong>Account for aggregated spans</strong> and <strong>Extrapolate metrics to account for trace sampling</strong>. The docs advise <em>&quot;For most production use cases, enable both options&quot;</em> — <em>&quot;If disabled, metrics taken from the sampled spans won't represent the total system behavior.&quot;</em></li>
+</ul>
+</li>
+</ol>
+<h3>Example: RED Metric Extraction Rules</h3>
+<table>
+<thead>
+<tr>
+<th>Metric Key</th>
+<th>Processor</th>
+<th>Condition</th>
+<th>Dimensions</th>
+<th>Sampling-Aware</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>span.request_count</code></td>
+<td>Sampling aware counter</td>
+<td><code>span.kind == &quot;server&quot;</code> AND <code>isNotNull(endpoint.name)</code></td>
+<td><code>dt.service.name</code>, <code>http.route</code></td>
+<td>Yes — enable both sampling options</td>
+</tr>
+<tr>
+<td><code>span.error_count</code></td>
+<td>Sampling aware counter</td>
+<td><code>span.kind == &quot;server&quot;</code> AND <code>isNotNull(endpoint.name)</code> AND <code>http.response.status_code &gt;= 500</code></td>
+<td><code>dt.service.name</code>, <code>http.route</code>, <code>http.response.status_code</code></td>
+<td>Yes — enable both sampling options</td>
+</tr>
+<tr>
+<td><code>span.duration</code></td>
+<td>Sampling aware histogram</td>
+<td><code>span.kind == &quot;server&quot;</code> AND <code>isNotNull(endpoint.name)</code></td>
+<td><code>dt.service.name</code>, <code>http.route</code></td>
+<td>Yes (Measurement: Duration)</td>
+</tr>
+</tbody>
+</table>
+<p>Selecting <strong>Duration</strong> as the measurement turns on the sampling options for you: per the docs, <em>&quot;Duration pre-sets field extraction to the span duration and enables all sampling options automatically.&quot;</em> Percentiles from sampled spans stay representative either way; what the sampling-aware variant adds is correct extrapolated counts and sums.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/metric-extraction">Metric extraction stage (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Dimension Selection: Less Is More</h3>
+<p>Every dimension you add multiplies the number of metric data points (cardinality). Choose dimensions carefully:</p>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Cardinality Impact</th>
+<th>Include?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.service.name</code></td>
+<td>Low (tens)</td>
+<td>Always</td>
+</tr>
+<tr>
+<td><code>http.route</code></td>
+<td>Medium (hundreds)</td>
+<td>Usually</td>
+</tr>
+<tr>
+<td><code>http.response.status_code</code></td>
+<td>Low (5-10 values)</td>
+<td>For error metrics</td>
+</tr>
+<tr>
+<td><code>k8s.namespace.name</code></td>
+<td>Low (tens)</td>
+<td>If multi-tenant</td>
+</tr>
+<tr>
+<td><code>span.name</code></td>
+<td>High (thousands)</td>
+<td>Rarely — too granular</td>
+</tr>
+<tr>
+<td><code>trace.id</code></td>
+<td>Extreme (unique per trace)</td>
+<td><strong>Never</strong> — destroys metric performance</td>
+</tr>
+</tbody>
+</table>
+<p>Cardinality management is covered in depth in <strong>OPIPE-04: Cardinality Management</strong>.</p>
+<p><a id="comparing-metrics"></a></p>
+<h2>5. Comparing Standard vs. Sampling-Aware Metrics</h2>
+<p>After configuring metric extraction, validate that sampling-aware metrics produce accurate results by comparing them against known baselines.</p>
+<pre><code class="language-dql">// Compare: stored server spans vs. the extrapolated count, per service.
+// If sampling or aggregation is active, extrapolated_count is larger than stored_spans.
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot; and isNotNull(endpoint.name)
+| fieldsAdd sampling.probability = (power(2, 56) - coalesce(sampling.threshold, 0)) * power(2, -56)
+| fieldsAdd multiplicity = (1 / sampling.probability) * coalesce(aggregation.count, 1) * dt.system.sampling_ratio
+| summarize {stored_spans = count(), extrapolated_count = sum(multiplicity)}, by:{dt.smartscape.service, dt.service.name}
+| sort extrapolated_count desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Built-in service request count metric, for comparison with the extrapolated count above.
+// It is not a sampling-free ground truth: per the Adaptive Traffic Management FAQ, service
+// metrics &quot;are based on captured traces&quot;, and low-frequency requests can be under-captured.
+timeseries request_count = sum(dt.service.request.count), from:-1h, by:{dt.smartscape.service, dt.service.name}
+| fieldsAdd total_requests = arraySum(request_count)
+| sort total_requests desc
+| limit 10
+</code></pre>
+<p><a id="cardinality-considerations"></a></p>
+<h2>6. Cardinality Considerations</h2>
+<p>Metric extraction creates new metric data points. The total number of data points (cardinality) is the product of all dimension values:</p>
+<pre><code>Cardinality = unique(dt.service.name) x unique(http.route) x unique(status_code) x ...
+</code></pre>
+<p><strong>Example</strong>: 50 services x 200 routes x 5 status codes = <strong>50,000 time series</strong></p>
+<h3>Cardinality Guardrails</h3>
+<p>In community practice, these bands are a useful rule of thumb — verify against your own tenant's query performance:</p>
+<table>
+<thead>
+<tr>
+<th>Guideline</th>
+<th>Threshold</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Acceptable</td>
+<td>&lt; 10,000 time series per metric</td>
+</tr>
+<tr>
+<td>Caution</td>
+<td>10,000 - 100,000 time series</td>
+</tr>
+<tr>
+<td>Danger</td>
+<td>&gt; 100,000 time series</td>
+</tr>
+</tbody>
+</table>
+<p>The documented limits are different in kind: Metrics Classic enforces a 1 million per-metric dimension limit, and for Grail the docs state that <em>&quot;Dynatrace therefore may restrict or reject metric configurations&quot;</em> that use volatile dimensions such as timestamps or unique IDs.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits">Metric limits (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Reducing Cardinality Before Extraction</h3>
+<p>Use the <strong>Processing</strong> stage, which runs before Metric extraction, to normalize high-cardinality fields:</p>
+<ul>
+<li>Replace URL paths with route patterns: <code>/users/12345/orders</code> → <code>/users/{id}/orders</code></li>
+<li>Group status codes: <code>200</code>, <code>201</code>, <code>204</code> → <code>2xx</code></li>
+<li>Remove query parameters from <code>http.url</code></li>
+</ul>
+<p>Full cardinality management strategies are covered in <strong>OPIPE-04: Cardinality Management</strong>.</p>
+<hr />
+<p><a id="summary"></a></p>
+<h2>Summary</h2>
+<p>In this notebook you learned:</p>
+<ul>
+<li><strong>The sampling problem</strong> — Counts are under-reported on sampled data; averages and ratios are approximately correct</li>
+<li><strong>Sampling-aware metrics</strong> — Compensate for sampling ratio to produce accurate throughput and error counts</li>
+<li><strong>RED metrics from spans</strong> — Rate (request count), Errors (failure rate), Duration (latency percentiles)</li>
+<li><strong>Metric extraction configuration</strong> — The Metric extraction stage, its sampling-aware processors, conditions, and dimensions</li>
+<li><strong>Cardinality awareness</strong> — Every dimension multiplies data points; choose dimensions deliberately</li>
+</ul>
+<hr />
+<p><a id="next-steps"></a></p>
+<h2>Next Steps</h2>
+<p>Continue to <strong>OPIPE-04: Cardinality Management</strong> for strategies to control dimension explosion across all OpenPipeline scopes — span attributes, log fields, and metric dimensions.</p>
+<hr />
+<p><a id="references"></a></p>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-metrics-from-spans">Extract metrics from spans and distributed traces (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/adaptive-traffic-management/adaptive-traffic-management-saas-dps">Adaptive Traffic Management with DPS (DT docs)</a> — <em>&quot;Yes, in a few cases, as service monitoring metrics are based on captured traces.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing/advanced-tracing-analytics">Advanced Tracing Analytics powered by Grail (DT docs)</a> — the multiplicity formula used in cells 3 and 11</li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/metric-extraction">Metric extraction stage (DT docs)</a></li>
+<li><a href="https://grafana.com/blog/the-red-method-how-to-instrument-your-services/">The RED Method (Grafana)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits">Metric limits and cardinality (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

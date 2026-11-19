@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ADOPT-01: Observability Maturity Model</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ADOPT — Observability Adoption &amp; Maturity</a><span class="sep">/</span><span aria-current="page">ADOPT-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ADOPT-01: Observability Maturity Model</h1>
+<blockquote>
+<p><strong>Series:</strong> ADOPT — Observability Adoption &amp; Maturity | <strong>Notebook:</strong> 1 of 6 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/21/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Observability maturity is not a binary state — organizations progress through distinct levels as their practices, tooling, and culture evolve. This notebook introduces a five-level maturity model for Dynatrace-powered observability, provides assessment criteria for each level, and demonstrates how to use DQL queries to gauge your current position. Understanding where you stand today is the first step toward building a roadmap for improvement.</p>
+<blockquote>
+<p><strong>This is a community framework, not a Dynatrace-published model.</strong> The five levels, their indicators, and the feature mapping below are a planning aid assembled from community practice. Use them to structure a conversation about where to invest next, not as a benchmark Dynatrace measures you against.</p>
+</blockquote>
+<h3>Platform-Evolution Markers Worth Tracking</h3>
+<p>Three platform changes give a maturity program concrete, measurable milestones. Each maps onto the levels in this notebook:</p>
+<ol>
+<li><strong>Primary Grail fields and tags enriched at the source</strong> (OneAgent 1.333+) — OneAgent can stamp <code>dt.security_context</code>, <code>dt.cost.costcenter</code>, <code>dt.cost.product</code> and <code>primary_tags.*</code> onto every signal it sends. <strong>Level 3</strong> programs surface these fields in dashboards; <strong>Level 4</strong> programs drive bucket routing, access control and cost allocation from them; <strong>Level 5</strong> programs set them at deployment time so no host or process ships without them. Configuration lives in ORGNZ and FAQ-02.</li>
+<li><strong>Extensions Framework 1.0 retirement</strong> — Extensions Framework 1.0 reached end of support on 2025-03-31 (its Python 3.8 variant on 2024-10-31). JMX and PMI extensions on Framework 1.0 were carried past that date as deprecated, and now have their own end-of-support date: <strong>July 1, 2027</strong>. Count the Framework 1.0 extensions still running and track that number to zero in the quarterly health review (ADOPT-02).</li>
+<li><strong>OneAgent and OpenTelemetry-injector coexistence</strong> (K8S-11 § 2a) — clusters that run both injectors need an explicit per-namespace decision. A <strong>Level 3</strong> program documents which namespaces each injector owns; a <strong>Level 5</strong> program enforces that split with an admission or policy gate.</li>
+</ol>
+<p>Add these to the platform-health checklist in ADOPT-02 and the success metrics in ADOPT-03.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#maturity-levels">The Five Maturity Levels</a></li>
+<li><a href="#level-1-reactive">Level 1 — Reactive Monitoring</a></li>
+<li><a href="#level-2-proactive">Level 2 — Proactive Monitoring</a></li>
+<li><a href="#level-3-data-driven">Level 3 — Data-Driven Observability</a></li>
+<li><a href="#level-4-predictive">Level 4 — Predictive Observability</a></li>
+<li><a href="#level-5-autonomous">Level 5 — Autonomous Operations</a></li>
+<li><a href="#assessing-current-level">Assessing Your Current Level</a></li>
+<li><a href="#feature-mapping">Mapping Dynatrace Features to Maturity Levels</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS (Grail). The DQL in this notebook does not apply to Dynatrace Managed, which has no Grail — the DTM series (Dynatrace Managed) covers Managed.</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:entities:read</code>, <code>storage:smartscape:read</code>, <code>storage:logs:read</code>, <code>storage:spans:read</code>, <code>storage:events:read</code></td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>At least 24 hours of ingested monitoring data</td>
+</tr>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Platform engineers, SREs, engineering managers, and leadership stakeholders</td>
+</tr>
+</tbody>
+</table>
+<p><a id="maturity-levels"></a></p>
+<h2>1. The Five Maturity Levels</h2>
+<p>The observability maturity model defines five progressive levels. Each level builds on the previous one, adding capabilities and shifting organizational behavior.</p>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Name</th>
+<th>Characteristics</th>
+<th>Key Indicator</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1</strong></td>
+<td>Reactive</td>
+<td>Alert-driven, manual troubleshooting, siloed tools</td>
+<td>&quot;We find out about problems from users&quot;</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>Proactive</td>
+<td>Threshold-based alerts, basic dashboards, some automation</td>
+<td>&quot;We detect problems before users report them&quot;</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>Data-Driven</td>
+<td>Centralized observability, SLOs defined, DQL-powered analysis</td>
+<td>&quot;We make decisions based on telemetry data&quot;</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td>Predictive</td>
+<td>AI-driven anomaly detection, forecasting, capacity planning</td>
+<td>&quot;We predict problems before they occur&quot;</td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td>Autonomous</td>
+<td>Self-healing, automated remediation, closed-loop operations</td>
+<td>&quot;The platform resolves problems without human intervention&quot;</td>
+</tr>
+</tbody>
+</table>
+<p>Most organizations operate between Level 1 and Level 3. The goal is not necessarily to reach Level 5 everywhere, but to deliberately choose the appropriate level for each service based on business criticality.</p>
+<p><a id="level-1-reactive"></a></p>
+<h2>2. Level 1 — Reactive Monitoring</h2>
+<h3>Characteristics</h3>
+<ul>
+<li>Monitoring is an afterthought, added post-deployment</li>
+<li>Alerts are noisy and frequently ignored</li>
+<li>Troubleshooting relies on SSH-ing into hosts and reading log files</li>
+<li>No standardized observability tooling across teams</li>
+<li>Mean Time to Detect (MTTD) is measured in hours, often reported by end users</li>
+</ul>
+<h3>Assessment Criteria</h3>
+<table>
+<thead>
+<tr>
+<th>Criterion</th>
+<th>Level 1 Indicator</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Agent coverage</td>
+<td>&lt; 50% of hosts instrumented</td>
+</tr>
+<tr>
+<td>Data sources</td>
+<td>Only infrastructure metrics</td>
+</tr>
+<tr>
+<td>Alerting</td>
+<td>Static thresholds or none</td>
+</tr>
+<tr>
+<td>Dashboards</td>
+<td>Ad-hoc, per-team, no standards</td>
+</tr>
+<tr>
+<td>Incident process</td>
+<td>Manual, tribal knowledge</td>
+</tr>
+</tbody>
+</table>
+<h3>Dynatrace Features at This Level</h3>
+<ul>
+<li>OneAgent deployment on critical hosts</li>
+<li>Basic infrastructure monitoring</li>
+<li>Default Dynatrace Intelligence alerting (often not yet configured)</li>
+</ul>
+<p><a id="level-2-proactive"></a></p>
+<h2>3. Level 2 — Proactive Monitoring</h2>
+<h3>Characteristics</h3>
+<ul>
+<li>Monitoring is part of the deployment checklist</li>
+<li>Threshold-based alerts detect common failure modes</li>
+<li>Centralized dashboards exist but may not be maintained</li>
+<li>Teams respond to problems before user impact escalates</li>
+<li>MTTD is measured in minutes</li>
+</ul>
+<h3>Assessment Criteria</h3>
+<table>
+<thead>
+<tr>
+<th>Criterion</th>
+<th>Level 2 Indicator</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Agent coverage</td>
+<td>50-80% of hosts instrumented</td>
+</tr>
+<tr>
+<td>Data sources</td>
+<td>Infrastructure + application metrics</td>
+</tr>
+<tr>
+<td>Alerting</td>
+<td>Threshold-based, some Dynatrace Intelligence</td>
+</tr>
+<tr>
+<td>Dashboards</td>
+<td>Standardized templates for key services</td>
+</tr>
+<tr>
+<td>Incident process</td>
+<td>Defined runbooks for top 10 issues</td>
+</tr>
+</tbody>
+</table>
+<h3>Dynatrace Features at This Level</h3>
+<ul>
+<li>Full-stack OneAgent deployment</li>
+<li>Dynatrace Intelligence problem detection enabled</li>
+<li>Custom anomaly detectors for known failure modes (ALERT-02)</li>
+<li>Basic synthetic monitoring for key URLs</li>
+</ul>
+<p><a id="level-3-data-driven"></a></p>
+<h2>4. Level 3 — Data-Driven Observability</h2>
+<h3>Characteristics</h3>
+<ul>
+<li>Observability data drives architectural and operational decisions</li>
+<li>SLOs are defined and tracked for critical services</li>
+<li>Teams use DQL and Grail for ad-hoc investigation</li>
+<li>Log, trace, and metric data are correlated</li>
+<li>Observability is treated as a platform service</li>
+</ul>
+<h3>Assessment Criteria</h3>
+<table>
+<thead>
+<tr>
+<th>Criterion</th>
+<th>Level 3 Indicator</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Agent coverage</td>
+<td>&gt; 80% of hosts and services instrumented</td>
+</tr>
+<tr>
+<td>Data sources</td>
+<td>Infrastructure + APM + logs + traces + RUM</td>
+</tr>
+<tr>
+<td>Alerting</td>
+<td>SLO-based alerting, reduced noise</td>
+</tr>
+<tr>
+<td>Dashboards</td>
+<td>Business-context dashboards, executive views</td>
+</tr>
+<tr>
+<td>Incident process</td>
+<td>Data-driven RCA, blameless postmortems</td>
+</tr>
+</tbody>
+</table>
+<h3>Dynatrace Features at This Level</h3>
+<ul>
+<li>Grail data lakehouse with DQL queries</li>
+<li>OpenPipeline for log routing and enrichment</li>
+<li>SLO definitions, with burn-rate alerting built as described in SLO-04</li>
+<li>Distributed tracing with span analytics</li>
+<li>Real User Monitoring (RUM) and Session Replay</li>
+</ul>
+<p><a id="level-4-predictive"></a></p>
+<h2>5. Level 4 — Predictive Observability</h2>
+<h3>Characteristics</h3>
+<ul>
+<li>AI-driven anomaly detection replaces static thresholds</li>
+<li>Capacity planning uses forecasting models</li>
+<li>Problems are identified before they cause user impact</li>
+<li>Teams focus on trends and patterns rather than individual alerts</li>
+</ul>
+<h3>Assessment Criteria</h3>
+<table>
+<thead>
+<tr>
+<th>Criterion</th>
+<th>Level 4 Indicator</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Agent coverage</td>
+<td>&gt; 95% with auto-discovery</td>
+</tr>
+<tr>
+<td>Data sources</td>
+<td>All telemetry types + business events</td>
+</tr>
+<tr>
+<td>Alerting</td>
+<td>AI-driven, predictive, low false-positive rate</td>
+</tr>
+<tr>
+<td>Dashboards</td>
+<td>Predictive views, forecasting charts</td>
+</tr>
+<tr>
+<td>Incident process</td>
+<td>Automated triage and enrichment</td>
+</tr>
+</tbody>
+</table>
+<h3>Dynatrace Features at This Level</h3>
+<ul>
+<li>Dynatrace Intelligence with custom anomaly detection</li>
+<li>Metric forecasting and trend analysis</li>
+<li>Business event correlation</li>
+<li>Ownership and team assignment for entities</li>
+</ul>
+<p><a id="level-5-autonomous"></a></p>
+<h2>6. Level 5 — Autonomous Operations</h2>
+<h3>Characteristics</h3>
+<ul>
+<li>Self-healing systems automatically remediate known issues</li>
+<li>Workflows trigger automated responses to problems</li>
+<li>Human intervention is the exception, not the norm</li>
+<li>Continuous optimization is automated</li>
+</ul>
+<h3>Assessment Criteria</h3>
+<table>
+<thead>
+<tr>
+<th>Criterion</th>
+<th>Level 5 Indicator</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Agent coverage</td>
+<td>100% with automated rollout</td>
+</tr>
+<tr>
+<td>Data sources</td>
+<td>Full telemetry + external integrations</td>
+</tr>
+<tr>
+<td>Alerting</td>
+<td>Event-driven automation, minimal manual alerts</td>
+</tr>
+<tr>
+<td>Dashboards</td>
+<td>Real-time executive cockpits</td>
+</tr>
+<tr>
+<td>Incident process</td>
+<td>Closed-loop: detect → diagnose → remediate → verify</td>
+</tr>
+</tbody>
+</table>
+<h3>Dynatrace Features at This Level</h3>
+<ul>
+<li>Dynatrace Workflows for automated remediation</li>
+<li>Event-driven workflow triggers (problems, events, schedules)</li>
+<li>Configuration as code (Monaco or Terraform) with a drift check — Terraform's <code>plan</code> reports drift natively; with Monaco it is a scheduled download-and-diff (AUTOM)</li>
+<li>Full API-driven operations</li>
+</ul>
+<p><a id="assessing-current-level"></a></p>
+<h2>7. Assessing Your Current Level</h2>
+<p>The following DQL queries help you assess where your organization stands today. Each query targets a key indicator of maturity.</p>
+<h3>7.1 Monitored Entity Coverage</h3>
+<p>Understanding how many entities Dynatrace is monitoring gives a baseline for agent deployment coverage.</p>
+<pre><code class="language-dql">// Count monitored entities seen in the last 24 hours, by type
+fetch dt.entity.host, from:-24h
+| summarize host_count = count()
+| append [fetch dt.entity.service, from:-24h | summarize service_count = count()]
+| append [fetch dt.entity.process_group, from:-24h | summarize process_group_count = count()]
+| append [smartscapeNodes &quot;FRONTEND&quot;, from:-24h | summarize frontend_count = count()]
+
+// Frontends (web and mobile apps) are counted on Smartscape: on a tenant using the current RUM,
+// classic dt.entity.application returned 0 while smartscapeNodes &quot;FRONTEND&quot; returned 34
+// (validated 10/01/2026). Hosts, services and process groups stay on the classic surface here
+// because this is an inventory, and FAQ-16 explains why the two surfaces can disagree on counts.
+// Every subquery carries from:-24h so all four counts cover the same window.
+
+</code></pre>
+<h3>7.2 Data Ingestion Diversity</h3>
+<p>Mature organizations ingest multiple telemetry types. This query checks which data sources are actively flowing into Grail.</p>
+<pre><code class="language-dql">// Check log ingestion volume over the last 24 hours
+fetch logs, from:-24h
+| summarize {log_count = count(), distinct_sources = countDistinct(log.source)}
+</code></pre>
+<pre><code class="language-dql">// Check span ingestion to verify distributed tracing is active
+fetch spans, from:-24h
+| summarize {span_count = count(), distinct_services = countDistinct(dt.entity.service)}
+</code></pre>
+<h3>7.3 Dynatrace Intelligence Problem Detection Activity</h3>
+<p>Active Dynatrace Intelligence problem detection is a key indicator of Level 2+ maturity. If few or no problems are being detected, it may indicate insufficient instrumentation or misconfigured alerting.</p>
+<pre><code class="language-dql">// Count detected problems in the last 7 days by status
+fetch dt.davis.problems, from:-7d
+| summarize problem_count = count(), by:{event.status}
+| sort problem_count desc
+</code></pre>
+<h3>7.4 Alerting Quality Check</h3>
+<p>Two signals separate a noisy problem feed from a useful one, and both can be read straight from problem records:</p>
+<ul>
+<li><strong>Short-lived problems</strong> — problems that close within a few minutes usually mean a detector that is too sensitive, or a transient nobody needs to be woken for.</li>
+<li><strong>Problems raised during maintenance</strong> — if a large share of problems open inside maintenance windows, the windows are doing the suppression work that detection should not need.</li>
+</ul>
+<p>Earlier versions of this notebook measured noise with <code>dt.davis.is_frequent_event</code>. Do not use that flag for this: frequent issue detection is being phased out on the latest Dynatrace platform, and on the validation tenant it was set on <strong>0 of 15,227 problems</strong> in 30 days — a &quot;noise ratio&quot; built on it reads near zero however noisy alerting actually is.</p>
+<pre><code class="language-dql">// Alert-quality signals over 7 days: short-lived problems and problems raised during maintenance
+fetch dt.davis.problems, from:-7d
+| filter dt.davis.is_duplicate == false
+| fieldsAdd duration_min = resolved_problem_duration / 1m
+| summarize {
+    problems = count(),
+    closed_within_5min = countIf(duration_min &lt; 5),
+    during_maintenance = countIf(maintenance.is_under_maintenance == true)
+  }
+| fieldsAdd short_lived_pct = round(toDouble(closed_within_5min) / toDouble(problems) * 100, decimals: 1)
+| fieldsAdd maintenance_pct = round(toDouble(during_maintenance) / toDouble(problems) * 100, decimals: 1)
+
+</code></pre>
+<blockquote>
+<p><strong>Interpreting the result.</strong> Dynatrace does not publish a healthy value for either percentage, so treat them as trends rather than grades. On the validation tenant (10/01/2026) the query returned 20.8% short-lived and 34.2% during maintenance. In community practice a short-lived share that keeps rising, or a maintenance share above roughly a third, are both signs that problems reach people who do not need to act on them. ADOPT-03 § 5 breaks the short-lived share down by problem type, which is where the fix usually is.</p>
+</blockquote>
+<p><a id="feature-mapping"></a></p>
+<h2>8. Mapping Dynatrace Features to Maturity Levels</h2>
+<p>Use this table to identify which Dynatrace capabilities to adopt next based on your target maturity level. The level assignments are community guidance, not a product requirement — any feature can be adopted earlier.</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>L1</th>
+<th>L2</th>
+<th>L3</th>
+<th>L4</th>
+<th>L5</th>
+<th>Series</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OneAgent (Infrastructure)</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>ONBRD</td>
+</tr>
+<tr>
+<td>OneAgent (Full-Stack)</td>
+<td></td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>ONBRD, ADOPT-06</td>
+</tr>
+<tr>
+<td>Kubernetes monitoring</td>
+<td></td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>K8S</td>
+</tr>
+<tr>
+<td>Dynatrace Intelligence problem detection</td>
+<td></td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>AIOPS</td>
+</tr>
+<tr>
+<td>Synthetic Monitoring</td>
+<td></td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>SYNTH</td>
+</tr>
+<tr>
+<td>Log Management (Grail)</td>
+<td></td>
+<td></td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>OPLOGS</td>
+</tr>
+<tr>
+<td>Distributed Tracing (Spans)</td>
+<td></td>
+<td></td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>SPANS</td>
+</tr>
+<tr>
+<td>OpenTelemetry ingest</td>
+<td></td>
+<td></td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>OTEL</td>
+</tr>
+<tr>
+<td>OpenPipeline</td>
+<td></td>
+<td></td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>OPLOGS, OPIPE</td>
+</tr>
+<tr>
+<td>Buckets, security context, segments</td>
+<td></td>
+<td></td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>ORGNZ</td>
+</tr>
+<tr>
+<td>SLO definitions</td>
+<td></td>
+<td></td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>SLO</td>
+</tr>
+<tr>
+<td>DQL / Notebooks / Dashboards</td>
+<td></td>
+<td></td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>DASH</td>
+</tr>
+<tr>
+<td>Real User Monitoring</td>
+<td></td>
+<td></td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>WEBRUM, MOBL</td>
+</tr>
+<tr>
+<td>Application Security</td>
+<td></td>
+<td></td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>APPSEC</td>
+</tr>
+<tr>
+<td>Business Events</td>
+<td></td>
+<td></td>
+<td></td>
+<td>X</td>
+<td>X</td>
+<td>BIZEV</td>
+</tr>
+<tr>
+<td>Dynatrace Intelligence forecasting</td>
+<td></td>
+<td></td>
+<td></td>
+<td>X</td>
+<td>X</td>
+<td>AIOPS</td>
+</tr>
+<tr>
+<td>Ownership and routing by team</td>
+<td></td>
+<td></td>
+<td></td>
+<td>X</td>
+<td>X</td>
+<td>FAQ-21, ALERT</td>
+</tr>
+<tr>
+<td>Cost allocation and consumption tracking</td>
+<td></td>
+<td></td>
+<td></td>
+<td>X</td>
+<td>X</td>
+<td>FINOPS</td>
+</tr>
+<tr>
+<td>Workflows (AutomationEngine)</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>X</td>
+<td>WFLOW</td>
+</tr>
+<tr>
+<td>Site Reliability Guardian (release gates)</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>X</td>
+<td>SLO-06</td>
+</tr>
+<tr>
+<td>Configuration as code (Monaco / Terraform)</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>X</td>
+<td>AUTOM</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> You do not need to adopt every feature at every level. Focus on the features that address your most pressing gaps.</p>
+</blockquote>
+<p><a id="summary"></a></p>
+<h2>9. Summary and Next Steps</h2>
+<h3>Key Takeaways</h3>
+<ul>
+<li>Observability maturity is a spectrum from reactive (Level 1) to autonomous (Level 5)</li>
+<li>Assessment should be data-driven — use DQL queries to measure coverage, ingestion diversity, and alerting quality</li>
+<li>Not every service needs Level 5 maturity — align investment with business criticality</li>
+<li>Dynatrace features map directly to maturity levels, providing a clear adoption path</li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li>Proceed to <strong>ADOPT-02: Platform Health Assessment</strong> to build a detailed scorecard of your current Dynatrace deployment</li>
+<li>Use the maturity assessment results to prioritize features for adoption</li>
+<li>Share the maturity model with leadership to align on observability investment priorities</li>
+</ul>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/root-cause-analysis/detection-of-frequent-issues">Detection of frequent issues (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/frequent-issue-detection">Transition from frequent issue detection (DT docs)</a> — <em>&quot;Frequent issue detection is being phased out on the latest Dynatrace platform.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment">Primary Grail fields and tags enrichment through OneAgent (DT docs)</a> — <em>&quot;OneAgent version 1.333&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news">End of support announcements (DT docs)</a> — <em>&quot;EF1 JMX and PMI extensions reach end of support on July 1, 2027.&quot;</em></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

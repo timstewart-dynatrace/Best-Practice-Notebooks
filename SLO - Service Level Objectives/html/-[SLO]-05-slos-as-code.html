@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SLO-05: SLOs as Code</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SLO — Service Level Objectives</a><span class="sep">/</span><span aria-current="page">SLO-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SLO-05: SLOs as Code</h1>
+<blockquote>
+<p><strong>Series:</strong> SLO — Service Level Objectives | <strong>Notebook:</strong> 5 of 7 | <strong>Created:</strong> June 2026 | <strong>Last Updated:</strong> 11/19/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>A validated SLO that lives only in the UI is one accidental click from gone, and impossible to reproduce across environments. This notebook covers promoting SLOs into version control: the <code>dynatrace_platform_slo</code> Terraform resource and SLO Service Public API for the modern app, the classic <code>dynatrace_slo_v2</code>/<code>builtin:monitoring.slo</code> path it replaces (blocked at upgrade), the Monaco alternative, and the API path — with a deliberate emphasis on verifying field names at the source rather than copying a payload that may be stale.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#why">Why Version SLOs</a></li>
+<li><a href="#schema">The Schema and Terraform Resource</a></li>
+<li><a href="#terraform">Terraform Worked Example</a></li>
+<li><a href="#monaco">Monaco Alternative</a></li>
+<li><a href="#api">API and CI/CD</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS Gen3 with the SLO app</td>
+</tr>
+<tr>
+<td><strong>Tooling</strong></td>
+<td>Terraform with the <code>dynatrace-oss/dynatrace</code> provider, or Monaco</td>
+</tr>
+<tr>
+<td><strong>Auth</strong></td>
+<td><strong>OAuth client</strong> (<code>DT_CLIENT_ID</code> / <code>DT_CLIENT_SECRET</code> / <code>DT_ACCOUNT_ID</code>) with <code>slo:slos:read</code> + <code>slo:slos:write</code> for <code>dynatrace_platform_slo</code>; a classic API token only if you still maintain <code>dynatrace_slo_v2</code> — see AUTOM-04 §3</td>
+</tr>
+<tr>
+<td><strong>Prior reading</strong></td>
+<td>SLO-02 (the SLI query you will codify), AUTOM-04 / AUTOM-07 (provider auth, CI/CD)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="why"></a></p>
+<h2>1. Why Version SLOs</h2>
+<p>SLOs are configuration, and configuration that matters belongs in source control:</p>
+<ul>
+<li><strong>Reproducible across environments</strong> — the same SLO in dev, staging, and prod from one definition.</li>
+<li><strong>Reviewable</strong> — a target change goes through a PR, not a quiet UI edit.</li>
+<li><strong>Recoverable</strong> — an accidental deletion is a <code>terraform apply</code> away from restored.</li>
+</ul>
+<p>The workflow mirrors AIOPS-02's stance on detectors: <strong>prototype in the app, promote to code once it matters.</strong></p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5TTE9zIGFzIGNvZGU8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+UHJvdG90eXBlIGluIHRoZSBTTE8gYXBwLCB0aGVuIHByb21vdGUgdGhlIHZhbGlkYXRlZCBkZWZpbml0aW9uIGludG8gdmVyc2lvbiBjb250cm9sPC90ZXh0PgoKICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImYiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wIDAgTDEwIDUgTDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPjwvbWFya2VyPgogIDwvZGVmcz4KCiAgPHJlY3QgeD0iMzAiIHk9IjEyMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxMjAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTMwIiB5PSIxNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjEgwrcgUHJvdG90eXBlPC90ZXh0PgogIDx0ZXh0IHg9IjEzMCIgeT0iMTcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TTE8gYXBwICsgbm90ZWJvb2s8L3RleHQ+CiAgPHRleHQgeD0iMTMwIiB5PSIxOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnZhbGlkYXRlIHRoZSBTTEkgRFFMPC90ZXh0PgogIDx0ZXh0IHg9IjEzMCIgeT0iMjEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5jb25maXJtIHRoZSB0YXJnZXQgZml0czwvdGV4dD4KCiAgPHJlY3QgeD0iMjcwIiB5PSIxMjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTIwIiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjM3MCIgeT0iMTQ2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj4yIMK3IENvZGlmeTwvdGV4dD4KICA8dGV4dCB4PSIzNzAiIHk9IjE3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+ZHluYXRyYWNlX3BsYXRmb3JtX3NsbzwvdGV4dD4KICA8dGV4dCB4PSIzNzAiIHk9IjE5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+b3IgTW9uYWNvIHYyLjIyKyAoU0xPIEFQSSk8L3RleHQ+CiAgPHRleHQgeD0iMzcwIiB5PSIyMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlNMSSBxdWVyeSDCtyB0YXJnZXQgwrcgd2luZG93PC90ZXh0PgoKICA8cmVjdCB4PSI1MTAiIHk9IjEyMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxMjAiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNjEwIiB5PSIxNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjMgwrcgUmV2aWV3ICZhbXA7IGFwcGx5PC90ZXh0PgogIDx0ZXh0IHg9IjYxMCIgeT0iMTcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5QUiArIHBsYW4gaW4gQ0k8L3RleHQ+CiAgPHRleHQgeD0iNjEwIiB5PSIxOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnRlcnJhZm9ybSBhcHBseTwvdGV4dD4KICA8dGV4dCB4PSI2MTAiIHk9IjIxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+c2VlIEFVVE9NLTA0IC8gQVVUT00tMDc8L3RleHQ+CgogIDxyZWN0IHg9Ijc1MCIgeT0iMTIwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI4MjUiIHk9IjE0NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+NCDCtyBMaXZlIFNMTzwvdGV4dD4KICA8dGV4dCB4PSI4MjUiIHk9IjE3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dmVyc2lvbmVkPC90ZXh0PgogIDx0ZXh0IHg9IjgyNSIgeT0iMTkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5yZXByb2R1Y2libGU8L3RleHQ+CiAgPHRleHQgeD0iODI1IiB5PSIyMDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnBlciBlbnZpcm9ubWVudDwvdGV4dD4KCiAgPGxpbmUgeDE9IjIzMCIgeTE9IjE4MCIgeDI9IjI3MCIgeTI9IjE4MCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNmKSIvPgogIDxsaW5lIHgxPSI0NzAiIHkxPSIxODAiIHgyPSI1MTAiIHkyPSIxODAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZikiLz4KICA8bGluZSB4MT0iNzEwIiB5MT0iMTgwIiB4Mj0iNzUwIiB5Mj0iMTgwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2YpIi8+CgogIDxyZWN0IHg9IjEyMCIgeT0iMjkwIiB3aWR0aD0iNjkwIiBoZWlnaHQ9IjEzMCIgZmlsbD0iIzFFMjkzQiIgb3BhY2l0eT0iMC41IiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIzMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPmR5bmF0cmFjZV9wbGF0Zm9ybV9zbG8g4oCUIHRoZSBmaWVsZHMgdGhhdCBtYXR0ZXI8L3RleHQ+CiAgPHRleHQgeD0iMTUwIiB5PSIzNDQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPuKAoiBuYW1lIC8gZGVzY3JpcHRpb24g4oCUIHdoYXQgaXQgbWVhc3VyZXMgYW5kIHdoeTwvdGV4dD4KICA8dGV4dCB4PSIxNTAiIHk9IjM2OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+4oCiIGN1c3RvbV9zbGkuaW5kaWNhdG9yIOKAlCBEUUwgd2l0aCBhbiBzbGkgZmllbGQ8L3RleHQ+CiAgPHRleHQgeD0iMTUwIiB5PSIzOTIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPuKAoiBjcml0ZXJpYV9kZXRhaWwg4oCUIHRhcmdldCArIHdhcm5pbmcgbGluZTwvdGV4dD4KICA8dGV4dCB4PSI1MDAiIHk9IjM0NCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+4oCiIHRpbWVmcmFtZV9mcm9tIC8gX3RvIOKAlCBlLmcuIG5vdy0zMGQg4oaSIG5vdzwvdGV4dD4KICA8dGV4dCB4PSI1MDAiIHk9IjM2OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+4oCiIHZlcmlmeSBmaWVsZCBuYW1lcyBhZ2FpbnN0IHRoZSBwcm92aWRlciBkb2NzPC90ZXh0PgogIDx0ZXh0IHg9IjUwMCIgeT0iMzkyIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIj4gIChzY2hlbWEgZXZvbHZlcyDigJQgbmV2ZXIgY29weSBhIHN0YWxlIHBheWxvYWQpPC90ZXh0PgoKICA8bGluZSB4MT0iNDAiIHkxPSI0NTAiIHgyPSI4OTAiIHkyPSI0NTAiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDY1IiB5PSI0NzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTEiPk9BdXRoIGNsaWVudCAoc2xvOnNsb3M6KikgwrcgY2xhc3NpYyBkeW5hdHJhY2Vfc2xvX3YyIG9ubHkgZm9yIGV4aXN0aW5nIFNMT3Mgb24gdW51cGdyYWRlZCB0ZW5hbnRzPC90ZXh0Pgo8L3N2Zz4K" alt="SLOs as code" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Action |
+|------|--------|
+| 1 Prototype | Validate the SLI DQL in the SLO app + a notebook |
+| 2 Codify | dynatrace_platform_slo (Terraform) or the SLO Service API (Monaco v2.22+) — classic dynatrace_slo_v2 only for existing SLOs |
+| 3 Review & apply | PR + plan in CI, terraform apply |
+| 4 Live SLO | Versioned, reproducible per environment |
+For environments where SVG doesn't render
+-->
+<p><a id="schema"></a></p>
+<h2>2. The Schema and Terraform Resource</h2>
+<table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>Modern SLO app</th>
+<th>SLO Classic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>API</td>
+<td><strong>SLO Service Public API</strong></td>
+<td>Service-level Objectives API classic (<code>/api/v2/slo</code>) — <strong>blocked at upgrade</strong></td>
+</tr>
+<tr>
+<td>Terraform resource</td>
+<td><strong><code>dynatrace_platform_slo</code></strong> (provider v1.78.0+; OAuth client with <code>slo:slos:read</code> / <code>slo:slos:write</code>)</td>
+<td><code>dynatrace_slo_v2</code> (classic <code>slo.*</code> + <code>settings.*</code> token scopes)</td>
+</tr>
+<tr>
+<td>Monaco</td>
+<td><code>type: slo-v2</code> — supported since Monaco v2.22 (despite the name, this is the <strong>modern</strong> type, unrelated to the classic Terraform <code>dynatrace_slo_v2</code>)</td>
+<td><code>builtin:monitoring.slo</code> via <code>--settings-schema</code> — <strong>blocked at upgrade</strong></td>
+</tr>
+<tr>
+<td>Settings 2.0 schema</td>
+<td>none — the SLO service is the store</td>
+<td><code>builtin:monitoring.slo</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>What &quot;blocked at upgrade&quot; rests on (checked 08/28/2026; quote re-read 09/28/2026).</strong> The phrase is the <strong>tenant upgrade readiness scan's</strong> classification, read 07/31/2026 — not documentation. No Dynatrace page restates it; the published upgrade guidance is softer: <em>&quot;An automated upgrade flow is under consideration; however, given the highly customized nature of SLOs, manual review is expected to yield the best results.&quot;</em> A readiness scan reporting what a tenant will not carry across and a docs page describing a manual migration are answering different questions, so they can both be right — but they imply different urgency. <strong>Run the scan against your own tenant</strong> before planning the work.</p>
+</blockquote>
+<blockquote>
+<p><strong>Corrected 07/31/2026.</strong> This section previously presented <code>builtin:monitoring.slo</code> / <code>dynatrace_slo_v2</code> as <em>the</em> config-as-code path. They are the <strong>classic</strong> generation. <code>dynatrace_slo_v2</code> authenticates with classic <code>slo.read</code>/<code>slo.write</code> plus <code>settings.read</code>/<code>settings.write</code> and writes through <code>builtin:monitoring.slo</code>; the modern app has its own SLO Service Public API, reached by <code>dynatrace_platform_slo</code> with OAuth <code>slo:slos:*</code> scopes. The readiness scan flags both classic surfaces as blocked at upgrade, so codifying new SLOs as <code>dynatrace_slo_v2</code> puts them on a path that stops working. Verify argument names at the provider docs before writing HCL — the note below applies to <code>dynatrace_platform_slo</code> too.</p>
+</blockquote>
+<p><strong>The DQL-SLI gap was a property of the classic resource, and <code>dynatrace_platform_slo</code> closes it.</strong> <code>dynatrace_platform_slo</code> takes the SLI as a <strong>DQL query</strong> in <code>custom_sli.indicator</code> — the same query shape SLO-02 builds and the SLO app's Custom SLO uses, producing a timeseries field named <code>sli</code>. So the query you validated in a notebook goes into the HCL unchanged apart from the timeframe, which the SLO's <code>criteria</code> supplies. The classic <code>dynatrace_slo_v2</code> resource cannot do this: its SLI field (<code>metric_expression</code>) takes a <strong>classic metric-selector expression</strong> — e.g. <code>100*(builtin:service.requestCount.server:splitBy())/(...)</code> — so a span-ratio or log/bizevent-derived SLI (SLO-02's latency and custom examples) has no classic Terraform form at all. That is one more reason new SLOs belong on the modern resource.</p>
+<blockquote>
+<p><strong>Verify the exact argument names against the provider docs before you write HCL.</strong> The provider schema evolves between releases, and copying a stale payload is precisely how the field-authored alerting document ended up with an SLO API body that would not apply. The modern example below follows the <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_slo.md"><code>platform_slo</code> resource docs (Dynatrace GitHub)</a> as read on 09/28/2026 (provider v1.105.0); the classic example follows the <a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/slo_v2"><code>slo_v2</code> resource docs</a> as fetched on 07/01/2026. Treat both pages as authoritative going forward.</p>
+</blockquote>
+<h3>Modern — <code>dynatrace_platform_slo</code> (use this for new SLOs)</h3>
+<p>Environment-wide request availability, using the SLO-02 availability SLI (live-validated there) with its <code>from:</code> / <code>interval:</code> removed — the SLO's <code>criteria</code> block owns the evaluation window:</p>
+<pre><code class="language-terraform"># dynatrace_platform_slo — schema read from the provider's resource docs 09/28/2026 (v1.105.0)
+# Auth: OAuth client only — DT_CLIENT_ID / DT_CLIENT_SECRET / DT_ACCOUNT_ID,
+# scopes slo:slos:read + slo:slos:write. A Platform Token does not drive this resource.
+resource &quot;dynatrace_platform_slo&quot; &quot;service_availability_30d&quot; {
+  name        = &quot;Service Availability - 30d&quot;
+  description = &quot;Request success ratio across services, rolling 30 days&quot;
+  tags        = [&quot;team:platform&quot;, &quot;tier:gold&quot;]
+
+  criteria {
+    criteria_detail {
+      target         = 99.5      # the goal (SLO-01 §4)
+      warning        = 99.9      # early-warning line, above target
+      timeframe_from = &quot;now-30d&quot; # rolling 30-day window
+      timeframe_to   = &quot;now&quot;
+    }
+  }
+
+  # The SLI is DQL. It must produce a timeseries field named `sli` (a percentage).
+  # No from:/interval: here — the criteria block supplies the timeframe.
+  custom_sli {
+    indicator = &lt;&lt;-EOT
+      timeseries {
+        total    = sum(dt.service.request.count),
+        failures = sum(dt.service.request.failure_count)
+      }
+      | fieldsAdd sli = ((total[] - failures[]) / total[]) * 100
+      | fieldsRemove total, failures
+    EOT
+  }
+}
+</code></pre>
+<h3>Classic — <code>dynatrace_slo_v2</code> (existing SLOs on unupgraded tenants only)</h3>
+<blockquote>
+<p><strong>Dynatrace Classic.</strong> Keep this form only to manage SLOs that already exist as <code>builtin:monitoring.slo</code> objects while your tenant is still on the classic surface — the readiness scan flags that schema as blocked at upgrade (see above). Do not author new SLOs this way; move existing ones to <code>dynatrace_platform_slo</code> as part of the upgrade (SLO-07 §8).</p>
+</blockquote>
+<pre><code class="language-terraform"># dynatrace_slo_v2 — schema verified at the provider registry 07/01/2026
+# Metric-based SLI (classic metric-selector syntax) — see the gap callout in Section 2
+# regarding DQL-only SLIs, which this resource does not accept directly.
+resource &quot;dynatrace_slo_v2&quot; &quot;web_availability_30d&quot; {
+  name               = &quot;Web Service Availability - 30d&quot;
+  custom_description = &quot;Request success ratio for the critical web service, rolling 30 days&quot;
+  enabled            = true
+  evaluation_type    = &quot;AGGREGATE&quot;
+
+  # rolling 30-day window
+  evaluation_window = &quot;-30d&quot;
+
+  # entitySelector syntax (not a DQL filter) — scopes the SLO to web services
+  filter = &quot;type(SERVICE),serviceType(WEB_SERVICE,WEB_REQUEST_SERVICE)&quot;
+
+  # classic metric-selector expression — good / total as a percentage
+  # keys checked against the classic built-in metrics list 11/09/2026
+  metric_expression = &quot;100*(builtin:service.errors.total.successCount:splitBy())/(builtin:service.requestCount.total:splitBy())&quot;
+  metric_name       = &quot;web_availability_30d&quot;
+
+  target_success = 99.5
+  target_warning = 99.9
+
+  # required block — burn-rate visualization + optional fast-burn threshold (SLO-04)
+  error_budget_burn_rate {
+    burn_rate_visualization_enabled = true
+    fast_burn_threshold             = 14
+  }
+}
+</code></pre>
+<p><a id="terraform"></a></p>
+<h2>3. Terraform Worked Example — Notes</h2>
+<p><strong>Modern resource (<code>dynatrace_platform_slo</code>):</strong></p>
+<ul>
+<li><strong><code>criteria</code> → <code>criteria_detail</code></strong> carries <code>target</code> and <code>warning</code> (the goal and the early-warning line from SLO-01 §4) and the evaluation window as <code>timeframe_from</code> / <code>timeframe_to</code> (<code>now-30d</code> → <code>now</code> for a rolling 30 days). <code>criteria</code> is required; <code>criteria_detail</code> can repeat when you need more than one window.</li>
+<li><strong><code>custom_sli.indicator</code></strong> is DQL and must yield a timeseries field named <strong><code>sli</code></strong>. Build and validate it in a notebook first (SLO-02), then paste it in without <code>from:</code> / <code>interval:</code>. The alternative, <code>sli_reference</code>, points at an SLI template instead of inlining a query.</li>
+<li><strong>Scope</strong> with <code>custom_sli.filter_segments</code> — the SLO equivalent of applying a segment (ORGNZ) — or with a <code>filter</code> inside the DQL. An unscoped SLO measures the whole environment, which is rarely what you want outside an example.</li>
+<li><strong>Auth is an OAuth client, not a Platform Token.</strong> The resource docs require <code>DT_CLIENT_ID</code> / <code>DT_CLIENT_SECRET</code> / <code>DT_ACCOUNT_ID</code> with <code>slo:slos:read</code> / <code>slo:slos:write</code>; see AUTOM-04 §3 for running it alongside Platform-Token resources in one provider block.</li>
+<li><strong>Export is opt-in</strong> — name <code>dynatrace_platform_slo</code> explicitly when exporting (Section 5).</li>
+</ul>
+<p><strong>Classic resource (<code>dynatrace_slo_v2</code>) — only while you still maintain classic SLOs:</strong></p>
+<ul>
+<li><strong><code>target_success</code> and <code>target_warning</code></strong> are the goal and warning line (not the shorter <code>target</code>/<code>warning</code> the modern resource uses).</li>
+<li><strong><code>metric_expression</code></strong> is a classic metric-selector string, not DQL — see the Section 2 gap.</li>
+<li><strong><code>filter</code></strong> uses entitySelector syntax (<code>type(SERVICE),serviceType(...)</code>), not a DQL filter clause.</li>
+<li><strong><code>error_budget_burn_rate</code> is a required block</strong> — <code>fast_burn_threshold</code> inside it pairs with the SLO-04 burn-rate recipe.</li>
+<li><strong>Auth</strong> is a classic API token (<code>slo.*</code> + <code>settings.*</code> scopes).</li>
+</ul>
+<p>State handling follows the same rules as every other Dynatrace Terraform resource — see AUTOM-09 for state-backend setup.</p>
+<p><a id="monaco"></a></p>
+<h2>4. Monaco Alternative</h2>
+<p>If your shop standardises on Monaco rather than Terraform, use the <strong><code>slo-v2</code></strong> type for a modern, DQL-based SLO. Monaco has supported it since v2.22. It is a different type from the classic <code>slo</code> type, and the Monaco docs say the two cannot be swapped. The docs' example of an SLO with a custom DQL SLI:</p>
+<pre><code class="language-yaml">configs:
+  - id: custom-sli          # an SLO that uses a custom DQL query as its SLI
+    type: slo-v2
+    config:
+      name: custom-sli
+      template: custom-sli.json
+</code></pre>
+<p>The <code>slo-v2</code> type needs no extra type fields. Validate the SLI query in a notebook first. Then export the working SLO with <code>monaco download</code> to capture <code>custom-sli.json</code>, rather than hand-writing the JSON.</p>
+<h3>Classic — inventory only</h3>
+<p>Existing Monaco projects may still hold the classic settings object below, which targets the blocked <code>builtin:monitoring.slo</code> schema. It is kept here because running <code>monaco download</code> against it is how you inventory what needs moving:</p>
+<pre><code class="language-yaml">configs:
+  - id: web-availability-30d
+    type:
+      settings:
+        schema: builtin:monitoring.slo
+        scope: environment
+    config:
+      template: web-availability-30d.json
+      skip: false
+</code></pre>
+<p>The classic schema takes a metric expression, not DQL, so a DQL SLI has no classic form. Move it to <code>slo-v2</code>, not into this object.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas-type-fields">Monaco YAML configuration: SaaS type fields (DT docs)</a> — <em>&quot;These two configuration types are incompatible, and deploying a slo configuration as a slo-v2 or vice versa results in the API rejecting the request.&quot;</em>; <em>&quot;This type does not require additional fields.&quot;</em> <a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/slo_v2">dynatrace_slo_v2 (Dynatrace provider docs)</a>, the Terraform twin of <code>builtin:monitoring.slo</code>, takes a <code>metric_expression</code>.</sub></p>
+</blockquote>
+<p><a id="api"></a></p>
+<h2>5. API and CI/CD</h2>
+<p>For direct API automation, use the <strong>SLO Service Public API</strong> — the modern app's own endpoint. This is not <code>/api/v2/slo</code>, which is the Service-level Objectives API <em>classic</em> and is flagged blocked at upgrade by the readiness scan; nor the older v1 SLO API. Rather than reproduce a request body that may drift, generate it from a working SLO:</p>
+<ol>
+<li>Create and validate one SLO in the app.</li>
+<li>Read it back via the API (or <code>monaco download</code> / <code>terraform-provider-dynatrace -export</code>) to capture the exact current schema.
+<ul>
+<li><strong><code>dynatrace_platform_slo</code> will not appear in a default export.</strong> Its resource documentation states: <em>&quot;This resource is excluded by default in the export utility, please explicitly specify the resource to retrieve existing configuration.&quot;</em> Name it explicitly — <code>terraform-provider-dynatrace -export dynatrace_platform_slo</code> — or the step above returns nothing for exactly the resource you are trying to capture, which reads as &quot;no SLOs are codified&quot; rather than &quot;this resource is opt-in&quot;.</li>
+</ul>
+</li>
+<li>Template that shape for the rest.</li>
+</ol>
+<p>This &quot;export a known-good object&quot; approach is the antidote to stale-payload errors, and it is also the path of least resistance for a DQL-only SLI, since the classic resource's <code>metric_expression</code> field cannot carry one (Section 2) — on the modern resource it goes straight into <code>custom_sli.indicator</code>. For the full CI/CD pattern — plan on PR, gated apply, three-way validation — see AUTOM-07 (pipelines) and AUTOM-96 (GitHub Actions LAB); the SLO resource slots into exactly the same pipeline as any other Dynatrace config.</p>
+<p>A codified SLO and a codified deployment gate are two different resources answering two different questions — see <strong>SLO-06</strong> for the <code>dynatrace_site_reliability_guardian</code> counterpart to everything in this notebook, including how to reuse an SLO's SLI query as a guardian objective (<code>REFERENCE_SLO</code> points only at a Classic SLO, and the docs mark it deprecated).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives">Service-Level Objectives (DT docs)</a>, <a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/slo_v2">dynatrace_slo_v2 resource (Dynatrace provider docs)</a>, <a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/platform_slo">dynatrace_platform_slo resource (Dynatrace provider docs)</a> — the modern resource this section recommends: <em>&quot;covers configuration for platform service-level objectives&quot;</em>, Dynatrace SaaS only, OAuth <strong>View SLOs</strong> (<code>slo:slos:read</code>) / <strong>Create and edit SLOs</strong> (<code>slo:slos:write</code>), and <em>&quot;This resource is excluded by default in the export utility, please explicitly specify the resource to retrieve existing configuration.&quot;</em>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_slo.md">platform_slo.md (Dynatrace GitHub)</a> — the same resource doc at its source; the registry page renders client-side, so it is the repository copy that makes the two quotes above machine-verifiable. <a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-slo-v1">SLO Service Public API (DT docs)</a> — endpoints are <code>/slos</code> and <code>/objective-templates</code>; the classic surface is documented separately as <em>Service-level Objectives API classic</em>, <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/service-level-objective-upgrade-classic">Upgrade from Service-Level Objectives Classic (DT docs)</a> — the version gates in §2, verbatim: <em>&quot;Configuration as Code via Terraform overview support the SLO Service Public API since v1.78.0&quot;</em> and <em>&quot;Configuration as Code via Monaco overview supports the SLO Service Public API since v2.22.&quot;</em>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives/create-slo">Create service-level objectives (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco">Monaco configuration (DT docs)</a>. Terraform schema (<code>builtin:monitoring.slo</code>, <code>evaluation_window</code>, <code>target_success</code>/<code>target_warning</code>, required <code>error_budget_burn_rate</code> block) verified at the provider registry 07/01/2026; <code>dynatrace_platform_slo</code>'s schema (<code>criteria</code>/<code>criteria_detail</code>, <code>custom_sli.indicator</code>, <code>filter_segments</code>, <code>sli_reference</code>), OAuth scopes and export exclusion re-verified at source 09/28/2026 (provider v1.105.0). <strong>Readiness scan:</strong> the &quot;blocked at upgrade&quot; classification is from the tenant upgrade readiness scan, read 07/31/2026; re-checked 08/28/2026 against both upgrade pages and the API references, where it is not restated. <strong>Derived:</strong> the metric-expression-vs-DQL-sli gap in Section 2 combines the two resources' schemas (<code>metric_expression</code> vs <code>custom_sli.indicator</code>) with the Create-SLO docs' DQL <code>sli</code>-field description — no source states the gap explicitly.</sub></p>
+</blockquote>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OTEL-04: Trace Instrumentation</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OTEL — OpenTelemetry Integration</a><span class="sep">/</span><span aria-current="page">OTEL-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OTEL-04: Trace Instrumentation</h1>
+<blockquote>
+<p><strong>Series:</strong> OTEL — OpenTelemetry Integration | <strong>Notebook:</strong> 4 of 8 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Instrumenting Applications for Distributed Tracing</h2>
+<p>Traces provide visibility into request flows across services. This notebook covers automatic and manual instrumentation techniques for popular languages with OpenTelemetry.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#instrumentation-types">Instrumentation Types</a></li>
+<li><a href="#auto-instrumentation">Auto-Instrumentation</a></li>
+<li><a href="#manual-instrumentation">Manual Instrumentation</a></li>
+<li><a href="#context-propagation">Context Propagation</a></li>
+<li><a href="#span-attributes-and-events">Span Attributes and Events</a></li>
+<li><a href="#language-specific-examples">Language-Specific Examples</a></li>
+<li><a href="#sampling-head-vs-tail">Sampling: Head vs. Tail</a></li>
+<li><a href="#best-practices">Best Practices</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>OTEL-01 and OTEL-03</td>
+</tr>
+<tr>
+<td><strong>Environment</strong></td>
+<td>Collector deployed and accessible</td>
+</tr>
+<tr>
+<td><strong>Language</strong></td>
+<td>Examples in Python, Java, Go, Node.js</td>
+</tr>
+</tbody>
+</table>
+<p><a id="instrumentation-types"></a></p>
+<h2>1. Instrumentation Types</h2>
+<h3>Comparison</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Effort</th>
+<th>Customization</th>
+<th>Coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Zero-code (auto)</strong></td>
+<td>Minimal</td>
+<td>Limited</td>
+<td>Framework-level</td>
+</tr>
+<tr>
+<td><strong>Manual</strong></td>
+<td>More</td>
+<td>Full</td>
+<td>Custom business logic</td>
+</tr>
+<tr>
+<td><strong>Hybrid</strong></td>
+<td>Medium</td>
+<td>Balanced</td>
+<td>Best of both</td>
+</tr>
+</tbody>
+</table>
+<h3>When to Use Each</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Quick start, standard frameworks</td>
+<td>Auto-instrumentation</td>
+</tr>
+<tr>
+<td>Custom business spans</td>
+<td>Manual</td>
+</tr>
+<tr>
+<td>Production with specific needs</td>
+<td>Hybrid</td>
+</tr>
+<tr>
+<td>Serverless / Lambda</td>
+<td>SDK with auto-instrumentation</td>
+</tr>
+</tbody>
+</table>
+<h3>Service Mesh: Istio &amp; Envoy</h3>
+<p>A service mesh emits telemetry without touching application code — the sidecar proxy (Envoy) generates spans for the traffic it routes. This is zero-code instrumentation at the infrastructure layer, complementary to the SDK patterns above.</p>
+<ul>
+<li><strong>Envoy</strong> can be configured to emit OpenTelemetry traces directly (an OpenTelemetry tracing provider) and ship them via OTLP — point the exporter at your collector or the Dynatrace OTLP endpoint.</li>
+<li><strong>Istio</strong> wires this mesh-wide: set the mesh's tracing provider to OpenTelemetry and Istio applies the proxy tracing configuration across the mesh.</li>
+</ul>
+<p>Mesh spans cover proxy-to-proxy hops; combine them with app-level SDK spans (via W3C trace-context propagation, §4) for an end-to-end trace. See the Dynatrace Istio/Envoy integration docs for the provider configuration.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/integrations">Istio and Envoy integration (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="auto-instrumentation"></a></p>
+<h2>2. Auto-Instrumentation</h2>
+<h3>Python Auto-Instrumentation</h3>
+<pre><code class="language-bash"># Install
+pip install opentelemetry-distro opentelemetry-exporter-otlp
+opentelemetry-bootstrap -a install
+
+# Run with auto-instrumentation
+opentelemetry-instrument \
+  --service_name my-python-app \
+  --exporter_otlp_endpoint http://collector:4317 \
+  python app.py
+</code></pre>
+<h3>Java Auto-Instrumentation</h3>
+<pre><code class="language-bash"># Download agent
+curl -L -o opentelemetry-javaagent.jar \
+  https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
+
+# Run with agent
+java -javaagent:opentelemetry-javaagent.jar \
+  -Dotel.service.name=my-java-app \
+  -Dotel.exporter.otlp.endpoint=http://collector:4318 \
+  -jar app.jar
+</code></pre>
+<blockquote>
+<p><strong>Port 4318, not 4317.</strong> <em>&quot;versions 2.0+ of the Java agent and OpenTelemetry Spring Boot starter use http/protobuf as the default protocol, not grpc&quot;</em>, and OTLP/HTTP listens on 4318. Pointing a 2.x agent at the gRPC port 4317 fails to export. To use gRPC, also set <code>-Dotel.exporter.otlp.protocol=grpc</code>.</p>
+<p><sub><strong>Sources:</strong> <a href="https://opentelemetry.io/docs/zero-code/java/agent/configuration/">Java agent configuration (opentelemetry.io)</a>.</sub></p>
+</blockquote>
+<h3>Node.js Auto-Instrumentation</h3>
+<pre><code class="language-bash"># Install
+npm install @opentelemetry/auto-instrumentations-node \
+  @opentelemetry/sdk-node \
+  @opentelemetry/exporter-trace-otlp-http
+
+# Run with auto-instrumentation
+node --require @opentelemetry/auto-instrumentations-node/register app.js
+</code></pre>
+<pre><code class="language-javascript">// Or programmatically (tracing.js)
+const { NodeSDK } = require('@opentelemetry/sdk-node');
+const { getNodeAutoInstrumentations } = require('@opentelemetry/auto-instrumentations-node');
+const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
+
+const sdk = new NodeSDK({
+  serviceName: 'my-node-app',
+  traceExporter: new OTLPTraceExporter({
+    url: 'http://collector:4318/v1/traces',
+  }),
+  instrumentations: [getNodeAutoInstrumentations()],
+});
+
+sdk.start();
+</code></pre>
+<p><a id="manual-instrumentation"></a></p>
+<h2>3. Manual Instrumentation</h2>
+<h3>Python Manual Tracing</h3>
+<pre><code class="language-python">from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.resources import Resource
+
+# Setup
+resource = Resource.create({&quot;service.name&quot;: &quot;my-python-app&quot;})
+provider = TracerProvider(resource=resource)
+processor = BatchSpanProcessor(OTLPSpanExporter(endpoint=&quot;http://collector:4317&quot;))
+provider.add_span_processor(processor)
+trace.set_tracer_provider(provider)
+
+# Get tracer
+tracer = trace.get_tracer(__name__)
+
+# Create spans
+@tracer.start_as_current_span(&quot;process_order&quot;)
+def process_order(order_id):
+    span = trace.get_current_span()
+    span.set_attribute(&quot;order.id&quot;, order_id)
+    
+    with tracer.start_as_current_span(&quot;validate_order&quot;):
+        # Validation logic
+        pass
+    
+    with tracer.start_as_current_span(&quot;charge_payment&quot;):
+        # Payment logic
+        pass
+</code></pre>
+<h3>Java Manual Tracing</h3>
+<pre><code class="language-java">import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
+
+public class OrderService {
+    private static final Tracer tracer = GlobalOpenTelemetry.getTracer(&quot;order-service&quot;);
+    
+    public void processOrder(String orderId) {
+        Span span = tracer.spanBuilder(&quot;process_order&quot;).startSpan();
+        try (Scope scope = span.makeCurrent()) {
+            span.setAttribute(&quot;order.id&quot;, orderId);
+            
+            validateOrder(orderId);
+            chargePayment(orderId);
+        } finally {
+            span.end();
+        }
+    }
+}
+</code></pre>
+<h3>Go Manual Tracing</h3>
+<pre><code class="language-go">import (
+    &quot;context&quot;
+    &quot;go.opentelemetry.io/otel&quot;
+    &quot;go.opentelemetry.io/otel/attribute&quot;
+)
+
+var tracer = otel.Tracer(&quot;order-service&quot;)
+
+func ProcessOrder(ctx context.Context, orderID string) error {
+    ctx, span := tracer.Start(ctx, &quot;process_order&quot;)
+    defer span.End()
+    
+    span.SetAttributes(attribute.String(&quot;order.id&quot;, orderID))
+    
+    if err := validateOrder(ctx, orderID); err != nil {
+        span.RecordError(err)
+        return err
+    }
+    
+    return chargePayment(ctx, orderID)
+}
+</code></pre>
+<p><a id="context-propagation"></a></p>
+<h2>4. Context Propagation</h2>
+<h3>W3C Trace Context</h3>
+<p>The standard propagation format:</p>
+<table>
+<thead>
+<tr>
+<th>Header</th>
+<th>Example</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>traceparent</code></td>
+<td><code>00-abc123-def456-01</code></td>
+<td>Trace ID, span ID, flags</td>
+</tr>
+<tr>
+<td><code>tracestate</code></td>
+<td><code>dt=s:1</code></td>
+<td>Vendor-specific state</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>tracestate</code> is also how the browser session reaches the backend.</strong> Dynatrace's RUM JavaScript injects <code>traceparent</code> and <code>tracestate</code> on outbound requests, and the <code>tracestate</code> entry carries the RUM session identifier — <strong><code>dt.rum.session.id</code></strong> — alongside the trace and span IDs. Same propagation mechanism described above, used for a different join: it is what lets a backend span be attributed to the browser session that caused it, rather than only to its parent span.</p>
+<p>On the span side that linkage surfaces as the <code>frontend.link</code> record (see <strong>SPANS-04 § Sprint 1.344</strong>). RUM-side configuration of it belongs to the <strong>WEBRUM</strong> series; the GenAI application — reconstructing a multi-turn LLM conversation from spans — is covered in <strong>AIOPS-06 § 1</strong>.</p>
+<h3>HTTP Propagation</h3>
+<p><strong>Python (requests):</strong></p>
+<pre><code class="language-python">from opentelemetry.propagate import inject
+import requests
+
+def call_downstream():
+    headers = {}
+    inject(headers)  # Adds traceparent, tracestate
+    response = requests.get(&quot;http://downstream/api&quot;, headers=headers)
+</code></pre>
+<p><strong>Extracting Context:</strong></p>
+<pre><code class="language-python">from opentelemetry.propagate import extract
+
+@app.route('/api/endpoint')
+def endpoint():
+    context = extract(request.headers)
+    with tracer.start_as_current_span(&quot;endpoint&quot;, context=context):
+        # Request handling
+        pass
+</code></pre>
+<h3>Messaging Propagation</h3>
+<p><strong>Kafka:</strong></p>
+<pre><code class="language-python"># Producer
+from opentelemetry.propagate import inject
+
+headers = []
+inject(headers, setter=kafka_header_setter)
+producer.send('topic', value=message, headers=headers)
+
+# Consumer
+context = extract(record.headers, getter=kafka_header_getter)
+with tracer.start_as_current_span(&quot;process_message&quot;, context=context):
+    process(record)
+</code></pre>
+<p><a id="span-attributes-and-events"></a></p>
+<h2>5. Span Attributes and Events</h2>
+<h3>Adding Attributes</h3>
+<pre><code class="language-python">with tracer.start_as_current_span(&quot;checkout&quot;) as span:
+    # Business attributes
+    span.set_attribute(&quot;user.id&quot;, user_id)
+    span.set_attribute(&quot;order.total&quot;, order_total)
+    span.set_attribute(&quot;order.items&quot;, len(items))
+    
+    # Semantic convention attributes (stable HTTP names; http.method / http.status_code are legacy)
+    span.set_attribute(&quot;http.request.method&quot;, &quot;POST&quot;)
+    span.set_attribute(&quot;http.response.status_code&quot;, 200)
+</code></pre>
+<h3>Adding Events</h3>
+<pre><code class="language-python">with tracer.start_as_current_span(&quot;payment&quot;) as span:
+    span.add_event(&quot;payment_initiated&quot;, {&quot;provider&quot;: &quot;stripe&quot;})
+    
+    result = process_payment()
+    
+    if result.success:
+        span.add_event(&quot;payment_completed&quot;, {
+            &quot;transaction_id&quot;: result.transaction_id
+        })
+    else:
+        span.add_event(&quot;payment_failed&quot;, {
+            &quot;error&quot;: result.error_message
+        })
+</code></pre>
+<h3>Recording Errors</h3>
+<pre><code class="language-python">from opentelemetry.trace import StatusCode
+
+with tracer.start_as_current_span(&quot;operation&quot;) as span:
+    try:
+        result = risky_operation()
+    except Exception as e:
+        span.record_exception(e)
+        span.set_status(StatusCode.ERROR, str(e))
+        raise
+</code></pre>
+<h3>Querying that status back out of Grail</h3>
+<p><strong>The SDK constant and the Grail value are not the same string</strong>, and the mismatch is the single most common reason an error-rate query returns zero on a healthy pipeline:</p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OTel SDK (Python/Java/Go/JS)</td>
+<td><code>StatusCode.ERROR</code></td>
+<td><code>ERROR</code> — uppercase, this is the spec</td>
+</tr>
+<tr>
+<td>OTel Collector config (<code>tail_sampling</code> <code>status_code</code> policy)</td>
+<td><code>status_codes: [ERROR, UNSET]</code></td>
+<td><code>ERROR</code> — uppercase, also correct</td>
+</tr>
+<tr>
+<td><strong>Grail / DQL</strong></td>
+<td><strong><code>span.status_code</code></strong></td>
+<td><strong><code>error</code></strong> — <strong>lowercase</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Two further Grail facts to carry into any DQL you write against span status:</p>
+<ul>
+<li><strong><code>otel.status_code</code> and <code>otel.status_message</code> do not exist.</strong> Neither has a row in <code>dt.semantic_dictionary.fields</code>. The real fields are <code>span.status_code</code> (<code>stable</code>) and <code>span.status_message</code> (<code>experimental</code> — and null on many failing spans, so do not depend on it for the failure reason).</li>
+<li><strong><code>span.status_code</code> is null on successful spans.</strong> <code>&quot;ok&quot;</code> is written vanishingly rarely — 9 spans out of roughly 659,000 in a two-hour window on a live tenant, 08/11/2026. So <code>countIf(span.status_code != &quot;error&quot;)</code> counts almost nothing (a <code>!=</code> against null is null, not true). <strong>Derive successes as <code>total - errors</code>.</strong> An availability SLO built the other way reads 0% on a perfectly healthy service and reports no error while doing it.</li>
+</ul>
+<p>Settle any such question against the dictionary rather than against a span sample — an empty span result is ambiguous, an empty dictionary result is not:</p>
+<pre><code class="language-dql">fetch dt.semantic_dictionary.fields
+| filter startsWith(name, &quot;span.status&quot;) or startsWith(name, &quot;otel.status&quot;)
+| fields name, stability, type
+</code></pre>
+<p><a id="language-specific-examples"></a></p>
+<h2>6. Language-Specific Examples</h2>
+<h3>Complete Python Example</h3>
+<pre><code class="language-python"># app.py
+from flask import Flask, request
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.flask import FlaskInstrumentor
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
+from opentelemetry.sdk.resources import Resource
+
+# Setup
+resource = Resource.create({&quot;service.name&quot;: &quot;checkout-api&quot;})
+provider = TracerProvider(resource=resource)
+processor = BatchSpanProcessor(
+    OTLPSpanExporter(endpoint=&quot;http://collector:4318/v1/traces&quot;)
+)
+provider.add_span_processor(processor)
+trace.set_tracer_provider(provider)
+
+# Auto-instrument
+app = Flask(__name__)
+FlaskInstrumentor().instrument_app(app)
+RequestsInstrumentor().instrument()
+
+tracer = trace.get_tracer(__name__)
+
+@app.route('/checkout', methods=['POST'])
+def checkout():
+    with tracer.start_as_current_span(&quot;process_checkout&quot;) as span:
+        order = request.json
+        span.set_attribute(&quot;order.id&quot;, order['id'])
+        
+        # Custom business span
+        with tracer.start_as_current_span(&quot;validate_inventory&quot;):
+            validate_inventory(order['items'])
+        
+        return {&quot;status&quot;: &quot;success&quot;}
+</code></pre>
+<pre><code class="language-dql">// View spans with custom attributes — order.id is an example; use an attribute your code sets
+fetch spans, from:-1h
+| filter isNotNull(order.id)
+| fields start_time, trace.id, span.name, order.id, duration
+| sort start_time desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Find spans with errors
+// The Grail field is span.status_code — NOT otel.status_code, which does not exist
+// (no row in dt.semantic_dictionary.fields). Likewise span.status_message, not
+// otel.status_message. Values are LOWERCASE in Grail: &quot;error&quot;, never &quot;ERROR&quot;.
+fetch spans, from:-1h
+| filter dt.openpipeline.source == &quot;/api/v2/otlp/v1/traces&quot;   // OTLP-ingested spans only
+| filter span.status_code == &quot;error&quot;
+| fields start_time, trace.id, span.id, span.name, span.kind, span.status_message
+| sort start_time desc
+| limit 20
+</code></pre>
+<p><a id="sampling-head-vs-tail"></a></p>
+<h2>7. Sampling: Head vs. Tail</h2>
+<p>Sampling discards a portion of traces to control trace volume and cost. <em>Where</em> the decision is made changes what you can decide on.</p>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Where</th>
+<th>Decision basis</th>
+<th>Trade-off</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Head sampling</strong></td>
+<td>SDK, at span start</td>
+<td>Random / rate-based only — the request outcome isn't known yet</td>
+<td>Cheap and simple; keeps/drops blindly, so it can drop the errors and slow traces you most want</td>
+</tr>
+<tr>
+<td><strong>Tail sampling</strong></td>
+<td>Collector, after the trace completes</td>
+<td>The full trace — status, latency, attributes</td>
+<td>Keeps the interesting traces; costs memory/CPU (the collector buffers each trace until it finishes)</td>
+</tr>
+</tbody>
+</table>
+<h3>Head sampling (SDK)</h3>
+<pre><code class="language-python">from opentelemetry.sdk.trace.sampling import TraceIdRatioBased
+
+# Keep 10% of traces — decided at the root span, propagated to children
+provider = TracerProvider(sampler=TraceIdRatioBased(0.1))
+</code></pre>
+<p>Head sampling is consistent across a trace (the root decision propagates), but it cannot prefer errors or slow requests — it does not yet know how the request ends.</p>
+<h3>Tail sampling (Collector)</h3>
+<p>The <code>tail_sampling</code> processor buffers each trace until it completes, then applies policies — so you can keep every error and slow trace and probabilistically sample only the healthy remainder:</p>
+<pre><code class="language-yaml">processors:
+  tail_sampling:
+    decision_wait: 30s          # how long to buffer a trace before deciding
+    policies:
+      - name: keep-errors
+        type: status_code
+        status_code: {status_codes: [ERROR, UNSET]}
+      - name: keep-slow
+        type: latency
+        latency: {threshold_ms: 500}
+      - name: sample-the-rest
+        type: probabilistic
+        probabilistic: {sampling_percentage: 20}
+</code></pre>
+<p>Tail sampling is <strong>stateful</strong> — <em>&quot;All spans for a given trace MUST be received by the same collector instance for effective sampling decisions.&quot;</em> At scale that means two layers of collectors: a <code>loadbalancing</code> exporter in front — its default routing key for traces is <code>traceID</code> — and the tail-sampling tier behind it (the same two-tier shape OTEL-03 §5 uses for metrics, keyed by trace instead of resource). Never shard one trace across gateways.</p>
+<h3>The trap: sampling biases trace-derived metrics</h3>
+<p>If OpenTelemetry traces are sampled, trace-derived metrics (request counts, error rates) are computed only from the sampled subset — a 20% sampler makes throughput look 5× lower than reality.</p>
+<p>Compute service metrics <strong>before</strong> sampling. The <code>span_metrics</code> connector (formerly <code>spanmetrics</code> — old name kept as a deprecated alias) reads the full, unsampled trace stream and emits RED metrics; <code>tail_sampling</code> then thins only the trace stream that gets stored:</p>
+<pre><code class="language-yaml">connectors:
+  span_metrics: {}
+  forward/sampling: {}
+service:
+  pipelines:
+    traces/in:                       # full stream
+      receivers: [otlp]
+      exporters: [span_metrics, forward/sampling]
+    metrics/span_metrics:            # metrics from ALL traces (unbiased)
+      receivers: [span_metrics]
+      exporters: [otlphttp]
+    traces/sampled:                  # only sampled traces are stored
+      receivers: [forward/sampling]
+      processors: [tail_sampling]
+      exporters: [otlphttp]
+</code></pre>
+<p>(Representative wiring — see the Dynatrace sampling docs demo for the full pipeline.)</p>
+<h3>Guidance</h3>
+<ul>
+<li><strong>Do not mix sampling modes on one trace.</strong> Combining OTel sampling and OneAgent sampling on the same distributed trace yields inconsistent, partial traces — pick one owner per trace (see OTEL-07 §9 signal routing).</li>
+<li>Sampling is a <strong>cost lever, not a default</strong> — in community practice, teams start by keeping everything, measure ingest, and sample only if trace volume turns out to be the cost driver. OTel trace volume is billed as Traces – Ingest &amp; Process under DPS; only traces from a Full-Stack monitored host or the OneAgent Trace API draw on an included volume (see OTEL-01 §6 and the FINOPS series).</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector-use-cases/sampling">Sampling with the OTel Collector (DT docs)</a> — <code>tail_sampling</code> policies (<code>status_code</code>/<code>latency</code>/<code>probabilistic</code>, <code>decision_wait</code>), <code>span_metrics</code>-before-sampling to avoid metric bias, and the no-mixed-mode warning</sub></li>
+<li><sub><a href="https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/tailsamplingprocessor">Tail Sampling Processor (OpenTelemetry Collector Contrib GitHub)</a> — <em>&quot;All spans for a given trace MUST be received by the same collector instance for effective sampling decisions.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/exporter/loadbalancingexporter">Load Balancing Exporter (OpenTelemetry Collector Contrib GitHub)</a> — <em>&quot;If no <code>routing_key</code> is configured, the default routing mechanism is <code>traceID</code> for traces&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/opentelemetry-licensing">OpenTelemetry licensing (DT docs)</a> — <em>&quot;OpenTelemetry trace data is billed by the ingested volume.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="best-practices"></a></p>
+<h2>8. Best Practices</h2>
+<h3>Span Naming</h3>
+<table>
+<thead>
+<tr>
+<th>Good</th>
+<th>Bad</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>HTTP GET /users/{id}</code></td>
+<td><code>HTTP GET /users/123</code></td>
+<td>Low cardinality</td>
+</tr>
+<tr>
+<td><code>process_order</code></td>
+<td><code>order_abc123</code></td>
+<td>Descriptive, stable</td>
+</tr>
+<tr>
+<td><code>db.query</code></td>
+<td><code>SELECT * FROM...</code></td>
+<td>Operation, not data</td>
+</tr>
+</tbody>
+</table>
+<h3>Attribute Guidelines</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Use semantic conventions</td>
+<td>Standardization</td>
+</tr>
+<tr>
+<td>Keep cardinality low</td>
+<td>Query performance</td>
+</tr>
+<tr>
+<td>Don't include PII</td>
+<td>Security</td>
+</tr>
+<tr>
+<td>Add business context</td>
+<td>Debugging value</td>
+</tr>
+<tr>
+<td>Prefer platform-native feature-flag enrichment where available</td>
+<td>OneAgent adds OpenFeature SDK support for Java (1.343) and Python (1.347, OpenFeature SDK 0.8.0+) — verify the agent version on the hosts concerned; hand-set flag-variant attributes remain the portable fallback (SPANS-02 § 7a)</td>
+</tr>
+</tbody>
+</table>
+<h3>Performance Tips</h3>
+<table>
+<thead>
+<tr>
+<th>Tip</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Use batch processor</td>
+<td>Reduces network calls</td>
+</tr>
+<tr>
+<td>Sample appropriately</td>
+<td>Reduces volume</td>
+</tr>
+<tr>
+<td>Limit attribute size</td>
+<td>Reduces payload</td>
+</tr>
+<tr>
+<td>Don't over-instrument</td>
+<td>Reduces noise</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Instrumentation types: auto, manual, hybrid</li>
+<li>Auto-instrumentation for Python, Java, Node.js</li>
+<li>Manual span creation and management</li>
+<li>Context propagation across services</li>
+<li>Adding attributes and events to spans</li>
+<li>Language-specific implementation patterns</li>
+<li>Best practices for effective tracing</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://opentelemetry.io/docs/languages/python/">OTel Python</a></li>
+<li><a href="https://opentelemetry.io/docs/languages/java/">OTel Java</a></li>
+<li><a href="https://opentelemetry.io/docs/languages/go/">OTel Go</a></li>
+<li><a href="https://opentelemetry.io/docs/languages/js/">OTel Node.js</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

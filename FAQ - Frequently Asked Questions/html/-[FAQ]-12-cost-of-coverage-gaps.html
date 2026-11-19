@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ-12: Coming from Another Tool — How Partial Enablement Handicaps Your Dynatrace Coverage</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">FAQ — Frequently Asked Questions</a><span class="sep">/</span><span aria-current="page">FAQ-12</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>FAQ-12: Coming from Another Tool — How Partial Enablement Handicaps Your Dynatrace Coverage</h1>
+<blockquote>
+<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 12 — Coming from Another Tool: How Partial Enablement Handicaps Your Coverage | <strong>Created:</strong> July 2026 | <strong>Last Updated:</strong> 11/18/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Teams arriving from another monitoring product bring more than their dashboards — they bring an <strong>operating model</strong>. The previous tool trained them: hand-pick which applications get the APM agent, keep logs in the log tool, alert on static thresholds, treat RUM and synthetic as separate products someone else owns, keep security in a different team's scanner. Every one of those habits was rational <em>in a modular tool stack, because the modules genuinely were separate products that didn't talk to each other</em>.</p>
+<p>Carried into Dynatrace, the same habits quietly rebuild the old architecture inside the new platform — and with it, the old limits. Dynatrace's differentiating capability — Davis causal AI answering <em>&quot;what broke, why, and who is affected&quot;</em> — is a function of <strong>signal completeness</strong>: the layers feed each other, so each item left off doesn't just remove that feature, it degrades the answers every other layer can give.</p>
+<p>This entry goes <strong>down the list of items that migration customers most commonly leave un-enabled</strong>, and for each one names the habit it comes from and the specific handicap it creates. The goal is not that everything must be on everywhere (§6 covers where reduced coverage is genuinely right) — it is that &quot;we've always done it that way&quot; stops being an invisible decision and becomes a priced one.</p>
+<blockquote>
+<p><strong>Scope:</strong> Dynatrace SaaS on DPS. This entry answers <em>&quot;what happens if we keep the old habits?&quot;</em> — for <em>&quot;how do we instrument?&quot;</em> see FAQ-03 (OneAgent and OpenTelemetry); for the staged rollout program see ADOPT-06; for tool-specific migration runbooks see the NR2DT, S2D, and SL2DT series.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#mode-ladder">The Monitoring-Mode Ladder</a></li>
+<li><a href="#cascade">The Dependency Cascade — Why Layers Multiply</a></li>
+<li><a href="#impact-matrix">Going Down the List — Habit, Gap, Handicap</a></li>
+<li><a href="#coverage-audit">Auditing Your Current Coverage with DQL</a></li>
+<li><a href="#reduced-modes">When Reduced Modes Are the Right Call</a></li>
+<li><a href="#objections">&quot;We've Always Done It That Way&quot; — Objections and Honest Responses</a></li>
+<li><a href="#recommendation">Recommended Approach</a></li>
+<li><a href="#gotchas">Common Gotchas</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS on the Dynatrace Platform Subscription (DPS). Discovery mode is DPS-only.</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>Environment settings access to review monitoring modes and process-group monitoring rules; <code>storage:*:read</code> scopes for the coverage-audit DQL in §5.</td>
+</tr>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Platform / Observability Lead (primary); application owners and executives deciding coverage scope.</td>
+</tr>
+<tr>
+<td><strong>Related series</strong></td>
+<td>FAQ-03 (OneAgent and OpenTelemetry), ADOPT (maturity + staged enablement — ADOPT-06 operationalizes this entry), FINOPS (cost side of the same decision), ONBRD (deployment), APPSEC (code-module dependency).</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<table>
+<thead>
+<tr>
+<th>The habit you arrive with</th>
+<th>The item it leaves off</th>
+<th>The handicap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>&quot;We hand-picked which apps got the APM agent&quot;</em></td>
+<td><strong>Full-Stack mode</strong> estate-wide on the paths that matter</td>
+<td>No tracing, no service detection, no code-level visibility, and only limited AppSec vulnerability detection on the un-picked hosts — and Davis RCA degrades everywhere their dependencies reach</td>
+</tr>
+<tr>
+<td><em>&quot;We disabled the agent on sensitive processes&quot;</em></td>
+<td><strong>Deep monitoring</strong> on those process groups</td>
+<td>Those PGs vanish from service/code view — traces passing through them lose a hop, even on Full-Stack hosts</td>
+</tr>
+<tr>
+<td><em>&quot;Our old APM traced per-service, sampled&quot;</em></td>
+<td><strong>End-to-end distributed tracing</strong></td>
+<td>The <em>&quot;which transaction caused this&quot;</em> answer; cross-service causation; frontend-to-backend correlation</td>
+</tr>
+<tr>
+<td><em>&quot;Logs live in the log tool — always have&quot;</em></td>
+<td><strong>Log ingestion into Dynatrace</strong></td>
+<td>Log evidence never appears in problem context, can't become log-derived metrics, and Davis works with fewer facts</td>
+</tr>
+<tr>
+<td><em>&quot;We ported our threshold alerts across&quot;</em></td>
+<td><strong>Davis anomaly detection and problem correlation</strong></td>
+<td>Static thresholds recreate the old alert storm — no baselines, no problem grouping, no root cause; you bought an AIOps platform and turned the AI off</td>
+</tr>
+<tr>
+<td><em>&quot;RUM was a separate product we never bought&quot;</em></td>
+<td><strong>Real User Monitoring</strong></td>
+<td>No user-impact statement on any problem; priorities set by loudest host, not most-damaged users</td>
+</tr>
+<tr>
+<td><em>&quot;We have a separate uptime checker&quot;</em></td>
+<td><strong>Synthetic</strong> in the same platform</td>
+<td>Availability signal never correlates with the traces/logs that explain it</td>
+</tr>
+<tr>
+<td><em>&quot;We never tagged; we encoded meaning in hostnames&quot;</em></td>
+<td><strong>Tags, host groups, and metadata enrichment</strong></td>
+<td>No ownership routing, no cost allocation, no IAM boundaries, no filtering — every downstream capability queries a naming convention</td>
+</tr>
+<tr>
+<td><em>&quot;Security has their own scanner&quot;</em></td>
+<td><strong>Application Security (RVA/RAP)</strong></td>
+<td>AppSec still runs in every mode, but outside Full-Stack third-party and code-level vulnerability detection are <em>limited</em>, and the risk context that depends on Full-Stack topology is reduced (APPSEC-01 §3)</td>
+</tr>
+</tbody>
+</table>
+<p>The habits in the left column are the ones migration teams commonly arrive with, in community practice; each handicap is documented per capability and sourced in §§ 2–4.</p>
+<p><strong>The one-sentence version:</strong> the old tool was a set of separate products, so partial adoption cost you nothing extra — Dynatrace is one correlated system, so partial adoption re-creates the separated tools you just paid to leave.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/oneagent/monitoring-modes/monitoring-modes">OneAgent monitoring modes (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/process-groups/configuration/pg-monitoring">Process deep monitoring (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/secure/application-security">Application Security (DT docs)</a> — the <em>Support overview</em> table marks third-party and code-level vulnerability detection as limited in Infrastructure and Discovery modes, and Runtime Application Protection as available in all three.</sub></p>
+</blockquote>
+<p><a id="mode-ladder"></a></p>
+<h2>2. The Monitoring-Mode Ladder</h2>
+<p>OneAgent runs in one of three modes per host. What each provides, per the official mode-comparison matrix (Extensions and custom-metric quotas omitted):</p>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Discovery</th>
+<th>Infrastructure</th>
+<th>Full-Stack</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Topology discovery</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>Host criticality / basic monitoring</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>Host process details</td>
+<td>—</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>Detailed disk / network / memory analysis</td>
+<td>—</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td><strong>Tracing and profiling</strong></td>
+<td>—</td>
+<td>—</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>Process injection</td>
+<td>—</td>
+<td>opt-out (on by default; Java backing services + runtime metrics only)</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>Log Management</td>
+<td>opt-in</td>
+<td>opt-in</td>
+<td>opt-in</td>
+</tr>
+<tr>
+<td>Application Security</td>
+<td>opt-in (detection <em>limited</em>)</td>
+<td>opt-in (detection <em>limited</em>)</td>
+<td>opt-in</td>
+</tr>
+</tbody>
+</table>
+<p>Three load-bearing details behind the checkmarks:</p>
+<ul>
+<li><strong>Full-Stack is the default and the recommendation for business-critical applications</strong> — it is the only mode with <em>&quot;code-level visibility, in-depth process monitoring&quot;</em> and tracing.</li>
+<li><strong>Infrastructure mode still injects (opt-out) — but only for limited purposes:</strong> it <em>&quot;automatically injects into processes to be able to monitor backing services written in Java and runtime metrics for supported languages.&quot;</em> Injection in this mode does <strong>not</strong> produce distributed traces or service detection.</li>
+<li><strong>Discovery mode</strong> provides <em>&quot;basic metrics enabling you to discover your hosts and processes and learn the potential to extend your monitoring&quot;</em> — inventory, not observability. It is available only on DPS (billed under Foundation &amp; Discovery), and its purpose is deliberate: cover the long tail of the estate cheaply so you can see what deserves an upgrade.</li>
+<li><strong>Log Management reads <em>opt-in</em> in every mode, yet the OneAgent log module is on by default.</strong> The modes page does not define the label. The log ingestion page says <em>&quot;Dynatrace log monitoring is enabled by default but only controls the OneAgent log module capability&quot;</em> and <em>&quot;The only required step after OneAgent installation is to review default ingest rules or create custom log ingest rules&quot;</em> — so the module discovers logs out of the box, and which of them are stored is what you opt into (FAQ-08).</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/oneagent/monitoring-modes/monitoring-modes">OneAgent monitoring modes (DT docs)</a> — capability matrix (<em>Process injection</em> is marked opt-out for Infrastructure and blank for Discovery; <em>Log Management</em> and <em>Application Security</em> opt-in in all three) and all quoted phrases; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa">Log ingestion via OneAgent (DT docs)</a> — the two log-module quotes; <a href="https://docs.dynatrace.com/docs/platform/oneagent/monitoring-modes/enable-monitoring-modes">Enable OneAgent monitoring modes (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability">Application &amp; Infrastructure Observability overview — DPS (DT docs)</a> — Full-Stack / Infrastructure / Foundation &amp; Discovery billing split; <a href="https://docs.dynatrace.com/docs/secure/application-security">Application Security (DT docs)</a> — the <em>Support overview</em> marks third-party and code-level vulnerability detection as limited in Infrastructure and Discovery. <strong>Derived:</strong> the Log Management reading combines the matrix label with the two log-module quotes.</sub></p>
+</blockquote>
+<p><a id="cascade"></a></p>
+<h2>3. The Dependency Cascade — Why Layers Multiply</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5UaGUgQ2FwYWJpbGl0eSBEZXBlbmRlbmN5IENhc2NhZGU8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+RWFjaCBsYXllciBmZWVkcyB0aGUgbmV4dCDigJQgZXZlcnkgbGF5ZXIgd2l0aGhlbGQgcmVtb3ZlcyBhIGNsYXNzIG9mIGFuc3dlcnMgZXZlcnl3aGVyZSBhYm92ZSBpdDwvdGV4dD4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJ1cDEyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIExlZnQgbGFkZGVyOiBtb2RlcyBib3R0b20tdXAgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjQwMCIgd2lkdGg9IjMzMCIgaGVpZ2h0PSI2MiIgZmlsbD0iIzY0NzQ4QiIgb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIyMDUiIHk9IjQyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+RGlzY292ZXJ5IG1vZGU8L3RleHQ+CiAgPHRleHQgeD0iMjA1IiB5PSI0NDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkludmVudG9yeTogaG9zdHMgKyBwcm9jZXNzZXMgZXhpc3QgwrcgdXBncmFkZSBzaWduYWxzPC90ZXh0PgoKICA8cmVjdCB4PSI0MCIgeT0iMzIyIiB3aWR0aD0iMzMwIiBoZWlnaHQ9IjYyIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjIwNSIgeT0iMzQ3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5JbmZyYXN0cnVjdHVyZSBtb2RlPC90ZXh0PgogIDx0ZXh0IHg9IjIwNSIgeT0iMzY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Qcm9jZXNzIGRldGFpbHMgwrcgZGlzayAvIG5ldHdvcmsgLyBtZW1vcnkgwrcgbG9ncyBwb3NzaWJsZTwvdGV4dD4KCiAgPHJlY3QgeD0iNDAiIHk9IjI0NCIgd2lkdGg9IjMzMCIgaGVpZ2h0PSI2MiIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMiIgcng9IjgiLz4KICA8dGV4dCB4PSIyMDUiIHk9IjI2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+RnVsbC1TdGFjayBtb2RlIChjb2RlIG1vZHVsZXMpPC90ZXh0PgogIDx0ZXh0IHg9IjIwNSIgeT0iMjg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5JbmplY3Rpb24g4oaSIFB1cmVQYXRoIHRyYWNlcyDihpIgc2VydmljZSBkZXRlY3Rpb248L3RleHQ+CgogIDxyZWN0IHg9IjQwIiB5PSIxNjYiIHdpZHRoPSIzMzAiIGhlaWdodD0iNjIiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMSIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIyMDUiIHk9IjE5MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+QWRkLW9uczogTG9ncyDCtyBSVU0gwrcgU3ludGhldGljIMK3IEFwcFNlYzwvdGV4dD4KICA8dGV4dCB4PSIyMDUiIHk9IjIxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RXZpZGVuY2UgwrcgdXNlciBpbXBhY3Qgwrcgb3V0c2lkZS1pbiDCtyBydW50aW1lIHNlY3VyaXR5PC90ZXh0PgoKICA8cmVjdCB4PSI0MCIgeT0iODgiIHdpZHRoPSIzMzAiIGhlaWdodD0iNjIiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMSIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMjA1IiB5PSIxMTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkRhdmlzIGNhdXNhbCBSQ0E8L3RleHQ+CiAgPHRleHQgeD0iMjA1IiB5PSIxMzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPiJXaGF0IGJyb2tlLCB3aHksIHdobyBpcyBhZmZlY3RlZCIgPSBmKHNpZ25hbCBjb21wbGV0ZW5lc3MpPC90ZXh0PgoKICA8bGluZSB4MT0iMjA1IiB5MT0iNDAwIiB4Mj0iMjA1IiB5Mj0iMzg2IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI3VwMTIpIi8+CiAgPGxpbmUgeDE9IjIwNSIgeTE9IjMyMiIgeDI9IjIwNSIgeTI9IjMwOCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCN1cDEyKSIvPgogIDxsaW5lIHgxPSIyMDUiIHkxPSIyNDQiIHgyPSIyMDUiIHkyPSIyMzAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjdXAxMikiLz4KICA8bGluZSB4MT0iMjA1IiB5MT0iMTY2IiB4Mj0iMjA1IiB5Mj0iMTUyIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI3VwMTIpIi8+CgogIDwhLS0gUmlnaHQgcGFuZWw6IHdoYXQgYnJlYWtzIC0tPgogIDxyZWN0IHg9IjQxMCIgeT0iODgiIHdpZHRoPSI0ODAiIGhlaWdodD0iMzc0IiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjA2IiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjY1MCIgeT0iMTE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5XaXRoaG9sZCBhIGxheWVyIOKGkiB3aGF0IHN0b3BzIHdvcmtpbmcgYWJvdmUgaXQ8L3RleHQ+CgogIDx0ZXh0IHg9IjQzMCIgeT0iMTQ4IiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5ObyBGdWxsLVN0YWNrIC8gY29kZSBtb2R1bGVzPC90ZXh0PgogIDx0ZXh0IHg9IjQzMCIgeT0iMTY2IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5ObyB0cmFjZXMg4oaSIG5vIHNlcnZpY2VzIOKGkiBTbWFydHNjYXBlIGVuZHMgYXQgcHJvY2Vzc2VzIOKGkjwvdGV4dD4KICA8dGV4dCB4PSI0MzAiIHk9IjE4MiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RGF2aXMgUkNBIGZhbGxzIGJhY2sgdG8gaG9zdC1sZXZlbCDihpIgQXBwU2VjIGRldGVjdGlvbiBsaW1pdGVkPC90ZXh0PgoKICA8dGV4dCB4PSI0MzAiIHk9IjIxMiIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+RGVlcCBtb25pdG9yaW5nIG9mZiAocGVyIHByb2Nlc3MgZ3JvdXApPC90ZXh0PgogIDx0ZXh0IHg9IjQzMCIgeT0iMjMwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5UaGF0IFBHIHZhbmlzaGVzIGZyb20gc2VydmljZS9jb2RlIHZpZXcg4oCUIEZ1bGwtU3RhY2sgY29zdCw8L3RleHQ+CiAgPHRleHQgeD0iNDMwIiB5PSIyNDYiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkluZnJhc3RydWN0dXJlIHZhbHVlPC90ZXh0PgoKICA8dGV4dCB4PSI0MzAiIHk9IjI3NiIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+Tm8gbG9nczwvdGV4dD4KICA8dGV4dCB4PSI0MzAiIHk9IjI5NCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+SW52ZXN0aWdhdGlvbnMgZW5kIGF0ICJtZXRyaWMgc3Bpa2VkIiDigJQgbm8gZXZpZGVuY2UgbGF5ZXIsPC90ZXh0PgogIDx0ZXh0IHg9IjQzMCIgeT0iMzEwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5ubyBsb2ctZGVyaXZlZCBtZXRyaWNzLCBmZXdlciBEYXZpcyBzaWduYWxzPC90ZXh0PgoKICA8dGV4dCB4PSI0MzAiIHk9IjM0MCIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+Tm8gUlVNPC90ZXh0PgogIDx0ZXh0IHg9IjQzMCIgeT0iMzU4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Qcm9ibGVtcyBjYW4ndCBzdGF0ZSB1c2VyIGltcGFjdCDigJQgcHJpb3JpdHkgYnkgbG91ZGVzdCBob3N0LDwvdGV4dD4KICA8dGV4dCB4PSI0MzAiIHk9IjM3NCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+bm90IG1vc3QtZGFtYWdlZCB1c2VycyDCtyBubyBleHBlcmllbmNlIFNMT3Mgwrcgbm8gcmVwbGF5PC90ZXh0PgoKICA8dGV4dCB4PSI0MzAiIHk9IjQwNCIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+Tm8gc3ludGhldGljPC90ZXh0PgogIDx0ZXh0IHg9IjQzMCIgeT0iNDIyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5EZXRlY3Rpb24gZGVwZW5kcyBvbiBsaXZlIHVzZXJzIOKAlCBxdWlldCBob3VycyBmYWlsIHNpbGVudGx5PC90ZXh0PgoKICA8dGV4dCB4PSI0MzAiIHk9IjQ0OCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+TWFyZ2luYWwgdmFsdWUgb2YgZWFjaCBsYXllciBpcyBoaWdoZXIgd2hlbiB0aGUgb3RoZXJzIGFyZSBvbi48L3RleHQ+Cjwvc3ZnPgo=" alt="Capability Dependency Cascade" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Layer withheld | Direct loss | Cascading loss |
+|----------------|-------------|----------------|
+| Code modules / Full-Stack | No PurePath traces | No service detection -> no service Smartscape -> Davis RCA degrades to host-level -> limited AppSec detection -> no RUM backend correlation |
+| Logs | No log evidence | Davis has fewer signals; investigations end at "metric spiked" |
+| RUM | No user sessions | Problems cannot state user impact; no experience SLOs; no replay forensics |
+| Synthetic | No outside-in baseline | Outage detection depends on real users being present |
+For environments where SVG doesn't render
+-->
+<p>The capabilities are not parallel — they stack. Dynatrace documents each link below on its own; reading them as one compounding chain is community practice. The load-bearing chain:</p>
+<ol>
+<li><strong>Code modules produce traces.</strong> Full-Stack injection is what generates PurePath distributed traces from your processes. No injection → no traces (unless you bring OpenTelemetry — see FAQ-03).</li>
+<li><strong>Traces produce services.</strong> Automatic service detection works on observed requests. No traces → no service entities, no service-level response time / failure rate / throughput.</li>
+<li><strong>Services complete the topology.</strong> Smartscape's service layer — who calls whom — exists only where services exist. Below it, the map ends at processes.</li>
+<li><strong>Topology powers Davis.</strong> Davis root-cause analysis walks the dependency graph to connect a symptom (slow checkout) to a cause (saturated database on another host). Without the service layer, correlated events collapse to per-host findings: <em>&quot;CPU is high&quot;</em> rather than &quot;CPU is high <strong>and here is the transaction chain it is breaking</strong>&quot;</li>
+<li><strong>Code modules raise Application Security from limited to full.</strong> Application Security runs in all three modes, but third-party and code-level vulnerability detection are <em>limited</em> outside Full-Stack, and Full-Stack topology is what supplies exposure and data-asset context for risk ranking. Runtime Application Protection is available in every mode.</li>
+<li><strong>RUM joins the user to all of it.</strong> Frontend sessions link to backend traces, which is what lets a problem say <em>&quot;342 users affected.&quot;</em> No RUM → impact statements stop at the service boundary. No traces → RUM stops at the browser.</li>
+<li><strong>Logs are the evidence layer.</strong> Metrics and traces tell you <em>where</em>; logs usually tell you <em>what exactly</em>. Davis correlates log anomalies into problems only for logs that are ingested.</li>
+</ol>
+<p>The practical consequence: <strong>the marginal value of each layer is higher when the others are on.</strong> Logs on a Full-Stack host land in trace context; the same logs on an infrastructure-only host are just text with a hostname. This is also why the previous tool never punished partial adoption the way Dynatrace's model rewards full adoption: in a modular stack the products were separate anyway, so leaving one off cost exactly that product. Here, leaving one off costs a slice of everything above it in the cascade.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/oneagent/monitoring-modes/monitoring-modes">OneAgent monitoring modes (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/process-groups/configuration/pg-monitoring">Process deep monitoring (DT docs)</a> — <em>&quot;end-to-end visibility into requests of all auto-detected server-side services&quot;</em> ties detection to deep monitoring.</sub></p>
+</blockquote>
+<p><a id="impact-matrix"></a></p>
+<h2>4. Going Down the List — Habit, Gap, Handicap</h2>
+<p>Work down this list against your own estate. Each row: the operating habit the previous tool trained, what still works without the item, what stops working, and what degrades silently — the silent column is where migrations get judged a year later.</p>
+<h3>4.1 Full-Stack mode (vs. &quot;we hand-picked apps for the APM agent&quot;)</h3>
+<p>Legacy APM charged per instrumented app, so curating the list was cost discipline. In Dynatrace the mode ladder (§2) is the cost control — curating by <em>withholding Full-Stack</em> instead means: no tracing/profiling, no automatic service detection, no code-level visibility on the withheld hosts, <strong>and only limited Application Security detection</strong> on them (Runtime Application Protection still runs — §4.9). <strong>Silently degraded:</strong> Davis RCA and Smartscape wherever the un-covered hosts sit in a dependency chain — the gap spreads beyond the hosts themselves.</p>
+<h3>4.2 Deep monitoring per process group (vs. &quot;we disabled the agent on sensitive processes&quot;)</h3>
+<p>The old reflex was risk management against a third-party agent. Dynatrace's control surface is per-PG monitoring rules — but a blanket carry-over of old exclusion lists means Full-Stack hosts delivering Infrastructure value: <em>&quot;deep monitoring rules only affect service- and code-level monitoring&quot;</em>, so the excluded PG's requests vanish from traces, and downstream services show it as an opaque called-service. <strong>Audit the inherited exclusions</strong> (§5) — most were written for a different agent's behavior.</p>
+<h3>4.3 End-to-end tracing (vs. &quot;our old APM traced per-service, sampled&quot;)</h3>
+<p>Per-service traces made cross-service incidents a correlation exercise between screens. PurePath's value is the <em>end-to-end, cross-service</em> transaction (subject to Adaptive Traffic Management at high volume) — withhold the code modules (or decline OTel where modules can't go — FAQ-03) and you keep the old workflow: humans joining timestamps across dashboards. <strong>Silently degraded:</strong> MTTR on every multi-service incident, which in microservice estates is most of them.</p>
+<h3>4.4 Logs in Dynatrace (vs. &quot;logs live in the log tool — always have&quot;)</h3>
+<p>The strongest habit on the list, and the one with a legitimate partial answer. What you lose while logs live elsewhere: log evidence inside problem context, trace-scoped log views, log-derived metrics (FAQ-09's economics), and log anomaly signals into Davis. The honest landing point for most migrations: <strong>business-critical paths' logs into Dynatrace for correlation; bulk/compliance logs wherever they are cheapest</strong> — the S2D and SL2DT series exist precisely to plan that split.</p>
+<h3>4.5 Davis instead of static thresholds (vs. &quot;we ported our threshold alerts across&quot;)</h3>
+<p>The most-transferred habit and the most self-defeating: recreating the old tool's alert rules re-creates the old tool's alert storm, minus the years of tuning it had absorbed. Dynatrace's model is baselines + anomaly detection + <strong>problem correlation</strong> — dozens of related alerts collapse into one problem with a root cause. Port the <em>intent</em> of the old alerts (what must never happen), not the rule list; ALERT-02 gives the detection decision framework and AIOPS-02 the mechanisms. <strong>Silently degraded if skipped:</strong> on-call trust — the pager fires like the old tool, so everyone assumes the new tool is the old tool.</p>
+<h3>4.6 RUM (vs. &quot;RUM was a separate product we never bought&quot;)</h3>
+<p>Without sessions, no problem can say <em>&quot;342 users affected&quot;</em> — priority calls fall back to infrastructure severity, the loudest host wins, and experience SLOs are impossible. With the backend already Full-Stack, RUM is a snippet + privacy review (masking levels and opt-in are first-class — WEBRUM/MOBL), and sessions join to backend traces. <strong>The history trap:</strong> baselines and experience SLOs start accruing at enablement — &quot;we'll add it when we need it&quot; means having no history precisely when you need it.</p>
+<h3>4.7 Synthetic in the same platform (vs. &quot;we have a separate uptime checker&quot;)</h3>
+<p>The external checker tells you the endpoint failed; it can't hand the failure to the traces and logs that explain it. Keeping it is fine as a second opinion — the handicap is having <strong>no outside-in signal that correlates</strong>: quiet-hours outages surface as morning user complaints, and the availability baseline lives in a tool Davis can't see.</p>
+<h3>4.8 Tags, host groups, and enrichment (vs. &quot;we encoded meaning in hostnames&quot;)</h3>
+<p>Naming-convention semantics don't survive contact with Kubernetes, autoscaling, or IAM. Without deliberate tagging/host-group strategy (FAQ-01, FAQ-02), everything downstream — ownership routing (<em>enrich upstream or you cannot route</em>, ALERT-01), cost allocation (<code>dt.cost.*</code>, FINOPS), access boundaries (<code>dt.security_context</code>, IAM), filtering and segments — queries a hostname parser. This is the cheapest item on the list to do early and the most expensive to retrofit.</p>
+<h3>4.9 Application Security (vs. &quot;security has their own scanner&quot;)</h3>
+<p>The scanner sees what <em>could</em> be vulnerable; RVA sees what is <strong>loaded and reachable in running processes</strong>, RAP blocks attacks in-flight. Application Security runs in every monitoring mode, but it <strong>degrades</strong> outside Full-Stack: third-party and code-level vulnerability detection are <em>limited</em>, and the risk context that comes from Full-Stack topology — public exposure, reachable data assets — is reduced, so the Dynatrace Security Score falls back to the CVSS base score rather than reflecting your environment (APPSEC-01 §3). Runtime Application Protection is available in all three modes. Decide AppSec depth <em>inside</em> the Full-Stack decision (§8), because a Full-Stack upgrade needs process restarts before the fuller detection applies.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/process-groups/configuration/pg-monitoring">Process deep monitoring (DT docs)</a> — quoted deep-monitoring scope; <a href="https://docs.dynatrace.com/docs/platform/oneagent/monitoring-modes/monitoring-modes">OneAgent monitoring modes (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/secure/application-security">Application Security monitoring modes (DT docs)</a> — <em>Support overview</em>: third-party and code-level detection marked limited in Infrastructure and Discovery, Runtime Application Protection in all three; <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">OpenPipeline processing (DT docs)</a> — <em>&quot;Sampling might be applied to trace data before it's processed, according to Adaptive Traffic Management for distributed tracing.&quot;</em> <strong>Derived:</strong> the habit framing and silent-degradation calls are synthesis over the documented per-capability prerequisites; mechanics defer to ALERT-02 / AIOPS-02</sub></p>
+</blockquote>
+<p><a id="coverage-audit"></a></p>
+<h2>5. Auditing Your Current Coverage with DQL</h2>
+<p>Before arguing about what to enable, measure what you have. Three queries:</p>
+<p><strong>Query 1 — hosts by monitoring mode, read from billing.</strong> Do not break hosts down by the <code>monitoringMode</code> attribute on <code>fetch dt.entity.host</code>. On the validation tenant it was empty on 26 of 33 hosts — every Kubernetes and AWS Fargate host — although all 26 were billed as Full-Stack, so a breakdown on it files most of a containerized estate under no mode at all. (<code>smartscapeNodes &quot;HOST&quot;</code> does not expose the attribute either.) The billing events record the capability each host is actually charged for. A host billed under more than one capability appears in each row — 18 of 39 hosts on the validation tenant were billed for both Full-Stack and Code Monitoring — so do not add the rows up.</p>
+<blockquote>
+<p><strong>SaaS 1.347 — staged tenant rollout from 09/16/2026:</strong> billing usage events are moving their host ID from <code>dt.entity.host</code> to <code>dt.smartscape.host</code>. Verbatim: <em>&quot;If you use custom DQL queries that reference entity ID attributes in billing usage events, review and update them to the new Smartscape attribute names.&quot;</em> The query below reads <code>coalesce(toString(dt.smartscape.host), dt.entity.host)</code>, so it returns the same hosts before and after the change reaches your tenant (on the validation tenant both fields were written, with identical values, on 10/05/2026).</p>
+</blockquote>
+<pre><code class="language-dql">// Coverage audit — hosts by the monitoring capability they are billed for.
+// Not monitoringMode: that attribute is empty on Kubernetes and Fargate hosts, even Full-Stack ones.
+// A host billed under two capabilities is counted in both rows.
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;BILLING_USAGE_EVENT&quot;
+// SaaS 1.347 moves the host ID to dt.smartscape.host; coalesce reads whichever field your tenant writes.
+| fieldsAdd host = coalesce(toString(dt.smartscape.host), dt.entity.host)
+| filter isNotNull(host)
+| summarize {hosts = countDistinctExact(host)}, by:{billed_as = event.type}
+| sort hosts desc
+</code></pre>
+<p><strong>Query 2 — log coverage.</strong> How many hosts actually ship logs, compared with your host inventory from Query 1. Count <code>dt.entity.host</code> — on log records it is far better populated than <code>dt.smartscape.host</code> (15 against 4 hosts over 24 h on the validation tenant, 10/15/2026) — and not <code>host.name</code>, which is missing on a share of log records and undercounts:</p>
+<pre><code class="language-dql">// Coverage audit — hosts reporting logs in the last 24 h vs. total log volume.
+// dt.entity.host, not dt.smartscape.host (sparse on logs) or host.name (missing on many records).
+fetch logs, from:-24h
+| summarize hosts_reporting_logs = countDistinctExact(dt.entity.host), log_records = count()
+</code></pre>
+<p><strong>Query 3 — RUM coverage.</strong> Real-user sessions and instrumented frontends in the last 24 hours (zero sessions = RUM is dark for real users). Filter on <code>dt.rum.user_type</code>, because synthetic monitors create sessions too — an unfiltered count can look healthy on an estate with no real-user RUM at all:</p>
+<pre><code class="language-dql">// Coverage audit — real-user RUM sessions and frontends, last 24 h.
+// Filter to real users: synthetic monitors also create user sessions.
+fetch user.sessions, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| summarize sessions = count(), frontends = countDistinctExact(frontend.name)
+</code></pre>
+<p>For the <strong>cost-side view of the same split</strong>, the pre-aggregated billing series show consumption per mode — <code>dt.billing.full_stack_monitoring.usage</code>, <code>dt.billing.infrastructure_monitoring.usage</code>, and <code>dt.billing.foundation_and_discovery.usage</code> (worked queries in FINOPS-01 §5). A mismatch between what you <em>pay for</em> and what you <em>use</em> — Full-Stack hosts whose main process group has deep monitoring off — is the first thing to fix, and it costs nothing.</p>
+<p>Deep-monitoring exceptions themselves are configuration, not telemetry: review them under <strong>Settings → Processes and containers → Process group monitoring</strong> rather than DQL.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> Query 1 executed live 10/02/2026: 39 hosts billed — 36 Full-Stack Monitoring, 21 Code Monitoring, 18 under both. On the same tenant <code>monitoringMode</code> was empty on 26 of 33 <code>dt.entity.host</code> records, all with <code>paasVendorType</code> <code>KUBERNETES</code> (24) or <code>AWS_ECS_FARGATE</code> (2) and all billed Full-Stack, and set on 0 of 7 <code>smartscapeNodes &quot;HOST&quot;</code> records. Query 2 executed live 10/02/2026 over a 2 h window to limit scanned bytes (13 hosts by <code>dt.entity.host</code>, 2.04 M records; the same window counted only 9 distinct <code>host.name</code> values — the undercount the comment warns about). Query 3 executed live 09/28/2026: 0 real-user sessions over 24 h on the validation tenant, whose 32,926 sessions over 7 days were all <code>synthetic</code> — the case the filter exists for. An earlier version counted <code>app.short_name</code>, which is not a user-session field. The <code>monitoringMode</code> observations are live findings on one tenant — re-check as Smartscape on Grail evolves. Billing series validated in FINOPS-01 (05/19/2026). Query 1 re-executed 10/05/2026 in its <code>coalesce</code> form: 15 Full-Stack and 10 Code Monitoring hosts over 24 h, identical to the <code>dt.entity.host</code> form. <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-347">What's new in SaaS 1.347 (DT docs)</a> — <em>&quot;If you use custom DQL queries that reference entity ID attributes in billing usage events, review and update them to the new Smartscape attribute names.&quot;</em></sub></p>
+</blockquote>
+<p><a id="reduced-modes"></a></p>
+<h2>6. When Reduced Modes Are the Right Call</h2>
+<p>Reduced coverage is a legitimate tool — the failure mode is applying it to the wrong hosts, not using it at all. The documented guidance:</p>
+<table>
+<thead>
+<tr>
+<th>Estate segment</th>
+<th>Right mode</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Business-critical applications</td>
+<td><strong>Full-Stack</strong></td>
+<td>The docs are unambiguous: deploy Full-Stack <em>&quot;to monitor business-critical applications&quot;</em> — this is where tracing, Davis RCA, and full AppSec detection earn their keep</td>
+</tr>
+<tr>
+<td>Databases, queues, messaging</td>
+<td><strong>Infrastructure</strong></td>
+<td>These are <em>backing services</em> — you need saturation, disk, network, and process health; the transaction context comes from the app tier that calls them</td>
+</tr>
+<tr>
+<td>Long-tail / undifferentiated fleet</td>
+<td><strong>Discovery</strong></td>
+<td><em>&quot;Deployed across the remainder of your infrastructure for complete visibility, thanks to its relatively low cost&quot;</em> — inventory plus upgrade signals</td>
+</tr>
+<tr>
+<td>Short-lived, frequently-restarting processes</td>
+<td><strong>Deep monitoring off (per-PG rule)</strong></td>
+<td>The docs call this out directly: such processes <em>&quot;can be overly burdened by the injection overhead&quot;</em> with <em>&quot;limited data collection benefits&quot;</em> — a per-PG exclusion, not a host-mode decision</td>
+</tr>
+<tr>
+<td>Hosts pending decommission</td>
+<td>Discovery or none</td>
+<td>Spending Full-Stack on a host with a shutdown date is pure waste</td>
+</tr>
+</tbody>
+</table>
+<p>Two rules keep reduced modes honest:</p>
+<ol>
+<li><strong>Reduce by segment, not by default.</strong> &quot;Everything Infra-only until someone complains&quot; inverts the value curve — the complaint arrives as an unexplained outage that Full-Stack would have explained.</li>
+<li><strong>Reduced is a state, not a destination.</strong> Discovery mode exists explicitly so you can <em>&quot;learn the potential to extend your monitoring&quot;</em> — pair it with a periodic review (ADOPT-06 gives this a cadence).</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/oneagent/monitoring-modes/monitoring-modes">OneAgent monitoring modes (DT docs)</a> — all quoted recommendations; <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/process-groups/configuration/pg-monitoring">Process deep monitoring (DT docs)</a> — short-lived-process guidance verbatim.</sub></p>
+</blockquote>
+<p><a id="objections"></a></p>
+<h2>7. &quot;We've Always Done It That Way&quot; — Objections and Honest Responses</h2>
+<p>In community practice, these objections arrive in almost every migration. The responses are this entry's framing of the trade-offs, not Dynatrace positions; the mechanics each one relies on are sourced in the section it points to.</p>
+<table>
+<thead>
+<tr>
+<th>Objection (as it arrives)</th>
+<th>Honest response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>&quot;We've always done it that way.&quot;</em></td>
+<td>That way was designed for the old tool's constraints — per-app agent pricing, modules that didn't correlate, alert rules as the only detection. The constraints didn't migrate; carrying the workarounds anyway means paying for the new platform and operating the old one. Price each habit (§4) and keep the ones that still buy something.</td>
+</tr>
+<tr>
+<td><em>&quot;Full-Stack everywhere is too expensive.&quot;</em></td>
+<td>Agreed — and it isn't the recommendation. The mode ladder (§2, §6) is the cost control the old tool never had: Full-Stack on revenue paths, Infrastructure on backing services, Discovery on the long tail. The expensive mistake is inverting it — Infra-only on the revenue path to save the delta one outage erases. FINOPS-01/03 put numbers on it.</td>
+</tr>
+<tr>
+<td><em>&quot;We're worried about injection overhead.&quot;</em></td>
+<td>Legitimate — and managed with per-PG rules rather than blanket abstinence: injection happens at process start, and the documented pathological case (short-lived processes) is precisely what the exclusion rules are for (§6). In community practice steady-state overhead on long-running services is low single-digit percent — measure on a canary host group instead of importing the old tool's folklore.</td>
+</tr>
+<tr>
+<td><em>&quot;Security won't allow code injection in production.&quot;</em></td>
+<td>The per-PG rules give explicit allow/deny control. In community practice, a rule change takes effect when the process next restarts — plan restarts into the change window. Worth stating plainly: the same code modules deliver the full depth of runtime vulnerability detection (RVA); a no-injection policy leaves AppSec running at its <em>limited</em> level (§4.9).</td>
+</tr>
+<tr>
+<td><em>&quot;Our logs stay in the log tool.&quot;</em></td>
+<td>Then split deliberately instead of by inertia: critical-path logs into Dynatrace for trace-context correlation and Davis signals; bulk/compliance logs wherever they are cheapest (§4.4). The S2D/SL2DT series plan exactly this. What doesn't work is expecting problem investigations to cite evidence the platform never sees.</td>
+</tr>
+<tr>
+<td><em>&quot;Our alert rules took years to tune — we're porting them.&quot;</em></td>
+<td>Port the intent, not the rules (§4.5). The years of tuning encoded the old tool's blind spots; Davis baselines + problem correlation replace most of that class. Keep genuine contract thresholds as static alerts — they coexist fine.</td>
+</tr>
+<tr>
+<td><em>&quot;RUM is a privacy problem.&quot;</em></td>
+<td>Masking levels, opt-in mode, and per-app privacy settings exist for exactly this (WEBRUM/MOBL). Running blind on user impact is also a risk posture — it just never gets a compliance review.</td>
+</tr>
+<tr>
+<td><em>&quot;We'll enable the rest after we've settled in.&quot;</em></td>
+<td>Some of &quot;later&quot; is cheap (logs, RUM: config + snippet). Some is not: full AppSec detection needs the code modules already in place, and baselines/experience SLOs start their history at enablement. Every month of &quot;settled in&quot; is a month of history and runtime security you don't get back.</td>
+</tr>
+</tbody>
+</table>
+<p><em>In community practice the steady-state overhead lands in the range described above; Dynatrace publishes no universal overhead number, so validate on a canary host group before quoting a figure.</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/process-groups/configuration/pg-monitoring">Process deep monitoring (DT docs)</a> — per-PG rule mechanics, and monitoring that starts <em>&quot;after you restart all processes that have been running during the OneAgent installation.&quot;</em></sub></p>
+</blockquote>
+<p><a id="recommendation"></a></p>
+<h2>8. Recommended Approach</h2>
+<ol>
+<li><strong>Inventory the inherited habits first, then audit the tenant</strong> (§5): list what the old tool's operating model left off — agent curation lists, log-tool splits, ported threshold rules, disabled-injection policies — and check each against §4 before it silently becomes the Dynatrace configuration. Most estates find at least one Full-Stack-paid, Infra-delivered gap.</li>
+<li><strong>Segment the estate</strong> (§6): revenue-path applications → Full-Stack; backing services → Infrastructure; long tail → Discovery; short-lived PGs → per-PG exclusion.</li>
+<li><strong>Turn on logs and RUM for whatever is Full-Stack.</strong> These are the two highest-leverage add-ons because they multiply the value of the tracing you already pay for (§3) — logs land in trace context, sessions link to backend traces.</li>
+<li><strong>Put synthetic on the endpoints that must not fail quietly</strong> — login, checkout, the APIs your customers integrate against.</li>
+<li><strong>Treat AppSec depth as part of the Full-Stack decision, not a later add-on</strong> — AppSec runs in every mode, but only Full-Stack gives it full detection and exposure/data-asset context (§4.9).</li>
+<li><strong>Re-audit quarterly.</strong> Coverage decays: new hosts land in default modes, exclusion rules outlive the incidents that created them. ADOPT-06 turns this into a staged program with value gates; ADOPT-03 gives you the success metrics to prove the uplift.</li>
+</ol>
+<p>The honest framing for the customer conversation: <strong>you can absolutely run Dynatrace the way you ran the old tool — it will work, and it will feel familiar. It will also answer roughly the old tool's questions at the new platform's price. The capabilities you're hesitant to enable are, collectively, the reason to have switched at all.</strong></p>
+<p><a id="gotchas"></a></p>
+<h2>9. Common Gotchas</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gotcha</th>
+<th>Consequence</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Full-Stack host, deep monitoring off on the main PG</td>
+<td>Full-Stack cost, Infrastructure value</td>
+<td>Audit PG monitoring rules alongside host modes (§5)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Expecting traces from Infrastructure mode's injection</td>
+<td>Infra-mode injection covers Java backing-services + runtime metrics only — no PurePaths</td>
+<td>Tracing requires Full-Stack (or OTel — FAQ-03)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Enabling Full-Stack but never restarting processes</td>
+<td>Code modules attach at process start — coverage stays dark until restarts</td>
+<td>Plan restarts into the enablement change window</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Auditing modes on the <code>monitoringMode</code> attribute</td>
+<td>Empty on Kubernetes and Fargate hosts in <code>fetch dt.entity.host</code> (26 of 33 on the validation tenant, all billed Full-Stack) and not exposed on <code>smartscapeNodes &quot;HOST&quot;</code> — most of a containerized estate shows no mode</td>
+<td>Read the mode from <code>BILLING_USAGE_EVENT</code> (§5, verified 10/02/2026)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Treating AppSec as independent of mode</td>
+<td>AppSec runs in all modes, but outside Full-Stack detection is <em>limited</em> and exposure/data-asset context is missing</td>
+<td>Decide AppSec depth inside the mode decision, not after it</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Discovery mode assumed to include process details</td>
+<td>Discovery is inventory only — no process details, disk, network, or memory analysis</td>
+<td>That's Infrastructure mode's tier (§2 matrix)</td>
+</tr>
+<tr>
+<td>7</td>
+<td>&quot;We'll add RUM when we need it&quot;</td>
+<td>Baselines, experience SLOs, and Davis user-impact history start at zero on enablement day</td>
+<td>Enable before you need the history</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Porting the old tool's exclusion lists and alert rules verbatim</td>
+<td>Inherited blind spots + the old alert storm, minus its years of tuning</td>
+<td>Port the <em>intent</em>; re-derive exclusions per-PG (§4.2) and detection via Davis (§4.5)</td>
+</tr>
+</tbody>
+</table>
+<h2>Summary</h2>
+<p>Dynatrace's value concentrates in the connections between layers — traces make services, services complete the topology, topology powers Davis, RUM attaches users, logs supply evidence, and code modules carry both the observability and the runtime security. Reduced modes are a legitimate segmentation tool with documented use cases, but every layer withheld removes a class of answers, and several removals cascade. Audit what you have (§5), segment deliberately (§6), and make the &quot;not yet&quot; decisions with their real costs on the table (§4, §7).</p>
+<h2>Next Steps</h2>
+<ul>
+<li><strong>ADOPT-06</strong> — the staged-enablement program built on this entry: audit → prioritize → waves → value gates.</li>
+<li><strong>FAQ-03</strong> — OneAgent and OpenTelemetry, when the instrumentation question comes up in the same conversation.</li>
+<li><strong>FINOPS-01 / FINOPS-03</strong> — measure the spend per mode; decide Cut / Tune / Filter with data.</li>
+<li><strong>APPSEC-01</strong> — the security capabilities riding on the code modules.</li>
+<li><strong>NR2DT / S2D / SL2DT</strong> — the tool-specific migration runbooks (New Relic, Splunk, Sumo Logic) that plan the habit transitions in §4 step by step.</li>
+<li><strong>ONBRD</strong> — deployment mechanics once the coverage decisions are made.</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

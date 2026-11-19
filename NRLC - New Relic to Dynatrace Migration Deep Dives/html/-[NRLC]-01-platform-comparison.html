@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NRLC-01: New Relic vs. Dynatrace — Platform Comparison</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">NRLC — New Relic to Dynatrace Migration Deep Dives</a><span class="sep">/</span><span aria-current="page">NRLC-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>NRLC-01: New Relic vs. Dynatrace — Platform Comparison</h1>
+<blockquote>
+<p><strong>Series:</strong> NRLC — New Relic to Dynatrace Migration Deep Dives | <strong>Notebook:</strong> 1 of 9 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 10/31/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This deep dive establishes the conceptual foundation for migrating from New Relic to Dynatrace. Before any tooling, queries, or transformations, a clear understanding of how the two platforms differ in <strong>architecture, ingest model, query language, entity hierarchy, IAM, and pricing</strong> prevents the most common migration mistakes — those that come from assuming the platforms are functionally equivalent.</p>
+<p>Use this notebook as the conceptual reference; the procedural sequence for executing a migration lives in the companion <strong>NR2DT</strong> series.</p>
+<h3>Sprint 1.337 (April 2026) Updates</h3>
+<p>Three sprint-1.337 changes affect the NR→DT component conversion patterns:</p>
+<ol>
+<li><strong>OTel <code>service.name</code> enrichment</strong> — Dynatrace now uses the OpenTelemetry <code>service.name</code> resource attribute to enrich the existing service entity (Smartscape displays <code>service.name (detected name)</code>; new <code>dt.service.name</code> field). NR services that emit OTel via the New Relic Collector → Dynatrace path map cleanly without two-services-per-process duplication.</li>
+<li><strong>OneAgent primary fields/tags at the source</strong> (<code>dt.security_context</code>, <code>dt.cost.costcenter</code>, <code>dt.cost.product</code> + customer-defined primary tags) — top-level on all signals. Reduces parse-processor work for migrated NR data.</li>
+<li><strong>Entity API: <code>attributes</code> removed</strong> + <strong>Event API: <code>metadata</code> removed from <code>GET /events</code></strong> (sprint-337 Dynatrace API). Update any conversion-engine code (Dynatrace-NewRelic / nrql-engine / nrql-translator) that parses these properties — the engine repositories are listed in <strong>NRLC-09 §1</strong>.</li>
+</ol>
+<hr />
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#architecture">Architectural Models</a></li>
+<li><a href="#ingest">Data Ingest &amp; Storage</a></li>
+<li><a href="#queries">Query Languages: NRQL vs. DQL</a></li>
+<li><a href="#entities">Entity Hierarchy</a></li>
+<li><a href="#iam">Identity, Access &amp; Multi-Tenancy</a></li>
+<li><a href="#pricing">Pricing Models</a></li>
+<li><a href="#mapping">Concept Mapping Reference</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Architects, platform engineers, SRE leads evaluating or executing a NR→Dynatrace migration</td>
+</tr>
+<tr>
+<td><strong>Familiarity</strong></td>
+<td>Working knowledge of one platform; this notebook bridges to the other</td>
+</tr>
+<tr>
+<td><strong>Companion</strong></td>
+<td>NR2DT-01 — Discover (procedural counterpart)</td>
+</tr>
+</tbody>
+</table>
+<h2>Engine Support (Phase 11–24)</h2>
+<p>The open-source <code>Dynatrace-NewRelic</code> engine covers the cross-platform concepts this notebook introduces. Key transformers you'll hear about again in later notebooks:</p>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Transformer / Subcommand</th>
+<th>Phase</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>APM agent swap per language (Java / .NET / Node / Python / Ruby / PHP / Go)</td>
+<td><code>agents/</code> + <code>migrate.py agents --language &lt;lang&gt;</code></td>
+<td>16</td>
+</tr>
+<tr>
+<td><code>newrelic.*()</code> SDK call scanner</td>
+<td><code>custom_instrumentation_translator</code> + <code>migrate.py scan-instrumentation</code></td>
+<td>16</td>
+</tr>
+<tr>
+<td>Browser RUM app config</td>
+<td><code>browser_rum_transformer</code></td>
+<td>16</td>
+</tr>
+<tr>
+<td>Mobile RUM app (8 platforms)</td>
+<td><code>mobile_rum_transformer</code></td>
+<td>16</td>
+</tr>
+<tr>
+<td>Users / Teams / Roles / SAML / SCIM</td>
+<td><code>identity_transformer</code></td>
+<td>17</td>
+</tr>
+<tr>
+<td>Cloud (AWS 16 / Azure 8 / GCP 8)</td>
+<td><code>cloud_integration_transformer</code></td>
+<td>18</td>
+</tr>
+<tr>
+<td>Kubernetes → DynaKube</td>
+<td><code>kubernetes_transformer</code></td>
+<td>18</td>
+</tr>
+<tr>
+<td>Tenant Gen3 API probe</td>
+<td><code>migrate.py preflight</code></td>
+<td>14</td>
+</tr>
+</tbody>
+</table>
+<p>See <strong>NRLC-09</strong> for the full 42-transformer + 14-subcommand inventory and the <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/main/docs/COVERAGE.md">coverage matrix (migration utilities GitHub)</a> for the end-to-end NR-surface → DT-equivalent map.</p>
+<p><a id="architecture"></a></p>
+<h2>1. Architectural Models</h2>
+<p><strong>New Relic</strong> is built around a unified telemetry data platform (NRDB) where every signal — metrics, events, logs, traces — is stored as discrete events in a columnar database. Agents (APM, Infrastructure, Browser, Mobile, OpenTelemetry collector) push data via HTTP. NerdGraph (GraphQL) is the unified API for both data queries and configuration.</p>
+<p><strong>Dynatrace</strong> is built around <strong>Smartscape topology + Dynatrace Intelligence + Grail data lakehouse</strong>. OneAgent does deep instrumentation including code-level discovery; ActiveGate handles routing. Configuration lives in the Settings (v2) and Document (<code>/platform/document/v1</code>) APIs; data lives in Grail (queried via DQL). The platform infers entity relationships automatically (Smartscape) and applies causal AI to detect root cause.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>New Relic</th>
+<th>Dynatrace</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Storage backend</td>
+<td>NRDB (column store)</td>
+<td>Grail (lakehouse: logs, spans, events, bizevents, metrics)</td>
+</tr>
+<tr>
+<td>Agent model</td>
+<td>Multiple agents per signal type</td>
+<td>Single OneAgent (auto-discovery) + ActiveGate routing</td>
+</tr>
+<tr>
+<td>Topology</td>
+<td>User-built workloads, manual entity grouping</td>
+<td>Smartscape (auto-discovered, real-time)</td>
+</tr>
+<tr>
+<td>AI model</td>
+<td>NRDB anomaly detection + APM Proactive Detection</td>
+<td>Dynatrace Intelligence causal engine + adaptive baselines</td>
+</tr>
+<tr>
+<td>Configuration API</td>
+<td>NerdGraph (GraphQL)</td>
+<td>Settings v2, Document API, Config v1 (REST)</td>
+</tr>
+<tr>
+<td>Query language</td>
+<td>NRQL (SQL-like)</td>
+<td>DQL (pipeline-based)</td>
+</tr>
+</tbody>
+</table>
+<p>The most consequential difference: <strong>Dynatrace infers entity relationships automatically; New Relic relies on user-defined workloads.</strong> This affects how dashboards, alerts, and SLOs scope their target entities.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5QbGF0Zm9ybSBBcmNoaXRlY3R1cmU6IE5ldyBSZWxpYyB2cy4gRHluYXRyYWNlPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPkRpZmZlcmVudCBhYnN0cmFjdGlvbnMgZm9yIHRoZSBzYW1lIG9ic2VydmFiaWxpdHkgcHJvYmxlbTwvdGV4dD4KCiAgPCEtLSBMRUZUOiBOZXcgUmVsaWMgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjkwIiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjM4MCIgZmlsbD0iIzAwQUM2OSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMDBBQzY5IiBzdHJva2Utd2lkdGg9IjIiIHJ4PSIxMCIvPgogIDx0ZXh0IHg9IjI0MCIgeT0iMTE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iNzAwIj5OZXcgUmVsaWM8L3RleHQ+CgogIDxnIGZvbnQtc2l6ZT0iMTEiPgogICAgPHJlY3QgeD0iNjAiIHk9IjEzNSIgd2lkdGg9IjM2MCIgaGVpZ2h0PSI1MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMDBBQzY5IiByeD0iNSIvPgogICAgPHRleHQgeD0iMjQwIiB5PSIxNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtd2VpZ2h0PSI3MDAiPk11bHRpcGxlIGFnZW50cyAoQVBNIC8gSW5mcmEgLyBCcm93c2VyIC8gTW9iaWxlKTwvdGV4dD4KICAgIDx0ZXh0IHg9IjI0MCIgeT0iMTcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5QZXItc2lnbmFsLXR5cGUgY29sbGVjdGlvbjwvdGV4dD4KCiAgICA8cmVjdCB4PSI2MCIgeT0iMjAwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMwMEFDNjkiIHJ4PSI1Ii8+CiAgICA8dGV4dCB4PSIyNDAiIHk9IjIyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC13ZWlnaHQ9IjcwMCI+TmVyZEdyYXBoIChHcmFwaFFMIEFQSSk8L3RleHQ+CiAgICA8dGV4dCB4PSIyNDAiIHk9IjIzNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+VW5pZmllZCBxdWVyeSArIGNvbmZpZzwvdGV4dD4KCiAgICA8cmVjdCB4PSI2MCIgeT0iMjY1IiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMwMEFDNjkiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNSIvPgogICAgPHRleHQgeD0iMjQwIiB5PSIyODciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPk5SREIgKGNvbHVtbiBzdG9yZSk8L3RleHQ+CiAgICA8dGV4dCB4PSIyNDAiIHk9IjMwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+U2luZ2xlIHN0b3JlIMK3IHJldGVudGlvbiBzZXQgcGVyIGRhdGEgdHlwZTwvdGV4dD4KICAgIDx0ZXh0IHg9IjI0MCIgeT0iMzIyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5FdmVudHMgwrcgTWV0cmljcyDCtyBMb2dzIMK3IFRyYWNlczwvdGV4dD4KICAgIDx0ZXh0IHg9IjI0MCIgeT0iMzM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPlF1ZXJ5OiBOUlFMIChTUUwtbGlrZSk8L3RleHQ+CgogICAgPHJlY3QgeD0iNjAiIHk9IjM2MCIgd2lkdGg9IjM2MCIgaGVpZ2h0PSI1MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMDBBQzY5IiBzdHJva2UtZGFzaGFycmF5PSIzLDIiIHJ4PSI1Ii8+CiAgICA8dGV4dCB4PSIyNDAiIHk9IjM4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC13ZWlnaHQ9IjcwMCI+V29ya2xvYWRzIChtYW51YWwgZW50aXR5IGdyb3VwaW5nKTwvdGV4dD4KICAgIDx0ZXh0IHg9IjI0MCIgeT0iMzk3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5Vc2VyLWRlZmluZWQ7IHRhZy0gb3IgR1VJRC1iYXNlZDwvdGV4dD4KCiAgICA8cmVjdCB4PSI2MCIgeT0iNDI1IiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjM1IiBmaWxsPSIjMEYxNzJBIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS1kYXNoYXJyYXk9IjIsMiIgcng9IjUiLz4KICAgIDx0ZXh0IHg9IjI0MCIgeT0iNDQ3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5QcmljaW5nOiBwZXItR0IgaW5nZXN0ICsgcGVyLXVzZXI8L3RleHQ+CiAgPC9nPgoKICA8IS0tIFJJR0hUOiBEeW5hdHJhY2UgLS0+CiAgPHJlY3QgeD0iNDkwIiB5PSI5MCIgd2lkdGg9IjQwMCIgaGVpZ2h0PSIzODAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iMTAiLz4KICA8dGV4dCB4PSI2OTAiIHk9IjExOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9IjcwMCI+RHluYXRyYWNlPC90ZXh0PgoKICA8ZyBmb250LXNpemU9IjExIj4KICAgIDxyZWN0IHg9IjUxMCIgeT0iMTM1IiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI1Ii8+CiAgICA8dGV4dCB4PSI2OTAiIHk9IjE1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC13ZWlnaHQ9IjcwMCI+T25lQWdlbnQgKHNpbmdsZSBhZ2VudCArIGF1dG8tZGlzY292ZXJ5KTwvdGV4dD4KICAgIDx0ZXh0IHg9IjY5MCIgeT0iMTcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5Db2RlLWxldmVsIGluc3RydW1lbnRhdGlvbjsgQWN0aXZlR2F0ZSByb3V0ZXM8L3RleHQ+CgogICAgPHJlY3QgeD0iNTEwIiB5PSIyMDAiIHdpZHRoPSIzNjAiIGhlaWdodD0iNTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgcng9IjUiLz4KICAgIDx0ZXh0IHg9IjY5MCIgeT0iMjIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXdlaWdodD0iNzAwIj5TZXR0aW5ncyB2MiAvIERvY3VtZW50IEFQSSAvIENvbmZpZyB2MSAoUkVTVCk8L3RleHQ+CiAgICA8dGV4dCB4PSI2OTAiIHk9IjIzNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+UGVyLWRvbWFpbiBBUElzIMK3IEdyYXBoUUwgbm90IHVzZWQ8L3RleHQ+CgogICAgPHJlY3QgeD0iNTEwIiB5PSIyNjUiIHdpZHRoPSIzNjAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI1Ii8+CiAgICA8dGV4dCB4PSI2OTAiIHk9IjI4NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+R3JhaWwgKGxha2Vob3VzZSDCtyBPcGVuUGlwZWxpbmUpPC90ZXh0PgogICAgPHRleHQgeD0iNjkwIiB5PSIzMDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlRpZXJlZCBidWNrZXRzIMK3IHBlci1kYXRhLWNsYXNzIHJldGVudGlvbjwvdGV4dD4KICAgIDx0ZXh0IHg9IjY5MCIgeT0iMzIyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5Mb2dzIMK3IFNwYW5zIMK3IEV2ZW50cyDCtyBCaXpldmVudHMgwrcgTWV0cmljczwvdGV4dD4KICAgIDx0ZXh0IHg9IjY5MCIgeT0iMzM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPlF1ZXJ5OiBEUUwgKHBpcGVsaW5lLWJhc2VkKTwvdGV4dD4KCiAgICA8cmVjdCB4PSI1MTAiIHk9IjM2MCIgd2lkdGg9IjM2MCIgaGVpZ2h0PSI1MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjUiLz4KICAgIDx0ZXh0IHg9IjY5MCIgeT0iMzgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXdlaWdodD0iNzAwIj5TbWFydHNjYXBlIChhdXRvLWRpc2NvdmVyZWQgdG9wb2xvZ3kpPC90ZXh0PgogICAgPHRleHQgeD0iNjkwIiB5PSIzOTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlJlYWwtdGltZSBlbnRpdHkgZ3JhcGggwrcgRHluYXRyYWNlIEludGVsbGlnZW5jZSBjYXVzYWw8L3RleHQ+CgogICAgPHJlY3QgeD0iNTEwIiB5PSI0MjUiIHdpZHRoPSIzNjAiIGhlaWdodD0iMzUiIGZpbGw9IiMwRjE3MkEiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLWRhc2hhcnJheT0iMiwyIiByeD0iNSIvPgogICAgPHRleHQgeD0iNjkwIiB5PSI0NDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlByaWNpbmc6IERQUyB1bml0cyDCtyBwZXItY2FwYWJpbGl0eSDCtyB0dW5hYmxlIHBlciBidWNrZXQ8L3RleHQ+CiAgPC9nPgoKICA8IS0tIENlbnRlciBkaXZpZGVyIHdpdGgga2V5IGRpZmZlcmVuY2UgbGFiZWwgLS0+CiAgPHRleHQgeD0iNDY1IiB5PSI0OTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtc3R5bGU9Iml0YWxpYyI+U21hcnRzY2FwZSB2cy4gdXNlci1idWlsdCB3b3JrbG9hZHMgaXMgdGhlIG1vc3QgY29uc2VxdWVudGlhbCBkaWZmZXJlbmNlIGZvciBtaWdyYXRpb24gZGVzaWduPC90ZXh0Pgo8L3N2Zz4K" alt="Platform Architecture Comparison" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Aspect | New Relic | Dynatrace |
+|--------|-----------|-----------|
+| Storage | NRDB column store | Grail lakehouse, tiered buckets |
+| Agent | Multiple per signal | OneAgent + ActiveGate |
+| Topology | User workloads | Smartscape (auto) |
+| AI | NRDB anomaly + APM Proactive | Dynatrace Intelligence causal + adaptive baselines |
+| API | NerdGraph (GraphQL) | Settings/Documents/Config (REST) |
+| Query | NRQL (SQL-like) | DQL (pipeline) |
+For environments where SVG doesn't render
+-->
+<p><a id="ingest"></a></p>
+<h2>2. Data Ingest &amp; Storage</h2>
+<h3>New Relic</h3>
+<ul>
+<li><strong>Single ingest endpoint per data type</strong> (Metric, Event, Log, Trace APIs)</li>
+<li>All data lands in NRDB; retention is set per data type (8 days for APM data, for example)</li>
+<li>Drop rules and parsing rules apply at ingest</li>
+<li><strong>Data Plus</strong> adds <em>&quot;up to an additional 90 days of retention (for most data types)&quot;</em></li>
+</ul>
+<h3>Dynatrace</h3>
+<ul>
+<li><strong>OneAgent + ActiveGate + OpenPipeline + Grail</strong> — multiple ingest paths</li>
+<li>Data routed to <strong>named buckets</strong> with tiered retention (14d / 30d / 365d depending on use case)</li>
+<li>OpenPipeline performs parse, mask, enrich, route, and metric extraction <em>before</em> storage</li>
+<li>Per-bucket pricing: &quot;Retain with Included Queries&quot; or &quot;Usage-based&quot;</li>
+</ul>
+<p><strong>Migration implication:</strong> New Relic's per-data-type retention maps poorly to Dynatrace's per-bucket retention. Plan retention per data class during migration design (see <strong>ORGNZ-02 — Understanding Grail Buckets</strong> and <strong>ORGNZ-99 — Best Practice Summary</strong> for the recommended bucket strategy template).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.newrelic.com/docs/data-apis/manage-data/manage-data-retention/">Manage data retention (New Relic docs)</a>.</sub></p>
+</blockquote>
+<p><a id="queries"></a></p>
+<h2>3. Query Languages: NRQL vs. DQL</h2>
+<p><strong>NRQL</strong> is SQL-like with <code>SELECT ... FROM ... WHERE ... FACET ... TIMESERIES</code>. Single statement, declarative.</p>
+<p><strong>DQL</strong> is pipeline-based: <code>fetch &lt;source&gt; | filter ... | summarize ... | sort ... | limit N</code>. Each <code>|</code> is a stage that transforms the previous stage's output.</p>
+<h3>Side-by-Side Translation</h3>
+<p><strong>NRQL:</strong></p>
+<pre><code class="language-sql">SELECT count(*), average(duration) FROM Transaction
+WHERE appName = 'checkout-service' SINCE 1 hour ago
+FACET host.hostname TIMESERIES 5 minutes
+</code></pre>
+<p><strong>Equivalent DQL:</strong></p>
+<pre><code class="language-dql">fetch spans, from:-1h
+| filter dt.service.name == &quot;checkout-service&quot; and isNotNull(endpoint.name)
+| makeTimeseries {count = count(), avg_dur = avg(duration)}, interval:5m, by:{host.name}
+</code></pre>
+<p>Key conceptual differences:</p>
+<ul>
+<li><strong>Source resolution:</strong> NRQL's <code>FROM Transaction</code> is a NRDB event class — one record per request into a service. DQL's <code>fetch spans</code> is a Grail data object holding <em>every</em> span, including database calls, outbound calls and internal spans, so the translation needs <code>filter isNotNull(endpoint.name)</code>: the semantic dictionary describes <code>endpoint.name</code> (<code>stable</code>) as <em>&quot;exclusively detected on request root spans&quot;</em>, so the filter leaves one record per request. Without it, the count read about 2.8× the request count on the validation tenant (10/05/2026).</li>
+<li><strong>Service name:</strong> map NR <code>appName</code> to <code>dt.service.name</code>, the Dynatrace service name. <code>service.name</code> is the OpenTelemetry resource attribute and is set only on spans that carry it, so filtering on it silently drops traffic that does not: on the validation tenant fewer than one span in five carried <code>service.name</code>, while every span carried <code>dt.service.name</code> (10/05/2026). Use <code>service.name</code> only for OpenTelemetry-only services.</li>
+<li><strong>Units:</strong> NR <code>duration</code> is a number of seconds; DT <code>duration</code> is a duration value. Compare it with a duration literal (<code>duration &gt; 500ms</code>) and divide by a unit to get a number (<code>avg(duration) / 1ms</code>).</li>
+<li><strong>Time:</strong> NRQL uses <code>SINCE</code> / <code>UNTIL</code>; DQL uses <code>from:</code> / <code>to:</code> parameters on <code>fetch</code> / <code>timeseries</code>.</li>
+<li><strong>Facets:</strong> NRQL <code>FACET x</code> becomes DQL <code>by:{x}</code> inside <code>summarize</code> or <code>makeTimeseries</code>.</li>
+<li><strong>Timeseries:</strong> NRQL <code>TIMESERIES N minutes</code> becomes DQL <code>makeTimeseries ..., interval:Nm</code>.</li>
+</ul>
+<p>See <strong>NRLC-02: NRQL→DQL Translation</strong> for the full translation surface (292 patterns), confidence scoring, and the open-source <a href="https://github.com/timstewart-dynatrace/nrql-engine"><code>nrql-engine</code></a> compiler.</p>
+<p><a id="entities"></a></p>
+<h2>4. Entity Hierarchy</h2>
+<h3>New Relic</h3>
+<p>Entities are typed objects (APM Application, Host, Synthetic Monitor, Browser App, Mobile App, etc.) identified by <strong>GUID</strong>. Relationships are explicit but limited — often inferred from APM instrumentation. Workloads group entities manually.</p>
+<h3>Dynatrace</h3>
+<p>Smartscape automatically discovers and connects entities:</p>
+<p><strong>Process → Process Group → Host → Host Group</strong></p>
+<p>Plus: Service → Service Group, Application → Application Group, custom entities, Kubernetes entities (Pod, Cluster, Namespace, Workload).</p>
+<table>
+<thead>
+<tr>
+<th>New Relic Entity</th>
+<th>Dynatrace Equivalent</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>APM Application</td>
+<td>Service</td>
+<td>Auto-detected by OneAgent code instrumentation</td>
+</tr>
+<tr>
+<td>Host</td>
+<td>Host</td>
+<td>Auto-discovered; assigned to host groups</td>
+</tr>
+<tr>
+<td>Container</td>
+<td>Container Group</td>
+<td>K8s container / pod-aware</td>
+</tr>
+<tr>
+<td>Workload</td>
+<td>OpenPipeline enrichment + IAM policy condition on enriched attribute</td>
+<td>Manual definition; rules-based selectors</td>
+</tr>
+<tr>
+<td>Synthetic Monitor</td>
+<td>HTTP/Browser Monitor</td>
+<td>Direct mapping for ping; scripts need adaptation</td>
+</tr>
+<tr>
+<td>Browser App</td>
+<td>RUM Application</td>
+<td>OneAgent JS injection or manual tag</td>
+</tr>
+<tr>
+<td>Mobile App</td>
+<td>Mobile Application</td>
+<td>Native SDK</td>
+</tr>
+<tr>
+<td>Lambda Function</td>
+<td>AWS Lambda</td>
+<td>Cloud integration</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Migration implication:</strong> NR's GUID references in dashboards and alert conditions don't map 1:1 to DT entity IDs. Use <strong>entity selectors</strong> (<code>type(SERVICE),entityName(&quot;checkout&quot;)</code>) for portability.</p>
+<p><a id="iam"></a></p>
+<h2>5. Identity, Access &amp; Multi-Tenancy</h2>
+<h3>New Relic</h3>
+<ul>
+<li><strong>Account / Sub-account</strong> structure with role-based permissions per account</li>
+<li>Standard roles include All product admin, Standard user and Read only</li>
+<li>Permissions per category (Alerts, APM, Infrastructure, Insights/Dashboards)</li>
+</ul>
+<h3>Dynatrace</h3>
+<ul>
+<li><strong>Tenant</strong> (single environment) with <strong>Groups</strong> ↔ <strong>Policies</strong> ↔ <strong>Permissions</strong> model</li>
+<li>IAM policies use ALLOW-WHERE statements with conditions on <code>storage:bucket-name</code>, <code>storage:table</code>, and DQL attribute filters</li>
+<li><strong>Bucket routing</strong> + <strong>OpenPipeline enrichment</strong> define the data boundaries; IAM scopes access to those boundaries</li>
+<li><strong>Policy boundaries</strong> (DT Gen3) constrain what conditions a policy can include</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>NR Concept</th>
+<th>DT Equivalent</th>
+<th>Mapping</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sub-account isolation</td>
+<td>Tenant + OpenPipeline-enriched data + IAM policy bucket/attribute condition</td>
+<td>Soft isolation via data-level attribute scoping</td>
+</tr>
+<tr>
+<td>Read only role</td>
+<td>Policy with bucket scope + DQL-attribute conditions</td>
+<td>Fine-grained per-resource (Gen3 pattern)</td>
+</tr>
+<tr>
+<td>All product admin role</td>
+<td>Tenant admin policy</td>
+<td>Full tenant access</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Migration implication:</strong> A NR multi-account setup typically becomes a single DT tenant + an attribute taxonomy applied via OpenPipeline enrichment + bucket-scoped IAM policies. See <strong>FAQ-01 — Host Group Naming Strategy</strong>, <strong>ORGNZ-02 / ORGNZ-99</strong> (Grail bucket strategy), and the <strong>IAM</strong> series (especially IAM-04 / IAM-05 / IAM-11 WORKSHOP) for the design patterns.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.newrelic.com/docs/accounts/accounts-billing/new-relic-one-user-management/user-management-concepts/">User management concepts (New Relic docs)</a> — <em>&quot;Standard roles include: All product admin&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="pricing"></a></p>
+<h2>6. Pricing Models</h2>
+<h3>New Relic</h3>
+<ul>
+<li><strong>Usage-based</strong>: per GB of ingested data + per user (Full platform and Core are billed, Basic is not); a Data + Core Compute option is in Preview</li>
+<li>Single rate across all data types</li>
+<li>No retention tier discount</li>
+</ul>
+<h3>Dynatrace</h3>
+<ul>
+<li><strong>Dynatrace Platform Subscription (DPS)</strong>: consumption units (DPS) tied to specific capability use</li>
+<li>Different DPS rates per capability: log ingest, log retention with included queries, log usage-based queries, full-stack monitoring (GiB-hours), etc.</li>
+<li><strong>Bucket pricing tiers</strong> allow optimization: keep hot data with included queries, cold data on usage-based</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Cost Driver</th>
+<th>New Relic</th>
+<th>Dynatrace</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Log ingest</td>
+<td>$/GB</td>
+<td>DPS per GB ingested</td>
+</tr>
+<tr>
+<td>Log retention</td>
+<td>Bundled in retention period</td>
+<td>Separate DPS rate; tunable per bucket</td>
+</tr>
+<tr>
+<td>Log queries</td>
+<td>Free within retention</td>
+<td>DPS per GiB scanned (usage-based buckets) or included (RWIQ)</td>
+</tr>
+<tr>
+<td>Hosts</td>
+<td>Per user (full-stack indirectly)</td>
+<td>DPS per GiB-hour of host memory (FSM)</td>
+</tr>
+<tr>
+<td>Synthetics</td>
+<td>Per check</td>
+<td>DPS per synthetic action (browser) or synthetic request (HTTP)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Migration implication:</strong> NR's flat rate often appears cheaper at small scale but doesn't scale efficiently. DT's tiered model lets you right-size cost per data class. A 30–60% reduction is typical when an OpenPipeline + tiered bucket strategy replaces NR's flat ingest. See <strong>NRLC-07 Logs/Tags/Drops</strong> for cost-optimization patterns.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability/full-stack-monitoring">Full-Stack Monitoring (DT docs)</a> — <em>&quot;Consumption is based on host memory&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/license/capabilities/log-analytics/dps-log-query">Log query (DT docs)</a> — <em>&quot;It is calculated per gibibyte scanned&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/license/capabilities/real-user-synthetic-monitoring/browser-monitor-clickpath">Browser monitor (DT docs)</a> — <em>&quot;usage based on the number of synthetic actions executed&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/license/capabilities/real-user-synthetic-monitoring/http-monitor">HTTP monitor (DT docs)</a> — <em>&quot;HTTP Monitor consumption is measured in synthetic requests&quot;</em></sub></li>
+<li><sub><a href="https://docs.newrelic.com/docs/accounts/accounts-billing/new-relic-one-pricing-billing/new-relic-one-pricing-billing/">Pricing and billing (New Relic docs)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="mapping"></a></p>
+<h2>7. Concept Mapping Reference</h2>
+<p>Quick-reference table for every major concept this series touches:</p>
+<table>
+<thead>
+<tr>
+<th>New Relic</th>
+<th>Dynatrace</th>
+<th>Deep Dive</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NRQL</td>
+<td>DQL</td>
+<td>NRLC-02</td>
+</tr>
+<tr>
+<td>Dashboard (multi-page)</td>
+<td>Document (single-page × N)</td>
+<td>NRLC-03</td>
+</tr>
+<tr>
+<td>Alert Policy</td>
+<td>Workflow (Gen3)</td>
+<td>NRLC-04</td>
+</tr>
+<tr>
+<td>NRQL Alert Condition</td>
+<td>Anomaly detector</td>
+<td>NRLC-04</td>
+</tr>
+<tr>
+<td>APM Condition</td>
+<td>Adaptive Baseline (Dynatrace Intelligence)</td>
+<td>NRLC-04</td>
+</tr>
+<tr>
+<td>Synthetic Ping</td>
+<td>HTTP Monitor</td>
+<td>NRLC-05</td>
+</tr>
+<tr>
+<td>Synthetic Browser</td>
+<td>Browser Monitor</td>
+<td>NRLC-05</td>
+</tr>
+<tr>
+<td>Synthetic API</td>
+<td>HTTP Monitor (multi-step)</td>
+<td>NRLC-05</td>
+</tr>
+<tr>
+<td>Synthetic Step Monitor</td>
+<td>Browser Monitor (clickpath)</td>
+<td>NRLC-05</td>
+</tr>
+<tr>
+<td>SLO</td>
+<td>SLO (Service-Level Objectives app)</td>
+<td>NRLC-06</td>
+</tr>
+<tr>
+<td>Workload</td>
+<td>OpenPipeline enrichment + IAM policy condition on enriched attribute</td>
+<td>NRLC-06</td>
+</tr>
+<tr>
+<td>Tag</td>
+<td>Tag (entity / Grail dimension)</td>
+<td>NRLC-07</td>
+</tr>
+<tr>
+<td>Drop Rule</td>
+<td>OpenPipeline <code>Drop record</code> processor</td>
+<td>NRLC-07</td>
+</tr>
+<tr>
+<td>Notification Channel (Email/Slack/PD)</td>
+<td>Workflow task (connector or HTTP Request)</td>
+<td>NRLC-04</td>
+</tr>
+<tr>
+<td>Log Parsing Rule</td>
+<td>OpenPipeline DPL parser</td>
+<td>NRLC-07</td>
+</tr>
+<tr>
+<td>Sub-account</td>
+<td>Bucket + OpenPipeline enrichment + IAM</td>
+<td>NRLC-01 §5</td>
+</tr>
+<tr>
+<td>User Role</td>
+<td>IAM Policy + Group</td>
+<td>NRLC-01 §5</td>
+</tr>
+</tbody>
+</table>
+<h2>Summary</h2>
+<p>The two platforms solve the same observability problem with very different abstractions. Migration succeeds when each NR concept is mapped to its closest DT equivalent and remaining gaps are closed with intentional design — not by trying to make DT behave like NR.</p>
+<p>Continue to <strong>NR2DT-01 Discover</strong> for the procedural wave plan + discovery runbook, or jump to a specific topic deep dive via the table above.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources, including the open-source <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities">NewRelic-to-Dynatrace-Migration-Utilities</a>, <a href="https://github.com/timstewart-dynatrace/nrql-engine">nrql-engine</a> (planned future home: the <a href="https://github.com/dynatrace-dma"><code>dynatrace-dma</code></a> Dynatrace Migration Assistant organization), and <a href="https://github.com/timstewart-dynatrace/nrql-translator">nrql-translator</a> projects. This notebook series is not officially supported by Dynatrace or New Relic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://docs.newrelic.com">New Relic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

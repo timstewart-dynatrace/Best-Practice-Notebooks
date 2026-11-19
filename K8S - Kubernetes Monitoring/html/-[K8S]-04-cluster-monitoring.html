@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K8S-04: Cluster Health Monitoring</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">K8S — Kubernetes Monitoring</a><span class="sep">/</span><span aria-current="page">K8S-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>K8S-04: Cluster Health Monitoring</h1>
+<blockquote>
+<p><strong>Series:</strong> K8S — Kubernetes Monitoring | <strong>Notebook:</strong> 4 of 14 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/15/2026</p>
+</blockquote>
+<h2>Deep-Dive into Kubernetes Cluster Metrics</h2>
+<p>Cluster health monitoring provides visibility into the infrastructure layer of Kubernetes: nodes, control plane, and cluster-wide resources. This notebook covers key metrics, thresholds, and DQL queries for proactive cluster management.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#cluster-health-overview">Cluster Health Overview</a></li>
+<li><a href="#node-monitoring">Node Monitoring</a></li>
+<li><a href="#resource-capacity-planning">Resource Capacity Planning</a></li>
+<li><a href="#control-plane-health">Control Plane Health</a></li>
+<li><a href="#cluster-wide-events">Cluster-Wide Events</a></li>
+<li><a href="#cost-optimization-queries">Cost Optimization Queries</a></li>
+<li><a href="#dynatrace-component-health">Dynatrace Component Health</a></li>
+<li><a href="#alerting-strategies">Alerting Strategies</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Kubernetes monitoring</td>
+</tr>
+<tr>
+<td><strong>DynaKube</strong></td>
+<td>ActiveGate with <code>kubernetes-monitoring</code> capability</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:metrics:read</code>, <code>storage:events:read</code>, <code>storage:smartscape:read</code> (plus <code>storage:entities:read</code> for the classic <code>dt.entity.*</code> fallbacks)</td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>At least 24 hours of cluster data</td>
+</tr>
+</tbody>
+</table>
+<p><a id="cluster-health-overview"></a></p>
+<h2>1. Cluster Health Overview</h2>
+<h3>Key Health Indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Metrics</th>
+<th>Healthy State</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Node Status</strong></td>
+<td>Ready/NotReady</td>
+<td>All nodes Ready</td>
+</tr>
+<tr>
+<td><strong>Pod Scheduling</strong></td>
+<td>Pending pods</td>
+<td>No long-pending pods</td>
+</tr>
+<tr>
+<td><strong>Resource Pressure</strong></td>
+<td>CPU/Memory pressure</td>
+<td>No pressure conditions</td>
+</tr>
+<tr>
+<td><strong>Disk Pressure</strong></td>
+<td>Disk space, inode usage</td>
+<td>&gt;15% available</td>
+</tr>
+<tr>
+<td><strong>Network</strong></td>
+<td>CNI health, DNS latency</td>
+<td>&lt;100ms DNS resolution</td>
+</tr>
+</tbody>
+</table>
+<h3>Dynatrace Kubernetes Dashboard</h3>
+<p>The built-in Kubernetes dashboard provides:</p>
+<ul>
+<li>Cluster overview with node status</li>
+<li>Namespace resource usage</li>
+<li>Workload health summary</li>
+<li>Recent events and problems</li>
+</ul>
+<p>Navigate to: <strong>Infrastructure &gt; Kubernetes</strong></p>
+<h3>Enhanced Kubernetes Visibility in the Kubernetes App</h3>
+<p>Three additions to the Kubernetes app's cluster and workload views:</p>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>What it surfaces</th>
+<th>Why it matters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Horizontal Pod Autoscaler (HPA)</strong></td>
+<td>HPA is now a first-class object — scaling triggers, current/desired replica counts, and the workloads it drives</td>
+<td>See <em>why</em> a workload scaled (which metric crossed which threshold) without leaving Dynatrace</td>
+</tr>
+<tr>
+<td><strong>Custom Resources (CRs)</strong></td>
+<td>Monitor up to <strong>5 Custom Resources</strong> (ActiveGate 1.335+), surfacing CRD-heavy ecosystems (Argo, Istio, Cert-Manager, Kyverno, operator-managed databases)</td>
+<td>Brings operator/CRD state into the same view as native Kubernetes objects</td>
+</tr>
+<tr>
+<td><strong>Cloud configuration in cluster details</strong></td>
+<td>The underlying managed-cluster configuration (EKS, AKS, GKE) shown inline as YAML or JSON</td>
+<td>Correlate cluster and cloud state in one place — no jumping to the cloud console</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> <em>&quot;Starting with ActiveGate version 1.335+, ActiveGate supports monitoring up to five CRs.&quot;</em> The cap means you choose which CRDs matter most — prioritize the operators whose state actually drives incidents in your environment.</p>
+</blockquote>
+<h4>Kubernetes Enhanced Object Visibility (ActiveGate 1.327+)</h4>
+<p>Building on the above, the Kubernetes app now surfaces a broader set of objects and their raw definitions:</p>
+<ul>
+<li><strong>Additional Kubernetes objects</strong> — Ingress, NetworkPolicies, CRDs, PVCs, PVs, ConfigMaps, and more appear alongside the native cluster/node/namespace/workload views.</li>
+<li><strong>YAML definitions inline</strong> — view an object's YAML to debug and validate configuration in real time without leaving Dynatrace.</li>
+<li><strong>Query YAML across clusters with DQL</strong> — surface misconfigurations, missing references, or policy violations across all clusters and namespaces at once.</li>
+</ul>
+<p><strong>Prerequisite:</strong> ActiveGate version 1.327+. Older ActiveGate versions stay in backward-compatibility mode, where an extra <strong>Explorer (Classic)</strong> tab appears. <em>&quot;From June 2026, Explorer Classic is transitioning to a 'maintenance only' support mode. Clusters running on ActiveGate version 1.327+ that meet all prerequisites will be accessible the new Explorer.&quot;</em> Upgrade ActiveGate to 1.327+ to move a cluster to the new Explorer.</p>
+<h4>Kubernetes Connection Lifecycle — Stale Connections Are Disabled (SaaS 1.344)</h4>
+<p>Every monitored cluster has a <strong>Kubernetes connection</strong> on the tenant side. SaaS 1.344 (released 07/27/2026, staged tenant rollout from 07/29/2026) adds: <em>&quot;Dynatrace will automatically disable stale Kubernetes connection settings if no successful connection has been established for 60 days. This action is recorded in the audit log and can be reversed by re-enabling the connection via the API or the web UI.&quot;</em></p>
+<p>The connection is <strong>disabled, not deleted</strong>, and the change cuts two ways:</p>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>What happens</th>
+<th>What you should do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Decommissioned cluster</strong></td>
+<td>After 60 days without a successful connection, its connection setting is disabled automatically.</td>
+<td>Nothing required. Delete the setting yourself if you want the list clean — disabling does not remove it.</td>
+</tr>
+<tr>
+<td><strong>Live but long-idle cluster</strong></td>
+<td>A cluster that is real but has not connected for 60 days — a lab, a seasonal environment, a cluster whose ActiveGate has been down — is disabled by the same rule.</td>
+<td>Treat &quot;no data for weeks&quot; as an issue to fix. To bring a dormant cluster back, re-enable the connection in the web UI or via the API; the audit log records when it was disabled.</td>
+</tr>
+</tbody>
+</table>
+<p>Tenants still on an earlier version keep stale connections enabled until someone removes them.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/kubernetes-app/enable-k8s-experience">Getting started with Kubernetes experience (DT docs)</a> — <em>&quot;Starting with ActiveGate version 1.335+, ActiveGate supports monitoring up to five CRs.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-344">SaaS 1.344 (DT docs)</a> — the stale-connection quote.</sub></p>
+</blockquote>
+<p>SaaS 1.344 also adds <strong>cross-app navigation with context preservation</strong>, so a jump from the Kubernetes app into another app (for example, into logs or a dashboard) carries the cluster/namespace context with it instead of dropping you at an unfiltered start.</p>
+<pre><code class="language-dql">// List all monitored Kubernetes clusters (smartscape topology)
+smartscapeNodes &quot;K8S_CLUSTER&quot;
+| fields entity.name = name, tags
+| sort entity.name asc
+
+// Legacy alternative (deprecated for new content):
+// fetch dt.entity.kubernetes_cluster
+// | fields entity.name, tags
+// | sort entity.name asc
+
+</code></pre>
+<p><a id="node-monitoring"></a></p>
+<h2>2. Node Monitoring</h2>
+<h3>Node Status and Conditions</h3>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Description</th>
+<th>Alert When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Ready</strong></td>
+<td>Node can accept pods</td>
+<td>False for &gt;5 min</td>
+</tr>
+<tr>
+<td><strong>MemoryPressure</strong></td>
+<td>Low memory</td>
+<td>True</td>
+</tr>
+<tr>
+<td><strong>DiskPressure</strong></td>
+<td>Low disk space</td>
+<td>True</td>
+</tr>
+<tr>
+<td><strong>PIDPressure</strong></td>
+<td>Too many processes</td>
+<td>True</td>
+</tr>
+<tr>
+<td><strong>NetworkUnavailable</strong></td>
+<td>Network not configured</td>
+<td>True</td>
+</tr>
+</tbody>
+</table>
+<p>Dynatrace records node conditions as the metric <code>dt.kubernetes.node.conditions</code>, one series per node, <code>node_condition</code> and boolean <code>condition_status</code>. The query below lists every node currently not Ready or under pressure.</p>
+<pre><code class="language-dql">// List all Kubernetes nodes (smartscape topology)
+smartscapeNodes &quot;K8S_NODE&quot;
+| fields entity.name = name, tags
+| sort entity.name asc
+
+// Legacy alternative (deprecated for new content):
+// fetch dt.entity.kubernetes_node
+// | fields entity.name, tags
+// | sort entity.name asc
+
+</code></pre>
+<pre><code class="language-dql">// Nodes that are not Ready, or are under memory / disk / PID pressure
+// dt.kubernetes.node.conditions writes 1 per (node, node_condition, condition_status) present;
+// condition_status is a boolean. bucketsInState counts time buckets: at from:-1h a bucket is
+// one minute, at wider timeframes it is longer. Executed 10/02/2026.
+timeseries c = max(dt.kubernetes.node.conditions), from:-1h,
+  by:{k8s.cluster.name, k8s.node.name, node_condition, condition_status}
+| filter (node_condition == &quot;Ready&quot; and condition_status == false)
+      or (in(node_condition, {&quot;MemoryPressure&quot;, &quot;DiskPressure&quot;, &quot;PIDPressure&quot;}) and condition_status == true)
+| fieldsAdd bucketsInState = arraySize(arrayRemoveNulls(c))
+| fields k8s.cluster.name, k8s.node.name, node_condition, condition_status, bucketsInState
+| sort bucketsInState desc
+</code></pre>
+<pre><code class="language-dql">// Node CPU utilization — container usage summed per node, against node allocatable
+// There is no dt.kubernetes.node.cpu_usage metric: node-level usage is derived
+// by summing the per-container metric. Allocatable is a genuine node-grain metric.
+// rollup: avg averages each container within a time bucket before the cross-container sum;
+// without it, sum() also adds the 1-min points in each bucket and wide timeframes read ~10x high.
+timeseries {
+    used = sum(dt.kubernetes.container.cpu_usage, rollup: avg),
+    allocatable = avg(dt.kubernetes.node.cpu_allocatable)
+  }, from:-1h, by:{k8s.cluster.name, k8s.node.name}
+| fieldsAdd cpuPercent = round(100 * arrayAvg(used) / arrayAvg(allocatable), decimals: 1)
+| fields k8s.cluster.name, k8s.node.name, cpuPercent
+| sort cpuPercent desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Node memory utilization — working-set memory summed per node, against node allocatable
+// Same derivation as CPU above: no dt.kubernetes.node.memory_usage metric exists.
+// rollup: avg averages each container within a time bucket before the cross-container sum;
+// without it, sum() also adds the 1-min points in each bucket and wide timeframes read ~10x high.
+timeseries {
+    used = sum(dt.kubernetes.container.memory_working_set, rollup: avg),
+    allocatable = avg(dt.kubernetes.node.memory_allocatable)
+  }, from:-1h, by:{k8s.cluster.name, k8s.node.name}
+| fieldsAdd memPercent = round(100 * arrayAvg(used) / arrayAvg(allocatable), decimals: 1)
+| filter memPercent &gt; 80
+| fields k8s.cluster.name, k8s.node.name, memPercent
+| sort memPercent desc
+</code></pre>
+<pre><code class="language-dql">// Node filesystem usage per disk - disk pressure detection (averaging all of a host's disks hides a full one)
+timeseries diskUsed = avg(dt.host.disk.used.percent), from:-1h, by:{dt.entity.host, dt.entity.disk}
+| fieldsAdd diskUsedPct = arrayAvg(diskUsed)
+| filter diskUsedPct &gt; 80
+| fieldsAdd host = entityName(dt.entity.host), disk = entityName(dt.entity.disk)
+| fields host, disk, diskUsedPct
+| sort diskUsedPct desc
+</code></pre>
+<p><a id="resource-capacity-planning"></a></p>
+<h2>3. Resource Capacity Planning</h2>
+<h3>Capacity Metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Description</th>
+<th>Use Case</th>
+<th>Grail metric key</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Allocatable</strong></td>
+<td>Resources available for pods</td>
+<td>Scheduling decisions</td>
+<td><code>dt.kubernetes.node.cpu_allocatable</code>, <code>dt.kubernetes.node.memory_allocatable</code></td>
+</tr>
+<tr>
+<td><strong>Requested</strong></td>
+<td>Sum of pod requests</td>
+<td>Capacity planning</td>
+<td><code>dt.kubernetes.container.requests_cpu</code>, <code>dt.kubernetes.container.requests_memory</code></td>
+</tr>
+<tr>
+<td><strong>Used</strong></td>
+<td>Actual consumption</td>
+<td>Right-sizing</td>
+<td><code>dt.kubernetes.container.cpu_usage</code>, <code>dt.kubernetes.container.memory_working_set</code></td>
+</tr>
+<tr>
+<td><strong>Limits</strong></td>
+<td>Maximum allowed</td>
+<td>Burst capacity</td>
+<td><code>dt.kubernetes.container.limits_cpu</code>, <code>dt.kubernetes.container.limits_memory</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Grain matters more than the label.</strong> <em>Allocatable</em> is the only genuinely node-grain family — everything else is emitted <strong>per container</strong> and rolled up by you. There is no <code>dt.kubernetes.node.cpu_usage</code>, no <code>dt.kubernetes.node.memory_usage</code>, and no <code>dt.kubernetes.workload.requests_*</code>; node and workload views are derived by summing the <code>dt.kubernetes.container.*</code> series across the dimensions you group by. Enumerate what your tenant actually carries before writing a query:</p>
+<pre><code class="language-dql">metrics
+| filter startsWith(metric.key, &quot;dt.kubernetes&quot;)
+| summarize n = count(), by:{metric.key}
+| sort metric.key asc
+</code></pre>
+<p>Note the <code>metrics</code> command takes <code>from:</code> with <strong>no leading comma</strong> (<code>metrics from:-2h | …</code>). Writing <code>metrics, from:-2h</code> is a parse error, and a parse error read only for its record count looks exactly like &quot;this tenant has no such metrics.&quot;</p>
+</blockquote>
+<h3>Utilization vs. Allocation</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImNhcGFjaXR5R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWUzYTVmO3N0b3Atb3BhY2l0eToxIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBGMTcyQTtzdG9wLW9wYWNpdHk6MSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icmVzZXJ2ZWRHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNERTM1MEI7c3RvcC1vcGFjaXR5OjAuNiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNiOTFjMWM7c3RvcC1vcGFjaXR5OjAuNiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYWxsb2NhdGFibGVHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNDk2RkY7c3RvcC1vcGFjaXR5OjAuNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxZTRhOWU7c3RvcC1vcGFjaXR5OjAuNCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icmVxdWVzdGVkR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojRkZCODAwO3N0b3Atb3BhY2l0eTowLjUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZDk3NzA2O3N0b3Atb3BhY2l0eTowLjUiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InVzZWRHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3M0JFMjg7c3RvcC1vcGFjaXR5OjEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTZhMzRhO3N0b3Atb3BhY2l0eToxIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0ic2hhZG93IiB4PSItMTAlIiB5PSItMTAlIiB3aWR0aD0iMTIwJSIgaGVpZ2h0PSIxMjAlIj4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMCIgZHk9IjIiIHN0ZERldmlhdGlvbj0iMiIgZmxvb2QtY29sb3I9IiMwMDAiIGZsb29kLW9wYWNpdHk9IjAuMyIvPgogICAgPC9maWx0ZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5Ob2RlIFJlc291cmNlIFV0aWxpemF0aW9uIE1vZGVsPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPk5lc3RlZCBjYXBhY2l0eSwgcmVxdWVzdHMsIGFuZCBhY3R1YWwgdXNhZ2Ugb24gYSBLdWJlcm5ldGVzIG5vZGU8L3RleHQ+CgogIDwhLS0gTEVGVCBTSURFOiBOZXN0ZWQgY2FwYWNpdHkgbW9kZWwgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjkwIiB3aWR0aD0iNTQwIiBoZWlnaHQ9IjMyMCIgcng9IjEyIiBmaWxsPSJ1cmwoI2NhcGFjaXR5R3JhZCkiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjU1IiB5PSIxMTgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPk5vZGUgQ2FwYWNpdHk8L3RleHQ+CiAgPHRleHQgeD0iMjAwIiB5PSIxMTgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlRvdGFsIGhhcmR3YXJlIHJlc291cmNlcyAoQ1BVICsgbWVtb3J5KTwvdGV4dD4KCiAgPCEtLSBTeXN0ZW0gUmVzZXJ2ZWQgLS0+CiAgPHJlY3QgeD0iNjAiIHk9IjEzNSIgd2lkdGg9IjUwMCIgaGVpZ2h0PSI1MCIgcng9IjYiIGZpbGw9InVybCgjcmVzZXJ2ZWRHcmFkKSIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9Ijc1IiB5PSIxNTgiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlN5c3RlbSBSZXNlcnZlZDwvdGV4dD4KICA8dGV4dCB4PSIyMjAiIHk9IjE1OCIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSI+a3ViZWxldCwgY29udGFpbmVyIHJ1bnRpbWUsIE9TIGRhZW1vbnM8L3RleHQ+CiAgPHRleHQgeD0iNzUiIHk9IjE3NSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSI+RGVmYXVsdCB+NeKAkzEwJSBvZiBDUFUgKyBtZW1vcnk7IHR1bmVkIHZpYSBrdWJlbGV0IGZsYWdzPC90ZXh0PgoKICA8IS0tIEFsbG9jYXRhYmxlIC0tPgogIDxyZWN0IHg9IjYwIiB5PSIyMDAiIHdpZHRoPSI1MDAiIGhlaWdodD0iMTkwIiByeD0iNiIgZmlsbD0idXJsKCNhbGxvY2F0YWJsZUdyYWQpIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNzUiIHk9IjIyNSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+QWxsb2NhdGFibGU8L3RleHQ+CiAgPHRleHQgeD0iMTgwIiB5PSIyMjUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTEiPkNhcGFjaXR5IOKIkiBTeXN0ZW0gUmVzZXJ2ZWQgKHdoYXQgc2NoZWR1bGVyIGNhbiBwbGFjZSk8L3RleHQ+CgogIDwhLS0gUmVxdWVzdGVkIChzdW0gb2YgcG9kIHJlcXVlc3RzKSAtLT4KICA8cmVjdCB4PSI4MCIgeT0iMjQwIiB3aWR0aD0iNDYwIiBoZWlnaHQ9IjEyNSIgcng9IjYiIGZpbGw9InVybCgjcmVxdWVzdGVkR3JhZCkiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI5NSIgeT0iMjYzIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5SZXF1ZXN0ZWQgKHN1bSBvZiBwb2QgcmVxdWVzdHMpPC90ZXh0PgogIDx0ZXh0IHg9IjMyMCIgeT0iMjYzIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIj5SZXNlcnZhdGlvbiwgbm90IGFjdHVhbCBjb25zdW1wdGlvbjwvdGV4dD4KCiAgPCEtLSBBY3R1YWxseSBVc2VkIC0tPgogIDxyZWN0IHg9IjEwMCIgeT0iMjgwIiB3aWR0aD0iNDIwIiBoZWlnaHQ9IjY1IiByeD0iNiIgZmlsbD0idXJsKCN1c2VkR3JhZCkiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMTE1IiB5PSIzMDUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkFjdHVhbGx5IFVzZWQ8L3RleHQ+CiAgPHRleHQgeD0iMjQwIiB5PSIzMDUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPlJlYWwtdGltZSBDUFUgKyBtZW1vcnkgY29uc3VtcHRpb248L3RleHQ+CiAgPHRleHQgeD0iMTE1IiB5PSIzMjUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPkdhcCBiZXR3ZWVuIFJlcXVlc3RlZCBhbmQgVXNlZCA9IG92ZXItcHJvdmlzaW9uaW5nPC90ZXh0PgoKICA8IS0tIFJJR0hUIFNJREU6IExlZ2VuZCAtLT4KICA8cmVjdCB4PSI2MTAiIHk9IjkwIiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjI0MCIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI3NTAiIHk9IjExOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+TGVnZW5kPC90ZXh0PgoKICA8cmVjdCB4PSI2MzAiIHk9IjEzOCIgd2lkdGg9IjE4IiBoZWlnaHQ9IjE4IiByeD0iMyIgZmlsbD0iIzY0NzQ4QiIvPgogIDx0ZXh0IHg9IjY2MCIgeT0iMTUyIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5Ub3RhbCBDYXBhY2l0eTwvdGV4dD4KCiAgPHJlY3QgeD0iNjMwIiB5PSIxNzAiIHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgcng9IjMiIGZpbGw9InVybCgjcmVzZXJ2ZWRHcmFkKSIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjY2MCIgeT0iMTg0IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5TeXN0ZW0gUmVzZXJ2ZWQ8L3RleHQ+CgogIDxyZWN0IHg9IjYzMCIgeT0iMjAyIiB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHJ4PSIzIiBmaWxsPSJ1cmwoI2FsbG9jYXRhYmxlR3JhZCkiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI2NjAiIHk9IjIxNiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+QWxsb2NhdGFibGU8L3RleHQ+CgogIDxyZWN0IHg9IjYzMCIgeT0iMjM0IiB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHJ4PSIzIiBmaWxsPSJ1cmwoI3JlcXVlc3RlZEdyYWQpIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNjYwIiB5PSIyNDgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPlJlcXVlc3RlZCAoc3VtKTwvdGV4dD4KCiAgPHJlY3QgeD0iNjMwIiB5PSIyNjYiIHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgcng9IjMiIGZpbGw9InVybCgjdXNlZEdyYWQpIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNjYwIiB5PSIyODAiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPkFjdHVhbGx5IFVzZWQ8L3RleHQ+CgogIDx0ZXh0IHg9IjYzMCIgeT0iMzEyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5FYWNoIGxheWVyIGhhcyBib3RoPC90ZXh0PgogIDx0ZXh0IHg9IjYzMCIgeT0iMzI2IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5DUFUgYW5kIG1lbW9yeSBkaW1lbnNpb25zPC90ZXh0PgoKICA8IS0tIEtleSBJbnNpZ2h0IGNhbGxvdXQgKHJpZ2h0IGNvbHVtbiwgbG93ZXIpIC0tPgogIDxyZWN0IHg9IjYxMCIgeT0iMzQ1IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjY1IiByeD0iNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjYyNSIgeT0iMzY1IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5LZXkgSW5zaWdodDwvdGV4dD4KICA8dGV4dCB4PSI2MjUiIHk9IjM4MyIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+UmVxdWVzdGVkIOKJoCBVc2VkLiBUcmFjayBib3RoIHRvPC90ZXh0PgogIDx0ZXh0IHg9IjYyNSIgeT0iMzk4IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5vcHRpbWl6ZSBjb3N0IGFuZCBwcmV2ZW50IHNjaGVkdWxpbmc8L3RleHQ+CgogIDwhLS0gQm90dG9tIGd1aWRhbmNlIGJhciAtLT4KICA8cmVjdCB4PSI0MCIgeT0iNDMwIiB3aWR0aD0iODUwIiBoZWlnaHQ9IjUwIiByeD0iNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI1NSIgeT0iNDUyIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5SZWNvbW1lbmRlZCBtb25pdG9yaW5nPC90ZXh0PgogIDx0ZXh0IHg9IjI0MCIgeT0iNDUyIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5BbGVydCB3aGVuIFJlcXVlc3RlZCAmZ3Q7IDgwJSBBbGxvY2F0YWJsZTsgcmlnaHQtc2l6ZSB3aGVuIGF2ZyBVc2VkICZsdDsgNDAlIG9mIFJlcXVlc3RlZCBvdmVyIDcgZGF5cy48L3RleHQ+CiAgPHRleHQgeD0iNTUiIHk9IjQ3MCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+U291cmNlIGZpZWxkczogZHQua3ViZXJuZXRlcy5ub2RlLmNwdV9hbGxvY2F0YWJsZSAobm9kZSBncmFpbik7IGR0Lmt1YmVybmV0ZXMuY29udGFpbmVyLnJlcXVlc3RzX2NwdSBhbmQgLmNwdV91c2FnZSAoY29udGFpbmVyIGdyYWluLCBzdW0gcGVyIG5vZGUpPC90ZXh0Pgo8L3N2Zz4K" alt="Node Resource Utilization Model" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Layer | Description |
+|-------|-------------|
+| Node Capacity | Total hardware resources |
+| System Reserved | kubelet, runtime, OS |
+| Allocatable | Available for pods |
+| Requested (sum) | Pod requests |
+| Actually Used | Real-time usage |
+
+**Key Insight:** Requested ≠ Used. Over-provisioning wastes resources. Monitor both to optimize cluster efficiency.
+For environments where SVG doesn't render
+-->
+<blockquote>
+<p><strong>Capacity planning across ActiveGate 1.343 / 1.345 upgrades:</strong> the request and limit metrics — <code>dt.kubernetes.container.requests_cpu</code> / <code>requests_memory</code> and <code>limits_cpu</code> / <code>limits_memory</code> — <strong>carry an effective pod value</strong>: init containers are accounted for from ActiveGate 1.343, and pod-level <code>spec.resources</code> (Kubernetes 1.34+) and pod <code>overhead</code> from 1.345. The <em>Requested</em> line can therefore step at either upgrade — up for init containers, up or down for pod-level limits — while <em>Used</em> (<code>dt.kubernetes.container.cpu_usage</code>, <code>memory_working_set</code>) does not move. Read a trend spanning either boundary as <strong>two series, not one</strong> — otherwise the discontinuity reads as a genuine reservation increase and skews right-sizing conclusions. Full explanation: K8S-08 §2.</p>
+</blockquote>
+<pre><code class="language-dql">// CPU requests by namespace — requests are a container-grain metric, summed to namespace
+// (there is no dt.kubernetes.workload.requests_cpu; requests live under container.*)
+// rollup: avg averages each container within a time bucket before the cross-container sum;
+// without it, sum() also adds the 1-min points in each bucket and wide timeframes read ~10x high.
+timeseries cpuReq = sum(dt.kubernetes.container.requests_cpu, rollup: avg), from:-1h, by:{k8s.namespace.name}
+| fieldsAdd avgReqMillicores = round(arrayAvg(cpuReq), decimals: 0)
+| fields k8s.namespace.name, avgReqMillicores
+| sort avgReqMillicores desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Memory requests by namespace (GiB) — container-grain metric summed to namespace
+// rollup: avg averages each container within a time bucket before the cross-container sum;
+// without it, sum() also adds the 1-min points in each bucket and wide timeframes read ~10x high.
+timeseries memReq = sum(dt.kubernetes.container.requests_memory, rollup: avg), from:-1h, by:{k8s.namespace.name}
+| fieldsAdd avgReqGiB = round(arrayAvg(memReq) / 1073741824, decimals: 2)
+| fields k8s.namespace.name, avgReqGiB
+| sort avgReqGiB desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Requested vs used CPU by namespace — the capacity-planning view of § 3
+// Container-grain metrics summed into the namespace (rollup: avg first, see above).
+timeseries {
+    used = sum(dt.kubernetes.container.cpu_usage, rollup: avg),
+    requested = sum(dt.kubernetes.container.requests_cpu, rollup: avg)
+  }, from:-24h, by:{k8s.cluster.name, k8s.namespace.name}
+| fieldsAdd usedMillicores = round(arrayAvg(used), decimals: 0),
+            requestedMillicores = round(arrayAvg(requested), decimals: 0)
+| filter requestedMillicores &gt; 0
+| fieldsAdd usagePctOfRequest = round(100 * usedMillicores / requestedMillicores, decimals: 1)
+| fields k8s.cluster.name, k8s.namespace.name, requestedMillicores, usedMillicores, usagePctOfRequest
+| sort requestedMillicores desc
+| limit 20
+</code></pre>
+<p><a id="control-plane-health"></a></p>
+<h2>4. Control Plane Health</h2>
+<h3>Control Plane Components</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Function</th>
+<th>Key Metrics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>API Server</strong></td>
+<td>REST API for K8s</td>
+<td>Request latency, error rate</td>
+</tr>
+<tr>
+<td><strong>etcd</strong></td>
+<td>Distributed KV store</td>
+<td>Disk sync latency, leader elections</td>
+</tr>
+<tr>
+<td><strong>Scheduler</strong></td>
+<td>Pod placement</td>
+<td>Scheduling latency, failures</td>
+</tr>
+<tr>
+<td><strong>Controller Manager</strong></td>
+<td>Reconciliation loops</td>
+<td>Queue depth, sync latency</td>
+</tr>
+</tbody>
+</table>
+<h3>Managed Kubernetes Note</h3>
+<p>For managed Kubernetes (EKS, AKS, GKE), control plane metrics are limited. Focus on:</p>
+<ul>
+<li>API server response times (client-side)</li>
+<li>Kubernetes events for scheduling issues</li>
+<li>Cloud provider metrics for control plane health</li>
+<li><code>dt.kubernetes.cluster.readyz</code> — the cluster's API-server readiness as Dynatrace sees it</li>
+</ul>
+<pre><code class="language-dql">// Node-level and control-plane events
+// Data object corrected 08/12/2026. Kubernetes events are NOT logs. This cell scraped
+// `fetch logs` for `log.source` containing &quot;kubernetes&quot; or for content substrings like &quot;BackOff&quot; —
+// no log.source matches, and kubelet event text is not in the log stream, so it returned nothing
+// while the cluster emitted 231,296 Kubernetes event records in the same window.
+// They arrive as `fetch events | filter event.provider == &quot;KUBERNETES_EVENT&quot;`, STRUCTURED:
+//   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
+//                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
+//   dt.kubernetes.event.message           the human-readable text
+//   status                                &quot;WARN&quot; for Kubernetes Warning events, &quot;INFO&quot; for Normal
+//   dt.kubernetes.event.involved_object.kind / .name
+//   dt.kubernetes.event.count / .first_seen / .last_seen
+//   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
+// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT &quot;Warning&quot;. The Warning/Normal
+// split is in status (&quot;WARN&quot; / &quot;INFO&quot;). dt.kubernetes.event.important was &quot;true&quot; on all 204,078
+// event records over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
+//   fetch events, from:-24h | filter event.provider == &quot;KUBERNETES_EVENT&quot;
+//   | summarize n = countDistinctExact(event.id), by:{dt.kubernetes.event.reason} | sort n desc
+// Each open event is re-written about every 5 min under the same event.id with a cumulative
+// dt.kubernetes.event.count — count events with countDistinctExact(event.id), never count().
+fetch events, from:-6h
+| filter event.provider == &quot;KUBERNETES_EVENT&quot;
+| filter isNotNull(k8s.node.name)
+| summarize events = countDistinctExact(event.id), by:{k8s.node.name, dt.kubernetes.event.reason}
+| sort events desc
+| limit 25
+</code></pre>
+<p><a id="cluster-wide-events"></a></p>
+<h2>5. Cluster-Wide Events</h2>
+<h3>Where Kubernetes events actually live</h3>
+<p>Kubernetes events are ingested into the <strong><code>events</code></strong> object, not into <code>logs</code>. Two discriminators are easy to get wrong, and both fail silently:</p>
+<table>
+<thead>
+<tr>
+<th>Getting it wrong</th>
+<th>What actually happens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fetch events | filter event.kind == &quot;K8S_EVENT&quot;</code></td>
+<td><strong><code>event.kind</code> never takes that value.</strong> Over 24 h on a live tenant (08/11/2026) the only values present were <code>DAVIS_EVENT</code>, <code>SYNTHETIC_EVENT</code>, <code>FLEET_EVENT</code> and <code>DAVIS_PROBLEM</code>. Kubernetes events carry <code>event.kind == &quot;DAVIS_EVENT&quot;</code>, so <em>kind</em> cannot discriminate them. Zero rows, no error.</td>
+</tr>
+<tr>
+<td><code>fetch logs | filter matchesPhrase(log.source, &quot;kubernetes&quot;)</code></td>
+<td>Zero rows <strong>after scanning 46.5 GB</strong> (same tenant, same window). Expensive and empty — the worst combination.</td>
+</tr>
+<tr>
+<td><code>k8s.event.reason</code></td>
+<td>The field resolves but is <strong>null on every Kubernetes event record</strong>. Another silent zero. Semantic Dictionary 1.350 (09/21/2026) adds <code>k8s.event.reason</code>, <code>k8s.event.type</code> and <code>k8s.event.involved_object.kind</code> to the global field reference, but on the validation tenant (11/11/2026) all three were still null on 6,351 of 6,351 Kubernetes event records over 24 h, while <code>dt.kubernetes.event.reason</code> was set on all of them. Keep querying <code>dt.kubernetes.event.*</code>, and re-run the comparison below before moving a query to the new names.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The correct discriminator is <code>event.provider == &quot;KUBERNETES_EVENT&quot;</code></strong>, and the reason field is <strong><code>dt.kubernetes.event.reason</code></strong>. Companion fields on the same records: <code>dt.kubernetes.event.message</code>, <code>.count</code>, <code>.first_seen</code>, <code>.last_seen</code>, <code>.involved_object.kind</code>, <code>.involved_object.name</code>, plus the standard <code>k8s.cluster.name</code> / <code>k8s.namespace.name</code> / <code>k8s.pod.name</code> / <code>k8s.workload.name</code> / <code>k8s.node.name</code> dimensions.</p>
+<p>To check which name family carries data in your environment:</p>
+<pre><code class="language-dql">fetch events, from:-24h
+| filter event.provider == &quot;KUBERNETES_EVENT&quot;
+| summarize total = count(),
+    k8s_event_reason = countIf(isNotNull(k8s.event.reason)),
+    dt_kubernetes_event_reason = countIf(isNotNull(dt.kubernetes.event.reason))
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-350">Semantic Dictionary changelog 1.350 (DT docs)</a> — <em>Global field reference</em>, change type <em>Added</em>: <code>k8s.event.involved_object.kind</code>, <code>k8s.event.reason</code>, <code>k8s.event.type</code>. <strong>Dictionary:</strong> no row for <code>k8s.event</code> or <code>dt.kubernetes.event</code> under <code>filter startsWith(name, …)</code> in <code>dt.semantic_dictionary.fields</code>, read 11/11/2026 (control: the same query on <code>&quot;k8s.&quot;</code> returned rows such as <code>k8s.cluster.name</code>).</sub></p>
+</blockquote>
+<h3>Event Reasons to Monitor</h3>
+<p>Reasons observed on tenant <code>yhu28601</code> over 24 h (08/11/2026) — your distribution will differ, so run the summary query below against your own estate rather than assuming this shape:</p>
+<table>
+<thead>
+<tr>
+<th>Reason</th>
+<th style="text-align:right">Count (24 h)</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Unhealthy</strong></td>
+<td style="text-align:right">2,084</td>
+<td>Readiness/liveness probe failing — check the probe and the container</td>
+</tr>
+<tr>
+<td><strong>BackOff</strong></td>
+<td style="text-align:right">586</td>
+<td>Container restart loop — check logs and exit codes</td>
+</tr>
+<tr>
+<td><strong>FailedScheduling</strong></td>
+<td style="text-align:right">433</td>
+<td>No node satisfies requests/affinity/taints</td>
+</tr>
+<tr>
+<td><strong>Killing</strong></td>
+<td style="text-align:right">250</td>
+<td>Normal termination during rollout, or eviction</td>
+</tr>
+<tr>
+<td><strong>KernelReady</strong></td>
+<td style="text-align:right">136</td>
+<td>Node lifecycle, informational</td>
+</tr>
+<tr>
+<td><strong>Failed</strong> / <strong>FailedMount</strong> / <strong>BackoffLimitExceeded</strong></td>
+<td style="text-align:right">tens</td>
+<td>Image pull, volume, and Job failures</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Event summary by reason — run this first to see what your estate actually emits
+fetch events, from:-24h
+| filter event.provider == &quot;KUBERNETES_EVENT&quot;
+| summarize eventCount = countDistinctExact(event.id), by:{dt.kubernetes.event.reason}
+| sort eventCount desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Scheduling and placement failures — the pods that could not be placed
+// One open event is re-written about every 5 min under the same event.id, so it can repeat here.
+fetch events, from:-24h
+| filter event.provider == &quot;KUBERNETES_EVENT&quot;
+| filter dt.kubernetes.event.reason == &quot;FailedScheduling&quot;
+| fields timestamp, k8s.cluster.name, k8s.namespace.name,
+         dt.kubernetes.event.involved_object.kind,
+         dt.kubernetes.event.involved_object.name,
+         dt.kubernetes.event.message
+| sort timestamp desc
+| limit 30
+</code></pre>
+<pre><code class="language-dql">// OOM kills by workload — the metric, not an event
+// OOMKilled has no reliable Kubernetes event reason; Dynatrace emits it as a counter
+// derived from the container status, written only when at least one kill occurred.
+timeseries oom = sum(dt.kubernetes.container.oom_kills), from:-24h,
+  by:{k8s.cluster.name, k8s.namespace.name, k8s.workload.name}
+| fieldsAdd oomTotal = arraySum(oom)
+| filter oomTotal &gt; 0
+| fields k8s.cluster.name, k8s.namespace.name, k8s.workload.name, oomTotal
+| sort oomTotal desc
+| limit 30
+</code></pre>
+<pre><code class="language-dql">// Which namespaces and workloads generate the most event noise
+fetch events, from:-24h
+| filter event.provider == &quot;KUBERNETES_EVENT&quot;
+| summarize eventCount = countDistinctExact(event.id),
+    by:{k8s.cluster.name, k8s.namespace.name, k8s.workload.name, dt.kubernetes.event.reason}
+| sort eventCount desc
+| limit 20
+</code></pre>
+<p><a id="cost-optimization-queries"></a></p>
+<h2>6. Cost Optimization Queries</h2>
+<h3>Resource Efficiency Analysis</h3>
+<p>Right-sizing compares what a workload <strong>requests</strong> with what it <strong>uses</strong>. Requests are what the scheduler reserves and what a node pays for; usage below the request is reserved-but-idle capacity.</p>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Typical starting point</th>
+<th>Action if not met</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CPU used / CPU requested</strong></td>
+<td>~40% or more on average</td>
+<td>Reduce requests</td>
+</tr>
+<tr>
+<td><strong>Memory working set / memory requested</strong></td>
+<td>~50% or more on average</td>
+<td>Reduce requests — keep headroom for peaks, since memory over the limit is an OOM kill</td>
+</tr>
+<tr>
+<td><strong>Node utilization</strong> (§ 2 queries)</td>
+<td>~60% or more</td>
+<td>Consolidate or scale down nodes</td>
+</tr>
+</tbody>
+</table>
+<p>These starting points are community practice, not Dynatrace guidance — set yours from the workload's peak-to-average ratio and its tolerance for throttling. Look at a full business cycle (24 h at least) before cutting a request.</p>
+<pre><code class="language-dql">// Right-sizing candidates — CPU requested vs CPU actually used, per workload
+// Both metrics are container-grain: sum(..., rollup: avg) adds containers (and replicas) into the
+// workload, after averaging each container within a time bucket. An avg() of the per-container
+// value would describe a typical container, not the workload, and has no request to compare against.
+timeseries {
+    used = sum(dt.kubernetes.container.cpu_usage, rollup: avg),
+    requested = sum(dt.kubernetes.container.requests_cpu, rollup: avg)
+  }, from:-24h, by:{k8s.cluster.name, k8s.namespace.name, k8s.workload.name}
+| fieldsAdd usedMillicores = round(arrayAvg(used), decimals: 0),
+            requestedMillicores = round(arrayAvg(requested), decimals: 0)
+| filter requestedMillicores &gt; 0
+| fieldsAdd usagePctOfRequest = round(100 * usedMillicores / requestedMillicores, decimals: 1),
+            idleMillicores = requestedMillicores - usedMillicores
+| fields k8s.cluster.name, k8s.namespace.name, k8s.workload.name,
+         requestedMillicores, usedMillicores, usagePctOfRequest, idleMillicores
+| sort idleMillicores desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Over-provisioned workloads — memory requested vs working set, per workload (MiB)
+timeseries {
+    used = sum(dt.kubernetes.container.memory_working_set, rollup: avg),
+    requested = sum(dt.kubernetes.container.requests_memory, rollup: avg)
+  }, from:-24h, by:{k8s.cluster.name, k8s.namespace.name, k8s.workload.name}
+| fieldsAdd usedMiB = round(arrayAvg(used) / 1048576, decimals: 0),
+            requestedMiB = round(arrayAvg(requested) / 1048576, decimals: 0)
+| filter requestedMiB &gt; 0
+| fieldsAdd usagePctOfRequest = round(100 * usedMiB / requestedMiB, decimals: 1),
+            idleMiB = requestedMiB - usedMiB
+| fields k8s.cluster.name, k8s.namespace.name, k8s.workload.name,
+         requestedMiB, usedMiB, usagePctOfRequest, idleMiB
+| sort idleMiB desc
+| limit 25
+</code></pre>
+<p><a id="dynatrace-component-health"></a></p>
+<h2>7. Dynatrace Component Health</h2>
+<p>Monitor the health of Dynatrace's own components (OneAgent, ActiveGate) running on your clusters.</p>
+<h3>Why Monitor the Monitoring?</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>What to Watch</th>
+<th>Action Threshold</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OneAgent</strong></td>
+<td>CPU usage, memory consumption</td>
+<td>Sustained memory growth above baseline</td>
+</tr>
+<tr>
+<td><strong>ActiveGate</strong></td>
+<td>Memory headroom, pod restarts</td>
+<td>Memory headroom &lt; 20%, any OOMKill</td>
+</tr>
+<tr>
+<td><strong>CSI Driver</strong></td>
+<td>Volume mount failures</td>
+<td>Any mount timeout</td>
+</tr>
+<tr>
+<td><strong>Operator</strong></td>
+<td>Reconciliation errors</td>
+<td>Failed CR updates</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> A headroom query divides usage by <code>limits_memory</code>, so it returns nothing for a container with no limit. OneAgent pods have limits only if you set them (<code>oneAgentResources</code> in the DynaKube), so the OneAgent queries below use absolute usage. Confirm the ActiveGate pod has a memory limit (<code>kubectl -n dynatrace describe pod &lt;activegate-pod&gt;</code>) before relying on an ActiveGate headroom query.</p>
+</blockquote>
+<blockquote>
+<p><strong>Tip:</strong> These queries use <code>matchesValue(k8s.container.name, &quot;dynatrace-oneagent&quot;)</code> to isolate Dynatrace components from application workloads.</p>
+</blockquote>
+<pre><code class="language-dql">// OneAgent CPU usage across clusters (top 20 consumers)
+timeseries by:{k8s.cluster.name, k8s.pod.name}, from:-1h,
+  oaCpu = avg(dt.kubernetes.container.cpu_usage),
+  filter:{matchesValue(k8s.container.name, &quot;dynatrace-oneagent&quot;)}
+| fieldsAdd avgCpu = arrayAvg(oaCpu)
+| sort avgCpu desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// OneAgent memory usage across clusters (absolute usage — OA has no resource limits by default)
+timeseries by:{k8s.cluster.name}, from:-1h,
+  memUsage = avg(dt.kubernetes.container.memory_working_set),
+  filter:{matchesValue(k8s.container.name, &quot;dynatrace-oneagent&quot;)}
+| fieldsAdd avgUsageMi = round(arrayAvg(memUsage) / 1048576, decimals: 0)
+| sort avgUsageMi desc
+</code></pre>
+<pre><code class="language-dql">// Dynatrace component events (last 24h) — restarts, back-offs, scheduling failures
+// Discriminator is event.provider, NOT event.kind (these records carry event.kind == &quot;DAVIS_EVENT&quot;).
+fetch events, from:-24h
+| filter event.provider == &quot;KUBERNETES_EVENT&quot;
+| filter k8s.namespace.name == &quot;dynatrace&quot;
+| summarize eventCount = countDistinctExact(event.id), by:{k8s.cluster.name, k8s.workload.name, dt.kubernetes.event.reason}
+| sort eventCount desc
+| limit 50
+</code></pre>
+<p><a id="alerting-strategies"></a></p>
+<h2>8. Alerting Strategies</h2>
+<h3>Recommended Alerts</h3>
+<table>
+<thead>
+<tr>
+<th>Alert</th>
+<th>Condition</th>
+<th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Node NotReady</strong></td>
+<td><code>dt.kubernetes.node.conditions</code> Ready = false for 5 min (§ 2 query)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td><strong>High Node CPU</strong></td>
+<td>CPU &gt; 85% for 15 min</td>
+<td>Warning</td>
+</tr>
+<tr>
+<td><strong>High Node Memory</strong></td>
+<td>Memory &gt; 90% for 10 min</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td><strong>Disk Pressure</strong></td>
+<td>DiskPressure = true, or disk &gt; 85%</td>
+<td>Warning</td>
+</tr>
+<tr>
+<td><strong>Pod Scheduling Failed</strong></td>
+<td>FailedScheduling events</td>
+<td>Warning</td>
+</tr>
+<tr>
+<td><strong>OOM Kills</strong></td>
+<td><code>dt.kubernetes.container.oom_kills</code> &gt; 0 (§ 5 query — a metric, not an event)</td>
+<td>Warning</td>
+</tr>
+</tbody>
+</table>
+<p>The thresholds are common starting points from community practice; tune them to your nodes.</p>
+<h3>Built-in Kubernetes alerts</h3>
+<p>Dynatrace ships Kubernetes anomaly detection as settings at four scopes — <code>builtin:anomaly-detection.kubernetes.cluster</code>, <code>.node</code>, <code>.namespace</code> and <code>.workload</code>. The node scope, for example, has <em>&quot;Detect node readiness issues&quot;</em> (<em>&quot;Evaluates node condition 'Ready'&quot;</em>), <em>&quot;Detect problematic node conditions&quot;</em> (MemoryPressure, DiskPressure and the others), and CPU-requests, memory-requests and pod saturation. Turn these on before writing your own.</p>
+<p><strong>Recommended defaults are opt-in for existing environments.</strong> SaaS 1.348 (rollout from 10/12/2026) ships updated default values for these ready-made alerts. Environments created on 1.348 or later get them automatically; an existing environment keeps its current configuration until someone selects <strong>Apply recommended values</strong> under <strong>Settings &gt; Analyze and alert &gt; Alerts &gt; Kubernetes</strong>. Review before applying: four alerts that are off today — stuck deployments, workloads without ready pods, pod backoff events and pod eviction events — switch on with Critical severity and <em>&quot;will start opening problems.&quot;</em> Separately, and with no action needed, several Kubernetes alerts that used to raise a problem are now <strong>warning signals</strong>, which flag an issue without opening a problem. If a workflow routes on Kubernetes problems, check which alerts still open one.</p>
+<h3>Custom alerts</h3>
+<p>For conditions the built-in settings do not cover, create a custom alert on a DQL query such as the § 2 node-conditions query. From SaaS 1.344 custom alerts live in <strong>Settings</strong>; before that, in the Anomaly Detection app (see K8S-07 § 7).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-anomaly-detection-kubernetes-node">Kubernetes node anomaly detection schema (DT docs)</a> — <em>&quot;Evaluates node condition 'Ready'&quot;</em>.</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">SaaS 1.348 release notes (DT docs)</a> — <em>&quot;Rollout start on Oct 12, 2026&quot;</em>; <em>&quot;New environments created in Dynatrace version 1.348+ get these defaults automatically. Existing environments adopt them in Anomaly detection settings for Kubernetes by selecting Apply recommended values.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/kubernetes-app/reference/kubernetes-alerting">Kubernetes alerting (DT docs)</a> — <em>&quot;they are not applied automatically — your current configuration isn't affected until you explicitly apply them&quot;</em>; <em>&quot;The following alerts are currently disabled and become enabled with Critical severity when you apply the recommended defaults. Review them before applying, since they'll start opening problems.&quot;</em>; <em>&quot;Kubernetes alerts that previously raised a problem have been reclassified as warning signals.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<h2>Next Steps</h2>
+<p>With cluster health monitoring in place, proceed to:</p>
+<table>
+<thead>
+<tr>
+<th>Next Notebook</th>
+<th>Topic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>K8S-05: Workload Monitoring</strong></td>
+<td>Application-level observability</td>
+</tr>
+<tr>
+<td><strong>K8S-06: Namespace Organization</strong></td>
+<td>Boundaries and access control</td>
+</tr>
+<tr>
+<td><strong>K8S-07: Events and Logs</strong></td>
+<td>Log ingestion and analysis</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Cluster health overview and key indicators</li>
+<li>Node monitoring for CPU, memory, and disk</li>
+<li>Resource capacity planning with requests vs. usage analysis</li>
+<li>Control plane health considerations</li>
+<li>Cluster-wide event monitoring and analysis</li>
+<li>Cost optimization queries for right-sizing</li>
+<li>Alerting strategies for proactive cluster management</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s">Set up Dynatrace on Kubernetes (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/how-it-works">How K8s monitoring works (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/full-stack-observability">Full observability deployment (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/kubernetes-app">Kubernetes app — clusters and workloads view (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app">Davis Problems app (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">smartscapeNodes command (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/kubernetes-app/reference/effective-pod-resources">Effective pod resources (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

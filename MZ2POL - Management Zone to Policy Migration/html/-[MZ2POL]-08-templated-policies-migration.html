@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MZ2POL-08: Templated Policies for MZ Migration</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MZ2POL — Management Zone Migration: Segments, Policies, Workflows</a><span class="sep">/</span><span aria-current="page">MZ2POL-08</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MZ2POL-08: Templated Policies for MZ Migration</h1>
+<blockquote>
+<p><strong>Series:</strong> MZ2POL — Management Zone Migration: Segments, Policies, Workflows | <strong>Notebook:</strong> 9 of 17 | <strong>Created:</strong> February 2026 | <strong>Last Updated:</strong> 10/13/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>When migrating from Management Zones at scale, organizations with dozens of MZ-based teams face the challenge of creating and maintaining an equivalent number of IAM policies. Policy templating with <code>${bindParam:...}</code> parameters eliminates this duplication.</p>
+<p>This notebook shows how to convert common MZ access patterns into parameterized policy templates, bind them at scale via the IAM API, and validate the migrated access using DQL queries.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#why-templates-for-migration">Why Templates Matter for MZ Migration</a></li>
+<li><a href="#converting-mz-patterns">Converting MZ Patterns to Parameterized Policies</a></li>
+<li><a href="#template-patterns">Template Patterns for Common MZ Replacements</a></li>
+<li><a href="#bulk-binding">Bulk Binding via IAM API</a></li>
+<li><a href="#validating-access">Validating Migrated Access with DQL</a></li>
+<li><a href="#before-after-comparison">Before/After Comparison Patterns</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Gen3 IAM and Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>Account permission <strong>View and manage users and groups</strong> for group management in Account Management (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management-classic/permission-management/role-based-permissions">Role-based permissions (DT docs)</a>)</td>
+</tr>
+<tr>
+<td><strong>API Access</strong></td>
+<td>An <strong>OAuth client</strong> — the Account Management API authenticates with OAuth tokens — with <code>account-idm-read</code> to list groups (<a href="https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/group-management-api/get-all-groups">GET groups (DT docs)</a>) and <code>iam-policies-management</code> to create policies and bindings (<a href="https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/policy-management-api/bindings/post-policy-binding">POST bindings of a policy (DT docs)</a> — <em>&quot;Allow IAM policy configuration for environments&quot;</em>)</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td><strong>MZ2POL-04: Policies and Boundaries</strong> (G-P-B pattern, policy syntax)</td>
+</tr>
+<tr>
+<td><strong>Migration Status</strong></td>
+<td>MZ assessment complete (<strong>MZ2POL-03</strong>), security context assigned</td>
+</tr>
+</tbody>
+</table>
+<p><a id="why-templates-for-migration"></a></p>
+<h2>1. Why Templates Matter for MZ Migration</h2>
+<h3>The Scale Problem</h3>
+<p>In community practice, large estates run to dozens of management zones. Not every zone does an access job — some only filter or route alerts (MZ2POL-03) — but every zone that does would need its own policy if each were translated one-to-one.</p>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Policies to Create</th>
+<th>Maintenance Effort</th>
+<th>Audit Complexity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>One policy per MZ</strong></td>
+<td>One per access zone</td>
+<td>High — each permission change is repeated in every policy</td>
+<td>One policy per zone to review</td>
+</tr>
+<tr>
+<td><strong>Templated policies</strong></td>
+<td>A few templates</td>
+<td>Low — edit template once, all bindings updated</td>
+<td>A few templates + bindings</td>
+</tr>
+</tbody>
+</table>
+<h3>Where Templates Fit in the Migration Phases</h3>
+<p>Templates matter most in Phases 3 and 5 of <strong>MZ2POL-06</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Phase (MZ2POL-06)</th>
+<th>Activity</th>
+<th>Template Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Phase 1: Foundation Setup</td>
+<td>Create groups, map zones to groups</td>
+<td>Classify each zone → pick the template it uses</td>
+</tr>
+<tr>
+<td>Phase 2: Security Context Assignment</td>
+<td>Set security context at the source</td>
+<td>Values become template parameter values</td>
+</tr>
+<tr>
+<td><strong>Phase 3: Policy &amp; Boundary Configuration</strong></td>
+<td>Create policies and bindings</td>
+<td><strong>Create a few templates instead of one policy per zone; bulk bind via the IAM API</strong></td>
+</tr>
+<tr>
+<td>Phase 4: Segment Creation</td>
+<td>Segments</td>
+<td>No template impact</td>
+</tr>
+<tr>
+<td><strong>Phase 5: Parallel Running</strong></td>
+<td>Verify access</td>
+<td><strong>Effective permissions + DQL to validate bindings</strong></td>
+</tr>
+<tr>
+<td>Phases 6–7: Cutover, Cleanup</td>
+<td>Remove zones</td>
+<td>No template impact</td>
+</tr>
+</tbody>
+</table>
+<p><a id="converting-mz-patterns"></a></p>
+<h2>2. Converting MZ Patterns to Parameterized Policies</h2>
+<p>Each MZ type maps to a specific template pattern. Every template below follows three rules:</p>
+<ul>
+<li><strong>A bucket permission for every table permission.</strong> <code>storage:buckets:read</code> is <em>&quot;Required additionally to a table permission&quot;</em>. It does not accept <code>storage:dt.security_context</code>, so it is scoped by table name; the record condition on the table permission does the team scoping.</li>
+<li><strong><code>IN</code> with a list-valued parameter</strong> for <code>logs</code>, <code>spans</code>, <code>metrics</code> and <code>bizevents</code> — documented for templates, and one binding can then carry several values (Pattern C).</li>
+<li><strong>Events in their own statement with <code>MATCH</code>.</strong> Event records hold <code>dt.security_context</code> as an array, which <code>=</code>, <code>IN</code> and <code>startsWith</code> never match (warning below).</li>
+</ul>
+<h3>Vertical MZ (Environment-Based)</h3>
+<p><strong>Before:</strong> MZ &quot;Production&quot; with host group rules.</p>
+<p><strong>Template:</strong></p>
+<pre><code>ALLOW storage:buckets:read
+  WHERE storage:table-name IN (&quot;logs&quot;, &quot;spans&quot;, &quot;metrics&quot;, &quot;events&quot;, &quot;bizevents&quot;);
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read, storage:bizevents:read
+  WHERE storage:dt.security_context IN (&quot;${bindParam:environment}&quot;);
+ALLOW storage:events:read
+  WHERE storage:dt.security_context MATCH (&quot;${bindParam:environment}&quot;);
+ALLOW settings:objects:read
+  WHERE settings:dt.security_context IN (&quot;${bindParam:environment}&quot;);
+</code></pre>
+<p><strong>Bindings:</strong></p>
+<ul>
+<li>Production team: <code>{&quot;parameters&quot;: {&quot;environment&quot;: &quot;prod&quot;}}</code></li>
+<li>Staging team: <code>{&quot;parameters&quot;: {&quot;environment&quot;: &quot;staging&quot;}}</code></li>
+</ul>
+<h3>Horizontal MZ (Team-Based)</h3>
+<p><strong>Before:</strong> MZ &quot;Frontend-Team&quot; with service tag rules.</p>
+<p><strong>Template:</strong></p>
+<pre><code>ALLOW storage:buckets:read WHERE storage:table-name IN (&quot;logs&quot;, &quot;spans&quot;, &quot;metrics&quot;);
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read
+  WHERE storage:dt.security_context IN (&quot;${bindParam:team}&quot;);
+</code></pre>
+<p><strong>Binding:</strong> <code>{&quot;parameters&quot;: {&quot;team&quot;: &quot;team-frontend&quot;}}</code></p>
+<h3>LOB MZ (Line of Business)</h3>
+<p><strong>Before:</strong> MZ &quot;LOB5&quot; with combined host group + service tag rules.</p>
+<p><strong>Template (Grail and settings — the classic domain is covered below):</strong></p>
+<pre><code>ALLOW storage:buckets:read
+  WHERE storage:table-name IN (&quot;logs&quot;, &quot;spans&quot;, &quot;metrics&quot;, &quot;events&quot;, &quot;bizevents&quot;);
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read, storage:bizevents:read
+  WHERE storage:dt.security_context IN (&quot;${bindParam:lob}&quot;);
+ALLOW storage:events:read
+  WHERE storage:dt.security_context MATCH (&quot;${bindParam:lob}&quot;);
+ALLOW settings:objects:read, settings:objects:write
+  WHERE settings:dt.security_context IN (&quot;${bindParam:lob}&quot;);
+</code></pre>
+<blockquote>
+<p><strong>Storage writes cannot be condition-scoped (live-verified 07/2026):</strong> wildcards are rejected and <code>storage:logs:write WHERE ...</code> fails with <code>Invalid condition name</code>. Where a LOB genuinely needs ingest/write access, grant <code>storage:logs:write, storage:metrics:write, storage:events:write</code> unscoped in a separate policy.</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>Events need <code>MATCH</code>, and <code>MATCH</code> with a parameter is not documented — test before rollout.</strong> Grail's permission docs: <em>&quot;Using <code>=</code>, <code>STARTSWITH</code> or <code>IN</code> when the field holds an array will always return <code>false</code>. If you expect your record filters might contain an array, use the <code>MATCH</code> operator in your IAM statements.&quot;</em> On the validation tenant (10/05/2026, 24 h), <strong>every</strong> <code>events</code> record that carried <code>dt.security_context</code> carried it as an array — <code>DAVIS_EVENT</code> 72,235, <code>SYNTHETIC_EVENT</code> 27,032, <code>FLEET_EVENT</code> 4,576, <code>DAVIS_PROBLEM</code> 460, no string-typed record — while logs carried it as a string. A template that puts <code>storage:events:read</code> in a <code>= &quot;${bindParam:…}&quot;</code>, <code>IN</code> or <code>startsWith</code> statement therefore gives the bound group none of its own Davis events, problems or synthetic events, and nothing errors — which is why the templates here put events in a separate <code>MATCH</code> statement. The policy reference lists <code>MATCH</code> for <code>storage:dt.security_context</code> on <code>storage:events:read</code>, but the templating docs show bound parameters only with <code>=</code> and <code>IN</code>, so whether <code>MATCH (&quot;${bindParam:team}&quot;)</code> is accepted — and whether a comma-separated list value expands inside it — is not documented. Before rolling these templates out, bind one to a test group and confirm a member can <code>fetch events</code> for the team's context; if not, grant events in a separate, non-templated statement that uses <code>MATCH</code> with literal values.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a> — <em>&quot;Using <code>=</code>, <code>STARTSWITH</code> or <code>IN</code> when the field holds an array will always return <code>false</code>.&quot;</em>, <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating">IAM policy templating (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a> — <code>storage:buckets:read</code>: <em>&quot;Required additionally to a table permission.&quot;</em></sub></p>
+</blockquote>
+<p><strong>Binding:</strong> <code>{&quot;parameters&quot;: {&quot;lob&quot;: &quot;LOB5&quot;}}</code></p>
+<p>The template holds only <code>storage:</code> and <code>settings:</code> statements and its parameter already scopes them, so it needs no boundary. The classic surface is a separate grant: the group still needs a platform policy — <em>Standard User</em> or <em>Pro User</em> — to use the environment at all, and both contain <code>environment:roles:viewer</code>. Bind that platform policy under <strong>one</strong> boundary that covers every domain, as in MZ2POL-04 §6:</p>
+<pre><code>// Boundary &quot;LOB5-Scope&quot; — for the platform policy binding
+storage:dt.security_context MATCH (&quot;LOB5&quot;);
+settings:dt.security_context IN (&quot;LOB5&quot;);
+environment:management-zone IN (&quot;LOB5&quot;);   // transitional — delete at retirement
+</code></pre>
+<p>Never bind the platform policy under a Grail-only boundary: <code>environment:roles:viewer</code> has no condition there that applies to it, so the group would view every classic zone (MZ2POL-12 §4.2).</p>
+<h3>Conversion Decision Table</h3>
+<table>
+<thead>
+<tr>
+<th>MZ Type</th>
+<th>Template Type</th>
+<th>Parameters</th>
+<th>Boundary Needed?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Vertical (environment)</td>
+<td>Environment-scoped</td>
+<td><code>environment</code></td>
+<td>Yes — restrict to environment</td>
+</tr>
+<tr>
+<td>Horizontal (team)</td>
+<td>Team-scoped</td>
+<td><code>team</code></td>
+<td>Yes — restrict to security context</td>
+</tr>
+<tr>
+<td>LOB</td>
+<td>Full three-domain</td>
+<td><code>lob</code></td>
+<td>On the platform-policy binding — three-domain boundary</td>
+</tr>
+<tr>
+<td>Bucket-based</td>
+<td>Bucket-scoped</td>
+<td><code>log-bucket</code>, <code>span-bucket</code></td>
+<td>Optional</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Transversal access tip:</strong> For organisations where some teams need cross-application access by component type (database, networking, OS), consider a structured <code>comp:&lt;component&gt;/bu:&lt;business-unit&gt;/app:&lt;application&gt;</code> context format. A single template with <code>MATCH('comp:db*')</code> then covers all database-layer data across every application — no per-app policy per team needed. See <strong>IAM-04: Policy Authoring</strong> for the full pattern.</p>
+</blockquote>
+<h3>How a Template Becomes Many Policies</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+T25lIFRlbXBsYXRlLCBNYW55IEJpbmRpbmdzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIuNSI+VGhlIHBvbGljeSBob2xkcyB0aGUgc2hhcGU7IGVhY2ggYmluZGluZyBzdXBwbGllcyB0aGUgdmFsdWUg4oCUIGJvdW5kIHRocm91Z2ggdGhlIFJFU1QgQVBJLCBub3QgdGhlIFVJPC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSI4MCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIxNTAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzAiIHk9Ijk5IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlRlbXBsYXRlIHBvbGljeTogdGVhbS1hY2Nlc3M8L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjExNiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPkFMTE9XIHN0b3JhZ2U6bG9nczpyZWFkLDwvdGV4dD4KICA8dGV4dCB4PSIzMCIgeT0iMTM0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+ICAgICAgc3RvcmFnZTpzcGFuczpyZWFkLDwvdGV4dD4KICA8dGV4dCB4PSIzMCIgeT0iMTUyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+ICAgICAgc3RvcmFnZTptZXRyaWNzOnJlYWQ8L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjE3MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPldIRVJFIHN0b3JhZ2U6ZHQuc2VjdXJpdHlfY29udGV4dDwvdGV4dD4KICA8dGV4dCB4PSIzMCIgeT0iMTg4IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+ICA9ICIke2JpbmRQYXJhbTp0ZWFtfSI7PC90ZXh0PgogIDxsaW5lIHgxPSIzMjAiIHkxPSIxNTUiIHgyPSIzODAiIHkyPSIxMDgiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLXB1cnBsZSkiLz4KICA8cmVjdCB4PSIzODIiIHk9IjgwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjU2IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjM5NCIgeT0iMTAyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC13ZWlnaHQ9IjcwMCI+UE9TVCDigKYvYmluZGluZ3MvJmx0O3BvbGljeSZndDsvJmx0O2dyb3VwJmd0OzwvdGV4dD4KICA8dGV4dCB4PSIzOTQiIHk9IjEyMiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPnsicGFyYW1ldGVycyI6IHsidGVhbSI6ICJmcm9udGVuZCJ9fTwvdGV4dD4KICA8bGluZSB4MT0iNjEyIiB5MT0iMTA4IiB4Mj0iNjUyIiB5Mj0iMTA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmVlbikiLz4KICA8cmVjdCB4PSI2NTQiIHk9IjgwIiB3aWR0aD0iMjU2IiBoZWlnaHQ9IjU2IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjY2NiIgeT0iMTAyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPmdyb3VwIGZyb250ZW5kPC90ZXh0PgogIDx0ZXh0IHg9IjY2NiIgeT0iMTIyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+4oCmIGR0LnNlY3VyaXR5X2NvbnRleHQgPSAiZnJvbnRlbmQiPC90ZXh0PgogIDxsaW5lIHgxPSIzMjAiIHkxPSIxNTUiIHgyPSIzODAiIHkyPSIxNzgiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLXB1cnBsZSkiLz4KICA8cmVjdCB4PSIzODIiIHk9IjE1MCIgd2lkdGg9IjIzMCIgaGVpZ2h0PSI1NiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzOTQiIHk9IjE3MiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEwLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPlBPU1Qg4oCmL2JpbmRpbmdzLyZsdDtwb2xpY3kmZ3Q7LyZsdDtncm91cCZndDs8L3RleHQ+CiAgPHRleHQgeD0iMzk0IiB5PSIxOTIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij57InBhcmFtZXRlcnMiOiB7InRlYW0iOiAiY2hlY2tvdXQifX08L3RleHQ+CiAgPGxpbmUgeDE9IjYxMiIgeTE9IjE3OCIgeDI9IjY1MiIgeTI9IjE3OCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JlZW4pIi8+CiAgPHJlY3QgeD0iNjU0IiB5PSIxNTAiIHdpZHRoPSIyNTYiIGhlaWdodD0iNTYiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNjY2IiB5PSIxNzIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+Z3JvdXAgY2hlY2tvdXQ8L3RleHQ+CiAgPHRleHQgeD0iNjY2IiB5PSIxOTIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij7igKYgZHQuc2VjdXJpdHlfY29udGV4dCA9ICJjaGVja291dCI8L3RleHQ+CiAgPGxpbmUgeDE9IjMyMCIgeTE9IjE1NSIgeDI9IjM4MCIgeTI9IjI0OCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItcHVycGxlKSIvPgogIDxyZWN0IHg9IjM4MiIgeT0iMjIwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjU2IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjM5NCIgeT0iMjQyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC13ZWlnaHQ9IjcwMCI+UE9TVCDigKYvYmluZGluZ3MvJmx0O3BvbGljeSZndDsvJmx0O2dyb3VwJmd0OzwvdGV4dD4KICA8dGV4dCB4PSIzOTQiIHk9IjI2MiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPnsicGFyYW1ldGVycyI6IHsidGVhbSI6ICJwYXltZW50cyJ9fTwvdGV4dD4KICA8bGluZSB4MT0iNjEyIiB5MT0iMjQ4IiB4Mj0iNjUyIiB5Mj0iMjQ4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmVlbikiLz4KICA8cmVjdCB4PSI2NTQiIHk9IjIyMCIgd2lkdGg9IjI1NiIgaGVpZ2h0PSI1NiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI2NjYiIHk9IjI0MiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5ncm91cCBwYXltZW50czwvdGV4dD4KICA8dGV4dCB4PSI2NjYiIHk9IjI2MiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPuKApiBkdC5zZWN1cml0eV9jb250ZXh0ID0gInBheW1lbnRzIjwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iMzAwIiB3aWR0aD0iODkwIiBoZWlnaHQ9IjE3NiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjIiIHN0cm9rZS1kYXNoYXJyYXk9IjUgNCIvPgogIDx0ZXh0IHg9IjM2IiB5PSIzMjQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+UnVsZXMgZnJvbSB0aGUgdGVtcGxhdGluZyByZWZlcmVuY2U8L3RleHQ+CiAgPHRleHQgeD0iMzYiIHk9IjM1MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPuKAoiBQYXJhbWV0ZXJpemVkIHBvbGljaWVzIGFyZSBtYW5hZ2VkIG9ubHkgdmlhIFJFU1QgQVBJOyBncm91cCBtYW5hZ2VtZW50IGRvZXMgbm90IGJpbmQgcGFyYW1ldGVycy48L3RleHQ+CiAgPHRleHQgeD0iMzYiIHk9IjM3NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPuKAoiBFdmVyeSByZWZlcmVuY2VkIHBhcmFtZXRlciBtdXN0IGJlIHN1cHBsaWVkIGF0IGJpbmRpbmcgdGltZSDigJQgYSBtaXNtYXRjaCByZXR1cm5zIEhUVFAgNDAwIGxpc3RpbmcgZXhwZWN0ZWQgdnMgc3VwcGxpZWQuPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSIzOTgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij7igKIgQSBib3VuZCBwb2xpY3kgY2FuIGJlIGVkaXRlZCBvbmx5IHdoaWxlIGl0cyBwYXJhbWV0ZXIgc2V0IHN0YXlzIHRoZSBzYW1lIOKAlCBhZGRpbmcgYSBwYXJhbWV0ZXIgZmFpbHMuPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSI0MjIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij7igKIgQSBsaXN0IHZhbHVlIGlzIG9uZSBjb21tYS1zZXBhcmF0ZWQgc3RyaW5nOiBJTiAoIiR7YmluZFBhcmFtOnRlYW1zfSIpIHdpdGggeyJ0ZWFtcyI6ICJhLGIsYyJ9LjwvdGV4dD4KICA8dGV4dCB4PSIzNiIgeT0iNDQ2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+4oCiIEV2ZW50cyBob2xkIGR0LnNlY3VyaXR5X2NvbnRleHQgYXMgYW4gYXJyYXk6ID0gbmV2ZXIgbWF0Y2hlcyB0aGVtIOKAlCB0ZXN0IGV2ZW50cyBhY2Nlc3MgYmVmb3JlIHJvbGxvdXQuPC90ZXh0Pgo8L3N2Zz4K" alt="One template, many bindings" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Element | Content |
+|---|---|
+| Template policy | ALLOW storage:logs:read, storage:spans:read, storage:metrics:read WHERE storage:dt.security_context = "${bindParam:team}"; |
+| Binding per group | POST …/bindings/<policy>/<group> with {"parameters": {"team": "frontend"}} (and checkout, payments …) |
+| Effective policy per group | … dt.security_context = "frontend" |
+| Rule | Parameterized policies are managed only via REST API; group management does not bind parameters |
+| Rule | Every referenced parameter must be supplied at binding time — a mismatch returns HTTP 400 |
+| Rule | A bound policy can be edited only while its parameter set stays the same |
+| Rule | A list value is one comma-separated string: IN ("${bindParam:teams}") with {"teams": "a,b,c"} |
+| Rule | Events hold dt.security_context as an array: = never matches them — test events access before rollout |
+For environments where SVG doesn't render
+-->
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating">Policy templating (DT docs)</a> — <em>&quot;Parameterized policies can be managed only via REST API.&quot;</em>, <em>&quot;Currently, group management does not support binding policies with parameters.&quot;</em> and <em>&quot;Modification of bound policies is allowed only if the parameter set doesn’t change&quot;</em></sub></p>
+</blockquote>
+<p><a id="template-patterns"></a></p>
+<h2>3. Template Patterns for Common MZ Replacements</h2>
+<p>These patterns map directly from MZ permission levels to template bindings.</p>
+<h3>Pattern A: Read-Only Team Access</h3>
+<p><strong>Replaces:</strong> User assigned &quot;Viewer&quot; role in a team MZ.</p>
+<p><strong>Template:</strong> <code>tpl-team-data-reader</code></p>
+<pre><code>ALLOW storage:buckets:read WHERE storage:table-name IN (&quot;logs&quot;, &quot;spans&quot;, &quot;metrics&quot;);
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read
+  WHERE storage:dt.security_context IN (&quot;${bindParam:team}&quot;);
+ALLOW document:documents:read;
+</code></pre>
+<p><strong>Binding:</strong> <code>{&quot;parameters&quot;: {&quot;team&quot;: &quot;checkout&quot;}}</code></p>
+<h3>Pattern B: Full Team Access</h3>
+<p><strong>Replaces:</strong> User assigned &quot;Editor&quot; role in a team MZ.</p>
+<p><strong>Template:</strong> <code>tpl-team-data-editor</code></p>
+<pre><code>ALLOW storage:buckets:read
+  WHERE storage:table-name IN (&quot;logs&quot;, &quot;spans&quot;, &quot;metrics&quot;, &quot;events&quot;, &quot;bizevents&quot;);
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read, storage:bizevents:read
+  WHERE storage:dt.security_context IN (&quot;${bindParam:team}&quot;);
+ALLOW storage:events:read
+  WHERE storage:dt.security_context MATCH (&quot;${bindParam:team}&quot;);
+ALLOW settings:objects:read, settings:objects:write
+  WHERE settings:dt.security_context IN (&quot;${bindParam:team}&quot;);
+ALLOW document:documents:read, document:documents:write, document:documents:delete;
+</code></pre>
+<p><strong>Binding:</strong> <code>{&quot;parameters&quot;: {&quot;team&quot;: &quot;checkout&quot;}}</code></p>
+<h3>Pattern C: Multi-MZ Access</h3>
+<p><strong>Replaces:</strong> User assigned to multiple MZs (e.g., &quot;Checkout&quot; AND &quot;Shared-Services&quot;).</p>
+<p><strong>Solution:</strong> Bind the template <strong>once</strong>, with a list value. The templates above use <code>IN (&quot;${bindParam:team}&quot;)</code>, and the templating docs state that <em>&quot;A list of values can be assigned to a parameter while binding the policy to a group by providing a comma-separated list within a single string value.&quot;</em></p>
+<pre><code class="language-bash"># One binding, two scopes
+curl -X POST &quot;${API_BASE}/bindings/${POLICY_UUID}/${GROUP_UUID}&quot; \
+  -H &quot;Authorization: Bearer ${TOKEN}&quot; \
+  -H 'Content-Type: application/json' \
+  -d '{&quot;parameters&quot;: {&quot;team&quot;: &quot;checkout,shared-services&quot;}}'
+</code></pre>
+<p>Whether a second POST of the same policy to the same group with a different value adds a second binding or replaces the first is not documented — use the list value. The list does <strong>not</strong> reach the events statement unless your test binding shows that <code>MATCH</code> expands it (§2).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating">Policy templating (DT docs)</a> — <em>&quot;A list of values can be assigned to a parameter while binding the policy to a group by providing a comma-separated list within a single string value.&quot;</em></sub></p>
+</blockquote>
+<h3>Pattern D: Regional MZ Replacement</h3>
+<p><strong>Replaces:</strong> MZ &quot;US-East&quot; with region-based host group.</p>
+<p><strong>Template:</strong> <code>tpl-region-reader</code></p>
+<pre><code>ALLOW storage:buckets:read
+  WHERE storage:table-name IN (&quot;logs&quot;, &quot;spans&quot;, &quot;metrics&quot;, &quot;events&quot;, &quot;bizevents&quot;);
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read, storage:bizevents:read
+  WHERE storage:dt.security_context startsWith &quot;${bindParam:region-prefix}&quot;;
+ALLOW storage:events:read
+  WHERE storage:dt.security_context MATCH (&quot;${bindParam:region-prefix}*&quot;);
+ALLOW settings:objects:read
+  WHERE settings:dt.security_context startsWith &quot;${bindParam:region-prefix}&quot;;
+</code></pre>
+<p><strong>Binding:</strong> <code>{&quot;parameters&quot;: {&quot;region-prefix&quot;: &quot;us-east&quot;}}</code></p>
+<blockquote>
+<p><strong>Patterns B and D grant <code>storage:events:read</code> with <code>MATCH</code> and a parameter</strong> — the one combination here the templating docs do not show. Read the warning in §2 and test a binding before rollout. The templating docs likewise show parameters only with <code>=</code> and <code>IN</code>, so test Pattern D's <code>startsWith</code> the same way.</p>
+</blockquote>
+<h3>Pattern Summary</h3>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>MZ Permission Level</th>
+<th>Template</th>
+<th>Key Difference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td>Viewer in MZ</td>
+<td><code>tpl-team-data-reader</code></td>
+<td>Read only</td>
+</tr>
+<tr>
+<td>B</td>
+<td>Editor in MZ</td>
+<td><code>tpl-team-data-editor</code></td>
+<td>Read + write</td>
+</tr>
+<tr>
+<td>C</td>
+<td>Multiple MZs</td>
+<td>Same template, one binding with a list value</td>
+<td>Comma-separated parameter</td>
+</tr>
+<tr>
+<td>D</td>
+<td>Regional MZ</td>
+<td><code>tpl-region-reader</code></td>
+<td>Prefix match</td>
+</tr>
+</tbody>
+</table>
+<p><a id="bulk-binding"></a></p>
+<h2>4. Bulk Binding via IAM API</h2>
+<p>An estate with dozens of zones is impractical to bind one at a time — and templated bindings cannot be made in the UI at all. Use the IAM API for bulk operations.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+RnJvbSBab25lIEludmVudG9yeSB0byBWZXJpZmllZCBCaW5kaW5nczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyLjUiPlRoZSBidWxrLWJpbmRpbmcgc2NyaXB0IGlzIG9uZSBzdGVwIGluIGEgcGlwZWxpbmUg4oCUIHRoZSBpbnB1dHMgYW5kIHRoZSBjaGVja3MgbWF0dGVyIGFzIG11Y2ggYXMgdGhlIGxvb3A8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjkwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9Ijk2IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjMwIiB5PSIxMDkiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MSDCtyBJbnZlbnRvcnk8L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjEyNiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPk1aMlBPTC0wMCAvIC0wMzwvdGV4dD4KICA8dGV4dCB4PSIzMCIgeT0iMTQ0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+em9uZXMgYnkgam9iPC90ZXh0PgogIDxyZWN0IHg9IjIwMCIgeT0iOTAiIHdpZHRoPSIxNzAiIGhlaWdodD0iOTYiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMjEwIiB5PSIxMDkiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MiDCtyBUcmFuc2xhdGU8L3RleHQ+CiAgPHRleHQgeD0iMjEwIiB5PSIxMjYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5NWjJQT0wtMTEgd29ya3NoZWV0PC90ZXh0PgogIDx0ZXh0IHg9IjIxMCIgeT0iMTQ0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+em9uZSDihpIgdGVhbSB2YWx1ZTwvdGV4dD4KICA8cmVjdCB4PSIzODAiIHk9IjkwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9Ijk2IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjM5MCIgeT0iMTA5IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjMgwrcgVGVhbSB0YWJsZTwvdGV4dD4KICA8dGV4dCB4PSIzOTAiIHk9IjEyNiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmdyb3VwIFVVSUQsPC90ZXh0PgogIDx0ZXh0IHg9IjM5MCIgeT0iMTQ0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+dGVhbSB2YWx1ZSwgbGV2ZWw8L3RleHQ+CiAgPHJlY3QgeD0iNTYwIiB5PSI5MCIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI5NiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI1NzAiIHk9IjEwOSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj40IMK3IEJpbmQgbG9vcDwvdGV4dD4KICA8dGV4dCB4PSI1NzAiIHk9IjEyNiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPlBPU1QgYmluZGluZzwvdGV4dD4KICA8dGV4dCB4PSI1NzAiIHk9IjE0NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPnBlciBncm91cCAowqc0KTwvdGV4dD4KICA8cmVjdCB4PSI3NDAiIHk9IjkwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9Ijk2IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9Ijc1MCIgeT0iMTA5IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjUgwrcgVmVyaWZ5PC90ZXh0PgogIDx0ZXh0IHg9Ijc1MCIgeT0iMTI2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+ZWZmZWN0aXZlIHBlcm1pc3Npb25zPC90ZXh0PgogIDx0ZXh0IHg9Ijc1MCIgeT0iMTQ0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+KyBEUUwgKMKnNSk8L3RleHQ+CiAgPGxpbmUgeDE9IjE5MCIgeTE9IjEzOCIgeDI9IjE5OSIgeTI9IjEzOCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICA8bGluZSB4MT0iMzcwIiB5MT0iMTM4IiB4Mj0iMzc5IiB5Mj0iMTM4IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogIDxsaW5lIHgxPSI1NTAiIHkxPSIxMzgiIHgyPSI1NTkiIHkyPSIxMzgiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgPGxpbmUgeDE9IjczMCIgeTE9IjEzOCIgeDI9IjczOSIgeTI9IjEzOCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICA8cmVjdCB4PSIyMCIgeT0iMjE0IiB3aWR0aD0iODkwIiBoZWlnaHQ9IjEyMCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjIiIHN0cm9rZS1kYXNoYXJyYXk9IjUgNCIvPgogIDx0ZXh0IHg9IjM2IiB5PSIyMzgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+V2hhdCBlYWNoIHN0YWdlIG11c3QgaGFuZCB0byB0aGUgbmV4dDwvdGV4dD4KICA8dGV4dCB4PSIzNiIgeT0iMjYyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+SW52ZW50b3J5IOKGkiBvbmx5IHpvbmVzIGRvaW5nIHRoZSBhY2Nlc3Mgam9iIChmaWx0ZXJpbmcgem9uZXMgZ28gdG8gc2VnbWVudHMsIGFsZXJ0aW5nIHpvbmVzIHRvIHdvcmtmbG93cykuPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSIyODQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5UcmFuc2xhdGUg4oaSIG9uZSBzZWN1cml0eS1jb250ZXh0IHZhbHVlIHBlciB0ZWFtLCBhbHJlYWR5IHNldCBhdCB0aGUgc291cmNlIChNWjJQT0wtMTAgZ2F0ZSBwYXNzZWQpLjwvdGV4dD4KICA8dGV4dCB4PSIzNiIgeT0iMzA2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+VGVhbSB0YWJsZSDihpIgZ3JvdXAgVVVJRHMgZnJvbSBBY2NvdW50IE1hbmFnZW1lbnQsIG5vdCBuYW1lczsgYWNjb3VudCBvciBlbnZpcm9ubWVudCBsZXZlbCBjaG9zZW4gcGVyIHJvdy48L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjM1MCIgd2lkdGg9Ijg5MCIgaGVpZ2h0PSIxMjYiIHJ4PSI3IiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iMjAiIHk9IjM1MCIgd2lkdGg9Ijg5MCIgaGVpZ2h0PSIxMjYiIHJ4PSI3IiBmaWxsPSJub25lIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzYiIHk9IjM3NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5CZWZvcmUgdGhlIGxvb3AgcnVucyBpbiBwcm9kdWN0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSIzOTgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij7igKIgQmluZCB0byBvbmUgcGlsb3QgZ3JvdXAgYW5kIHJlc29sdmUgaXRzIGVmZmVjdGl2ZSBwZXJtaXNzaW9ucyDigJQgbG9vayBmb3IgYW55IHN0b3JhZ2U6KjpyZWFkIHdpdGhvdXQgYSBjb25kaXRpb24uPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSI0MjAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij7igKIgQ2hlY2sgbm8gbWVtYmVyIGFsc28gaG9sZHMgYW4gdW5zY29wZWQgZGF0YSBwb2xpY3kgdGhyb3VnaCBhbm90aGVyIGdyb3VwOiBvbmUgdW5zY29wZWQgZ3JhbnQgZGVmZWF0cyB0aGUgdGVtcGxhdGUuPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSI0NDIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij7igKIgUnVuIGluIGJhdGNoZXMgKHRoZSByb2xlLW1pZ3JhdGlvbiBndWlkZSdzIHJlY29tbWVuZGF0aW9uKSBhbmQga2VlcCB0aGUgY2xhc3NpYyB6b25lIGJpbmRpbmcgdW50aWwgwqc2IHNpZ24tb2ZmLjwvdGV4dD4KPC9zdmc+Cg==" alt="From zone inventory to verified bindings" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Input | Hands to the next stage |
+|---|---|---|
+| 1 · Inventory | MZ2POL-00 / -03 | Only zones doing the access job (filtering → segments, alerting → workflows) |
+| 2 · Translate | MZ2POL-11 worksheet | One security-context value per team, already set at the source (MZ2POL-10 gate passed) |
+| 3 · Team table | Account Management | Group UUIDs (not names), team value, account or environment level per row |
+| 4 · Bind loop | §4 script | One POST binding per group |
+| 5 · Verify | Effective permissions + DQL (§5) | — |
+| Before production | Pilot group first; check for any storage:*:read without a condition; check no member holds an unscoped data policy through another group; run in batches; keep the classic zone binding until §6 sign-off | |
+For environments where SVG doesn't render
+-->
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles">Upgrade role-based permissions to Dynatrace IAM policies (DT docs)</a> — <em>&quot;Consider deploying your changes in batches rather than all at once.&quot;</em></sub></p>
+</blockquote>
+<h3>Preparation Checklist</h3>
+<p>Before running bulk binding:</p>
+<ol>
+<li><strong>Export MZ list</strong> — Use <strong>MZ2POL-00</strong> SDK tool or Settings API</li>
+<li><strong>Map each MZ to a group UUID</strong> — List groups via <code>GET /iam/v1/accounts/{ACCOUNT}/groups</code></li>
+<li><strong>Map each MZ to a security context value</strong> — This becomes the parameter value</li>
+<li><strong>Choose the appropriate template</strong> — Reader, editor, or three-domain</li>
+</ol>
+<h3>Bulk Binding Script</h3>
+<pre><code class="language-bash">#!/bin/bash
+# Bulk bind team-access template to all team groups
+ACCOUNT_UUID=&quot;&lt;your-account-uuid&gt;&quot;
+POLICY_UUID=&quot;&lt;team-reader-template-uuid&gt;&quot;
+TOKEN=&quot;&lt;bearer-token&gt;&quot;
+API_BASE=&quot;https://api.dynatrace.com/iam/v1/repo/account/${ACCOUNT_UUID}&quot;
+
+# Map: team name → group UUID
+declare -A TEAM_GROUPS=(
+  [&quot;checkout&quot;]=&quot;&lt;group-uuid-checkout&gt;&quot;
+  [&quot;payments&quot;]=&quot;&lt;group-uuid-payments&gt;&quot;
+  [&quot;catalog&quot;]=&quot;&lt;group-uuid-catalog&gt;&quot;
+  [&quot;search&quot;]=&quot;&lt;group-uuid-search&gt;&quot;
+  [&quot;frontend&quot;]=&quot;&lt;group-uuid-frontend&gt;&quot;
+)
+
+echo &quot;Binding template ${POLICY_UUID} to ${#TEAM_GROUPS[@]} groups...&quot;
+for team in &quot;${!TEAM_GROUPS[@]}&quot;; do
+  GROUP_UUID=&quot;${TEAM_GROUPS[$team]}&quot;
+  echo -n &quot;  ${team} (${GROUP_UUID})... &quot;
+  HTTP_CODE=$(curl -s -X POST \
+    &quot;${API_BASE}/bindings/${POLICY_UUID}/${GROUP_UUID}&quot; \
+    -H &quot;Authorization: Bearer ${TOKEN}&quot; \
+    -H 'Content-Type: application/json' \
+    -d &quot;{\&quot;parameters\&quot;: {\&quot;team\&quot;: \&quot;${team}\&quot;}}&quot; \
+    -o /dev/null -w &quot;%{http_code}&quot;)
+  if [[ &quot;$HTTP_CODE&quot; == 2* ]]; then
+    echo &quot;Bound (HTTP ${HTTP_CODE})&quot;
+  elif [ &quot;$HTTP_CODE&quot; == &quot;400&quot; ]; then
+    echo &quot;HTTP 400: parameter mismatch, or binding may already exist; check with the GET below&quot;
+  else
+    echo &quot;ERROR (HTTP ${HTTP_CODE})&quot;
+  fi
+done
+echo &quot;Done.&quot;
+</code></pre>
+<h3>Verification Script</h3>
+<p>After bulk binding, verify all bindings exist:</p>
+<pre><code class="language-bash"># List all bindings for the template policy
+curl -s -X GET \
+  &quot;${API_BASE}/bindings/${POLICY_UUID}&quot; \
+  -H &quot;Authorization: Bearer ${TOKEN}&quot; | python3 -m json.tool
+</code></pre>
+<h3>Error Handling</h3>
+<table>
+<thead>
+<tr>
+<th>HTTP Code</th>
+<th>Meaning</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2xx</td>
+<td>Binding created</td>
+<td>Success (the exact code is not stated on the templating page; treat any 2xx as success)</td>
+</tr>
+<tr>
+<td>400</td>
+<td>Bad request</td>
+<td>The policy templating page documents a 400 when the supplied parameters do not match the template, listing the expected and supplied sets. Check the names, then check whether the binding already exists</td>
+</tr>
+<tr>
+<td>401</td>
+<td>Unauthorized</td>
+<td>Refresh token</td>
+</tr>
+<tr>
+<td>404</td>
+<td>Policy/group not found</td>
+<td>Verify UUIDs</td>
+</tr>
+</tbody>
+</table>
+<p><a id="validating-access"></a></p>
+<h2>5. Validating Migrated Access with DQL</h2>
+<p>After binding templated policies, validate that migrated access matches the original MZ-based access.</p>
+<pre><code class="language-dql">// Validate: what share of the RECORDS carry a security context?
+// Templates scope records, not entities. Entity coverage misleads: on the validation tenant
+// every service carried an MZ-derived context while many logs and events carried none.
+// Records without the field are invisible to every group scoped by dt.security_context.
+fetch logs, from:-1h
+| summarize {records = count(), without_sc = countIf(isNull(dt.security_context))}
+| fieldsAdd table = &quot;logs&quot;
+| append [fetch spans, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context))} | fieldsAdd table = &quot;spans&quot;]
+| append [fetch events, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context) or arraySize(dt.security_context) == 0)} | fieldsAdd table = &quot;events&quot;]
+| fieldsAdd covered_pct = round(100.0 * (records - without_sc) / records, decimals: 1)
+| fields table, records, without_sc, covered_pct
+
+// Validation tenant, 10/13/2026: logs 58.9% covered, spans 100%, events 24.6%.
+// events holds dt.security_context as an array, so an empty [] counts as missing too.
+</code></pre>
+<pre><code class="language-dql">// Compare: MZ membership vs security context value alignment
+// Replace &quot;Frontend-Team&quot; and &quot;team-frontend&quot; with your MZ and context values
+fetch dt.entity.service
+| summarize
+    inMZ = countIf(in(managementZones, {&quot;Frontend-Team&quot;})),
+    hasContext = countIf(matchesValue(dt.security_context, &quot;team-frontend&quot;)),
+    inBoth = countIf(in(managementZones, {&quot;Frontend-Team&quot;}) and matchesValue(dt.security_context, &quot;team-frontend&quot;))
+| fields inMZ, hasContext, inBoth,
+         match = if(inMZ == 0, then: &quot;ZONE NOT FOUND - check the zone name&quot;,
+                 else: if(inMZ == inBoth, then: &quot;ALIGNED&quot;, else: &quot;GAPS EXIST&quot;))
+
+// A misspelled or deleted zone has no members, so inMZ == inBoth == 0 — without the first
+// branch that reads as &quot;ALIGNED&quot;. Executed 10/13/2026: a non-existent zone returns
+// &quot;ZONE NOT FOUND&quot;; a real zone with no matching context returns &quot;GAPS EXIST&quot;.
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
+//   - dt.security_context is an ARRAY on dt.entity.service too, so it is tested with
+//     matchesValue (matches any element). dt.security_context == &quot;team-frontend&quot; compares an
+//     array to a string, is always false, and made every run report &quot;GAPS EXIST&quot;.
+//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
+//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
+//     would miscount coverage.
+</code></pre>
+<pre><code class="language-dql">// Find entities in MZ but without matching security context
+// These need security context before template binding will work
+// dt.security_context is an ARRAY here too: `!= &quot;team-frontend&quot;` is always true (Grail INFO
+// EQUALITY_COMPARISON_OF_INCOMPATIBLE_TYPES) and would list every MZ member. Use not in(...).
+fetch dt.entity.service
+| filter in(managementZones, {&quot;Frontend-Team&quot;})
+| filter not in(&quot;team-frontend&quot;, dt.security_context) or isNull(dt.security_context)
+| fields entity.name, dt.security_context, managementZones, tags
+| sort entity.name asc
+| limit 50
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
+//   - dt.security_context is an ARRAY on classic entities as well, but null when unset;
+//     on Smartscape nodes it is an empty [] when unset, not null, so
+//     isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
+//     would miscount coverage.
+//   - entity tags are not a flat &quot;tags&quot; field on Smartscape (resolve via getNodeField).
+</code></pre>
+<pre><code class="language-dql">// IAM API activity against this environment (migration tracking aid, NOT a change log)
+// Data object corrected 09/24/2026. The Dynatrace audit trail is NOT in `logs`: the former
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)` matched nothing, or matched an
+// unrelated file-based audit log (a database .aud file on the validation tenant). Environment
+// audit records are structured events in `dt.system.events` with event.kind == &quot;AUDIT_EVENT&quot;.
+// Group, policy, boundary and binding changes are ACCOUNT-level. They are not in an
+// environment's audit events; review them in Account Management &gt; Settings &gt; Audit log.
+// Policy bindings are account-level, so track binding changes in that audit log. This query
+// shows IAM API calls against the environment - useful for spotting automation. Scheduled
+// lookup-file uploads (/lookups/iam_*) are excluded; they are not IAM changes.
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter contains(resource, &quot;iam&quot;) and not startsWith(resource, &quot;/lookups/&quot;)
+| summarize {requests = count(), last_seen = takeMax(timestamp)}, by:{event.type, user.id}
+| sort requests desc
+| limit 100
+</code></pre>
+<p><a id="before-after-comparison"></a></p>
+<h2>6. Before/After Comparison Patterns</h2>
+<h3>Validation Framework</h3>
+<p>For each migrated MZ, verify access parity:</p>
+<table>
+<thead>
+<tr>
+<th>Validation</th>
+<th>MZ-Based (Before)</th>
+<th>Template-Based (After)</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>User can query logs in scope</td>
+<td>Via MZ filter</td>
+<td>Via security context + template binding</td>
+<td>☐ Test</td>
+</tr>
+<tr>
+<td>User cannot query logs out of scope</td>
+<td>MZ excludes</td>
+<td>Boundary restricts</td>
+<td>☐ Test</td>
+</tr>
+<tr>
+<td>Settings access scoped</td>
+<td>MZ-based</td>
+<td>Settings security context in template</td>
+<td>☐ Test</td>
+</tr>
+<tr>
+<td>Dashboard access</td>
+<td>MZ filter</td>
+<td>Segment + boundary</td>
+<td>☐ Test</td>
+</tr>
+</tbody>
+</table>
+<h3>Parallel Running Strategy</h3>
+<p>During validation, keep both access models active:</p>
+<ol>
+<li><strong>Keep MZ active</strong> — Don't remove MZs until template-based access is validated</li>
+<li><strong>Add template binding</strong> — Users gain access via both paths temporarily</li>
+<li><strong>Test with each model</strong> — Verify same data visible via MZ and via template</li>
+<li><strong>Remove MZ assignment</strong> — Only after confirming parity</li>
+<li><strong>Monitor for issues</strong> — Watch audit logs for denied events post-cutover</li>
+</ol>
+<h3>Migration Completion Checklist (Per MZ)</h3>
+<ul>
+<li>[ ] Security context set at the source on the records (logs, spans, metrics, events) this MZ scoped — not only on its entities</li>
+<li>[ ] Template policy created (or existing template identified)</li>
+<li>[ ] Binding created with correct parameter value</li>
+<li>[ ] Boundary created with matching scope (all three domains)</li>
+<li>[ ] DQL validation — security context coverage matches MZ membership</li>
+<li>[ ] User testing — access parity confirmed</li>
+<li>[ ] MZ assignment removed from RBAC</li>
+<li>[ ] Audit log reviewed for denied events</li>
+</ul>
+<p>For full validation procedures, see <strong>MZ2POL-07: Validation and Troubleshooting</strong>.</p>
+<p>For comprehensive template syntax and patterns, see <strong>IAM-10: Templated Policy-Group Assignments</strong>.</p>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ol>
+<li>Why policy templates are essential for large-scale MZ migration (a few templates instead of one policy per zone)</li>
+<li>How to convert vertical, horizontal, and LOB MZ patterns to parameterized policies</li>
+<li>Four template patterns for common MZ replacement scenarios</li>
+<li>Bulk binding automation via the IAM API</li>
+<li>DQL queries to validate that migrated access matches original MZ access</li>
+<li>Before/after comparison patterns for migration verification</li>
+</ol>
+<h2>Next Steps</h2>
+<ul>
+<li><strong>MZ2POL-07: Validation and Troubleshooting</strong> — Full validation procedures and ongoing maintenance</li>
+<li><strong>IAM-10: Templated Policy-Group Assignments</strong> — Deep dive on template syntax, Monaco automation, and advanced patterns</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating">Policy Templating</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/policy-management-api">Policy Management API</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies">Working with Policies</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/access-concepts">Access Management Concepts</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

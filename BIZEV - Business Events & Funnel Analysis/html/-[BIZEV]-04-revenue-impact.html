@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BIZEV-04: Revenue Impact Analysis</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">BIZEV — Business Events &amp; Funnel Analysis</a><span class="sep">/</span><span aria-current="page">BIZEV-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>BIZEV-04: Revenue Impact Analysis</h1>
+<blockquote>
+<p><strong>Series:</strong> BIZEV — Business Events &amp; Funnel Analysis | <strong>Notebook:</strong> 4 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>When a Dynatrace detected problem fires, the immediate question from stakeholders is: &quot;What is the business impact?&quot; This notebook demonstrates how to correlate Dynatrace Intelligence problems with business event data to quantify revenue loss during incidents, measure SLA impact, compare incident periods against baselines, and filter analysis to business hours. The goal is to translate technical incidents into business language that executives and product owners understand.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#connecting-problems-to-business-impact">Connecting Problems to Business Impact</a></li>
+<li><a href="#revenue-during-incidents-vs-baseline">Revenue During Incidents vs Baseline</a></li>
+<li><a href="#calculating-revenue-loss">Calculating Revenue Loss</a></li>
+<li><a href="#business-hours-filtering">Business Hours Filtering</a></li>
+<li><a href="#day-over-day-business-comparison">Day-Over-Day Business Comparison</a></li>
+<li><a href="#sla-impact-measurement">SLA Impact Measurement</a></li>
+<li><a href="#building-an-impact-timeline">Building an Impact Timeline</a></li>
+<li><a href="#summary-and-next-steps">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:bizevents:read</code>, <code>storage:events:read</code></td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>Business events with revenue/amount fields; detected problems data</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>BIZEV-01 through BIZEV-03, detected problems concepts</td>
+</tr>
+</tbody>
+</table>
+<p><a id="connecting-problems-to-business-impact"></a></p>
+<h2>1. Connecting Problems to Business Impact</h2>
+<p>Dynatrace Intelligence detects infrastructure and application problems. Business events capture transactions. By correlating the two, you can answer: &quot;During the 2-hour outage on Tuesday, how many transactions were lost?&quot;</p>
+<h3>Approach</h3>
+<ol>
+<li>Fetch detected problems with their time windows (<code>event.start</code> to <code>event.end</code>)</li>
+<li>Fetch business events during the same time windows</li>
+<li>Compare business event volume during the problem vs a baseline period</li>
+<li>Calculate the delta as &quot;lost&quot; transactions or revenue</li>
+</ol>
+<p>Let's start by examining recent closed problems.</p>
+<pre><code class="language-dql">// Recent closed detected problems with duration
+fetch dt.davis.problems, from:-7d
+| filter event.status == &quot;CLOSED&quot;
+| fieldsAdd duration_min = resolved_problem_duration / 1m
+| fieldsKeep display_id, event.name, event.start, event.end, duration_min, event.category
+| sort event.start desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Business event volume per hour over the past 7 days
+// Overlay with the concurrent-open-problems query in Section 7 to line up dips with incidents
+fetch bizevents, from:-7d
+| makeTimeseries biz_events = count(), interval:1h
+</code></pre>
+<p><a id="revenue-during-incidents-vs-baseline"></a></p>
+<h2>2. Revenue During Incidents vs Baseline</h2>
+<p>To measure impact, compare the business event rate during an incident against a &quot;normal&quot; baseline. The baseline can be:</p>
+<ul>
+<li>The same time period on the previous day</li>
+<li>The average for that hour of the week</li>
+<li>The 7-day rolling average</li>
+</ul>
+<pre><code class="language-dql">// Compare today's business event volume vs yesterday (two 24-hour totals)
+fetch bizevents, from:-24h
+| summarize today_count = count()
+| append [
+    fetch bizevents, from:-48h, to:-24h
+    | summarize yesterday_count = count()
+  ]
+</code></pre>
+<pre><code class="language-dql">// Hourly business event comparison — today vs same day last week
+fetch bizevents, from:-24h
+| fieldsAdd hour = formatTimestamp(timestamp, format: &quot;HH&quot;)
+| summarize today_events = count(), by:{hour}
+| append [
+    fetch bizevents, from:-192h, to:-168h
+    | fieldsAdd hour = formatTimestamp(timestamp, format: &quot;HH&quot;)
+    | summarize last_week_events = count(), by:{hour}
+  ]
+| sort hour asc
+</code></pre>
+<p><a id="calculating-revenue-loss"></a></p>
+<h2>3. Calculating Revenue Loss</h2>
+<p>If your business events include an <code>amount</code> or <code>total</code> field, you can calculate actual revenue impact.</p>
+<blockquote>
+<p><strong>Note:</strong> Replace <code>amount</code> with the actual field name in your business events that carries the transaction value.</p>
+</blockquote>
+<pre><code class="language-dql">// Total revenue from completed orders in the last 24 hours
+fetch bizevents, from:-24h
+| filter event.type == &quot;com.myapp.order.completed&quot;
+| filter isNotNull(amount)
+| summarize {total_revenue = sum(toDouble(amount)),
+           order_count = count(),
+           avg_order_value = avg(toDouble(amount))}
+</code></pre>
+<pre><code class="language-dql">// Revenue per hour — detect dips that correlate with incidents
+fetch bizevents, from:-24h
+| filter event.type == &quot;com.myapp.order.completed&quot;
+| filter isNotNull(amount)
+| makeTimeseries hourly_revenue = sum(toDouble(amount)), interval:1h
+</code></pre>
+<pre><code class="language-dql">// Hourly revenue — pick the incident hours and compare them with the surrounding hours
+// (or with the same hours from the day-over-day query in Section 5) to estimate the loss
+fetch bizevents, from:-24h
+| filter event.type == &quot;com.myapp.order.completed&quot;
+| filter isNotNull(amount)
+| fieldsAdd hour = getHour(timestamp)   // UTC unless you pass timezone: — see Section 4
+| summarize {hourly_revenue = sum(toDouble(amount)),
+           order_count = count()}, by:{hour}
+| sort hour asc
+</code></pre>
+<p><a id="business-hours-filtering"></a></p>
+<h2>4. Business Hours Filtering</h2>
+<p>Not all hours are equal. An incident at 3 AM on a Sunday has different business impact than one at 10 AM on a Tuesday. Filter analysis to business hours for more meaningful impact assessment.</p>
+<blockquote>
+<p><strong>Pass the timezone explicitly.</strong> <code>getHour()</code> and <code>getDayOfWeek()</code> evaluate in the query's timezone unless you give them one — UTC when the query runs through the API or a workflow — so &quot;9 to 5&quot; silently shifts by your UTC offset. Give both a <code>timezone:</code> parameter (the queries below use <code>America/New_York</code>; substitute your own). <code>getDayOfWeek()</code> numbers days ISO-style: 1 = Monday … 7 = Sunday.</p>
+</blockquote>
+<pre><code class="language-dql">// Business events during business hours only (Mon-Fri, 9 AM - 5 PM)
+fetch bizevents, from:-7d
+| fieldsAdd dow = getDayOfWeek(timestamp, timezone: &quot;America/New_York&quot;),
+           hour = getHour(timestamp, timezone: &quot;America/New_York&quot;)
+| filter dow &gt;= 1 and dow &lt;= 5 and hour &gt;= 9 and hour &lt; 17
+| summarize business_hours_events = count(),
+           by:{day = bin(timestamp, 24h)}
+| sort day asc
+</code></pre>
+<pre><code class="language-dql">// Compare business hours revenue vs after-hours revenue
+fetch bizevents, from:-7d
+| filter event.type == &quot;com.myapp.order.completed&quot;
+| filter isNotNull(amount)
+| fieldsAdd dow = getDayOfWeek(timestamp, timezone: &quot;America/New_York&quot;),
+           hour = getHour(timestamp, timezone: &quot;America/New_York&quot;)
+| fieldsAdd period = if(dow &gt;= 1 and dow &lt;= 5 and hour &gt;= 9 and hour &lt; 17,
+                        then: &quot;Business Hours&quot;,
+                        else: &quot;After Hours&quot;)
+| summarize {total_revenue = sum(toDouble(amount)),
+           order_count = count()}, by:{period}
+</code></pre>
+<p><a id="day-over-day-business-comparison"></a></p>
+<h2>5. Day-Over-Day Business Comparison</h2>
+<p>Compare today's business metrics against yesterday to quickly spot anomalies.</p>
+<pre><code class="language-dql">// Day-over-day comparison: today vs yesterday order counts
+fetch bizevents, from:bin(now(), 24h)
+| filter event.type == &quot;com.myapp.order.completed&quot;
+| summarize today_orders = count()
+| append [
+    fetch bizevents, from:bin(now(), 24h) - 24h, to:bin(now(), 24h)
+    | filter event.type == &quot;com.myapp.order.completed&quot;
+    | summarize yesterday_orders = count()
+  ]
+</code></pre>
+<pre><code class="language-dql">// Week-over-week trend — daily order counts for the past 2 weeks
+fetch bizevents, from:-14d
+| filter event.type == &quot;com.myapp.order.completed&quot;
+| fieldsAdd day = bin(timestamp, 24h)
+| summarize daily_orders = count(), by:{day}
+| sort day asc
+</code></pre>
+<p><a id="sla-impact-measurement"></a></p>
+<h2>6. SLA Impact Measurement</h2>
+<p>Service Level Agreements (SLAs) often include business availability targets. By correlating problem duration with business event volume, you can measure whether SLAs were met.</p>
+<blockquote>
+<p><strong>Impact-hours are not downtime, and cannot become an SLA percentage.</strong> Problems overlap — Dynatrace
+opens one per affected entity and many run concurrently — so summing their durations counts the same
+wall-clock minutes many times over. On a live tenant over 7 days (08/25/2026) the sum reached <strong>3,748
+hours</strong> against a 40-hour business week; the SLA formula that previously lived here returned
+<strong>-9,271% availability</strong>. The sum is genuinely useful as <em>entity-hours of impact</em> — it is what the
+next query reports — but an availability or SLA figure has to come from an <strong>SLO</strong>, which measures a
+good-events ÷ total-events ratio rather than subtracting problem time. See <strong>SLO-02</strong> for defining the
+SLI and <strong>SLO-03</strong> for error budgets.</p>
+</blockquote>
+<pre><code class="language-dql">// Total problem duration this week (hours of impact)
+fetch dt.davis.problems, from:-7d
+| filter event.status == &quot;CLOSED&quot;
+| filter dt.davis.is_duplicate == false
+// Exclude problems raised during maintenance windows (planned work); drop this line
+// if your SLA counts maintenance time
+| filter maintenance.is_under_maintenance == false
+| fieldsAdd duration_hours = resolved_problem_duration / 1h
+| summarize {total_problem_hours = sum(duration_hours),
+           problem_count = count(),
+           avg_mttr_hours = avg(duration_hours)}
+</code></pre>
+<pre><code class="language-dql">// Problem impact in business terms. NOTE: impact_hours counts overlapping problems
+// separately, so it is entity-hours of impact, NOT wall-clock downtime — it cannot be
+// subtracted from a business-hours window to yield an SLA percentage.
+fetch dt.davis.problems, from:-7d
+| filter event.status == &quot;CLOSED&quot;
+| filter dt.davis.is_duplicate == false
+// Exclude problems raised during maintenance windows (planned work); drop this line
+// if your SLA counts maintenance time
+| filter maintenance.is_under_maintenance == false
+| fieldsAdd duration_hours = resolved_problem_duration / 1h
+// affected_entity_ids is deprecated in favor of smartscape.affected_entities. Neither covers every
+// problem: the classic field names only ENVIRONMENT-0000000000000001 for entities that exist only in
+// Smartscape (AWS EC2 instances, for example), and the Smartscape field is empty on many process
+// group instance problems. Take Smartscape node IDs where a problem has them, classic IDs where not.
+| fieldsAdd ss_ids = toString(smartscape.affected_entities[][id]),
+            classic_ids = if(isNull(smartscape.affected_entities), affected_entity_ids)
+// The ID fields are arrays: countDistinctExact on them counts distinct ARRAYS, not
+// entities — flatten the collected arrays first, then count distinct entity IDs.
+| summarize {impact_hours = sum(duration_hours),
+           problem_count = count(),
+           ss_arrays = collectArray(ss_ids),
+           classic_arrays = collectArray(classic_ids),
+           avg_problem_hours = avg(duration_hours)}
+| fieldsAdd affected_entities = arraySize(arrayRemoveNulls(arrayDistinct(arrayConcat(arrayFlatten(ss_arrays), arrayFlatten(classic_arrays)))))
+| fieldsRemove ss_arrays, classic_arrays
+
+</code></pre>
+<p><a id="building-an-impact-timeline"></a></p>
+<h2>7. Building an Impact Timeline</h2>
+<p>An impact timeline overlays business event volume with detected problems to visualize how incidents affect business operations.</p>
+<pre><code class="language-dql">// Business event volume over the past 7 days
+// Overlay with problem occurrences to see impact
+fetch bizevents, from:-7d
+| filter event.type == &quot;com.myapp.order.completed&quot;
+| makeTimeseries orders = count(), interval:1h
+</code></pre>
+<pre><code class="language-dql">// Concurrent open problems over time — overlay with order volume chart
+fetch dt.davis.problems, from:-7d
+| makeTimeseries open_problems = count(),
+    spread: timeframe(from: event.start, to: coalesce(event.end, now()))
+</code></pre>
+<p><a id="summary-and-next-steps"></a></p>
+<h2>8. Summary and Next Steps</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li><strong>Problem-to-business correlation</strong> — Connecting detected problems to business event data</li>
+<li><strong>Revenue during incidents</strong> — Comparing incident periods against baselines</li>
+<li><strong>Revenue loss estimation</strong> — Using transaction amounts to quantify financial impact</li>
+<li><strong>Business hours filtering</strong> — Scoping analysis to when it matters most</li>
+<li><strong>Day-over-day comparison</strong> — Detecting business anomalies via historical comparison</li>
+<li><strong>Impact hours</strong> — Entity-hours of problem impact, and why they are not an SLA percentage</li>
+<li><strong>Impact timelines</strong> — Overlaying problems with business metrics</li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li><strong>BIZEV-05: KPIs and Metrics</strong> — Define ongoing business health indicators</li>
+<li><strong>BIZEV-06: Executive Reporting</strong> — Build executive-ready reports combining these techniques</li>
+</ul>
+<h3>References</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app">Davis Problems app (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/business-observability">Dynatrace Business Analytics</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

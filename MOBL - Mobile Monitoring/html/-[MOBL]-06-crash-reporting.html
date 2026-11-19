@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MOBL-06: Crash Reporting &amp; ANR Detection</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MOBL — Mobile Monitoring</a><span class="sep">/</span><span aria-current="page">MOBL-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MOBL-06: Crash Reporting &amp; ANR Detection</h1>
+<blockquote>
+<p><strong>Series:</strong> MOBL — Mobile Monitoring | <strong>Notebook:</strong> 6 of 12 | <strong>Created:</strong> February 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Mobile app crashes are the single most damaging event for user retention and app store ratings. Dynatrace automatically captures, symbolizes, and groups crashes across iOS and Android -- including Android Application Not Responding (ANR) events. This notebook explains how crash reporting works end-to-end, how to configure symbolication for readable stack traces, and how to query crash data with DQL to identify trends and prioritize fixes.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#how-crash-reporting-works">How Crash Reporting Works</a></li>
+<li><a href="#ios-symbolication">iOS Symbolication (dSYM)</a></li>
+<li><a href="#android-crash-anr">Android Crash &amp; ANR Detection</a></li>
+<li><a href="#crash-grouping">Crash Grouping</a></li>
+<li><a href="#querying-crash-data">Querying Crash Data</a></li>
+<li><a href="#crash-rate-trends">Crash Rate Trends</a></li>
+<li><a href="#manual-error-reporting">Manual Error Reporting</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:user.events:read</code>, <code>storage:user.sessions:read</code></td>
+</tr>
+<tr>
+<td><strong>Mobile App</strong></td>
+<td>At least one mobile application with crash reporting enabled</td>
+</tr>
+<tr>
+<td><strong>Symbolication</strong></td>
+<td>dSYM files (iOS) or ProGuard/R8 mapping files (Android) uploaded</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td>Familiarity with MOBL-01 through MOBL-05 recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="how-crash-reporting-works"></a></p>
+<h2>1. How Crash Reporting Works</h2>
+<p>When a mobile app crashes, the Dynatrace SDK captures the crash details and sends them to the backend for processing. The process differs slightly between handled exceptions and unhandled crashes, but the overall flow is the same.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgMzAwIj4KICA8ZGVmcz4KICAgIDxmaWx0ZXIgaWQ9InNoYWRvdyIgeD0iLTIlIiB5PSItMiUiIHdpZHRoPSIxMDQlIiBoZWlnaHQ9IjEwNCUiPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIxIiBkeT0iMiIgc3RkRGV2aWF0aW9uPSIzIiBmbG9vZC1vcGFjaXR5PSIwLjE1Ii8+CiAgICA8L2ZpbHRlcj4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icmVkR3JhZCIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjZWY0NDQ0Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iI2RjMjYyNiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmx1ZUdyYWQiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzE0OTZmZiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMwYTY0YmMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9Im9yYW5nZUdyYWQiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI2Y5NzMxNiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNlYTU4MGMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InB1cnBsZUdyYWQiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzYzNjZmMSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM0ZjQ2ZTUiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImdyZWVuR3JhZCIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMjJjNTVlIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzE2YTM0YSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImFycm93UmlnaHQiIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSIxMCIgcmVmWD0iMTAiIHJlZlk9IjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCA1LCAwIDEwIiBmaWxsPSIjNjQ3NDhiIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFycm93RG93biIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjEwIiByZWZYPSI1IiByZWZZPSIxMCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDAsIDUgMTAiIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI3MDAiIGhlaWdodD0iMzAwIiByeD0iMTIiIHJ5PSIxMiIgZmlsbD0iI2Y4ZjlmYSIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjM1MCIgeT0iMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxZTI5M2IiPkNyYXNoIFJlcG9ydGluZyBGbG93PC90ZXh0PgoKICA8IS0tID09PSBSb3cgMTogU3RlcHMgMS0zIChsZWZ0IHRvIHJpZ2h0KSA9PT0gLS0+CiAgPCEtLSBTdGVwIDE6IEFwcCBDcmFzaCAtLT4KICA8Y2lyY2xlIGN4PSI1MiIgY3k9Ijc4IiByPSIxMSIgZmlsbD0iIzk0YTNiOCIvPgogIDx0ZXh0IHg9IjUyIiB5PSI4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZmZmZiI+MTwvdGV4dD4KICA8cmVjdCB4PSI3MCIgeT0iNTUiIHdpZHRoPSIxNjAiIGhlaWdodD0iNDYiIHJ4PSI4IiByeT0iOCIgZmlsbD0idXJsKCNyZWRHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIxNTAiIHk9Ijc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmZmZmIj5BcHAgQ3Jhc2g8L3RleHQ+CiAgPHRleHQgeD0iMTUwIiB5PSI5MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkuNSIgZmlsbD0iI2ZlY2FjYSI+VW5oYW5kbGVkIGV4Y2VwdGlvbiBvciBzaWduYWw8L3RleHQ+CgogIDwhLS0gQXJyb3cgMS0yIC0tPgogIDxsaW5lIHgxPSIyMzAiIHkxPSI3OCIgeDI9IjI0OCIgeTI9Ijc4IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd1JpZ2h0KSIvPgoKICA8IS0tIFN0ZXAgMjogU0RLIENhcHR1cmVzIC0tPgogIDxjaXJjbGUgY3g9IjI3MyIgY3k9Ijc4IiByPSIxMSIgZmlsbD0iIzk0YTNiOCIvPgogIDx0ZXh0IHg9IjI3MyIgeT0iODIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmZmZmYiPjI8L3RleHQ+CiAgPHJlY3QgeD0iMjkxIiB5PSI1NSIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI0NiIgcng9IjgiIHJ5PSI4IiBmaWxsPSJ1cmwoI2JsdWVHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIzNzEiIHk9Ijc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmZmZmIj5TREsgQ2FwdHVyZXM8L3RleHQ+CiAgPHRleHQgeD0iMzcxIiB5PSI5MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkuNSIgZmlsbD0iI2RiZWFmZSI+U3RhY2sgdHJhY2UsIHRocmVhZCBzdGF0ZSwgY29udGV4dDwvdGV4dD4KCiAgPCEtLSBBcnJvdyAyLTMgLS0+CiAgPGxpbmUgeDE9IjQ1MSIgeTE9Ijc4IiB4Mj0iNDY5IiB5Mj0iNzgiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93UmlnaHQpIi8+CgogIDwhLS0gU3RlcCAzOiBTZW50IEltbWVkaWF0ZWx5IC0tPgogIDxjaXJjbGUgY3g9IjQ5NCIgY3k9Ijc4IiByPSIxMSIgZmlsbD0iIzk0YTNiOCIvPgogIDx0ZXh0IHg9IjQ5NCIgeT0iODIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmZmZmYiPjM8L3RleHQ+CiAgPHJlY3QgeD0iNTEyIiB5PSI1NSIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI0NiIgcng9IjgiIHJ5PSI4IiBmaWxsPSJ1cmwoI29yYW5nZUdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjU5MiIgeT0iNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmZmZmYiPlNlbnQgSW1tZWRpYXRlbHk8L3RleHQ+CiAgPHRleHQgeD0iNTkyIiB5PSI5MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkuNSIgZmlsbD0iI2ZmZjdlZCI+VXN1YWxseSByaWdodCBhZnRlciB0aGUgY3Jhc2g8L3RleHQ+CgogIDwhLS0gQ29ubmVjdG9yOiBSb3cgMSB0byBSb3cgMiAoU3RlcCAzIGRvd24tYW5kLWFjcm9zcyB0byBTdGVwIDQpIC0tPgogIDxsaW5lIHgxPSI1OTIiIHkxPSIxMDEiIHgyPSI1OTIiIHkyPSIxMjUiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjU5MiIgeTE9IjEyNSIgeDI9IjE1MCIgeTI9IjEyNSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iMTUwIiB5MT0iMTI1IiB4Mj0iMTUwIiB5Mj0iMTQ1IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd0Rvd24pIi8+CgogIDwhLS0gPT09IFJvdyAyOiBTdGVwcyA0LTYgKGxlZnQgdG8gcmlnaHQpID09PSAtLT4KICA8IS0tIFN0ZXAgNDogRmFsbGJhY2sgcmVsYXVuY2ggLS0+CiAgPGNpcmNsZSBjeD0iNTIiIGN5PSIxNzgiIHI9IjExIiBmaWxsPSIjOTRhM2I4Ii8+CiAgPHRleHQgeD0iNTIiIHk9IjE4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZmZmZiI+NDwvdGV4dD4KICA8cmVjdCB4PSI3MCIgeT0iMTU1IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjQ2IiByeD0iOCIgcnk9IjgiIGZpbGw9InVybCgjcHVycGxlR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMTUwIiB5PSIxNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmZmZmYiPkZhbGxiYWNrOiBSZWxhdW5jaDwvdGV4dD4KICA8dGV4dCB4PSIxNTAiIHk9IjE5MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkuNSIgZmlsbD0iI2UwZTdmZiI+V2l0aGluIDEwIG1pbiwgZWxzZSBub3Qgc2VudDwvdGV4dD4KCiAgPCEtLSBBcnJvdyA0LTUgLS0+CiAgPGxpbmUgeDE9IjIzMCIgeTE9IjE3OCIgeDI9IjI0OCIgeTI9IjE3OCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dSaWdodCkiLz4KCiAgPCEtLSBTdGVwIDU6IEJlYWNvbiBTZW50IC0tPgogIDxjaXJjbGUgY3g9IjI3MyIgY3k9IjE3OCIgcj0iMTEiIGZpbGw9IiM5NGEzYjgiLz4KICA8dGV4dCB4PSIyNzMiIHk9IjE4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZmZmZiI+NTwvdGV4dD4KICA8cmVjdCB4PSIyOTEiIHk9IjE1NSIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI0NiIgcng9IjgiIHJ5PSI4IiBmaWxsPSJ1cmwoI2JsdWVHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIzNzEiIHk9IjE3NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZmZmZiI+RmFsbGJhY2sgQmVhY29uPC90ZXh0PgogIDx0ZXh0IHg9IjM3MSIgeT0iMTkxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOS41IiBmaWxsPSIjZGJlYWZlIj5TZW50IG9uIHRoZSByZWxhdW5jaDwvdGV4dD4KCiAgPCEtLSBBcnJvdyA1LTYgLS0+CiAgPGxpbmUgeDE9IjQ1MSIgeTE9IjE3OCIgeDI9IjQ2OSIgeTI9IjE3OCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dSaWdodCkiLz4KCiAgPCEtLSBTdGVwIDY6IFN5bWJvbGljYXRpb24gLS0+CiAgPGNpcmNsZSBjeD0iNDk0IiBjeT0iMTc4IiByPSIxMSIgZmlsbD0iIzk0YTNiOCIvPgogIDx0ZXh0IHg9IjQ5NCIgeT0iMTgyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmZmZmIj42PC90ZXh0PgogIDxyZWN0IHg9IjUxMiIgeT0iMTU1IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjQ2IiByeD0iOCIgcnk9IjgiIGZpbGw9InVybCgjZ3JlZW5HcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSI1OTIiIHk9IjE3NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZmZmZiI+U3ltYm9saWNhdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI1OTIiIHk9IjE5MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkuNSIgZmlsbD0iI2RjZmNlNyI+ZFNZTSAvIFByb0d1YXJkIG1hcHBpbmcgYXBwbGllZDwvdGV4dD4KCiAgPCEtLSBSb3cgcGhhc2UgbGFiZWxzIC0tPgogIDxyZWN0IHg9IjIyIiB5PSIyMjgiIHdpZHRoPSIxMiIgaGVpZ2h0PSIxMiIgcng9IjMiIHJ5PSIzIiBmaWxsPSIjZWY0NDQ0IiBvcGFjaXR5PSIwLjciLz4KICA8dGV4dCB4PSI0MCIgeT0iMjM5IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM0NzU1NjkiPlVzdWFsIHBhdGggKFN0ZXBzIDEtMyk8L3RleHQ+CiAgPHJlY3QgeD0iMTk1IiB5PSIyMjgiIHdpZHRoPSIxMiIgaGVpZ2h0PSIxMiIgcng9IjMiIHJ5PSIzIiBmaWxsPSIjNjM2NmYxIiBvcGFjaXR5PSIwLjciLz4KICA8dGV4dCB4PSIyMTMiIHk9IjIzOSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNDc1NTY5Ij5GYWxsYmFjayBhbmQgcHJvY2Vzc2luZyAoU3RlcHMgNC02KTwvdGV4dD4KCiAgPCEtLSBMZWdlbmQgYmFyIC0tPgogIDxyZWN0IHg9IjAiIHk9IjI1OCIgd2lkdGg9IjcwMCIgaGVpZ2h0PSI0MiIgcng9IjAiIHJ5PSIwIiBmaWxsPSIjZTJlOGYwIi8+CiAgPHJlY3QgeD0iMCIgeT0iMjg4IiB3aWR0aD0iNzAwIiBoZWlnaHQ9IjEyIiByeD0iMCIgcnk9IjEyIiBmaWxsPSIjZTJlOGYwIi8+CiAgPHRleHQgeD0iMzUwIiB5PSIyODQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzQ3NTU2OSI+Q3Jhc2ggZGF0YSBpcyB1c3VhbGx5IHNlbnQgcmlnaHQgYWZ0ZXIgdGhlIGNyYXNoOyBvdGhlcndpc2Ugb24gYSByZWxhdW5jaCB3aXRoaW4gMTAgbWludXRlcywgb3Igbm90IGF0IGFsbC48L3RleHQ+Cjwvc3ZnPg==" alt="Crash Reporting Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Stage | Description |
+|------|-------|-------------|
+| 1 | App Crash | The app encounters an unhandled exception or fatal signal |
+| 2 | SDK Captures Stack Trace | The Dynatrace SDK's crash handler captures the full stack trace, thread state, and device context |
+| 3 | Beacon Sent | In general the crash details are sent immediately after the crash, so the user does not have to relaunch the app |
+| 4 | Fallback: Next Launch Within 10 Minutes | In some cases the app must be reopened within 10 minutes for the report to be sent; reports older than 10 minutes are not sent |
+| 5 | Server-Side Symbolication | The backend matches memory addresses against uploaded symbol files (dSYM/ProGuard) to produce human-readable stack traces |
+| 6 | Crash Appears in UI | The symbolicated crash is grouped, stored in Grail, and visible in the Dynatrace mobile crash analysis view |
+For environments where SVG doesn't render
+-->
+<h3>Handled vs Unhandled Crashes</h3>
+<p>It is important to understand the distinction between handled exceptions and unhandled crashes:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Description</th>
+<th>SDK Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Unhandled Crash</strong></td>
+<td>The app terminates unexpectedly due to an unhandled exception (e.g., <code>NullPointerException</code>, <code>EXC_BAD_ACCESS</code>) or fatal signal</td>
+<td>SDK crash handler fires and captures the stack trace. Usually sent immediately; otherwise on a relaunch within 10 minutes.</td>
+</tr>
+<tr>
+<td><strong>Handled Exception</strong></td>
+<td>The developer catches an error in a try/catch block and explicitly reports it via the SDK API</td>
+<td>SDK sends the error beacon immediately (app is still running). Does not terminate the app.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key difference:</strong> Unhandled crashes terminate the app; their report is usually sent immediately, with a relaunch within 10 minutes as the fallback. Handled exceptions are reported while the app continues running.</p>
+<blockquote>
+<p><strong>Note (Android-documented):</strong> When the immediate send fails and the user does not reopen the app within 10 minutes, the crash report is never sent, because Dynatrace does not send crash reports older than 10 minutes. Crash counts can therefore under-represent severe crashes that make users abandon the app. The 10-minute window is documented for the Android Gradle plugin; confirm the iOS behavior on the OneAgent for iOS pages before relying on it there.</p>
+</blockquote>
+<blockquote>
+<p><strong>Correction (09/28/2026).</strong> Earlier revisions said crash beacons are always stored and sent &quot;on the next launch&quot;. The documentation says they are generally sent immediately.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/monitoring-capabilities">Configure monitoring capabilities (DT docs)</a> — <em>&quot;In general, the crash details are sent immediately after the crash, so the user doesn’t have to relaunch the application. However, in some cases, the application should be reopened within 10 minutes so that the crash report is sent.&quot;</em></sub></p>
+</blockquote>
+<p><a id="ios-symbolication"></a></p>
+<h2>2. iOS Symbolication (dSYM)</h2>
+<p>When an iOS app is compiled in Release mode, the compiler strips debug symbols from the binary to reduce its size. These symbols are stored in <strong>dSYM (Debug Symbol)</strong> files. Without dSYM files, crash stack traces show only memory addresses like <code>0x00000001045a3b2c</code> instead of meaningful method names like <code>-[PaymentViewController processPayment:]</code>.</p>
+<h3>What Are dSYM Files?</h3>
+<p>A dSYM file is a companion file generated during the Xcode build process that maps memory addresses back to source code symbols (class names, method names, file names, and line numbers). Each build produces a unique dSYM file identified by a UUID that must match the app binary.</p>
+<h3>Upload Methods</h3>
+<p>iOS dSYM files are <strong>preprocessed with the DSSClient</strong> (shipped with OneAgent for iOS) into symbol extract files before Dynatrace accepts them. Four upload routes are documented:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>DSSClient</strong></td>
+<td><code>DTXDssClient -decode</code> then <code>DTXDssClient -upload</code> — scriptable in an Xcode run-script phase or CI</td>
+<td>CI/CD pipelines</td>
+</tr>
+<tr>
+<td><strong>REST API</strong></td>
+<td>Mobile Symbolication API, <code>PUT /api/config/v1/symfiles/...</code> with a <code>DssFileManagement</code> token (upload the DSSClient's zip)</td>
+<td>Custom CI/CD systems</td>
+</tr>
+<tr>
+<td><strong>Fastlane</strong></td>
+<td>The Dynatrace Fastlane plugin automates processing and upload</td>
+<td>Teams already using Fastlane</td>
+</tr>
+<tr>
+<td><strong>Web UI</strong></td>
+<td><strong>Settings &gt; Web and mobile monitoring &gt; Source maps and symbol files</strong> → <strong>iOS</strong> → <strong>Upload files</strong></td>
+<td>Ad-hoc builds, troubleshooting</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Latest Dynatrace RUM (updated 11/11/2026).</strong> The REST route above is the classic Mobile Symbolication API. For frontends on the new RUM experience, Dynatrace points to the platform <strong>Deobfuscation API</strong> (<code>PUT /platform/rum/deobfuscation/v1/symbol-files/mobile/{platform}/{dtRumAppId}/{packageName}/{versionCode}/{versionName}</code>, platform token or OAuth token with <code>deobfuscation:symbol-files:write</code>). MOBL-03 §6 shows the Android call.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/mobile-symbolication-api">Mobile Symbolication API (DT docs)</a> — <em>&quot;To manage symbol and mapping files for the new RUM experience, see the Deobfuscation API.&quot;</em>; <a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-rum-deobfuscation-v1/symbol-files-mobile-platform-dt-rum-app-id-package-name-version-5acf4e-put">Upload a mobile symbol file — Deobfuscation API (DT docs)</a> — <em>&quot;you need a platform token or OAuth access token with deobfuscation:symbol-files:write scope&quot;</em>, <em>&quot;For iOS/tvOS, this is a zip archive containing the dSYM bundle.&quot;</em>; re-read 11/11/2026.</sub></p>
+</blockquote>
+<h3>DSSClient Example</h3>
+<ol>
+<li>Preprocess the dSYMs (from the <code>.xcarchive</code>, or a dSYM zip from App Store Connect):</li>
+</ol>
+<pre><code class="language-bash">DTXDssClient -decode symbolsfile=MyApp.xcarchive
+</code></pre>
+<ol start="2">
+<li>Upload the symbol extract files:</li>
+</ol>
+<pre><code class="language-bash">DTXDssClient -upload appid=&lt;APPLICATION_ID&gt; apitoken=&lt;API_TOKEN&gt; os=ios \
+  bundleId=com.yourcompany.app bundleName=MyApp versionStr=1.0 version=1 \
+  symbolsfile=MyApp.xcarchive/dSYMs server=https://&lt;your-environment-id&gt;.live.dynatrace.com
+</code></pre>
+<p><code>versionStr</code> and <code>version</code> must match the app's <code>CFBundleShortVersionString</code> and <code>CFBundleVersion</code>. Only stack-trace lines from your app and third-party libraries you supply dSYMs for are symbolicated — <strong>system library frames are not</strong>.</p>
+<blockquote>
+<p><strong>Correction (10/02/2026).</strong> Earlier revisions showed <code>DTXDssClient -ApiToken … -DtApplicationID … -Server …</code> flags. The documented syntax is <code>key=value</code> pairs after <code>-upload</code>, as above.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/analyze-and-use/upload-and-manage-symbol-files">Upload and manage symbol files (DT docs)</a> — <em>&quot;For iOS or tvOS symbolication, you need to preprocess dSYM files using the DSSClient before you can upload them to Dynatrace.&quot;</em>; <em>&quot;Symbolication of system library stack trace lines is not supported.&quot;</em></sub></p>
+</blockquote>
+<h3>Bitcode Considerations</h3>
+<p>If your app uses Bitcode (now deprecated in Xcode 14+), Apple recompiles the binary on their servers before distributing to users. This means the dSYM you generate locally does <strong>not</strong> match the binary users actually run. You must download the App Store-generated dSYMs from App Store Connect (or via Xcode Organizer) and upload those to Dynatrace instead.</p>
+<h3>Symbolication Status</h3>
+<table>
+<thead>
+<tr>
+<th>Stack Trace Appearance</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MyApp -[PaymentViewController processPayment:] + 42</code></td>
+<td>Fully symbolicated -- dSYM uploaded correctly</td>
+</tr>
+<tr>
+<td><code>MyApp 0x00000001045a3b2c</code></td>
+<td>Not symbolicated -- dSYM missing or UUID mismatch</td>
+</tr>
+<tr>
+<td><code>MyFramework 0x00000001089d1f30</code></td>
+<td>Framework dSYM missing -- upload framework symbols too</td>
+</tr>
+<tr>
+<td><code>libsystem_kernel.dylib 0x...</code></td>
+<td>System library frame -- not symbolicated by Dynatrace, by design</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> Always verify symbolication status after uploading dSYMs. If crashes still show memory addresses, check that the dSYM UUID matches the app binary UUID using <code>dwarfdump --uuid</code> on both files.</p>
+</blockquote>
+<p><a id="android-crash-anr"></a></p>
+<h2>3. Android Crash &amp; ANR Detection</h2>
+<p>Android crash reporting covers three distinct types of failures, each with different detection mechanisms:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Description</th>
+<th>Detection</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Unhandled Exception</strong></td>
+<td><code>RuntimeException</code>, <code>NullPointerException</code>, <code>OutOfMemoryError</code>, etc.</td>
+<td>Automatic -- SDK installs an <code>UncaughtExceptionHandler</code></td>
+</tr>
+<tr>
+<td><strong>ANR (Application Not Responding)</strong></td>
+<td>The system's ANR condition — for input events, no response within about 5 seconds</td>
+<td>Reported by OneAgent for Android (<code>characteristics.has_anr</code> in Grail)</td>
+</tr>
+<tr>
+<td><strong>Native Crash</strong></td>
+<td>Segfault or other fatal signal in NDK/C++ code (e.g., <code>SIGSEGV</code>, <code>SIGABRT</code>)</td>
+<td>Reported with its signal in <code>exception.crash_signal_name</code>; NDK code itself is not instrumented. Check your agent version's crash-reporting settings</td>
+</tr>
+</tbody>
+</table>
+<h3>ANR Detection in Detail</h3>
+<p>An ANR occurs when the Android system detects that the main (UI) thread has been unresponsive for more than 5 seconds. Common causes include:</p>
+<ul>
+<li><strong>Database operations on the main thread</strong> -- SQLite queries, Room transactions</li>
+<li><strong>Network calls on the main thread</strong> -- Synchronous HTTP requests</li>
+<li><strong>Heavy computation</strong> -- Image processing, JSON parsing of large payloads</li>
+<li><strong>Lock contention</strong> -- Main thread waiting for a lock held by a background thread</li>
+<li><strong>Deadlocks</strong> -- Two threads waiting on each other</li>
+</ul>
+<p>The ANR record carries the stack trace where the main thread was blocked, alongside the session and user actions that led up to it — context the platform's own ANR counts do not give you.</p>
+<h3>ProGuard/R8 Mapping Files</h3>
+<p>When you enable code shrinking with ProGuard or R8 (the default for release builds), class and method names are obfuscated. Without the mapping file, crash stack traces show names like <code>a.b.c.d()</code> instead of <code>com.example.PaymentService.processPayment()</code>.</p>
+<p><strong>Upload mapping files</strong> through any of the documented routes — none of them is automatic in the Gradle build:</p>
+<ul>
+<li><strong>DSSClient</strong> — <code>DTXDssClient -upload appid=… apitoken=… os=android bundleId=… versionStr=… version=… file=…/mapping.txt server=…</code></li>
+<li><strong>REST API</strong> — Mobile Symbolication API <code>PUT /api/config/v1/symfiles/{applicationId}/{packageName}/ANDROID/{versionCode}/{versionName}</code> with a <code>DssFileManagement</code> token (MOBL-03 §6 has a <code>curl</code> example). On the new RUM experience, use the platform Deobfuscation API instead — see the note in §2 and MOBL-03 §6</li>
+<li><strong>Fastlane</strong> — the Dynatrace Fastlane plugin</li>
+<li><strong>Web UI</strong> — <strong>Settings &gt; Web and mobile monitoring &gt; Source maps and symbol files</strong> → <strong>Android</strong> → <strong>Upload files</strong> (package name, version code, version name, mapping file)</li>
+</ul>
+<p>Source maps and symbol files share a 1 GiB storage quota per SaaS environment; when it fills, older files are deleted automatically unless <strong>pinned</strong>.</p>
+<blockquote>
+<p><strong>Correction (10/02/2026).</strong> Earlier revisions showed a Gradle <code>symbols { apitoken '…' }</code> block that uploads mapping files during the build. That block is not documented; the upload routes are the four above.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/analyze-and-use/upload-and-manage-symbol-files">Upload and manage symbol files (DT docs)</a> — <em>&quot;The Dynatrace platform supports four different ways of uploading Android mapping files and iOS or tvOS symbol extract files&quot;</em>; <em>&quot;For Dynatrace SaaS, the maximum storage size for source maps and symbol files is 1 GiB.&quot;</em>; <a href="https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/mobile-symbolication-api/put-files-app-version">Mobile Symbolication API — PUT (DT docs)</a> — <em>&quot;you need an access token with DssFileManagement scope&quot;</em>.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Important:</strong> Upload mapping files for every release build. If a mapping file is missing for a specific app version, crashes from that version will show obfuscated stack traces.</p>
+</blockquote>
+<p><a id="crash-grouping"></a></p>
+<h2>4. Crash Grouping</h2>
+<p>When Dynatrace receives crash reports, it does not treat each individual crash as a separate issue. Instead, it <strong>groups crashes by root cause</strong> to help you focus on the most impactful problems.</p>
+<h3>How Grouping Works</h3>
+<p>Each crash record carries <code>error.id</code>, a fingerprint that groups similar crashes; the exact fingerprint inputs are not published, but in community practice crashes with the same exception type and the same crashing frame land in the same group.</p>
+<p>This means that 500 users crashing on the same <code>NullPointerException</code> in <code>PaymentViewController.processPayment()</code> will appear as a <strong>single crash group</strong> with a count of 500, rather than 500 individual crash entries.</p>
+<h3>Benefits of Crash Grouping</h3>
+<table>
+<thead>
+<tr>
+<th>Benefit</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Prioritization</strong></td>
+<td>See which crashes affect the most users and fix those first</td>
+</tr>
+<tr>
+<td><strong>Trend tracking</strong></td>
+<td>Monitor whether a specific crash is increasing or decreasing across versions</td>
+</tr>
+<tr>
+<td><strong>Regression detection</strong></td>
+<td>Quickly identify if a new app version introduced a new crash group</td>
+</tr>
+<tr>
+<td><strong>Noise reduction</strong></td>
+<td>Hundreds of individual crash reports collapse into actionable groups</td>
+</tr>
+</tbody>
+</table>
+<h3>Crash Fields in Grail</h3>
+<p>Crashes are <code>user.events</code> records with <code>characteristics.has_crash</code> (ANRs: <code>characteristics.has_anr</code>). Both are set only by OneAgent for Mobile. The fields that identify and describe a crash (semantic dictionary model <code>rum_crash</code>, read 09/28/2026):</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>error.id</code></td>
+<td>Fingerprint that groups similar crashes -- the crash group</td>
+</tr>
+<tr>
+<td><code>exception.type</code> / <code>exception.message</code></td>
+<td>Exception class and message</td>
+</tr>
+<tr>
+<td><code>exception.stack_trace</code></td>
+<td>Full stack trace</td>
+</tr>
+<tr>
+<td><code>exception.crash_signal_name</code></td>
+<td>Signal for native crashes (for example <code>SIGSEGV</code>)</td>
+</tr>
+<tr>
+<td><code>error.is_fatal</code></td>
+<td>Whether the error terminated the app</td>
+</tr>
+<tr>
+<td><code>frontend.name</code></td>
+<td>The mobile application</td>
+</tr>
+<tr>
+<td><code>app.short_version</code> / <code>app.version</code></td>
+<td>App version (store version / full build)</td>
+</tr>
+<tr>
+<td><code>os.name</code></td>
+<td><code>iOS</code> or <code>Android</code></td>
+</tr>
+</tbody>
+</table>
+<p>At session grain, <code>user.sessions</code> carries <code>error.has_crash</code> and <code>error.anr_count</code>, which is what a crash <strong>rate</strong> needs (crashed sessions / sessions).</p>
+<blockquote>
+<p><strong>Tip:</strong> Use <code>summarize crashes = count(), by:{error.id, exception.type}</code> to see crash groups ranked by frequency. This immediately shows which crash should be fixed first.</p>
+</blockquote>
+<p><a id="querying-crash-data"></a></p>
+<h2>5. Querying Crash Data</h2>
+<p>Crash data is stored in the Grail <code>user.events</code> store (<code>characteristics.has_crash</code>), not in business events. Use the following queries to explore recent crashes, identify the most affected applications, and visualize crash trends over time.</p>
+<h3>Recent Mobile Crashes</h3>
+<p>Retrieve the 50 most recent crash events across all mobile applications:</p>
+<pre><code class="language-dql">// Recent mobile crashes (characteristics.has_crash is set only by OneAgent for Mobile)
+fetch user.events, from:-24h
+| filter characteristics.has_crash
+| fields start_time, frontend.name, os.name, app.short_version, exception.type, exception.message
+| sort start_time desc
+| limit 50
+</code></pre>
+<h3>Crash Count by Application</h3>
+<p>See which applications and platforms have the highest crash volume over the last 7 days:</p>
+<pre><code class="language-dql">// Crash count by application over last 7 days
+fetch user.events, from:-7d
+| filter characteristics.has_crash
+| summarize {crash_count = count(), affected_sessions = countDistinct(dt.rum.session.id)}, by:{frontend.name, os.name}
+| sort crash_count desc
+</code></pre>
+<h3>Daily Crash Trend</h3>
+<p>Visualize how overall crash volume is trending day-over-day. Spikes may indicate a problematic release:</p>
+<pre><code class="language-dql">// Daily crash trend
+fetch user.events, from:-7d
+| filter characteristics.has_crash
+| makeTimeseries crash_count = count(), interval:24h
+</code></pre>
+<p><a id="crash-rate-trends"></a></p>
+<h2>6. Crash Rate Trends</h2>
+<p>Looking at raw crash counts is useful, but breaking them down by platform reveals whether iOS or Android is experiencing more instability. The following queries help you compare crash rates across platforms and identify handled exceptions reported through the SDK API.</p>
+<h3>Crash Rate by Platform</h3>
+<p>Compare daily crash volumes between iOS and Android to spot platform-specific regressions:</p>
+<pre><code class="language-dql">// Crash timeseries by platform
+fetch user.events, from:-7d
+| filter characteristics.has_crash
+| makeTimeseries crash_count = count(), by:{os.name}, interval:24h
+</code></pre>
+<h3>Reported Errors (Handled Exceptions)</h3>
+<p>In addition to unhandled crashes, developers can report caught exceptions using the SDK API. These are <code>user.events</code> records with <code>characteristics.has_error</code> and <code>characteristics.is_api_reported</code> (model <code>rum_api_reported_error</code>), and represent errors that the app handled gracefully but that you still want visibility into:</p>
+<pre><code class="language-dql">// Reported errors (errors reported through the OneAgent SDK / Dynatrace API)
+fetch user.events, from:-24h
+| filter in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;})
+| filter characteristics.has_error and characteristics.is_api_reported
+| fields start_time, frontend.name, error.name, error.code, error.reason, os.name
+| sort start_time desc
+| limit 50
+</code></pre>
+<p><a id="manual-error-reporting"></a></p>
+<h2>7. Manual Error Reporting</h2>
+<p>While Dynatrace automatically captures unhandled crashes, you should also report <strong>handled exceptions</strong> that are important to your business logic. For example, a payment failure caught in a try/catch block does not crash the app, but you absolutely want visibility into it.</p>
+<h3>iOS (Swift)</h3>
+<pre><code class="language-swift">// iOS - Report a handled error
+let error = NSError(
+    domain: &quot;PaymentError&quot;,
+    code: 402,
+    userInfo: [NSLocalizedDescriptionKey: &quot;Card declined&quot;]
+)
+DTXAction.reportError(withName: &quot;Payment Failed&quot;, error: error)
+</code></pre>
+<h3>Android (Kotlin)</h3>
+<pre><code class="language-kotlin">// Android - Report a handled error
+Dynatrace.reportError(&quot;Payment Failed&quot;, Exception(&quot;Card declined&quot;))
+</code></pre>
+<h3>Best Practices for Manual Error Reporting</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Use descriptive error names</strong></td>
+<td><code>&quot;Payment Failed&quot;</code> is better than <code>&quot;Error&quot;</code> -- it makes DQL grouping meaningful</td>
+</tr>
+<tr>
+<td><strong>Include context in the exception</strong></td>
+<td>Pass the underlying exception object so the stack trace is captured</td>
+</tr>
+<tr>
+<td><strong>Report at catch boundaries</strong></td>
+<td>Report where you handle the error, not deep in utility methods</td>
+</tr>
+<tr>
+<td><strong>Avoid over-reporting</strong></td>
+<td>Don't report expected conditions (e.g., network timeout during retry) as errors</td>
+</tr>
+<tr>
+<td><strong>Use consistent naming</strong></td>
+<td>Establish naming conventions across your team so errors group predictably</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Reported errors appear in <code>user.events</code> with <code>characteristics.has_error</code> and <code>characteristics.is_api_reported</code>, while unhandled crashes carry <code>characteristics.has_crash</code>. Use the appropriate filter depending on what you are investigating.</p>
+</blockquote>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li><strong>How crash reporting works</strong> -- from the moment the app crashes through SDK capture, transmission (usually immediate, otherwise on a relaunch within 10 minutes), server-side symbolication, and display in the UI</li>
+<li><strong>iOS symbolication</strong> -- why dSYM files are essential, how to preprocess and upload them (DSSClient, REST API, Fastlane, web UI), and Bitcode considerations</li>
+<li><strong>Android crash types</strong> -- unhandled exceptions, ANRs (main thread blocked &gt;5 seconds), and native NDK crashes, plus ProGuard/R8 mapping file upload</li>
+<li><strong>Crash grouping</strong> -- the <code>error.id</code> fingerprint that groups similar crashes so you can prioritize fixes by frequency</li>
+<li><strong>Querying crash data with DQL</strong> -- reading <code>user.events</code> with <code>characteristics.has_crash</code>: fetching recent crashes, counting by application, and visualizing daily crash trends</li>
+<li><strong>Crash rate trends</strong> -- comparing crash volumes across iOS and Android platforms, plus querying handled exceptions</li>
+<li><strong>Manual error reporting</strong> -- using the SDK API to report handled exceptions in Swift and Kotlin with best practices for naming and context</li>
+</ul>
+<hr />
+<h2>Next Steps</h2>
+<p>Continue to <strong>MOBL-07</strong> to explore:</p>
+<ul>
+<li>Network request monitoring for mobile applications</li>
+<li>Analyzing HTTP error rates and response times by endpoint</li>
+<li>Correlating network failures with user impact and crash data</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

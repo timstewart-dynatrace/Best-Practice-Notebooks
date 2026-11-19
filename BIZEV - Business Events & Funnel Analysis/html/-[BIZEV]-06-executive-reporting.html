@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BIZEV-06: Executive Reporting</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">BIZEV — Business Events &amp; Funnel Analysis</a><span class="sep">/</span><span aria-current="page">BIZEV-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>BIZEV-06: Executive Reporting</h1>
+<blockquote>
+<p><strong>Series:</strong> BIZEV — Business Events &amp; Funnel Analysis | <strong>Notebook:</strong> 6 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/25/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Executive stakeholders need a clear, business-focused view of platform health — not infrastructure metrics and log counts. This notebook demonstrates how to build executive-ready queries that combine technical and business signals, create SLA/SLO tracking from a business perspective, design queries suitable for scheduled report workflows, and present data in formats that non-technical audiences can immediately understand. The queries here are designed to populate dashboards and automated reports.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#executive-dashboard-queries">Executive Dashboard Queries</a></li>
+<li><a href="#combined-technical-and-business-view">Combined Technical and Business View</a></li>
+<li><a href="#sla-and-slo-tracking">SLA and SLO Tracking</a></li>
+<li><a href="#scheduled-reporting-patterns">Scheduled Reporting Patterns</a></li>
+<li><a href="#business-value-dashboards">Business Value Dashboards</a></li>
+<li><a href="#weekly-business-review-queries">Weekly Business Review Queries</a></li>
+<li><a href="#summary">Summary</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:bizevents:read</code>, <code>storage:events:read</code>, <code>storage:metrics:read</code></td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>Business events with transaction and revenue data; detected problems</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>BIZEV-01 through BIZEV-05</td>
+</tr>
+</tbody>
+</table>
+<p><a id="executive-dashboard-queries"></a></p>
+<h2>1. Executive Dashboard Queries</h2>
+<p>An executive dashboard answers three questions at a glance:</p>
+<ol>
+<li><strong>Is the business running?</strong> — Transaction volume is normal</li>
+<li><strong>Are there problems?</strong> — Error rates are within tolerance</li>
+<li><strong>What is the trend?</strong> — KPIs are stable or improving</li>
+</ol>
+<h3>The Executive Summary Query</h3>
+<p>This single query provides a high-level business snapshot.</p>
+<pre><code class="language-dql">// Executive snapshot: business health in the last 24 hours
+fetch bizevents, from:-24h
+| summarize {total_transactions = count(),
+           distinct_event_types = countDistinct(event.type),
+           distinct_providers = countDistinct(event.provider),
+           earliest_event = min(timestamp),
+           latest_event = max(timestamp)}
+| fieldsAdd reporting_period = &quot;Last 24 Hours&quot;,
+           data_freshness = if(latest_event &gt; now() - 5m, then: &quot;CURRENT&quot;, else: &quot;STALE&quot;)
+</code></pre>
+<pre><code class="language-dql">// Top business event types by volume — the key business processes
+fetch bizevents, from:-24h
+| summarize volume = count(), by:{event.type}
+| sort volume desc
+| limit 10
+</code></pre>
+<p><a id="combined-technical-and-business-view"></a></p>
+<h2>2. Combined Technical and Business View</h2>
+<p>Executives want to understand the business impact of technical issues. These queries combine detected problem data with business event metrics.</p>
+<pre><code class="language-dql">// Active detected problems — what technical issues are happening right now?
+fetch dt.davis.problems, from:-24h
+| filter event.status == &quot;ACTIVE&quot;
+| fieldsKeep display_id, event.name, event.category, event.start
+| sort event.start desc
+</code></pre>
+<pre><code class="language-dql">// Problem summary with MTTR — executive-friendly problem overview
+fetch dt.davis.problems, from:-7d
+| filter event.status == &quot;CLOSED&quot;
+| filter dt.davis.is_duplicate == false
+// Exclude problems raised during maintenance windows (planned work); drop this line
+// if your SLA counts maintenance time
+| filter maintenance.is_under_maintenance == false
+| fieldsAdd duration_hours = resolved_problem_duration / 1h
+// total_entity_impact_hours counts overlapping problems separately — it is entity-hours
+// of impact, NOT wall-clock downtime, and can exceed the 168 hours in the week (see BIZEV-04 §6)
+| summarize {problem_count = count(),
+           avg_resolution_hours = avg(duration_hours),
+           max_resolution_hours = max(duration_hours),
+           total_entity_impact_hours = sum(duration_hours)}, by:{event.category}
+| sort problem_count desc
+</code></pre>
+<pre><code class="language-dql">// Side-by-side: business events and problems over the past week
+// Business event volume
+fetch bizevents, from:-7d
+| fieldsAdd day = bin(timestamp, 24h)
+| summarize daily_transactions = count(), by:{day}
+| sort day asc
+</code></pre>
+<pre><code class="language-dql">// Problem count per day — overlay with business event volume
+fetch dt.davis.problems, from:-7d
+| filter dt.davis.is_duplicate == false
+| filter event.start &gt;= now() - 7d   // records are selected by last update; keep problems that opened this week
+| fieldsAdd day = bin(event.start, 24h)   // the day the problem opened; timestamp is its last update
+| summarize daily_problems = count(), by:{day}
+| sort day asc
+</code></pre>
+<p><a id="sla-and-slo-tracking"></a></p>
+<h2>3. SLA and SLO Tracking</h2>
+<p>SLA (Service Level Agreement) and SLO (Service Level Objective) tracking from a business perspective focuses on transaction success rates rather than infrastructure uptime.</p>
+<h3>Business SLO Definitions</h3>
+<table>
+<thead>
+<tr>
+<th>SLO</th>
+<th>Target</th>
+<th>Measurement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Transaction Success Rate</td>
+<td>&gt; 99.5%</td>
+<td>Successful / Total transactions</td>
+</tr>
+<tr>
+<td>Event ingestion continuity</td>
+<td>No empty hour while the business transacts</td>
+<td>Hours with ≥1 business event — a signal-health check, <strong>not</strong> availability</td>
+</tr>
+<tr>
+<td>Mean Time to Resolve</td>
+<td>&lt; 2 hours</td>
+<td>Avg problem resolution time, excluding maintenance-window problems</td>
+</tr>
+<tr>
+<td>Revenue Impact per Incident</td>
+<td>&lt; $5,000</td>
+<td>Revenue delta during incidents</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Availability comes from the success-rate SLO, not from event counts.</strong> An hour with no business events can be a quiet overnight hour or broken capture — it says nothing about whether customers could transact. Report availability as the Transaction Success Rate (good ÷ total transactions, query below); the SLO series (SLO-02) covers defining it as a managed SLO. The continuity check further down only tells you the signal is flowing.</p>
+</blockquote>
+<pre><code class="language-dql">// Transaction success rate SLO — last 7 days
+fetch bizevents, from:-7d
+| filter in(event.type, {&quot;com.myapp.payment.processed&quot;, &quot;com.myapp.payment.failed&quot;})
+| summarize {total = count(),
+           successful = countIf(event.type == &quot;com.myapp.payment.processed&quot;),
+           failed = countIf(event.type == &quot;com.myapp.payment.failed&quot;)}
+| fieldsAdd success_rate = round(toDouble(successful) / toDouble(total) * 100, decimals: 3),
+           slo_target = 99.5,
+           slo_met = if(toDouble(successful) / toDouble(total) * 100 &gt;= 99.5, then: &quot;YES&quot;, else: &quot;NO&quot;)
+</code></pre>
+<pre><code class="language-dql">// Event ingestion continuity — NOT availability. Counts the hours in the last 7 days
+// with and without at least one business event. An empty hour is a quiet period or broken
+// capture; check it against the hours the business actually transacts.
+// Add | filter event.type == &quot;&lt;critical event type&gt;&quot; after fetch to watch one stream.
+fetch bizevents, from:-7d
+| makeTimeseries events = count(default: 0), interval: 1h
+| fieldsAdd total_hours = arraySize(events),
+            hours_with_events = arraySize(arrayRemoveNulls(iCollectArray(if(events[] &gt; 0, events[]))))
+| fieldsAdd empty_hours = total_hours - hours_with_events
+| fieldsRemove events
+</code></pre>
+<pre><code class="language-dql">// MTTR SLO — mean time to resolve over the last 30 days
+fetch dt.davis.problems, from:-30d
+| filter event.status == &quot;CLOSED&quot;
+| filter dt.davis.is_duplicate == false
+// Exclude problems raised during maintenance windows (planned work); drop this line
+// if your SLA counts maintenance time
+| filter maintenance.is_under_maintenance == false
+| fieldsAdd duration_hours = resolved_problem_duration / 1h
+| summarize {avg_mttr = avg(duration_hours),
+           median_mttr = median(duration_hours),
+           p95_mttr = percentile(duration_hours, 95),
+           problem_count = count()}
+| fieldsAdd mttr_target_hours = 2.0,
+           slo_met = if(avg_mttr &lt;= 2.0, then: &quot;YES&quot;, else: &quot;NO&quot;)
+</code></pre>
+<p><a id="scheduled-reporting-patterns"></a></p>
+<h2>4. Scheduled Reporting Patterns</h2>
+<p>These queries are designed for use in Dynatrace Workflows to generate scheduled reports. They produce clean, self-contained result sets suitable for email or Slack notifications.</p>
+<h3>Daily Business Report Query</h3>
+<p>Send this as a daily morning report to stakeholders.</p>
+<pre><code class="language-dql">// Daily report: yesterday's business summary
+fetch bizevents, from:bin(now(), 24h) - 24h, to:bin(now(), 24h)
+| summarize {total_events = count(),
+           distinct_types = countDistinct(event.type),
+           distinct_providers = countDistinct(event.provider)}
+| fieldsAdd report_date = bin(now(), 24h) - 24h,
+           report_type = &quot;Daily Business Summary&quot;
+</code></pre>
+<pre><code class="language-dql">// Daily report: top event types by volume (yesterday)
+fetch bizevents, from:bin(now(), 24h) - 24h, to:bin(now(), 24h)
+| summarize volume = count(), by:{event.type}
+| sort volume desc
+| limit 10
+</code></pre>
+<h3>Workflow Integration</h3>
+<p>To schedule these reports in Dynatrace:</p>
+<ol>
+<li>Navigate to <strong>Workflows</strong> in the Dynatrace UI</li>
+<li>Create a new workflow with a <strong>Schedule</strong> trigger — for example, weekdays at 8:00 AM (cron <code>0 8 * * 1-5</code>)</li>
+<li>Add an <strong>Execute DQL Query</strong> action (<code>dynatrace.automations:execute-dql-query</code>) with the report query above</li>
+<li>Add a notification action for the channel you want — each channel is its own action: the Slack Connector <strong>Send message</strong> action (<code>dynatrace.slack:slack-send-message</code>), Email <strong>Send email</strong> (<code>dynatrace.email:send-email</code>), or Microsoft Teams <strong>Send message</strong> (<code>dynatrace.msteams:send-message</code>) — and reference the query result in the message, for example <code>{{ result(&quot;execute_dql_query_1&quot;).records }}</code> (use the task name of your DQL action)</li>
+</ol>
+<p>There is no single &quot;Send notification&quot; action. For complete scheduled-report workflow definitions, including connection setup and message formatting, see the <strong>WFLOW</strong> series.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger">Workflow triggers (DT docs)</a> — <em>&quot;Runs on a fixed interval or at a set time, for example for a nightly report or weekly cleanup.&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions">Workflow actions (DT docs)</a> — <em>&quot;Use the Execute DQL Query action for executing DQL queries.&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack">Slack Connector (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/email">Email (DT docs)</a>; <a href="https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/security/threat%20detection/threat-detection-notification-sender.yaml">threat-detection-notification-sender.yaml (Dynatrace GitHub)</a> — <em>&quot;action: dynatrace.slack:slack-send-message&quot;</em>, <em>&quot;action: dynatrace.msteams:send-message&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="business-value-dashboards"></a></p>
+<h2>5. Business Value Dashboards</h2>
+<p>Dashboard tiles should each answer one specific question. Here are the essential tiles for a business value dashboard.</p>
+<h3>Tile 1: Current Transaction Rate</h3>
+<pre><code class="language-dql">// Dashboard tile: current transactions per minute (last 15 min)
+fetch bizevents, from:-15m
+| summarize tx_count = count()
+| fieldsAdd tx_per_minute = round(toDouble(tx_count) / 15.0, decimals: 1)
+</code></pre>
+<h3>Tile 2: Transaction Trend</h3>
+<pre><code class="language-dql">// Dashboard tile: transaction trend (last 6 hours, 15-min intervals)
+fetch bizevents, from:-6h
+| makeTimeseries tx_count = count(), interval:15m
+</code></pre>
+<h3>Tile 3: Event Distribution by Provider</h3>
+<pre><code class="language-dql">// Dashboard tile: event distribution by provider (pie chart)
+fetch bizevents, from:-24h
+| summarize volume = count(), by:{event.provider}
+| sort volume desc
+| limit 8
+</code></pre>
+<h3>Tile 4: Problem Impact Summary</h3>
+<pre><code class="language-dql">// Dashboard tile: problem impact summary (last 7 days)
+fetch dt.davis.problems, from:-7d
+| filter dt.davis.is_duplicate == false
+| summarize {active = countIf(event.status == &quot;ACTIVE&quot;),
+           closed_today = countIf(event.status == &quot;CLOSED&quot; and event.end &gt; bin(now(), 24h)),
+           total_week = count()}
+</code></pre>
+<p><a id="weekly-business-review-queries"></a></p>
+<h2>6. Weekly Business Review Queries</h2>
+<p>These queries produce the data needed for a weekly business review meeting.</p>
+<pre><code class="language-dql">// Weekly review: daily business event summary for the past week
+fetch bizevents, from:-7d
+| fieldsAdd day = bin(timestamp, 24h)
+| summarize {daily_volume = count(),
+           event_types = countDistinct(event.type)}, by:{day}
+| sort day asc
+</code></pre>
+<pre><code class="language-dql">// Weekly review: problems resolved this week with resolution time
+fetch dt.davis.problems, from:-7d
+| filter event.status == &quot;CLOSED&quot;
+| filter dt.davis.is_duplicate == false
+| fieldsAdd resolution_hours = round(resolved_problem_duration / 1h, decimals: 1)
+| fieldsKeep display_id, event.name, event.category, event.start, event.end, resolution_hours
+| sort event.start desc
+</code></pre>
+<pre><code class="language-dql">// Weekly review: business event volume comparison — this week vs last week
+fetch bizevents, from:-7d
+| summarize this_week = count()
+| append [
+    fetch bizevents, from:-14d, to:-7d
+    | summarize last_week = count()
+  ]
+</code></pre>
+<pre><code class="language-dql">// Weekly review: busiest hours of the week (for capacity planning)
+fetch bizevents, from:-7d
+| fieldsAdd dow = getDayOfWeek(timestamp, timezone: &quot;America/New_York&quot;),
+           hour = getHour(timestamp, timezone: &quot;America/New_York&quot;)
+| summarize volume = count(), by:{dow, hour}
+| sort volume desc
+| limit 20
+</code></pre>
+<p><a id="summary"></a></p>
+<h2>7. Summary</h2>
+<p>This is the last of the core analysis notebooks in the BIZEV series. Across the series, you have learned:</p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Key Capability</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>BIZEV-01</strong></td>
+<td>Business events data model and exploration</td>
+</tr>
+<tr>
+<td><strong>BIZEV-02</strong></td>
+<td>Instrumentation methods (OneAgent capture rules, API, RUM/mobile APIs, OpenPipeline)</td>
+</tr>
+<tr>
+<td><strong>BIZEV-03</strong></td>
+<td>Conversion funnel analysis and drop-off detection</td>
+</tr>
+<tr>
+<td><strong>BIZEV-04</strong></td>
+<td>Revenue impact analysis and incident correlation</td>
+</tr>
+<tr>
+<td><strong>BIZEV-05</strong></td>
+<td>Business KPI definition, metric extraction, health scoring</td>
+</tr>
+<tr>
+<td><strong>BIZEV-06</strong></td>
+<td>Executive reporting, SLA tracking, scheduled reports</td>
+</tr>
+<tr>
+<td><strong>BIZEV-07</strong></td>
+<td>Gen2 vs Gen3 adoption paths — business events without (or before) the full move</td>
+</tr>
+</tbody>
+</table>
+<h3>Key Takeaways for Executive Reporting</h3>
+<ol>
+<li><strong>Lead with business outcomes</strong> — Transactions, revenue, conversion rates — not CPU or memory</li>
+<li><strong>Provide context</strong> — Always compare against baselines (yesterday, last week, last month)</li>
+<li><strong>Quantify impact</strong> — Translate technical incidents into business metrics (lost revenue, failed transactions)</li>
+<li><strong>Automate delivery</strong> — Use Workflows to schedule reports so stakeholders receive them proactively</li>
+<li><strong>Keep it simple</strong> — One KPI per dashboard tile, clear labels, consistent time periods</li>
+</ol>
+<h3>References</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/observe/business-observability">Dynatrace Business Analytics</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/dashboards-new">Dashboards (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows">Workflows (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives">Service-level objectives (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

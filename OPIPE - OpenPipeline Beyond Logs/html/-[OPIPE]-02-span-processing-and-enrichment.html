@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPIPE-02: Span Processing &amp; Enrichment</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPIPE — OpenPipeline Beyond Logs</a><span class="sep">/</span><span aria-current="page">OPIPE-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPIPE-02: Span Processing &amp; Enrichment</h1>
+<blockquote>
+<p><strong>Series:</strong> OPIPE — OpenPipeline Beyond Logs | <strong>Notebook:</strong> 2 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/26/2026</p>
+</blockquote>
+<h2>Filtering, Enriching, and Routing Distributed Traces at Ingestion</h2>
+<p>Span data from distributed tracing can be high-volume and noisy. Health check probes, readiness endpoints, and internal synthetic calls generate spans that consume storage but rarely provide troubleshooting value. OpenPipeline's <strong>Spans scope</strong> lets you filter, enrich, and route trace data before it reaches Grail — reducing cost and improving signal-to-noise ratio.</p>
+<p>This notebook covers the span-specific capabilities of OpenPipeline. For general pipeline architecture, see <strong>OPIPE-01: OpenPipeline as a Multi-Scope Platform</strong>. For querying spans after processing, see <strong>SPANS-01: Fundamentals</strong>.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#understanding-span-data">Understanding Span Data in OpenPipeline</a></li>
+<li><a href="#span-filtering">Span Filtering: Dropping Noise at Ingestion</a></li>
+<li><a href="#span-attribute-enrichment">Span Attribute Enrichment</a></li>
+<li><a href="#span-generation">Span-to-Event Extraction</a></li>
+<li><a href="#routing-spans">Routing Spans to Dedicated Buckets</a></li>
+<li><a href="#monitoring-span-pipeline">Monitoring Your Span Pipeline</a></li>
+<li><a href="#summary">Summary</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail and distributed tracing enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:spans:read</code>; <code>settings:objects:write</code> on <code>builtin:openpipeline.spans.pipelines</code> (OpenPipeline configuration is stored as Settings objects). Routing changes need write on <code>builtin:openpipeline.spans.routing</code>, which covers every route in the scope (routing has no owner-based sharing).</td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>At least 1 hour of span data from instrumented services</td>
+</tr>
+<tr>
+<td><strong>Recommended</strong></td>
+<td><strong>OPIPE-01</strong> (multi-scope architecture) and <strong>SPANS-01</strong> (span fundamentals)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="understanding-span-data"></a></p>
+<h2>1. Understanding Span Data in OpenPipeline</h2>
+<p>Before configuring span processing, you need to understand what fields are available for routing and filtering decisions.</p>
+<h3>Key Span Fields for Pipeline Configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Pipeline Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>span.kind</code></td>
+<td><code>server</code>, <code>client</code>, <code>internal</code>, <code>producer</code>, <code>consumer</code></td>
+<td>Route by span type</td>
+</tr>
+<tr>
+<td><code>service.name</code></td>
+<td>Logical service name set by the OpenTelemetry SDK — present on OTel spans only</td>
+<td>Route OTel spans by service</td>
+</tr>
+<tr>
+<td><code>dt.service.name</code></td>
+<td>Dynatrace service name from service detection, <em>&quot;equal to the Smartscape service node name&quot;</em> — present on every span</td>
+<td>Group and filter by service in DQL</td>
+</tr>
+<tr>
+<td><code>span.name</code></td>
+<td>The operation name (e.g., <code>GET /health</code>)</td>
+<td>Filter noise</td>
+</tr>
+<tr>
+<td><code>http.route</code></td>
+<td>The HTTP route pattern</td>
+<td>Filter health checks</td>
+</tr>
+<tr>
+<td><code>http.request.method</code></td>
+<td>HTTP method (GET, POST, etc.)</td>
+<td>Filter by method</td>
+</tr>
+<tr>
+<td><code>http.response.status_code</code></td>
+<td>HTTP response code</td>
+<td>Filter or extract metrics</td>
+</tr>
+<tr>
+<td><code>db.system</code></td>
+<td>Database type (mysql, postgresql, redis)</td>
+<td>Route DB spans</td>
+</tr>
+<tr>
+<td><code>k8s.namespace.name</code></td>
+<td>Kubernetes namespace</td>
+<td>Route by environment</td>
+</tr>
+<tr>
+<td><code>dt.smartscape.service</code></td>
+<td>Dynatrace service ID (<code>stable</code>; <code>dt.entity.service</code> is <code>deprecated</code> in the semantic dictionary)</td>
+<td>Route by service entity</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Which service field?</strong> On the validation tenant, <code>service.name</code> was set on 21,586 of 322,799 spans in an hour (6.7%, the OTel ones) while <code>dt.service.name</code> was set on all of them. A query grouped by <code>service.name</code> puts every OneAgent span in one null row, so the DQL cells in this series use <code>dt.service.name</code>. For a pipeline matcher, check in the pipeline's sample-data preview that the field you match on is present on the records at that point.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Dictionary:</strong> <code>service.name</code> (<code>stable</code>), <code>dt.service.name</code> (<code>stable</code>), <code>dt.smartscape.service</code> (<code>stable</code>), <code>dt.entity.service</code> (<code>deprecated</code>), read 10/02/2026.</sub></p>
+</blockquote>
+<h3>Discovering Your Span Landscape</h3>
+<pre><code class="language-dql">// Span volume by kind and service (top 20)
+fetch spans, from:-1h
+| summarize span_count = count(), by:{span.kind, dt.service.name}
+| sort span_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Top span operations by volume (candidates for filtering)
+fetch spans, from:-1h
+| summarize span_count = count(), by:{span.name, dt.service.name}
+| sort span_count desc
+| limit 20
+</code></pre>
+<p><a id="span-filtering"></a></p>
+<h2>2. Span Filtering: Dropping Noise at Ingestion</h2>
+<p>Span filtering is usually the highest-impact optimization in the spans scope. In community practice, health checks, probes, scrapes and preflight requests are a large share of span volume in many environments — measure your own share with the query below before writing drop rules.</p>
+<h3>Common Noise Patterns to Drop</h3>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Filter Condition</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Health check probes</td>
+<td><code>url.path</code> matches <code>&quot;*health*&quot;</code>, <code>&quot;/ready*&quot;</code> or <code>&quot;/livez*&quot;</code>; <code>span.name</code> matches <code>&quot;grpc.health.v1.Health/*&quot;</code></td>
+<td>Kubernetes liveness/readiness probes and gRPC health checks</td>
+</tr>
+<tr>
+<td>Synthetic monitoring</td>
+<td><code>span.name</code> matches <code>&quot;*synthetic*&quot;</code></td>
+<td>Internal synthetic test traffic</td>
+</tr>
+<tr>
+<td>Internal heartbeats</td>
+<td><code>span.kind == &quot;internal&quot;</code> AND <code>span.name</code> matches <code>&quot;*heartbeat*&quot;</code></td>
+<td>Framework-generated heartbeats</td>
+</tr>
+<tr>
+<td>Metrics scraping</td>
+<td><code>http.route</code> matches <code>&quot;/metrics&quot;</code> or <code>&quot;/actuator/prometheus&quot;</code></td>
+<td>Prometheus scrape endpoints</td>
+</tr>
+<tr>
+<td>OPTIONS preflight</td>
+<td><code>http.request.method == &quot;OPTIONS&quot;</code></td>
+<td>CORS preflight requests</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Match on the path, not the span name.</strong> HTTP span names often carry only the method (<code>GET</code>), with the path in <code>url.path</code> / <code>http.route</code>, so a <code>span.name</code> pattern such as <code>&quot;GET /health*&quot;</code> can match nothing. On the validation tenant (10/15/2026, 1 h), 30% of HTTP server spans were named by method alone, and <code>GET /health*</code> / <code>GET /ready*</code> on <code>span.name</code> matched 0 spans while 2,505 health-check spans existed (<code>/_healthz</code> paths and <code>grpc.health.v1.Health/Check</code>).</p>
+<p><sub><strong>Dictionary:</strong> <code>url.path</code> (<code>stable</code>), read 10/15/2026.</sub></p>
+</blockquote>
+<h3>Measuring the Impact</h3>
+<p>Before configuring drop rules, quantify how much volume each noise pattern represents:</p>
+<pre><code class="language-dql">// Quantify noise: health checks, synthetic, and OPTIONS requests
+fetch spans, from:-1h
+| summarize total = count(),
+    health_checks = countIf(matchesValue(url.path, {&quot;*health*&quot;, &quot;/ready*&quot;, &quot;/livez*&quot;}) or matchesValue(span.name, &quot;grpc.health.v1.Health/*&quot;)),
+    metrics_scrapes = countIf(matchesValue(url.path, {&quot;/metrics*&quot;, &quot;/actuator/*&quot;})),
+    options_preflight = countIf(http.request.method == &quot;OPTIONS&quot;)
+| fieldsAdd noise_total = health_checks + metrics_scrapes + options_preflight
+| fieldsAdd noise_pct = round(toDouble(noise_total) / toDouble(total) * 100, decimals: 1)
+</code></pre>
+<pre><code class="language-dql">// Detail: Top 10 span names that look like noise (short-lived, high-frequency)
+fetch spans, from:-1h
+| summarize {span_count = count(), avg_duration = avg(duration)}, by:{span.name}
+| sort span_count desc
+| limit 10
+| fieldsAdd avg_duration_ms = round(avg_duration / 1ms, decimals: 2)
+</code></pre>
+<p><a id="span-attribute-enrichment"></a></p>
+<h2>3. Span Attribute Enrichment</h2>
+<p>Enrichment adds fields to spans at ingestion that would be expensive or impossible to add at query time. Common enrichment patterns:</p>
+<h3>Business Context Enrichment</h3>
+<p>Add business-meaningful attributes based on technical fields:</p>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Enrichment Field</th>
+<th>Value</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.service.name</code> starts with <code>&quot;checkout&quot;</code></td>
+<td><code>business.domain</code></td>
+<td><code>&quot;commerce&quot;</code></td>
+<td>Business domain tagging</td>
+</tr>
+<tr>
+<td><code>matchesValue(k8s.namespace.name, &quot;*prod*&quot;)</code></td>
+<td><code>environment</code></td>
+<td><code>&quot;production&quot;</code></td>
+<td>Environment classification</td>
+</tr>
+<tr>
+<td><code>http.response.status_code</code> &gt;= 500</td>
+<td><code>incident.severity</code></td>
+<td><code>&quot;high&quot;</code></td>
+<td>Severity pre-classification</td>
+</tr>
+<tr>
+<td><code>db.system</code> is not null</td>
+<td><code>span.category</code></td>
+<td><code>&quot;database&quot;</code></td>
+<td>Span categorization</td>
+</tr>
+</tbody>
+</table>
+<h3>Security Context Enrichment</h3>
+<p>Add <code>dt.security_context</code> based on service ownership (see <strong>OPIPE-01</strong> and <strong>ORGNZ-06</strong> for details):</p>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th><code>dt.security_context</code> Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>k8s.namespace.name</code> matches <code>&quot;team-alpha-*&quot;</code></td>
+<td><code>&quot;team-alpha&quot;</code></td>
+</tr>
+<tr>
+<td><code>dt.service.name</code> matches <code>&quot;payment-*&quot;</code></td>
+<td><code>&quot;payment-team&quot;</code></td>
+</tr>
+<tr>
+<td><code>db.system</code> is not null</td>
+<td><code>&quot;database-team&quot;</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Verifying Enrichment</h3>
+<pre><code class="language-dql">// Check which spans have security context enrichment
+fetch spans, from:-1h
+| summarize {total = count(), with_security_context = countIf(isNotNull(dt.security_context))},
+    by:{dt.service.name}
+| fieldsAdd coverage_pct = round(toDouble(with_security_context) / toDouble(total) * 100, decimals: 1)
+| sort total desc
+| limit 15
+</code></pre>
+<p><a id="span-generation"></a></p>
+<h2>4. Span-to-Event Extraction</h2>
+<p>OpenPipeline can extract <strong>business events</strong> and <strong>SDLC events</strong> (Data extraction stage) or <strong>Davis events</strong> (Davis stage) from span data at ingestion. It does not generate log records from spans. This is useful for:</p>
+<ul>
+<li><strong>Error alerting</strong>: Extract a Davis event when a span has <code>http.response.status_code &gt;= 500</code>, sending it to root cause analysis without querying spans directly</li>
+<li><strong>Audit trail</strong>: Extract a business event for every span that touches a sensitive service</li>
+<li><strong>SLO tracking</strong>: Extract business events from spans that represent key user transactions</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/data-extraction">Data extraction stage (DT docs)</a> — <em>&quot;In the Data extraction stage, you can extract new records from incoming records that match a condition and re-ingest them as a different data type into another pipeline.&quot;</em>; <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/davis-stage">Davis stage (DT docs)</a> — <em>&quot;In the Davis stage, you can extract Davis events from incoming records that match a condition and send them to root cause analysis.&quot;</em></sub></p>
+</blockquote>
+<h3>Generation vs. Metric Extraction</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Span-to-Event Extraction</th>
+<th>Metric Extraction from Spans</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Output</td>
+<td>Individual event records</td>
+<td>Aggregated metric data points</td>
+</tr>
+<tr>
+<td>Use case</td>
+<td>Alerting, audit trails</td>
+<td>Dashboards, SLOs, trend analysis</td>
+</tr>
+<tr>
+<td>Volume</td>
+<td>1 event per matching span</td>
+<td>1 data point per aggregation interval</td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>Higher (more records)</td>
+<td>Lower (aggregated)</td>
+</tr>
+</tbody>
+</table>
+<p>Metric extraction from spans is covered in detail in <strong>OPIPE-03: Sampling-Aware Metrics</strong>.</p>
+<pre><code class="language-dql">// Identify error spans that could trigger event generation
+fetch spans, from:-1h
+| filter http.response.status_code &gt;= 500
+| summarize error_count = count(), by:{dt.service.name, http.response.status_code}
+| sort error_count desc
+| limit 15
+</code></pre>
+<p><a id="routing-spans"></a></p>
+<h2>5. Routing Spans to Dedicated Buckets</h2>
+<p>Just as logs benefit from bucket separation (see <strong>OPLOGS-04: Buckets &amp; Data Governance</strong>), spans benefit from targeted routing.</p>
+<h3>Span Routing Strategy</h3>
+<table>
+<thead>
+<tr>
+<th>Pipeline</th>
+<th>Routing Condition</th>
+<th>Target Bucket</th>
+<th>Retention</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>frontend-traces</code></td>
+<td><code>span.kind == &quot;server&quot;</code> AND <code>service.name</code> matches frontend</td>
+<td><code>frontend_spans</code></td>
+<td>14 days</td>
+<td>High volume, short-term debugging</td>
+</tr>
+<tr>
+<td><code>api-traces</code></td>
+<td><code>span.kind == &quot;server&quot;</code> AND <code>http.route</code> starts with <code>&quot;/api&quot;</code></td>
+<td><code>api_spans</code></td>
+<td>35 days</td>
+<td>API SLO tracking</td>
+</tr>
+<tr>
+<td><code>database-traces</code></td>
+<td><code>span.kind == &quot;client&quot;</code> AND <code>db.system</code> is not null</td>
+<td><code>db_spans</code></td>
+<td>14 days</td>
+<td>Query performance analysis</td>
+</tr>
+<tr>
+<td><code>messaging-traces</code></td>
+<td><code>span.kind == &quot;producer&quot; or span.kind == &quot;consumer&quot;</code> (<code>in()</code> is not enabled in OpenPipeline matchers)</td>
+<td><code>messaging_spans</code></td>
+<td>14 days</td>
+<td>Async flow debugging</td>
+</tr>
+<tr>
+<td>Default route</td>
+<td>Everything else</td>
+<td><code>default_spans</code></td>
+<td>Built-in (10 days on the validation tenant — read yours with <code>fetch dt.system.buckets</code>)</td>
+<td>Catch-all</td>
+</tr>
+</tbody>
+</table>
+<p>Routes are evaluated in order and the first match wins, so a frontend service's <code>/api</code> server span goes to <code>frontend-traces</code> here; put the more specific route first if that is not what you want. The route chooses the pipeline; the pipeline's <strong>Bucket assignment</strong> stage chooses the bucket.</p>
+<h3>Verifying Bucket Distribution</h3>
+<pre><code class="language-dql">// Current span bucket distribution
+fetch spans, from:-1h
+| summarize span_count = count(), by:{dt.system.bucket}
+| sort span_count desc
+</code></pre>
+<pre><code class="language-dql">// Span volume by kind and bucket (is routing working correctly?)
+fetch spans, from:-1h
+| summarize span_count = count(), by:{span.kind, dt.system.bucket}
+| sort span_count desc
+</code></pre>
+<p><a id="monitoring-span-pipeline"></a></p>
+<h2>6. Monitoring Your Span Pipeline</h2>
+<p>After configuring span processing rules, monitor their effectiveness over time.</p>
+<pre><code class="language-dql">// Span volume trend by pipeline (are drop rules reducing volume?)
+fetch spans, from:-24h
+| makeTimeseries span_count = count(), by:{dt.openpipeline.pipelines}, interval:1h
+</code></pre>
+<pre><code class="language-dql">// Span volume by service over 24h (spot unexpected spikes)
+fetch spans, from:-24h
+| makeTimeseries span_count = count(), by:{dt.service.name}, interval:1h
+</code></pre>
+<h3>Seeing What Was Dropped: Self-Monitoring Metrics</h3>
+<p>Counting stored spans by <code>dt.openpipeline.pipelines</code> cannot, by construction, see records that a drop rule removed or that were never stored — which is exactly what a drop rule produces. OpenPipeline publishes <strong>self-monitoring metrics</strong> for that: <code>dt.sfm.openpipeline.pipelines_out.records</code> counts records leaving each pipeline, split by <code>pipeline_id</code> and <code>bucket_name</code>, and <code>dt.sfm.openpipeline.not_stored.records</code> counts records that were not stored, split by <code>configuration</code> (scope), <code>pipeline_id</code>, and <code>reason</code>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/self-monitoring-metrics">OpenPipeline self-monitoring metrics (DT docs)</a>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Records leaving each span pipeline, by destination bucket (self-monitoring)
+timeseries records = sum(dt.sfm.openpipeline.pipelines_out.records), from:-24h,
+  filter:{configuration == &quot;spans&quot;}, by:{pipeline_id, bucket_name}
+| fieldsAdd total = arraySum(records)
+| fields pipeline_id, bucket_name, total
+| sort total desc
+</code></pre>
+<pre><code class="language-dql">// Records not stored, by scope and reason (drops, no-storage assignments, invalid records)
+timeseries records = sum(dt.sfm.openpipeline.not_stored.records), from:-24h,
+  by:{configuration, reason}
+| fieldsAdd total = arraySum(records)
+| fields configuration, reason, total
+| sort total desc
+</code></pre>
+<hr />
+<p><a id="summary"></a></p>
+<h2>Summary</h2>
+<p>In this notebook you learned:</p>
+<ul>
+<li><strong>Span landscape discovery</strong> — Key fields for routing and filtering decisions</li>
+<li><strong>Noise filtering</strong> — Dropping health checks, synthetic traffic, and preflight requests at ingestion</li>
+<li><strong>Attribute enrichment</strong> — Adding business context and security context to spans</li>
+<li><strong>Event extraction</strong> — Extracting business, SDLC, and Davis events from span data for alerting and audit</li>
+<li><strong>Bucket routing</strong> — Separating spans by purpose with differentiated retention</li>
+<li><strong>Pipeline monitoring</strong> — Tracking volume trends, and using OpenPipeline self-monitoring metrics to see records that were dropped or not stored</li>
+</ul>
+<hr />
+<p><a id="next-steps"></a></p>
+<h2>Next Steps</h2>
+<p>Continue to <strong>OPIPE-03: Sampling-Aware Metrics</strong> to learn how to extract accurate metrics from sampled span data — including the RED metrics (Rate, Errors, Duration) that drive SLOs and dashboards.</p>
+<hr />
+<p><a id="references"></a></p>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction">Extraction stages in OpenPipeline (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/data-extraction">Data extraction stage (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/davis-stage">Davis stage (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/self-monitoring-metrics">OpenPipeline self-monitoring metrics (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data">Organize your data stored in Grail (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/access-control">Owner-based access control in OpenPipeline (DT docs)</a> — <em>&quot;Owner-based control is available for pipelines and ingest sources, and not routing.&quot;</em></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

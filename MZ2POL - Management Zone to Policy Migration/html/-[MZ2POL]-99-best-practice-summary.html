@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MZ2POL-99: Best Practice Summary</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MZ2POL — Management Zone Migration: Segments, Policies, Workflows</a><span class="sep">/</span><span aria-current="page">MZ2POL-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MZ2POL-99: Best Practice Summary</h1>
+<blockquote>
+<p><strong>Series:</strong> MZ2POL — Management Zone Migration: Segments, Policies, Workflows | <strong>Notebook:</strong> 99 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/19/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook consolidates the actionable practices from the whole MZ2POL series — notebooks 00–13, the MZ2POL-14 workshop and the MZ2POL-95 LAB — into one checklist. Each row gives the practice, the concrete setting or value, a priority, and the notebook that explains and sources it.</p>
+<p>It was rewritten on 10/13/2026. The previous version recommended practices the series has since corrected: splitting zone and Grail conditions into separate boundaries as a rule, describing boundary lines as always OR-combined, measuring security-context coverage on entities, setting security context with auto-tagging rules, and a fixed 2–4-week parallel run. Those rows are gone; where the correction matters, the row that replaces it says so.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+VGhlIE1pZ3JhdGlvbiBvbiBPbmUgUGFnZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyLjUiPlRhZ3MgYXQgc291cmNlIGZlZWQgdGhyZWUgcmVwbGFjZW1lbnRzOyB0aGUgem9uZSBsZWF2ZXMgbGFzdDwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iNzQiIHdpZHRoPSIyMTAiIGhlaWdodD0iMTIwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjMwIiB5PSI5MyIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5Bc3Nlc3M8L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjExMCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPjAwIGludmVudG9yeTwvdGV4dD4KICA8dGV4dCB4PSIzMCIgeT0iMTMyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+MDMgam9icyArIHByaW9yaXR5PC90ZXh0PgogIDx0ZXh0IHg9IjMwIiB5PSIxNTQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij4xNCB3b3Jrc2hvcDwvdGV4dD4KICA8bGluZSB4MT0iMjMwIiB5MT0iMTM0IiB4Mj0iMjU4IiB5Mj0iMTM0IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogIDxyZWN0IHg9IjI2MCIgeT0iNzQiIHdpZHRoPSIyMTAiIGhlaWdodD0iMTIwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjI3MCIgeT0iOTMiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+VGFnICsgdHJhbnNsYXRlPC90ZXh0PgogIDx0ZXh0IHg9IjI3MCIgeT0iMTEwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+MTAgdGFnZ2luZyBhdCBzb3VyY2U8L3RleHQ+CiAgPHRleHQgeD0iMjcwIiB5PSIxMzIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij4xMSBydWxlIHRyYW5zbGF0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjI3MCIgeT0iMTU0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+Z2F0ZTogcmVhZGluZXNzPC90ZXh0PgogIDxsaW5lIHgxPSI0NzAiIHkxPSIxMTAiIHgyPSI1MDAiIHkyPSI4NiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItcHVycGxlKSIvPgogIDxsaW5lIHgxPSI0NzAiIHkxPSIxMzQiIHgyPSI1MDAiIHkyPSIxNjAiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWN5YW4pIi8+CiAgPGxpbmUgeDE9IjQ3MCIgeTE9IjE2MCIgeDI9IjUwMCIgeTI9IjIzNCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItYmx1ZSkiLz4KICA8cmVjdCB4PSI1MDIiIHk9IjY2IiB3aWR0aD0iNDA4IiBoZWlnaHQ9IjU2IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjUxNiIgeT0iOTAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+QWNjZXNzIOKGkiAxMiBhcmNoaXRlY3R1cmUgwrcgMDQgc3ludGF4IMK3IDA4IHRlbXBsYXRlczwvdGV4dD4KICA8dGV4dCB4PSI1MTYiIHk9IjExMCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPm9uZSBib3VuZGFyeSBwZXIgdGVhbSwgZXZlcnkgZG9tYWluOyBNQVRDSCBvbiBhcnJheXM8L3RleHQ+CiAgPHJlY3QgeD0iNTAyIiB5PSIxMzQiIHdpZHRoPSI0MDgiIGhlaWdodD0iNTYiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTE2IiB5PSIxNTgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+RmlsdGVyaW5nIOKGkiAwNSBzZWdtZW50czwvdGV4dD4KICA8dGV4dCB4PSI1MTYiIHk9IjE3OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPm9uZSBzZWdtZW50IHBlciBkaW1lbnNpb247IGV4Y2x1c2lvbnMgcHVzaGVkIGludG8gdGFnczwvdGV4dD4KICA8cmVjdCB4PSI1MDIiIHk9IjIwMiIgd2lkdGg9IjQwOCIgaGVpZ2h0PSI1NiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI1MTYiIHk9IjIyNiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5BbGVydGluZyDihpIgMDkgd29ya2Zsb3dzPC90ZXh0PgogIDx0ZXh0IHg9IjUxNiIgeT0iMjQ2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+cHJpbWFyeSB0YWdzIG9uIHByb2JsZW1zOyB2aXNpYmlsaXR5IHZpYSBkdC5zZWN1cml0eV9jb250ZXh0PC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSIyMTQiIHdpZHRoPSI0NTAiIGhlaWdodD0iNzYiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzAiIHk9IjIzMyIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5SdW4gKyBjdXQgb3ZlcjwvdGV4dD4KICA8dGV4dCB4PSIzMCIgeT0iMjUwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+MDYgcGhhc2VzIGFuZCBzdGF0ZXMgwrcgMDcgdmFsaWRhdGlvbiDCtyA5NSBMQUIgcmVoZWFyc2FsPC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSIzMTAiIHdpZHRoPSI4OTAiIGhlaWdodD0iNzAiIHJ4PSI3IiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iMjAiIHk9IjMxMCIgd2lkdGg9Ijg5MCIgaGVpZ2h0PSI3MCIgcng9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzNiIgeT0iMzM0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTIuNSIgZm9udC13ZWlnaHQ9IjcwMCI+VGhyZWUgdHJhcHMgdGhhdCB3aWRlbiBhY2Nlc3Mgc2lsZW50bHk8L3RleHQ+CiAgPHRleHQgeD0iMzYiIHk9IjM1NiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPnpvbmUtb25seSBib3VuZGFyeSBvbiBhIGRlZmF1bHQgcG9saWN5IMK3IGEgc2Vjb25kIGJvdW5kYXJ5IG9uIG9uZSBiaW5kaW5nIMK3IGFuIHVuc2NvcGVkIGRhdGEgcG9saWN5IGluIGFub3RoZXIgZ3JvdXA8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjM5NCIgd2lkdGg9Ijg5MCIgaGVpZ2h0PSI4NCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjIiIHN0cm9rZS1kYXNoYXJyYXk9IjUgNCIvPgogIDx0ZXh0IHg9IjM2IiB5PSI0MTgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMi41IiBmb250LXdlaWdodD0iNzAwIj5Ob3QgeWV0OiBTcGFjZXMgKDEzKSDigJQgdXBjb21pbmcsIG5vdCBkb2N1bWVudGVkIGFzIGF2YWlsYWJsZTwvdGV4dD4KICA8dGV4dCB4PSIzNiIgeT0iNDQyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+QnVpbGQgb24gZHQuc2VjdXJpdHlfY29udGV4dCwgc2VnbWVudHMgYW5kIHdvcmtmbG93cyBub3c7IHRoZSBuby1yZWdyZXQgc3RlcHMgcHJlcGFyZSBmb3IgU3BhY2VzIGVpdGhlciB3YXkuPC90ZXh0Pgo8L3N2Zz4K" alt="The migration on one page" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Notebooks | Key point |
+|---|---|---|
+| Assess | 00 inventory, 03 jobs + priority, 14 workshop | Classify zones by job |
+| Tag + translate | 10 tagging at source, 11 rule translation | Readiness gate before anything is built |
+| Access | 12 architecture, 04 syntax, 08 templates | One boundary per team covering every domain; MATCH on arrays |
+| Filtering | 05 segments | One segment per dimension; exclusions pushed into tags |
+| Alerting | 09 workflows | Primary tags on problems; visibility via dt.security_context |
+| Run + cut over | 06 phases and states, 07 validation, 95 LAB rehearsal | Exit on evidence; delete zones last |
+| Traps | Zone-only boundary on a default policy; a second boundary on one binding; an unscoped data policy in another group | All widen access silently |
+| Not yet | 13 Spaces | Upcoming, not documented as available |
+For environments where SVG doesn't render
+-->
+<p><strong>Reading paths</strong> — take the lane for the job your zones do (MZ2POL-01 §6):</p>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Use it when</th>
+<th>Read in this order</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Filtering only</strong></td>
+<td>Your zones only scope views and dashboards</td>
+<td>00 → 03 → 15 → 10 → 11 → 05 → 06 → 07</td>
+</tr>
+<tr>
+<td><strong>Access control</strong></td>
+<td>Your zones restrict who may read what</td>
+<td>00 → 03 → 15 → 10 → 11 → 12 → 04 → 08 → 06 → 07</td>
+</tr>
+<tr>
+<td><strong>Alerting</strong></td>
+<td>Your zones scope alerting profiles</td>
+<td>00 → 03 → 15 → 10 → 11 → 09 → 16 → 06</td>
+</tr>
+<tr>
+<td><strong>Full migration</strong></td>
+<td>Your zones do several of these jobs</td>
+<td>01 → 02 → 00 → 03 → 15 → 14 → 10 → 11 → 12 → 04 → 08 → 05 → 09 → 16 → 06 → 07 → 95 → 99</td>
+</tr>
+<tr>
+<td><strong>Decision makers</strong></td>
+<td>You need scope, approach and what is not ready yet</td>
+<td>01 → 02 → 13 → 99</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#model-and-assessment">Model and Assessment</a></li>
+<li><a href="#tagging-at-source">Tagging at Source</a></li>
+<li><a href="#rule-translation">Rule Translation</a></li>
+<li><a href="#access">Access: Policies and Boundaries</a></li>
+<li><a href="#settings-access">Settings Access</a></li>
+<li><a href="#filtering">Filtering: Segments</a></li>
+<li><a href="#buckets">Buckets</a></li>
+<li><a href="#alerting">Alerting</a></li>
+<li><a href="#execution">Execution and Cutover</a></li>
+<li><a href="#validation">Validation and Ongoing Checks</a></li>
+<li><a href="#spaces">Spaces</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Use</strong></td>
+<td>A checklist alongside the series — every row names the notebook that explains and sources it</td>
+</tr>
+<tr>
+<td><strong>Status</strong></td>
+<td>Reflects the series as of 10/13/2026, including the corrections in MZ2POL-04, -06 and -12</td>
+</tr>
+</tbody>
+</table>
+<p><a id="model-and-assessment"></a></p>
+<h2>1. Model and Assessment</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Setting / value</th>
+<th>Priority</th>
+<th>Notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Classify every zone by job before anything else</td>
+<td>Access (removing it exposes data), filtering (removing it adds noise), alerting (it decides who is paged); a zone can do several</td>
+<td>Critical</td>
+<td>03, 05 §1, 14</td>
+</tr>
+<tr>
+<td>Delete unused zones instead of converting them</td>
+<td>No queries, role assignments, profiles or dashboards in 90 days → archive the export, delete</td>
+<td>Critical</td>
+<td>05 §2, 14</td>
+</tr>
+<tr>
+<td>Know what does not carry forward</td>
+<td>Auto-tagging rules have no effect on Grail data; zones are not supported by any platform feature or Latest app</td>
+<td>Critical</td>
+<td>10 §2</td>
+</tr>
+<tr>
+<td>Prioritize by risk</td>
+<td>P1 security/compliance access · P2 team access and alerting scope · P3 filtering only · P4 unused</td>
+<td>Critical</td>
+<td>03</td>
+</tr>
+<tr>
+<td>Export rules with the SDK tool</td>
+<td><code>builtin:management-zones</code> flattened per rule</td>
+<td>Recommended</td>
+<td>00</td>
+</tr>
+<tr>
+<td>Inventory dependencies per zone</td>
+<td>Role assignments, alerting profiles, dashboards, SLOs, API calls, automation</td>
+<td>Critical</td>
+<td>03, 06</td>
+</tr>
+<tr>
+<td>Run the disposition workshop with the owners</td>
+<td>Six sessions, six tables, stop list</td>
+<td>Recommended</td>
+<td>14</td>
+</tr>
+</tbody>
+</table>
+<p><a id="tagging-at-source"></a></p>
+<h2>2. Tagging at Source</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Setting / value</th>
+<th>Priority</th>
+<th>Notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Put the context on the data before building anything</td>
+<td>Every replacement reads a field on the record; enrichment is forward-only</td>
+<td>Critical</td>
+<td>10 §1, §8</td>
+</tr>
+<tr>
+<td>Use built-in fields first</td>
+<td><code>dt.host_group.id</code>, <code>k8s.namespace.name</code>, <code>k8s.cluster.name</code>, cloud account fields — no configuration</td>
+<td>Critical</td>
+<td>10 §5</td>
+</tr>
+<tr>
+<td>Promote standard tags</td>
+<td>Cloud tags, K8s labels, plain host tags live only on Smartscape nodes — promote to <code>primary_tags.*</code> or a special field</td>
+<td>Critical</td>
+<td>10 §3</td>
+</tr>
+<tr>
+<td>Write access dimensions twice, in one step</td>
+<td><code>primary_tags.team</code> (filter, route) <strong>and</strong> <code>dt.security_context</code> (IAM) from the same source</td>
+<td>Critical</td>
+<td>10 §4</td>
+</tr>
+<tr>
+<td>Climb the enrichment ladder from the top</td>
+<td>Built-in → source (<code>--set-host-tag</code>, <code>DT_TAGS</code>, K8s annotations, OTel attributes) → central Ingest enrichment configuration (OneAgent 1.343+) → OpenPipeline primary Grail tag rule</td>
+<td>Critical</td>
+<td>10 §5</td>
+</tr>
+<tr>
+<td>Guard OpenPipeline tag rules</td>
+<td>Condition <code>isNull(primary_tags.&lt;key&gt;)</code> — rules overwrite existing values by default</td>
+<td>Critical</td>
+<td>10 §5</td>
+</tr>
+<tr>
+<td>Set routing-critical values before routing</td>
+<td>At source, centrally, or with an OpenPipeline primary Grail tag rule — never with a processor inside a pipeline, which runs after the route is chosen</td>
+<td>Recommended</td>
+<td>10 §5</td>
+</tr>
+<tr>
+<td>Constrain values</td>
+<td>Allowlists for stage, region, classification; Grail compares exactly</td>
+<td>Critical</td>
+<td>10 §4</td>
+</tr>
+<tr>
+<td>Stay within the tag cap</td>
+<td>Up to 20 primary tags per host or process — extras are dropped silently</td>
+<td>Critical</td>
+<td>10 §8</td>
+</tr>
+<tr>
+<td>Move host properties to host tags</td>
+<td>From OneAgent 1.345 host <code>primary_tags</code> come from host tags</td>
+<td>Recommended</td>
+<td>11 §3</td>
+</tr>
+<tr>
+<td>Pass the readiness gate</td>
+<td>Parity by value, per-zone acceptance, coverage by host group (incl. no-host data), drift, derived-data reach</td>
+<td>Critical</td>
+<td>10 §9–§10</td>
+</tr>
+</tbody>
+</table>
+<p><a id="rule-translation"></a></p>
+<h2>3. Rule Translation</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Setting / value</th>
+<th>Priority</th>
+<th>Notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Translate rules, not zones</td>
+<td>A zone is ORed rules of ANDed conditions; each rule may land elsewhere</td>
+<td>Critical</td>
+<td>11 §1</td>
+</tr>
+<tr>
+<td>Take the first yes on the decision path</td>
+<td>Built-in field → set at source → central rule → OpenPipeline tag rule → explicit membership tag</td>
+<td>Critical</td>
+<td>11 §2</td>
+</tr>
+<tr>
+<td>Push exclusions into enrichment</td>
+<td><code>NOT</code> in the central-rule condition; filter on a positive value</td>
+<td>Critical</td>
+<td>11 §5</td>
+</tr>
+<tr>
+<td>Compute what no surface can evaluate</td>
+<td>Regex, numeric comparisons, IP ranges → a value set at the source</td>
+<td>Critical</td>
+<td>11 §4</td>
+</tr>
+<tr>
+<td>Replace propagation flags deliberately</td>
+<td>Set the value where it is true (host or process); propagation is built in and downward</td>
+<td>Recommended</td>
+<td>10 §7</td>
+</tr>
+<tr>
+<td>Treat selector zones by purpose</td>
+<td>Entity lists → Smartscape queries; data scope → a tag</td>
+<td>Recommended</td>
+<td>11 §7</td>
+</tr>
+<tr>
+<td>Keep the per-rule worksheet</td>
+<td>Zone, rule, step, target, owner, segment, boundary, verified</td>
+<td>Critical</td>
+<td>11 §10</td>
+</tr>
+</tbody>
+</table>
+<p><a id="access"></a></p>
+<h2>4. Access: Policies and Boundaries</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Setting / value</th>
+<th>Priority</th>
+<th>Notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scope Grail data by record fields</td>
+<td>Grail does not evaluate zones; <code>dt.security_context</code> is the only field every table accepts</td>
+<td>Critical</td>
+<td>12 §1</td>
+</tr>
+<tr>
+<td>Default policies for &quot;what&quot;, boundaries for &quot;where&quot;</td>
+<td>Standard / Pro / Admin User + Read Logs, Read Spans, Read Metrics, Read Events. Settings Reader / Settings Writer are <strong>legacy</strong> — not assignable to new bindings; use a custom policy with <code>settings:objects:read</code> / <code>settings:objects:write</code> + <code>settings:schemas:read</code>, scoped by <code>settings:schemaId</code>, <code>settings:schemaGroup</code> or <code>settings:dt.security_context</code></td>
+<td>Critical</td>
+<td>04 §3, 12 §6</td>
+</tr>
+<tr>
+<td><strong>One boundary covers every domain its policies grant</strong></td>
+<td><code>storage:</code> line, <code>settings:</code> line, and <code>environment:management-zone</code> while classic pages are used. <em>Corrects the earlier &quot;never mix, two bindings&quot; rule</em> — mixing is documented; a missing domain is unscoped</td>
+<td><strong>Critical</strong></td>
+<td>04 §6, 12 §4</td>
+</tr>
+<tr>
+<td>Never attach a zone-only boundary to a default policy</td>
+<td>Default policies carry classic and Grail statements; the Grail ones come out unscoped</td>
+<td><strong>Critical</strong></td>
+<td>12 §4.2</td>
+</tr>
+<tr>
+<td>Don't add a second boundary for shared data</td>
+<td>Boundaries are computed separately; add the shared value to the same condition</td>
+<td>Critical</td>
+<td>12 §4.1, §6</td>
+</tr>
+<tr>
+<td>Use <code>MATCH</code> on <code>storage:dt.security_context</code></td>
+<td>Events hold it as an array; <code>=</code>, <code>IN</code>, <code>startsWith</code> never match arrays</td>
+<td>Critical</td>
+<td>12 §6, 08 §2</td>
+</tr>
+<tr>
+<td>Repeated lines on one condition multiply (OR)</td>
+<td><em>Corrects &quot;every line is OR-combined&quot;</em> — lines on different conditions each scope their own permissions</td>
+<td>Recommended</td>
+<td>04 §4–§5</td>
+</tr>
+<tr>
+<td>Expect no negation on record fields</td>
+<td>Record conditions take <code>=</code>, <code>IN</code>, <code>startsWith</code>, <code>MATCH</code>; negation exists only on non-record conditions such as <code>storage:bucket-name</code> and <code>storage:table-name</code></td>
+<td>Recommended</td>
+<td>04 §4, 11 §4</td>
+</tr>
+<tr>
+<td>Keep team members out of unscoped data groups</td>
+<td>One unscoped table permission anywhere wins</td>
+<td>Critical</td>
+<td>12 §3</td>
+</tr>
+<tr>
+<td>No record-level conditional <code>DENY</code></td>
+<td>It runs as an unconditional DENY on the whole table</td>
+<td>Critical</td>
+<td>04 §2, 12 §3</td>
+</tr>
+<tr>
+<td>Entities scope only by security context</td>
+<td><code>storage:entities:read</code> accepts <code>dt.security_context</code> and <code>entity.type</code></td>
+<td>Recommended</td>
+<td>12 §4.1</td>
+</tr>
+<tr>
+<td>Groups by team × role from the IdP</td>
+<td>Not one group per zone</td>
+<td>Critical</td>
+<td>12 §6</td>
+</tr>
+<tr>
+<td>Template when teams are many</td>
+<td><code>${bindParam:…}</code> via REST API; bound policies editable only while parameters are unchanged</td>
+<td>Recommended</td>
+<td>08</td>
+</tr>
+<tr>
+<td>Inventory classic roles that see all zones</td>
+<td><code>agent-install</code>, <code>configure-request-capture-data</code></td>
+<td>Recommended</td>
+<td>12 §8</td>
+</tr>
+</tbody>
+</table>
+<p><a id="settings-access"></a></p>
+<h2>5. Settings Access</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Setting / value</th>
+<th>Priority</th>
+<th>Notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Replace zone-scoped settings conditions</td>
+<td><code>environment:management-zone</code> and MZ-derived security contexts stop matching settings as the Smartscape transition arrives (rolling out)</td>
+<td>Critical</td>
+<td>12 §5</td>
+</tr>
+<tr>
+<td>Use edge-set security context for settings</td>
+<td><code>settings:dt.security_context</code> matches only where the context was set at the source</td>
+<td>Critical</td>
+<td>12 §5</td>
+</tr>
+<tr>
+<td>Address host groups by name</td>
+<td><code>settings:scope = &quot;dt.host_group.id:&lt;name&gt;&quot;</code> or <code>settings:entity.hostGroup</code></td>
+<td>Recommended</td>
+<td>12 §5</td>
+</tr>
+<tr>
+<td>Fall back to schema scoping</td>
+<td><code>settings:schemaId</code> where no edge-set context exists (e.g. process groups)</td>
+<td>Recommended</td>
+<td>12 §5</td>
+</tr>
+</tbody>
+</table>
+<p><a id="filtering"></a></p>
+<h2>6. Filtering: Segments</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Setting / value</th>
+<th>Priority</th>
+<th>Notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Segments are views, never access</td>
+<td>Anyone with <code>storage:filter-segments:read</code> can apply any segment</td>
+<td>Critical</td>
+<td>05 §1, §9</td>
+</tr>
+<tr>
+<td>One segment per dimension</td>
+<td>Variables from live queries; usually three to eight segments</td>
+<td>Critical</td>
+<td>05 §2</td>
+</tr>
+<tr>
+<td>Start with <code>Data (all types)</code></td>
+<td>No <code>dt.entity.*</code> include blocks in new segments; for services add the <code>metrics</code> variable and <code>Entities</code> include</td>
+<td>Recommended</td>
+<td>05 §3, §8</td>
+</tr>
+<tr>
+<td>Use only <code>=</code> and <code>in()</code></td>
+<td>Wildcard <code>*</code> inside the value; no exclusions</td>
+<td>Critical</td>
+<td>05 §3</td>
+</tr>
+<tr>
+<td>Add an events include for problems</td>
+<td><code>event.kind = &quot;DAVIS_PROBLEM&quot;</code> AND the condition</td>
+<td>Critical</td>
+<td>05 §5.4</td>
+</tr>
+<tr>
+<td>Filter derived data on primary fields or tags</td>
+<td>Standard tags do not reach service metrics</td>
+<td>Critical</td>
+<td>05 §5.2</td>
+</tr>
+<tr>
+<td>Validate at entity and signal level</td>
+<td>Before creating the segment</td>
+<td>Critical</td>
+<td>05 §7</td>
+</tr>
+</tbody>
+</table>
+<p><a id="buckets"></a></p>
+<h2>7. Buckets</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Setting / value</th>
+<th>Priority</th>
+<th>Notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Grant bucket and table permissions together</td>
+<td><code>storage:buckets:read</code> plus the table permission; record conditions on top</td>
+<td>Critical</td>
+<td>12 §1</td>
+</tr>
+<tr>
+<td>Use buckets for isolation or retention, not for views</td>
+<td>Views are segments; bucket design is in ORGNZ-02/03</td>
+<td>Recommended</td>
+<td>02 §4, ORGNZ-03</td>
+</tr>
+<tr>
+<td>Route to buckets with values present before routing</td>
+<td>Source or central enrichment</td>
+<td>Recommended</td>
+<td>10 §5</td>
+</tr>
+</tbody>
+</table>
+<p><a id="alerting"></a></p>
+<h2>8. Alerting</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Setting / value</th>
+<th>Priority</th>
+<th>Notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Replace zone-scoped profiles with problem-triggered workflows</td>
+<td>Route on the primary fields and <code>primary_tags.*</code> the problem record carries, in the trigger's DQL matcher; segments do not scope alerting</td>
+<td>Critical</td>
+<td>09 §2, §4</td>
+</tr>
+<tr>
+<td>Put routing values on the data before building workflows</td>
+<td>Measure coverage on problem records, not entities; auto-tags never reach them; use <code>matchesValue()</code> — problem fields are arrays</td>
+<td>Critical</td>
+<td>09 §4</td>
+</tr>
+<tr>
+<td>Map delay to Minimum duration</td>
+<td>Fixed values; decide rounding per profile</td>
+<td>Recommended</td>
+<td>09 §6.1</td>
+</tr>
+<tr>
+<td>Keep visibility on <code>dt.security_context</code></td>
+<td>With <code>MATCH</code> — problem records hold it as an array</td>
+<td>Critical</td>
+<td>09 §7</td>
+</tr>
+<tr>
+<td>Prove parity, disable, soak, then delete zones</td>
+<td>Disable and delete in separate change windows</td>
+<td>Critical</td>
+<td>09 §8</td>
+</tr>
+<tr>
+<td>Test zone deletion on a profile in non-prod</td>
+<td>Fail-open vs fail-closed is undocumented</td>
+<td>Critical</td>
+<td>09 §8</td>
+</tr>
+</tbody>
+</table>
+<p><a id="execution"></a></p>
+<h2>9. Execution and Cutover</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Setting / value</th>
+<th>Priority</th>
+<th>Notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Follow the phase order with gates</td>
+<td>Assess → tag + translate (gate) → access / filtering / alerting → parallel run → cutover → cleanup</td>
+<td>Critical</td>
+<td>06 §1</td>
+</tr>
+<tr>
+<td>Move each team through four states</td>
+<td>Today → dual boundary → verified → zone line removed</td>
+<td>Critical</td>
+<td>06 §6, 12 §9</td>
+</tr>
+<tr>
+<td>Check &quot;today&quot; first</td>
+<td>A zone-only boundary on a default policy may already grant all Grail data</td>
+<td>Critical</td>
+<td>12 §9</td>
+</tr>
+<tr>
+<td>Exit states on evidence, not on a calendar</td>
+<td>Tag gate, effective permissions, alert parity. <em>Replaces the fixed &quot;2–4 weeks&quot;</em></td>
+<td>Critical</td>
+<td>06 §6</td>
+</tr>
+<tr>
+<td>Pilot every boundary change on one group</td>
+<td>Boundary edits apply immediately to every binding</td>
+<td>Critical</td>
+<td>12 §9</td>
+</tr>
+<tr>
+<td>Rehearse on the LAB estate</td>
+<td>Steps 1–8</td>
+<td>Recommended</td>
+<td>95</td>
+</tr>
+<tr>
+<td>Keep a rollback line per batch</td>
+<td>Re-add the zone line; re-enable the profile</td>
+<td>Critical</td>
+<td>06 §9</td>
+</tr>
+<tr>
+<td>Delete zones last, in their own window</td>
+<td>After profiles are disabled and dashboards repointed</td>
+<td>Critical</td>
+<td>06 §8, 09 §8</td>
+</tr>
+</tbody>
+</table>
+<p><a id="validation"></a></p>
+<h2>10. Validation and Ongoing Checks</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Setting / value</th>
+<th>Priority</th>
+<th>Notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Measure security context on <strong>records</strong>, not entities</td>
+<td>Per table: logs, spans, events. <em>Replaces entity coverage</em> — entity contexts can be copied from zone names and read 100% while data reads far less</td>
+<td><strong>Critical</strong></td>
+<td>06 §3, 12 §10</td>
+</tr>
+<tr>
+<td>Check the type per table</td>
+<td>Any <code>array</code> row needs <code>MATCH</code></td>
+<td>Critical</td>
+<td>12 §10</td>
+</tr>
+<tr>
+<td>Compare zone and tag per zone on data</td>
+<td>The acceptance test: match / in zone, tag missing / tagged, not in zone</td>
+<td>Critical</td>
+<td>10 §9, 06 §10</td>
+</tr>
+<tr>
+<td>Resolve effective permissions per persona</td>
+<td>Account API, one pilot user each; no <code>storage:*:read</code> without a condition</td>
+<td>Critical</td>
+<td>12 §10</td>
+</tr>
+<tr>
+<td>Test as a pilot user, never an admin</td>
+<td>Admin grants hide boundary problems</td>
+<td>Critical</td>
+<td>07 §5</td>
+</tr>
+<tr>
+<td>Re-run drift and coverage on a schedule</td>
+<td>New producers arrive unenriched</td>
+<td>Recommended</td>
+<td>10 §9</td>
+</tr>
+</tbody>
+</table>
+<p><a id="spaces"></a></p>
+<h2>11. Spaces</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Setting / value</th>
+<th>Priority</th>
+<th>Notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Do not design access around Spaces yet</td>
+<td><code>dt.space</code> is an <code>experimental</code> dictionary entry; no docs page, IAM condition or release entry as of 10/13/2026</td>
+<td>Critical</td>
+<td>13 §1–§2</td>
+</tr>
+<tr>
+<td>Do not keep zones waiting for Spaces</td>
+<td>Zones are not evaluated for Grail data</td>
+<td>Recommended</td>
+<td>13 §4</td>
+</tr>
+<tr>
+<td>Prepare with no-regret steps</td>
+<td>Team values at source, one boundary per team, segments per dimension, ownership tags, inventory of delegated responsibility</td>
+<td>Recommended</td>
+<td>13 §4</td>
+</tr>
+<tr>
+<td>Re-check each platform release</td>
+<td>Dictionary query with a control row</td>
+<td>Optional</td>
+<td>13 §5</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

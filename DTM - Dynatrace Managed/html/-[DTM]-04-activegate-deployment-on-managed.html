@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTM-04: ActiveGate Deployment on Managed</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DTM — Dynatrace Managed</a><span class="sep">/</span><span aria-current="page">DTM-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DTM-04: ActiveGate Deployment on Managed</h1>
+<blockquote>
+<p><strong>Series:</strong> DTM — Dynatrace Managed | <strong>Reference:</strong> 04 — ActiveGate Deployment on Managed | <strong>Created:</strong> October 2026 | <strong>Last Updated:</strong> 11/10/2026</p>
+</blockquote>
+<blockquote>
+<p><strong>Dynatrace Classic only.</strong> This series applies to <strong>Dynatrace Managed</strong>, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.</p>
+</blockquote>
+<h2>Overview</h2>
+<p>A Managed deployment uses more kinds of ActiveGate than a SaaS one, and each kind has its own job, its own update mechanism and its own limits. This notebook covers which ActiveGate to deploy for which job, where to put them, how many, how network zones and load balancers change their routing, when one ActiveGate can serve several environments, and how each kind is kept up to date. The run-state side — the Cluster ActiveGate traffic path, load-balancer rules, certificates and health — is in DTM-14.</p>
+<p><strong>What you'll learn:</strong></p>
+<ul>
+<li>What each ActiveGate type does on Managed, and which purposes can't be combined</li>
+<li>Why internal OneAgents should reach an Environment ActiveGate</li>
+<li>How many ActiveGates to run, and how to size them</li>
+<li>How network zones and load balancers change ActiveGate routing</li>
+<li>What a multi-environment ActiveGate can't do</li>
+<li>How Environment and Cluster ActiveGates are updated</li>
+</ul>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#ag-types">The Three ActiveGate Types on Managed</a></li>
+<li><a href="#placement">Where to Place Them</a></li>
+<li><a href="#redundancy-sizing">How Many, and How Big</a></li>
+<li><a href="#zones-lbs">Network Zones and Load Balancers</a></li>
+<li><a href="#multi-environment">Multi-Environment ActiveGates and Extensions</a></li>
+<li><a href="#updates">Keeping ActiveGates Updated</a></li>
+<li><a href="#doc-gaps">What the Documentation Does Not Say</a></li>
+<li><a href="#recommendation">Recommended Approach</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace deployment</strong></td>
+<td>A Dynatrace Managed cluster</td>
+</tr>
+<tr>
+<td><strong>Access</strong></td>
+<td>Cluster Management Console (CMC) cluster administrator for Cluster ActiveGates; environment <em>Change monitoring settings</em> for Environment ActiveGate settings</td>
+</tr>
+<tr>
+<td><strong>Query language</strong></td>
+<td>None. Managed has no Grail, so this series has <strong>no DQL cells</strong></td>
+</tr>
+<tr>
+<td><strong>Version basis</strong></td>
+<td>Written against the Managed documentation read 10/21/2026</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<p>Use <strong>Cluster ActiveGates</strong> as the public entry point and <strong>Environment ActiveGates</strong> next to your OneAgents. Run <strong>at least two of each kind per data center</strong>, sized so the survivors can take the load. Give synthetic monitoring its <strong>own</strong> ActiveGates. Use <strong>network zones</strong> to keep traffic local, and set <code>dnsEntryPoint</code> when a load balancer sits in front of an ActiveGate. Use a <strong>multi-environment</strong> ActiveGate only for routing; extensions need a <strong>dedicated Environment ActiveGate per environment</strong> in its own group. Choose an <strong>update mode and target version</strong> for Environment ActiveGates, and keep Cluster ActiveGates within five versions of current.</p>
+<p><a id="ag-types"></a></p>
+<h2>2. The Three ActiveGate Types on Managed</h2>
+<p>The docs arrange ActiveGates in a hierarchy, and <em>&quot;ActiveGates can only send data to higher hierarchy levels.&quot;</em></p>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Type</th>
+<th>Job on Managed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Environment ActiveGate</strong></td>
+<td>Belongs to one environment (or several, §6). Routes local OneAgent traffic, runs extensions, monitors clouds and remote technologies, or runs private synthetic monitors</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Cluster ActiveGate</strong></td>
+<td>Belongs to the cluster and is managed in the CMC. The public entry point for external OneAgents, Real User Monitoring beacons and synthetic traffic (DTM-14 §2)</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Embedded ActiveGate</strong></td>
+<td>Runs on every cluster node; <em>&quot;ActiveGates embedded within cluster nodes&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p>Both installable types matter: <em>&quot;Dynatrace Managed deployments typically require both ActiveGate types, though the most important type for Dynatrace Managed deployments is the Cluster ActiveGate .&quot;</em></p>
+<p><strong>Pick one purpose per ActiveGate.</strong> An ActiveGate is installed for one purpose — route traffic and monitor, run private synthetic monitors, or run the zRemote module — and <em>&quot;Modules should not be mixed between purposes—such re-configuration is not supported.&quot;</em> The synthetic purpose takes the whole ActiveGate: <em>&quot;Installing ActiveGate with this purpose disables all other ActiveGate features, including communication with OneAgents.&quot;</em> Plan synthetic locations on their own ActiveGates and don't count them as routing capacity.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/supported-connectivity-schemes-for-activegates">Supported connectivity schemes for ActiveGates (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate">Dynatrace ActiveGate (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/capabilities">ActiveGate purposes and functionality (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/install-cluster-activegate">Install a Cluster ActiveGate (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="placement"></a></p>
+<h2>3. Where to Place Them</h2>
+<p><strong>Environment ActiveGates next to the OneAgents they serve.</strong> For a network segment whose hosts can't reach the cluster, the docs' advice is one exit: <em>&quot;you should install an ActiveGate to serve as a single access point, rather than opening the firewall for multiple hosts running OneAgents.&quot;</em></p>
+<p><strong>Don't let internal OneAgents fall back to a Cluster ActiveGate.</strong> OneAgents prefer an Environment ActiveGate, then a Cluster ActiveGate, then the cluster itself (DTM-14 §2). The fallback costs compression: when no Environment ActiveGate can be reached and OneAgents use a Cluster ActiveGate, <em>&quot;In that case, OneAgent traffic goes to the Dynatrace Managed cluster uncompressed.&quot;</em> An Environment ActiveGate <em>&quot;collects messages from OneAgent instances and builds bulks, which are then sent in compressed form&quot;</em>.</p>
+<p><strong>Decide how each Environment ActiveGate reaches the cluster.</strong> By default it connects straight to the cluster nodes: <em>&quot;Environment ActiveGates, by default, connect directly to the Dynatrace Cluster (unless custom network zones are used—see below).&quot;</em> Route it through a Cluster ActiveGate only where that's needed: <em>&quot;Connecting through the Cluster ActiveGate needs to be arranged, if the Dynatrace Cluster is not directly reachable. For example, if the Environment ActiveGate is in a different network or different data center.&quot;</em></p>
+<p><strong>Install the ActiveGate before the OneAgents behind it.</strong> For a segment with no other route, order matters. For a Cluster ActiveGate the docs say: <em>&quot;If OneAgent can reach Dynatrace only through this Cluster ActiveGate, such as in a network segment without internet access, install the Cluster ActiveGate before you install OneAgent.&quot;</em> Done the other way round, the OneAgents have to be installed again: <em>&quot;If you installed OneAgent before this Cluster ActiveGate, and OneAgent can reach Dynatrace only through it, reinstall OneAgent.&quot;</em></p>
+<p><strong>Keep ActiveGates on dedicated hosts.</strong> <em>&quot;For optimal performance and enhanced security, we recommend installing and running ActiveGate on a dedicated system.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/capabilities/routing-monitoring-purpose">Route OneAgent traffic (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/manage/network-zones-classic/oneagent-connectivity">OneAgent connectivity in network zones (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/supported-connectivity-schemes-for-activegates">Supported connectivity schemes for ActiveGates (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/installation/install-cluster-activegate">Install a Cluster ActiveGate (DT docs)</a> — <em>&quot;In some cases, however, the installation order matters, because the OneAgent installer needs to know about your ActiveGate installation before the OneAgent can be installed.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements">Linux ActiveGate hardware and system requirements (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="redundancy-sizing"></a></p>
+<h2>4. How Many, and How Big</h2>
+<p><strong>Two per data center, at least.</strong> The Managed upgrade guide states the rule for the ActiveGate fleet: <em>&quot;Dynatrace best practices dictate at least two ActiveGates per data center, with additional instances added based on capacity requirements.&quot;</em> Apply it per job: two Cluster ActiveGates behind the load balancer, and two Environment ActiveGates per network segment they serve.</p>
+<p><strong>Size for one being down.</strong> The requirements page says <em>&quot;It is recommended that the machine on which ActiveGate is running should not exceed 50% CPU and 80% memory.&quot;</em> It also assumes outages: <em>&quot;it must be assumed that ActiveGates may be inoperable during updates, restarts or short communication problems. In order to ensure high availability, operating ActiveGates should be able to takeover traffic of the unavailable ActiveGates&quot;</em>.</p>
+<p><strong>The capacity table is the same as for SaaS.</strong> The Managed requirements page lists the same estimated host counts per machine size (for example about 800 hosts on 2 vCPUs and 3.75 GiB, about 1,800 on 4 vCPUs and 7.5 GiB), with the same caveat: <em>&quot;The real number of hosts may be different depending on the monitored technologies in your environment.&quot;</em> The tables and the survivor arithmetic are worked through in ONBRD-03 §3 and FAQ-10, which are written for SaaS but use these figures.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/upgrade/up-plan">Plan the upgrade (DT docs)</a> — <em>&quot;When sizing the ActiveGates, please ensure that you have sufficient capacity for failure events.&quot;</em>, <a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements">Linux ActiveGate hardware and system requirements (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="zones-lbs"></a></p>
+<h2>5. Network Zones and Load Balancers</h2>
+<p><strong>Zones belong to the cluster.</strong> <em>&quot;Network zones are organized per Managed cluster.&quot;</em> They are switched on per environment (<strong>Settings &gt; Preferences &gt; Network zones</strong>, <em>&quot;Turn on Enable network zones in this environment&quot;</em>). They keep OneAgents and ActiveGates on local routes and fall back elsewhere: <em>&quot;You can still use ActiveGates in other zones as a backup option in case primary ActiveGates becomes unavailable for some reason.&quot;</em></p>
+<p><strong>Environment ActiveGates have their own priority order.</strong> Within a zone, an Environment ActiveGate prefers the embedded ActiveGates on the cluster nodes, then Cluster ActiveGates: <em>&quot;Index 1—Embedded ActiveGates Index 2—Cluster ActiveGates&quot;</em>. And it spreads the load: <em>&quot;For load balancing, an Environment ActiveGate rotates through all available endpoints of ActiveGates with the lowest possible index.&quot;</em> How OneAgents choose between ActiveGates is in DTM-05 §2.</p>
+<p><strong>With Premium HA, zones are how traffic stays local.</strong> <em>&quot;PHA uses network zones to route telemetry to Cluster nodes in different DCs. Network zones let OneAgents and ActiveGates prefer local routes while retaining the ability to fail over to another DC during an outage.&quot;</em> Design the zones together with the data centers (DTM-01 §4).</p>
+<p><strong>Tell the ActiveGate about a load balancer in front of it.</strong> Components discover each other's addresses automatically, <em>&quot;unless there are networking devices (proxies, load balancers) in your environment, which should be taken into account, and of which Dynatrace is not aware.&quot;</em> For a load balancer between OneAgents and an ActiveGate, <em>&quot;you should specify the load balancer's address as the dnsEntryPoint property in the ActiveGate configuration.&quot;</em> OneAgents need nothing: <em>&quot;There is no need to configure OneAgent to use a reverse proxy.&quot;</em> For a load balancer between an ActiveGate and its next hop, the docs name <code>seedServerUrl</code> and <code>ignoreClusterRuntimeInfo</code>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/managed/manage/network-zones-classic/network-zones-basic-info">Get started with network zones (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/manage/network-zones-classic/activegate-connectivity">ActiveGate connectivity in network zones (DT docs)</a> — <em>&quot;The preferable ActiveGate is the one with lowest possible index.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/multi-data-centers">Multi-data center high availability (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/supported-connectivity-schemes-for-activegates">Supported connectivity schemes for ActiveGates (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/configuration/set-up-reverse-proxy-for-oneagent">Reverse proxy or load balancer for OneAgent (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="multi-environment"></a></p>
+<h2>6. Multi-Environment ActiveGates and Extensions</h2>
+<p>One Environment ActiveGate can serve several environments of the same cluster, which <em>&quot;significantly reduces the maintenance and setup overhead.&quot;</em> It is a routing ActiveGate only. The documented limits:</p>
+<table>
+<thead>
+<tr>
+<th>Can't be used to</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>&quot;Connect to environments from different clusters&quot;</em></td>
+<td></td>
+</tr>
+<tr>
+<td><em>&quot;Install the zRemote module for z/OS monitoring&quot;</em></td>
+<td></td>
+</tr>
+<tr>
+<td><em>&quot;Monitor remote technologies with the Extensions framework&quot;</em></td>
+<td></td>
+</tr>
+<tr>
+<td><em>&quot;Execute monitors from private Synthetic locations&quot;</em></td>
+<td></td>
+</tr>
+<tr>
+<td><em>&quot;Run Database insights&quot;</em></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Extensions need their own ActiveGates.</strong> <em>&quot;Extensions are not supported on multi-environment ActiveGates or Cluster ActiveGates. To run Extensions, deploy a dedicated Environment ActiveGate for each environment and enable the Extension Execution Controller (EEC) .&quot;</em> Assign it to an ActiveGate group, because <em>&quot;Dynatrace uses a group to instruct the extension where it should run.&quot;</em> <em>&quot;If you plan to use a single ActiveGate to run a remote extension, assign it to a dedicated group containing only that ActiveGate.&quot;</em> Set the group at installation with <code>--set-group</code>, which <em>&quot;you can't use&quot;</em> during an update.</p>
+<p><strong>Get the main environment right.</strong> The multi-environment configuration names one environment as <code>mainTenant</code>, and a mistake there takes the ActiveGate out everywhere: <em>&quot;Incorrect configuration of the main environment will result in the rejection of the ActiveGate in all configured environments&quot;</em>. Check the ActiveGate log for the <em>&quot;Working mode is set to MULTITENANT&quot;</em> line after every change.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/configuration/configure-an-environment-activegate-for-multi-environment-support">Multi-environment deployment of ActiveGate (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/activegate-group">ActiveGate group (DT docs)</a> — <em>&quot;An ActiveGate can belong to only one group.&quot;</em></sub></p>
+</blockquote>
+<p><a id="updates"></a></p>
+<h2>7. Keeping ActiveGates Updated</h2>
+<p>The two installable types are updated in different places.</p>
+<p><strong>Environment ActiveGates</strong> — per environment, under <strong>Settings &gt; Deployment &gt; ActiveGate updates</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Options</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Update mode</td>
+<td><em>Automatic (earliest convenience)</em>, <em>Automatic (during update window)</em>, <em>No automatic updates</em></td>
+</tr>
+<tr>
+<td>Target version</td>
+<td><em>Latest stable</em>, <em>Previous stable</em>, <em>Older stable</em>, or a specific main version</td>
+</tr>
+</tbody>
+</table>
+<p>Update windows are shared with OneAgent: <em>&quot;The same update windows govern both OneAgent and ActiveGate&quot;</em>. Pinning is coarse: <em>&quot;Unlike OneAgent, ActiveGate does not expose a sub-version selector; the latest sub-version of the chosen main version is always applied.&quot;</em></p>
+<p><strong>Cluster ActiveGates</strong> — in the CMC under <strong>Deployment Status &gt; ActiveGates</strong>, with an <em>Automatic updates</em> toggle per ActiveGate; turned off, <em>Update</em> applies a new version immediately. Keep them current: the yellow icon means <em>&quot;your ActiveGate is behind by more than five versions. You should update these ActiveGates as soon as possible.&quot;</em> Back up the configuration first: settings are kept in <code>custom.properties</code> and <code>launcheruserconfig.conf</code>, <em>&quot;but it's good practice to back them up before updating the ActiveGate.&quot;</em></p>
+<p><strong>Containerized ActiveGates don't auto-update.</strong> <em>&quot;Auto-update and the manual Update now action only support host-based deployments installed via the installer.&quot;</em> Their versions come from the deployment tooling.</p>
+<p><strong>Best practice:</strong> put Environment ActiveGates on <em>Automatic (during update window)</em>, using the same windows as the OneAgents they serve (DTM-05 §5). In community practice, two ActiveGates in a pair are kept in different windows, so one is always up — verify against your window layout.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/operation/update-activegate">Update ActiveGate (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/update-dynatrace-managed-activegate">Update Cluster ActiveGate (DT docs)</a> — <em>&quot;The availability check is performed at 30-minute intervals.&quot;</em></sub></p>
+</blockquote>
+<p><a id="doc-gaps"></a></p>
+<h2>8. What the Documentation Does Not Say</h2>
+<p><strong>Not found</strong>, in the Managed documentation read 10/21/2026:</p>
+<table>
+<thead>
+<tr>
+<th>Gap</th>
+<th>Working assumption in this notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sizing figures for Cluster ActiveGates specifically</td>
+<td>Use the routing table and the 50% CPU / 80% memory rule (§4); DTM-14 §9.4 has more</td>
+</tr>
+<tr>
+<td>Whether Cluster ActiveGates follow the Environment ActiveGate update modes and target version</td>
+<td>Treat them separately: the toggle in Deployment Status (§7)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Pages of different ages.</strong> The Cluster ActiveGate update page was updated 10/22/2026 and still describes a single <em>Automatic updates</em> toggle. The ActiveGate update page, updated 07/14/2026, describes update modes, target versions and windows for Environment ActiveGates. This notebook follows each page for its own ActiveGate type.</p>
+<p><strong>A port that two pages state differently</strong> — 9999 or 443 for the Cluster ActiveGate's inbound hop — is recorded in DTM-14 §10.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/update-dynatrace-managed-activegate">Update Cluster ActiveGate (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/operation/update-activegate">Update ActiveGate (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="recommendation"></a></p>
+<h2>9. Recommended Approach</h2>
+<ol>
+<li><strong>Assign each ActiveGate one purpose</strong>: Cluster ActiveGates for external traffic, Environment ActiveGates for local routing and monitoring, separate ActiveGates for private synthetic monitors (§2).</li>
+<li><strong>Put Environment ActiveGates in every segment with OneAgents</strong>, so no internal OneAgent falls back to a Cluster ActiveGate and sends uncompressed (§3).</li>
+<li><strong>Install the ActiveGate before the OneAgents behind it</strong> (§3).</li>
+<li><strong>Run at least two per data center for each job</strong>, sized at 50% CPU and 80% memory with one down (§4).</li>
+<li><strong>Design network zones with the data centers</strong>, and set <code>dnsEntryPoint</code> for every load balancer in front of an ActiveGate (§5).</li>
+<li><strong>Use multi-environment ActiveGates for routing only</strong>; give extensions a dedicated Environment ActiveGate per environment in its own group (§6).</li>
+<li><strong>Set an update mode and target version</strong> for Environment ActiveGates, and update Cluster ActiveGates before they fall five versions behind (§7).</li>
+</ol>
+<p><a id="summary"></a></p>
+<h2>10. Summary and Next Steps</h2>
+<p>On Managed, ActiveGates come in three levels. Cluster ActiveGates face outward, Environment ActiveGates face the OneAgents, and embedded ActiveGates run on the nodes. Give each kind one purpose, place Environment ActiveGates close to the agents, run them in pairs per data center, and keep both kinds within reach of current.</p>
+<p><strong>Next in the series:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Covers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DTM-05: OneAgent Deployment on Managed</td>
+<td>How OneAgents choose a route, install-time decisions and update policy</td>
+</tr>
+<tr>
+<td>DTM-14: Cluster ActiveGates and Mission Control Connectivity</td>
+<td>The traffic path, load-balancer rules, certificates and health</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Series map:</strong> DTM-00: The Dynatrace Managed Journey routes every notebook in this series.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/managed">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

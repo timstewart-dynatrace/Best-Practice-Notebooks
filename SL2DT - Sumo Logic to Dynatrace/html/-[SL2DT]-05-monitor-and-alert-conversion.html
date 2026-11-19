@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SL2DT-05: Monitor &amp; Alert Conversion</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SL2DT — Sumo Logic to Dynatrace</a><span class="sep">/</span><span aria-current="page">SL2DT-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SL2DT-05: Monitor &amp; Alert Conversion</h1>
+<blockquote>
+<p><strong>Series:</strong> SL2DT — Sumo Logic to Dynatrace | <strong>Notebook:</strong> 5 of 11 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 11/15/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Goal of this step:</strong> rebuild Sumo Monitors in Dynatrace, choosing the right target for each (a custom alert, a Workflow with a DQL threshold, or — on the classic surface — a metric event). This is the notebook where the biggest fidelity-vs-better-approach decisions happen.</p>
+<p>The anti-pattern to avoid: 1:1 static-threshold lift-and-shift. It produces noisy alerts, misses real anomalies, and under-uses Dynatrace's capabilities. The pattern to prefer: custom alerts with an adaptive or seasonal model for metric-backed alerts, Workflows for complex multi-condition logic, and a static-threshold custom alert for thresholds that genuinely are static.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#outputs">What You'll Produce</a></li>
+<li><a href="#framework">The Monitor Conversion Decision Framework</a></li>
+<li><a href="#davis">Anomaly Detection — When &amp; How</a></li>
+<li><a href="#metric-events">Metric Events — Simple Static Thresholds</a></li>
+<li><a href="#workflows">Workflows — Complex or Multi-Condition Alerts</a></li>
+<li><a href="#actions">Rebuilding Notification Actions</a></li>
+<li><a href="#rare">Handling Rare Alert Classes</a></li>
+<li><a href="#tuning">Tuning &amp; Noise Reduction</a></li>
+<li><a href="#gate">Step Exit Criteria</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Core migration engineers + app-team reviewers</td>
+</tr>
+<tr>
+<td><strong>Inputs</strong></td>
+<td><code>inventory/monitors.json</code>, translations from SL2DT-04</td>
+</tr>
+<tr>
+<td><strong>Dynatrace access</strong></td>
+<td>Platform token or OAuth client with <code>settings:objects:write</code> (custom alerts are Settings objects), <code>automation:workflows:write</code>, and <code>iam:service-users:use</code> (custom alerts that run as a service user) or <code>davis:analyzers:execute</code>; plus Grail read access to the data each alert queries (for example <code>storage:buckets:read</code>, <code>storage:metrics:read</code>, <code>storage:logs:read</code>)</td>
+</tr>
+<tr>
+<td><strong>Prior reading</strong></td>
+<td>SL2DT-04 for query translations; OPLOGS-09 for log-based alert patterns</td>
+</tr>
+</tbody>
+</table>
+<p><a id="outputs"></a></p>
+<h2>1. What You'll Produce</h2>
+<table>
+<thead>
+<tr>
+<th>Artifact</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>monitors/decision-matrix.csv</code></td>
+<td>Per-monitor: custom alert vs Workflow vs Metric Event decision</td>
+</tr>
+<tr>
+<td><code>monitors/configs/</code></td>
+<td>Terraform + JSON for custom alerts (anomaly detectors), Workflows, Metric Events</td>
+</tr>
+<tr>
+<td><code>notifications/action-map.md</code></td>
+<td>Sumo webhook/email → DT notification target map</td>
+</tr>
+<tr>
+<td><code>monitor-rebuild-report.md</code></td>
+<td>Progress per team</td>
+</tr>
+</tbody>
+</table>
+<p><a id="framework"></a></p>
+<h2>2. The Monitor Conversion Decision Framework</h2>
+<p>For each Sumo monitor, pick one of three targets:</p>
+<h3>Decision Rules</h3>
+<table>
+<thead>
+<tr>
+<th>Sumo Monitor Type</th>
+<th>Target</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Outlier / anomaly / seasonality-based</td>
+<td><strong>Custom alert</strong> — auto-adaptive or seasonal-baseline model</td>
+<td>Learns the baseline instead of a hand-picked number</td>
+</tr>
+<tr>
+<td>Static threshold on metric (CPU &gt; 90%)</td>
+<td><strong>Custom alert</strong> — static-threshold model (classic: <strong>Metric Event</strong>)</td>
+<td>A DQL <code>timeseries</code> query and a threshold, as a Settings object</td>
+</tr>
+<tr>
+<td>Static threshold on log count</td>
+<td><strong>Workflow with DQL</strong></td>
+<td>Query runs on schedule, threshold in task condition</td>
+</tr>
+<tr>
+<td>Missing data alert</td>
+<td><strong>Workflow</strong></td>
+<td>Use <code>isNull</code> / <code>count == 0</code> checks</td>
+</tr>
+<tr>
+<td>Multi-condition (X AND Y but not Z)</td>
+<td><strong>Workflow</strong></td>
+<td>Multiple DQL tasks + branching</td>
+</tr>
+<tr>
+<td>SLO-backed alert</td>
+<td><strong>SLO burn-rate alert</strong> (if Dynatrace SLO)</td>
+<td>Native SLO product</td>
+</tr>
+</tbody>
+</table>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5Nb25pdG9yIENvbnZlcnNpb24gRGVjaXNpb24gVHJlZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5Gb3IgZWFjaCBTdW1vIE1vbml0b3I6IGNob29zZSBhIGN1c3RvbSBhbGVydCAvIFdvcmtmbG93IChjbGFzc2ljOiBNZXRyaWMgRXZlbnQpPC90ZXh0PgoKICA8IS0tIEFycm93IG1hcmtlciAtLT4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFycm93MiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBSb290OiBTdW1vIE1vbml0b3IgLS0+CiAgPHJlY3QgeD0iMzY1IiB5PSI5MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI1MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIxMTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPlN1bW8gTW9uaXRvcjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjEzMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UXVlcnkgKyB0aHJlc2hvbGQgKyBhY3Rpb248L3RleHQ+CgogIDwhLS0gRGVjaXNpb24gcm93IDE6IElzIGl0IG91dGxpZXIvYW5vbWFseT8gLS0+CiAgPHBvbHlnb24gcG9pbnRzPSI0NjUsMTcwIDU1NSwyMDUgNDY1LDI0MCAzNzUsMjA1IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIyMDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPk91dGxpZXIgLyBhbm9tYWx5PzwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjIyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+KHNlYXNvbmFsaXR5LWJhc2VkKTwvdGV4dD4KCiAgPGxpbmUgeDE9IjQ2NSIgeTE9IjE0MCIgeDI9IjQ2NSIgeTI9IjE3MCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdzIpIi8+CgogIDwhLS0gWWVzIOKGkiBjdXN0b20gYWxlcnQgKGFkYXB0aXZlL3NlYXNvbmFsKSAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMTgwIiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjcwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMiIgcng9IjYiLz4KICA8dGV4dCB4PSIxNTAiIHk9IjIwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+Q3VzdG9tIGFsZXJ0PC90ZXh0PgogIDx0ZXh0IHg9IjE1MCIgeT0iMjI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5BdXRvLWFkYXB0aXZlIC8gc2Vhc29uYWwgbW9kZWw8L3RleHQ+CiAgPHRleHQgeD0iMTUwIiB5PSIyNDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlNldHRpbmdzIChTYWFTIDEuMzQ0Kyk8L3RleHQ+CgogIDxsaW5lIHgxPSIzNzUiIHkxPSIyMDUiIHgyPSIyNjAiIHkyPSIyMDUiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cyKSIvPgogIDx0ZXh0IHg9IjMxOCIgeT0iMTk2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5ZRVM8L3RleHQ+CgogIDwhLS0gTm8g4oaSIG5leHQgZGVjaXNpb24gLS0+CiAgPGxpbmUgeDE9IjU1NSIgeTE9IjIwNSIgeDI9IjYyMCIgeTI9IjIwNSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdzIpIi8+CiAgPHRleHQgeD0iNTg4IiB5PSIxOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPk5PPC90ZXh0PgoKICA8IS0tIERlY2lzaW9uIDI6IFN0YXRpYyB0aHJlc2hvbGQ/IC0tPgogIDxwb2x5Z29uIHBvaW50cz0iNzIwLDE3MCA4MTAsMjA1IDcyMCwyNDAgNjMwLDIwNSIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjcyMCIgeT0iMjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5TdGF0aWM8L3RleHQ+CiAgPHRleHQgeD0iNzIwIiB5PSIyMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPnRocmVzaG9sZD88L3RleHQ+CgogIDwhLS0gU3RhdGljIHllcyDihpIgY3VzdG9tIGFsZXJ0LCBzdGF0aWMgbW9kZWwgLS0+CiAgPGxpbmUgeDE9IjcyMCIgeTE9IjI0MCIgeDI9IjcyMCIgeTI9IjI5MCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdzIpIi8+CiAgPHRleHQgeD0iNzM1IiB5PSIyNjgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+WUVTLCBtZXRyaWM8L3RleHQ+CgogIDxyZWN0IHg9IjYwNSIgeT0iMzAwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjY1IiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMiIgcng9IjYiLz4KICA8dGV4dCB4PSI3MjAiIHk9IjMyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+Q3VzdG9tIGFsZXJ0IChzdGF0aWMpPC90ZXh0PgogIDx0ZXh0IHg9IjcyMCIgeT0iMzQzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5EUUwgdGltZXNlcmllcyArIHRocmVzaG9sZDwvdGV4dD4KICA8dGV4dCB4PSI3MjAiIHk9IjM1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Q2xhc3NpYyBwYXRoOiBNZXRyaWMgRXZlbnQ8L3RleHQ+CgogIDwhLS0gU3RhdGljIG5vIC8gY29tcGxleCDihpIgV29ya2Zsb3cgLS0+CiAgPGxpbmUgeDE9IjcyMCIgeTE9IjI0MCIgeDI9IjQ2NSIgeTI9IjI5NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgZmlsbD0ibm9uZSIvPgogIDxsaW5lIHgxPSI0NjUiIHkxPSIyOTAiIHgyPSI0NjUiIHkyPSIyOTUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cyKSIvPgoKICA8cmVjdCB4PSIzNDAiIHk9IjMwNSIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI4NSIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIzMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPldvcmtmbG93PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TY2hlZHVsZSArIERRTCB0YXNrKHMpPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5UaHJlc2hvbGQgY2hlY2s8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIzODIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk5vdGlmaWNhdGlvbiBhY3Rpb248L3RleHQ+CgogIDwhLS0gTG9nLWJhc2VkIHN0YXRpYyDihpIgV29ya2Zsb3cgdG9vIC0tPgogIDxsaW5lIHgxPSI2NjAiIHkxPSIyMTciIHgyPSI1MjAiIHkyPSIzMDAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1kYXNoYXJyYXk9IjQsMyIgbWFya2VyLWVuZD0idXJsKCNhcnJvdzIpIi8+CiAgPHRleHQgeD0iNTk1IiB5PSIyNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtc3R5bGU9Iml0YWxpYyI+bG9nIGNvdW50IOKGkiBXRjwvdGV4dD4KCiAgPCEtLSBBbnRpLXBhdHRlcm4gY2FsbG91dCAtLT4KICA8cmVjdCB4PSI0MCIgeT0iNDAwIiB3aWR0aD0iODUwIiBoZWlnaHQ9IjY1IiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDIyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj7imqAgQW50aS1wYXR0ZXJuOiAxOjEgbGlmdC1hbmQtc2hpZnQgb2Ygc3RhdGljIHRocmVzaG9sZHM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0NDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkZvciBtZXRyaWMtYmFja2VkIGFsZXJ0cywgcHJlZmVyIGFub21hbHkgZGV0ZWN0aW9uIOKAlCBiYXNlbGluZXMgZGlmZmVyIGJldHdlZW4gU3VtbyBhbmQgRFQuPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5UYXJnZXQ6IOKJpTQwJSBvZiBuZXcgbW9uaXRvcnMgdXNlIGFub21hbHkgZGV0ZWN0aW9uIMK3IFRyYWNrIHRoaXMgbWV0cmljIGR1cmluZyBtaWdyYXRpb24uPC90ZXh0PgoKICA8IS0tIEJvdHRvbSBkaXZpZGVyIC0tPgogIDxsaW5lIHgxPSI0MCIgeTE9IjQ4NSIgeDI9Ijg5MCIgeTI9IjQ4NSIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KPC9zdmc+Cg==" alt="Monitor Conversion Decision Tree" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Input | Output | Rationale |
+|-------|--------|-----------|
+| Outlier/anomaly monitor | Custom alert (auto-adaptive or seasonal model) | Learned baseline |
+| Metric static threshold | Custom alert (static model); classic: Metric Event | DQL query + threshold |
+| Log count static threshold | Workflow + DQL | Scheduled query |
+| Missing data | Workflow | isNull/count check |
+| Multi-condition | Workflow | Branching logic |
+| SLO-backed | SLO burn-rate | Native product |
+For environments where SVG doesn't render
+-->
+<p><a id="davis"></a></p>
+<h2>3. Anomaly Detection — When &amp; How</h2>
+<p>A <strong>custom alert</strong> evaluates a DQL <code>timeseries</code> query with one of three models — static threshold, auto-adaptive, or seasonal baseline — and raises an event when the signal violates it. The auto-adaptive and seasonal models learn the baseline. Best for:</p>
+<ul>
+<li>Any Sumo outlier monitor (<code>outlier _count window=N threshold=K</code>)</li>
+<li>Static thresholds where the &quot;normal&quot; value drifts seasonally (weekly cycle, business hours)</li>
+<li>Static thresholds that fire too often in Sumo (false positives from workload swings)</li>
+</ul>
+<h3>Where custom alerts live (SaaS 1.344)</h3>
+<p>From SaaS 1.344 custom alerts are created and managed in <strong>Settings</strong>, and the Anomaly Detection app that used to hold them is deprecated. SaaS versions reach tenants in a staged rollout: on a tenant that is not yet on 1.344, the same custom alerts are still configured in the Anomaly Detection app. Programmatically, a custom alert is a Settings object of schema <code>builtin:davis.anomaly-detectors</code>.</p>
+<h3>Configuration</h3>
+<pre><code class="language-json">{
+  &quot;schemaId&quot;: &quot;builtin:davis.anomaly-detectors&quot;,
+  &quot;scope&quot;: &quot;environment&quot;,
+  &quot;value&quot;: {
+    &quot;enabled&quot;: true,
+    &quot;title&quot;: &quot;API error count anomaly&quot;,
+    &quot;description&quot;: &quot;Migrated from the Sumo outlier monitor on prod/api&quot;,
+    &quot;source&quot;: &quot;sumo-migration&quot;,
+    &quot;executionSettings&quot;: {&quot;actor&quot;: null, &quot;queryOffset&quot;: null},
+    &quot;analyzer&quot;: {
+      &quot;name&quot;: &quot;dt.statistics.ui.anomaly_detection.AutoAdaptiveAnomalyDetectionAnalyzer&quot;,
+      &quot;input&quot;: [
+        {&quot;key&quot;: &quot;query&quot;, &quot;value&quot;: &quot;timeseries sum(log.sumo.api_error_count), interval:1m, by:{dt.entity.host}&quot;},
+        {&quot;key&quot;: &quot;numberOfSignalFluctuations&quot;, &quot;value&quot;: &quot;1&quot;},
+        {&quot;key&quot;: &quot;alertCondition&quot;, &quot;value&quot;: &quot;ABOVE&quot;},
+        {&quot;key&quot;: &quot;alertOnMissingData&quot;, &quot;value&quot;: &quot;false&quot;},
+        {&quot;key&quot;: &quot;violatingSamples&quot;, &quot;value&quot;: &quot;3&quot;},
+        {&quot;key&quot;: &quot;slidingWindow&quot;, &quot;value&quot;: &quot;5&quot;},
+        {&quot;key&quot;: &quot;dealertingSamples&quot;, &quot;value&quot;: &quot;5&quot;}
+      ]
+    },
+    &quot;eventTemplate&quot;: {
+      &quot;properties&quot;: [
+        {&quot;key&quot;: &quot;event.type&quot;, &quot;value&quot;: &quot;CUSTOM_ALERT&quot;},
+        {&quot;key&quot;: &quot;event.name&quot;, &quot;value&quot;: &quot;API error count above baseline on {dims:dt.entity.host.name}&quot;},
+        {&quot;key&quot;: &quot;event.description&quot;, &quot;value&quot;: &quot;Error-log count for prod/api is above its learned baseline.&quot;},
+        {&quot;key&quot;: &quot;dt.source_entity&quot;, &quot;value&quot;: &quot;{dims:dt.entity.host}&quot;}
+      ]
+    }
+  }
+}
+</code></pre>
+<p>The query must return a timeseries (<code>timeseries</code> or <code>makeTimeseries</code>), set <code>interval:1m</code>, and carry no <code>from:</code> / <code>to:</code>. For a fixed threshold, use <code>dt.statistics.ui.anomaly_detection.StaticThresholdAnomalyDetectionAnalyzer</code> with a <code>threshold</code> input; for a weekly or daily pattern, <code>dt.statistics.ui.anomaly_detection.SeasonalBaselineAnomalyDetectionAnalyzer</code> with <code>tolerance</code>. <code>source</code> is free text — a shared value such as <code>sumo-migration</code> lets you filter every migrated alert in the UI.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app">Anomaly Detection app (DT docs)</a> — <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to&quot;</em> Settings; <em>&quot;Because Anomaly Detection is deprecated, we highly recommend that you use&quot;</em> Settings.</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/set-up-anomaly-detectors-via-api">Set up anomaly detectors via API (DT docs)</a> — schema <code>builtin:davis.anomaly-detectors</code>; <em>&quot;The query must have a time interval explicitly set to interval:1m. You can't set timeframes using from: and to: DQL operators with this configuration.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<h3>Sumo outlier → custom alert example</h3>
+<p><strong>Sumo:</strong></p>
+<pre><code>_sourceCategory=prod/api | timeslice 1m | count | outlier _count window=10 threshold=3
+</code></pre>
+<p><strong>Dynatrace:</strong></p>
+<ol>
+<li>Create a counter metric from the matching logs in OpenPipeline (next subsection).</li>
+<li>Create a custom alert on that metric with the auto-adaptive model (the JSON above).</li>
+<li>Route the resulting problem to the Sumo monitor's notification target with a problem-triggered Workflow (§6).</li>
+</ol>
+<h3>Metric Extraction from Logs</h3>
+<p>If the Sumo monitor was log-count-based, extract a metric first. In <strong>OpenPipeline → Logs</strong>, open the pipeline that processes these records, select the <strong>Metric extraction</strong> tab, and add a <strong>Counter metric</strong> processor:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Matching condition</td>
+<td><code>sumo.source_category == &quot;prod/api&quot; and status == &quot;ERROR&quot;</code></td>
+</tr>
+<tr>
+<td>Metric key</td>
+<td><code>log.sumo.api_error_count</code></td>
+</tr>
+<tr>
+<td>Dimensions</td>
+<td><code>dt.entity.host</code></td>
+</tr>
+</tbody>
+</table>
+<p>Log metric keys carry the <code>log.</code> prefix. A new log metric has data only for logs ingested after it is created, so give it time to fill before the custom alert's baseline means anything.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-processing/lma-log-metrics">Log metrics (DT docs)</a> — <em>&quot;All metrics based on a log monitoring query have a metric key with the <code>log.</code> prefix.&quot;</em>, <em>&quot;A created log metric is available only when new log data is ingested.&quot;</em>; <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/metric-extraction">Metric extraction (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Classic path — metric events</h3>
+<p>Tenants that already manage alerting as classic metric events (<code>builtin:anomaly-detection.metric-events</code>) can keep that surface; it evaluates Metrics Classic keys, not DQL. An adaptive or seasonal model there needs a <code>METRIC_SELECTOR</code> query definition — <em>&quot;Metric key based query definitions only support static thresholds&quot;</em> — and every model needs its full set of sample counts plus an event template. New monitors in this migration should use custom alerts (above).</p>
+<pre><code class="language-json">{
+  &quot;schemaId&quot;: &quot;builtin:anomaly-detection.metric-events&quot;,
+  &quot;scope&quot;: &quot;environment&quot;,
+  &quot;value&quot;: {
+    &quot;enabled&quot;: true,
+    &quot;summary&quot;: &quot;API error rate anomaly&quot;,
+    &quot;queryDefinition&quot;: {
+      &quot;type&quot;: &quot;METRIC_SELECTOR&quot;,
+      &quot;metricSelector&quot;: &quot;custom.metric.api_error_rate:splitBy(\&quot;dt.entity.host\&quot;):avg&quot;
+    },
+    &quot;modelProperties&quot;: {
+      &quot;type&quot;: &quot;AUTO_ADAPTIVE_THRESHOLD&quot;,
+      &quot;signalFluctuation&quot;: 1.0,
+      &quot;tolerance&quot;: 4.0,
+      &quot;alertCondition&quot;: &quot;ABOVE&quot;,
+      &quot;alertOnNoData&quot;: false,
+      &quot;samples&quot;: 5,
+      &quot;violatingSamples&quot;: 3,
+      &quot;dealertingSamples&quot;: 5
+    },
+    &quot;eventTemplate&quot;: {
+      &quot;title&quot;: &quot;API error rate anomaly&quot;,
+      &quot;description&quot;: &quot;The API error rate is above its learned baseline.&quot;,
+      &quot;eventType&quot;: &quot;ERROR&quot;,
+      &quot;davisMerge&quot;: true,
+      &quot;metadata&quot;: []
+    }
+  }
+}
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-anomaly-detection-metric-events">builtin:anomaly-detection.metric-events schema (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection-classic/metric-events">Metric events (DT docs)</a> — <em>&quot;We encourage you to try Anomaly Detection&quot;</em>.</sub></p>
+</blockquote>
+<h3>Validation</h3>
+<pre><code class="language-dql">// Confirm the log metric is producing data (it fills only from logs ingested after it was created)
+timeseries c = sum(log.sumo.api_error_count), from:-1h, by:{dt.entity.host}
+| fieldsAdd c_max = arrayMax(c)
+| filter c_max &gt; 0
+</code></pre>
+<p><a id="metric-events"></a></p>
+<h2>4. Metric Events — Simple Static Thresholds</h2>
+<p>When the threshold truly is static and the underlying metric is well-defined:</p>
+<ul>
+<li>CPU &gt; 90%</li>
+<li>Memory available &lt; 5%</li>
+<li>Disk full</li>
+<li>Certificate expiry &lt; 30 days</li>
+</ul>
+<p>A custom alert with the static-threshold model (§3) covers this case on a DQL query and is the current path. Where you keep classic metric events, use <code>builtin:anomaly-detection.metric-events</code>:</p>
+<pre><code class="language-json">{
+  &quot;schemaId&quot;: &quot;builtin:anomaly-detection.metric-events&quot;,
+  &quot;scope&quot;: &quot;environment&quot;,
+  &quot;value&quot;: {
+    &quot;enabled&quot;: true,
+    &quot;summary&quot;: &quot;Host CPU &gt; 90%&quot;,
+    &quot;queryDefinition&quot;: {
+      &quot;type&quot;: &quot;METRIC_KEY&quot;,
+      &quot;metricKey&quot;: &quot;builtin:host.cpu.usage&quot;,
+      &quot;aggregation&quot;: &quot;AVG&quot;,
+      &quot;entityFilter&quot;: {
+        &quot;dimensionKey&quot;: &quot;dt.entity.host&quot;,
+        &quot;conditions&quot;: [
+          {&quot;type&quot;: &quot;HOST_GROUP_NAME&quot;, &quot;operator&quot;: &quot;EQUALS&quot;, &quot;value&quot;: &quot;prod-web&quot;}
+        ]
+      }
+    },
+    &quot;modelProperties&quot;: {
+      &quot;type&quot;: &quot;STATIC_THRESHOLD&quot;,
+      &quot;threshold&quot;: 90.0,
+      &quot;alertCondition&quot;: &quot;ABOVE&quot;,
+      &quot;alertOnNoData&quot;: false,
+      &quot;samples&quot;: 5,
+      &quot;violatingSamples&quot;: 3,
+      &quot;dealertingSamples&quot;: 5
+    },
+    &quot;eventTemplate&quot;: {
+      &quot;title&quot;: &quot;Host CPU &gt; 90%&quot;,
+      &quot;description&quot;: &quot;CPU usage has been above 90% for 3 of the last 5 minutes.&quot;,
+      &quot;eventType&quot;: &quot;RESOURCE&quot;,
+      &quot;davisMerge&quot;: true,
+      &quot;metadata&quot;: []
+    }
+  }
+}
+</code></pre>
+<p>The schema's only scope is <code>environment</code>; narrow the alert to particular hosts with the <code>entityFilter</code> (here a host group), not with an entity ID as the scope. Metric events read Metrics Classic, so the key is <code>builtin:host.cpu.usage</code> — the Grail key <code>dt.host.cpu.usage</code> is for DQL.</p>
+<h3>When NOT to use Metric Events</h3>
+<ul>
+<li>Threshold depends on workload (use a custom alert with an auto-adaptive or seasonal model)</li>
+<li>Condition involves multiple metrics (use Workflow)</li>
+<li>Alert requires custom notification payload (use Workflow)</li>
+</ul>
+<p><a id="workflows"></a></p>
+<h2>5. Workflows — Complex or Multi-Condition Alerts</h2>
+<p>Workflows are the equivalent of Sumo's more complex monitors. Use when:</p>
+<ul>
+<li>Alert logic needs multiple DQL queries</li>
+<li>Conditional branches required</li>
+<li>Custom notification payload (ServiceNow incident with specific fields, etc.)</li>
+<li>Scheduled evaluation (every N minutes)</li>
+</ul>
+<h3>Workflow Structure</h3>
+<p>The schedule (cron <code>*/5 * * * *</code>, every 5 minutes) is the workflow's trigger, set in the editor rather than written into the task list. The HTTP task authenticates with a Credential Vault credential selected in its <strong>Authentication</strong> field.</p>
+<pre><code class="language-yaml">tasks:
+  - name: check_error_rate
+    action: dynatrace.automations:execute-dql-query
+    input:
+      query: |
+        fetch logs, from:-5m
+        | filter sumo.source_category == &quot;prod/api&quot;
+        | summarize {total = count(), errors = countIf(contains(content, &quot;error&quot;, caseSensitive:false))}
+        | fieldsAdd error_pct = 100.0 * toDouble(errors) / toDouble(total)
+        | filter total &gt; 0
+  - name: check_threshold
+    action: dynatrace.automations:http-function   # ServiceNow Table API — see §6
+    predecessors: [check_error_rate]
+    conditions:
+      states:
+        check_error_rate: SUCCESS
+      custom: '{{ result(&quot;check_error_rate&quot;)[&quot;records&quot;] | length &gt; 0 and result(&quot;check_error_rate&quot;)[&quot;records&quot;][0][&quot;error_pct&quot;] &gt; 5 }}'
+    input:
+      method: POST
+      url: https://&lt;instance&gt;.service-now.com/api/now/table/incident
+      headers:
+        Content-Type: application/json
+      payload: |
+        {
+          &quot;short_description&quot;: &quot;API error rate {{ result('check_error_rate').records[0].error_pct }}%&quot;,
+          &quot;assignment_group&quot;: &quot;Payments Platform&quot;,
+          &quot;priority&quot;: &quot;2&quot;
+        }
+</code></pre>
+<p>A DQL task in state <em>Success</em> can still return no records, and reading <code>records[0]</code> from an empty result makes the condition error. Guard with <code>| length &gt; 0</code>, as above. An ungrouped <code>summarize</code> always returns one record — with no matching logs it returns <code>total</code> 0 and no <code>error_pct</code> — so the query ends with <code>| filter total &gt; 0</code>: the no-data case then returns no records and the guard applies.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/dql-query-workflow-action">DQL query action (DT docs)</a> — <em>&quot;Accessing a specific record without first checking the array length will cause a condition error.&quot;</em></sub></p>
+</blockquote>
+<h3>Scheduled Search → Workflow</h3>
+<p>A Sumo scheduled search (query + schedule + action) maps directly:</p>
+<table>
+<thead>
+<tr>
+<th>Sumo Scheduled Search Field</th>
+<th>Workflow Equivalent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Query</td>
+<td><strong>Execute DQL Query</strong> task (<code>dynatrace.automations:execute-dql-query</code>)</td>
+</tr>
+<tr>
+<td>Schedule (run every N)</td>
+<td>Schedule trigger with a cron rule, set in the editor</td>
+</tr>
+<tr>
+<td>Alert condition</td>
+<td><code>conditions.custom</code> on the notification task (a Jinja expression; check <code>records | length &gt; 0</code> before reading <code>records[0]</code>)</td>
+</tr>
+<tr>
+<td>Webhook action</td>
+<td>HTTP Request task (<code>dynatrace.automations:http-function</code>) or a connector action</td>
+</tr>
+<tr>
+<td>Email action</td>
+<td><strong>Send email</strong> task (<code>dynatrace.email:send-email</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3>DQL in Workflow Tasks</h3>
+<p>The translated DQL from SL2DT-04 goes directly here. Wrap long queries in <code>|</code> to preserve formatting:</p>
+<pre><code class="language-yaml">tasks:
+  - name: find_slow_transactions
+    action: dynatrace.automations:execute-dql-query
+    input:
+      query: |
+        fetch logs, from:-5m
+        | filter sumo.source_category == &quot;prod/api&quot;
+        | parse content, &quot;LD? 'latency=' INT:latency&quot;
+        | filter latency &gt; 2000
+        | summarize c = count(), by:{http.path}
+        | sort c desc
+        | limit 20
+</code></pre>
+<p><a id="actions"></a></p>
+<h2>6. Rebuilding Notification Actions</h2>
+<p>Every Sumo monitor has one or more actions. Map each to a Dynatrace notification target.</p>
+<table>
+<thead>
+<tr>
+<th>Sumo Action</th>
+<th>Dynatrace Target</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Email</td>
+<td><strong>Send email</strong> task (<code>dynatrace.email:send-email</code>)</td>
+<td>Same recipient list; at most ten per field</td>
+</tr>
+<tr>
+<td>Webhook → ServiceNow</td>
+<td>HTTP Request task to the Table API, or ServiceNow <strong>Create Incident</strong> (<code>dynatrace.servicenow:snow-create-incident</code>)</td>
+<td>Rebuild incident payload</td>
+</tr>
+<tr>
+<td>Webhook → Slack</td>
+<td>Slack <strong>Send message</strong> task (<code>dynatrace.slack:slack-send-message</code>)</td>
+<td>Rebuild message format</td>
+</tr>
+<tr>
+<td>Webhook → PagerDuty</td>
+<td>PagerDuty <strong>Send event</strong> task (<code>dynatrace.pagerduty:send-event</code>)</td>
+<td>Rebuild event payload</td>
+</tr>
+<tr>
+<td>Webhook → custom HTTP</td>
+<td>HTTP Request task (<code>dynatrace.automations:http-function</code>)</td>
+<td></td>
+</tr>
+<tr>
+<td>Mobile push</td>
+<td>Workflow + Dynatrace Mobile app</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3>ServiceNow Integration — Specific Patterns</h3>
+<p>ServiceNow is the most common target and the highest-risk translation (wrong field mapping → misrouted incidents).</p>
+<p><strong>Sumo webhook payload:</strong></p>
+<pre><code class="language-json">{
+  &quot;incident&quot;: {
+    &quot;short_description&quot;: &quot;{{Name}}: {{Description}}&quot;,
+    &quot;u_affected_service&quot;: &quot;{{ClusterName}}&quot;,
+    &quot;assignment_group&quot;: &quot;{{Team}}&quot;,
+    &quot;priority&quot;: &quot;{{Priority}}&quot;
+  }
+}
+</code></pre>
+<p><strong>Dynatrace Workflow equivalent:</strong></p>
+<pre><code class="language-yaml">- name: create_servicenow_incident
+  action: dynatrace.automations:http-function
+  input:
+    method: POST
+    url: https://&lt;instance&gt;.service-now.com/api/now/table/incident
+    # Authentication: select a Credential Vault credential (Basic) in the task's
+    # Authentication field. Never put the credential in a static Authorization header.
+    headers:
+      Content-Type: application/json
+    payload: |
+      {
+        &quot;short_description&quot;: &quot;API error rate {{ result('check_error_rate').records[0].error_pct }}%&quot;,
+        &quot;u_affected_service&quot;: &quot;{{ result('check_error_rate').records[0]['dt.entity.service'] }}&quot;,
+        &quot;assignment_group&quot;: &quot;Payments Platform&quot;,
+        &quot;priority&quot;: &quot;2&quot;
+      }
+</code></pre>
+<p>The request body goes in <code>payload</code>, and dotted field names need bracket access (<code>records[0]['dt.entity.service']</code>). The HTTP route keeps custom fields such as <code>u_affected_service</code>. The ServiceNow Connector's <strong>Create Incident</strong> action (<code>dynatrace.servicenow:snow-create-incident</code>) is the alternative when the standard fields are enough. It takes named inputs (<code>shortDescription</code>, <code>description</code>, <code>impact</code>, <code>urgency</code>, <code>category</code>, <code>group</code>, <code>correlationId</code>, …) rather than a raw body. For the query above, <code>u_affected_service</code> stays empty unless the query groups by <code>dt.entity.service</code>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action">HTTP request action (DT docs)</a> — <em>&quot;Payload : The payload of the HTTP request.&quot;</em>, <em>&quot;We strictly advise against providing any static Authorization header and therefore, leak a secret.&quot;</em>; <a href="https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/Messaging%20and%20Incident%20Management/wftpl_sample_servicenow_incident_man.yaml">wftpl_sample_servicenow_incident_man.yaml (Dynatrace GitHub)</a> — <em>&quot;action: dynatrace.servicenow:snow-create-incident&quot;</em>.</sub></p>
+</blockquote>
+<p><strong>Verify</strong> with a test incident before flipping production traffic.</p>
+<p><a id="rare"></a></p>
+<h2>7. Handling Rare Alert Classes</h2>
+<h3>Missing Data Alerts</h3>
+<p>Sumo:</p>
+<pre><code>_sourceCategory=prod/heartbeat | count
+| where _count == 0
+</code></pre>
+<p>Dynatrace Workflow:</p>
+<pre><code class="language-yaml">tasks:
+  - name: check_heartbeat
+    action: dynatrace.automations:execute-dql-query
+    input:
+      query: |
+        fetch logs, from:-10m
+        | filter sumo.source_category == &quot;prod/heartbeat&quot;
+        | summarize c = count()
+  - name: alert_if_missing
+    action: dynatrace.email:send-email
+    predecessors: [check_heartbeat]
+    conditions:
+      custom: '{{ result(&quot;check_heartbeat&quot;)[&quot;records&quot;] | length == 0 or result(&quot;check_heartbeat&quot;)[&quot;records&quot;][0][&quot;c&quot;] == 0 }}'
+    input:
+      to: [&quot;oncall@example.com&quot;]
+      cc: []
+      bcc: []
+      subject: &quot;No heartbeat from prod/heartbeat&quot;
+      content: &quot;No heartbeat logs from prod/heartbeat in the last 10 minutes.&quot;
+</code></pre>
+<p>An ungrouped <code>summarize c = count()</code> returns one record with <code>c = 0</code> when nothing matches, so the second clause is the one that fires; the <code>length == 0</code> clause treats an empty result as missing data too, instead of erroring.</p>
+<h3>Change Detection Alerts</h3>
+<p>Sumo:</p>
+<pre><code>_sourceCategory=audit | logcompare timeshift=24h
+</code></pre>
+<p>Dynatrace: Change detection or two-fetch comparison workflow. See OPLOGS-08.</p>
+<h3>Multi-Metric Correlation</h3>
+<p>Sumo: two separate monitors with same target; Dynatrace: one Workflow with two DQL tasks + AND condition.</p>
+<p><a id="tuning"></a></p>
+<h2>8. Tuning &amp; Noise Reduction</h2>
+<p>Expect more alerts in the first week post-cutover — baselines aren't learned yet, and Workflow thresholds may be too aggressive.</p>
+<h3>First-week discipline</h3>
+<ol>
+<li>Monitor alert volume daily. Dashboard the total count of detected problems + Workflow triggers.</li>
+<li>For every alert, triage: real issue, false positive, or threshold too tight?</li>
+<li>Adjust thresholds daily until noise drops below Sumo baseline.</li>
+</ol>
+<h3>anomaly detection — let it learn</h3>
+<p>Dynatrace Intelligence needs ~2 weeks of data to build a stable baseline. During week 1–2, expect more sensitivity alerts. Keep them in a separate &quot;tuning&quot; severity class if possible; don't page on-call for them.</p>
+<h3>Checking alert volume</h3>
+<pre><code class="language-dql">// Alert volume over time — compare Sumo baseline
+// dt.davis.problems holds one record per problem; `fetch events | filter event.kind == &quot;DAVIS_PROBLEM&quot;`
+// returns every update of every problem and over-counts many times over.
+fetch dt.davis.problems, from:-7d
+| makeTimeseries problems = count(), interval:24h, time:event.start
+
+</code></pre>
+<h3>Silence during load tests</h3>
+<p>Configure a maintenance window before load tests, CI/CD deployments, or controlled outages. In Latest Dynatrace the Settings schema is <code>builtin:maintenance-windows</code>, and a window is scoped with DQL matcher expressions on Grail primary fields and tags. Latest Dynatrace always detects problems during a window — there is no option to disable detection — so muting is done in the notification path: problems raised during a window carry <code>maintenance.is_under_maintenance = true</code>, and a problem-triggered Workflow skips them when its trigger's additional custom filter query is <code>maintenance.is_under_maintenance != true</code>.</p>
+<p>On a classic tenant, maintenance windows use the classic schema <code>builtin:alerting.maintenance-window</code>, whose <code>suppression</code> option chooses between <em>Detect problems and alert</em>, <em>Detect problems but don't alert</em>, and <em>Disable problem detection during maintenance</em>. Classic windows are not migrated automatically when you upgrade; recreate them as Latest Dynatrace windows.</p>
+<p>A scheduled DQL workflow (§5, §7) is not a problem trigger, and the maintenance-window pages do not say it consults the window. In community practice, disable those workflows for the window, or move the alert to a custom alert plus a problem-triggered workflow so the filter above applies.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/upgrade-from-classic-maintenance-windows">Upgrade from classic maintenance windows (DT docs)</a> — <em>&quot;Latest Dynatrace always detects problems.&quot;</em>, <em>&quot;There is no equivalent to disabling problem detection entirely.&quot;</em>, <em>&quot;Window scope uses DQL matcher filter criteria on Grail primary fields and tags.&quot;</em>, <em>&quot;Classic maintenance windows are not migrated automatically&quot;</em>; <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-maintenance-windows">builtin:maintenance-windows schema (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-alerting-maintenance-window">builtin:alerting.maintenance-window schema (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications/maintenance-windows/use-maintenance-window-data-grail">Use maintenance window data in Grail (DT docs)</a> — <em>&quot;maintenance.is_under_maintenance != true&quot;</em>.</sub></p>
+</blockquote>
+<h3>Severity mapping</h3>
+<p>Dynatrace has no P1/P2/P3 severity. A problem carries an <code>event.category</code> (for example <code>AVAILABILITY</code>, <code>ERROR</code>, <code>SLOWDOWN</code>, <code>RESOURCE_CONTENTION</code>, <code>CUSTOM_ALERT</code>), and routing happens in the problem-triggered Workflow. Carry the Sumo priority across as an extra key-value property on the custom alert's event template (for example <code>sumo.priority</code>), confirm it appears on the resulting problem in your tenant, and route on it; FAQ-21 covers the routing pattern.</p>
+<table>
+<thead>
+<tr>
+<th>Sumo Priority</th>
+<th>Route on</th>
+<th>Notification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Critical</td>
+<td><code>sumo.priority == &quot;critical&quot;</code>, or <code>event.category</code> <code>AVAILABILITY</code> / <code>ERROR</code></td>
+<td>PagerDuty + ServiceNow</td>
+</tr>
+<tr>
+<td>High</td>
+<td><code>sumo.priority == &quot;high&quot;</code></td>
+<td>ServiceNow</td>
+</tr>
+<tr>
+<td>Warning</td>
+<td><code>sumo.priority == &quot;warning&quot;</code></td>
+<td>Email</td>
+</tr>
+<tr>
+<td>Info</td>
+<td>(no alert)</td>
+<td>Logged only</td>
+</tr>
+</tbody>
+</table>
+<p><a id="gate"></a></p>
+<h2>9. Step Exit Criteria</h2>
+<p><strong>G5 — Monitors Rebuilt</strong></p>
+<ul>
+<li>[ ] Every Sumo monitor has a decision logged (custom alert / Workflow / Metric Event / retire)</li>
+<li>[ ] ≥40% of new monitors use anomaly detection (not static thresholds) — track this metric</li>
+<li>[ ] Top-10 business-critical monitors validated end-to-end (fires on known-bad condition, doesn't fire on normal)</li>
+<li>[ ] Notification integrations (ServiceNow, Slack, PagerDuty) tested with live test incidents</li>
+<li>[ ] First-week alert volume ≤ Sumo baseline</li>
+<li>[ ] App teams trained on monitor rebuild (train-the-trainer — see SL2DT-01)</li>
+</ul>
+<p><strong>Next step:</strong> <strong>SL2DT-06 — Dashboard Conversion</strong> (rebuild dashboards using the translation output).</p>
+<hr />
+<p><a id="references"></a></p>
+<h2>10. References</h2>
+<h3>Dynatrace alerting and intelligence</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection">Anomaly detection (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows">Workflows (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic">Notifications and alerting (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app">Problems app (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/maintenance-windows">Maintenance windows (DT docs)</a></li>
+</ul>
+<h3>Sumo Logic monitor and alert reference (source)</h3>
+<ul>
+<li><a href="https://www.sumologic.com:443/help/docs/alerts/monitors/">Sumo Logic monitors (Sumo Logic docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://www.sumologic.com:443/help/docs/">Sumo Logic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

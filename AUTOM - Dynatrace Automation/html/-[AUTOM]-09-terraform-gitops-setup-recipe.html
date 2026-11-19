@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AUTOM-09: Terraform GitOps Setup Recipe</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">AUTOM — Dynatrace Automation</a><span class="sep">/</span><span aria-current="page">AUTOM-09</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>AUTOM-09: Terraform GitOps Setup Recipe</h1>
+<blockquote>
+<p><strong>Series:</strong> AUTOM — Dynatrace Automation | <strong>Notebook:</strong> 9 of 9 | <strong>Created:</strong> May 2026 | <strong>Last Updated:</strong> 10/02/2026</p>
+</blockquote>
+<p>A practical, opinionated recipe for standing up a Terraform GitOps shop for Dynatrace from scratch. This notebook covers what AUTOM-04 (Terraform resources) and AUTOM-07 (CI/CD integration) deliberately don't — repo layout, state backend choices, multi-environment promotion, lifecycle protections, secrets handling end-to-end, team onboarding, and operational realities. Use it as the bootstrap reference; consult AUTOM-04 for resource-level patterns and AUTOM-07 for CI/CD pipeline specifics.</p>
+<blockquote>
+<p><strong>Scope:</strong> how to <em>set up</em> a Terraform GitOps shop. Not &quot;Terraform basics&quot; (use HashiCorp Learn) and not &quot;what Dynatrace resources exist&quot; (use AUTOM-04). This is the operational architecture between those two layers.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#introduction">Introduction — How This Recipe Fits</a></li>
+<li><a href="#repo-layout">Opinionated Repo Layout</a></li>
+<li><a href="#state-backend">State Backend Setup</a></li>
+<li><a href="#provider-config">Provider Configuration and Version Discipline</a></li>
+<li><a href="#module-strategy">Module Strategy</a></li>
+<li><a href="#multi-env-promotion">Multi-Environment Promotion</a></li>
+<li><a href="#cicd-pipeline">CI/CD Pipeline (cross-reference)</a></li>
+<li><a href="#secrets-handling">Secrets Handling End-to-End</a></li>
+<li><a href="#lifecycle">Lifecycle Protections</a></li>
+<li><a href="#onboarding">Onboarding New App Teams</a></li>
+<li><a href="#cost">Cost and DPS Considerations</a></li>
+<li><a href="#operational">Operational Realities — State Lock, Break-Glass, DR</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+</ol>
+<hr />
+<p><a id="prerequisites"></a></p>
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Platform engineering team standing up a Terraform GitOps shop for Dynatrace</td>
+</tr>
+<tr>
+<td><strong>Format</strong></td>
+<td>Opinionated recipe — concrete examples + explicit defaults; not a buffet of options</td>
+</tr>
+<tr>
+<td><strong>Assumes</strong></td>
+<td>Working knowledge of Terraform (HCL, modules, state, providers); familiarity with one Git host (GitHub / GitLab / Bitbucket Cloud)</td>
+</tr>
+<tr>
+<td><strong>Companion notebooks</strong></td>
+<td><strong>AUTOM-04</strong> for resource-level patterns; <strong>AUTOM-07</strong> for CI/CD pipeline details; <strong>AUTOM-01 §5</strong> for when-to-add-Monaco framing; <strong>FAQ-02</strong> for tagging strategy</td>
+</tr>
+<tr>
+<td><strong>Out of scope</strong></td>
+<td>Terraform fundamentals (HashiCorp Learn covers this); Monaco workflows (AUTOM-03); Workflows-based automation (AUTOM-05)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="introduction"></a></p>
+<h2>1. Introduction — How This Recipe Fits</h2>
+<p>AUTOM-04 documents what Terraform resources exist for Dynatrace. AUTOM-07 documents how to wire those resources to a CI/CD pipeline. This notebook fills the operational gap between them: the repo layout, backend setup, lifecycle protections, secrets handling, and team-onboarding mechanics that determine whether your Terraform GitOps shop will be cleanly operable in 12 months — or a state-management swamp.</p>
+<h3>What this notebook is not</h3>
+<ul>
+<li><strong>Not a Terraform tutorial.</strong> Use the <a href="https://developer.hashicorp.com/terraform/tutorials">HashiCorp Learn</a> tracks if you need provider basics.</li>
+<li><strong>Not a substitute for AUTOM-04 + AUTOM-07.</strong> Those notebooks remain the canonical references for resource catalog and pipeline patterns; this one orchestrates the surrounding operational architecture.</li>
+<li><strong>Not a Monaco-vs-Terraform debate.</strong> That question is addressed in <strong>AUTOM-01 §5: When a Terraform Shop Should Add Monaco</strong>. This notebook assumes you've already committed to Terraform as the primary tool.</li>
+</ul>
+<h3>The opinionated stance</h3>
+<p>There are many &quot;valid&quot; Terraform layouts. This recipe picks one — separate-modules-and-environments — because, in community practice, that is the layout production Terraform shops tend to converge to after a year of operating. Picking it on day one saves you the inevitable refactor.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://developer.hashicorp.com/terraform/language">Terraform configuration language (HashiCorp)</a> — module and root configuration concepts.</sub></p>
+</blockquote>
+<p><a id="repo-layout"></a></p>
+<h2>2. Opinionated Repo Layout</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+T3BpbmlvbmF0ZWQgUmVwbyBMYXlvdXQg4oCUIFRlcnJhZm9ybSBHaXRPcHMgZm9yIER5bmF0cmFjZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5Nb2R1bGVzIHNlcGFyYXRlZCBmcm9tIGVudmlyb25tZW50czsgb25lIHJvb3QgcGVyIGVudmlyb25tZW50OyBzaGFyZWQgQ0kgZGVmaW5pdGlvbnMgYXQgdGhlIHRvcDwvdGV4dD4KCiAgPCEtLSBUcmVlIHZpc3VhbGl6YXRpb24gYXMgYm94ZXMgLS0+CiAgPHRleHQgeD0iODAiIHk9IjEwMCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCIgZm9udC1mYW1pbHk9IkpldEJyYWlucyBNb25vLCBNZW5sbywgbW9ub3NwYWNlIj5keW5hdHJhY2UtdGVycmFmb3JtLzwvdGV4dD4KCiAgPHRleHQgeD0iMTAwIiB5PSIxMjgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtZmFtaWx5PSJKZXRCcmFpbnMgTW9ubywgTWVubG8sIG1vbm9zcGFjZSI+4pSc4pSA4pSAIC5naXRodWIvd29ya2Zsb3dzLzwvdGV4dD4KICA8dGV4dCB4PSI1NDAiIHk9IjEyOCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Q0kvQ0QgcGlwZWxpbmVzIChvciAuZ2l0bGFiLWNpLnltbCwgYml0YnVja2V0LXBpcGVsaW5lcy55bWwpPC90ZXh0PgoKICA8dGV4dCB4PSIxMDAiIHk9IjE1MiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyIgZm9udC1mYW1pbHk9IkpldEJyYWlucyBNb25vLCBNZW5sbywgbW9ub3NwYWNlIj7ilJzilIDilIAgbW9kdWxlcy88L3RleHQ+CiAgPHRleHQgeD0iNTQwIiB5PSIxNTIiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPlJldXNhYmxlIG1vZHVsZXMg4oCUIHZlcnNpb25lZCwgZW52LWFnbm9zdGljPC90ZXh0PgoKICA8dGV4dCB4PSIxMjAiIHk9IjE3MyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyIgZm9udC1mYW1pbHk9IkpldEJyYWlucyBNb25vLCBNZW5sbywgbW9ub3NwYWNlIj7ilIIgICDilJzilIDilIAgc2VnbWVudC88L3RleHQ+CiAgPHRleHQgeD0iMTIwIiB5PSIxOTMiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtZmFtaWx5PSJKZXRCcmFpbnMgTW9ubywgTWVubG8sIG1vbm9zcGFjZSI+4pSCICAg4pSc4pSA4pSAIHByb2JsZW0tcm91dGluZy88L3RleHQ+CiAgPHRleHQgeD0iMTIwIiB5PSIyMTMiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtZmFtaWx5PSJKZXRCcmFpbnMgTW9ubywgTWVubG8sIG1vbm9zcGFjZSI+4pSCICAg4pSc4pSA4pSAIHNsby88L3RleHQ+CiAgPHRleHQgeD0iMTIwIiB5PSIyMzMiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtZmFtaWx5PSJKZXRCcmFpbnMgTW9ubywgTWVubG8sIG1vbm9zcGFjZSI+4pSCICAg4pSU4pSA4pSAIHN5bnRoZXRpYy1odHRwLzwvdGV4dD4KCiAgPHRleHQgeD0iMTAwIiB5PSIyNjEiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtZmFtaWx5PSJKZXRCcmFpbnMgTW9ubywgTWVubG8sIG1vbm9zcGFjZSI+4pSc4pSA4pSAIGVudnMvPC90ZXh0PgogIDx0ZXh0IHg9IjU0MCIgeT0iMjYxIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5PbmUgcm9vdCBwZXIgZW52aXJvbm1lbnQg4oCUIHJlZmVyZW5jZXMgbW9kdWxlcyArIHBlci1lbnYgdGZ2YXJzPC90ZXh0PgoKICA8dGV4dCB4PSIxMjAiIHk9IjI4MiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyIgZm9udC1mYW1pbHk9IkpldEJyYWlucyBNb25vLCBNZW5sbywgbW9ub3NwYWNlIj7ilIIgICDilJzilIDilIAgZGV2LzwvdGV4dD4KICA8dGV4dCB4PSIxNDAiIHk9IjMwMiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyIgZm9udC1mYW1pbHk9IkpldEJyYWlucyBNb25vLCBNZW5sbywgbW9ub3NwYWNlIj7ilIIgICDilIIgICDilJzilIDilIAgbWFpbi50ZjwvdGV4dD4KICA8dGV4dCB4PSIxNDAiIHk9IjMyMiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyIgZm9udC1mYW1pbHk9IkpldEJyYWlucyBNb25vLCBNZW5sbywgbW9ub3NwYWNlIj7ilIIgICDilIIgICDilJzilIDilIAgYmFja2VuZC50ZjwvdGV4dD4KICA8dGV4dCB4PSIxNDAiIHk9IjM0MiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyIgZm9udC1mYW1pbHk9IkpldEJyYWlucyBNb25vLCBNZW5sbywgbW9ub3NwYWNlIj7ilIIgICDilIIgICDilJTilIDilIAgdGVycmFmb3JtLnRmdmFyczwvdGV4dD4KICA8dGV4dCB4PSIxMjAiIHk9IjM2MiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyIgZm9udC1mYW1pbHk9IkpldEJyYWlucyBNb25vLCBNZW5sbywgbW9ub3NwYWNlIj7ilIIgICDilJzilIDilIAgc3RhZ2luZy88L3RleHQ+CiAgPHRleHQgeD0iMTIwIiB5PSIzODIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtZmFtaWx5PSJKZXRCcmFpbnMgTW9ubywgTWVubG8sIG1vbm9zcGFjZSI+4pSCICAg4pSU4pSA4pSAIHByb2R1Y3Rpb24vPC90ZXh0PgoKICA8dGV4dCB4PSIxMDAiIHk9IjQxMCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyIgZm9udC1mYW1pbHk9IkpldEJyYWlucyBNb25vLCBNZW5sbywgbW9ub3NwYWNlIj7ilJzilIDilIAgcG9saWN5LzwvdGV4dD4KICA8dGV4dCB4PSI1NDAiIHk9IjQxMCIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+U2VudGluZWwgLyBPUEEgcnVsZXMgZW5mb3JjZWQgaW4gQ0k8L3RleHQ+CgogIDx0ZXh0IHg9IjEwMCIgeT0iNDM0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIiBmb250LWZhbWlseT0iSmV0QnJhaW5zIE1vbm8sIE1lbmxvLCBtb25vc3BhY2UiPuKUnOKUgOKUgCBERUNJU0lPTlMubWQ8L3RleHQ+CiAgPHRleHQgeD0iNTQwIiB5PSI0MzQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkFyY2hpdGVjdHVyYWwgZGVjaXNpb25zIGxvZzwvdGV4dD4KCiAgPHRleHQgeD0iMTAwIiB5PSI0NTgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtZmFtaWx5PSJKZXRCcmFpbnMgTW9ubywgTWVubG8sIG1vbm9zcGFjZSI+4pSU4pSA4pSAIFJFQURNRS5tZDwvdGV4dD4KICA8dGV4dCB4PSI1NDAiIHk9IjQ1OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+T25ib2FyZGluZyBlbnRyeSBwb2ludCArIHJlcG8gY29udmVudGlvbnM8L3RleHQ+Cjwvc3ZnPgo=" alt="Opinionated Repo Layout" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Path | Purpose |
+|------|---------|
+| `.github/workflows/` | CI/CD pipelines (or `.gitlab-ci.yml`, `bitbucket-pipelines.yml`) |
+| `modules/` | Reusable modules — versioned, environment-agnostic |
+| `modules/segment/` | One module per Dynatrace resource family |
+| `modules/problem-routing/` | Same (problem-triggered workflows) |
+| `modules/slo/` | Same |
+| `modules/synthetic-http/` | Same |
+| `envs/dev/` | Dev environment root — references modules + per-env tfvars |
+| `envs/dev/main.tf` | Module instantiations |
+| `envs/dev/backend.tf` | State backend config |
+| `envs/dev/terraform.tfvars` | Per-environment values |
+| `envs/staging/` | Staging environment root (same structure as dev) |
+| `envs/production/` | Production environment root (same structure as dev) |
+| `policy/` | Sentinel / OPA / Conftest rules enforced in CI |
+| `DECISIONS.md` | Architectural decisions log |
+| `README.md` | Onboarding entry point + repo conventions |
+For environments where SVG doesn't render
+-->
+<h3>Why this layout</h3>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Purpose</th>
+<th>What changes when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>modules/&lt;resource-family&gt;/</code></strong></td>
+<td>Reusable building blocks; environment-agnostic; versioned independently</td>
+<td>A pattern is added or refined (new field, new validation)</td>
+</tr>
+<tr>
+<td><strong><code>envs/&lt;env&gt;/</code></strong></td>
+<td>Per-environment composition; references modules with <code>source = &quot;../../modules/&lt;...&gt;&quot;</code> or by Git tag</td>
+<td>An environment-specific value changes (new segment, SLO target, threshold, location)</td>
+</tr>
+<tr>
+<td><strong><code>policy/</code></strong></td>
+<td>Pre-apply guardrails: Sentinel for HCP Terraform, OPA/Conftest for self-hosted CI</td>
+<td>A new governance rule is added (mandatory tag, naming convention)</td>
+</tr>
+</tbody>
+</table>
+<p>The line between <code>modules/</code> and <code>envs/</code> is the <strong>environment-agnostic vs environment-specific</strong> line. If a value differs between staging and production, it lives in <code>envs/&lt;env&gt;/terraform.tfvars</code>, not in the module.</p>
+<h3>What goes where — concrete examples</h3>
+<table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Module input or root variable?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SLO / segment / workflow naming pattern (<code>{env}-{app}-{objective}</code>)</td>
+<td>Module input — the pattern itself is shared</td>
+</tr>
+<tr>
+<td>The specific env / app / role values</td>
+<td>Root tfvars per env</td>
+</tr>
+<tr>
+<td>Severity thresholds</td>
+<td>Module input with sensible defaults; override in root tfvars per env</td>
+</tr>
+<tr>
+<td>Synthetic location IDs</td>
+<td>Root tfvars per env — the IDs differ by tenant</td>
+</tr>
+<tr>
+<td>Sentinel policies</td>
+<td>Top-level <code>policy/</code> directory — not per-env</td>
+</tr>
+<tr>
+<td>Provider version constraint</td>
+<td>Top-level <code>versions.tf</code> shared by every root via symlink, or duplicated identically</td>
+</tr>
+</tbody>
+</table>
+<h3>Two-repo variant — modules separate from consumer (community-validated pattern)</h3>
+<p>A common variant promoted in <a href="https://community.dynatrace.com/t5/Dynatrace-Guild/Looking-for-Best-Practices-on-using-Terraform-for-Dynatrace/td-p/299276">a May 2026 Dynatrace Guild thread</a> splits modules and consumer into <strong>two repositories</strong> rather than the single-repo single-tree above:</p>
+<table>
+<thead>
+<tr>
+<th>Repo</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dynatrace-modules</code> (or per-resource-family: <code>dynatrace-dashboards</code>, <code>dynatrace-alerting</code>, <code>dynatrace-anomalies</code>, <code>dynatrace-global-settings</code>, as the thread names them)</td>
+<td>Reusable modules. Versioned with Git tags (<code>v1.4.0</code>); released as immutable artifacts.</td>
+</tr>
+<tr>
+<td><code>dynatrace-config-platform</code> (consumer)</td>
+<td>Environment-specific configuration only. References modules via pinned Git tags.</td>
+</tr>
+</tbody>
+</table>
+<p>The consumer repo organizes by ownership rather than by environment alone:</p>
+<pre><code>dynatrace-config-platform/
+├─ org/
+│  ├─ _account_template/             # ← Shared root used by every environment below
+│  │  ├─ backend.tf                  # Remote state backend config (S3, native lockfile locking)
+│  │  ├─ modules.tf                  # Calls reusable modules with pinned Git-tag versions
+│  │  ├─ variables.tf                # Input variable definitions
+│  │  ├─ locals.tf                   # Derived values (env flags, naming conventions)
+│  │  └─ provider.tf                 # Provider auth/region setup
+│  └─ spoke/
+│     └─ team-a/
+│        ├─ dev/
+│        │  ├─ terraform.tfvars      # Dev-only values
+│        │  ├─ segments/             # JSON configs consumed by modules
+│        │  └─ workflows/
+│        └─ prod/
+│           ├─ terraform.tfvars      # Prod-only values
+│           └─ dashboards/
+└─ .github/workflows/                # (or .azure-pipelines/, .buildkite/, etc.)
+</code></pre>
+<p><strong>The <code>_account_template/</code> shared root</strong> is the key element. Rather than duplicating <code>backend.tf</code>, <code>provider.tf</code>, <code>versions.tf</code> into each env directory (the single-repo pattern above), each team / env directory <strong>symlinks or templates from <code>_account_template/</code></strong> to inherit the shared Terraform boilerplate. Changes to the backend or provider config land in one place; every env picks them up.</p>
+<p><strong>Module enablement via <code>locals</code> + conditional <code>for_each</code> / <code>count</code></strong> is the per-env-customization knob inside the shared root. Pattern:</p>
+<pre><code class="language-hcl"># _account_template/locals.tf
+locals {
+  env_flags = {
+    dev  = { enable_synthetic = false, enable_slos = false }
+    prod = { enable_synthetic = true,  enable_slos = true }
+  }
+  flags = local.env_flags[var.env]
+}
+
+# _account_template/modules.tf
+module &quot;synthetic_http&quot; {
+  source   = &quot;git::https://example.com/dynatrace-modules.git//synthetic-http?ref=v1.4.0&quot;
+  for_each = local.flags.enable_synthetic ? var.synthetic_monitors : {}
+  # ...
+}
+</code></pre>
+<p>The flag pattern lets staging skip expensive resources (synthetic monitors consume DPS — see §11) while production runs the full set, all from the same root configuration.</p>
+<h3>When to pick the two-repo variant vs the single-repo layout above</h3>
+<table>
+<thead>
+<tr>
+<th>Single-repo (modules/ + envs/)</th>
+<th>Two-repo (modules separate)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Small platform team (1-3 people); modules co-developed with envs</td>
+<td>Multiple platform teams; modules consumed by many product repos</td>
+</tr>
+<tr>
+<td>Module changes and env changes go in the same PR routinely</td>
+<td>Module releases are deliberate events (Git tag → consumer bumps version)</td>
+</tr>
+<tr>
+<td>Lower ceremony; faster iteration on module shape</td>
+<td>Stronger versioning discipline; module authors and consumers have separate review chains</td>
+</tr>
+</tbody>
+</table>
+<p>The single-repo layout is the right starting point. <strong>Migrate to the two-repo variant when</strong>: (a) more than ~3 product teams are consuming the modules, OR (b) module changes start blocking env changes (or vice versa) due to PR-queue contention, OR (c) audit / compliance requires that the modules code-base is reviewed separately from environment configs.</p>
+<h3>When to deviate further</h3>
+<ul>
+<li><strong>Monorepo with many products.</strong> Sub-divide <code>envs/</code> further (e.g., <code>envs/&lt;product&gt;/&lt;env&gt;/</code>) and consider git submodules for modules consumed by multiple products.</li>
+<li><strong>Truly separate platform teams.</strong> Put <code>modules/</code> in its own repo, version with Git tags or a private Terraform registry, consume from product-team repos by reference — the two-repo variant above is the canonical shape of this.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://developer.hashicorp.com/terraform/language/modules/develop/composition">Module composition (HashiCorp)</a> — the &quot;root module + child modules&quot; model.</sub></li>
+<li><sub><a href="https://developer.hashicorp.com/terraform/language/modules/develop/structure">Standard module structure (HashiCorp)</a> — the <code>main.tf</code>/<code>variables.tf</code>/<code>outputs.tf</code> convention used in <code>modules/&lt;resource-family&gt;/</code>.</sub></li>
+</ul>
+</blockquote>
+<p><a id="state-backend"></a></p>
+<h2>3. State Backend Setup</h2>
+<p>State is the durable record of what Terraform manages. Remote backends matter for three reasons: concurrent-apply safety (state locking), audit (state history), and shared visibility (multiple people can see the same state). Local-file state is fine for solo experimentation; it is not fine for a team.</p>
+<h3>Choosing a backend</h3>
+<table>
+<thead>
+<tr>
+<th>Backend</th>
+<th>Choose when</th>
+<th>Trade-off</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>HCP Terraform</strong> (<code>cloud {}</code>)</td>
+<td>You want managed state + run-on-HCP + Sentinel policy enforcement out-of-box</td>
+<td>Paid SaaS; ties you to HashiCorp; runs originate on HCP unless you configure agents</td>
+</tr>
+<tr>
+<td><strong>S3 (native lockfile)</strong></td>
+<td>You're an AWS shop already; want self-hosted; have ops capacity to maintain it</td>
+<td>Bucket needs encryption + versioning; native locking needs Terraform 1.11+ (DynamoDB-based locking is deprecated)</td>
+</tr>
+<tr>
+<td><strong>GCS</strong> (with built-in locking)</td>
+<td>You're a GCP shop; want self-hosted</td>
+<td>Built-in locking; no extra resources</td>
+</tr>
+<tr>
+<td><strong>Azure Storage</strong> (with built-in lease-based locking)</td>
+<td>You're an Azure shop</td>
+<td>Built-in locking via blob lease</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>The four examples below show one <code>backend.tf</code> per environment. Each environment has its own state file / workspace — the line between envs is the line between state files. Cross-env access happens via <code>terraform_remote_state</code> data sources (used sparingly).</p>
+</blockquote>
+<h3>HCP Terraform backend</h3>
+<pre><code class="language-hcl"># envs/production/backend.tf
+terraform {
+  cloud {
+    organization = &quot;my-org&quot;
+    workspaces {
+      name = &quot;dynatrace-production&quot;
+    }
+  }
+}
+</code></pre>
+<p>Workspace per environment; HCP manages state, locking, and run history. Sentinel policies attach to the workspace.</p>
+<h3>S3 backend (native locking)</h3>
+<pre><code class="language-hcl"># envs/production/backend.tf
+terraform {
+  backend &quot;s3&quot; {
+    bucket         = &quot;my-org-terraform-state-prod&quot;
+    key            = &quot;dynatrace/terraform.tfstate&quot;
+    region         = &quot;us-east-1&quot;
+    encrypt        = true
+    use_lockfile   = true # S3-native locking (GA in Terraform 1.11)
+    kms_key_id     = &quot;arn:aws:kms:us-east-1:123456789012:key/abcd-...&quot;
+  }
+}
+</code></pre>
+<p><code>use_lockfile</code> writes a <code>&lt;key&gt;.tflock</code> object next to the state, so no lock table is needed. HashiCorp's S3 backend page: <em>&quot;DynamoDB-based locking is deprecated and will be removed in a future minor version.&quot;</em> The <a href="https://github.com/hashicorp/terraform/blob/v1.11/CHANGELOG.md">Terraform 1.11 changelog (HashiCorp GitHub)</a> marks the switch: <em>&quot;S3 native state locking is now generally available.&quot;</em></p>
+<p><strong>Bucket setup checklist:</strong></p>
+<ul>
+<li>Versioning enabled (recovery from accidental state deletion)</li>
+<li>Server-side encryption with KMS CMK (not just SSE-S3)</li>
+<li>Public-access block on</li>
+<li>Lifecycle policy keeping at least 90 days of versions</li>
+<li>Bucket policy restricting access to the CI/CD service principal + the platform team — and allowing that principal <code>s3:GetObject</code>, <code>s3:PutObject</code> and <code>s3:DeleteObject</code> on the <code>.tflock</code> object</li>
+</ul>
+<p><strong>State-key naming — derive from repo + env path:</strong> for shops with multiple Dynatrace-Terraform repos sharing one state bucket, derive the S3 key from <code>&lt;repo-name&gt;/&lt;env-path&gt;/terraform.tfstate</code> rather than a flat <code>dynatrace/&lt;env&gt;.tfstate</code>. Examples: <code>dynatrace-config-platform/team-a/prod/terraform.tfstate</code>, <code>dynatrace-tenant-bootstrap/sandbox/terraform.tfstate</code>. This isolation lets multiple repos coexist in one bucket without key collisions; the bucket-policy + KMS-key boundary still applies at the prefix level. A simple <code>backend.tf</code> template that interpolates the key from repo + env:</p>
+<pre><code class="language-hcl">terraform {
+  backend &quot;s3&quot; {
+    bucket = &quot;my-org-terraform-state-prod&quot;
+    # key set per-env in backend config file or via -backend-config flag:
+    # key = &quot;&lt;repo-name&gt;/&lt;env-path&gt;/terraform.tfstate&quot;
+    region         = &quot;us-east-1&quot;
+    encrypt        = true
+    use_lockfile   = true
+    kms_key_id     = &quot;arn:aws:kms:us-east-1:123456789012:key/abcd-...&quot;
+  }
+}
+</code></pre>
+<p>Initialize per-env: <code>terraform init -backend-config=&quot;key=dynatrace-config-platform/team-a/prod/terraform.tfstate&quot;</code>.</p>
+<p><strong>Migrating from a DynamoDB lock table:</strong> HashiCorp allows both during the move — <em>&quot;To support migration from older versions of Terraform that only support DynamoDB-based locking, the S3 and DynamoDB arguments can be configured simultaneously.&quot;</em> Add <code>use_lockfile = true</code> next to the existing <code>dynamodb_table</code>, run <code>terraform init -reconfigure</code>, confirm that plans acquire the lock, then remove <code>dynamodb_table</code> (and later the table itself).</p>
+<h3>GCS backend</h3>
+<pre><code class="language-hcl"># envs/production/backend.tf
+terraform {
+  backend &quot;gcs&quot; {
+    bucket  = &quot;my-org-terraform-state-prod&quot;
+    prefix  = &quot;dynatrace/&quot;
+  }
+}
+</code></pre>
+<p>Built-in locking via GCS object generation. Enable bucket versioning + CMEK for parity.</p>
+<h3>Azure Storage backend</h3>
+<pre><code class="language-hcl"># envs/production/backend.tf
+terraform {
+  backend &quot;azurerm&quot; {
+    resource_group_name  = &quot;rg-terraform-state-prod&quot;
+    storage_account_name = &quot;myorgtfstateprod&quot;
+    container_name       = &quot;tfstate&quot;
+    key                  = &quot;dynatrace.tfstate&quot;
+  }
+}
+</code></pre>
+<p>Lease-based locking via Azure Blob. Enable soft-delete + versioning on the container; configure customer-managed keys if compliance requires.</p>
+<h3>State backup and DR</h3>
+<p>Regardless of backend, treat the state file like a tier-0 asset:</p>
+<ol>
+<li><strong>Versioning enabled</strong> on the storage layer (S3 versions / GCS object versions / Azure soft-delete). Not optional.</li>
+<li><strong>Periodic snapshots</strong> to a separate cold storage location for true DR (cross-region copy, separate account). Quarterly minimum; monthly if you make frequent destructive changes.</li>
+<li><strong>Documented restoration procedure.</strong> Test it. A state file you can't restore from is a state file you don't have.</li>
+<li><strong>Never edit state by hand in production.</strong> Use <code>terraform state</code> subcommands; record every state-surgery operation in a runbook.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://developer.hashicorp.com/terraform/language/backend">Backend types (HashiCorp)</a> — backend configuration reference.</sub></li>
+<li><sub><a href="https://developer.hashicorp.com/terraform/language/backend/s3">S3 backend (HashiCorp)</a> — <em>&quot;DynamoDB-based locking is deprecated and will be removed in a future minor version.&quot;</em>; <code>.tflock</code> permissions.</sub></li>
+<li><sub><a href="https://github.com/hashicorp/terraform/blob/v1.11/CHANGELOG.md">Terraform 1.11 changelog (HashiCorp GitHub)</a> — <em>&quot;S3 native state locking is now generally available.&quot;</em></sub></li>
+<li><sub><a href="https://developer.hashicorp.com/terraform/language/backend/gcs">GCS backend (HashiCorp)</a>, <a href="https://developer.hashicorp.com/terraform/language/backend/azurerm">Azure backend (HashiCorp)</a> — per-backend config details.</sub></li>
+<li><sub><strong>Derived:</strong> the bucket-setup checklist (versioning + CMK + public-access-block + lifecycle + bucket policy) is industry-standard cloud-storage hardening applied to state buckets specifically; not vendor-documented as a single checklist.</sub></li>
+</ul>
+</blockquote>
+<p><a id="provider-config"></a></p>
+<h2>4. Provider Configuration and Version Discipline</h2>
+<p>Provider version drift bites Terraform shops harder than almost anything else. A simple <code>~&gt;</code> constraint discipline avoids most of the pain.</p>
+<h3>Top-level <code>versions.tf</code> per environment</h3>
+<pre><code class="language-hcl"># envs/production/versions.tf
+terraform {
+  required_version = &quot;~&gt; 1.15&quot;
+
+  required_providers {
+    dynatrace = {
+      source  = &quot;dynatrace-oss/dynatrace&quot;
+      version = &quot;~&gt; 1.96&quot;
+    }
+    aws = {
+      source  = &quot;hashicorp/aws&quot;
+      version = &quot;~&gt; 6.0&quot;
+    }
+  }
+}
+</code></pre>
+<h3>Constraint discipline</h3>
+<table>
+<thead>
+<tr>
+<th>Constraint</th>
+<th>Meaning</th>
+<th>Use when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>version = &quot;1.96.3&quot;</code></td>
+<td>Exact pin</td>
+<td>Never (loses bug fixes)</td>
+</tr>
+<tr>
+<td><code>version = &quot;~&gt; 1.96.0&quot;</code></td>
+<td>Allows 1.96.x patch versions only (<code>&gt;= 1.96.0, &lt; 1.97.0</code>)</td>
+<td>Production — get patches, not feature changes</td>
+</tr>
+<tr>
+<td><code>version = &quot;~&gt; 1.96&quot;</code></td>
+<td>Any 1.x ≥ 1.96 (<code>&gt;= 1.96, &lt; 2.0</code>)</td>
+<td>Most environments — get minor and patch versions, gate at major</td>
+</tr>
+<tr>
+<td><code>version = &quot;&gt;= 1.96&quot;</code></td>
+<td>Any ≥ 1.96</td>
+<td>Avoid — no upper bound, breaks unpredictably</td>
+</tr>
+</tbody>
+</table>
+<p>The middle two are the practical defaults. Use the <strong>tighter</strong> form (<code>~&gt; 1.96.0</code>) in production once you've validated a specific minor; use the <strong>looser</strong> form (<code>~&gt; 1.96</code>) in dev/staging to catch minor-version changes early. The <code>~&gt;</code> operator only lets the <strong>rightmost</strong> version component increment — HashiCorp's own example: <code>~&gt; 1.1</code> <em>&quot;Allows Terraform to install 1.2 and 1.10 but not 2.0.&quot;</em> So the <code>versions.tf</code> above (<code>~&gt; 1.96</code>) floats to the newest 1.x.</p>
+<h3>Combined auth in the provider config</h3>
+<pre><code class="language-hcl"># envs/production/main.tf
+provider &quot;dynatrace&quot; {
+  dt_env_url   = var.dt_env_url
+  dt_api_token = var.dt_api_token
+  # Platform Token is read from the DYNATRACE_PLATFORM_TOKEN (or DT_PLATFORM_TOKEN) env var.
+  # OAuth client for dynatrace_platform_slo (§5) and IAM: DT_CLIENT_ID,
+  # DT_CLIENT_SECRET and DT_ACCOUNT_ID env vars.
+  # Set DYNATRACE_HTTP_OAUTH_PREFERENCE=true in the CI/CD env.
+}
+</code></pre>
+<p>See <strong>AUTOM-07 §3 <em>Terraform Workflow with Combined Auth</em></strong> for the pipeline pattern. Plan for <strong>three</strong> credentials, not two: a classic API token for classic resources, a Platform Token for most platform resources, <strong>plus an OAuth client</strong> (<code>DT_CLIENT_ID</code> / <code>DT_CLIENT_SECRET</code> / <code>DT_ACCOUNT_ID</code>) for <code>dynatrace_platform_slo</code> — the representative module in §5 — and for IAM. The provider docs state that <em>&quot;Platform tokens can't be used for IAM (Account Management) or classic resources&quot;</em>, its <code>dynatrace_platform_slo</code> page asks for an OAuth client with <code>slo:slos:read</code> / <code>slo:slos:write</code>, and the SLO service is not among the services the <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens">Platform tokens (DT docs)</a> page lists as covered. With only the two tokens, the recipe's first module cannot authenticate.</p>
+<h3>Upgrade cadence</h3>
+<table>
+<thead>
+<tr>
+<th>Cadence</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Every Dynatrace provider release</strong></td>
+<td>Skim the release notes; flag breaking changes; defer minor bumps until staging-validated</td>
+</tr>
+<tr>
+<td><strong>Quarterly</strong></td>
+<td>Bump the production version constraint after staging has been on the newer version for 2–4 weeks without issue</td>
+</tr>
+<tr>
+<td><strong>On a known breaking change</strong></td>
+<td>Coordinate the bump across all envs in one PR; bring a rollback plan</td>
+</tr>
+</tbody>
+</table>
+<p>The Dynatrace provider has been on a steady cadence — v1.88 (November 2025) through v1.105 (September 2026), several of them with breaking changes (v1.101, v1.102 and v1.104 each removed resources, attributes or environment variables). Staying current is straightforward if you treat it as a recurring chore.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://developer.hashicorp.com/terraform/language/providers/requirements">Provider requirements (HashiCorp)</a> — <code>required_providers</code> syntax.</sub></li>
+<li><sub><a href="https://developer.hashicorp.com/terraform/language/expressions/version-constraints">Version constraints (HashiCorp)</a> — <em>&quot;Allows Terraform to install 1.2 and 1.10 but not 2.0.&quot;</em> (the <code>~&gt; 1.1</code> example).</sub></li>
+<li><sub><a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases">dynatrace-oss/terraform-provider-dynatrace releases (GitHub)</a> — release cadence reference (v1.105.0, released 09/23/2026, at time of writing).</sub></li>
+<li><sub><a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md">Provider index (Dynatrace GitHub)</a> — <code>platform_token</code>: <em>&quot;Platform tokens can't be used for IAM (Account Management) or classic resources.&quot;</em>; the <code>DYNATRACE_HTTP_OAUTH_PREFERENCE</code> variable.</sub></li>
+<li><sub><a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_slo.md"><code>platform_slo.md</code> (Dynatrace GitHub)</a> — OAuth client with <strong>View SLOs</strong> (<code>slo:slos:read</code>) and <strong>Create and edit SLOs</strong> (<code>slo:slos:write</code>).</sub></li>
+</ul>
+</blockquote>
+<p><a id="module-strategy"></a></p>
+<h2>5. Module Strategy</h2>
+<p>Modules are how you keep the codebase from sprawling as you add resources. The decisions: what to modularize, how to version, and where to put modules consumed by multiple products.</p>
+<h3>What to modularize</h3>
+<p><strong>Modularize when:</strong></p>
+<ul>
+<li>The same resource shape will be created multiple times with different inputs (e.g., 20 service SLOs, each following the same naming + tagging pattern → one SLO module instantiated 20 times)</li>
+<li>A resource has many supporting resources that always go together (e.g., a synthetic monitor + the SLO built on it + the problem-routing workflow that pages its owner → one bundle module)</li>
+<li>A pattern encodes governance rules (e.g., a module that <em>always</em> sets <code>dt.security_context</code> and a mandatory tag set)</li>
+</ul>
+<p><strong>Don't modularize when:</strong></p>
+<ul>
+<li>A resource exists exactly once (most platform-wide configs — wrapping a single bucket or OpenPipeline definition in a module just adds indirection)</li>
+<li>The &quot;module&quot; would have one input and one output (premature abstraction)</li>
+</ul>
+<h3>Versioning modules</h3>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Use when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Local-path references</strong> (<code>source = &quot;../../modules/slo&quot;</code>)</td>
+<td>Same repo as the consumer; fastest iteration</td>
+</tr>
+<tr>
+<td><strong>Git tag references</strong> (<code>source = &quot;git::https://gitlab.example.com/platform/terraform-modules.git//slo?ref=v1.4.0&quot;</code>)</td>
+<td>Modules in a separate repo, consumed by multiple product repos; clear version semantics</td>
+</tr>
+<tr>
+<td><strong>Terraform registry</strong> (private or public)</td>
+<td>You publish to a registry (HCP Terraform private registry, Artifactory) and want UI browsing + version metadata</td>
+</tr>
+</tbody>
+</table>
+<p>Pick one per repo; mixing leads to confusion about where modules live.</p>
+<h3>Semantic versioning for modules</h3>
+<ul>
+<li><strong>Patch (1.4.0 → 1.4.1)</strong> — bug fix, no input or output change</li>
+<li><strong>Minor (1.4.0 → 1.5.0)</strong> — new optional input with a sensible default; new output; no breaking change</li>
+<li><strong>Major (1.x → 2.0.0)</strong> — required input added, input removed, output removed, resource address changed</li>
+</ul>
+<p>Treat module versions as a contract with consumers. Renaming a resource inside a module without a major version bump breaks every consumer's plan on next apply.</p>
+<h3>A representative module</h3>
+<pre><code class="language-hcl"># modules/slo/main.tf
+variable &quot;env&quot; { type = string }
+variable &quot;app&quot; { type = string }
+variable &quot;objective&quot; { type = string } # e.g. &quot;availability&quot;
+variable &quot;owner_tag&quot; { type = string }
+variable &quot;target&quot; { type = number }
+variable &quot;warning&quot; { type = number }
+variable &quot;sli_query&quot; { type = string } # DQL producing a timeseries field named `sli`
+
+resource &quot;dynatrace_platform_slo&quot; &quot;this&quot; {
+  name        = &quot;${var.env}-${var.app}-${var.objective}&quot;
+  description = &quot;${var.objective} SLO for ${var.app} (${var.env})&quot;
+  tags        = [&quot;env:${var.env}&quot;, &quot;app:${var.app}&quot;, &quot;owner:${var.owner_tag}&quot;]
+
+  criteria {
+    criteria_detail {
+      target         = var.target
+      warning        = var.warning
+      timeframe_from = &quot;now-30d&quot;
+      timeframe_to   = &quot;now&quot;
+    }
+  }
+
+  custom_sli {
+    indicator = var.sli_query
+  }
+}
+
+output &quot;id&quot; { value = dynatrace_platform_slo.this.id }
+output &quot;name&quot; { value = dynatrace_platform_slo.this.name }
+</code></pre>
+<p>The module encodes the naming pattern (<code>{env}-{app}-{objective}</code>) and the mandatory tag set. Consumers can't accidentally name an SLO differently or ship one without an owner — the convention is enforced at the module boundary. (The SLI query stays a module input because it is the one thing each team must validate for itself — SLO-02 for writing it, SLO-05 for the resource.)</p>
+<blockquote>
+<p><strong>Classic equivalent.</strong> Modules written before the upgrade typically wrap <code>dynatrace_management_zone_v2</code> with exactly this naming-pattern discipline. Keep such a module only while the zones it manages still exist; management zones are blocked at upgrade, and their jobs split across segments (filtering), IAM policies (access) and problem-routing workflows (alerting) — see AUTOM-04 §4 <em>Classic Resources</em> and MZ2POL.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://developer.hashicorp.com/terraform/language/modules/develop">Module development (HashiCorp)</a> — module-authoring guidance.</sub></li>
+<li><sub><a href="https://developer.hashicorp.com/terraform/language/modules/configuration">Module sources (HashiCorp)</a> — local paths, Git, registry references.</sub></li>
+<li><sub><a href="https://semver.org/">Semantic Versioning 2.0.0</a> — <code>MAJOR.MINOR.PATCH</code> semantics applied to modules.</sub></li>
+</ul>
+</blockquote>
+<p><a id="multi-env-promotion"></a></p>
+<h2>6. Multi-Environment Promotion</h2>
+<p>The whole point of the modules + envs split is enabling promotion: the same module code runs against three different tenants with three different <code>tfvars</code> and three different state files.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+TXVsdGktRW52aXJvbm1lbnQgUHJvbW90aW9uIOKAlCBTYW1lIE1vZHVsZXMsIFBlci1FbnYgdGZ2YXJzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPk1vZHVsZSBjb2RlIGlzIHNoYXJlZDsgZW52aXJvbm1lbnQtc3BlY2lmaWMgdmFsdWVzLCBiYWNrZW5kcywgYW5kIHN0YXRlIGFyZSBpc29sYXRlZCBwZXIgZW52PC90ZXh0PgoKICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFycm93LTA5YSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBTaGFyZWQgbW9kdWxlIGxheWVyIC0tPgogIDxyZWN0IHg9IjQwIiB5PSI5MCIgd2lkdGg9Ijg1MCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjExNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+U2hhcmVkIE1vZHVsZXMgKG1vZHVsZXMvc2VnbWVudCwgbW9kdWxlcy9wcm9ibGVtLXJvdXRpbmcsIG1vZHVsZXMvc2xvLCBtb2R1bGVzL3N5bnRoZXRpYy1odHRwKTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjEzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+VmVyc2lvbmVkIHdpdGggR2l0IHRhZ3MgKHYxLjIuMykgb3IgcmVnaXN0cnkgcmVmZXJlbmNlcy4gU2FtZSBjb2RlIGNvbnN1bWVkIGJ5IGV2ZXJ5IGVudmlyb25tZW50IGJlbG93LjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjE1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+TW9kdWxlcyBhY2NlcHQgZW52LWFnbm9zdGljIGlucHV0cyAoaG9zdF9ncm91cF9wcmVmaXgsIHNldmVyaXR5X2xldmVscywgbG9jYXRpb25faWRzKSDigJQgbm8gaGFyZC1jb2RlZCBlbnZpcm9ubWVudCB2YWx1ZXMuPC90ZXh0PgoKICA8IS0tIFRocmVlIGVudmlyb25tZW50IGNvbHVtbnMgLS0+CiAgPCEtLSBEZXYgLS0+CiAgPHJlY3QgeD0iNjAiIHk9IjIwMCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIyMjAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIyMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPmVudnMvZGV2LzwvdGV4dD4KICA8dGV4dCB4PSIxODAiIHk9IjI0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+VGVuYW50OiBkZXYubGl2ZS5keW5hdHJhY2UuY29tPC90ZXh0PgoKICA8cmVjdCB4PSI4MCIgeT0iMjY1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8dGV4dCB4PSIxODAiIHk9IjI5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+bWFpbi50ZiDCtyBtb2R1bGUgc291cmNlczwvdGV4dD4KCiAgPHJlY3QgeD0iODAiIHk9IjMxNSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI0MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIzNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnRlcnJhZm9ybS50ZnZhcnMgKGRldik8L3RleHQ+CgogIDxyZWN0IHg9IjgwIiB5PSIzNjUiIHdpZHRoPSIyMDAiIGhlaWdodD0iNDAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjE4MCIgeT0iMzkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5iYWNrZW5kLnRmIMK3IHN0YXRlOiBkZXYtc3RhdGU8L3RleHQ+CgogIDwhLS0gU3RhZ2luZyAtLT4KICA8cmVjdCB4PSIzNDUiIHk9IjIwMCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIyMjAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIyMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPmVudnMvc3RhZ2luZy88L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIyNDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlRlbmFudDogc3RhZ2luZy5saXZlLmR5bmF0cmFjZS5jb208L3RleHQ+CgogIDxyZWN0IHg9IjM2NSIgeT0iMjY1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjI5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+bWFpbi50ZiDCtyBtb2R1bGUgc291cmNlczwvdGV4dD4KCiAgPHJlY3QgeD0iMzY1IiB5PSIzMTUiIHdpZHRoPSIyMDAiIGhlaWdodD0iNDAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj50ZXJyYWZvcm0udGZ2YXJzIChzdGFnaW5nKTwvdGV4dD4KCiAgPHJlY3QgeD0iMzY1IiB5PSIzNjUiIHdpZHRoPSIyMDAiIGhlaWdodD0iNDAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5iYWNrZW5kLnRmIMK3IHN0YXRlOiBzdGFnaW5nLXN0YXRlPC90ZXh0PgoKICA8IS0tIFByb2R1Y3Rpb24gLS0+CiAgPHJlY3QgeD0iNjMwIiB5PSIyMDAiIHdpZHRoPSIyNDAiIGhlaWdodD0iMjIwIiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9Ijc1MCIgeT0iMjI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5lbnZzL3Byb2R1Y3Rpb24vPC90ZXh0PgogIDx0ZXh0IHg9Ijc1MCIgeT0iMjQ4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5UZW5hbnQ6IHByb2QubGl2ZS5keW5hdHJhY2UuY29tPC90ZXh0PgoKICA8cmVjdCB4PSI2NTAiIHk9IjI2NSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI0MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzUwIiB5PSIyOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm1haW4udGYgwrcgbW9kdWxlIHNvdXJjZXM8L3RleHQ+CgogIDxyZWN0IHg9IjY1MCIgeT0iMzE1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8dGV4dCB4PSI3NTAiIHk9IjM0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dGVycmFmb3JtLnRmdmFycyAocHJvZHVjdGlvbik8L3RleHQ+CgogIDxyZWN0IHg9IjY1MCIgeT0iMzY1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8dGV4dCB4PSI3NTAiIHk9IjM5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YmFja2VuZC50ZiDCtyBzdGF0ZTogcHJvZC1zdGF0ZTwvdGV4dD4KCiAgPCEtLSBQcm9tb3Rpb24gYXJyb3dzIGJldHdlZW4gZW52cyAtLT4KICA8bGluZSB4MT0iMzA1IiB5MT0iMzEwIiB4Mj0iMzQwIiB5Mj0iMzEwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93LTA5YSkiLz4KICA8bGluZSB4MT0iNTkwIiB5MT0iMzEwIiB4Mj0iNjI1IiB5Mj0iMzEwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93LTA5YSkiLz4KCiAgPHRleHQgeD0iMzIyIiB5PSIzMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtc3R5bGU9Iml0YWxpYyI+cHJvbW90ZTwvdGV4dD4KICA8dGV4dCB4PSI2MDciIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCIgZm9udC1zdHlsZT0iaXRhbGljIj5tYW51YWwgZ2F0ZTwvdGV4dD4KCiAgPCEtLSBGb290ZXIgLS0+CiAgPHRleHQgeD0iNDY1IiB5PSI0NTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlByb21vdGlvbiA9IGJ1bXAgbW9kdWxlIHZlcnNpb24gaW4gdGhlIG5leHQgZW52J3MgbWFpbi50ZiAoZS5nLiwgdjEuMi4zIOKGkiB2MS4yLjQpLCBvcGVuIFBSLCBhcHBseSBvbiBtZXJnZS48L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0NjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkVhY2ggZW52IGhhcyBpdHMgb3duIHN0YXRlIGZpbGUgYW5kIGl0cyBvd24gY3JlZGVudGlhbHMuIFByb2R1Y3Rpb24gYmVoaW5kIGEgbWFudWFsIGFwcHJvdmFsIGdhdGUuPC90ZXh0Pgo8L3N2Zz4K" alt="Multi-Environment Promotion Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Layer | dev | staging | production |
+|-------|-----|---------|------------|
+| Module code | shared | shared | shared |
+| tfvars | dev values | staging values | production values |
+| Backend / state | dev-state | staging-state | prod-state |
+| Tenant | dev.live.dynatrace.com | staging.live.dynatrace.com | prod.live.dynatrace.com |
+| Gate | auto on merge | auto on merge | manual approval |
+For environments where SVG doesn't render
+-->
+<h3>The promotion workflow</h3>
+<ol>
+<li><strong>Change goes through <code>envs/dev/</code> first.</strong> A PR adds or modifies a resource in <code>envs/dev/main.tf</code> (or bumps a module-source ref). CI runs <code>terraform plan</code> against the dev tenant; on PR approval and merge, <code>terraform apply</code> against dev.</li>
+<li><strong>Validation in dev.</strong> The team confirms the change behaves correctly in dev — alerts fire, dashboards render, synthetics pass.</li>
+<li><strong>Promotion PR to <code>envs/staging/</code>.</strong> Same module source ref + corresponding <code>tfvars</code> change. CI plans against staging. On merge → apply.</li>
+<li><strong>Production promotion gated.</strong> A PR to <code>envs/production/</code> requires a separate review (CODEOWNERS) and a manual approval step in the CI pipeline. The plan is reviewed by a human before apply.</li>
+</ol>
+<h3>What gets copied vs what diverges</h3>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>Same across envs?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Module source ref (<code>source = &quot;../../modules/&lt;name&gt;&quot;</code> or <code>?ref=v1.4.0</code>)</td>
+<td><strong>Yes</strong> — that's the whole point</td>
+</tr>
+<tr>
+<td>Resource-shape inputs (which fields the module accepts)</td>
+<td><strong>Yes</strong> — schema is shared</td>
+</tr>
+<tr>
+<td>Resource-value inputs (the values themselves)</td>
+<td><strong>No</strong> — these live in per-env <code>tfvars</code></td>
+</tr>
+<tr>
+<td>Backend block (where state lives)</td>
+<td><strong>No</strong> — each env has its own state</td>
+</tr>
+<tr>
+<td>Provider config (tenant URL, credentials)</td>
+<td><strong>No</strong> — each env points at its own tenant</td>
+</tr>
+<tr>
+<td>Sentinel / OPA policies</td>
+<td><strong>Yes</strong> — same governance rules everywhere</td>
+</tr>
+</tbody>
+</table>
+<h3>Catching env divergence early</h3>
+<p>It's common for <code>envs/production/main.tf</code> to drift from <code>envs/staging/main.tf</code> in subtle ways — someone added a resource to prod directly without backporting to staging. Two guardrails:</p>
+<ul>
+<li><strong>Periodic diff check.</strong> A CI job that runs <code>diff envs/staging/main.tf envs/production/main.tf</code> (filtering out expected differences like backend) and flags divergence above a tolerance.</li>
+<li><strong>Required PR template</strong> that asks &quot;Did you make the same change in staging?&quot; before allowing a prod PR.</li>
+</ul>
+<h3>When to use Terraform workspaces instead</h3>
+<p>Terraform workspaces (<code>terraform workspace new staging</code>) are an alternative to the <code>envs/&lt;env&gt;/</code> directory pattern: same files, different state per workspace. <strong>Don't.</strong> Workspaces share <code>main.tf</code> between envs, which means production changes get applied to dev (and vice versa) the moment you forget to switch workspaces. Directory-per-env is mechanically harder to misuse — if you're editing <code>envs/production/main.tf</code>, you know what you're working on.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://developer.hashicorp.com/terraform/language/state/workspaces">Terraform workspaces (HashiCorp)</a> — <em>&quot;Workspaces are not appropriate for system decomposition or deployments requiring separate credentials and access controls.&quot;</em> Each environment here has its own tenant credentials.</sub></li>
+<li><sub><a href="https://developer.hashicorp.com/terraform/cli/workspaces">Managing workspaces (HashiCorp)</a> — <em>&quot;We recommend using alternative approaches for complex deployments requiring separate credentials and access controls.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="cicd-pipeline"></a></p>
+<h2>7. CI/CD Pipeline (cross-reference)</h2>
+<p>This recipe assumes a Terraform plan-and-apply pipeline. The full implementation details for GitHub Actions, GitLab CI, Bitbucket Pipelines, ArgoCD, and FluxCD are in <strong>AUTOM-07</strong>. Highlights relevant to the recipe:</p>
+<table>
+<thead>
+<tr>
+<th>AUTOM-07 section</th>
+<th>What it covers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>§3 GitHub Actions</td>
+<td>Combined-auth Terraform workflow, Vault integration, drift detection, reusable workflows</td>
+</tr>
+<tr>
+<td>§3 <em>Terraform Workflow with Combined Auth</em></td>
+<td>Platform Token + API Token together — the canonical pattern</td>
+</tr>
+<tr>
+<td>§3 <em>Vault Integration</em></td>
+<td>Pulling short-lived credentials at pipeline start</td>
+</tr>
+<tr>
+<td>§3 <em>Policy-as-Code Gates</em></td>
+<td>Sentinel / OPA / Conftest integration</td>
+</tr>
+<tr>
+<td>§3 <em>Drift Detection</em></td>
+<td>Scheduled <code>terraform plan</code> runs that report diffs to a channel</td>
+</tr>
+<tr>
+<td>§4 GitLab CI/CD</td>
+<td>GitLab equivalent of the above</td>
+</tr>
+<tr>
+<td>§5 Bitbucket Pipelines</td>
+<td>Bitbucket Cloud Pipelines + FabianSchurig/bitbucket Terraform provider for the combined-workspace pattern</td>
+</tr>
+<tr>
+<td>§12 Best Practices</td>
+<td>Branch protection, required reviewers, plan-output retention</td>
+</tr>
+<tr>
+<td>§13 Governance Architecture — Single SA Writer</td>
+<td>Operational model for who can apply</td>
+</tr>
+</tbody>
+</table>
+<h3>Recipe-specific CI/CD recommendations</h3>
+<table>
+<thead>
+<tr>
+<th>Recommendation</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Plan on every PR; apply only on merge to a long-lived env branch</strong></td>
+<td>Plan is read-only; apply is the privileged operation</td>
+</tr>
+<tr>
+<td><strong>Plan output retained as an artifact</strong></td>
+<td>Required for audit; required for &quot;what was about to happen?&quot; forensics</td>
+</tr>
+<tr>
+<td><strong>Plan summary posted to the PR</strong></td>
+<td>Reviewers see the diff without leaving the PR</td>
+</tr>
+<tr>
+<td><strong>Required reviewers per environment</strong> (CODEOWNERS)</td>
+<td>Production requires platform-team review; dev can be self-merge</td>
+</tr>
+<tr>
+<td><strong>Apply uses <code>--auto-approve</code> only after gate passes</strong></td>
+<td>Manual approval gate (GH environments / GitLab environments / Bitbucket deployments) before production apply</td>
+</tr>
+<tr>
+<td><strong>Sentinel / OPA runs before apply</strong></td>
+<td>Policy gate fails the apply, not the plan — keep plan output unblocked for review</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <strong>AUTOM-07: CI/CD Integration</strong> (this repo) covers each pipeline platform in detail.</sub></p>
+</blockquote>
+<p><a id="secrets-handling"></a></p>
+<h2>8. Secrets Handling End-to-End</h2>
+<p>Three places secrets live in a Terraform GitOps shop: <strong>in pipeline storage</strong>, <strong>in flight</strong>, and <strong>at rest in state</strong>. Each needs explicit handling.</p>
+<h3>Pipeline-stored secrets</h3>
+<p>Where the Dynatrace tokens, cloud provider credentials, and Vault tokens come from. Options:</p>
+<table>
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>Trade-off</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>GitHub Actions encrypted secrets</strong></td>
+<td>Easy; tied to GitHub; secrets exposed only to workflow runs</td>
+</tr>
+<tr>
+<td><strong>GitLab CI/CD variables</strong></td>
+<td>Easy; tied to GitLab; per-env masking + protection flags</td>
+</tr>
+<tr>
+<td><strong>Bitbucket repository / deployment variables</strong></td>
+<td>Easy; tied to Bitbucket; secured variable becomes write-only</td>
+</tr>
+<tr>
+<td><strong>Vault (or AWS Secrets Manager / Azure Key Vault)</strong></td>
+<td>Best — short-lived credentials, audit trail, decoupled from CI tool</td>
+</tr>
+<tr>
+<td><strong>OIDC federation to cloud → cloud secrets manager → Dynatrace token</strong></td>
+<td>Most secure but most plumbing; appropriate for high-stakes envs</td>
+</tr>
+</tbody>
+</table>
+<p>The pragmatic baseline: pipeline-native secrets for the bootstrap; migrate to Vault once you have multiple envs and need rotation discipline.</p>
+<h3>In-flight secrets — Terraform variables</h3>
+<p>Mark every sensitive input:</p>
+<pre><code class="language-hcl">variable &quot;dt_api_token&quot; {
+  type      = string
+  sensitive = true
+}
+
+variable &quot;dt_platform_token&quot; {
+  type      = string
+  sensitive = true
+}
+</code></pre>
+<p><code>sensitive = true</code> does three things:</p>
+<ol>
+<li><strong>Plan output masks the value</strong> — <code>terraform plan</code> shows <code>(sensitive value)</code> instead of the token</li>
+<li><strong>Apply output masks the value</strong> — same masking in the success log</li>
+<li><strong>Terraform refuses to pass it out unmarked</strong> — a root-module output that references a sensitive value fails <code>plan</code> until you mark the output <code>sensitive = true</code> (reproduced on Terraform 1.14.5)</li>
+</ol>
+<p>It does <strong>not</strong> encrypt the value in state. State is in plaintext; the masking is for <em>log</em> output only.</p>
+<h3>At-rest secrets — state encryption</h3>
+<p>Terraform state contains every value the provider returned, including some sensitive ones (refresh tokens, generated secrets). Protect state at rest:</p>
+<table>
+<thead>
+<tr>
+<th>Backend</th>
+<th>Mechanism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>HCP Terraform</strong></td>
+<td>Encrypted by default; access via workspace permissions</td>
+</tr>
+<tr>
+<td><strong>S3</strong></td>
+<td>KMS CMK (not just SSE-S3) — KMS gives you key rotation + audit</td>
+</tr>
+<tr>
+<td><strong>GCS</strong></td>
+<td>CMEK (customer-managed encryption key)</td>
+</tr>
+<tr>
+<td><strong>Azure Storage</strong></td>
+<td>Customer-managed key in Key Vault</td>
+</tr>
+</tbody>
+</table>
+<p>Additionally for self-hosted backends: bucket policy restricting access to the CI service principal + the platform team — and <strong>nobody else</strong>. State files exfiltrated from a misconfigured bucket give the attacker every secret Terraform managed.</p>
+<h3>Plan output discipline</h3>
+<p><code>terraform plan -out=tfplan</code> writes the plan to a binary file that contains the proposed state — including pending secret values. Two rules:</p>
+<ol>
+<li><strong>Don't retain the binary tfplan artifact</strong> beyond the apply step. Encrypt it in transit between plan and apply jobs.</li>
+<li><strong><code>terraform show -no-color tfplan &gt; plan.txt</code> for human review</strong> — <code>-no-color</code> keeps it diffable, and the <code>sensitive</code> markings hide values in the rendered text.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://developer.hashicorp.com/terraform/language/values/variables#suppressing-values-in-cli-output">Sensitive input variables (HashiCorp)</a> — <code>sensitive</code> semantics.</sub></li>
+<li><sub><a href="https://developer.hashicorp.com/terraform/language/values/outputs#sensitive-suppressing-values-in-cli-output">Sensitive output values (HashiCorp)</a> — propagation through outputs.</sub></li>
+<li><sub><a href="https://developer.hashicorp.com/terraform/language/manage-sensitive-data">Backend encryption (HashiCorp)</a> — state-at-rest concerns.</sub></li>
+</ul>
+</blockquote>
+<p><a id="lifecycle"></a></p>
+<h2>9. Lifecycle Protections</h2>
+<p>Lifecycle blocks are Terraform's safety net for production. Four meta-arguments matter; each has a specific use case.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+TGlmZWN5Y2xlIFByb3RlY3Rpb25zIOKAlCBEZWNpc2lvbiBHdWlkZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5XaGVuIHRvIHVzZSBgcHJldmVudF9kZXN0cm95YCwgYGlnbm9yZV9jaGFuZ2VzYCwgYGNyZWF0ZV9iZWZvcmVfZGVzdHJveWAsIGFuZCBgcmVwbGFjZV90cmlnZ2VyZWRfYnlgPC90ZXh0PgoKICA8IS0tIHByZXZlbnRfZGVzdHJveSAtLT4KICA8cmVjdCB4PSI0MCIgeT0iOTAiIHdpZHRoPSI0MjAiIGhlaWdodD0iMTgwIiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjI1MCIgeT0iMTE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5wcmV2ZW50X2Rlc3Ryb3kgPSB0cnVlPC90ZXh0PgogIDx0ZXh0IHg9IjI1MCIgeT0iMTM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5SZWplY3RzIHBsYW5zIHRoYXQgd291bGQgZGVzdHJveSBpdCDigJQgYnV0IG5vdCByZW1vdmFsIG9mIGl0cyByZXNvdXJjZSBibG9jazwvdGV4dD4KCiAgPHRleHQgeD0iNjAiIHk9IjE2MiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+VXNlIGZvcjo8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjE4MyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIFNlZ21lbnRzIG90aGVyIGNvbmZpZyByZWZlcmVuY2VzPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIyMDEiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBQcm9kdWN0aW9uIElBTSBwb2xpY2llcyAvIGdyb3VwIGJpbmRpbmdzPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIyMTkiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBQcm9kdWN0aW9uIEdyYWlsIGJ1Y2tldHMgKGxvc2UgZGF0YSBpZiBkZXN0cm95ZWQpPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIyMzciIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBBY3RpdmVHYXRlIHRva2VuIHJlc291cmNlcyBiYWNraW5nIG9uY2FsbCBmbG93czwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMjU5IiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIiBmb250LXN0eWxlPSJpdGFsaWMiPkNhdmVhdDogbm8gZGVsaWJlcmF0ZSByZW5hbWUg4oCUIHJlbW92ZSB0aGUgbGlmZWN5Y2xlIGJsb2NrIGZpcnN0LjwvdGV4dD4KCiAgPCEtLSBpZ25vcmVfY2hhbmdlcyAtLT4KICA8cmVjdCB4PSI0ODAiIHk9IjkwIiB3aWR0aD0iNDEwIiBoZWlnaHQ9IjE4MCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI2ODUiIHk9IjExNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+aWdub3JlX2NoYW5nZXMgPSBbZmllbGQsIC4uLl08L3RleHQ+CiAgPHRleHQgeD0iNjg1IiB5PSIxMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlN0b3BzIFRlcnJhZm9ybSBmcm9tICJmaXhpbmciIGRyaWZ0IG9uIHRoZSBsaXN0ZWQgZmllbGRzIGFmdGVyIHRoZSBpbml0aWFsIGFwcGx5PC90ZXh0PgoKICA8dGV4dCB4PSI1MDAiIHk9IjE2MiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+VXNlIGZvcjo8L3RleHQ+CiAgPHRleHQgeD0iNTAwIiB5PSIxODMiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBGaWVsZHMgYSBodW1hbiB0ZWFtIG93bnMgKGRlc2NyaXB0aW9uLCBjdXN0b20gdGFncyk8L3RleHQ+CiAgPHRleHQgeD0iNTAwIiB5PSIyMDEiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBUaHJlc2hvbGQgdmFsdWVzIHR1bmVkIHZpYSB0aGUgVUkgYnkgZG9tYWluIFNNRXM8L3RleHQ+CiAgPHRleHQgeD0iNTAwIiB5PSIyMTkiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBBdXRvLXBvcHVsYXRlZCBtZXRhZGF0YSAobGFzdF9tb2RpZmllZCwgdmVyc2lvbik8L3RleHQ+CiAgPHRleHQgeD0iNTAwIiB5PSIyMzciIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBTY2hlbWEgZmllbGRzIHRoYXQgZHJpZnQgdmlhIER5bmF0cmFjZSBwbGF0Zm9ybSB1cGRhdGVzPC90ZXh0PgogIDx0ZXh0IHg9IjUwMCIgeT0iMjU5IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIiBmb250LXN0eWxlPSJpdGFsaWMiPkNhdmVhdDogaWdub3JlZCBmaWVsZHMgZHJpZnQgc2lsZW50bHkg4oCUIGNvbmZpcm0gdGhhdCBiZWZvcmUgYWRkaW5nLjwvdGV4dD4KCiAgPCEtLSBjcmVhdGVfYmVmb3JlX2Rlc3Ryb3kgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjI5MCIgd2lkdGg9IjQyMCIgaGVpZ2h0PSIxODAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMjUwIiB5PSIzMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPmNyZWF0ZV9iZWZvcmVfZGVzdHJveSA9IHRydWU8L3RleHQ+CiAgPHRleHQgeD0iMjUwIiB5PSIzMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlN0YW5kIHVwIHRoZSByZXBsYWNlbWVudCBiZWZvcmUgcmVtb3ZpbmcgdGhlIG9yaWdpbmFsIOKAlCBubyBkYXRhIGdhcDwvdGV4dD4KCiAgPHRleHQgeD0iNjAiIHk9IjM2MiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+VXNlIGZvcjo8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjM4MyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIFN5bnRoZXRpYyBtb25pdG9ycyB3aG9zZSByZWNyZWF0aW9uID0gZGF0YSBnYXAgaW4gU0xPPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSI0MDEiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBQcm9ibGVtLXJvdXRpbmcgd29ya2Zsb3dzIHRpZWQgdG8gb24tY2FsbDwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iNDE5IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgV2ViaG9vayBpbnRlZ3JhdGlvbnMgd2l0aCBsaXZlIGNvbm5lY3Rpb25zPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSI0NDEiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtc3R5bGU9Iml0YWxpYyI+Q2F2ZWF0OiB0ZW1wb3JhcmlseSBkb3VibGVzIHRoZSByZXNvdXJjZSDigJQgY2hlY2sgdW5pcXVlLW5hbWUgY29uc3RyYWludHMuPC90ZXh0PgoKICA8IS0tIHJlcGxhY2VfdHJpZ2dlcmVkX2J5IC0tPgogIDxyZWN0IHg9IjQ4MCIgeT0iMjkwIiB3aWR0aD0iNDEwIiBoZWlnaHQ9IjE4MCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI2ODUiIHk9IjMxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+cmVwbGFjZV90cmlnZ2VyZWRfYnkgPSBbLi4uXTwvdGV4dD4KICA8dGV4dCB4PSI2ODUiIHk9IjMzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Rm9yY2UtcmVjcmVhdGUgdGhpcyByZXNvdXJjZSB3aGVuIGEgcmVmZXJlbmNlZCByZXNvdXJjZSBjaGFuZ2VzPC90ZXh0PgoKICA8dGV4dCB4PSI1MDAiIHk9IjM2MiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+VXNlIGZvcjo8L3RleHQ+CiAgPHRleHQgeD0iNTAwIiB5PSIzODMiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBXZWJob29rIFVSTHMgdGhhdCBuZWVkIHRvIHJlZnJlc2ggd2hlbiBzZWNyZXQgcm90YXRlczwvdGV4dD4KICA8dGV4dCB4PSI1MDAiIHk9IjQwMSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIE5vbi1yZXNvdXJjZSB2YWx1ZXMgdmlhIHRlcnJhZm9ybV9kYXRhIG1hcmtlcnM8L3RleHQ+CiAgPHRleHQgeD0iNTAwIiB5PSI0MTkiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBEYXNoYm9hcmRzIHdob3NlIGRhdGEgc291cmNlcyByZWZlcmVuY2UgYSByZWNyZWF0ZWQgZW50aXR5PC90ZXh0PgogIDx0ZXh0IHg9IjUwMCIgeT0iNDQxIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjExIiBmb250LXN0eWxlPSJpdGFsaWMiPkNhdmVhdDogY2hhaW5lZCByZWNyZWF0aW9ucyBjYW4gaGF2ZSBub24tb2J2aW91cyBibGFzdCByYWRpdXMuPC90ZXh0Pgo8L3N2Zz4K" alt="Lifecycle Protections — Decision Guide" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Meta-argument | Effect | Use for |
+|---------------|--------|---------|
+| `prevent_destroy = true` | Rejects plans that would destroy it — but not removal of its resource block | Grail buckets, IAM policies / bindings, segments other config references, ActiveGate tokens |
+| `ignore_changes = [field, ...]` | Stops Terraform from "fixing" drift on listed fields | Human-owned fields (description, tags), UI-tuned thresholds, auto-populated metadata |
+| `create_before_destroy = true` | New resource stood up before old one removed | Synthetics, problem-routing workflows (no observability gap) |
+| `replace_triggered_by = [ref, ...]` | Force-recreate when a referenced resource changes | Workflows whose webhook credential rotates, dashboards tied to a recreated data source |
+For environments where SVG doesn't render
+-->
+<h3><code>prevent_destroy</code> — for resources whose loss is catastrophic</h3>
+<pre><code class="language-hcl">resource &quot;dynatrace_platform_bucket&quot; &quot;audit_logs&quot; {
+  name         = &quot;audit_logs&quot;
+  display_name = &quot;Audit logs (1-year retention)&quot;
+  retention    = 365
+  table        = &quot;logs&quot;
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+</code></pre>
+<p>Catches <code>terraform destroy</code> and any plan that would <code>-/+</code> the resource. The plan fails with an error and the apply doesn't proceed.</p>
+<p><strong>It does not protect against deleting the resource block itself.</strong> HashiCorp: <em>&quot;This rule doesn't prevent Terraform from destroying a resource if you remove its configuration.&quot;</em> A PR that deletes the block — or the module call, or a team's whole directory — destroys the resource on apply, <code>prevent_destroy</code> or not. Pair it with a policy gate on <code>delete</code> actions (<em>Policy instead of lifecycle</em>, below).</p>
+<p><strong>Use for:</strong> production Grail buckets (lose the data in them), production IAM policies / group bindings (lose access), segments that IAM policies or dashboards reference, ActiveGate token resources backing on-call notifications. On a tenant not yet upgraded, add production management zones — they still carry IAM scope and alerting routing there.</p>
+<p><strong>Caveat:</strong> you can't terraform-apply a deliberate rename. To rename, remove the lifecycle block in PR 1, apply, then re-add it in PR 2.</p>
+<h3><code>ignore_changes</code> — for fields owned by humans</h3>
+<pre><code class="language-hcl">resource &quot;dynatrace_document&quot; &quot;team_dashboard&quot; {
+  type = &quot;dashboard&quot;
+  name = &quot;Payments - service health&quot;
+  # Terraform creates the dashboard once from a reviewed starting layout...
+  content = file(&quot;${path.module}/dashboards/payments-health.json&quot;)
+
+  lifecycle {
+    ignore_changes = [
+      content, # ...then the owning team edits tiles in the Dashboards app
+    ]
+  }
+}
+</code></pre>
+<p><strong>Use for:</strong> dashboards and notebooks Terraform seeds but a team maintains in the app, description fields, custom tags, threshold values tuned via the UI by domain experts, schema fields that drift via Dynatrace platform updates.</p>
+<p><strong>Caveat:</strong> ignored fields drift silently. Confirm you're OK with that before adding — the field becomes invisible to drift detection.</p>
+<h3><code>create_before_destroy</code> — for resources where recreation = outage</h3>
+<pre><code class="language-hcl">resource &quot;dynatrace_http_monitor&quot; &quot;checkout_api&quot; {
+  name = &quot;checkout-api-availability&quot;
+  # ...
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+</code></pre>
+<p><strong>Use for:</strong> synthetic monitors (recreation = data gap in SLO), problem-routing workflows tied to active on-call rotations (recreation = a window with no route).</p>
+<p><strong>Caveat:</strong> temporarily doubles the resource. Check that unique-name constraints in Dynatrace allow the new resource to exist alongside the old — most do; some don't (e.g., some named-singleton settings).</p>
+<h3><code>replace_triggered_by</code> — for chained recreations</h3>
+<pre><code class="language-hcl">resource &quot;terraform_data&quot; &quot;webhook_secret_version&quot; {
+  input = var.webhook_secret_version # bumped by the secret-rotation job
+}
+
+resource &quot;dynatrace_automation_workflow&quot; &quot;payments_route&quot; {
+  # ...
+
+  lifecycle {
+    replace_triggered_by = [
+      terraform_data.webhook_secret_version,
+    ]
+  }
+}
+</code></pre>
+<p><strong>Use for:</strong> workflows whose webhook URL or credential must refresh when a secret rotates, dashboards whose data sources reference a recreated entity. (<code>terraform_data</code> needs Terraform 1.4+; it is the usual way to turn a value that is not itself a resource into a replacement trigger.)</p>
+<p><strong>Caveat:</strong> chained recreations have non-obvious blast radius — adding <code>replace_triggered_by</code> to a hub resource can cascade to many dependents. Add deliberately.</p>
+<h3>Apply protections at the module boundary, not per-resource</h3>
+<p>It is tempting to drive <code>prevent_destroy</code> from a module input (<code>prevent_destroy = var.protect_from_destroy</code>) so only production sets it. <strong>Terraform rejects that</strong> — <code>terraform validate</code> fails with <em>Variables not allowed</em>, because, per HashiCorp, <em>&quot;only literal values can be used because the processing happens too early for arbitrary expression evaluation.&quot;</em> Two patterns that do work:</p>
+<ul>
+<li><strong>A protected module variant.</strong> Keep <code>modules/grail-bucket/</code> unprotected and add <code>modules/grail-bucket-protected/</code> with <code>prevent_destroy = true</code> hard-coded; only production roots consume the protected variant.</li>
+<li><strong>Policy instead of lifecycle.</strong> Enforce it in the pipeline — a Conftest (AUTOM-07 §3 <em>Policy-as-Code Gates</em>) rule that fails any production plan containing a <code>delete</code> action on the protected resource types.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://developer.hashicorp.com/terraform/language/meta-arguments/lifecycle">The lifecycle meta-argument (HashiCorp)</a> — all four meta-arguments documented; <em>&quot;only literal values can be used because the processing happens too early for arbitrary expression evaluation.&quot;</em>; <em>&quot;This rule doesn't prevent Terraform from destroying a resource if you remove its configuration.&quot;</em></sub></p>
+</blockquote>
+<p><a id="onboarding"></a></p>
+<h2>10. Onboarding New App Teams</h2>
+<p>Once the platform team's Terraform GitOps shop is running, the next question is how product teams join. The architecture decision is the <strong>brokered self-service</strong> pattern from AUTOM-04 §7 — but the <strong>onboarding mechanics</strong> are what determine whether new teams ramp up in days or in weeks.</p>
+<h3>The onboarding workflow</h3>
+<p>The steps below are community practice from platform teams running Terraform GitOps, not a vendor-documented procedure — adapt them to your own intake process.</p>
+<ol>
+<li><strong>Team requests onboarding.</strong> Lightweight intake form: team name, product, expected resource types (which modules will they use), expected scale (a handful of SLOs? hundreds of synthetics?), preferred Git host.</li>
+<li><strong>Platform team provisions the team's namespace.</strong>
+<ul>
+<li>A subdirectory under <code>envs/&lt;env&gt;/</code> per product (e.g., <code>envs/production/payments/</code>)</li>
+<li>A Bitbucket / GitLab / GitHub team with write access to that subdirectory only (CODEOWNERS enforces)</li>
+<li>An OPA / Sentinel policy that requires every resource the team creates to carry its <code>owner</code> tag, and rejects any other team's tag value (the &quot;team-fencing&quot; pattern)</li>
+</ul>
+</li>
+<li><strong>Team gets a template PR.</strong>
+<ul>
+<li><code>envs/&lt;env&gt;/&lt;product&gt;/main.tf</code> with a starter module instantiation (one SLO or problem-routing workflow following the team's naming pattern)</li>
+<li><code>envs/&lt;env&gt;/&lt;product&gt;/terraform.tfvars</code> with placeholder values</li>
+<li>A README pointing at the company's Terraform conventions</li>
+</ul>
+</li>
+<li><strong>Team's first PR validates the path.</strong> Real change, real review, real apply against dev. Platform team co-reviews. After this PR merges, the team has a working pipeline + the muscle memory.</li>
+<li><strong>Promotion drill.</strong> Within the first 2 weeks, the team promotes the same change to staging and production with platform-team coaching. Now they own the operational rhythm.</li>
+</ol>
+<h3>Repo template</h3>
+<p>Maintain a <code>templates/team-onboarding/</code> directory containing:</p>
+<pre><code>templates/team-onboarding/
+├── main.tf              # Minimal example with one module
+├── terraform.tfvars     # Placeholder values
+├── README.md            # Team-specific conventions
+└── CODEOWNERS.snippet   # CODEOWNERS lines to append
+</code></pre>
+<p>The first PR copies this directory into <code>envs/&lt;env&gt;/&lt;product&gt;/</code> and customizes. The template is itself versioned — when the platform team learns something new about onboarding, the template improves and the next team benefits.</p>
+<h3>Boundary enforcement</h3>
+<p>A new team should never be able to:</p>
+<ul>
+<li>Modify modules they don't own (CODEOWNERS on <code>modules/</code> requires platform-team approval)</li>
+<li>Modify another team's directory (CODEOWNERS on <code>envs/&lt;env&gt;/&lt;other-product&gt;/</code>)</li>
+<li>Bypass the Sentinel / OPA policies (CI cannot be merged-around)</li>
+<li>Get direct API access to Dynatrace (per AUTOM-04 §7 — the pipeline is the only writer)</li>
+</ul>
+<p>These are enforced at three layers: Git host permissions, CODEOWNERS, and CI gates. All three need to be set for new teams during onboarding; one missing layer is the gap a future incident exploits.</p>
+<h3>Off-boarding teams</h3>
+<p>Less glamorous but equally important. When a team's product is decommissioned:</p>
+<ol>
+<li><strong>Identify resources owned by the team</strong> via the <code>owner</code> tag (see FAQ-02 for tagging strategy)</li>
+<li><strong>PR removing the team's <code>envs/&lt;env&gt;/&lt;product&gt;/</code> subdirectory</strong></li>
+<li><strong>Run <code>terraform plan</code> to surface what gets destroyed</strong> — review carefully</li>
+<li><strong>Apply destruction in dev first</strong>, validate clean removal, then staging, then production</li>
+<li><strong>Off-board the Git team and remove CODEOWNERS</strong> entries in a follow-up PR</li>
+</ol>
+<p>Removing the team's directory destroys its resources even where <code>prevent_destroy</code> is set (§9), so review the plan's destroy list before merge — that review, and any policy gate on <code>delete</code> actions, is the real protection here.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><strong>AUTOM-04 §7 Brokered Self-Service</strong> (this repo) — the architectural pattern this section operationalizes.</sub></li>
+<li><sub><strong>FAQ-02: Tagging — Sources, Standards, and Strategy</strong> (this repo) — <code>owner</code> tag convention referenced in off-boarding.</sub></li>
+</ul>
+</blockquote>
+<p><a id="cost"></a></p>
+<h2>11. Cost and DPS Considerations at Apply Time</h2>
+<p>Two cost surfaces that surprise teams new to Terraform GitOps for Dynatrace.</p>
+<h3>Dynatrace Platform Subscription (DPS) impact at apply time</h3>
+<p>Some Dynatrace resources drive Dynatrace Platform Subscription (DPS) consumption at creation or use:</p>
+<table>
+<thead>
+<tr>
+<th>Resource</th>
+<th>DPS impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dynatrace_platform_bucket</code></td>
+<td>Retention length multiplies stored volume — longer retention, more Retain consumption (ORGNZ, FINOPS-03)</td>
+</tr>
+<tr>
+<td><code>dynatrace_http_monitor</code> (synthetic)</td>
+<td>Each run consumes one synthetic request per HTTP request, per location</td>
+</tr>
+<tr>
+<td><code>dynatrace_browser_monitor</code></td>
+<td>Each run consumes synthetic actions (driven by its steps)</td>
+</tr>
+<tr>
+<td><code>dynatrace_davis_anomaly_detectors</code></td>
+<td>Each evaluation runs the detector's DQL — on logs, spans or events that is billable query; metric queries are not billed (FAQ-09)</td>
+</tr>
+<tr>
+<td><code>dynatrace_automation_workflow</code></td>
+<td>Standard workflows consume workflow hours for as long as they exist, run or not; simple workflows don't, but their tasks can trigger other billable capabilities (ALERT-03)</td>
+</tr>
+<tr>
+<td>Mass-creation via a module loop (<code>count = 100</code>)</td>
+<td>Multiplies the above by 100</td>
+</tr>
+</tbody>
+</table>
+<p>The pattern that bites: someone runs <code>terraform apply</code> against a module configured with <code>count = var.synthetic_count</code>, the variable defaults to a number that looked sensible in dev but is too large for production, and the apply provisions hundreds of synthetics — each consuming actions.</p>
+<p><strong>Guardrails:</strong></p>
+<ul>
+<li><strong>Mandatory <code>count</code> / <code>for_each</code> review</strong> for resources that create per-instance Dynatrace billable units. CODEOWNERS or a Sentinel policy flagging these.</li>
+<li><strong>Pre-apply cost check</strong> for environments above a size threshold — script that counts billable resources in the plan and posts a comment on the PR.</li>
+<li><strong>Quota alerts in Dynatrace</strong> at the tenant level so unexpected scale surfaces before the bill does.</li>
+</ul>
+<h3>Terraform plan / apply runtime cost</h3>
+<p>The Dynatrace API has rate limits. Plans against a tenant with hundreds of resources can take 5-20 minutes — apply, longer. Costs:</p>
+<ul>
+<li><strong>CI minutes</strong> — runner time × number of plans per day. Drift-detection runs every 15 minutes against a 500-resource state file are not free.</li>
+<li><strong>Throttling failures</strong> — large applies that hit API rate limits return errors mid-apply, leaving state partially updated. Recovery requires <code>terraform apply -refresh-only</code> (<code>terraform refresh</code> is deprecated) or a partial apply.</li>
+</ul>
+<p><strong>Guardrails:</strong></p>
+<ul>
+<li><strong><code>terraform apply -parallelism=5</code></strong> (the default is 10) for very large tenants — in community practice, lowering it is the usual first response to API throttling.</li>
+<li><strong>Split large states.</strong> If a single state file is over ~500 resources, consider splitting by product or by resource family. The boundary is the line of &quot;this group rarely changes when that group changes.&quot;</li>
+<li><strong>Drift detection cadence.</strong> Hourly is plenty for most environments; every-15-minutes is rarely justified by the value it adds.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><strong>Derived:</strong> the DPS-impact list combines documented Dynatrace billing categories (FINOPS-01, FAQ-09, ALERT-03) with how each maps to Terraform resource types; not a single vendor-published checklist. Classic tenants on DDU licensing see the same pattern under different unit names — a custom metric (<code>dynatrace_calculated_service_metric</code>) or extra events count against DDUs instead. Verify specific resource cost behavior against current <a href="https://www.dynatrace.com/pricing/">Dynatrace pricing documentation</a> at use time.</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/license/capabilities/real-user-synthetic-monitoring/http-monitor">HTTP Monitor consumption (DT docs)</a> — <em>&quot;One synthetic request is consumed each time a monitor runs, for each HTTP(S) request that is executed, at each location.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/license/capabilities/real-user-synthetic-monitoring/browser-monitor-clickpath">Browser Monitor or Clickpath consumption (DT docs)</a> — <em>&quot;Browser Monitors consume usage based on the number of synthetic actions executed&quot;</em>.</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/license/capabilities/automation/automation">Automation consumption (DT docs)</a> — <em>&quot;Workflow hours are the number of hours that a workflow has existed in your environment, measured since the point of its creation.&quot;</em>; <em>&quot;Simple workflows do not directly consume workflow hours&quot;</em>.</sub></li>
+<li><sub><a href="https://developer.hashicorp.com/terraform/cli/commands/refresh">terraform refresh (HashiCorp)</a> — <em>&quot;This command is deprecated. Instead, add the -refresh-only flag to terraform apply and terraform plan commands.&quot;</em></sub></li>
+<li><sub><a href="https://developer.hashicorp.com/terraform/cli/commands/apply">Terraform CLI command — apply (HashiCorp)</a> — <code>-parallelism</code> flag.</sub></li>
+</ul>
+</blockquote>
+<p><a id="operational"></a></p>
+<h2>12. Operational Realities — State Lock, Break-Glass, DR</h2>
+<p>Three operational scenarios every Terraform GitOps shop hits eventually. HashiCorp documents the commands used below; the break-glass and disaster-recovery workflows around them are community practice — adapt them to your own runbooks.</p>
+<h3>Stuck state lock</h3>
+<p>Symptom: <code>terraform plan</code> or <code>apply</code> hangs with <em>&quot;Error acquiring the state lock&quot;</em>.</p>
+<p>Causes:</p>
+<ul>
+<li>Previous CI run killed mid-apply; lock not released</li>
+<li>Network partition between the CI runner and the lock store</li>
+<li>Lock-store outage (the state bucket holding the <code>.tflock</code>, or a legacy DynamoDB lock table)</li>
+<li>Someone ran <code>terraform apply</code> from their laptop and Ctrl-C'd</li>
+</ul>
+<p>Recovery:</p>
+<ol>
+<li><strong>Confirm the lock is genuinely abandoned.</strong> Check the lock-store record — the lock includes <code>Who</code>, <code>Operation</code>, <code>Created</code> timestamps. If <code>Created</code> is recent (&lt; 10 min) and someone owns it, wait or message them.</li>
+<li><strong><code>terraform force-unlock &lt;LOCK_ID&gt;</code></strong> if the lock is abandoned. This removes the lock without doing anything to state.</li>
+<li><strong>For HCP Terraform</strong>, use <strong>Force unlock</strong> on the workspace (admin access) — <em>&quot;Users with admin access to a workspace can force unlock a workspace even if another user has locked it.&quot;</em> Use <strong>Force cancel</strong> only for a run that will not terminate: <em>&quot;Force-canceling requires admin access to the workspace because it can have dangerous side-effects, including loss of state and orphaned resources.&quot;</em></li>
+</ol>
+<p>Document the procedure in your team's runbook. Force-unlock is safe <strong>when the lock is genuinely abandoned</strong>; it is dangerous if another apply is mid-flight, because two applies running simultaneously corrupt state. Verify, don't guess.</p>
+<h3>Break-glass UI changes</h3>
+<p>Sometimes someone has to change Dynatrace config in production at 3am via the UI — production is broken and waiting for a PR + review + apply takes too long. This is fine <strong>as long as the change gets back into Terraform afterward</strong>.</p>
+<p>Recovery workflow:</p>
+<ol>
+<li><strong>Document the change</strong> in the incident channel at the time it's made (resource type, name, what changed).</li>
+<li><strong>Within 24 hours</strong>, open a PR that brings the change into Terraform. Two approaches:
+<ul>
+<li><strong>Edit the existing resource</strong> in <code>envs/production/main.tf</code> to match what the UI now has.</li>
+<li><strong>Run <code>terraform import</code></strong> if it's a brand-new resource created via UI.</li>
+</ul>
+</li>
+<li><strong>Run <code>terraform plan</code></strong> — it should now show <strong>no changes</strong> (Terraform sees the same state the UI created). If the plan shows changes, the resource has drift; reconcile.</li>
+<li><strong>Apply.</strong> This is a no-op apply that ratifies the UI change as Terraform-managed.</li>
+</ol>
+<p>The danger pattern: break-glass change happens, nobody backports it, two weeks later a routine apply <em>reverts the emergency fix</em>. Audit periodically that no production resources have drifted from the Terraform definition.</p>
+<h3>Disaster recovery — corrupted or lost state</h3>
+<p>Scenarios:</p>
+<ul>
+<li>State bucket accidentally deleted</li>
+<li><code>terraform state rm</code> removed a resource and the next apply destroyed it</li>
+<li>A refresh (<code>terraform apply -refresh-only</code>, or the refresh inside a normal plan) wrote bad state due to a provider bug</li>
+</ul>
+<p>Recovery sequence:</p>
+<ol>
+<li><strong>Stop all CI pipelines</strong> targeting the affected env. Prevent concurrent applies during recovery.</li>
+<li><strong>Restore from state versioning.</strong> S3 / GCS / Azure all have versioning if enabled (per §3). Restore the most recent known-good version. For HCP Terraform, restore from the workspace's state versions.</li>
+<li><strong><code>terraform plan</code></strong> against the restored state. The plan tells you what Terraform thinks is missing or extra compared to actual cloud / Dynatrace state.</li>
+<li><strong>Reconcile manually.</strong> If state shows a resource missing that actually exists in Dynatrace, <code>terraform import</code> it. If state shows a resource present that's been removed in Dynatrace, <code>terraform state rm</code> it.</li>
+<li><strong>Resume CI.</strong> With reconciled state, the next normal apply should be a no-op or only the intended pending changes.</li>
+</ol>
+<p>If state was <strong>never versioned</strong> (a setup mistake — fix immediately), recovery is much harder: you essentially have to import every resource by hand. This is why §3's bucket-setup checklist insists on versioning.</p>
+<h3>Practice the DR procedure</h3>
+<p>Run a state-loss DR drill once a quarter against a non-production environment:</p>
+<ol>
+<li>Snapshot the dev state file</li>
+<li>Simulate loss (rename the state file in storage)</li>
+<li>Walk through the recovery procedure end-to-end</li>
+<li>Time the recovery; identify the slowest step; document a fix</li>
+</ol>
+<p>The drill is not optional — discovering that your &quot;documented&quot; DR procedure has a missing step during an actual incident is the worst time to find out.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://developer.hashicorp.com/terraform/cli/commands/force-unlock">Force-unlock state (HashiCorp)</a> — <code>terraform force-unlock</code> semantics and safety caveats.</sub></li>
+<li><sub><a href="https://developer.hashicorp.com/terraform/cli/commands/import">Terraform import (HashiCorp)</a> — bringing UI-created resources into Terraform state.</sub></li>
+<li><sub><a href="https://developer.hashicorp.com/terraform/cloud-docs/workspaces/settings">Workspace settings (HashiCorp)</a> — <em>&quot;Users with admin access to a workspace can force unlock a workspace even if another user has locked it.&quot;</em></sub></li>
+<li><sub><a href="https://developer.hashicorp.com/terraform/cloud-docs/workspaces/run/manage">Manage runs (HashiCorp)</a> — <em>&quot;Force-canceling requires admin access to the workspace because it can have dangerous side-effects, including loss of state and orphaned resources.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="next-steps"></a></p>
+<h2>13. Next Steps</h2>
+<p>You now have the recipe to stand up a Terraform GitOps shop for Dynatrace. Practical sequence to follow:</p>
+<ol>
+<li><strong>Pick a state backend</strong> (§3) — usually whichever cloud your team already runs in</li>
+<li><strong>Set up the repo layout</strong> (§2) with <code>modules/</code>, <code>envs/</code>, <code>policy/</code></li>
+<li><strong>Provision the dev environment first</strong> — backend, providers, a single module (the SLO or problem-routing module from §5 — the SLO module needs the OAuth client from §4), one root config</li>
+<li><strong>Wire up CI/CD for dev</strong> following AUTOM-07 §3 (or §4/§5 for GitLab/Bitbucket)</li>
+<li><strong>Validate the round-trip</strong> — PR, plan, merge, apply, observe in Dynatrace</li>
+<li><strong>Add staging</strong>, repeat steps 3-5</li>
+<li><strong>Add production</strong> with the manual approval gate</li>
+<li><strong>Implement Sentinel / OPA policies</strong> in <code>policy/</code> and wire them into CI</li>
+<li><strong>Add lifecycle protections</strong> (§9) on critical production resources</li>
+<li><strong>Run a state-loss DR drill</strong> (§12) before claiming the setup is production-ready</li>
+<li><strong>Onboard the first product team</strong> following §10 — use the experience to refine the template</li>
+<li><strong>Document everything</strong> in the repo README and your team's runbooks</li>
+</ol>
+<h3>Cross-references</h3>
+<ul>
+<li><strong>AUTOM-01 §5</strong> — When a Terraform Shop Should Add Monaco (positioning question this recipe assumes you've already answered)</li>
+<li><strong>AUTOM-04</strong> — Terraform Provider resource catalog and patterns (the <em>what</em>; this notebook is the <em>how</em>)</li>
+<li><strong>AUTOM-07</strong> — CI/CD Integration deep-dive (pipelines for each Git host)</li>
+<li><strong>FAQ-02</strong> — Tagging — Sources, Standards, and Strategy (the tag conventions referenced in §10 onboarding and §11 cost)</li>
+</ul>
+<h2>Summary</h2>
+<p>Standing up a Terraform GitOps shop for Dynatrace is more than wiring a CI pipeline to a Dynatrace provider. The operational architecture between those two layers — repo layout, state backend, multi-env promotion, lifecycle protections, secrets handling, team onboarding, operational realities — determines whether the shop is operable in a year. This recipe codifies the opinionated defaults that production Terraform shops converge to in practice, applied to Dynatrace's per-tenant model and the Dynatrace Terraform provider's combined-auth requirements.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

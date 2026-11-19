@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K8S-11: Multi-Tool Coexistence &amp; Advanced Configuration</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">K8S — Kubernetes Monitoring</a><span class="sep">/</span><span aria-current="page">K8S-11</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>K8S-11: Multi-Tool Coexistence &amp; Advanced Configuration</h1>
+<blockquote>
+<p><strong>Series:</strong> K8S — Kubernetes Monitoring | <strong>Notebook:</strong> 11 of 14 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 10/13/2026</p>
+</blockquote>
+<h2>Running Dynatrace Alongside Other Monitoring Tools</h2>
+<p>Many organizations run multiple monitoring tools during migrations or for specialized use cases. This notebook covers patterns for running Dynatrace alongside tools like New Relic, Datadog, or Prometheus without conflicts.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#coexistence-patterns">Coexistence Patterns</a></li>
+<li><a href="#opt-in-mode-configuration">Opt-In Mode Configuration</a></li>
+<li><a href="#feature-flags-reference">Feature Flags Reference</a></li>
+<li><a href="#build-version-propagation">Build Version Propagation</a></li>
+<li><a href="#injection-failure-policy">Injection Failure Policy</a></li>
+<li><a href="#log-monitoring-configuration">Log Monitoring Configuration</a></li>
+<li><a href="#complete-configuration-example">Complete Configuration Example</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Kubernetes monitoring enabled</td>
+</tr>
+<tr>
+<td><strong>Kubernetes Cluster</strong></td>
+<td>Dynatrace Operator v1.0+ installed</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>Completed K8S-01 and K8S-02</td>
+</tr>
+<tr>
+<td><strong>Scenario</strong></td>
+<td>Running multiple monitoring tools</td>
+</tr>
+</tbody>
+</table>
+<p><a id="coexistence-patterns"></a></p>
+<h2>1. Coexistence Patterns</h2>
+<h3>Understanding Your Options</h3>
+<p>When running Dynatrace alongside other APM tools, you have two primary approaches:</p>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Description</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Infrastructure-Only</strong></td>
+<td>Omit <code>cloudNativeFullStack</code></td>
+<td>Dynatrace monitors K8s infrastructure; other tool handles APM</td>
+</tr>
+<tr>
+<td><strong>Selective APM (Opt-In)</strong></td>
+<td>Use namespace selectors</td>
+<td>Different tools monitor different workloads</td>
+</tr>
+</tbody>
+</table>
+<h3>Infrastructure-Only Monitoring</h3>
+<p>If you omit <code>oneAgent.cloudNativeFullStack</code> entirely:</p>
+<table>
+<thead>
+<tr>
+<th>Included</th>
+<th>Not Included</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Kubernetes cluster health</td>
+<td>Application-level APM</td>
+</tr>
+<tr>
+<td>Workload metrics</td>
+<td>Code-level tracing</td>
+</tr>
+<tr>
+<td>Pod/container metrics</td>
+<td>Distributed traces</td>
+</tr>
+<tr>
+<td>Kubernetes events</td>
+<td>OneAgent injection</td>
+</tr>
+<tr>
+<td>ActiveGate capabilities</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-yaml"># Infrastructure-only DynaKube (no cloudNativeFullStack)
+apiVersion: dynatrace.com/v1beta6
+kind: DynaKube
+metadata:
+  name: dynakube
+  namespace: dynatrace
+spec:
+  apiUrl: https://your-tenant.live.dynatrace.com/api
+  
+  # Only ActiveGate for K8s monitoring - no OneAgent injection
+  activeGate:
+    capabilities:
+      - kubernetes-monitoring
+      - routing
+    replicas: 2
+  
+  # Log monitoring still works without OneAgent
+  logMonitoring: {}
+</code></pre>
+<p>This is appropriate when:</p>
+<ul>
+<li>Another tool (New Relic, Datadog) handles all APM</li>
+<li>You only need Dynatrace for K8s platform observability</li>
+<li>You want to avoid any agent conflicts</li>
+</ul>
+<p><a id="opt-in-mode-configuration"></a></p>
+<h2>2. Opt-In Mode Configuration</h2>
+<h3>Enable Selective Monitoring</h3>
+<p>There are two opt-in levels, and they behave differently. Pick one deliberately.</p>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>How</th>
+<th>What gets injected</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Namespace opt-in</strong></td>
+<td><code>namespaceSelector</code> inside the injection mode</td>
+<td>Every pod in a matching namespace</td>
+</tr>
+<tr>
+<td><strong>Pod opt-in</strong></td>
+<td><code>feature.dynatrace.com/automatic-injection: &quot;false&quot;</code> on the DynaKube</td>
+<td>Only pods annotated <code>oneagent.dynatrace.com/inject: &quot;true&quot;</code>, in namespaces the DynaKube monitors</td>
+</tr>
+</tbody>
+</table>
+<p>The feature flag does not opt namespaces in. The docs: with automatic injection off, <em>&quot;Dynatrace Operator can be set to monitor namespaces without injecting into any Pods, so you can choose which Pods to monitor. Pods that should be injected have to be annotated with oneagent.dynatrace.com/inject: &quot;true&quot;&quot;</em>. Setting the flag and only labelling namespaces therefore injects nothing.</p>
+<h3>Namespace opt-in (most coexistence setups)</h3>
+<p><strong>Step 1: Add a namespace selector so only labelled namespaces are monitored</strong></p>
+<pre><code class="language-yaml">spec:
+  oneAgent:
+    cloudNativeFullStack:
+      namespaceSelector:
+        matchLabels:
+          dt-monitoring: &quot;true&quot;
+</code></pre>
+<p><strong>Step 2: Label the namespaces you want Dynatrace to monitor</strong></p>
+<pre><code class="language-bash">kubectl label namespace checkout dt-monitoring=true
+kubectl label namespace payment dt-monitoring=true
+
+# Verify labels
+kubectl get namespaces -l dt-monitoring=true
+</code></pre>
+<h3>Pod opt-in (finer control)</h3>
+<p>Add the flag to the DynaKube, then annotate each pod template that should be injected:</p>
+<pre><code class="language-yaml"># DynaKube
+metadata:
+  annotations:
+    feature.dynatrace.com/automatic-injection: &quot;false&quot;
+---
+# Workload pod template
+spec:
+  template:
+    metadata:
+      annotations:
+        oneagent.dynatrace.com/inject: &quot;true&quot;
+</code></pre>
+<h3>Explicit Exclusions (Belt-and-Suspenders)</h3>
+<p>For extra safety, explicitly exclude other monitoring tool namespaces:</p>
+<pre><code class="language-yaml">spec:
+  oneAgent:
+    cloudNativeFullStack:
+      namespaceSelector:
+        matchLabels:
+          dt-monitoring: &quot;true&quot;
+        matchExpressions:
+          # Explicitly exclude other monitoring namespaces
+          - key: kubernetes.io/metadata.name
+            operator: NotIn
+            values:
+              - newrelic
+              - datadog
+              - prometheus
+              - kube-system
+</code></pre>
+<h3>Namespace Labels Strategy</h3>
+<table>
+<thead>
+<tr>
+<th>Label Value</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt-monitoring: &quot;true&quot;</code></td>
+<td>Dynatrace monitors this namespace</td>
+</tr>
+<tr>
+<td>No label</td>
+<td>Namespace ignored by Dynatrace</td>
+</tr>
+<tr>
+<td><code>dt-monitoring: &quot;false&quot;</code></td>
+<td>Explicit opt-out (for documentation)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-feature-flags">DynaKube feature flags (DT docs)</a> — <em>&quot;Pods that should be injected have to be annotated with oneagent.dynatrace.com/inject: &quot;true&quot;&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="oneagent-otel-injector-coexistence"></a></p>
+<h2>2a. OneAgent + OpenTelemetry Auto-Instrumentation Coexistence</h2>
+<p>A common multi-tool scenario in 2026 is running <strong>OneAgent alongside OpenTelemetry auto-instrumentation</strong> — typically when an organization uses OTel for open-standard language instrumentation while keeping OneAgent for infrastructure, network-zone and infrastructure-topology coverage. Both are supported ways to instrument a workload; the conflicts below are about two <em>injectors</em> reaching the same process, not about choosing one platform over the other.</p>
+<p>The two injectors can conflict in several ways:</p>
+<table>
+<thead>
+<tr>
+<th>Conflict</th>
+<th>Symptom</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Double instrumentation of the same process</strong></td>
+<td>Duplicate spans, doubled metrics, increased CPU/memory overhead</td>
+<td>Set <code>OTEL_INSTRUMENTATION_&lt;lib&gt;_ENABLED=false</code> for libraries OneAgent already covers, OR scope OTel injection by namespace selector</td>
+</tr>
+<tr>
+<td><strong>Two injectors in one pod</strong></td>
+<td>Pod stuck in <code>Init:CrashLoopBackOff</code>, or only one agent attaches</td>
+<td>Pick one injector per namespace (or per workload)</td>
+</tr>
+<tr>
+<td><strong>Conflicting <code>LD_PRELOAD</code> / <code>JAVA_TOOL_OPTIONS</code></strong></td>
+<td>Application starts but only one agent attaches; the other's env vars are clobbered</td>
+<td>Keep OTel injection (the OpenTelemetry Operator's <code>instrumentation.opentelemetry.io/inject-*</code> annotations) and OneAgent injection on separate namespaces</td>
+</tr>
+<tr>
+<td><strong>Trace context conflicts</strong></td>
+<td>Spans appear in both backends but parent-child links are broken</td>
+<td>Ensure both agents emit W3C trace context (<code>traceparent</code>); newer OneAgent versions and OTel SDKs both default to W3C</td>
+</tr>
+</tbody>
+</table>
+<h3>Analyzing the conflict surface</h3>
+<p>OTel auto-instrumentation reaches a Kubernetes pod in one of two ways: the <strong>OpenTelemetry Operator</strong>, a mutating webhook driven by <code>instrumentation.opentelemetry.io/inject-*</code> annotations, or the <strong>OpenTelemetry injector</strong> (<a href="https://github.com/open-telemetry/opentelemetry-injector">github.com/open-telemetry/opentelemetry-injector</a>), a shared library loaded through <code>LD_PRELOAD</code> or <code>/etc/ld.so.preload</code>. Both put an agent into the process at startup, which is exactly where OneAgent's code module goes. When evaluating coexistence, list:</p>
+<ul>
+<li>Which language runtimes are dual-injected (Java, Node.js and .NET agents differ)</li>
+<li>Which mechanism delivers the OTel agent, since <code>LD_PRELOAD</code> and webhook injection fail differently</li>
+<li>Which OneAgent mode is active: <code>cloudNativeFullStack</code> (host agent plus code modules) or <code>applicationMonitoring</code> (code modules only)</li>
+</ul>
+<h3>Recommended decision flow</h3>
+<ol>
+<li><strong>Inventory:</strong> list every namespace running OTel auto-instrumentation today.</li>
+<li><strong>Scope:</strong> decide per namespace which auto-instrumentation <em>injector</em> each language runtime gets — OneAgent's code module or the OTel agent, not both in the same process. That is an injector rule, not a platform choice: OTel SDK spans in a OneAgent-instrumented process still reach Dynatrace through the Span Sensor or OTLP (see FAQ-03), and OneAgent keeps infrastructure coverage in OTel-managed namespaces (step 4).</li>
+<li><strong>Configure DynaKube namespace selector</strong> (Section 2 above) to exclude OTel-managed namespaces from OneAgent injection.</li>
+<li><strong>Keep OneAgent for infra:</strong> even in OTel-managed namespaces, OneAgent at the host/node level still provides Smartscape topology, network-zone routing, and host-level metrics — those don't conflict with in-pod instrumentation.</li>
+</ol>
+<blockquote>
+<p>See the <strong>OTEL</strong> series for OTel collector configuration. The OneAgent/OTel split is workload-specific — record it explicitly per language runtime and per namespace before instrumenting.</p>
+</blockquote>
+<p><a id="feature-flags-reference"></a></p>
+<h2>3. Feature Flags Reference</h2>
+<h3>DynaKube Annotations</h3>
+<p>Feature flags are set as annotations on the DynaKube metadata:</p>
+<pre><code class="language-yaml">metadata:
+  annotations:
+    feature.dynatrace.com/&lt;flag-name&gt;: &quot;&lt;value&gt;&quot;
+</code></pre>
+<h3>Flags Used in This Notebook</h3>
+<table>
+<thead>
+<tr>
+<th>Feature Flag</th>
+<th>Values</th>
+<th>Default</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>automatic-injection</code></td>
+<td><code>true</code>/<code>false</code></td>
+<td><code>true</code></td>
+<td><code>false</code> = inject only pods annotated <code>oneagent.dynatrace.com/inject: &quot;true&quot;</code></td>
+</tr>
+<tr>
+<td><code>injection-failure-policy</code></td>
+<td><code>fail</code>/<code>silent</code></td>
+<td><code>silent</code></td>
+<td>Pod startup behaviour when injection fails</td>
+</tr>
+<tr>
+<td><code>label-version-detection</code></td>
+<td><code>true</code>/<code>false</code></td>
+<td><code>false</code></td>
+<td>Propagate version labels to the injected OneAgent (§ 4)</td>
+</tr>
+<tr>
+<td><code>max-csi-mount-attempts</code></td>
+<td>integer</td>
+<td><code>10</code></td>
+<td>CSI driver mount attempts before the pod starts with a dummy volume, unmonitored</td>
+</tr>
+<tr>
+<td><code>max-csi-mount-timeout</code></td>
+<td>duration</td>
+<td><code>10m</code></td>
+<td>CSI driver mount timeout before the pod starts with a dummy volume, unmonitored</td>
+</tr>
+</tbody>
+</table>
+<p><code>k8s-app-enabled</code> is obsolete: the docs say it was <em>&quot;Previously used to trigger the creation of the builtin:app-transition.kubernetes settings schema. The schema is no longer available on newer Dynatrace environments, where the Kubernetes app experience is enabled automatically.&quot;</em> Do not set it.</p>
+<h3>Recommended Configuration for Coexistence</h3>
+<pre><code class="language-yaml">metadata:
+  annotations:
+    # Detect version from Kubernetes labels
+    feature.dynatrace.com/label-version-detection: &quot;true&quot;
+
+    # Non-production: fail the pod if injection fails (production keeps the default, silent)
+    feature.dynatrace.com/injection-failure-policy: &quot;fail&quot;
+</code></pre>
+<p>Scope injection with a <code>namespaceSelector</code> (§ 2). Add <code>automatic-injection: &quot;false&quot;</code> only if you also annotate the pods to inject.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-feature-flags">DynaKube feature flags (DT docs)</a> — <em>&quot;Defines the maximum number of attempts for the Dynatrace Operator CSI driver to mount a volume. If this limit is reached, the Pod will start with a dummy volume, which will result in missing out on deep monitoring data.&quot;</em></sub></p>
+</blockquote>
+<p><a id="build-version-propagation"></a></p>
+<h2>4. Build Version Propagation</h2>
+<h3>Automatic Version Detection from Labels</h3>
+<p>Dynatrace can automatically detect application versions from Kubernetes labels.</p>
+<p><strong>Step 1: Enable the feature flag</strong></p>
+<pre><code class="language-yaml">metadata:
+  annotations:
+    feature.dynatrace.com/label-version-detection: &quot;true&quot;
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> You can enable this flag immediately. If labels are missing, Dynatrace simply won't have version metadata - no errors occur. When you add labels later, Dynatrace automatically picks them up.</p>
+</blockquote>
+<p><strong>Step 2: Add standard labels to your deployments</strong></p>
+<pre><code class="language-yaml"># In your application Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: checkout-api
+  labels:
+    app.kubernetes.io/name: checkout-api
+    app.kubernetes.io/version: &quot;1.2.3&quot;
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: ecommerce
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: checkout-api
+        app.kubernetes.io/version: &quot;1.2.3&quot;
+</code></pre>
+<h3>Labels the flag reads</h3>
+<table>
+<thead>
+<tr>
+<th>Pod label</th>
+<th>Maps to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>app.kubernetes.io/version</code></td>
+<td><code>DT_RELEASE_VERSION</code></td>
+</tr>
+<tr>
+<td><code>app.kubernetes.io/part-of</code></td>
+<td><code>DT_RELEASE_PRODUCT</code></td>
+</tr>
+<tr>
+<td><code>dynatrace-release-stage</code></td>
+<td><code>DT_RELEASE_STAGE</code></td>
+</tr>
+</tbody>
+</table>
+<p><em>&quot;Only pod labels are detected, not workload (Deployment/StatefulSet) labels. To update a version, update the pod template and trigger a rollout. Patching labels directly with kubectl label on existing pods has no effect.&quot;</em> The other <code>app.kubernetes.io/*</code> labels above are good Kubernetes practice but are not read by this flag. Build label propagation needs webhook injection, so it works with <code>applicationMonitoring</code> and <code>cloudNativeFullStack</code> only.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/release-monitoring/version-detection-strategies-latest">Version detection methods (DT docs)</a> — <em>&quot;Only pod labels are detected, not workload (Deployment/StatefulSet) labels.&quot;</em></sub></p>
+</blockquote>
+<p><a id="injection-failure-policy"></a></p>
+<h2>5. Injection Failure Policy</h2>
+<h3>Control Pod Behavior on Injection Failure</h3>
+<p>By default, if OneAgent injection fails, pods start anyway with silent failure. You can change this:</p>
+<table>
+<thead>
+<tr>
+<th>Policy</th>
+<th>Behavior</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>silent</code> (default)</td>
+<td>Pod starts without instrumentation</td>
+<td>Production - availability first</td>
+</tr>
+<tr>
+<td><code>fail</code></td>
+<td>Pod fails to start</td>
+<td>Non-prod - catch issues early</td>
+</tr>
+</tbody>
+</table>
+<h3>Enabling Fail Policy</h3>
+<pre><code class="language-yaml">metadata:
+  annotations:
+    feature.dynatrace.com/injection-failure-policy: &quot;fail&quot;
+</code></pre>
+<h3>When to Use Each Policy</h3>
+<table>
+<thead>
+<tr>
+<th>Environment</th>
+<th>Recommended Policy</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Development</td>
+<td><code>fail</code></td>
+<td>Catch injection issues immediately</td>
+</tr>
+<tr>
+<td>Staging</td>
+<td><code>fail</code></td>
+<td>Validate monitoring before production</td>
+</tr>
+<tr>
+<td>Production</td>
+<td><code>silent</code></td>
+<td>Availability &gt; perfect monitoring</td>
+</tr>
+</tbody>
+</table>
+<h3>Troubleshooting Injection Failures</h3>
+<p>If pods fail to start with <code>fail</code> policy, check:</p>
+<pre><code class="language-bash"># Check webhook logs
+kubectl -n dynatrace logs -l app.kubernetes.io/component=webhook
+
+# Check CSI driver logs
+kubectl -n dynatrace logs -l app.kubernetes.io/component=csi-driver
+
+# Check pod events
+kubectl describe pod &lt;pod-name&gt; -n &lt;namespace&gt;
+</code></pre>
+<p><a id="log-monitoring-configuration"></a></p>
+<h2>6. Log Monitoring Configuration</h2>
+<h3>Understanding the Configuration Structure</h3>
+<blockquote>
+<p><strong>Important:</strong> Log monitoring has a split configuration:</p>
+<ul>
+<li><code>spec.logMonitoring</code> — enables the feature; its only field is the optional <code>ingestRuleMatchers</code></li>
+<li><code>spec.templates.logMonitoring</code> — configures the Log module pods: image, resources, tolerations</li>
+</ul>
+</blockquote>
+<h3>Correct Configuration</h3>
+<pre><code class="language-yaml">spec:
+  # Enable log monitoring ({} or with ingestRuleMatchers — nothing else)
+  logMonitoring: {}
+
+  # Resource configuration goes under templates
+  templates:
+    logMonitoring:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
+          operator: Exists
+</code></pre>
+<h3>Common Mistakes</h3>
+<pre><code class="language-yaml"># WRONG - not fields of spec.logMonitoring
+spec:
+  logMonitoring:
+    enabled: true          # Not a field
+    resources: ...         # Belongs under templates.logMonitoring
+
+# CORRECT
+spec:
+  logMonitoring: {}        # or ingestRuleMatchers, see below
+  templates:
+    logMonitoring:         # Resources go here
+      resources: ...
+</code></pre>
+<h3>Choosing Which Namespaces' Logs Are Collected</h3>
+<p><code>spec.logMonitoring.ingestRuleMatchers</code> takes an <code>attribute</code> and a list of <code>values</code> for the initial log ingest rule — for example only the namespaces Dynatrace owns:</p>
+<pre><code class="language-yaml">spec:
+  logMonitoring:
+    ingestRuleMatchers:
+      - attribute: k8s.namespace.name
+        values:
+          - checkout
+          - payment
+</code></pre>
+<p>The parameter reference marks it <em>&quot;This field is immutable. Once set, it will no longer be updated.&quot;</em> Change the rules afterwards in <strong>Settings → Log Monitoring → Log ingest rules</strong>, not by editing the DynaKube.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters">DynaKube parameters (DT docs)</a> — <em>&quot;This field is immutable. Once set, it will no longer be updated.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Which namespaces have OneAgent-instrumented pods (spans arriving from OneAgent)
+// A pod that is injected but serves no traffic in the window does not appear.
+fetch spans, from:-1h
+| filter dt.openpipeline.source == &quot;oneagent&quot; and isNotNull(k8s.namespace.name)
+| summarize {spans = count(), pods = countDistinctExact(k8s.pod.name)}, by:{k8s.cluster.name, k8s.namespace.name}
+| sort pods desc
+| limit 30
+</code></pre>
+<pre><code class="language-dql">// Check that version information is being detected
+// DT_RELEASE_* values land on the process group instance as releasesVersion / releasesProduct /
+// releasesStage. Executed 10/02/2026: releasesVersion is a string such as
+// &quot;ReleaseVersionInfo{version='1.5.2', source=AGENT_REGISTRY, timestamp=0}&quot;.
+fetch dt.entity.process_group_instance, from:-24h
+| fieldsAdd releasesVersion, releasesProduct, releasesStage
+| filter isNotNull(releasesVersion)
+| summarize {instances = count()}, by:{releasesProduct, releasesVersion, releasesStage}
+| sort instances desc
+| limit 30
+</code></pre>
+<p><a id="complete-configuration-example"></a></p>
+<h2>7. Complete Configuration Example</h2>
+<h3>Production-Ready DynaKube with Coexistence</h3>
+<pre><code class="language-yaml">apiVersion: dynatrace.com/v1beta6
+kind: DynaKube
+metadata:
+  name: dynakube
+  namespace: dynatrace
+  labels:
+    dynatrace.com/created-by: dynatrace.kubernetes
+  annotations:
+    # Enable version detection from K8s labels
+    feature.dynatrace.com/label-version-detection: &quot;true&quot;
+    
+    # Fail pod if injection fails (use 'silent' for production)
+    feature.dynatrace.com/injection-failure-policy: &quot;fail&quot;
+spec:
+  apiUrl: https://your-tenant.live.dynatrace.com/api
+  networkZone: production
+
+  metadataEnrichment:
+    enabled: true
+
+  oneAgent:
+    hostGroup: production
+    cloudNativeFullStack:
+      # Opt-in: Only monitor namespaces with this label
+      namespaceSelector:
+        matchLabels:
+          dt-monitoring: &quot;true&quot;
+        matchExpressions:
+          # Explicitly exclude other monitoring namespaces
+          - key: kubernetes.io/metadata.name
+            operator: NotIn
+            values:
+              - newrelic
+              - datadog
+              - kube-system
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
+          operator: Exists
+
+  activeGate:
+    capabilities:
+      - routing
+      - kubernetes-monitoring
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+    replicas: 2
+
+  templates:
+    otelCollector:
+      imageRef:
+        repository: public.ecr.aws/dynatrace/dynatrace-otel-collector
+        tag: &quot;0.57.0&quot;  # Example pin (released 09/24/2026) - never use 'latest'; check the releases first
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    logMonitoring:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
+          operator: Exists
+
+  # Enable log monitoring (resources configured above)
+  logMonitoring: {}
+
+  telemetryIngest:
+    protocols:
+      - otlp
+    serviceName: telemetry-ingest
+</code></pre>
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li><strong>Coexistence patterns</strong> for running Dynatrace with other monitoring tools</li>
+<li><strong>Opt-in mode</strong>: namespace selectors, and pod-level opt-in with the automatic-injection flag plus pod annotations</li>
+<li><strong>Feature flags reference</strong> for DynaKube annotations</li>
+<li><strong>Build version propagation</strong> from Kubernetes labels</li>
+<li><strong>Injection failure policy</strong> for controlling pod startup behavior</li>
+<li><strong>Log monitoring configuration</strong> with the split spec structure</li>
+<li><strong>Complete production configuration</strong> for multi-tool environments</li>
+</ul>
+<hr />
+<h2>Next Steps</h2>
+<table>
+<thead>
+<tr>
+<th>Next Notebook</th>
+<th>Topic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>K8S-12: Specialized Monitoring</strong></td>
+<td>NGINX Ingress, CSI Driver tuning</td>
+</tr>
+<tr>
+<td><strong>K8S-09: Troubleshooting</strong></td>
+<td>Diagnosing common issues</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-feature-flags">DynaKube feature flags (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/monitoring-and-instrumentation/annotate">Annotate pods + namespaces (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters">DynaKube parameters (DT docs)</a></li>
+<li><a href="https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/">Kubernetes recommended labels (kubernetes.io)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/troubleshooting">Operator + DynaKube troubleshooting (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

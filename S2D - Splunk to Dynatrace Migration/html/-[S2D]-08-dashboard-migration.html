@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S2D-08: Dashboard Migration Best Practices</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">S2D — Splunk to Dynatrace Migration</a><span class="sep">/</span><span aria-current="page">S2D-08</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>S2D-08: Dashboard Migration Best Practices</h1>
+<blockquote>
+<p><strong>Series:</strong> S2D — Splunk to Dynatrace Migration | <strong>Notebook:</strong> 8 of 9 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/02/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook provides guidance for migrating Splunk dashboards to Dynatrace. While there's no automated conversion tool, understanding the mapping between Splunk and Dynatrace visualization concepts enables efficient manual migration.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#dashboard-structure-comparison">Dashboard Structure Comparison</a></li>
+<li><a href="#visualization-type-mapping">Visualization Type Mapping</a></li>
+<li><a href="#query-translation-examples">Query Translation Examples</a></li>
+<li><a href="#using-variables-for-filtering">Using Variables for Filtering</a></li>
+<li><a href="#dashboard-organization-best-practices">Dashboard Organization Best Practices</a></li>
+<li><a href="#log-searcher-dashboard-pattern">Log Searcher Dashboard Pattern</a></li>
+<li><a href="#migration-checklist">Migration Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Dashboards</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>document:documents:write</code>, <code>storage:logs:read</code>, <code>storage:buckets:read</code></td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>Completed SPL to DQL translation (S2D-03)</td>
+</tr>
+</tbody>
+</table>
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will be able to:</p>
+<ol>
+<li>Map Splunk visualization types to Dynatrace equivalents</li>
+<li>Convert Splunk dashboard structure to Dynatrace format</li>
+<li>Apply best practices for dashboard organization</li>
+<li>Use variables for interactive filtering</li>
+</ol>
+<p><a id="dashboard-structure-comparison"></a></p>
+<h2>Dashboard Structure Comparison</h2>
+<h3>Splunk Dashboard Components</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dashboard</td>
+<td>Container for panels</td>
+</tr>
+<tr>
+<td>Panel</td>
+<td>Individual visualization</td>
+</tr>
+<tr>
+<td>Search</td>
+<td>SPL query</td>
+</tr>
+<tr>
+<td>Input</td>
+<td>User filter (dropdown, text)</td>
+</tr>
+<tr>
+<td>Drilldown</td>
+<td>Navigation action</td>
+</tr>
+</tbody>
+</table>
+<h3>Dynatrace Dashboard Components</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dashboard</td>
+<td>Container for tiles</td>
+</tr>
+<tr>
+<td>Tile</td>
+<td>Individual visualization</td>
+</tr>
+<tr>
+<td>DQL Query</td>
+<td>Data source</td>
+</tr>
+<tr>
+<td>Variable</td>
+<td>User filter</td>
+</tr>
+<tr>
+<td>Drilldown</td>
+<td>Navigation action</td>
+</tr>
+</tbody>
+</table>
+<p><a id="visualization-type-mapping"></a></p>
+<h2>Visualization Type Mapping</h2>
+<h3>Direct Equivalents</h3>
+<table>
+<thead>
+<tr>
+<th>Splunk</th>
+<th>Dynatrace</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Single Value</td>
+<td>Single Value</td>
+<td>Key metric display</td>
+</tr>
+<tr>
+<td>Line Chart</td>
+<td>Line Chart</td>
+<td>Timeseries visualization</td>
+</tr>
+<tr>
+<td>Bar Chart</td>
+<td>Bar Chart</td>
+<td>Category comparison</td>
+</tr>
+<tr>
+<td>Pie Chart</td>
+<td>Pie Chart</td>
+<td>Distribution</td>
+</tr>
+<tr>
+<td>Table</td>
+<td>Table</td>
+<td>Tabular data</td>
+</tr>
+<tr>
+<td>Area Chart</td>
+<td>Area Chart</td>
+<td>Stacked timeseries</td>
+</tr>
+<tr>
+<td>Column Chart</td>
+<td>Bar chart or Categorical chart</td>
+<td>Vertical bars</td>
+</tr>
+</tbody>
+</table>
+<h3>Splunk-Specific Visualizations</h3>
+<table>
+<thead>
+<tr>
+<th>Splunk</th>
+<th>Dynatrace Alternative</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Choropleth Map</td>
+<td>Choropleth map</td>
+</tr>
+<tr>
+<td>Radial Gauge</td>
+<td>Gauge</td>
+</tr>
+<tr>
+<td>Filler Gauge</td>
+<td>Meter bar or Gauge</td>
+</tr>
+<tr>
+<td>Marker Gauge</td>
+<td>Meter bar or Gauge</td>
+</tr>
+<tr>
+<td>Scatter Chart</td>
+<td>Scatterplot</td>
+</tr>
+</tbody>
+</table>
+<p>The Dynatrace visualization list for dashboards and notebooks includes Gauge, Meter bar, Choropleth map, Dot map and Scatterplot.</p>
+<p><a id="query-translation-examples"></a></p>
+<h2>Query Translation Examples</h2>
+<h3>Single Value Panel</h3>
+<pre><code class="language-dql">// Single value: Total error count
+// Splunk: index=app level=ERROR | stats count
+fetch logs, from:-1h
+| filter status == &quot;ERROR&quot;
+| summarize total_errors = count()
+</code></pre>
+<h3>Time-Series Line Chart</h3>
+<pre><code class="language-dql">// Line chart: Error trend over time
+// Splunk: index=app level=ERROR | timechart count
+fetch logs, from:-24h
+| filter status == &quot;ERROR&quot;
+| makeTimeseries error_count = count(), interval:5m
+</code></pre>
+<h3>Bar Chart by Category</h3>
+<pre><code class="language-dql">// Bar chart: Errors by service
+// Splunk: index=app level=ERROR | stats count by service
+fetch logs, from:-1h
+| filter status == &quot;ERROR&quot;
+| summarize error_count = count(), by:{k8s.deployment.name}
+| sort error_count desc
+| limit 10
+</code></pre>
+<h3>Table with Multiple Columns</h3>
+<pre><code class="language-dql">// Table: Service health summary
+// Splunk: index=app | stats count, count(eval(level=&quot;ERROR&quot;)) as errors by service
+fetch logs, from:-1h
+| summarize {
+    total = count(),
+    errors = countIf(status == &quot;ERROR&quot;),
+    warnings = countIf(loglevel == &quot;WARN&quot;)
+  }, by:{k8s.deployment.name}
+| fieldsAdd error_rate = round((toDouble(errors) / toDouble(total)) * 100, decimals: 2)
+| sort errors desc
+</code></pre>
+<p><a id="using-variables-for-filtering"></a></p>
+<h2>Using Variables for Filtering</h2>
+<h3>Defining Variables</h3>
+<p>Dynatrace dashboards support variables for interactive filtering:</p>
+<table>
+<thead>
+<tr>
+<th>Variable Type</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DQL</td>
+<td><em>&quot;the value is returned from a query you enter when you define the variable.&quot;</em></td>
+</tr>
+<tr>
+<td>Code</td>
+<td><em>&quot;the value is returned from code you enter when you define the variable.&quot;</em></td>
+</tr>
+<tr>
+<td>List</td>
+<td><em>&quot;a comma-separated values (CSV) list of values.&quot;</em></td>
+</tr>
+<tr>
+<td>Free Text</td>
+<td><em>&quot;free text. You can enter a Default value.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/dashboards-new/components/dashboard-component-variable">Variable component (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Using Variables in Queries</h3>
+<pre><code class="language-dql">// Using dashboard variables in DQL
+//
+// Corrected 08/12/2026: `$variable` references resolve only inside a Dashboard tile — executed as a
+// notebook cell they fail at parse time with &quot;`$` isn't allowed here&quot;. The literals below make the
+// cell runnable; the commented line above each filter is the form to paste into a dashboard tile.
+fetch logs, from:-1h
+// dashboard tile: | filter matchesPhrase(k8s.cluster.name, $cluster)
+| filter isNotNull(k8s.cluster.name)
+// dashboard tile: | filter matchesPhrase(k8s.namespace.name, $namespace)
+| filter isNotNull(k8s.namespace.name)
+| summarize count = count(), by:{loglevel}
+</code></pre>
+<h3>Variable-Populated Dropdown Query</h3>
+<pre><code class="language-dql">// Query to populate a deployment dropdown variable
+fetch logs, from:-1h
+| filter isNotNull(k8s.deployment.name)
+| summarize count(), by:{k8s.deployment.name}
+| fields k8s.deployment.name
+| sort k8s.deployment.name asc
+</code></pre>
+<p><a id="dashboard-organization-best-practices"></a></p>
+<h2>Dashboard Organization Best Practices</h2>
+<h3>Layout Recommendations</h3>
+<ol>
+<li>
+<p><strong>Top Row: Key Metrics</strong></p>
+<ul>
+<li>Single value tiles showing critical KPIs</li>
+<li>Use color thresholds for status indication</li>
+</ul>
+</li>
+<li>
+<p><strong>Middle Section: Trends</strong></p>
+<ul>
+<li>Time-series charts showing patterns over time</li>
+<li>Use consistent time intervals across related charts</li>
+</ul>
+</li>
+<li>
+<p><strong>Bottom Section: Details</strong></p>
+<ul>
+<li>Tables with detailed breakdown</li>
+<li>Log samples for investigation</li>
+</ul>
+</li>
+</ol>
+<h3>Naming Conventions</h3>
+<p>Follow the naming standards (see S2D-09):</p>
+<ul>
+<li>Dashboard: <code>[AppName] Dashboard Title</code></li>
+<li>Example: <code>[EasyTravel] Business Overview</code></li>
+</ul>
+<p><a id="log-searcher-dashboard-pattern"></a></p>
+<h2>Log Searcher Dashboard Pattern</h2>
+<p>A common migration pattern is creating log searcher dashboards for investigating logs.</p>
+<h3>VM Log Searcher</h3>
+<p>Variables: <code>host_name</code>, <code>log_source</code></p>
+<pre><code class="language-dql">// VM Log Searcher - Log count by host
+//
+// Corrected 08/12/2026: `$variable` references resolve only inside a Dashboard tile — executed as a
+// notebook cell they fail at parse time with &quot;`$` isn't allowed here&quot;. The literals below make the
+// cell runnable; the commented line above each filter is the form to paste into a dashboard tile.
+fetch logs, from:-1h
+// dashboard tile: | filter matchesPhrase(host.name, $host_name)
+| filter isNotNull(host.name)
+// dashboard tile: | filter matchesPhrase(log.source, $log_source)
+| filter isNotNull(log.source)
+| summarize count = count(), by:{host.name}
+| sort count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// VM Log Searcher - Log count by source
+//
+// Corrected 08/12/2026: `$variable` references resolve only inside a Dashboard tile — executed as a
+// notebook cell they fail at parse time with &quot;`$` isn't allowed here&quot;. The literals below make the
+// cell runnable; the commented line above each filter is the form to paste into a dashboard tile.
+fetch logs, from:-1h
+// dashboard tile: | filter matchesPhrase(host.name, $host_name)
+| filter isNotNull(host.name)
+// dashboard tile: | filter matchesPhrase(log.source, $log_source)
+| filter isNotNull(log.source)
+| summarize count = count(), by:{host.name, log.source}
+| sort count desc
+| limit 20
+</code></pre>
+<h3>Kubernetes Log Searcher</h3>
+<p>Variables: <code>k8s_cluster</code>, <code>k8s_namespace</code>, <code>k8s_deployment</code></p>
+<pre><code class="language-dql">// K8s Log Searcher - Log count by cluster
+//
+// Corrected 08/12/2026: `$variable` references resolve only inside a Dashboard tile — executed as a
+// notebook cell they fail at parse time with &quot;`$` isn't allowed here&quot;. The literals below make the
+// cell runnable; the commented line above each filter is the form to paste into a dashboard tile.
+fetch logs, from:-1h
+// dashboard tile: | filter matchesPhrase(k8s.cluster.name, $k8s_cluster)
+| filter isNotNull(k8s.cluster.name)
+| summarize count = count(), by:{k8s.cluster.name}
+| sort count desc
+</code></pre>
+<pre><code class="language-dql">// K8s Log Searcher - Log count by deployment
+//
+// Corrected 08/12/2026: `$variable` references resolve only inside a Dashboard tile — executed as a
+// notebook cell they fail at parse time with &quot;`$` isn't allowed here&quot;. The literals below make the
+// cell runnable; the commented line above each filter is the form to paste into a dashboard tile.
+fetch logs, from:-1h
+// dashboard tile: | filter matchesPhrase(k8s.deployment.name, $k8s_deployment)
+| filter isNotNull(k8s.deployment.name)
+| summarize count = count(), by:{k8s.cluster.name, k8s.namespace.name, k8s.deployment.name}
+| sort count desc
+| limit 20
+</code></pre>
+<p><a id="migration-checklist"></a></p>
+<h2>Migration Checklist</h2>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Inventory all Splunk dashboard panels</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Translate SPL queries to DQL (S2D-03)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Create Dynatrace dashboard with appropriate layout</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Add tiles with translated queries</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Configure variables for filtering</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Apply naming conventions</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Validate data matches Splunk</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Share with stakeholders</td>
+</tr>
+</tbody>
+</table>
+<h2>Next Steps</h2>
+<ul>
+<li><strong>S2D-09: Naming Standards</strong> - Apply consistent naming conventions</li>
+</ul>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/shortlink/dashboards">Dynatrace Dashboards</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks">Dashboards and notebooks (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/edit-visualizations">Edit visualizations (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

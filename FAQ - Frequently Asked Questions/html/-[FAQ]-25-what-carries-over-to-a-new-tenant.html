@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ-25: What Actually Carries Over When We Migrate to a New Tenant?</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">FAQ — Frequently Asked Questions</a><span class="sep">/</span><span aria-current="page">FAQ-25</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>FAQ-25: What Actually Carries Over When We Migrate to a New Tenant?</h1>
+<blockquote>
+<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 25 — What Carries Over to a New Tenant | <strong>Created:</strong> September 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This FAQ is decision support for the question every migration team asks in a dozen different shapes: <strong>does <em>this</em> survive the move to the new tenant?</strong></p>
+<p>It arrives as &quot;do our entity IDs stay the same?&quot;, &quot;can we reuse the baselines?&quot;, &quot;can we send to both tenants while we prove the new one?&quot; — and those look like three unrelated questions. They are not. Each is answered the same way, by sorting the thing in question into one of three classes.</p>
+<h3>The three classes</h3>
+<table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Moves?</th>
+<th>Mechanism</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1 · Configuration</strong> — things you authored</td>
+<td>Yes, with rewriting</td>
+<td>SaaS Upgrade Assistant, Monaco, Terraform, configuration API</td>
+<td>Dashboards, alerting profiles, management zones, tagging rules, request naming, request attributes, custom services</td>
+</tr>
+<tr>
+<td><strong>2 · Identity</strong> — handles the platform mints</td>
+<td>No — re-minted on arrival</td>
+<td>Reconcile on the inputs you control</td>
+<td>Entity IDs, management-zone IDs, dashboard IDs</td>
+</tr>
+<tr>
+<td><strong>3 · Accumulated state</strong> — learned, recorded or secret</td>
+<td>No, and there is no tool</td>
+<td>Relearn on a clock, or recreate by hand</td>
+<td>Davis baselines, problem history, metric/log/trace history, credential-vault secrets, API tokens</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The diagnostic, in one line: if it was <em>learned or accumulated</em> rather than <em>authored</em>, it does not move.</strong></p>
+<p>Nearly every migration surprise is a class-2 or class-3 item that was planned for as though it were class 1 — a dashboard that migrated fine but shows &quot;No data&quot;, an alerting profile that came across but never fires, a cutover plan that assumed both tenants could receive the same host.</p>
+<p>This entry applies to <strong>any</strong> move to a new tenant — Managed → SaaS, SaaS → SaaS, or tenant consolidation. The classes are identical across all three; only the class-1 tooling differs, and that difference is called out where it matters.</p>
+<p>It routes rather than restates. The step-by-step procedures live in the <strong>M2S</strong> and <strong>S2S</strong> series and are better there; what this entry adds is the sorting rule, and the three places the sorting is most often got wrong.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#three-classes">Three Classes of Migration State</a></li>
+<li><a href="#configuration">Class 1 — Configuration: What Moves, and What Rewrites It</a></li>
+<li><a href="#identity">Class 2 — Identity: Everything Gets a New ID</a></li>
+<li><a href="#accumulated-state">Class 3 — Accumulated State: The Relearn Clock</a></li>
+<li><a href="#the-dual-run-question">The Dual-Run Question</a></li>
+<li><a href="#before-you-migrate">Before You Migrate: The Prep That Pays</a></li>
+<li><a href="#summary-and-next-steps">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<p><a id="prerequisites"></a></p>
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Applies to</strong></td>
+<td>Any move to a new Dynatrace tenant — Managed → SaaS, SaaS → SaaS, or tenant consolidation</td>
+</tr>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Migration leads and platform owners scoping a cutover; anyone answering &quot;does X carry over?&quot; for a customer or an internal stakeholder</td>
+</tr>
+<tr>
+<td><strong>Format</strong></td>
+<td>Decision support and routing — the step-by-step procedures live in the M2S and S2S series</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>The queries in sections 4 and 5 need Grail read access on the target tenant; no configuration permissions are required to run them</td>
+</tr>
+<tr>
+<td><strong>Related topic series</strong></td>
+<td><strong>M2S</strong> (Managed → SaaS, nine steps) · <strong>S2S</strong> (SaaS → SaaS) · <strong>AUTOM</strong> (Monaco, Terraform, config-as-code) · <strong>AIOPS</strong> (how Davis detection learns) · <strong>ORGNZ</strong> / <strong>IAM</strong> (what the target tenant needs before anything arrives)</td>
+</tr>
+<tr>
+<td><strong>Related FAQs</strong></td>
+<td><strong>FAQ-16</strong> (classic entity selectors → Smartscape — the vocabulary behind section 4) · <strong>FAQ-17</strong> (planning a migration cutover — the sequencing this entry feeds) · <strong>FAQ-12</strong> (coverage gaps from partial enablement)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Validation status.</strong> All four DQL queries were executed against a live Dynatrace tenant on 09/21/2026, and every quotation was checked against the page it cites on the same date. Section 4's <code>id_classic</code> finding was reproduced on two node types. The dictionary and custom-device checks in section 4 were re-run on 10/02/2026, and the pages behind sections 3 and 6 were re-read on that date.</p>
+</blockquote>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<p><strong>Configuration moves. Identity is re-minted. Accumulated state is gone.</strong></p>
+<p>Put concretely, for the three questions that generate the most confusion:</p>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Do entity IDs stay the same?</strong></td>
+<td>No. Plan for every classic <code>HOST-…</code>, <code>SERVICE-…</code>, <code>PROCESS_GROUP-…</code> and <code>APPLICATION-…</code> id to change. The SaaS Upgrade Assistant exists partly to rewrite them for you, and its own description says so.</td>
+</tr>
+<tr>
+<td><strong>Can we reuse the Managed baselines?</strong></td>
+<td>No. Davis relearns from zero in the new tenant. Budget the relearn window and do not switch alerting off while it runs.</td>
+</tr>
+<tr>
+<td><strong>Can we send to both tenants at once?</strong></td>
+<td>Not from a host. One OneAgent per host, one destination per OneAgent. The overlap you build is across the estate — phased waves — not on a single machine.</td>
+</tr>
+</tbody>
+</table>
+<p>The single highest-leverage thing you can do before a migration is <strong>make your configuration stop depending on class-2 data</strong>: replace hardcoded entity IDs in dashboards, SLOs, alert filters and workflows with tags, names or host groups. Configuration that refers to entities by a property you control migrates cleanly. Configuration that refers to them by an ID the platform minted does not, and there is no tool that can fully fix that for you.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant">SaaS Upgrade Assistant (DT docs)</a> — <em>&quot;Automation eliminates time-consuming manual tasks, such as updating dashboard ownership or adjusting entity IDs that have changed between environments.&quot;</em>, <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent">Dynatrace OneAgent (DT docs)</a> — <em>&quot;A single OneAgent per host is required to collect all relevant monitoring data—even if your hosts are deployed within Docker containers, microservices architectures, or cloud-based infrastructure.&quot;</em></sub></p>
+</blockquote>
+<p><a id="three-classes"></a></p>
+<h2>2. Three Classes of Migration State</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+VGhyZWUgQ2xhc3NlcyBvZiBNaWdyYXRpb24gU3RhdGU8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMi41Ij5FdmVyeSAmIzgyMjA7ZG9lcyBYIGNhcnJ5IG92ZXIgdG8gdGhlIG5ldyB0ZW5hbnQ/JiM4MjIxOyBxdWVzdGlvbiBpcyBhbnN3ZXJlZCBieSB3aGljaCBjbGFzcyBYIGJlbG9uZ3MgdG88L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI3NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMiI+VGhlIGRpYWdub3N0aWM6IGlmIGl0IHdhcyBsZWFybmVkIG9yIGFjY3VtdWxhdGVkIHJhdGhlciB0aGFuIGF1dGhvcmVkLCBpdCBkb2VzIG5vdCBtb3ZlPC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PSBDbGFzcyAxIOKAlCBDT05GSUdVUkFUSU9OID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSIzMCIgeT0iOTYiIHdpZHRoPSIyODAiIGhlaWdodD0iMzU4IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA3IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjE3MCIgeT0iMTI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTdGM0QwIiBmb250LXNpemU9IjE3IiBmb250LXdlaWdodD0iNzAwIj4xICYjMTgzOyBDT05GSUdVUkFUSU9OPC90ZXh0PgogIDx0ZXh0IHg9IjE3MCIgeT0iMTQ3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5UaGluZ3MgeW91IGF1dGhvcmVkPC90ZXh0PgoKICA8cmVjdCB4PSI0NiIgeT0iMTYyIiB3aWR0aD0iMjQ4IiBoZWlnaHQ9IjU2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTcwIiB5PSIxODIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPk1PVkVTPzwvdGV4dD4KICA8dGV4dCB4PSIxNzAiIHk9IjIwMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMi41IiBmb250LXdlaWdodD0iNzAwIj5ZZXMgJiM4MjEyOyB3aXRoIHJld3JpdGluZzwvdGV4dD4KCiAgPHJlY3QgeD0iNDYiIHk9IjIzMiIgd2lkdGg9IjI0OCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgcng9IjYiLz4KICA8dGV4dCB4PSIxNzAiIHk9IjI1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+RVhBTVBMRVM8L3RleHQ+CiAgPHRleHQgeD0iMTcwIiB5PSIyNzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkRhc2hib2FyZHMgJiMxODM7IGFsZXJ0aW5nIHByb2ZpbGVzPC90ZXh0PgogIDx0ZXh0IHg9IjE3MCIgeT0iMjkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5tYW5hZ2VtZW50IHpvbmVzICYjMTgzOyB0YWdnaW5nIHJ1bGVzPC90ZXh0PgogIDx0ZXh0IHg9IjE3MCIgeT0iMzA3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5yZXF1ZXN0IG5hbWluZyAmIzE4MzsgcmVxdWVzdCBhdHRyaWJ1dGVzPC90ZXh0PgogIDx0ZXh0IHg9IjE3MCIgeT0iMzI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5jdXN0b20gc2VydmljZXM8L3RleHQ+CgogIDxyZWN0IHg9IjQ2IiB5PSIzNDYiIHdpZHRoPSIyNDgiIGhlaWdodD0iOTYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgcng9IjYiLz4KICA8dGV4dCB4PSIxNzAiIHk9IjM2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+SE9XPC90ZXh0PgogIDx0ZXh0IHg9IjE3MCIgeT0iMzg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIj5TYWFTIFVwZ3JhZGUgQXNzaXN0YW50IChNMlMgb25seSk8L3RleHQ+CiAgPHRleHQgeD0iMTcwIiB5PSI0MDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiPk1vbmFjbyAmIzE4MzsgVGVycmFmb3JtICYjMTgzOyBjb25maWcgQVBJPC90ZXh0PgogIDx0ZXh0IHg9IjE3MCIgeT0iNDI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEwLjUiPlJld3JpdGluZyA9IG5ldyBJRHMsIG5ldyBlbmRwb2ludHM8L3RleHQ+CgogIDwhLS0gPT09PT09PT09PT09IENsYXNzIDIg4oCUIElERU5USVRZID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSIzMjUiIHk9Ijk2IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjM1OCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4wNyIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjEyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxNyIgZm9udC13ZWlnaHQ9IjcwMCI+MiAmIzE4MzsgSURFTlRJVFk8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIxNDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkhhbmRsZXMgdGhlIHBsYXRmb3JtIG1pbnRzPC90ZXh0PgoKICA8cmVjdCB4PSIzNDEiIHk9IjE2MiIgd2lkdGg9IjI0OCIgaGVpZ2h0PSI1NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTgyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5NT1ZFUz88L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIyMDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIuNSIgZm9udC13ZWlnaHQ9IjcwMCI+Tm8gJiM4MjEyOyByZS1taW50ZWQgb24gYXJyaXZhbDwvdGV4dD4KCiAgPHJlY3QgeD0iMzQxIiB5PSIyMzIiIHdpZHRoPSIyNDgiIGhlaWdodD0iMTAwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIyNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPkVYQU1QTEVTPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjczIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5FbnRpdHkgSURzICYjODIxMjsgSE9TVCwgU0VSVklDRSw8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIyOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlBST0NFU1NfR1JPVVAsIEFQUExJQ0FUSU9OPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzA3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5tYW5hZ2VtZW50LXpvbmUgSURzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5kYXNoYm9hcmQgSURzPC90ZXh0PgoKICA8cmVjdCB4PSIzNDEiIHk9IjM0NiIgd2lkdGg9IjI0OCIgaGVpZ2h0PSI5NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5XSEFUIFRPIERPPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIj5SZWNvbmNpbGUgb24gdGhlIHN0YWJsZSBpbnB1dHM6PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDA2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIj5uYW1lcyAmIzE4MzsgaG9zdCBncm91cHMgJiMxODM7IHRhZ3M8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0MjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAuNSI+UmVmYWN0b3IgSUQgcmVmZXJlbmNlcyBiZWZvcmUgeW91IG1vdmU8L3RleHQ+CgogIDwhLS0gPT09PT09PT09PT09IENsYXNzIDMg4oCUIEFDQ1VNVUxBVEVEIFNUQVRFID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSI2MjAiIHk9Ijk2IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjM1OCIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4wNyIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI3NjAiIHk9IjEyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+MyAmIzE4MzsgQUNDVU1VTEFURUQgU1RBVEU8L3RleHQ+CiAgPHRleHQgeD0iNzYwIiB5PSIxNDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkxlYXJuZWQsIHJlY29yZGVkIG9yIHNlY3JldDwvdGV4dD4KCiAgPHJlY3QgeD0iNjM2IiB5PSIxNjIiIHdpZHRoPSIyNDgiIGhlaWdodD0iNTYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0RFMzUwQiIgcng9IjYiLz4KICA8dGV4dCB4PSI3NjAiIHk9IjE4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+TU9WRVM/PC90ZXh0PgogIDx0ZXh0IHg9Ijc2MCIgeT0iMjAzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEyLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPk5vICYjODIxMjsgYW5kIHRoZXJlIGlzIG5vIHRvb2w8L3RleHQ+CgogIDxyZWN0IHg9IjYzNiIgeT0iMjMyIiB3aWR0aD0iMjQ4IiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc2MCIgeT0iMjUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5FWEFNUExFUzwvdGV4dD4KICA8dGV4dCB4PSI3NjAiIHk9IjI3MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RGF2aXMgYmFzZWxpbmVzICYjMTgzOyBwcm9ibGVtIGhpc3Rvcnk8L3RleHQ+CiAgPHRleHQgeD0iNzYwIiB5PSIyOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm1ldHJpYyAvIGxvZyAvIHRyYWNlIGhpc3Rvcnk8L3RleHQ+CiAgPHRleHQgeD0iNzYwIiB5PSIzMDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmNyZWRlbnRpYWwtdmF1bHQgc2VjcmV0cyAmIzE4MzsgQVBJIHRva2VuczwvdGV4dD4KICA8dGV4dCB4PSI3NjAiIHk9IjMyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+T0F1dGggc2VjcmV0cyAmIzE4MzsgcHJpdmF0ZSBzeW50aCBsb2NhdGlvbnM8L3RleHQ+CgogIDxyZWN0IHg9IjYzNiIgeT0iMzQ2IiB3aWR0aD0iMjQ4IiBoZWlnaHQ9Ijk2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzYwIiB5PSIzNjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPldIQVQgVE8gRE88L3RleHQ+CiAgPHRleHQgeD0iNzYwIiB5PSIzODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiPkJ1ZGdldCB0aGUgcmVsZWFybiBjbG9jaywgb3I8L3RleHQ+CiAgPHRleHQgeD0iNzYwIiB5PSI0MDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiPnJlY3JlYXRlIGJ5IGhhbmQuIEtlZXAgdGhlIG9sZDwvdGV4dD4KICA8dGV4dCB4PSI3NjAiIHk9IjQyMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSI+dGVuYW50IGZvciByZWZlcmVuY2UuPC90ZXh0PgoKICA8dGV4dCB4PSI0NjUiIHk9IjQ3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMS41Ij5Nb3N0IG1pZ3JhdGlvbiBzdXJwcmlzZXMgYXJlIGEgY2xhc3MtMiBvciBjbGFzcy0zIGl0ZW0gcGxhbm5lZCBmb3IgYXMgaWYgaXQgd2VyZSBjbGFzcyAxPC90ZXh0Pgo8L3N2Zz4K" alt="Three classes of migration state" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Class | Moves? | Examples | What to do |
+|-------|--------|----------|------------|
+| 1 - Configuration (things you authored) | Yes, with rewriting | Dashboards, alerting profiles, management zones, tagging rules, request naming, request attributes, custom services | SaaS Upgrade Assistant (M2S only), Monaco, Terraform, config API. Rewriting means new IDs and new endpoints. |
+| 2 - Identity (handles the platform mints) | No - re-minted on arrival | Entity IDs (HOST, SERVICE, PROCESS_GROUP, APPLICATION), management-zone IDs, dashboard IDs | Reconcile on the stable inputs: names, host groups, tags. Refactor ID references before you move. |
+| 3 - Accumulated state (learned, recorded or secret) | No, and there is no tool | Davis baselines, problem history, metric/log/trace history, credential-vault secrets, API tokens, OAuth secrets, private synthetic locations | Budget the relearn clock or recreate by hand. Keep the old tenant for reference. |
+For environments where SVG doesn't render
+-->
+<p>The classes are worth internalizing because they <strong>predict the failure mode</strong>, not just the answer.</p>
+<ul>
+<li>A <strong>class-1</strong> item that goes wrong fails <em>loudly</em>. The Upgrade Assistant reports the row as failed, Monaco errors, the API returns 400. You get a list and you work through it.</li>
+<li>A <strong>class-2</strong> item that goes wrong fails <em>silently</em>. The dashboard migrates, the tile renders, and it shows &quot;No data&quot; — because the entity selector points at an ID that exists only in the tenant you left. Nothing errors; the panel is simply empty, which looks exactly like a quiet night.</li>
+<li>A <strong>class-3</strong> item that goes wrong fails <em>on a delay</em>. Alerting is migrated and enabled, and for the first week it is either silent or deafening, because Davis has no history to judge against yet. The instinct is to conclude the detection config is wrong and start tuning it, which bakes the relearn period's noise into your thresholds permanently.</li>
+</ul>
+<p>That progression — loud, silent, delayed — is why teams reliably under-plan classes 2 and 3. Class 1 announces its own problems. The other two do not.</p>
+<p><a id="configuration"></a></p>
+<h2>3. Class 1 — Configuration: What Moves, and What Rewrites It</h2>
+<p>Configuration is the easy class, with one caveat: &quot;moves&quot; always means &quot;moves <strong>and is rewritten</strong>.&quot; Endpoints change, IDs change, and ownership changes. Nothing is a byte-for-byte copy.</p>
+<h3>Which tool does the rewriting</h3>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Available for</th>
+<th>Strength</th>
+<th>Limit worth knowing</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SaaS Upgrade Assistant</strong></td>
+<td>Managed → SaaS only</td>
+<td>Purpose-built; rewrites entity IDs and dashboard ownership for you; per-row deploy results you can archive</td>
+<td>Its pages describe importing one Managed environment's configuration and say nothing about consolidating several, or about name conflicts — check the failed-row list before committing to it for a consolidation</td>
+</tr>
+<tr>
+<td><strong>Monaco</strong></td>
+<td>Any tenant pair</td>
+<td>Config-as-code; its project and environment model lets you rename or namespace configuration per source</td>
+<td>Extensions 2.0 coverage not verified for this FAQ — check the Monaco configuration-types page before relying on it</td>
+</tr>
+<tr>
+<td><strong>Terraform</strong></td>
+<td>Any tenant pair</td>
+<td>Versioned, reviewable, good for the long term</td>
+<td>Covers Extensions 2.0 active version (<code>dynatrace_hub_extension_active_version</code>) and monitoring configurations (<code>dynatrace_hub_extension_v2_config</code>), but IDs of other resources referenced inside a configuration's <code>value</code> (credentials, for example) are not remapped for you</td>
+</tr>
+<tr>
+<td><strong>Configuration / Settings API</strong></td>
+<td>Any tenant pair</td>
+<td>Total control; the fallback when nothing else covers a type</td>
+<td>You own the export/transform/import loop and the error handling</td>
+</tr>
+</tbody>
+</table>
+<p>The Assistant is the default for a Managed → SaaS move. In community practice, consolidating several source environments with identically named configurations into one tenant is easier with Monaco, because you can rename or namespace per source. Decide this before the move: discovering name-conflict failures after an Assistant run is a worse day than choosing the tool up front.</p>
+<h3>Migrate once, not twice</h3>
+<p>A Managed → SaaS move is a host-and-path rewrite of every API call. A later upgrade to the latest Dynatrace is a <em>second</em> rewrite, and the two are easy to conflate. In community practice, endpoints under <code>/platform/</code> and the <strong>ingest</strong> paths (<code>/api/v2/logs/ingest</code>, <code>/metrics/ingest</code>, <code>/events/ingest</code>, <code>/api/v2/otlp</code>, <code>/api/bizevents/ingest</code>) are treated as carrying forward and most of <code>/api/config/v1</code> as not. No single Dynatrace page lists the survivors, so confirm each endpoint on its own API page before you rely on the table below.</p>
+<p>The narrow <code>/api/config/v1</code> survivors are worth knowing precisely because they sit next to endpoints that do not survive, and the pairs look alike. This table is the repointing analysis carried in <strong>M2S-06</strong>, not a Dynatrace-published list:</p>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Survives the Gen3 upgrade?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/service/requestNaming</code></td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>/service/requestAttributes</code></td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>/service/customServices</code></td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>/service/conditionalNaming/*</code></td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><code>/calculatedMetrics/service</code></td>
+<td><strong>Verify</strong> — listed as not surviving, but its API page is tagged <em>Latest Dynatrace</em> and documents enabling service metrics on Grail</td>
+</tr>
+<tr>
+<td><code>/calculatedMetrics/mobile</code></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<p>If you are rewriting a script anyway, point it at its Gen3 equivalent in the same pass. <strong>M2S-06</strong> carries the full repointing table, and <strong>AUTOM-02</strong> catalogs the replacements.</p>
+<h3>A worked example: per-service request naming</h3>
+<p>Request naming is a common &quot;how do we move this?&quot; question, and it is a clean class-1 case. The <a href="https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/service-api/request-naming-api">Request naming API</a> is <code>/api/config/v1/service/requestNaming</code>; it is on the survivor list above (the API page itself makes no availability statement either way), and the export/import loop is:</p>
+<pre><code class="language-bash"># 1. List rule IDs on the source tenant
+curl -s -H &quot;Authorization: Api-Token $SRC_TOKEN&quot; \
+  &quot;$SRC_URL/api/config/v1/service/requestNaming&quot;
+
+# 2. Fetch each rule's full definition by id
+curl -s -H &quot;Authorization: Api-Token $SRC_TOKEN&quot; \
+  &quot;$SRC_URL/api/config/v1/service/requestNaming/$RULE_ID&quot;
+
+# 3. Strip the id, then POST the body to the target tenant
+curl -s -X POST -H &quot;Authorization: Api-Token $DST_TOKEN&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  --data @rule-without-id.json \
+  &quot;$DST_URL/api/config/v1/service/requestNaming&quot;
+</code></pre>
+<p>Two things to check before running it at scale. Rules whose conditions reference <strong>entity IDs or management zones</strong> are class-1 configuration carrying a class-2 payload — those conditions need remapping (section 4). And rule <strong>order matters</strong>, because naming rules are evaluated in sequence; re-creating them in list order preserves it, re-creating them in parallel does not.</p>
+<p>For anything beyond a one-off, prefer config-as-code over a bespoke script: the Terraform provider's <a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/request_naming"><code>dynatrace_request_naming</code></a> resource maps to this same endpoint, with <a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/request_namings"><code>dynatrace_request_namings</code></a> for ordering. Same effort, and the result is versioned rather than a migration-day artifact nobody can reproduce.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/service-api/request-naming-api">Request naming API (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant">SaaS Upgrade Assistant (DT docs)</a> — <em>&quot;imports your Dynatrace Managed environment configuration&quot;</em>, <a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/request_naming">dynatrace_request_naming (Terraform Registry)</a>, <a href="https://raw.githubusercontent.com/dynatrace-oss/terraform-provider-dynatrace/main/docs/resources/hub_extension_v2_config.md">hub_extension_v2_config (Terraform provider, dynatrace-oss GitHub)</a> — <em>&quot;manages monitoring configurations for Dynatrace Extensions 2.0&quot;</em>; <em>&quot;This type of cross-resource reference is <strong>not automatically resolved or tracked</strong> by this provider&quot;</em>, <a href="https://raw.githubusercontent.com/dynatrace-oss/terraform-provider-dynatrace/main/docs/resources/hub_extension_active_version.md">hub_extension_active_version (Terraform provider, dynatrace-oss GitHub)</a> — <em>&quot;covers activating a specific version of an Extension&quot;</em>. <a href="https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/calculated-metrics/service-metrics">Service metrics API (DT docs)</a> — <em>&quot;Edit a metric on Grail Enable or disable a calculated service metric on Grail.&quot;</em> <strong>Derived:</strong> the rule-ordering caveat follows from naming rules being sequentially evaluated.</sub></p>
+</blockquote>
+<p><a id="identity"></a></p>
+<h2>4. Class 2 — Identity: Everything Gets a New ID</h2>
+<p>Entity IDs are <strong>environment-scoped</strong>. The new tenant discovers your estate from scratch and mints its own identifiers for everything it finds. There is no setting that changes this and no tool that preserves them — the SaaS Upgrade Assistant's pitch is that it <em>rewrites</em> them on your behalf, which is the clearest statement available that they change.</p>
+<p>You may hear that some IDs are deterministic hashes of detection inputs, and that a given host therefore sometimes lands on the same id in both tenants. That is occasionally observed, the hashing is undocumented, and it is <strong>not a guarantee</strong>. Do not design a cutover around it.</p>
+<h3>What you reconcile on instead</h3>
+<table>
+<thead>
+<tr>
+<th>Instead of</th>
+<th>Reconcile on</th>
+<th>Why it survives</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>HOST-A1B2C3…</code></td>
+<td>Host name, host group, host tags</td>
+<td>You set them; the agent carries them across with <code>oneagentctl</code></td>
+</tr>
+<tr>
+<td><code>SERVICE-A1B2C3…</code></td>
+<td>Service name + the detection rules that produce it</td>
+<td>Detection rules are class-1 configuration and migrate</td>
+</tr>
+<tr>
+<td><code>APPLICATION-A1B2C3…</code></td>
+<td>Application name and detection rules</td>
+<td>Same</td>
+</tr>
+<tr>
+<td>A management-zone id</td>
+<td>The zone's <em>rules</em> (tag-based, not entity-based)</td>
+<td>Tag-based rules migrate cleanly; entity-ID rules do not</td>
+</tr>
+</tbody>
+</table>
+<h3>The classic → Smartscape mapping, from the tenant rather than a table</h3>
+<p>If you are also moving from classic entity selectors to Smartscape while you migrate, the mapping does not need to be looked up in a document — the semantic dictionary publishes it, current for the tenant you run it on, at zero query cost:</p>
+<pre><code class="language-dql">// The complete classic-entity-type to Smartscape-node mapping, read from the
+// semantic dictionary. This is the authoritative list for the tenant it runs
+// on — it changes with the platform version, so prefer it over any static table.
+// Scans no data and returns in milliseconds.
+fetch dt.semantic_dictionary.models
+| filter data_object == &quot;smartscape.nodes&quot;
+| filter isNotNull(classic_models)
+| expand classic_models
+| fields classic_models, smartscape_node_type, name
+| sort classic_models asc
+</code></pre>
+<p>On the validation tenant this returned <strong>28 mappings across 23 distinct classic entity types</strong> (09/21/2026). Four rows in that output do not behave like the rest, and each fails silently rather than loudly:</p>
+<ul>
+<li><strong><code>dt.entity.application</code> and <code>dt.entity.mobile_application</code> both map to <code>FRONTEND</code>.</strong> A translation that assumes one classic type per node type over-counts — migrate <code>dt.entity.application</code> without a <code>frontend.type == &quot;web&quot;</code> filter and you silently pick up the mobile apps too.</li>
+<li><strong><code>dt.entity.cloud_application</code> fans out</strong> to six Kubernetes workload types (<code>K8S_DEPLOYMENT</code>, <code>K8S_STATEFULSET</code>, <code>K8S_DAEMONSET</code>, <code>K8S_JOB</code>, <code>K8S_CRONJOB</code>, <code>K8S_REPLICASET</code>) rather than mapping to one. Check the target type before translating.</li>
+<li><strong><code>dt.entity.custom_application</code> has no row at all.</strong> There is no <code>CUSTOM_APPLICATION</code> node type; querying one returns nothing rather than erroring.</li>
+<li><strong><code>dt.entity.custom_device</code> maps only to <code>OS_SERVICE</code>.</strong> On the validation tenant (10/02/2026) there were 15 classic custom devices over 7 days and 0 <code>OS_SERVICE</code> nodes, so a query translated along this row returns nothing. No page documents how extension-created custom devices are modelled in Smartscape — count both sides before translating.</li>
+</ul>
+<p><strong>FAQ-16</strong> covers the full translation — constructs, topology navigation and the gotchas — and is the place to go if this is your main task rather than a side-effect of the migration.</p>
+<blockquote>
+<p><sub><strong>Dictionary:</strong> <code>dt.semantic_dictionary.models</code> filtered to <code>data_object == &quot;smartscape.nodes&quot;</code> with a non-null <code>classic_models</code> — 28 expanded rows over 23 distinct classic types, read 09/21/2026; the <code>dt.entity.custom_device</code> → <code>OS_SERVICE</code> row re-read 10/02/2026 (control: <code>fetch dt.entity.custom_device, from:-7d</code> → 15 entities; <code>smartscapeNodes &quot;OS_SERVICE&quot;, from:-7d</code> → 0). <strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant">SaaS Upgrade Assistant (DT docs)</a> — <em>&quot;adjusting entity IDs that have changed between environments&quot;</em>.</sub></p>
+</blockquote>
+<h3>The bridge field, and the comparison that silently returns false</h3>
+<p>Smartscape nodes created from classic entities carry <strong><code>id_classic</code></strong>, holding the classic <code>HOST-…</code> / <code>SERVICE-…</code> identifier. The semantic dictionary marks the field <strong><code>deprecated</code></strong>: <em>&quot;Not all entities have this ID, and it is not generated for new entities. Use the <code>id</code> field instead, which is the Smartscape ID.&quot;</em> Treat it as a bridge for translating <em>queries</em> within one tenant — not as a key that matches entities across tenants, and not as something a new tenant is guaranteed to generate for the entities it discovers. Smartscape-native types have none: on the validation tenant (09/28/2026) <code>HOST</code> 7 of 7, <code>SERVICE</code> 35 of 35 and <code>K8S_POD</code> 1,667 of 1,667 carried it, while <code>ACTIVEGATE</code>, <code>ONEAGENT</code>, <code>K8S_DYNAKUBE</code> and cloud-resource types such as <code>AWS_EC2_INSTANCE</code> carried it on 0 nodes, and <code>PROCESS</code> on 210 of 215. On tenants before SaaS 1.348 some Kubernetes nodes were also missing it. Filter reconciliation queries with <code>isNotNull(id_classic)</code> so that nodes with no classic twin are not counted as unmatched. Where it is present, it is the natural thing to reconcile a migrated query against an unmigrated one — and the obvious way to use it does not work.</p>
+<p><code>id</code> and <code>id_classic</code> are <strong>different types</strong>: <code>id</code> is a <code>smartscape_id</code>, <code>id_classic</code> is a <code>string</code>. Comparing them with <code>==</code> is always <code>false</code>, even when the two values print identically side by side. Grail never raises an error — at most it attaches an <strong>INFO-severity notification</strong>, and on a later re-run not even that — so a query runs, returns a full set of rows, and quietly answers the opposite of the question:</p>
+<pre><code class="language-dql">// The id / id_classic comparison trap. Both columns print the SAME value,
+// yet `naive` says &quot;different&quot; on every row: `id` is a smartscape_id and
+// `id_classic` is a string, so `==` between them is always false.
+// Grail never raises an error, and may not attach a notification either.
+//
+// `toString(id)` is the fix — compare like with like.
+smartscapeNodes &quot;HOST&quot;
+| fields name, id, id_classic
+| fieldsAdd naive   = if(id == id_classic, then: &quot;same&quot;, else: &quot;different&quot;)
+| fieldsAdd correct = if(toString(id) == id_classic, then: &quot;same&quot;, else: &quot;different&quot;)
+| limit 5
+</code></pre>
+<p>On the validation tenant (09/21/2026) every row came back <code>naive = &quot;different&quot;</code> and <code>correct = &quot;same&quot;</code>, with the <code>id</code> and <code>id_classic</code> columns visibly identical — <code>HOST-0C9138C82CB5F432</code> in both. On that run Grail attached an INFO notification:</p>
+<blockquote>
+<p>Notification text returned by the tenant (09/21/2026): The <code>==</code> operation will always return <code>false</code> as <code>id</code> is a smartscape id, while <code>id_classic</code> is a string.</p>
+</blockquote>
+<p>Reproduced on a second node type: <code>smartscapeNodes &quot;SERVICE&quot;</code> with <code>toString(id) == id_classic</code> matched on <strong>23 of 23</strong> services; the bare <code>==</code> matched <strong>0 of 23</strong>.</p>
+<p><strong>Do not rely on that notification.</strong> Re-run on 09/24/2026, the same queries gave the same wrong answer with <strong>no notification at all</strong> — the response's <code>notifications</code> array was empty, while a control query in the same session still carried its own INFO notification. When the notification appears it is a bonus, not the check: the only reliable guard is comparing like types, which is what <code>toString(id)</code> does.</p>
+<p><strong>Why this one matters more than it looks.</strong> Reconciliation is the entire mitigation for class 2 — it is how you prove the target tenant found everything the source tenant had. A reconciliation query built on <code>id == id_classic</code> reports that <em>nothing</em> matches, which reads exactly like a failed migration. The plausible response to that result is to go looking for a migration problem that does not exist. Worse, the inverse mistake is silent in the other direction: a <code>filter id == id_classic</code> used to <em>narrow</em> a result set returns zero rows, which reads as &quot;nothing to fix.&quot;</p>
+<p>The general rule this is an instance of: <strong>in DQL, a comparison between two fields of different types is a false negative, not an error.</strong> It belongs with the corpus's other silent-zero traps — an integer compared against a <code>duration</code>, or <code>==</code> against an array field.</p>
+<blockquote>
+<p><sub><strong>Dictionary:</strong> <code>id</code> is typed <code>smartscape_id</code> and <code>id_classic</code> is typed <code>string</code> on <code>dt.smartscape.host</code> and <code>dt.smartscape.service</code>; read from the query result's own type metadata, 09/21/2026. <strong>Dictionary:</strong> <code>id</code> (<code>stable</code>), <code>id_classic</code> (<code>deprecated</code>; its description is quoted in the text above), read from <code>dt.semantic_dictionary.fields</code> 10/02/2026. <strong>Sources:</strong> behaviour reproduced against a live Dynatrace tenant 09/21/2026 — HOST (7 of 7 nodes) and SERVICE (23 of 23), with the <code>EQUALITY_COMPARISON_OF_INCOMPATIBLE_TYPES</code> notification quoted verbatim from the query response. Re-run 09/24/2026: same result (HOST 0 of 5 with <code>==</code>, 5 of 5 with <code>toString</code>; SERVICE 0 of 22 / 22 of 22), with an empty <code>notifications</code> array. <code>id_classic</code> population by node type (<code>summarize countIf(isNotNull(id_classic)), by:{type}</code>) executed 09/28/2026. <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">SaaS 1.348 release notes (DT docs)</a> — <em>&quot;This field is now correctly populated for all K8S_</em> entity types in the OpenPipeline-based ingest path.&quot;*</sub></p>
+</blockquote>
+<h3>Can your estate even be reconciled by name?</h3>
+<p>Name-based reconciliation is the fallback when IDs change, so it is worth knowing <em>before</em> the cutover whether names are actually unique in your estate. Run this on the source tenant while you still have both:</p>
+<pre><code class="language-dql">// Reconciliation readiness. If names are not unique, &quot;match the new tenant's
+// hosts against the old tenant's by name&quot; is ambiguous — and you will find out
+// during the cutover rather than before it.
+smartscapeNodes &quot;HOST&quot;
+| summarize hosts = count(),
+    with_host_group = countIf(isNotNull(dt.host_group.id)),
+    distinct_names  = countDistinct(name)
+| fieldsAdd name_collisions = hosts - distinct_names
+| fieldsAdd reconcilable = if(name_collisions == 0,
+    then: &quot;names are unique - safe to reconcile on name&quot;,
+    else: &quot;duplicate names - reconcile on host group or tag&quot;)
+</code></pre>
+<p>On the validation tenant: <strong>7 hosts, 6 with a host group, 7 distinct names</strong> — no collisions, so name matching is safe there. In a real estate the collisions are the interesting number. Duplicate host names are common wherever machines are named from a template (<code>web-01</code> in three regions, identical pod names across clusters), and they mean the reconciliation key has to be <code>name</code> <strong>plus</strong> host group or a tag rather than <code>name</code> alone.</p>
+<p>The <code>with_host_group</code> count is the second signal: hosts without a host group have one less stable attribute to match on, and host group is the single most useful one to have in place before a migration because <code>oneagentctl --set-host-group</code> carries it across the move with the agent.</p>
+<p>Swap <code>&quot;HOST&quot;</code> for <code>&quot;SERVICE&quot;</code>, <code>&quot;K8S_POD&quot;</code> or any type from the mapping query above to check the rest of the estate.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> executed against a live Dynatrace tenant 09/21/2026 — 7 hosts, 6 with <code>dt.host_group.id</code>, 7 distinct names, 0 collisions. <strong>Derived:</strong> the &quot;name plus host group or tag&quot; recommendation follows from the collision count being the thing that invalidates a name-only key; no Dynatrace page prescribes a reconciliation key.</sub></p>
+</blockquote>
+<p><a id="accumulated-state"></a></p>
+<h2>5. Class 3 — Accumulated State: The Relearn Clock</h2>
+<p>Dynatrace documents the SaaS Upgrade Assistant as importing environment <em>configuration</em> and publishes no export surface for Grail history or Davis models, so in community practice nothing in this class is expected to move — and unlike class 2 there is no bridge field or reconciliation trick. There are only two responses: <strong>wait for it to rebuild</strong>, or <strong>recreate it by hand</strong>.</p>
+<h3>Things that rebuild themselves, on a clock</h3>
+<p>Davis learns normal behaviour from the data it has seen. In a new tenant it has seen nothing, so detection is either silent or noisy until enough history accumulates.</p>
+<p>In community practice, baselines become trustworthy on roughly the timescales below. They are planning estimates, not documented figures — verify against your own data (the query further down measures it):</p>
+<table>
+<thead>
+<tr>
+<th>Baseline type</th>
+<th>Roughly how long before it is trustworthy</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Availability</td>
+<td>2–3 days</td>
+<td>Binary signal, fast to characterize</td>
+</tr>
+<tr>
+<td>Response time</td>
+<td>1–2 weeks</td>
+<td>Needs weekday/weekend separation</td>
+</tr>
+<tr>
+<td>Error rate</td>
+<td>1–2 weeks</td>
+<td>Needs a representative traffic pattern</td>
+</tr>
+<tr>
+<td>Resource utilization / traffic</td>
+<td>2–4 weeks</td>
+<td>Needs a full business cycle</td>
+</tr>
+</tbody>
+</table>
+<p>In community practice, two operational rules matter more than the exact numbers:</p>
+<ul>
+<li><strong>Do not disable alerting during the relearn window.</strong> It is tempting — the volume is genuinely higher — but switching it off means you emerge from the window with no calibration data and the same unturned thresholds you started with. If the noise is unmanageable, route it somewhere quiet rather than turning it off, so you can measure it.</li>
+<li><strong>Do not tune during the relearn window either.</strong> Thresholds set against a half-learned baseline get baked in. Give the detectors their window, <em>then</em> tune against what actually fired.</li>
+</ul>
+<p>If you have alerting that cannot be silent on day one, port the <strong>static</strong> thresholds first and let the adaptive and seasonal detectors catch up behind them. <strong>AIOPS-02</strong> covers which detector type suits which metric.</p>
+<h3>Checking the clock in the target tenant</h3>
+<p>You do not have to guess how far along the relearn is. Per-host history depth is directly queryable, and it is the honest answer to &quot;are these baselines ready yet?&quot;:</p>
+<pre><code class="language-dql">// The baseline clock: how many days of history does each host actually have
+// in this tenant? A host with a handful of days has no seasonal baseline yet,
+// whatever the detector configuration says.
+//
+// Note interval:24h rather than 1d — calendar durations aren't supported here
+// and are silently rewritten, which is noise you don't need in the result.
+timeseries cpu = avg(dt.host.cpu.usage), from:-30d, interval:24h, by:{dt.entity.host}
+| fieldsAdd days_in_window = arraySize(cpu)
+| fieldsAdd days_with_data = arraySize(arrayRemoveNulls(cpu))
+| fields dt.entity.host, days_in_window, days_with_data
+| sort days_with_data asc
+| limit 20
+</code></pre>
+<p>Sorted ascending, the top of this list is your answer: the hosts with the least history are the ones whose baselines are least trustworthy, and after a wave cutover they are exactly the hosts you just migrated. On the validation tenant the least-covered hosts showed <strong>1, 2 and 4 days of data in a 31-day window</strong> — no seasonal baseline is meaningful on that, regardless of what the detector is configured to do.</p>
+<p>Run it after each wave. It converts &quot;the baselines need a couple of weeks&quot; from a rule of thumb into a per-host fact, and it tells you which teams can start trusting their alerts and which cannot yet.</p>
+<h3>Things that do not rebuild, and must be recreated</h3>
+<p>These have no clock. They are simply absent in the new tenant until a human puts them there:</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Why it cannot move</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Credential-vault secrets</strong></td>
+<td>The Upgrade Assistant documents importing <em>configuration</em>, not secrets, and the vault returns a secret value only for AppEngine-scoped credentials, to an authorized caller</td>
+<td>Recreate each credential; inventory them <em>before</em> cutover</td>
+</tr>
+<tr>
+<td><strong>API tokens</strong></td>
+<td>Same</td>
+<td>Create new tokens, update every consumer</td>
+</tr>
+<tr>
+<td><strong>OAuth client secrets</strong></td>
+<td>Same</td>
+<td>Create new clients</td>
+</tr>
+<tr>
+<td><strong>Cloud integration credentials</strong></td>
+<td>Tenant-scoped keys</td>
+<td>New integration credentials per tenant</td>
+</tr>
+<tr>
+<td><strong>Private synthetic locations</strong></td>
+<td>Bound to the source tenant's ActiveGates</td>
+<td>Recreate against the target's ActiveGates</td>
+</tr>
+<tr>
+<td><strong>Extensions 2.0</strong></td>
+<td>Monitoring configurations reference tenant-scoped IDs (credentials, ActiveGate groups) that do not exist in the target</td>
+<td>Install and activate on the target — Terraform can manage the active version and the monitoring configuration (section 3) — then re-point every credential and ActiveGate-group reference by hand</td>
+</tr>
+<tr>
+<td><strong>Metric / log / trace history</strong></td>
+<td>Stored in the source tenant's Grail</td>
+<td>Keep the source tenant readable during the overlap</td>
+</tr>
+<tr>
+<td><strong>Problem history</strong></td>
+<td>Same</td>
+<td>Export the handful that matter as documentation</td>
+</tr>
+</tbody>
+</table>
+<p>The secrets row is the one that bites hardest on migration day, because it is invisible until something fails to authenticate. <strong>Inventory every credential before the cutover, not during it</strong> — a workflow that silently stops running because its vault entry does not exist in the new tenant looks like a workflow bug, not a migration gap.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> the history-depth query was executed against a live Dynatrace tenant 09/21/2026 (least-covered hosts: 1, 2 and 4 days within a 31-day window); the <code>interval:1d</code> → <code>24h</code> rewrite was observed in that query's own response notifications. <a href="https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant">SaaS Upgrade Assistant (DT docs)</a> — <em>&quot;imports your Dynatrace Managed environment configuration&quot;</em>, <a href="https://developer.dynatrace.com/develop/sdks/client-classic-environment-v2/">Credential vault client (Dynatrace Developer)</a> — <code>getCredentialsDetails</code>: <em>&quot;The credentials set including username/certificate, password or token is included in the response.&quot;</em> (checked in <code>@dynatrace-sdk/client-classic-environment-v2</code> 9.1.0 typings, 10/02/2026, which also reject other scopes: <em>&quot;Only APP_ENGINE scope is supported.&quot;</em>).</sub></p>
+</blockquote>
+<p><a id="the-dual-run-question"></a></p>
+<h2>6. The Dual-Run Question</h2>
+<p>This section restates rather than routes, because it is the one question where the intuitive answer is not merely incomplete — it is wrong, and acting on it produces an unsupported configuration.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+T3ZlcmxhcCBIYXBwZW5zIEFjcm9zcyB0aGUgRXN0YXRlLCBOb3Qgb24gYSBIb3N0PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIuNSI+QSBzaW5nbGUgT25lQWdlbnQgcGVyIGhvc3QgaXMgcmVxdWlyZWQsIGFuZCBvbmUgT25lQWdlbnQgY2Fubm90IGFkZHJlc3MgdHdvIGVudmlyb25tZW50czwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT0gTEVGVCDigJQgd2hhdCBwZW9wbGUgcGljdHVyZSA9PT09PT09PT09PT0gLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjgwIiB3aWR0aD0iMjY4IiBoZWlnaHQ9IjM3NCIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4wNyIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIxNjQiIHk9IjEwNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+V0hBVCBQRU9QTEUgUElDVFVSRTwvdGV4dD4KICA8dGV4dCB4PSIxNjQiIHk9IjEyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+JiM4MjIwO1J1biBib3RoIHVudGlsIHdlIHRydXN0IHRoZSBuZXcgb25lJiM4MjIxOzwvdGV4dD4KCiAgPHJlY3QgeD0iMTA0IiB5PSIxNDYiIHdpZHRoPSIxMjAiIGhlaWdodD0iNTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzQ3NTU2OSIgcng9IjYiLz4KICA8dGV4dCB4PSIxNjQiIHk9IjE2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+T25lIGhvc3Q8L3RleHQ+CiAgPHRleHQgeD0iMTY0IiB5PSIxODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAiPnR3byBPbmVBZ2VudHM8L3RleHQ+CgogIDxwYXRoIGQ9Ik0gMTQwIDE5NiBMIDk4IDI0NiIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIHN0cm9rZS1kYXNoYXJyYXk9IjUgNCIvPgogIDxwYXRoIGQ9Ik0gMTg4IDE5NiBMIDIzMCAyNDYiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBzdHJva2UtZGFzaGFycmF5PSI1IDQiLz4KCiAgPHJlY3QgeD0iNDYiIHk9IjI1MCIgd2lkdGg9IjEwNCIgaGVpZ2h0PSI0NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiByeD0iNiIvPgogIDx0ZXh0IHg9Ijk4IiB5PSIyNzEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEuNSIgZm9udC13ZWlnaHQ9IjcwMCI+TWFuYWdlZDwvdGV4dD4KICA8dGV4dCB4PSI5OCIgeT0iMjg3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEwIj5zb3VyY2U8L3RleHQ+CgogIDxyZWN0IHg9IjE3OCIgeT0iMjUwIiB3aWR0aD0iMTA0IiBoZWlnaHQ9IjQ2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMjMwIiB5PSIyNzEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEuNSIgZm9udC13ZWlnaHQ9IjcwMCI+U2FhUzwvdGV4dD4KICA8dGV4dCB4PSIyMzAiIHk9IjI4NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMCI+dGFyZ2V0PC90ZXh0PgoKICA8Y2lyY2xlIGN4PSIxNjQiIGN5PSIyMjYiIHI9IjE5IiBmaWxsPSIjMEYxNzJBIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMi41Ii8+CiAgPHBhdGggZD0iTSAxNTYgMjE4IEwgMTcyIDIzNCBNIDE3MiAyMTggTCAxNTYgMjM0IiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CgogIDxyZWN0IHg9IjQ2IiB5PSIzMTYiIHdpZHRoPSIyMzYiIGhlaWdodD0iMTIyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNERTM1MEIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTY0IiB5PSIzMzciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPldIWSBJVCBGQUlMUzwvdGV4dD4KICA8dGV4dCB4PSIxNjQiIHk9IjM2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSI+Tm90IHN1cHBvcnRlZCAmIzgyMTI7IG5vdCBtZXJlbHk8L3RleHQ+CiAgPHRleHQgeD0iMTY0IiB5PSIzNzciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiPmhlYXZpZXIuIEEgc2Vjb25kIGFnZW50IGlzIGFuPC90ZXh0PgogIDx0ZXh0IHg9IjE2NCIgeT0iMzk0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIj51bnN1cHBvcnRlZCBzdGF0ZSwgYW5kIG9uZTwvdGV4dD4KICA8dGV4dCB4PSIxNjQiIHk9IjQxMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSI+YWdlbnQgaGFzIG9uZSBkZXN0aW5hdGlvbi48L3RleHQ+CiAgPHRleHQgeD0iMTY0IiB5PSI0MzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAiPkRvdWJsZWQgb3ZlcmhlYWQgaXMgbm90IHRoZSBvYmplY3Rpb248L3RleHQ+CgogIDwhLS0gPT09PT09PT09PT09IFJJR0hUIOKAlCB3aGF0IGFjdHVhbGx5IHdvcmtzID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSIzMzAiIHk9IjgwIiB3aWR0aD0iNTcwIiBoZWlnaHQ9IjM3NCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wNyIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI2MTUiIHk9IjEwNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E3RjNEMCIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+V0hBVCBBQ1RVQUxMWSBXT1JLUzwvdGV4dD4KICA8dGV4dCB4PSI2MTUiIHk9IjEyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UGhhc2VkIHdhdmVzICYjODIxMjsgYm90aCB0ZW5hbnRzIGxpdmUsIG5ldmVyIHRoZSBzYW1lIGhvc3Q8L3RleHQ+CgogIDwhLS0gZXN0YXRlIC0tPgogIDxyZWN0IHg9IjM0OCIgeT0iMTQ0IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjE0NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2OCIgeT0iMTY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5USEUgRVNUQVRFPC90ZXh0PgoKICA8cmVjdCB4PSIzNjQiIHk9IjE3NiIgd2lkdGg9IjIwOCIgaGVpZ2h0PSIzMiIgZmlsbD0iIzBGMTcyQSIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNCIvPgogIDx0ZXh0IHg9IjM3OCIgeT0iMTk3IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5XYXZlIDE8L3RleHQ+CiAgPHRleHQgeD0iNTU4IiB5PSIxOTciIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+bWlncmF0ZWQgJiM4NTk0OyBTYWFTPC90ZXh0PgoKICA8cmVjdCB4PSIzNjQiIHk9IjIxNCIgd2lkdGg9IjIwOCIgaGVpZ2h0PSIzMiIgZmlsbD0iIzBGMTcyQSIgc3Ryb2tlPSIjNDc1NTY5IiByeD0iNCIvPgogIDx0ZXh0IHg9IjM3OCIgeT0iMjM1IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5XYXZlIDI8L3RleHQ+CiAgPHRleHQgeD0iNTU4IiB5PSIyMzUiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+cGVuZGluZyAmIzg1OTQ7IE1hbmFnZWQ8L3RleHQ+CgogIDxyZWN0IHg9IjM2NCIgeT0iMjUyIiB3aWR0aD0iMjA4IiBoZWlnaHQ9IjMyIiBmaWxsPSIjMEYxNzJBIiBzdHJva2U9IiM0NzU1NjkiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iMzc4IiB5PSIyNzMiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPldhdmUgMzwvdGV4dD4KICA8dGV4dCB4PSI1NTgiIHk9IjI3MyIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5wZW5kaW5nICYjODU5NDsgTWFuYWdlZDwvdGV4dD4KCiAgPCEtLSB0ZW5hbnRzIC0tPgogIDxyZWN0IHg9IjY0MCIgeT0iMTUyIiB3aWR0aD0iMTA4IiBoZWlnaHQ9IjQ2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNjk0IiB5PSIxNzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEuNSIgZm9udC13ZWlnaHQ9IjcwMCI+U2FhUzwvdGV4dD4KICA8dGV4dCB4PSI2OTQiIHk9IjE4OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMCI+dGFyZ2V0PC90ZXh0PgoKICA8cmVjdCB4PSI2NDAiIHk9IjIzOCIgd2lkdGg9IjEwOCIgaGVpZ2h0PSI0NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNDc1NTY5IiByeD0iNiIvPgogIDx0ZXh0IHg9IjY5NCIgeT0iMjU5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPk1hbmFnZWQ8L3RleHQ+CiAgPHRleHQgeD0iNjk0IiB5PSIyNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAiPnNvdXJjZTwvdGV4dD4KCiAgPHBhdGggZD0iTSA1NzIgMTkyIEwgNjQwIDE3NyIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz4KICA8cGF0aCBkPSJNIDU3MiAyMzAgTCA2NDAgMjU1IiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIvPgogIDxwYXRoIGQ9Ik0gNTcyIDI2OCBMIDY0MCAyNjYiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+CgogIDxwYXRoIGQ9Ik0gNjk0IDE5OCBMIDY5NCAyMzgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBzdHJva2UtZGFzaGFycmF5PSI0IDQiLz4KICA8dGV4dCB4PSI3NjIiIHk9IjIxMiIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMC41Ij5jcm9zcy1lbnZpcm9ubWVudDwvdGV4dD4KICA8dGV4dCB4PSI3NjIiIHk9IjIyOCIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMC41Ij50cmFjaW5nICsgdGlsZXMgKENsYXNzaWMpPC90ZXh0PgogIDx0ZXh0IHg9Ijc2MiIgeT0iMjQ0IiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEwIj5zcGFuIHRoZSBib3VuZGFyeTwvdGV4dD4KCiAgPCEtLSBkdWFsLXNlbmQgbGFuZSAtLT4KICA8cmVjdCB4PSIzNDgiIHk9IjMwMiIgd2lkdGg9IjUzNiIgaGVpZ2h0PSI3NCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNiIvPgogIDx0ZXh0IHg9IjM2NCIgeT0iMzIzIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEwLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPlRIRSBTT1VSQ0VTIFRIQVQgR0VOVUlORUxZIENBTiBEVUFMLVNFTkQ8L3RleHQ+CiAgPHRleHQgeD0iMzY0IiB5PSIzNDUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkNsb3VkIGludGVncmF0aW9ucyAoQVdTIC8gQXp1cmUgLyBHQ1ApICYjMTgzOyBPcGVuVGVsZW1ldHJ5IGNvbGxlY3RvcnMgJiMxODM7IEFQSSBsb2cgYW5kIG1ldHJpYyBpbmdlc3Q8L3RleHQ+CiAgPHRleHQgeD0iMzY0IiB5PSIzNjQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlR3byBkZXN0aW5hdGlvbnMsIHNlcGFyYXRlIGNyZWRlbnRpYWxzICYjODIxMjsgdGhlIG9ubHkgdHJ1ZSBwYXJhbGxlbCBmZWVkIGF2YWlsYWJsZTwvdGV4dD4KCiAgPHJlY3QgeD0iMzQ4IiB5PSIzODQiIHdpZHRoPSI1MzYiIGhlaWdodD0iNjQiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgcng9IjYiLz4KICA8dGV4dCB4PSIzNjQiIHk9IjQwNSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMC41IiBmb250LXdlaWdodD0iNzAwIj5USEUgUkVTSURVQUwgR0FQIElTIFJFQUw8L3RleHQ+CiAgPHRleHQgeD0iMzY0IiB5PSI0MjUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkVhY2ggaG9zdCBpcyBkYXJrIGZvciBpdHMgcmVzdGFydCB3aW5kb3c7IHNlcnZpY2VzIHN0YXkgaW5jb21wbGV0ZSB1bnRpbCBhcHAgcHJvY2Vzc2VzIHJlc3RhcnQuPC90ZXh0PgogIDx0ZXh0IHg9IjM2NCIgeT0iNDQyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TY2hlZHVsZSB0aGUgZ2FwIGludG8gYSBtYWludGVuYW5jZSB3aW5kb3cgJiM4MjEyOyB5b3UgY2Fubm90IHJlbW92ZSBpdC48L3RleHQ+CgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjExLjUiPlNlcXVlbmNlIHdhdmVzIHNvIHRpZ2h0bHktY291cGxlZCBzZXJ2aWNlcyBtb3ZlIHRvZ2V0aGVyICYjODIxMjsgZmV3ZXIgc2VhbXMgaXMgbGVzcyB0byB2YWxpZGF0ZTwvdGV4dD4KPC9zdmc+Cg==" alt="Overlap happens across the estate, not on a host" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| | What people picture | What actually works |
+|---|---|---|
+| Shape | One host, two OneAgents, reporting to Managed and SaaS simultaneously | Phased waves: migrated hosts report to SaaS, pending hosts report to Managed. Both tenants live, never the same host. |
+| Status | Not supported. A single OneAgent per host is required, and one OneAgent has one destination. Doubled overhead is not the objection. | Supported. Cross-environment tracing and cross-environment dashboard tiles (both Dynatrace Classic features) can span the boundary during the overlap - confirm the target still offers them. |
+| Dual-send | Not available from OneAgent | Available from cloud integrations (AWS/Azure/GCP), OpenTelemetry collectors, and API log/metric ingest - two destinations with separate credentials |
+| Residual gap | - | Each host is dark for its restart window and services stay incomplete until application processes restart. Schedule it; you cannot remove it. |
+For environments where SVG doesn't render
+-->
+<h3>Why &quot;run both for a while&quot; is not on the menu</h3>
+<p>Dynatrace documents the constraint directly: <em>&quot;A single OneAgent per host is required to collect all relevant monitoring data—even if your hosts are deployed within Docker containers, microservices architectures, or cloud-based infrastructure.&quot;</em> And a OneAgent is pointed at one environment: <code>oneagentctl --set-tenant</code> takes one environment ID and one tenant token.</p>
+<p>The failure mode here is a reasoning one. Installing a second agent <em>sounds</em> like a heavier-but-viable trade-off — you would expect the objection to be CPU and memory, and you would be willing to pay it for a few weeks of certainty. It is not a trade-off. It is an unsupported state, which is a different kind of answer, and treating it as a cost question leads teams to accept a cost they cannot actually buy anything with.</p>
+<h3>What the overlap is actually made of</h3>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Mechanism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Both tenants carrying real traffic</strong></td>
+<td>Phased waves. Migrated hosts report to the target, pending hosts report to the source. The overlap is real; it is just distributed across the estate rather than stacked on one machine.</td>
+</tr>
+<tr>
+<td><strong>Traces that cross the boundary</strong></td>
+<td>Connect the environments and enable cross-environment tracing, so a call from a migrated service into an unmigrated one still stitches into one trace.</td>
+</tr>
+<tr>
+<td><strong>A single view during the overlap</strong></td>
+<td>Cross-environment dashboard tiles surface remote-environment metrics on a local dashboard — a Dashboards Classic feature, not available in the new Dashboards app.</td>
+</tr>
+<tr>
+<td><strong>Guaranteed continuity on one signal</strong></td>
+<td>The non-OneAgent sources genuinely can dual-send: cloud integrations, OpenTelemetry collectors and API log/metric ingest all take two destinations with separate credentials.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Both overlap mechanisms are Dynatrace Classic features.</strong> The cross-environment tracing page is tagged <em>Dynatrace Classic</em> and is configured with a classic access token, and the multi-environment dashboard page <em>&quot;refers to classic dashboards created using the Dashboards Classic functionality integrated with Dynatrace Classic.&quot;</em> Classic access tokens do not exist in an environment that has completed the move to Latest Dynatrace. Confirm the target environment still offers both before you design the overlap around them; if it does not, plan seam validation without them (per-side traces and per-tenant dashboards).</p>
+<p>Four caveats on cross-environment tracing that determine whether it will actually cover your seam:</p>
+<ul>
+<li>It is <em>&quot;limited to traces of requests that can transfer information about response headers and trace context from the receiving environment, such as HTTP or synchronous requests.&quot;</em> <strong>Asynchronous and messaging boundaries do not stitch.</strong> If your call chain crosses a queue, plan the wave boundary somewhere else.</li>
+<li><em>&quot;IBM z/OS (CICS, IMS, and Java) and AWS Lambda don't support cross-environment tracing.&quot;</em> A seam into either needs a different validation plan.</li>
+<li>The connecting token, created in the remote environment, needs two scopes — <em>&quot;Look up a single trace&quot;</em> (<code>traces.lookup</code>) and <em>&quot;Fetch data from a remote environment&quot;</em> (<code>RestRequestForwarding</code>) — and the OneAgent feature <em>Cross-environment tracing - Environment and transaction IDs in HTTP response headers</em> must be turned on.</li>
+<li><strong>For Managed specifically:</strong> connecting a SaaS environment to a Managed deployment on a URI outside the <code>dynatrace-managed.com</code> domain requires contacting a Dynatrace product expert. That is a lead-time item, not a settings toggle — raise it during planning, not on cutover weekend.</li>
+</ul>
+<h3>The gap you are left with</h3>
+<p>A reconfigured host is dark for its restart window, and its services stay incomplete until the <strong>application processes</strong> restart — without that restart you get host metrics but no distributed tracing, no service detection and no code-level visibility. That is the genuine cost of the supported path. Scheduling waves inside existing maintenance windows is what keeps it small; a second agent is not.</p>
+<p>Sequence waves so tightly-coupled services move together. Cross-environment tracing covers a seam, but every seam is something to validate, and fewer is better.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent">Dynatrace OneAgent (DT docs)</a> — <em>&quot;A single OneAgent per host is required to collect all relevant monitoring data—even if your hosts are deployed within Docker containers, microservices architectures, or cloud-based infrastructure.&quot;</em>, <a href="https://docs.dynatrace.com/docs/observe/application-observability-classic/distributed-traces-classic/analysis/connect-environments">Set up cross-environment tracing in Distributed Traces Classic (DT docs)</a> — <em>&quot;Cross-environment tracing is limited to traces of requests that can transfer information about response headers and trace context from the receiving environment, such as HTTP or synchronous requests.&quot;</em>, plus the <code>traces.lookup</code> and <code>RestRequestForwarding</code> scopes, the z/OS and Lambda limitation and the Managed-domain escalation, all quoted from the same page (tagged <em>Dynatrace Classic</em>, re-read 10/02/2026); <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-classic/dashboards/dashboards-multi-environment">Create remote/multi-environment dashboards (DT docs)</a> — <em>&quot;This page refers to classic dashboards created using the Dashboards Classic functionality integrated with Dynatrace Classic.&quot;</em>; <a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic">Upgrade from classic access tokens (DT docs)</a> — (latest environment) <em>&quot;Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available.&quot;</em>; <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface">oneagentctl (DT docs)</a>. <strong>Derived:</strong> one destination per OneAgent follows from <code>oneagentctl</code> configuring a single <code>--set-tenant</code> environment ID and tenant token.</sub></p>
+</blockquote>
+<p><a id="before-you-migrate"></a></p>
+<h2>7. Before You Migrate: The Prep That Pays</h2>
+<p>Ordered by leverage. The first item is worth more than the rest combined.</p>
+<p><strong>1 · Refactor configuration off entity IDs.</strong> Every dashboard tile, SLO definition, alerting filter, management-zone rule and workflow action that names a <code>HOST-…</code> or <code>SERVICE-…</code> is migration debt that fails silently on arrival. Replace them with tags, names or host groups. This is the only class-2 mitigation that works <em>before</em> the fact, and it also makes the configuration better in the tenant you are leaving.</p>
+<p><strong>2 · Make sure your estate is reconcilable.</strong> Run the readiness query in <a href="#identity">section 4</a>. If host names collide, get host groups or tags in place now — <code>oneagentctl --set-host-group</code> and <code>--set-host-tag</code> carry them across the move with the agent, so setting them on the source tenant is setting them on the target.</p>
+<p><strong>3 · Inventory every secret.</strong> Credential-vault entries, API tokens, OAuth clients, cloud integration credentials. None of them move, and each one absent on cutover day surfaces as something <em>else</em> failing — an integration that stops, a workflow that silently no-ops. A list written calmly beforehand is worth hours on the day.</p>
+<p><strong>4 · Decide the wave boundaries against your call graph, not your org chart.</strong> Tightly-coupled services should move together. Where a boundary must cut a call chain, confirm it is an HTTP or synchronous hop — cross-environment tracing will not stitch an asynchronous one, nor a hop into IBM z/OS or AWS Lambda.</p>
+<p><strong>5 · Raise the cross-environment connection early.</strong> Confirm the target environment still offers cross-environment tracing — it is a Dynatrace Classic feature configured with classic access tokens (section 6). If the source is Managed, the non-<code>dynatrace-managed.com</code> case needs a Dynatrace product expert, which is a lead-time dependency.</p>
+<p><strong>6 · Agree what &quot;done&quot; means per wave, in advance.</strong> Entity counts reconciled, no metric gap over 15 minutes, spans flowing (zero spans means application processes were not restarted), logs continuous. <strong>M2S-09</strong> carries these as validation queries.</p>
+<p><strong>7 · Plan the relearn window into the alerting plan, not around it.</strong> Decide before cutover who receives the noisy first fortnight and where it goes. &quot;We will figure out alerting after&quot; is how a relearn window becomes a permanent trust problem.</p>
+<p><strong>8 · Keep the source tenant readable for 2–4 weeks.</strong> It is the only copy of your history. Decommission after validation, not before.</p>
+<blockquote>
+<p><sub><strong>Derived:</strong> this checklist orders the mitigations named in sections 3–6 by how much they reduce silent failure; the ordering is this entry's judgement rather than a documented sequence. <strong>Sources:</strong> the per-wave validation criteria in item 6 are documented as queries in the M2S series.</sub></p>
+</blockquote>
+<p><a id="summary-and-next-steps"></a></p>
+<h2>8. Summary and Next Steps</h2>
+<p>&quot;Does X carry over?&quot; is one question with three answers, and the class tells you which one applies.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Class 1 · Configuration</th>
+<th>Class 2 · Identity</th>
+<th>Class 3 · Accumulated state</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Moves?</strong></td>
+<td>Yes, rewritten</td>
+<td>No, re-minted</td>
+<td>No, and no tool</td>
+</tr>
+<tr>
+<td><strong>Fails</strong></td>
+<td>Loudly — you get an error list</td>
+<td>Silently — tiles render empty</td>
+<td>On a delay — week one is silent or deafening</td>
+</tr>
+<tr>
+<td><strong>Mitigation</strong></td>
+<td>Pick the right tool up front</td>
+<td>Refactor onto tags and names <em>before</em> moving</td>
+<td>Budget the clock; recreate the secrets</td>
+</tr>
+<tr>
+<td><strong>When to act</strong></td>
+<td>Cutover</td>
+<td>Weeks before cutover</td>
+<td>Weeks after cutover</td>
+</tr>
+</tbody>
+</table>
+<p>The last row is the useful one. The three classes need attention at three <em>different times</em>, and a migration plan that treats them as one work package will always under-serve two of them.</p>
+<h3>Where to go next</h3>
+<table>
+<thead>
+<tr>
+<th>If you are…</th>
+<th>Go to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Running a Managed → SaaS migration</td>
+<td><strong>M2S</strong> — nine steps, from discovery to decommission</td>
+</tr>
+<tr>
+<td>Checking the Managed source cluster before you start</td>
+<td><strong>DTM</strong> — the DTM-99 health-check checklist</td>
+</tr>
+<tr>
+<td>Running a SaaS → SaaS migration or consolidation</td>
+<td><strong>S2S</strong> — including consolidating several environments into one</td>
+</tr>
+<tr>
+<td>Sequencing the cutover itself</td>
+<td><strong>FAQ-17</strong> — the eight cross-journey invariants, Go/No-Go gates and rollback triggers</td>
+</tr>
+<tr>
+<td>Translating classic entity selectors to Smartscape</td>
+<td><strong>FAQ-16</strong> — the full construct-by-construct mapping</td>
+</tr>
+<tr>
+<td>Choosing detection types for the new tenant</td>
+<td><strong>AIOPS-02</strong> — which detector for which metric</td>
+</tr>
+<tr>
+<td>Building the config-as-code path</td>
+<td><strong>AUTOM</strong> — Monaco and Terraform, including the Gen3 endpoint catalog</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Derived:</strong> the fails-loudly / silently / on-a-delay progression and the &quot;three classes need attention at three different times&quot; conclusion are this entry's synthesis of the mechanisms documented in sections 3–6.</sub></p>
+</blockquote>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

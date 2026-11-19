@@ -1,0 +1,1604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IAM-12: API Provisioning &amp; Validation Scripts</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">IAM — IAM Administration</a><span class="sep">/</span><span aria-current="page">IAM-12</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>IAM-12: API Provisioning &amp; Validation Scripts</h1>
+<blockquote>
+<p><strong>Series:</strong> IAM — IAM Administration | <strong>Notebook:</strong> 12 of 12 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/10/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook collects the shell scripts and DQL queries needed to <strong>provision</strong>, <strong>validate</strong>, and <strong>troubleshoot</strong> a persona-based IAM model via the Dynatrace Account Management API.</p>
+<p>It is the companion to <strong>IAM-11: Policy Persona Workshop</strong>, which designs the permissions model. This notebook automates the execution of that design.</p>
+<blockquote>
+<p><strong>Script-first approach:</strong> Every script is self-contained with a CONFIGURATION block at the top. Copy, edit the variables, and run — no other files needed.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#prerequisites">Prerequisites &amp; OAuth Setup</a></li>
+<li><a href="#provisioning">Script 1: End-to-End Provisioning</a></li>
+<li><a href="#report">Script 2: Policy &amp; Binding Report</a></li>
+<li><a href="#cleanup">Script 3: Cleanup Test Resources</a></li>
+<li><a href="#dql-validation">DQL Validation Queries</a></li>
+<li><a href="#api-reference">API Reference</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Account</strong></td>
+<td>Account Management access (account admin or delegated)</td>
+</tr>
+<tr>
+<td><strong>OAuth Client</strong></td>
+<td>Created in Account Management → IAM → OAuth clients</td>
+</tr>
+<tr>
+<td><strong>OAuth Scopes</strong></td>
+<td><code>account-idm-read</code>, <code>account-idm-write</code>, <code>iam-policies-management</code></td>
+</tr>
+<tr>
+<td><strong>Tools</strong></td>
+<td><code>curl</code>, <code>jq</code> (install with <code>brew install jq</code> on macOS)</td>
+</tr>
+<tr>
+<td><strong>Prior Reading</strong></td>
+<td><strong>IAM-10</strong> (Templated Policies), <strong>IAM-11</strong> (Persona Workshop)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="prerequisites"></a></p>
+<h2>1. Prerequisites &amp; OAuth Setup</h2>
+<p>The IAM Account Management API requires an <strong>OAuth2 bearer token</strong> — raw API tokens (<code>dt0c01.*</code>) will not work. You must exchange OAuth client credentials for a short-lived bearer token.</p>
+<h3>Creating an OAuth Client</h3>
+<ol>
+<li>Go to <strong>Account Management → Identity &amp; Access Management → OAuth clients</strong></li>
+<li>Click <strong>Create client</strong></li>
+<li>Grant these scopes:
+<ul>
+<li><code>account-idm-read</code> — Read groups and users</li>
+<li><code>account-idm-write</code> — Create/delete groups</li>
+<li><code>iam-policies-management</code> — Create/delete policies and bindings</li>
+</ul>
+</li>
+<li>Save the <strong>Client ID</strong> and <strong>Client Secret</strong></li>
+</ol>
+<h3>Token Exchange Script</h3>
+<pre><code class="language-bash">#!/usr/bin/env bash
+# Exchange OAuth client credentials for a bearer token
+# Usage: source this script, then use ${TOKEN} in subsequent API calls
+
+SSO_TOKEN_URL=&quot;https://sso.dynatrace.com/sso/oauth2/token&quot;
+OAUTH_CLIENT_ID=&quot;dt0s02.XXXXXXXX&quot;          # Your client ID
+OAUTH_CLIENT_SECRET=&quot;dt0s02.XXXXXXXX.YYY&quot;  # Your client secret
+ACCOUNT_UUID=&quot;your-account-uuid&quot;
+OAUTH_SCOPE=&quot;account-idm-read account-idm-write iam-policies-management&quot;
+
+TOKEN_RESPONSE=$(curl -s \
+  --request POST &quot;${SSO_TOKEN_URL}&quot; \
+  --header &quot;Content-Type: application/x-www-form-urlencoded&quot; \
+  --data-urlencode &quot;grant_type=client_credentials&quot; \
+  --data-urlencode &quot;client_id=${OAUTH_CLIENT_ID}&quot; \
+  --data-urlencode &quot;client_secret=${OAUTH_CLIENT_SECRET}&quot; \
+  --data-urlencode &quot;scope=${OAUTH_SCOPE}&quot; \
+  --data-urlencode &quot;resource=urn:dtaccount:${ACCOUNT_UUID}&quot;)
+
+TOKEN=$(echo &quot;${TOKEN_RESPONSE}&quot; | jq -r '.access_token // empty')
+EXPIRES_IN=$(echo &quot;${TOKEN_RESPONSE}&quot; | jq -r '.expires_in // &quot;unknown&quot;')
+
+if [[ -z &quot;${TOKEN}&quot; ]]; then
+  echo &quot;ERROR: Failed to acquire token&quot;
+  echo &quot;${TOKEN_RESPONSE}&quot; | jq .
+else
+  echo &quot;Token acquired (expires in ${EXPIRES_IN}s, ${#TOKEN} chars)&quot;
+fi
+</code></pre>
+<blockquote>
+<p><strong>Token lifetime:</strong> OAuth tokens typically expire in 300 seconds (5 minutes). For long-running scripts, re-acquire before expiration.</p>
+</blockquote>
+<p><a id="provisioning"></a></p>
+<h2>2. Script 1: End-to-End Provisioning</h2>
+<p>The following shell script demonstrates the complete provisioning workflow — from creating groups and policies through binding everything together. It implements the four-persona model designed in <strong>IAM-11</strong>.</p>
+<blockquote>
+<p><strong>Important:</strong> Replace all dummy values in the <strong>CONFIGURATION</strong> section with your actual values before running. Every customizable value is defined in one block at the top.</p>
+</blockquote>
+<h3>What the Script Creates</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Resource</th>
+<th>Count</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Groups</td>
+<td>4</td>
+<td>Standard, PowerUser, SRE, Admin</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Static policies</td>
+<td>9</td>
+<td>4 UI + 4 Config + 1 Admin-Data</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Templated data policy</td>
+<td>1</td>
+<td><code>tpl-team-data-reader</code> with <code>${bindParam:team}</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>Bindings</td>
+<td>14</td>
+<td>4 UI + 4 Config + 1 Admin-Data + 5 Templated-Data</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Verification</td>
+<td>—</td>
+<td>List all policies and bindings</td>
+</tr>
+</tbody>
+</table>
+<h3>API Endpoints Used</h3>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Method</th>
+<th>Endpoint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Create group</td>
+<td>POST</td>
+<td><code>/iam/v1/accounts/{accountUuid}/groups</code></td>
+</tr>
+<tr>
+<td>Create policy</td>
+<td>POST</td>
+<td><code>/iam/v1/repo/{levelType}/{levelId}/policies</code></td>
+</tr>
+<tr>
+<td>Bind policy to group</td>
+<td>POST</td>
+<td><code>/iam/v1/repo/{levelType}/{levelId}/bindings/{policyUuid}</code></td>
+</tr>
+<tr>
+<td>List policies</td>
+<td>GET</td>
+<td><code>/iam/v1/repo/{levelType}/{levelId}/policies</code></td>
+</tr>
+<tr>
+<td>List bindings</td>
+<td>GET</td>
+<td><code>/iam/v1/repo/{levelType}/{levelId}/bindings/{policyUuid}</code></td>
+</tr>
+</tbody>
+</table>
+<h3>The Script</h3>
+<pre><code class="language-bash">#!/usr/bin/env bash
+# =============================================================================
+# IAM End-to-End Provisioning Script
+# =============================================================================
+# Creates groups, policies (UI + Data + Config), and bindings for a
+# four-persona model: Standard User, Power User, SRE, and Admin.
+#
+# Prerequisites:
+#   - curl and jq installed
+#   - OAuth bearer token (exchange client credentials at
+#     https://sso.dynatrace.com/sso/oauth2/token)
+#   - Required scopes: account-idm-read, account-idm-write, iam-policies-management
+#
+# Usage:
+#   1. Edit the CONFIGURATION section below (all values are there)
+#   2. chmod +x provision-iam.sh
+#   3. ./provision-iam.sh
+#
+# Reference: IAM-10 (Templated Policy Assignments), IAM-04 (Policy Authoring)
+# =============================================================================
+# No `set -e`: each API error is handled below so that a re-run converges —
+# existing groups and policies are reused, &quot;already exists&quot; bindings count as done,
+# and any real failure is counted and reported at the end (exit 1).
+set -uo pipefail
+
+# #############################################################################
+#                         CONFIGURATION
+# #############################################################################
+# Edit ONLY this section. The execution logic below does not need changes.
+# #############################################################################
+
+# --- Connection --------------------------------------------------------------
+ACCOUNT_UUID=&quot;1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d&quot;      # Dynatrace account UUID
+ENVIRONMENT_ID=&quot;abc12345&quot;                                    # Environment ID
+API_BASE=&quot;https://api.dynatrace.com&quot;                         # Account Management API base
+TOKEN=&quot;REPLACE_WITH_OAUTH_BEARER_TOKEN&quot;                       # See note below on obtaining this
+
+# --- Personas ----------------------------------------------------------------
+# Parallel arrays: same index = same persona. Add/remove personas by editing
+# all four arrays consistently.
+PERSONA_LABELS=(&quot;Standard&quot;      &quot;PowerUser&quot;      &quot;SRE&quot;            &quot;Admin&quot;)
+PERSONA_SCOPES=(&quot;GLOBAL&quot;        &quot;GLOBAL&quot;         &quot;GLOBAL&quot;         &quot;GLOBAL&quot;)
+
+GROUP_NAMES=(
+  &quot;DT-GLOBAL-StandardUsers&quot;
+  &quot;DT-GLOBAL-PowerUsers&quot;
+  &quot;DT-GLOBAL-SREs&quot;
+  &quot;DT-GLOBAL-Admins&quot;
+)
+GROUP_DESCRIPTIONS=(
+  &quot;Standard Users — view dashboards and run queries&quot;
+  &quot;Power Users — modify alerting, create notebooks and workflows&quot;
+  &quot;SREs — full ops access scoped by team&quot;
+  &quot;Admins — full platform management (break-glass)&quot;
+)
+
+# --- UI Policies (one statementQuery per persona) ----------------------------
+# Controls which apps each persona sees and what they can do with documents.
+# Uses implicit deny — apps/actions not listed are hidden/blocked.
+# environment:roles:viewer is granted here UNBOUNDED, so classic entity views are
+# environment-wide for every persona. This script scopes Grail data only. If a persona
+# must also be management-zone scoped (IAM-11 Data-Classic), remove the viewer role
+# from its entry and grant it in a separate policy bound with an MZ boundary.
+STANDARD_APPS='&quot;dynatrace.dashboards&quot;, &quot;dynatrace.notebooks&quot;'
+POWER_APPS='&quot;dynatrace.dashboards&quot;, &quot;dynatrace.notebooks&quot;, &quot;dynatrace.automations&quot;'
+
+UI_POLICIES=(
+  # Standard: view dashboards and notebooks only
+  &quot;ALLOW environment:roles:viewer; ALLOW app-engine:apps:run WHERE shared:app-id IN (${STANDARD_APPS}); ALLOW document:documents:read;&quot;
+  # Power User: create dashboards, notebooks, and workflows
+  &quot;ALLOW environment:roles:viewer; ALLOW app-engine:apps:run WHERE shared:app-id IN (${POWER_APPS}); ALLOW document:documents:read; ALLOW document:documents:write;&quot;
+  # SRE: all apps, full document control
+  &quot;ALLOW environment:roles:viewer; ALLOW app-engine:apps:run; ALLOW document:documents:read; ALLOW document:documents:write; ALLOW document:documents:delete;&quot;
+  # Admin: all apps, full document control + sharing
+  &quot;ALLOW environment:roles:viewer; ALLOW app-engine:apps:run; ALLOW document:documents:read; ALLOW document:documents:write; ALLOW document:documents:delete; ALLOW document:direct-shares:write;&quot;
+)
+
+# --- Config Policies (one statementQuery per persona) ------------------------
+# Controls which settings schemas each persona can read/write.
+# Add schema ID prefixes (builtin:…) or schema groups (group:…) to grant write access; read is granted to all.
+POWER_SCHEMAS=(
+  &quot;builtin:davis.anomaly-detectors&quot;   # Latest Dynatrace: custom alerts
+  &quot;builtin:alerting.profile&quot;          # Dynatrace Classic only (not visible in Latest)
+  &quot;builtin:problem.notifications&quot;     # Dynatrace Classic only (Latest: workflows)
+  &quot;group:preferences&quot;
+)
+SRE_SCHEMAS=(
+  &quot;group:host-monitoring&quot;
+  &quot;group:anomaly-detection&quot;
+  &quot;group:failure-detection&quot;
+  &quot;group:processes-and-containers&quot;
+)
+
+# Build config policy statements from schema arrays
+_build_config_policy() {
+  local base=&quot;ALLOW settings:objects:read; ALLOW settings:schemas:read;&quot;
+  local schemas=(&quot;$@&quot;)
+  for prefix in &quot;${schemas[@]}&quot;; do
+    if [[ &quot;${prefix}&quot; == group:* ]]; then
+      # Schema groups are a separate condition (operators = and IN only)
+      base+=&quot; ALLOW settings:objects:write WHERE settings:schemaGroup = \&quot;${prefix}\&quot;;&quot;
+    else
+      base+=&quot; ALLOW settings:objects:write WHERE settings:schemaId startsWith \&quot;${prefix}\&quot;;&quot;
+    fi
+  done
+  echo &quot;${base}&quot;
+}
+
+CONFIG_POLICIES=(
+  # Standard: read-only (write implicitly denied)
+  &quot;ALLOW settings:objects:read; ALLOW settings:schemas:read;&quot;
+  # Power User: read all + write specific schemas
+  &quot;$(_build_config_policy &quot;${POWER_SCHEMAS[@]}&quot;)&quot;
+  # SRE: read all + write monitoring schemas
+  &quot;$(_build_config_policy &quot;${SRE_SCHEMAS[@]}&quot;)&quot;
+  # Admin: full settings access
+  &quot;ALLOW settings:objects:read; ALLOW settings:schemas:read; ALLOW settings:objects:write;&quot;
+)
+
+# --- Data Policies -----------------------------------------------------------
+# Templated policy: one template, bound per-team with ${bindParam:team}
+TPL_DATA_NAME=&quot;tpl-team-data-reader&quot;
+TPL_DATA_DESC=&quot;Parameterized: team-scoped read access to logs, spans, metrics, and events&quot;
+TPL_DATA_STATEMENT='ALLOW storage:buckets:read; ALLOW storage:logs:read WHERE storage:dt.security_context = &quot;${bindParam:team}&quot;; ALLOW storage:spans:read WHERE storage:dt.security_context = &quot;${bindParam:team}&quot;; ALLOW storage:metrics:read; ALLOW storage:events:read;'
+
+# Admin data policy: unrestricted (no security context filter)
+ADMIN_DATA_NAME=&quot;GLOBAL-Admin-Data&quot;
+ADMIN_DATA_DESC=&quot;Admins: unrestricted data access across all buckets and security contexts&quot;
+ADMIN_DATA_STATEMENT=&quot;ALLOW storage:buckets:read; ALLOW storage:logs:read; ALLOW storage:spans:read; ALLOW storage:metrics:read; ALLOW storage:events:read; ALLOW storage:fieldsets:read;&quot;
+
+# --- Team Bindings -----------------------------------------------------------
+# Teams for SRE templated data policy (SREs get all teams)
+TEAMS=(&quot;checkout&quot; &quot;payments&quot; &quot;catalog&quot;)
+
+# Default team for Standard and Power User data bindings
+STANDARD_DEFAULT_TEAM=&quot;checkout&quot;
+POWER_DEFAULT_TEAM=&quot;checkout&quot;
+
+# #############################################################################
+#                    EXECUTION — no edits needed below
+# #############################################################################
+
+# ---------------------------------------------------------------------------
+# HELPER FUNCTIONS
+# ---------------------------------------------------------------------------
+api_post() {
+  local endpoint=&quot;$1&quot;
+  local payload=&quot;$2&quot;
+  local description=&quot;$3&quot;
+
+  echo &quot;  Creating: ${description}...&quot; &gt;&amp;2
+  RESPONSE=$(curl -s -w &quot;\n%{http_code}&quot; -X POST \
+    &quot;${API_BASE}${endpoint}&quot; \
+    -H &quot;Authorization: Bearer ${TOKEN}&quot; \
+    -H &quot;Content-Type: application/json&quot; \
+    -d &quot;${payload}&quot;)
+
+  HTTP_CODE=$(echo &quot;${RESPONSE}&quot; | tail -1)
+  BODY=$(echo &quot;${RESPONSE}&quot; | sed '$d')
+
+  if [[ &quot;${HTTP_CODE}&quot; =~ ^2 ]]; then
+    echo &quot;    OK (HTTP ${HTTP_CODE})&quot; &gt;&amp;2
+    echo &quot;${BODY}&quot;
+  elif [[ &quot;${HTTP_CODE}&quot; == &quot;400&quot; &amp;&amp; &quot;${BODY}&quot; == *&quot;already exists&quot;* ]]; then
+    # Re-run: the binding is already in the desired state — converged, not failed
+    echo &quot;    Already exists — converged (HTTP 400)&quot; &gt;&amp;2
+  else
+    echo &quot;    FAILED (HTTP ${HTTP_CODE}): ${BODY}&quot; &gt;&amp;2
+    return 1
+  fi
+}
+
+api_get() {
+  local endpoint=&quot;$1&quot;
+  curl -s -X GET &quot;${API_BASE}${endpoint}&quot; \
+    -H &quot;Authorization: Bearer ${TOKEN}&quot; \
+    -H &quot;Content-Type: application/json&quot;
+}
+
+extract_uuid() {
+  echo &quot;$1&quot; | jq -r '.uuid // .id // empty' 2&gt;/dev/null
+}
+
+FAILURES=0
+note_failure() { FAILURES=$((FAILURES + 1)); }
+
+# Look up an existing object by exact name, so a re-run reuses it instead of failing
+# on &quot;Duplicate entry&quot; or creating a second policy with the same name.
+# GET groups returns {&quot;count&quot;: N, &quot;items&quot;: [...]}; GET policies returns {&quot;policies&quot;: [...]}.
+group_uuid_by_name() {
+  echo &quot;${EXISTING_GROUPS}&quot; | jq -r --arg n &quot;$1&quot; \
+    '(.items // [])[] | select(.name == $n) | .uuid' 2&gt;/dev/null | head -n 1
+}
+policy_uuid_by_name() {
+  echo &quot;${EXISTING_POLICIES}&quot; | jq -r --arg n &quot;$1&quot; \
+    '(.policies // [])[] | select(.name == $n) | .uuid' 2&gt;/dev/null | head -n 1
+}
+
+# Create a policy unless one with this name exists; print its UUID either way.
+# An existing policy is reused as-is: its statement is NOT updated.
+ensure_policy() {
+  local name=&quot;$1&quot; desc=&quot;$2&quot; stmt=&quot;$3&quot; uuid payload result
+  uuid=$(policy_uuid_by_name &quot;${name}&quot;)
+  if [[ -n &quot;${uuid}&quot; ]]; then
+    echo &quot;  Exists: ${name} — reusing ${uuid} (statement not updated)&quot; &gt;&amp;2
+    echo &quot;${uuid}&quot;
+    return 0
+  fi
+  payload=$(jq -n --arg name &quot;${name}&quot; --arg desc &quot;${desc}&quot; --arg stmt &quot;${stmt}&quot; \
+    '{name: $name, description: $desc, statementQuery: $stmt}')
+  result=$(api_post &quot;/iam/v1/repo/environment/${ENVIRONMENT_ID}/policies&quot; &quot;${payload}&quot; &quot;${name}&quot;) || return 1
+  extract_uuid &quot;${result}&quot;
+}
+
+PERSONA_COUNT=${#PERSONA_LABELS[@]}
+
+# ---------------------------------------------------------------------------
+# PHASE 1: CREATE GROUPS
+# ---------------------------------------------------------------------------
+echo &quot;&quot;
+echo &quot;==============================&quot;
+echo &quot;PHASE 1: Creating Groups&quot;
+echo &quot;==============================&quot;
+
+declare -a GROUP_UUIDS
+
+EXISTING_GROUPS=$(api_get &quot;/iam/v1/accounts/${ACCOUNT_UUID}/groups&quot;)
+
+# The groups API expects an array payload, not a single object.
+# Only groups that do not exist yet are sent, so a re-run never hits &quot;Duplicate entry&quot;.
+GROUPS_PAYLOAD=$(jq -n '[]')
+for i in $(seq 0 $((PERSONA_COUNT - 1))); do
+  if [[ -n &quot;$(group_uuid_by_name &quot;${GROUP_NAMES[$i]}&quot;)&quot; ]]; then
+    echo &quot;  Exists: ${GROUP_NAMES[$i]} — reusing&quot; &gt;&amp;2
+    continue
+  fi
+  GROUPS_PAYLOAD=$(echo &quot;${GROUPS_PAYLOAD}&quot; | jq \
+    --arg name &quot;${GROUP_NAMES[$i]}&quot; \
+    --arg desc &quot;${GROUP_DESCRIPTIONS[$i]}&quot; \
+    '. + [{name: $name, description: $desc}]')
+done
+
+NEW_GROUP_COUNT=$(echo &quot;${GROUPS_PAYLOAD}&quot; | jq 'length')
+if [[ &quot;${NEW_GROUP_COUNT}&quot; -gt 0 ]]; then
+  api_post &quot;/iam/v1/accounts/${ACCOUNT_UUID}/groups&quot; &quot;${GROUPS_PAYLOAD}&quot; \
+    &quot;${NEW_GROUP_COUNT} new group(s)&quot; &gt;/dev/null || note_failure
+  EXISTING_GROUPS=$(api_get &quot;/iam/v1/accounts/${ACCOUNT_UUID}/groups&quot;)
+fi
+
+# Resolve every persona's group UUID by name — new and pre-existing alike
+for i in $(seq 0 $((PERSONA_COUNT - 1))); do
+  GROUP_UUIDS[$i]=$(group_uuid_by_name &quot;${GROUP_NAMES[$i]}&quot;)
+  if [[ -z &quot;${GROUP_UUIDS[$i]}&quot; ]]; then
+    echo &quot;ERROR: group ${GROUP_NAMES[$i]} not found — cannot bind policies to it. Stopping.&quot; &gt;&amp;2
+    exit 1
+  fi
+done
+
+echo &quot;&quot;
+echo &quot;Groups (created or reused):&quot;
+for i in $(seq 0 $((PERSONA_COUNT - 1))); do
+  printf &quot;  %-12s %s\n&quot; &quot;${PERSONA_LABELS[$i]}:&quot; &quot;${GROUP_UUIDS[$i]}&quot;
+done
+
+# ---------------------------------------------------------------------------
+# PHASE 2: CREATE POLICIES
+# ---------------------------------------------------------------------------
+echo &quot;&quot;
+echo &quot;==============================&quot;
+echo &quot;PHASE 2: Creating Policies&quot;
+echo &quot;==============================&quot;
+
+declare -a UI_UUIDS CONFIG_UUIDS
+
+EXISTING_POLICIES=$(api_get &quot;/iam/v1/repo/environment/${ENVIRONMENT_ID}/policies&quot;)
+
+for i in $(seq 0 $((PERSONA_COUNT - 1))); do
+  SCOPE=&quot;${PERSONA_SCOPES[$i]}&quot;
+  LABEL=&quot;${PERSONA_LABELS[$i]}&quot;
+  UI_UUIDS[$i]=$(ensure_policy &quot;${SCOPE}-${LABEL}-UI&quot; &quot;${LABEL} UI policy&quot; &quot;${UI_POLICIES[$i]}&quot;) || note_failure
+  CONFIG_UUIDS[$i]=$(ensure_policy &quot;${SCOPE}-${LABEL}-Config&quot; &quot;${LABEL} Config policy&quot; &quot;${CONFIG_POLICIES[$i]}&quot;) || note_failure
+done
+
+# Templated data policy
+TPL_DATA_UUID=$(ensure_policy &quot;${TPL_DATA_NAME}&quot; &quot;${TPL_DATA_DESC}&quot; &quot;${TPL_DATA_STATEMENT}&quot;) || note_failure
+
+# Admin data policy (unrestricted)
+ADMIN_DATA_UUID=$(ensure_policy &quot;${ADMIN_DATA_NAME}&quot; &quot;${ADMIN_DATA_DESC}&quot; &quot;${ADMIN_DATA_STATEMENT}&quot;) || note_failure
+
+echo &quot;&quot;
+echo &quot;Policies (created or reused):&quot;
+for i in $(seq 0 $((PERSONA_COUNT - 1))); do
+  printf &quot;  %-12s UI=%s  Config=%s\n&quot; &quot;${PERSONA_LABELS[$i]}:&quot; &quot;${UI_UUIDS[$i]}&quot; &quot;${CONFIG_UUIDS[$i]}&quot;
+done
+echo &quot;  Data:        Template=${TPL_DATA_UUID}  Admin=${ADMIN_DATA_UUID}&quot;
+
+# ---------------------------------------------------------------------------
+# PHASE 3: BIND STATIC POLICIES TO GROUPS
+# ---------------------------------------------------------------------------
+echo &quot;&quot;
+echo &quot;==============================&quot;
+echo &quot;PHASE 3: Binding Static Policies&quot;
+echo &quot;==============================&quot;
+
+for i in $(seq 0 $((PERSONA_COUNT - 1))); do
+  LABEL=&quot;${PERSONA_LABELS[$i]}&quot;
+
+  # Bind UI
+  api_post &quot;/iam/v1/repo/environment/${ENVIRONMENT_ID}/bindings/${UI_UUIDS[$i]}&quot; \
+    &quot;{\&quot;groups\&quot;:[\&quot;${GROUP_UUIDS[$i]}\&quot;]}&quot; \
+    &quot;${LABEL}-UI → ${GROUP_NAMES[$i]}&quot; || note_failure
+
+  # Bind Config
+  api_post &quot;/iam/v1/repo/environment/${ENVIRONMENT_ID}/bindings/${CONFIG_UUIDS[$i]}&quot; \
+    &quot;{\&quot;groups\&quot;:[\&quot;${GROUP_UUIDS[$i]}\&quot;]}&quot; \
+    &quot;${LABEL}-Config → ${GROUP_NAMES[$i]}&quot; || note_failure
+done
+
+# Bind Admin data policy (unrestricted — last persona is Admin)
+ADMIN_IDX=$((PERSONA_COUNT - 1))
+api_post &quot;/iam/v1/repo/environment/${ENVIRONMENT_ID}/bindings/${ADMIN_DATA_UUID}&quot; \
+  &quot;{\&quot;groups\&quot;:[\&quot;${GROUP_UUIDS[$ADMIN_IDX]}\&quot;]}&quot; \
+  &quot;Admin-Data → ${GROUP_NAMES[$ADMIN_IDX]}&quot; || note_failure
+
+# ---------------------------------------------------------------------------
+# PHASE 4: BIND TEMPLATED DATA POLICY PER TEAM
+# ---------------------------------------------------------------------------
+echo &quot;&quot;
+echo &quot;==============================&quot;
+echo &quot;PHASE 4: Binding Templated Data Policy Per Team&quot;
+echo &quot;==============================&quot;
+
+# SREs get all teams (index 2 = SRE)
+SRE_IDX=2
+for team in &quot;${TEAMS[@]}&quot;; do
+  api_post &quot;/iam/v1/repo/environment/${ENVIRONMENT_ID}/bindings/${TPL_DATA_UUID}&quot; \
+    &quot;{\&quot;groups\&quot;:[\&quot;${GROUP_UUIDS[$SRE_IDX]}\&quot;],\&quot;parameters\&quot;:{\&quot;team\&quot;:\&quot;${team}\&quot;}}&quot; \
+    &quot;${TPL_DATA_NAME} (team=${team}) → ${GROUP_NAMES[$SRE_IDX]}&quot; || note_failure
+done
+
+# Standard Users get their default team (index 0 = Standard)
+api_post &quot;/iam/v1/repo/environment/${ENVIRONMENT_ID}/bindings/${TPL_DATA_UUID}&quot; \
+  &quot;{\&quot;groups\&quot;:[\&quot;${GROUP_UUIDS[0]}\&quot;],\&quot;parameters\&quot;:{\&quot;team\&quot;:\&quot;${STANDARD_DEFAULT_TEAM}\&quot;}}&quot; \
+  &quot;${TPL_DATA_NAME} (team=${STANDARD_DEFAULT_TEAM}) → ${GROUP_NAMES[0]}&quot; || note_failure
+
+# Power Users get their default team (index 1 = PowerUser)
+api_post &quot;/iam/v1/repo/environment/${ENVIRONMENT_ID}/bindings/${TPL_DATA_UUID}&quot; \
+  &quot;{\&quot;groups\&quot;:[\&quot;${GROUP_UUIDS[1]}\&quot;],\&quot;parameters\&quot;:{\&quot;team\&quot;:\&quot;${POWER_DEFAULT_TEAM}\&quot;}}&quot; \
+  &quot;${TPL_DATA_NAME} (team=${POWER_DEFAULT_TEAM}) → ${GROUP_NAMES[1]}&quot; || note_failure
+
+# ---------------------------------------------------------------------------
+# PHASE 5: VERIFY
+# ---------------------------------------------------------------------------
+echo &quot;&quot;
+echo &quot;==============================&quot;
+echo &quot;PHASE 5: Verification&quot;
+echo &quot;==============================&quot;
+
+echo &quot;&quot;
+echo &quot;--- All Policies ---&quot;
+api_get &quot;/iam/v1/repo/environment/${ENVIRONMENT_ID}/policies&quot; | jq -r \
+  '.policies[] | &quot;  \(.uuid)  \(.name)&quot;' 2&gt;/dev/null
+
+echo &quot;&quot;
+echo &quot;--- Templated Data Policy Bindings ---&quot;
+api_get &quot;/iam/v1/repo/environment/${ENVIRONMENT_ID}/bindings/${TPL_DATA_UUID}&quot; \
+  | jq .
+
+echo &quot;&quot;
+echo &quot;--- All Groups ---&quot;
+api_get &quot;/iam/v1/accounts/${ACCOUNT_UUID}/groups&quot; | jq -r \
+  '.items[] | select(.name | startswith(&quot;DT-&quot;)) | &quot;  \(.uuid)  \(.name)&quot;' 2&gt;/dev/null
+
+# ---------------------------------------------------------------------------
+# SUMMARY
+# ---------------------------------------------------------------------------
+echo &quot;&quot;
+echo &quot;==============================&quot;
+echo &quot;PROVISIONING COMPLETE&quot;
+echo &quot;==============================&quot;
+echo &quot;&quot;
+echo &quot;Resources in place (created now or reused from an earlier run):&quot;
+echo &quot;  Groups:            ${PERSONA_COUNT}&quot;
+echo &quot;  Static policies:   $((PERSONA_COUNT * 2 + 1))  (${PERSONA_COUNT} UI + ${PERSONA_COUNT} Config + 1 Admin-Data)&quot;
+echo &quot;  Template policies: 1  (${TPL_DATA_NAME})&quot;
+BINDING_COUNT=$((PERSONA_COUNT * 2 + 1 + ${#TEAMS[@]} + 2))
+echo &quot;  Bindings:         ${BINDING_COUNT}&quot;
+echo &quot;&quot;
+if [[ ${FAILURES} -gt 0 ]]; then
+  echo &quot;Finished with ${FAILURES} failed step(s) — fix the FAILED lines above and re-run.&quot;
+  echo &quot;Re-running is safe: existing groups and policies are reused, existing bindings count as done.&quot;
+  exit 1
+fi
+echo &quot;Next steps:&quot;
+echo &quot;  1. Add users to groups via SCIM sync or manual assignment&quot;
+echo &quot;  2. Verify access by logging in as each persona&quot;
+echo &quot;  3. Run the DQL audit query from the Validating Your Design section&quot;
+echo &quot;  4. Export to Monaco YAML for policy-as-code (see IAM-10)&quot;
+echo &quot;&quot;
+</code></pre>
+<h3>Configuration Reference</h3>
+<p>All customizable values live in the <strong>CONFIGURATION</strong> block at the top of the script. The execution logic below it loops through these arrays automatically — no edits needed there.</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Purpose</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ACCOUNT_UUID</code></td>
+<td>Your Dynatrace account UUID</td>
+<td><code>1a2b3c4d-...</code></td>
+</tr>
+<tr>
+<td><code>ENVIRONMENT_ID</code></td>
+<td>Target environment ID</td>
+<td><code>abc12345</code></td>
+</tr>
+<tr>
+<td><code>API_BASE</code></td>
+<td>Account Management API base URL</td>
+<td><code>https://api.dynatrace.com</code></td>
+</tr>
+<tr>
+<td><code>TOKEN</code></td>
+<td>OAuth bearer token (see Prerequisites)</td>
+<td>Exchange at SSO endpoint</td>
+</tr>
+<tr>
+<td><code>PERSONA_LABELS</code></td>
+<td>Short name for each persona (used in policy names)</td>
+<td><code>(&quot;Standard&quot; &quot;PowerUser&quot; &quot;SRE&quot; &quot;Admin&quot;)</code></td>
+</tr>
+<tr>
+<td><code>PERSONA_SCOPES</code></td>
+<td>Naming prefix per persona</td>
+<td><code>(&quot;GLOBAL&quot; &quot;GLOBAL&quot; &quot;GLOBAL&quot; &quot;GLOBAL&quot;)</code></td>
+</tr>
+<tr>
+<td><code>GROUP_NAMES</code></td>
+<td>Dynatrace group name per persona</td>
+<td><code>(&quot;DT-GLOBAL-StandardUsers&quot; ...)</code></td>
+</tr>
+<tr>
+<td><code>GROUP_DESCRIPTIONS</code></td>
+<td>Human-readable group description</td>
+<td><code>(&quot;Standard Users — ...&quot; ...)</code></td>
+</tr>
+<tr>
+<td><code>STANDARD_APPS</code> / <code>POWER_APPS</code></td>
+<td>App IDs visible to Standard / Power users</td>
+<td><code>&quot;dynatrace.dashboards&quot;, &quot;dynatrace.notebooks&quot;</code></td>
+</tr>
+<tr>
+<td><code>UI_POLICIES</code></td>
+<td>Full <code>statementQuery</code> per persona for UI access</td>
+<td>One entry per persona</td>
+</tr>
+<tr>
+<td><code>POWER_SCHEMAS</code> / <code>SRE_SCHEMAS</code></td>
+<td>Schema prefixes each persona can write</td>
+<td><code>(&quot;builtin:alerting.profile&quot; ...)</code></td>
+</tr>
+<tr>
+<td><code>CONFIG_POLICIES</code></td>
+<td>Auto-built from schema arrays (or override directly)</td>
+<td>One entry per persona</td>
+</tr>
+<tr>
+<td><code>TPL_DATA_STATEMENT</code></td>
+<td>Templated data policy with <code>${bindParam:team}</code></td>
+<td><code>ALLOW storage:logs:read WHERE ...</code></td>
+</tr>
+<tr>
+<td><code>ADMIN_DATA_STATEMENT</code></td>
+<td>Unrestricted admin data policy</td>
+<td><code>ALLOW storage:logs:read; ...</code></td>
+</tr>
+<tr>
+<td><code>TEAMS</code></td>
+<td>Team names for SRE templated bindings</td>
+<td><code>(&quot;checkout&quot; &quot;payments&quot; &quot;catalog&quot;)</code></td>
+</tr>
+<tr>
+<td><code>STANDARD_DEFAULT_TEAM</code></td>
+<td>Default team for Standard User data binding</td>
+<td><code>&quot;checkout&quot;</code></td>
+</tr>
+<tr>
+<td><code>POWER_DEFAULT_TEAM</code></td>
+<td>Default team for Power User data binding</td>
+<td><code>&quot;checkout&quot;</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Script Design Notes</h3>
+<p><strong>Why no DENY statements?</strong> Every policy uses implicit deny — permissions not ALLOWed are denied by default. This keeps the model composable: a user in both StandardUsers and PowerUsers inherits the union of all ALLOWs from both groups without any DENY conflicts. See the Tips and Key Principles section in <strong>IAM-11</strong> for details.</p>
+<p><strong>Why one templated data policy?</strong> Rather than creating separate data policies for Standard, Power, and SRE personas, they all share <code>tpl-team-data-reader</code>. The difference is in the <strong>binding</strong> — each group is bound with a different <code>team</code> parameter value. Admin uses a separate unrestricted policy because it needs access to all security contexts.</p>
+<p><strong>Why <code>storage:buckets:read</code> in both data policies?</strong> It is <em>&quot;Required additionally to a table permission&quot;</em> — without it, <code>storage:logs:read</code> and the rest return no records. It takes no <code>dt.security_context</code> condition, so it is granted unconditionally and the table permissions carry the team scope.</p>
+<p><strong>Why the viewer role is unbounded here.</strong> Every UI policy grants <code>environment:roles:viewer</code> with no boundary, so classic entity views are environment-wide for all four personas — the script scopes Grail data only. For a persona that must also be management-zone scoped, follow <strong>IAM-11</strong> <em>Writing Policies</em>: take the viewer role out of that persona's <code>UI_POLICIES</code> entry and grant it only in a separate policy bound with a management-zone boundary. Leaving it in the UI policy as well would give the role environment-wide and undo the boundary.</p>
+<p><strong>Re-running is safe.</strong> The script looks up groups and policies by name before creating them and reuses any that exist, so a second run does not fail on <em>&quot;Duplicate entry&quot;</em>. A binding that already exists returns HTTP 400 <em>&quot;Policy binding cannot be created, such binding already exists&quot;</em>, which the script reports as converged. Real failures are counted and the script exits 1 at the end. A reused policy keeps its existing statement — edit it in place (or delete it) when you change a statement here.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements (DT docs)</a> — <code>storage:buckets:read</code>: <em>&quot;Required additionally to a table permission.&quot;</em>, <a href="https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/group-management-api/get-all-groups">List all groups (DT docs)</a> — response <code>GroupListDto</code> with <code>count</code> and <code>items</code>.</sub></p>
+</blockquote>
+<p><strong>Adapting for your organization:</strong></p>
+<ul>
+<li><strong>Add a persona</strong> — append to all parallel arrays (<code>PERSONA_LABELS</code>, <code>GROUP_NAMES</code>, <code>GROUP_DESCRIPTIONS</code>, <code>UI_POLICIES</code>, <code>CONFIG_POLICIES</code>) and the execution loop handles it automatically</li>
+<li><strong>Change visible apps</strong> — edit <code>STANDARD_APPS</code> or <code>POWER_APPS</code>, or modify <code>UI_POLICIES</code> entries directly</li>
+<li><strong>Change writable schemas</strong> — edit <code>POWER_SCHEMAS</code> or <code>SRE_SCHEMAS</code> arrays; the <code>_build_config_policy</code> function generates the policy statement. <code>builtin:alerting.profile</code> and <code>builtin:problem.notifications</code> exist only on <strong>Dynatrace Classic</strong> — they are not visible in Latest Dynatrace, where problem notifications are workflows (<code>automation:workflows:*</code>, IAM-04 Pattern 6), not a settings schema. Remove them once every target environment runs Latest Dynatrace.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas">Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)</a> — <em>&quot;None of the schemas on this page are visible in Latest Dynatrace.&quot;</em></sub></p>
+</blockquote>
+<ul>
+<li><strong>Add teams</strong> — append to the <code>TEAMS</code> array</li>
+<li><strong>Per-team SRE groups</strong> — create separate groups (<code>DT-SRE-Checkout</code>, <code>DT-SRE-Payments</code>) and adjust the Phase 4 loop to bind each team to its own group</li>
+<li><strong>Bucket isolation</strong> — add <code>AND storage:bucket-name = &quot;${bindParam:bucket}&quot;</code> to <code>TPL_DATA_STATEMENT</code> and change its <code>ALLOW storage:buckets:read;</code> to <code>ALLOW storage:buckets:read WHERE storage:bucket-name = &quot;${bindParam:bucket}&quot;;</code> (see <strong>IAM-10</strong> Pattern 4)</li>
+</ul>
+<p><a id="report"></a></p>
+<h2>3. Script 2: Policy &amp; Binding Report</h2>
+<p>The Dynatrace UI does not always surface templated policy bindings with their parameter values. This script queries the API and produces a formatted report showing every policy, its statement, and all bindings with resolved group names and parameters.</p>
+<pre><code class="language-bash">#!/usr/bin/env bash
+# =============================================================================
+# Policy &amp; Binding Report — shows templated parameters the GUI may hide
+# =============================================================================
+# Prerequisites: TOKEN, ACCOUNT_UUID, ENVIRONMENT_ID set (see Section 1)
+# =============================================================================
+set -uo pipefail
+
+# --- CONFIGURATION -----------------------------------------------------------
+ACCOUNT_UUID=&quot;your-account-uuid&quot;
+ENVIRONMENT_ID=&quot;your-environment-id&quot;
+API_BASE=&quot;https://api.dynatrace.com&quot;
+TOKEN=&quot;your-oauth-bearer-token&quot;               # See Section 1 for token exchange
+
+# Optional: filter to only show policies matching a prefix (empty = show all)
+POLICY_FILTER=&quot;&quot;   # e.g., &quot;GLOBAL-&quot; or &quot;tpl-&quot; or &quot;&quot; for all custom policies
+
+# --- COLORS ------------------------------------------------------------------
+CYAN='\033[0;36m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+# --- FETCH GROUPS (for UUID → name resolution) -------------------------------
+echo &quot;&quot;
+echo &quot;Fetching groups...&quot;
+ALL_GROUPS=$(curl -s -X GET \
+  &quot;${API_BASE}/iam/v1/accounts/${ACCOUNT_UUID}/groups&quot; \
+  -H &quot;Authorization: Bearer ${TOKEN}&quot;)
+
+group_name() {
+  echo &quot;${ALL_GROUPS}&quot; | jq -r --arg u &quot;$1&quot; '
+    (if type == &quot;array&quot; then . else (.items // .groups // []) end)[]
+    | select(.uuid == $u) | .name' 2&gt;/dev/null
+}
+
+# --- FETCH POLICIES ----------------------------------------------------------
+echo &quot;Fetching policies...&quot;
+ALL_POLICIES=$(curl -s -X GET \
+  &quot;${API_BASE}/iam/v1/repo/environment/${ENVIRONMENT_ID}/policies&quot; \
+  -H &quot;Authorization: Bearer ${TOKEN}&quot;)
+
+POLICY_COUNT=$(echo &quot;${ALL_POLICIES}&quot; | jq '(.policies // []) | length' 2&gt;/dev/null)
+echo &quot;Found ${POLICY_COUNT} environment-level policies.&quot;
+
+# --- REPORT ------------------------------------------------------------------
+echo &quot;&quot;
+echo &quot;==============================================&quot;
+echo &quot;  POLICY &amp; BINDING REPORT&quot;
+echo &quot;  Environment: ${ENVIRONMENT_ID}&quot;
+echo &quot;==============================================&quot;
+
+echo &quot;${ALL_POLICIES}&quot; | jq -c '(.policies // [])[]' 2&gt;/dev/null | while IFS= read -r policy; do
+  PUUID=$(echo &quot;${policy}&quot; | jq -r '.uuid')
+  PNAME=$(echo &quot;${policy}&quot; | jq -r '.name')
+  PSTMT=$(echo &quot;${policy}&quot; | jq -r '.statementQuery // &quot;(no statement)&quot;')
+  PTAGS=$(echo &quot;${policy}&quot; | jq -r '(.tags // []) | join(&quot;, &quot;)')
+
+  # Apply filter if set
+  if [[ -n &quot;${POLICY_FILTER}&quot; ]] &amp;&amp; [[ ! &quot;${PNAME}&quot; == ${POLICY_FILTER}* ]]; then
+    continue
+  fi
+
+  # Skip Dynatrace built-in policies (they have no statementQuery we can edit)
+  if echo &quot;${policy}&quot; | jq -e '.builtIn == true' &amp;&gt;/dev/null; then
+    continue
+  fi
+
+  IS_TEMPLATE=&quot;no&quot;
+  if echo &quot;${PSTMT}&quot; | grep -q 'bindParam'; then
+    IS_TEMPLATE=&quot;YES&quot;
+  fi
+
+  echo &quot;&quot;
+  echo -e &quot;  ${CYAN}Policy:${NC}     ${PNAME}&quot;
+  echo -e &quot;  ${CYAN}UUID:${NC}       ${PUUID}&quot;
+  echo -e &quot;  ${CYAN}Templated:${NC}  ${IS_TEMPLATE}&quot;
+  [[ -n &quot;${PTAGS}&quot; ]] &amp;&amp; echo -e &quot;  ${CYAN}Tags:${NC}       ${PTAGS}&quot;
+
+  echo -e &quot;  ${CYAN}Statement:${NC}&quot;
+  echo &quot;${PSTMT}&quot; | tr ';' '\n' | sed 's/^ *//' | grep -v '^$' | sed 's/^/    /'
+
+  # Fetch bindings
+  BIND_RESPONSE=$(curl -s -X GET \
+    &quot;${API_BASE}/iam/v1/repo/environment/${ENVIRONMENT_ID}/bindings/${PUUID}&quot; \
+    -H &quot;Authorization: Bearer ${TOKEN}&quot;)
+
+  BINDING_COUNT=$(echo &quot;${BIND_RESPONSE}&quot; | jq '(.policyBindings // []) | length' 2&gt;/dev/null)
+
+  if [[ &quot;${BINDING_COUNT}&quot; == &quot;0&quot; ]] || [[ -z &quot;${BINDING_COUNT}&quot; ]]; then
+    echo -e &quot;  ${YELLOW}Bindings:${NC}   (none — policy is unbound)&quot;
+  else
+    echo -e &quot;  ${CYAN}Bindings:${NC}   ${BINDING_COUNT}&quot;
+
+    echo &quot;${BIND_RESPONSE}&quot; | jq -c '.policyBindings[]' 2&gt;/dev/null | while IFS= read -r binding; do
+      B_GROUPS=$(echo &quot;${binding}&quot; | jq -r '.groups[]' 2&gt;/dev/null)
+      B_PARAMS=$(echo &quot;${binding}&quot; | jq -r '
+        .parameters // {} | to_entries[]
+        | &quot;\(.key)=\(.value)&quot;' 2&gt;/dev/null)
+
+      while IFS= read -r gid; do
+        [[ -z &quot;${gid}&quot; ]] &amp;&amp; continue
+        GNAME=$(group_name &quot;${gid}&quot;)
+        if [[ -n &quot;${B_PARAMS}&quot; ]]; then
+          echo -e &quot;    → ${GREEN}${GNAME:-${gid}}${NC}  params: ${YELLOW}${B_PARAMS}${NC}&quot;
+        else
+          echo -e &quot;    → ${GREEN}${GNAME:-${gid}}${NC}&quot;
+        fi
+      done &lt;&lt;&lt; &quot;${B_GROUPS}&quot;
+    done
+  fi
+
+  echo &quot;  ─────────────────────────────────────────────&quot;
+done
+
+echo &quot;&quot;
+echo &quot;Report complete.&quot;
+</code></pre>
+<h3>Example Output</h3>
+<pre><code>  Policy:     tpl-team-data-reader
+  UUID:       a1b2c3d4-...
+  Templated:  YES
+  Statement:
+    ALLOW storage:buckets:read
+    ALLOW storage:logs:read WHERE storage:dt.security_context = &quot;${bindParam:team}&quot;
+    ALLOW storage:spans:read WHERE storage:dt.security_context = &quot;${bindParam:team}&quot;
+    ALLOW storage:metrics:read
+    ALLOW storage:events:read
+  Bindings:   5
+    → DT-GLOBAL-SREs          params: team=checkout
+    → DT-GLOBAL-SREs          params: team=payments
+    → DT-GLOBAL-SREs          params: team=catalog
+    → DT-GLOBAL-StandardUsers params: team=checkout
+    → DT-GLOBAL-PowerUsers    params: team=checkout
+</code></pre>
+<p><a id="cleanup"></a></p>
+<h2>4. Script 3: Cleanup Test Resources</h2>
+<p>Use this script to remove groups, policies, and bindings created while testing in a <strong>sandbox</strong> account. It is deliberately conservative:</p>
+<ul>
+<li><strong>Dry run by default.</strong> Without <code>--apply</code> it only lists what matches — nothing is deleted.</li>
+<li><strong>Explicit confirmation.</strong> With <code>--apply</code> it deletes only after you type <code>DELETE &lt;count&gt;</code> for the exact number of resources listed; anything else, or no terminal input, aborts with nothing deleted.</li>
+<li><strong>Scoped by prefix.</strong> It selects environment-level policies whose names start with one of <code>POLICY_PREFIXES</code> (bindings are removed first) and account groups whose names start with <code>GROUP_PREFIX</code>. Built-in policies are never selected, and an empty or very short prefix makes the script refuse to run.</li>
+</ul>
+<pre><code class="language-bash">#!/usr/bin/env bash
+# =============================================================================
+# IAM Cleanup — removes TEST groups, policies, and bindings by name prefix
+# =============================================================================
+# Usage:
+#   ./IAM-CleanUp.sh           # DRY RUN (default): lists what would be deleted, deletes nothing
+#   ./IAM-CleanUp.sh --apply   # Deletes — only after you type the confirmation phrase
+#
+# Scope: environment-level policies (and their bindings) whose names start with
+# one of POLICY_PREFIXES, and account groups whose names start with GROUP_PREFIX.
+# Built-in Dynatrace policies are never selected.
+# =============================================================================
+set -euo pipefail
+
+MODE=&quot;dry-run&quot;
+case &quot;${1:-}&quot; in
+  &quot;&quot;)      ;;
+  --apply) MODE=&quot;apply&quot; ;;
+  *)       echo &quot;Usage: $0 [--apply]&quot;; exit 2 ;;
+esac
+
+# --- CONFIGURATION -----------------------------------------------------------
+# Use prefixes that ONLY your test resources carry. Never use a production
+# naming prefix here (for example GLOBAL-, the persona convention in IAM-11).
+POLICY_PREFIXES=(&quot;TEST-&quot; &quot;tpl-test-&quot;)
+GROUP_PREFIX=&quot;DT-TEST-&quot;
+
+SSO_TOKEN_URL=&quot;https://sso.dynatrace.com/sso/oauth2/token&quot;
+OAUTH_CLIENT_ID=&quot;dt0s02.xxxxxxx&quot;                     # Your client ID
+OAUTH_CLIENT_SECRET=&quot;dt0s02.xxxxxxx.xxxxxxxxxx&quot;      # Your client secret
+ACCOUNT_UUID=&quot;xxx-xxx-xxx-xxx-xxx&quot;                   # Dynatrace account UUID
+ENVIRONMENT_ID=&quot;YOUR_ENVIRONMENT_ID&quot;                 # Environment ID
+API_BASE=&quot;https://api.dynatrace.com&quot;                 # Account Management API base
+OAUTH_SCOPE=&quot;account-idm-read account-idm-write iam-policies-management&quot;
+
+# --- COLORS ------------------------------------------------------------------
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+# --- SAFETY GUARD: refuse empty or very short prefixes -----------------------
+for p in &quot;${POLICY_PREFIXES[@]}&quot; &quot;${GROUP_PREFIX}&quot;; do
+  if [[ ${#p} -lt 4 ]]; then
+    echo -e &quot;${RED}ERROR:${NC} prefix '${p}' is empty or shorter than 4 characters — refusing to run.&quot;
+    exit 1
+  fi
+done
+
+# --- TOKEN -------------------------------------------------------------------
+TOKEN_RESPONSE=$(curl -s \
+  --request POST &quot;${SSO_TOKEN_URL}&quot; \
+  --header &quot;Content-Type: application/x-www-form-urlencoded&quot; \
+  --data-urlencode &quot;grant_type=client_credentials&quot; \
+  --data-urlencode &quot;client_id=${OAUTH_CLIENT_ID}&quot; \
+  --data-urlencode &quot;client_secret=${OAUTH_CLIENT_SECRET}&quot; \
+  --data-urlencode &quot;scope=${OAUTH_SCOPE}&quot; \
+  --data-urlencode &quot;resource=urn:dtaccount:${ACCOUNT_UUID}&quot;)
+
+TOKEN=$(echo &quot;${TOKEN_RESPONSE}&quot; | jq -r '.access_token // empty')
+if [[ -z &quot;${TOKEN}&quot; ]]; then
+  echo -e &quot;${RED}ERROR:${NC} failed to acquire token&quot;
+  echo &quot;${TOKEN_RESPONSE}&quot; | jq . || true
+  exit 1
+fi
+
+echo &quot;&quot;
+echo &quot;==============================================&quot;
+echo &quot;  IAM Cleanup — mode: ${MODE}&quot;
+echo &quot;  Policy prefixes: ${POLICY_PREFIXES[*]}&quot;
+echo &quot;  Group prefix:    ${GROUP_PREFIX}&quot;
+echo &quot;==============================================&quot;
+
+# --- SELECT POLICIES ---------------------------------------------------------
+POLICIES=$(curl -s -X GET \
+  &quot;${API_BASE}/iam/v1/repo/environment/${ENVIRONMENT_ID}/policies&quot; \
+  -H &quot;Authorization: Bearer ${TOKEN}&quot;)
+if ! echo &quot;${POLICIES}&quot; | jq -e '.policies | type == &quot;array&quot;' &gt;/dev/null 2&gt;&amp;1; then
+  echo -e &quot;${RED}ERROR:${NC} could not list policies — nothing deleted.&quot;
+  exit 1
+fi
+
+PREFIX_JSON=$(printf '%s\n' &quot;${POLICY_PREFIXES[@]}&quot; | jq -R . | jq -s .)
+POLICY_ROWS=()
+while IFS= read -r row; do
+  [[ -n &quot;${row}&quot; ]] &amp;&amp; POLICY_ROWS+=(&quot;${row}&quot;)
+done &lt; &lt;(echo &quot;${POLICIES}&quot; | jq -r --argjson pfx &quot;${PREFIX_JSON}&quot; '
+  .policies[]
+  | select(.builtIn != true)
+  | select(.name as $n | any($pfx[]; . as $p | $n | startswith($p)))
+  | .uuid + &quot;|&quot; + .name')
+
+# --- SELECT GROUPS -----------------------------------------------------------
+GROUPS_JSON=$(curl -s -X GET \
+  &quot;${API_BASE}/iam/v1/accounts/${ACCOUNT_UUID}/groups&quot; \
+  -H &quot;Authorization: Bearer ${TOKEN}&quot;)
+if ! echo &quot;${GROUPS_JSON}&quot; | jq -e '(if type == &quot;array&quot; then . else (.items // .groups) end) | type == &quot;array&quot;' &gt;/dev/null 2&gt;&amp;1; then
+  echo -e &quot;${RED}ERROR:${NC} could not list groups — nothing deleted.&quot;
+  exit 1
+fi
+
+GROUP_ROWS=()
+while IFS= read -r row; do
+  [[ -n &quot;${row}&quot; ]] &amp;&amp; GROUP_ROWS+=(&quot;${row}&quot;)
+done &lt; &lt;(echo &quot;${GROUPS_JSON}&quot; | jq -r --arg p &quot;${GROUP_PREFIX}&quot; '
+  (if type == &quot;array&quot; then . else (.items // .groups) end)[]
+  | select(.name | startswith($p))
+  | .uuid + &quot;|&quot; + .name')
+
+# --- PLAN --------------------------------------------------------------------
+TOTAL=$(( ${#POLICY_ROWS[@]} + ${#GROUP_ROWS[@]} ))
+echo &quot;&quot;
+echo -e &quot;${CYAN}Policies (bindings removed first):${NC} ${#POLICY_ROWS[@]}&quot;
+for row in &quot;${POLICY_ROWS[@]+&quot;${POLICY_ROWS[@]}&quot;}&quot;; do echo &quot;  - ${row#*|}  (${row%%|*})&quot;; done
+echo -e &quot;${CYAN}Groups:${NC} ${#GROUP_ROWS[@]}&quot;
+for row in &quot;${GROUP_ROWS[@]+&quot;${GROUP_ROWS[@]}&quot;}&quot;; do echo &quot;  - ${row#*|}  (${row%%|*})&quot;; done
+
+if [[ ${TOTAL} -eq 0 ]]; then
+  echo &quot;&quot;
+  echo &quot;Nothing matches the configured prefixes. Nothing to do.&quot;
+  exit 0
+fi
+
+if [[ &quot;${MODE}&quot; != &quot;apply&quot; ]]; then
+  echo &quot;&quot;
+  echo -e &quot;${YELLOW}Dry run — nothing was deleted.${NC} Review the list, then re-run with --apply.&quot;
+  exit 0
+fi
+
+# --- CONFIRM -----------------------------------------------------------------
+echo &quot;&quot;
+read -r -p &quot;Type 'DELETE ${TOTAL}' to delete these ${TOTAL} resources: &quot; CONFIRM || CONFIRM=&quot;&quot;
+if [[ &quot;${CONFIRM}&quot; != &quot;DELETE ${TOTAL}&quot; ]]; then
+  echo &quot;Confirmation did not match — nothing deleted.&quot;
+  exit 1
+fi
+
+# --- DELETE ------------------------------------------------------------------
+FAILED=0
+for row in &quot;${POLICY_ROWS[@]+&quot;${POLICY_ROWS[@]}&quot;}&quot;; do
+  puuid=&quot;${row%%|*}&quot;; pname=&quot;${row#*|}&quot;
+  echo -n &quot;  Bindings of ${pname}... &quot;
+  HTTP=$(curl -s -o /dev/null -w &quot;%{http_code}&quot; -X DELETE \
+    &quot;${API_BASE}/iam/v1/repo/environment/${ENVIRONMENT_ID}/bindings/${puuid}?forceMultiple=true&quot; \
+    -H &quot;Authorization: Bearer ${TOKEN}&quot;) || HTTP=&quot;000&quot;
+  [[ &quot;${HTTP}&quot; =~ ^2 ]] &amp;&amp; echo -e &quot;${GREEN}OK${NC}&quot; || echo -e &quot;${YELLOW}${HTTP} (may have no bindings)${NC}&quot;
+
+  echo -n &quot;  Policy ${pname}... &quot;
+  HTTP=$(curl -s -o /dev/null -w &quot;%{http_code}&quot; -X DELETE \
+    &quot;${API_BASE}/iam/v1/repo/environment/${ENVIRONMENT_ID}/policies/${puuid}?force=true&quot; \
+    -H &quot;Authorization: Bearer ${TOKEN}&quot;) || HTTP=&quot;000&quot;
+  if [[ &quot;${HTTP}&quot; =~ ^2 ]]; then echo -e &quot;${GREEN}OK${NC}&quot;; else echo -e &quot;${RED}FAILED (HTTP ${HTTP})${NC}&quot;; FAILED=$((FAILED + 1)); fi
+done
+
+for row in &quot;${GROUP_ROWS[@]+&quot;${GROUP_ROWS[@]}&quot;}&quot;; do
+  guuid=&quot;${row%%|*}&quot;; gname=&quot;${row#*|}&quot;
+  echo -n &quot;  Group ${gname}... &quot;
+  HTTP=$(curl -s -o /dev/null -w &quot;%{http_code}&quot; -X DELETE \
+    &quot;${API_BASE}/iam/v1/accounts/${ACCOUNT_UUID}/groups/${guuid}&quot; \
+    -H &quot;Authorization: Bearer ${TOKEN}&quot;) || HTTP=&quot;000&quot;
+  if [[ &quot;${HTTP}&quot; =~ ^2 ]]; then echo -e &quot;${GREEN}OK${NC}&quot;; else echo -e &quot;${RED}FAILED (HTTP ${HTTP})${NC}&quot;; FAILED=$((FAILED + 1)); fi
+done
+
+echo &quot;&quot;
+if [[ ${FAILED} -gt 0 ]]; then
+  echo -e &quot;${RED}Cleanup finished with ${FAILED} failure(s).${NC}&quot;
+  exit 1
+fi
+echo -e &quot;${GREEN}Cleanup complete.${NC}&quot;
+</code></pre>
+<blockquote>
+<p><strong>Safety:</strong> Set <code>POLICY_PREFIXES</code> and <code>GROUP_PREFIX</code> to prefixes that <strong>only your test resources carry</strong>, and always read the dry-run list before running with <code>--apply</code>. Do not point it at <code>GLOBAL-</code> or <code>DT-GLOBAL-</code> — that is the production persona naming convention (IAM-11), and it is also what Script 1 creates by default. To make Script 1's output removable by this script, set <code>PERSONA_SCOPES</code> to <code>TEST</code>, name the groups <code>DT-TEST-…</code>, and rename <code>TPL_DATA_NAME</code> / <code>ADMIN_DATA_NAME</code> to <code>tpl-test-…</code> / <code>TEST-…</code> before provisioning a sandbox.</p>
+</blockquote>
+<p><a id="dql-validation"></a></p>
+<h2>5. DQL Validation Queries</h2>
+<p>These DQL queries let you audit your IAM configuration directly from a Dynatrace Notebook — no shell scripts needed.</p>
+<blockquote>
+<p><strong>Group, policy, boundary and binding changes are account-level, and this environment's audit events are not their change log.</strong> <em>&quot;Dynatrace provides audit logs of changes to your account-level identity and access (IAM) management settings&quot;</em> — <em>&quot;Administrators can view these logs in Account Management &gt; Settings &gt; Audit log&quot;</em>, where they are kept for up to ten years (also queryable through the Account Audits API). The same page says <em>&quot;The Account Management audit log doesn't yet cover every account-level change. Some IAM configuration and login events aren't recorded.&quot;</em> <em>&quot;To view the <strong>Audit logs</strong> page, you need the <code>account-company-info</code> role&quot;</em>; API access needs an OAuth client with the <code>account-audit-logs-read</code> scope as well. The query below shows IAM API calls made <strong>through this environment</strong> — useful for spotting automation, not a change log. These events show IAM API calls made through this environment, including environment-level policy-binding changes; scheduled <code>/lookups/iam_*</code> file uploads are excluded by the query. Account-level group and policy changes are recorded in the account audit log.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/account-management/audit-logs">Account Management audit logs (DT docs)</a>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// IAM API activity in this environment (last 7 days)
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter in(event.type, {&quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;CREATE&quot;, &quot;UPDATE&quot;}) and contains(resource, &quot;iam&quot;)
+| filter not startsWith(resource, &quot;/lookups/&quot;)
+| fields timestamp, user.id, event.type, resource, event.outcome
+| sort timestamp desc
+| limit 25
+</code></pre>
+<h3>Audit: Who Changed Policies Recently?</h3>
+<p>Policy, group and binding changes are account-level: answer this question from the account audit log (Account Management &gt; Settings &gt; Audit log — requires the <code>account-company-info</code> role), which records each change with its previous and current state. The query above complements it by showing which users and automation called the IAM API <strong>through this environment</strong> — look for:</p>
+<ul>
+<li><strong>POST / PUT / DELETE</strong> calls against <code>/platform/iam/…</code> paths from users or clients you do not expect</li>
+<li>Calls with a non-2xx <code>event.outcome</code>, which point at failing provisioning scripts</li>
+</ul>
+<h3>Verify Group Membership</h3>
+<pre><code class="language-dql">// IAM API activity by operation type
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter contains(resource, &quot;iam&quot;)
+// Corrected 10/12/2026: the daily /lookups/iam_* upload job matched &quot;iam&quot; (8 of 10 events in 24 h)
+| filter not startsWith(resource, &quot;/lookups/&quot;)
+| summarize calls = count(), by:{event.type, event.outcome}
+| sort calls desc
+</code></pre>
+<h3>Verify Data Access by Security Context</h3>
+<p>Use this query to confirm that security context values match what your templated data policies expect. If a team's logs have no <code>dt.security_context</code> tag, the templated policy won't match anything.</p>
+<pre><code class="language-dql">// Show distinct security context values in logs (last 1h)
+// These values must match the &quot;team&quot; parameter in your templated data policy bindings
+fetch logs, from:-1h
+| filter isNotNull(dt.security_context)
+| summarize log_count = count(), by:{dt.security_context}
+| sort log_count desc
+</code></pre>
+<h3>Verify Bucket-Level Access</h3>
+<p>If your data policies include bucket restrictions, verify which buckets exist, which table each belongs to, and their retention. <code>dt.system.buckets</code> lists every bucket across all tables and reads zero billable bytes. It also carries a <code>has_access</code> column; in community practice, running the query as a member of each persona group and comparing that column is a quick check of bucket grants — confirm with a record query before relying on it.</p>
+<pre><code class="language-dql">// List all Grail buckets with their table, retention, and record counts (corrected 10/13/2026:
+// this cell used `fetch logs ... by:{dt.system.bucket}`, which lists only log buckets that
+// received data in the last hour and shows no retention)
+fetch dt.system.buckets
+| fields name, dt.system.table, retention_days, records, has_access
+| sort dt.system.table asc, name asc
+</code></pre>
+<p><a id="api-reference"></a></p>
+<h2>6. API Reference</h2>
+<h3>Endpoint Summary</h3>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Method</th>
+<th>Endpoint</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Groups</strong></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>List groups</td>
+<td>GET</td>
+<td><code>/iam/v1/accounts/{accountUuid}/groups</code></td>
+<td>Returns an object <code>{&quot;count&quot;: N, &quot;items&quot;: [...]}</code> — read groups from <code>.items[]</code></td>
+</tr>
+<tr>
+<td>Create groups</td>
+<td>POST</td>
+<td><code>/iam/v1/accounts/{accountUuid}/groups</code></td>
+<td><strong>Payload must be an array</strong> <code>[{...}]</code></td>
+</tr>
+<tr>
+<td>Delete group</td>
+<td>DELETE</td>
+<td><code>/iam/v1/accounts/{accountUuid}/groups/{groupUuid}</code></td>
+<td>Returns 200</td>
+</tr>
+<tr>
+<td><strong>Policies</strong></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>List policies</td>
+<td>GET</td>
+<td><code>/iam/v1/repo/{level}/{levelId}/policies</code></td>
+<td>Level: <code>environment</code>, <code>account</code>, <code>global</code></td>
+</tr>
+<tr>
+<td>Create policy</td>
+<td>POST</td>
+<td><code>/iam/v1/repo/{level}/{levelId}/policies</code></td>
+<td>Returns object with <code>.uuid</code></td>
+</tr>
+<tr>
+<td>Delete policy</td>
+<td>DELETE</td>
+<td><code>/iam/v1/repo/{level}/{levelId}/policies/{policyUuid}?force=true</code></td>
+<td><code>force=true</code> if bound</td>
+</tr>
+<tr>
+<td><strong>Bindings</strong></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>List bindings</td>
+<td>GET</td>
+<td><code>/iam/v1/repo/{level}/{levelId}/bindings/{policyUuid}</code></td>
+<td>Shows groups + parameters</td>
+</tr>
+<tr>
+<td>Create binding</td>
+<td>POST</td>
+<td><code>/iam/v1/repo/{level}/{levelId}/bindings/{policyUuid}</code></td>
+<td>Body: <code>{groups, parameters}</code></td>
+</tr>
+<tr>
+<td>Delete bindings</td>
+<td>DELETE</td>
+<td><code>/iam/v1/repo/{level}/{levelId}/bindings/{policyUuid}?forceMultiple=true</code></td>
+<td>Removes all bindings</td>
+</tr>
+<tr>
+<td><strong>OAuth</strong></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Token exchange</td>
+<td>POST</td>
+<td><code>https://sso.dynatrace.com/sso/oauth2/token</code></td>
+<td>Client credentials flow</td>
+</tr>
+</tbody>
+</table>
+<h3>Key API Quirks</h3>
+<table>
+<thead>
+<tr>
+<th>Quirk</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Groups payload is an array</strong></td>
+<td><code>POST .../groups</code> expects <code>[{name, description}]</code>, not <code>{name, description}</code>. Sending a single object returns 500: &quot;payload.map is not a function&quot;</td>
+</tr>
+<tr>
+<td><strong>Groups use a different path</strong></td>
+<td>Groups: <code>/iam/v1/accounts/...</code> — Policies/bindings: <code>/iam/v1/repo/...</code></td>
+</tr>
+<tr>
+<td><strong>Use jq for policy payloads</strong></td>
+<td>Policy <code>statementQuery</code> contains nested quotes. Use <code>jq -n --arg stmt &quot;$VAR&quot;</code> instead of manual escaping</td>
+</tr>
+<tr>
+<td><strong>OAuth required</strong></td>
+<td>Raw API tokens (<code>dt0c01.*</code>) don't work. Exchange client credentials at the SSO endpoint</td>
+</tr>
+<tr>
+<td><strong>Token lifetime</strong></td>
+<td>OAuth tokens expire in ~300 seconds. Re-acquire for long scripts</td>
+</tr>
+<tr>
+<td><strong>Binding parameters</strong></td>
+<td>Templated policy parameters go in the binding body: <code>{&quot;groups&quot;: [...], &quot;parameters&quot;: {&quot;team&quot;: &quot;value&quot;}}</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Valid Document Permissions</h3>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>document:documents:read</code></td>
+<td>Read dashboards and notebooks</td>
+</tr>
+<tr>
+<td><code>document:documents:write</code></td>
+<td>Create and update (covers both)</td>
+</tr>
+<tr>
+<td><code>document:documents:delete</code></td>
+<td>Delete documents</td>
+</tr>
+<tr>
+<td><code>document:documents:admin</code></td>
+<td>Full admin (bypasses ownership)</td>
+</tr>
+<tr>
+<td><code>document:direct-shares:read</code></td>
+<td>View sharing settings</td>
+</tr>
+<tr>
+<td><code>document:direct-shares:write</code></td>
+<td>Share documents with others</td>
+</tr>
+<tr>
+<td><code>document:direct-shares:delete</code></td>
+<td>Remove shares</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Common mistake:</strong> <code>document:documents:create</code> and <code>document:documents:share</code> do <strong>not exist</strong>. Use <code>write</code> for creation and <code>direct-shares:write</code> for sharing.</p>
+</blockquote>
+<p><a id="troubleshooting"></a></p>
+<h2>7. Troubleshooting</h2>
+<h3>Common API Errors</h3>
+<table>
+<thead>
+<tr>
+<th>HTTP Code</th>
+<th>Error Message</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>400</td>
+<td>&quot;payload.map is not a function&quot;</td>
+<td>Groups POST received an object instead of array</td>
+<td>Wrap payload in <code>[{...}]</code></td>
+</tr>
+<tr>
+<td>400</td>
+<td>&quot;Invalid permission name: documents:create&quot;</td>
+<td>Non-existent permission</td>
+<td>Use <code>documents:write</code> (covers create)</td>
+</tr>
+<tr>
+<td>400</td>
+<td>&quot;ALLOW or DENY must be followed by a permission in the form service-name:resource:action&quot;</td>
+<td>Wildcard in permission (<code>storage:*:read</code>, <code>settings:objects:*</code>, ...)</td>
+<td>Wildcards are not supported — enumerate permissions in a comma list</td>
+</tr>
+<tr>
+<td>400</td>
+<td>&quot;Invalid condition name for permission storage:logs:write : storage:bucket-name&quot;</td>
+<td>WHERE condition on a storage WRITE permission</td>
+<td>Storage writes accept no conditions — grant unscoped or control via OpenPipeline</td>
+</tr>
+<tr>
+<td>400</td>
+<td>&quot;Invalid permission name: spans:write / bizevents:write / buckets:write for service storage&quot;</td>
+<td>Permission doesn't exist</td>
+<td>Only <code>logs</code>, <code>metrics</code>, <code>events</code> have storage <code>:write</code>; spans/bizevents are ingest-only</td>
+</tr>
+<tr>
+<td>400</td>
+<td>&quot;Invalid permission name: roles:admin for service environment&quot;</td>
+<td>No such role permission</td>
+<td>Classic admin = <code>environment:roles:viewer</code> + <code>environment:roles:manage-settings</code></td>
+</tr>
+<tr>
+<td>400</td>
+<td>&quot;Invalid condition name ... storage:bucket.name&quot;</td>
+<td>Dotted condition field</td>
+<td>The field is <code>storage:bucket-name</code> (hyphen)</td>
+</tr>
+<tr>
+<td>400</td>
+<td>&quot;Policy binding cannot be created, such binding already exists&quot; (also on the per-group update endpoint)</td>
+<td>Binding already in desired state</td>
+<td>Treat as success — the binding is converged (idempotent re-run)</td>
+</tr>
+<tr>
+<td>400</td>
+<td>&quot;There is no policy binding to be deleted&quot;</td>
+<td>Deleting bindings from unbound policy</td>
+<td>Safe to ignore during cleanup</td>
+</tr>
+<tr>
+<td>400</td>
+<td>&quot;Duplicate entry&quot;</td>
+<td>Group with same name already exists</td>
+<td>Reuse the existing group — look it up by name in <code>GET .../groups</code> (<code>.items[]</code>), as Script 1 does — or choose a different name</td>
+</tr>
+<tr>
+<td>401</td>
+<td>Unauthorized</td>
+<td>Token is invalid or expired</td>
+<td>Re-acquire OAuth token (they expire in ~5 min)</td>
+</tr>
+<tr>
+<td>403</td>
+<td>Forbidden</td>
+<td>Token lacks required scopes</td>
+<td>Add missing scopes to OAuth client</td>
+</tr>
+<tr>
+<td>404</td>
+<td>&quot;Cannot get requested resource&quot;</td>
+<td>Wrong endpoint path or UUID</td>
+<td>Check <code>/accounts/</code> vs <code>/repo/account/</code> for groups</td>
+</tr>
+<tr>
+<td>500</td>
+<td>&quot;payload.map is not a function&quot;</td>
+<td>Same as 400 variant — array expected</td>
+<td>Wrap group payload in array</td>
+</tr>
+</tbody>
+</table>
+<h3>Checklist: Nothing Happens After Group Creation</h3>
+<p>If your script creates groups but then silently stops:</p>
+<ol>
+<li><strong>Check JSON escaping</strong> — Policy <code>statementQuery</code> fields have nested quotes. Use <code>jq -n --arg</code> instead of string interpolation</li>
+<li><strong>Check <code>set -e</code></strong> — With <code>set -e</code>, any non-zero exit stops the script silently. Use <code>set -uo pipefail</code> and handle errors explicitly, as Script 1 does: it counts failures, treats &quot;already exists&quot; as converged, and exits 1 at the end</li>
+<li><strong>Check token expiry</strong> — If group creation took time, the OAuth token may have expired before policy creation starts</li>
+<li><strong>Test one policy manually</strong> — Run the curl for a single policy creation and inspect the full response body</li>
+</ol>
+<h3>Checklist: Templated Policy Not Working</h3>
+<p>If users in a templated-policy group can't see data:</p>
+<ol>
+<li><strong>Verify binding parameters</strong> — Use the Report script (Section 3) to confirm <code>team=&lt;value&gt;</code> is set</li>
+<li><strong>Verify security context</strong> — Run the DQL query in Section 5 to confirm <code>dt.security_context</code> values match the binding parameter</li>
+<li><strong>Check bucket assignment</strong> — If using bucket-level policies, verify data is routed to the expected bucket via OpenPipeline</li>
+<li><strong>Check evaluation order</strong> — A DENY from another policy will override the ALLOW. Use the audit DQL to check for conflicting policies</li>
+</ol>
+<h2>Next Steps</h2>
+<ul>
+<li><strong>IAM-10: Templated Policy Assignments</strong> — Deep dive into template syntax and <code>${bindParam:}</code> patterns</li>
+<li><strong>IAM-11: Policy Persona Workshop</strong> — Design the persona model that these scripts provision</li>
+<li><strong>IAM-04: Policy Authoring</strong> — Full policy syntax reference</li>
+<li><strong>IAM-05: Boundary Design Patterns</strong> — Data segmentation strategies</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

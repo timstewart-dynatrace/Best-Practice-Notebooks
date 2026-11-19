@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M2S-08: Step 8 — Expand: Adopt New SaaS Capabilities</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">M2S — Managed to SaaS Migration</a><span class="sep">/</span><span aria-current="page">M2S-08</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>M2S-08: Step 8 — Expand: Adopt New SaaS Capabilities</h1>
+<blockquote>
+<p><strong>Series:</strong> M2S — Managed to SaaS Migration | <strong>Notebook:</strong> 8 of 9 | <strong>Phase:</strong> Run | <strong>Step:</strong> Expand | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<p>With the migration complete and integrations reconnected, the real value of moving to SaaS begins. Dynatrace SaaS includes an entire generation of capabilities that were never available in Managed — Grail, Notebooks, OpenPipeline, Dynatrace Assist, AppEngine, and AutomationEngine. This notebook provides a structured approach to adopting each capability, with a recommended timeline that avoids overwhelming teams while ensuring steady progress.</p>
+<blockquote>
+<p><strong>M2S Migration Journey — 3 Phases / 9 Steps</strong></p>
+<p><strong>Plan:</strong> 1. Discover | 2. Strategize | 3. Design</p>
+<p><strong>Upgrade:</strong> 4. Prepare | 5. Execute | 6. Integrate</p>
+<p><strong>Run:</strong> 7. Enable | <strong>8. Expand</strong> | 9. Optimize</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#saas-exclusive-capabilities-overview">SaaS-Exclusive Capabilities Overview</a></li>
+<li><a href="#grail-adoption">Grail Adoption</a></li>
+<li><a href="#notebooks-adoption">Notebooks Adoption</a></li>
+<li><a href="#openpipeline-configuration">OpenPipeline Configuration</a></li>
+<li><a href="#workflow-automation">Workflow Automation</a></li>
+<li><a href="#davis-copilot">Dynatrace Assist</a></li>
+<li><a href="#platform-apps">Platform Apps</a></li>
+<li><a href="#privacy-and-data-protection-in-saas">Privacy and Data Protection in SaaS</a></li>
+<li><a href="#feature-adoption-timeline">Feature Adoption Timeline</a></li>
+<li><a href="#step-completion-checklist">Step Completion Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Steps 1–6 Complete</strong></td>
+<td>Discovery, strategy, design, preparation, execution, and integration phases finished</td>
+</tr>
+<tr>
+<td><strong>SaaS Tenant Stable</strong></td>
+<td>OneAgents reporting, alerts flowing, integrations validated</td>
+</tr>
+<tr>
+<td><strong>Grail Enabled</strong></td>
+<td>Grail data lakehouse active and receiving data (default for SaaS)</td>
+</tr>
+<tr>
+<td><strong>Admin Access</strong></td>
+<td>Environment admin permissions for OpenPipeline, Workflows, and Settings</td>
+</tr>
+<tr>
+<td><strong>Team Readiness</strong></td>
+<td>Key stakeholders identified for each capability adoption</td>
+</tr>
+</tbody>
+</table>
+<p><a id="saas-exclusive-capabilities-overview"></a></p>
+<h2>1. SaaS-Exclusive Capabilities Overview</h2>
+<p>These capabilities are available only in Dynatrace SaaS. They represent the primary reason to migrate beyond infrastructure parity.</p>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>What It Does</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Grail</strong></td>
+<td>Unified data lakehouse — query logs, spans, events, metrics, and entities with DQL</td>
+<td>High</td>
+</tr>
+<tr>
+<td><strong>Notebooks</strong></td>
+<td>Interactive analysis combining DQL queries, markdown documentation, and visualizations</td>
+<td>High</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Assist</strong></td>
+<td>AI-assisted natural language querying and root cause analysis</td>
+<td>High</td>
+</tr>
+<tr>
+<td><strong>AppEngine</strong></td>
+<td>Build and deploy custom Dynatrace apps with the Dynatrace Developer toolkit</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td><strong>AutomationEngine</strong></td>
+<td>Advanced workflow automation with event-driven triggers and multi-step actions</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td><strong>OpenPipeline</strong></td>
+<td>Real-time data processing, enrichment, routing, and masking at ingest</td>
+<td>High</td>
+</tr>
+<tr>
+<td><strong>Grail Buckets</strong></td>
+<td>Custom data retention and routing by data type, environment, or compliance need</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td><strong>Segments</strong></td>
+<td>Reusable data scoping filters for dashboards and notebooks</td>
+<td>Medium</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Key Insight:</strong> Do not try to adopt everything at once. A phased approach over 8–10 weeks prevents change fatigue and allows teams to build competency incrementally. The timeline in Section 9 provides a proven cadence.</p>
+</blockquote>
+<p><a id="grail-adoption"></a></p>
+<h2>2. Grail Adoption</h2>
+<p>Grail is the single most impactful new capability. It replaces USQL (User Sessions Query Language) with DQL (Dynatrace Query Language) and provides a unified query experience across all data types stored in the Grail data lakehouse.</p>
+<h3>What Changes from Managed</h3>
+<table>
+<thead>
+<tr>
+<th>Managed Approach</th>
+<th>SaaS with Grail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>USQL for session data</td>
+<td>DQL for all data types</td>
+</tr>
+<tr>
+<td>Separate query interfaces per data type</td>
+<td>Single DQL interface for logs, spans, events, metrics, entities</td>
+</tr>
+<tr>
+<td>Limited cross-data-type analysis</td>
+<td>Unified queries joining logs, spans, and entities</td>
+</tr>
+<tr>
+<td>Retention set by the cluster's storage tiers</td>
+<td>Configurable retention per Grail bucket</td>
+</tr>
+<tr>
+<td>Metrics API for metric queries</td>
+<td><code>timeseries</code> command for metrics</td>
+</tr>
+</tbody>
+</table>
+<h3>Key Data Objects in Grail</h3>
+<table>
+<thead>
+<tr>
+<th>Data Object</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>logs</code></td>
+<td>Log records from all sources</td>
+<td><code>fetch logs, from:-1h</code></td>
+</tr>
+<tr>
+<td><code>spans</code></td>
+<td>Distributed trace spans</td>
+<td><code>fetch spans, from:-1h</code></td>
+</tr>
+<tr>
+<td><code>events</code></td>
+<td>Generic events (deployments, configuration changes)</td>
+<td><code>fetch events, from:-1h</code></td>
+</tr>
+<tr>
+<td><code>bizevents</code></td>
+<td>Business events (transactions, conversions)</td>
+<td><code>fetch bizevents, from:-24h</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.*</code></td>
+<td>Entity data (hosts, services, processes)</td>
+<td><code>fetch dt.entity.host</code></td>
+</tr>
+<tr>
+<td><code>dt.davis.problems</code></td>
+<td>Dynatrace Intelligence root cause problems</td>
+<td><code>fetch dt.davis.problems, from:-24h</code></td>
+</tr>
+<tr>
+<td><code>dt.davis.events</code></td>
+<td>Dynatrace Intelligence raw events</td>
+<td><code>fetch dt.davis.events, from:-24h</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> Metrics do NOT use <code>fetch</code>. Use the <code>timeseries</code> command: <code>timeseries avg(dt.host.cpu.usage), from:-1h</code>.</p>
+</blockquote>
+<h3>Your First DQL Queries</h3>
+<p>Start with queries that replace what you were doing in Managed. These demonstrate capabilities that were not possible before:</p>
+<pre><code class="language-dql">// Cross-data-type analysis: top services by error log volume
+// Logs carry the service entity when OneAgent enriches them — no join needed
+// status == &quot;ERROR&quot; also counts SEVERE/FATAL levels that loglevel == &quot;ERROR&quot; misses
+fetch logs, from:-1h
+| filter status == &quot;ERROR&quot; and isNotNull(dt.entity.service)
+| summarize errorCount = count(), by:{dt.entity.service}
+| sort errorCount desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Grail bucket usage — see how data is distributed across buckets
+// Grail buckets are a SaaS-only concept for data routing and retention
+fetch logs, from:-24h
+| summarize logVolume = count(), by:{dt.system.bucket}
+| sort logVolume desc
+</code></pre>
+<pre><code class="language-dql">// Correlate detected problems with affected entities — unified in Grail
+// smartscape.affected_entities replaces the deprecated affected_entity_ids. The classic field still
+// works, but it names only ENVIRONMENT-0000000000000001 for entities that exist only in Smartscape,
+// so that ID tops a classic ranking (3,370 of 7 days' closed problems on the validation tenant,
+// 11/11/2026). Problems with no Smartscape node at all (environment-level alerts) drop out here.
+fetch dt.davis.problems, from:-7d
+| filter event.status == &quot;CLOSED&quot;
+| expand entity = smartscape.affected_entities
+| filter isNotNull(entity)
+| summarize problemCount = count(), by:{entity_id = entity[id], entity_type = entity[type], entity_name = entity[name]}
+| sort problemCount desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Metrics query using timeseries — replaces Metrics API queries in Managed
+timeseries avgCpu = avg(dt.host.cpu.usage), from:-1h
+| fieldsAdd avgCpuValue = arrayAvg(avgCpu)
+| filter avgCpuValue &gt; 0
+</code></pre>
+<h3>USQL to DQL Migration Patterns</h3>
+<p>For teams accustomed to USQL, here are common translation patterns. RUM data lives in <code>user.sessions</code> and <code>user.events</code> on Grail — not in <code>bizevents</code> or <code>logs</code>:</p>
+<table>
+<thead>
+<tr>
+<th>USQL Pattern</th>
+<th>DQL Equivalent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SELECT COUNT(*) FROM usersession</code></td>
+<td><code>fetch user.sessions, from:-1h | summarize c = count()</code></td>
+</tr>
+<tr>
+<td><code>FROM useraction</code></td>
+<td><code>fetch user.events, from:-1h</code> + a filter on the action type (field names differ between classic RUM on Grail and New RUM)</td>
+</tr>
+<tr>
+<td><code>WHERE country = 'US'</code></td>
+<td><code>| filter country == &quot;...&quot;</code> (classic) or <code>| filter geo.country.iso_code == &quot;US&quot;</code> (New RUM)</td>
+</tr>
+<tr>
+<td><code>ORDER BY count(*) DESC</code></td>
+<td><code>| summarize c = count(), by:{...} | sort c desc</code> — alias the aggregation first</td>
+</tr>
+<tr>
+<td><code>LIMIT 10</code></td>
+<td><code>| limit 10</code></td>
+</tr>
+<tr>
+<td><code>BETWEEN &quot;2024-01-01&quot; AND &quot;2024-01-31&quot;</code></td>
+<td><code>fetch ..., from:&quot;2024-01-01T00:00:00Z&quot;, to:&quot;2024-01-31T00:00:00Z&quot;</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> DQL uses a pipeline model (<code>|</code>) rather than SQL clauses. <strong>WEBRUM-09</strong> has the full grammar and field mapping for both RUM generations, and lists the USQL fields (such as <code>city</code>) with no New RUM equivalent.</p>
+</blockquote>
+<p><a id="notebooks-adoption"></a></p>
+<h2>3. Notebooks Adoption</h2>
+<p>Dynatrace Notebooks replace ad-hoc querying with persistent, shareable, collaborative analysis documents. They combine executable DQL queries with markdown documentation and visualizations in a single workspace.</p>
+<h3>Why Notebooks Matter for Migration Teams</h3>
+<table>
+<thead>
+<tr>
+<th>Use Case</th>
+<th>How Notebooks Help</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Migration validation</strong></td>
+<td>Document pre/post migration metrics side by side</td>
+</tr>
+<tr>
+<td><strong>Incident investigation</strong></td>
+<td>Build reusable investigation runbooks with live DQL</td>
+</tr>
+<tr>
+<td><strong>Capacity planning</strong></td>
+<td>Combine metrics timeseries with written analysis</td>
+</tr>
+<tr>
+<td><strong>Executive reporting</strong></td>
+<td>Create self-updating reports with embedded queries</td>
+</tr>
+<tr>
+<td><strong>Team onboarding</strong></td>
+<td>Write training notebooks that new team members can execute</td>
+</tr>
+<tr>
+<td><strong>Knowledge sharing</strong></td>
+<td>Share analysis methodology alongside the actual queries</td>
+</tr>
+</tbody>
+</table>
+<h3>Recommended Starter Notebooks</h3>
+<p>Create these notebooks in the first two weeks to build team familiarity:</p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Purpose</th>
+<th>Audience</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Migration Health Check</strong></td>
+<td>Compare key metrics pre- and post-migration</td>
+<td>Platform team</td>
+</tr>
+<tr>
+<td><strong>Error Log Analysis</strong></td>
+<td>Top errors by service with trend analysis</td>
+<td>SRE team</td>
+</tr>
+<tr>
+<td><strong>Host Inventory</strong></td>
+<td>All monitored hosts with agent versions and status</td>
+<td>Operations</td>
+</tr>
+<tr>
+<td><strong>Problem Summary</strong></td>
+<td>Weekly problem trends with MTTR analysis</td>
+<td>Management</td>
+</tr>
+<tr>
+<td><strong>DQL Cheat Sheet</strong></td>
+<td>Common query patterns for the team to reference</td>
+<td>All users</td>
+</tr>
+</tbody>
+</table>
+<h3>Creating Your First Notebook</h3>
+<ol>
+<li>Navigate to <strong>Notebooks</strong> in the SaaS left navigation</li>
+<li>Click <strong>Create notebook</strong></li>
+<li>Add a <strong>Markdown section</strong> with a title and description</li>
+<li>Add a <strong>DQL section</strong> with a query</li>
+<li>Execute the query to see results inline</li>
+<li>Share the notebook with your team</li>
+</ol>
+<blockquote>
+<p><strong>Tip:</strong> Notebooks support version history. You can revert to any previous version, making them safe for experimentation.</p>
+</blockquote>
+<h3>Verify Notebook Availability</h3>
+<p>Confirm that Notebooks are accessible and DQL queries execute correctly:</p>
+<pre><code class="language-dql">// Simple validation query — if this returns data, Grail and Notebooks are working
+fetch logs, from:-15m
+| summarize logCount = count()
+| fieldsAdd status = if(logCount &gt; 0, then: &quot;Grail is receiving logs&quot;, else: &quot;No logs in last 15 minutes — check OneAgent connectivity&quot;)
+</code></pre>
+<p><a id="openpipeline-configuration"></a></p>
+<h2>4. OpenPipeline Configuration</h2>
+<p>OpenPipeline is the SaaS-exclusive data processing engine that operates at ingest time. It goes well beyond the log processing available in Managed, with a full pipeline that can enrich, transform, route, and mask data before it reaches Grail.</p>
+<h3>What OpenPipeline Provides</h3>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Description</th>
+<th>Managed Equivalent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Log enrichment</strong></td>
+<td>Add fields, parse structured data at ingest</td>
+<td>Limited custom log attributes</td>
+</tr>
+<tr>
+<td><strong>Data routing</strong></td>
+<td>Route logs to specific Grail buckets by rules</td>
+<td>Not available</td>
+</tr>
+<tr>
+<td><strong>PII masking</strong></td>
+<td>Redact sensitive data at ingest</td>
+<td>OneAgent-side masking rules (still available on SaaS)</td>
+</tr>
+<tr>
+<td><strong>Data transformation</strong></td>
+<td>Normalize, rename, and restructure fields</td>
+<td>Not available</td>
+</tr>
+<tr>
+<td><strong>Metric extraction</strong></td>
+<td>Generate metrics from log data</td>
+<td>Log metrics (limited)</td>
+</tr>
+<tr>
+<td><strong>Drop rules</strong></td>
+<td>Discard noisy or irrelevant data before storage</td>
+<td>Not available</td>
+</tr>
+</tbody>
+</table>
+<h3>Configuration Steps</h3>
+<ol>
+<li><strong>Navigate to OpenPipeline</strong> — Settings &gt; OpenPipeline (or search in the SaaS UI)</li>
+<li><strong>Select data type</strong> — Logs, Events, Spans, or Metrics</li>
+<li><strong>Add processing rules</strong> — Define enrichment, masking, and routing rules</li>
+<li><strong>Configure Grail buckets</strong> — Create custom buckets with appropriate retention</li>
+<li><strong>Set routing rules</strong> — Direct data to the correct bucket based on conditions</li>
+<li><strong>Test with sample data</strong> — Verify rules process correctly before applying broadly</li>
+</ol>
+<h3>Grail Bucket Strategy</h3>
+<p>Create buckets based on data lifecycle and compliance requirements:</p>
+<table>
+<thead>
+<tr>
+<th>Bucket Name</th>
+<th>Contents</th>
+<th>Retention</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>default_logs</code></td>
+<td>General application logs</td>
+<td>35 days</td>
+<td>Standard operational use</td>
+</tr>
+<tr>
+<td><code>security_logs</code></td>
+<td>Audit and authentication logs</td>
+<td>365 days</td>
+<td>Compliance requirement</td>
+</tr>
+<tr>
+<td><code>debug_logs</code></td>
+<td>Debug-level logs</td>
+<td>7 days</td>
+<td>High volume, low long-term value</td>
+</tr>
+<tr>
+<td><code>infrastructure_logs</code></td>
+<td>Host and container logs</td>
+<td>14 days</td>
+<td>Troubleshooting window</td>
+</tr>
+</tbody>
+</table>
+<h3>Verify OpenPipeline Is Processing Data</h3>
+<pre><code class="language-dql">// Check data distribution across Grail buckets
+// If you see only &quot;default_logs&quot;, OpenPipeline routing rules have not been configured yet
+fetch logs, from:-1h
+| summarize logCount = count(), by:{dt.system.bucket}
+| sort logCount desc
+</code></pre>
+<pre><code class="language-dql">// Check log sources flowing into Grail — verify all expected sources are present
+fetch logs, from:-1h
+| summarize logCount = count(), by:{log.source}
+| sort logCount desc
+| limit 20
+</code></pre>
+<h3>PII Masking Configuration</h3>
+<p>OpenPipeline masks sensitive data at ingest, before storage. Two things to know before you write the rules:</p>
+<ul>
+<li><strong>The pattern language is DPL, not regex.</strong> OpenPipeline matchers use the Dynatrace Pattern Language, while OneAgent-side masking uses RE2 regex — so the same masking job uses two languages depending on where it runs. A regex such as <code>\d{3}-\d{2}-\d{4}</code> pasted into an OpenPipeline rule will not behave as it does in a regex engine. <strong>FAQ-15</strong> covers the translation and the traps (DPL performs no backtracking), and <strong>OPLOGS-08</strong> covers masking in the pipeline.</li>
+<li><strong>Mask as early as the data allows.</strong> OneAgent-side masking keeps the value from ever leaving the host; OpenPipeline masking covers every ingest channel, including API and OpenTelemetry sources that OneAgent never sees.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Data type</th>
+<th>What to mask</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>National ID numbers</strong> (e.g. SSNs)</td>
+<td>The full value</td>
+</tr>
+<tr>
+<td><strong>Payment card numbers</strong></td>
+<td>All but the last four digits</td>
+</tr>
+<tr>
+<td><strong>Email addresses</strong></td>
+<td>The local part, or the whole value</td>
+</tr>
+<tr>
+<td><strong>IP addresses</strong> (if required)</td>
+<td>The last octet</td>
+</tr>
+</tbody>
+</table>
+<p>Masking rules apply at ingest — once data enters Grail, it is already masked. Records ingested before a rule existed are not rewritten.</p>
+<p><a id="workflow-automation"></a></p>
+<h2>5. Workflow Automation</h2>
+<p>The AutomationEngine replaces Managed problem notifications with event-driven workflows that can execute multi-step actions, call external APIs, and implement automated remediation.</p>
+<h3>What Replaces What</h3>
+<table>
+<thead>
+<tr>
+<th>Managed Feature</th>
+<th>SaaS Replacement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Problem notification rules</td>
+<td>Workflow triggers on detected problems</td>
+</tr>
+<tr>
+<td>Custom webhooks</td>
+<td>HTTP Request action in Workflows</td>
+</tr>
+<tr>
+<td>Maintenance windows</td>
+<td>Workflow-aware maintenance windows</td>
+</tr>
+<tr>
+<td>Manual escalation</td>
+<td>Automated escalation with conditional logic</td>
+</tr>
+<tr>
+<td>Scheduled reports (manual)</td>
+<td>Scheduled Workflow execution with report generation</td>
+</tr>
+</tbody>
+</table>
+<h3>Workflow Building Blocks</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Purpose</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Trigger</strong></td>
+<td>What starts the workflow</td>
+<td>detected problem opened, schedule (cron), event ingest</td>
+</tr>
+<tr>
+<td><strong>Action</strong></td>
+<td>What the workflow does</td>
+<td>Send Slack message, call API, run DQL, create Jira ticket</td>
+</tr>
+<tr>
+<td><strong>Condition</strong></td>
+<td>Control flow between actions</td>
+<td>If severity is CRITICAL, escalate; otherwise, log</td>
+</tr>
+<tr>
+<td><strong>Loop</strong></td>
+<td>Repeat actions</td>
+<td>Retry an API call up to 3 times</td>
+</tr>
+</tbody>
+</table>
+<h3>Recommended Starter Workflows</h3>
+<table>
+<thead>
+<tr>
+<th>Workflow</th>
+<th>Trigger</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Problem alerting</strong></td>
+<td>detected problem opened</td>
+<td>Run DQL for context &gt; Send to Slack with enriched details</td>
+</tr>
+<tr>
+<td><strong>Daily health report</strong></td>
+<td>Scheduled (daily at 8 AM)</td>
+<td>Run DQL queries &gt; Generate summary &gt; Send email</td>
+</tr>
+<tr>
+<td><strong>Auto-remediation</strong></td>
+<td>Specific detected event type</td>
+<td>Verify condition &gt; Execute remediation script &gt; Validate fix</td>
+</tr>
+<tr>
+<td><strong>Deployment tracking</strong></td>
+<td>Custom deployment event</td>
+<td>Record deployment &gt; Compare error rates before/after</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> Start by converting your most critical Managed notification rules to Workflows. Test each workflow end-to-end before retiring the Managed equivalent.</p>
+</blockquote>
+<h3>Verify Workflow Execution</h3>
+<p>After creating workflows, verify they are triggering correctly:</p>
+<pre><code class="language-dql">// Check recent detected problems — these should be triggering your workflows
+fetch dt.davis.problems, from:-24h
+| fieldsKeep display_id, event.name, event.status, event.category, timestamp
+| sort timestamp desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Problem trends over 7 days — baseline for workflow trigger validation
+fetch dt.davis.problems, from:-7d
+| makeTimeseries problemCount = count(default: 0), interval: 24h
+</code></pre>
+<p><a id="davis-copilot"></a></p>
+<h2>6. Dynatrace Assist</h2>
+<p>Dynatrace Assist brings AI-assisted querying and analysis to Dynatrace. Users can ask questions in natural language and Copilot generates DQL queries, explains results, and assists with root cause analysis.</p>
+<h3>What Dynatrace Assist Can Do</h3>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Natural language queries</strong></td>
+<td>Ask &quot;Show me error logs from the last hour&quot; and get DQL</td>
+</tr>
+<tr>
+<td><strong>Query explanation</strong></td>
+<td>Paste a DQL query and get a plain-English explanation</td>
+</tr>
+<tr>
+<td><strong>Root cause analysis</strong></td>
+<td>Ask about a specific problem and get AI-driven investigation</td>
+</tr>
+<tr>
+<td><strong>Notebook integration</strong></td>
+<td>Use Copilot directly within Notebooks for guided analysis</td>
+</tr>
+<tr>
+<td><strong>Dashboard interpretation</strong></td>
+<td>Ask Copilot to explain what a dashboard is showing</td>
+</tr>
+</tbody>
+</table>
+<h3>Enabling Dynatrace Assist</h3>
+<ol>
+<li>Confirm generative AI is enabled for the environment — the setting and the IAM permissions that govern who may use it are described in the Dynatrace Assist documentation linked below (AIOPS-04 covers the controls)</li>
+<li>Grant the permission to the groups that should use it</li>
+<li>Assist then appears in Notebooks, Dashboards, and the Dynatrace search</li>
+</ol>
+<h3>Adoption Strategy</h3>
+<p>Dynatrace Assist is most valuable for:</p>
+<ul>
+<li><strong>New DQL users</strong> — Copilot generates queries from natural language, accelerating the learning curve</li>
+<li><strong>Incident responders</strong> — Natural language investigation during high-pressure incidents</li>
+<li><strong>Executives</strong> — Ask business questions without needing DQL knowledge</li>
+</ul>
+<blockquote>
+<p><strong>Recommended adoption:</strong> Weeks 7–8 post-migration. By this point teams have basic DQL literacy, and Copilot becomes a force multiplier rather than a crutch.</p>
+</blockquote>
+<p><a id="platform-apps"></a></p>
+<h2>7. Platform Apps</h2>
+<p>The Dynatrace Hub provides a marketplace of pre-built apps, and AppEngine allows you to build custom apps tailored to your organization.</p>
+<h3>Exploring the Dynatrace Hub</h3>
+<p>Navigate to <strong>Hub</strong> in the SaaS left navigation to browse available apps:</p>
+<table>
+<thead>
+<tr>
+<th>App Category</th>
+<th>Examples</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SLO management</strong></td>
+<td>SLO apps for tracking and reporting</td>
+<td>Formalize reliability objectives</td>
+</tr>
+<tr>
+<td><strong>Release comparison</strong></td>
+<td>Compare deployments side by side</td>
+<td>Deployment confidence</td>
+</tr>
+<tr>
+<td><strong>Security</strong></td>
+<td>Vulnerability analytics, code-level security</td>
+<td>Shift-left security</td>
+</tr>
+<tr>
+<td><strong>Cloud optimization</strong></td>
+<td>Cloud cost and resource recommendations</td>
+<td>FinOps visibility</td>
+</tr>
+<tr>
+<td><strong>Ownership</strong></td>
+<td>Service ownership and team management</td>
+<td>RACI clarity</td>
+</tr>
+</tbody>
+</table>
+<h3>Building Custom Apps with AppEngine</h3>
+<p>For organization-specific needs, AppEngine provides:</p>
+<ul>
+<li><strong>TypeScript/React framework</strong> — Build with familiar web technologies</li>
+<li><strong>Dynatrace Design System</strong> — Consistent UI components (Strato)</li>
+<li><strong>DQL data access</strong> — Query Grail directly from your app</li>
+<li><strong>Platform API access</strong> — Full Dynatrace API integration</li>
+<li><strong>Built-in authentication</strong> — Users authenticate with their Dynatrace account</li>
+</ul>
+<h3>When to Build Custom Apps</h3>
+<table>
+<thead>
+<tr>
+<th>Build If</th>
+<th>Use Hub App If</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>You need organization-specific logic or branding</td>
+<td>A Hub app already solves the use case</td>
+</tr>
+<tr>
+<td>You need to integrate proprietary data sources</td>
+<td>Standard Dynatrace data is sufficient</td>
+</tr>
+<tr>
+<td>You need custom user experiences for specific teams</td>
+<td>Standard dashboards and notebooks meet the need</td>
+</tr>
+<tr>
+<td>You need to embed Dynatrace data in external portals</td>
+<td>Users can access Dynatrace directly</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> Start with Hub apps before investing in custom development. Many common use cases already have well-maintained apps in the Hub.</p>
+</blockquote>
+<h3>Verify Platform App Availability</h3>
+<pre><code class="language-dql">// Verify your environment is receiving data across all key data types
+// Platform apps depend on Grail data being available
+fetch logs, from:-1h
+| summarize logCount = count()
+| append [
+    fetch spans, from:-1h
+    | summarize spanCount = count()
+  ]
+| append [
+    fetch events, from:-1h
+    | summarize eventCount = count()
+  ]
+</code></pre>
+<p><a id="privacy-and-data-protection-in-saas"></a></p>
+<h2>8. Privacy and Data Protection in SaaS</h2>
+<p>Moving to SaaS introduces new data protection capabilities that were not available in Managed. These are particularly important for organizations subject to GDPR, HIPAA, PCI-DSS, or similar regulations.</p>
+<h3>Data Protection Capabilities</h3>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Where to Configure</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>PII masking via OpenPipeline</strong></td>
+<td>Settings &gt; OpenPipeline</td>
+<td>Redact sensitive data at ingest before storage</td>
+</tr>
+<tr>
+<td><strong>Session replay masking</strong></td>
+<td>Application settings &gt; Session Replay</td>
+<td>Mask form fields, inputs, and sensitive page elements</td>
+</tr>
+<tr>
+<td><strong>IP anonymization</strong></td>
+<td>Application settings &gt; Data privacy</td>
+<td>Anonymize end-user IP addresses</td>
+</tr>
+<tr>
+<td><strong>URL parameter exclusion</strong></td>
+<td>Application settings &gt; Data privacy</td>
+<td>Strip sensitive query parameters from captured URLs</td>
+</tr>
+<tr>
+<td><strong>Log redaction rules</strong></td>
+<td>Settings &gt; OpenPipeline &gt; Logs</td>
+<td>Apply regex-based masking to log content</td>
+</tr>
+<tr>
+<td><strong>Do Not Track</strong></td>
+<td>Application settings &gt; Data privacy</td>
+<td>Respect browser DNT headers</td>
+</tr>
+</tbody>
+</table>
+<h3>GDPR Considerations</h3>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Data Processing Addendum (DPA)</strong></td>
+<td>Ensure your DPA with Dynatrace covers SaaS processing</td>
+</tr>
+<tr>
+<td><strong>Data residency</strong></td>
+<td>Verify your SaaS cluster is in the appropriate geographic region</td>
+</tr>
+<tr>
+<td><strong>Data retention</strong></td>
+<td>Configure Grail bucket retention to match your data minimization requirements</td>
+</tr>
+<tr>
+<td><strong>Right to erasure</strong></td>
+<td>Understand how to request data deletion from Grail</td>
+</tr>
+<tr>
+<td><strong>Data access logging</strong></td>
+<td>Use audit logs to track who accesses what data</td>
+</tr>
+</tbody>
+</table>
+<h3>Session Replay Privacy</h3>
+<p>If you use Session Replay (Digital Experience Monitoring), configure masking levels:</p>
+<table>
+<thead>
+<tr>
+<th>Masking Level</th>
+<th>What It Masks</th>
+<th>When to Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Mask user input</strong></td>
+<td>All text typed by users</td>
+<td>Default — recommended minimum</td>
+</tr>
+<tr>
+<td><strong>Mask all text</strong></td>
+<td>All visible text on the page</td>
+<td>High-privacy environments</td>
+</tr>
+<tr>
+<td><strong>Block specific elements</strong></td>
+<td>Targeted CSS selectors</td>
+<td>Mask specific sensitive areas</td>
+</tr>
+<tr>
+<td><strong>Allow list</strong></td>
+<td>Only capture explicitly allowed elements</td>
+<td>Most restrictive — compliance-driven</td>
+</tr>
+</tbody>
+</table>
+<p><a id="feature-adoption-timeline"></a></p>
+<h2>9. Feature Adoption Timeline</h2>
+<p>This timeline begins after Step 6 (Integrate) is complete and the migration is stable. Adjust the pace based on your team’s capacity and organizational change tolerance.</p>
+<table>
+<thead>
+<tr>
+<th>Week</th>
+<th>Focus Area</th>
+<th>SaaS Capability</th>
+<th>Key Activities</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1–2</strong></td>
+<td>Stabilize</td>
+<td>Core monitoring</td>
+<td>Tune alerts, validate data parity, fix integration issues</td>
+</tr>
+<tr>
+<td><strong>3–4</strong></td>
+<td>Query and Analyze</td>
+<td>Notebooks, Grail, DQL</td>
+<td>Create team notebooks, train on DQL basics, build starter queries</td>
+</tr>
+<tr>
+<td><strong>5–6</strong></td>
+<td>Process and Protect</td>
+<td>OpenPipeline, Grail Buckets</td>
+<td>Configure log processing, create custom buckets, set up PII masking</td>
+</tr>
+<tr>
+<td><strong>7–8</strong></td>
+<td>Automate</td>
+<td>AutomationEngine, Dynatrace Assist</td>
+<td>Convert notification rules to Workflows, enable Copilot</td>
+</tr>
+<tr>
+<td><strong>9–10</strong></td>
+<td>Extend</td>
+<td>Platform Apps, AppEngine</td>
+<td>Explore Hub apps, evaluate custom app needs, deploy first apps</td>
+</tr>
+</tbody>
+</table>
+<h3>Success Metrics for Each Phase</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Metric</th>
+<th>Target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Weeks 1–2</td>
+<td>Alert false positive rate</td>
+<td>Below Managed baseline</td>
+</tr>
+<tr>
+<td>Weeks 3–4</td>
+<td>Notebooks created by team</td>
+<td>At least 5 active notebooks</td>
+</tr>
+<tr>
+<td>Weeks 5–6</td>
+<td>Data routed to custom buckets</td>
+<td>At least 2 custom buckets active</td>
+</tr>
+<tr>
+<td>Weeks 7–8</td>
+<td>Workflows replacing notifications</td>
+<td>At least 3 active workflows</td>
+</tr>
+<tr>
+<td>Weeks 9–10</td>
+<td>Hub apps deployed</td>
+<td>At least 2 apps installed</td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-completion-checklist"></a></p>
+<h2>10. Step Completion Checklist</h2>
+<p>Do not proceed to Step 9 (Optimize) until the high-priority items are confirmed.</p>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Priority</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Grail querying adopted (DQL replacing USQL)</td>
+<td>High</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Team notebooks created for key use cases</td>
+<td>High</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>OpenPipeline configured for log processing</td>
+<td>High</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Custom Grail buckets created with retention policies</td>
+<td>Medium</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>PII masking rules configured in OpenPipeline</td>
+<td>High</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Session replay masking configured (if DEM is active)</td>
+<td>Medium</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>First workflow automation implemented</td>
+<td>Medium</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Dynatrace Assist enabled and accessible to teams</td>
+<td>High</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Platform apps explored in Hub</td>
+<td>Medium</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Feature adoption timeline shared with stakeholders</td>
+<td>High</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Data residency and GDPR requirements verified</td>
+<td>High</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Next Step</h2>
+<blockquote>
+<p><strong>M2S-09: Step 9 — Optimize</strong> — Validate the migration, optimize SaaS configuration, decommission the Managed environment, and establish ongoing operational excellence.</p>
+</blockquote>
+<h3>Additional Resources</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail">Grail Data Lakehouse Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">DQL Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/notebooks">Notebooks Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline">OpenPipeline Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/deliver">AutomationEngine (Workflows) Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai">Dynatrace Assist Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/appengine">AppEngine Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/hub">Dynatrace Hub</a></li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In Step 8, you:</p>
+<ul>
+<li>Surveyed the full set of SaaS-exclusive capabilities and prioritized adoption</li>
+<li>Adopted Grail as the unified query platform, replacing USQL with DQL</li>
+<li>Created team Notebooks for collaboration, investigation, and reporting</li>
+<li>Configured OpenPipeline for log processing, data routing, and PII masking</li>
+<li>Implemented workflow automation to replace Managed notification rules</li>
+<li>Enabled Dynatrace Assist for AI-assisted querying and root cause analysis</li>
+<li>Explored platform apps in the Dynatrace Hub</li>
+<li>Addressed privacy and data protection requirements specific to SaaS</li>
+<li>Established a phased feature adoption timeline for the broader organization</li>
+</ul>
+<blockquote>
+<p><strong>Key Takeaway:</strong> The Expand step is where the migration pays dividends. Every capability adopted here delivers value that was impossible on Managed. Prioritize Grail, Notebooks, and OpenPipeline first — they have the highest immediate impact.</p>
+</blockquote>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

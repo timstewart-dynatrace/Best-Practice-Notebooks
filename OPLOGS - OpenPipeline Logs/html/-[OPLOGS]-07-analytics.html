@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPLOGS-07: Analytics &amp; Dashboards</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPLOGS — OpenPipeline Logs</a><span class="sep">/</span><span aria-current="page">OPLOGS-07</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPLOGS-07: Analytics &amp; Dashboards</h1>
+<blockquote>
+<p><strong>Series:</strong> OPLOGS — OpenPipeline Logs | <strong>Notebook:</strong> 7 of 8 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 11/06/2026</p>
+</blockquote>
+<h2>Aggregation, Time Series, and Visualization Queries</h2>
+<p>This notebook covers aggregation functions, time series analysis, statistical patterns, and dashboard-ready queries for log analytics.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#aggregation-functions">Aggregation Functions</a></li>
+<li><a href="#time-series-analysis">Time Series Analysis</a></li>
+<li><a href="#statistical-analysis">Statistical Analysis</a></li>
+<li><a href="#dashboard-ready-queries">Dashboard-Ready Queries</a></li>
+<li><a href="#trend-analysis">Trend Analysis</a></li>
+<li><a href="#log-pattern-analysis">Log Pattern Analysis</a></li>
+<li><a href="#operational-dashboard-queries">Operational Dashboard Queries</a></li>
+<li><a href="#summary">📝 Summary</a></li>
+<li><a href="#next-steps">➡️ Next Steps</a></li>
+<li><a href="#references">📚 References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>✅ Access to a Dynatrace environment with log data</li>
+<li>✅ Completed OPLOGS-01 through OPLOGS-06</li>
+<li>✅ Familiarity with dashboard concepts</li>
+</ul>
+<p><a id="aggregation-functions"></a></p>
+<h2>1. Aggregation Functions</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzIwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iY291bnRpbmdHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjU2M2ViO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3RhdHNHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzEwYjk4MTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMDU5NjY5O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iY29sbGVjdGlvbkdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojOGI1Y2Y2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3YzNhZWQ7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ0aW1lR3JhZEFnZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmNTllMGI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Q5NzcwNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJhZ2dTaGFkb3ciPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIxIiBkeT0iMSIgc3RkRGV2aWF0aW9uPSIyIiBmbG9vZC1vcGFjaXR5PSIwLjE1Ii8+CiAgICA8L2ZpbHRlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjMyMCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDAwIiB5PSIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RFFMIEFnZ3JlZ2F0aW9uIEZ1bmN0aW9ucyBSZWZlcmVuY2U8L3RleHQ+CiAgPHRleHQgeD0iNDAwIiB5PSI0OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Vc2Ugd2l0aCBzdW1tYXJpemUgY29tbWFuZDogc3VtbWFyaXplIHtyZXN1bHQgPSBmdW5jdGlvbigpfSwgYnk6e2ZpZWxkfTwvdGV4dD4KCiAgPCEtLSBDb3VudGluZyBGdW5jdGlvbnMgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjcwIiB3aWR0aD0iMTc1IiBoZWlnaHQ9IjIzMCIgcng9IjEwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxyZWN0IHg9IjMwIiB5PSI3MCIgd2lkdGg9IjE3NSIgaGVpZ2h0PSIzNSIgcng9IjEwIiBmaWxsPSJ1cmwoI2NvdW50aW5nR3JhZCkiLz4KICA8dGV4dCB4PSIxMTciIHk9Ijk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q291bnRpbmc8L3RleHQ+CgogIDx0ZXh0IHg9IjUwIiB5PSIxMjUiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMjU2M2ViIj5jb3VudCgpPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIxNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+VG90YWwgcmVjb3JkczwvdGV4dD4KCiAgPHRleHQgeD0iNTAiIHk9IjE2NSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMyNTYzZWIiPmNvdW50SWYoY29uZCk8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjE4MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj5Db3VudCB3aGVyZSBjb25kaXRpb248L3RleHQ+CgogIDx0ZXh0IHg9IjUwIiB5PSIyMDUiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMjU2M2ViIj5jb3VudERpc3RpbmN0KGYpPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIyMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+VW5pcXVlIHZhbHVlczwvdGV4dD4KCiAgPHRleHQgeD0iNTAiIHk9IjI0NSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMyNTYzZWIiPmNvdW50RGlzdGluY3QoaWYo4oCmKSk8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjI2MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj5VbmlxdWUgd2hlcmUgY29uZDwvdGV4dD4KCiAgPHJlY3QgeD0iNTAiIHk9IjI3NSIgd2lkdGg9IjEzNSIgaGVpZ2h0PSIxOCIgcng9IjQiIGZpbGw9IiNkYmVhZmUiLz4KICA8dGV4dCB4PSIxMTciIHk9IjI4OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMWU0MGFmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5SZXR1cm5zOiBsb25nPC90ZXh0PgoKICA8IS0tIFN0YXRpc3RpY2FsIEZ1bmN0aW9ucyAtLT4KICA8cmVjdCB4PSIyMjAiIHk9IjcwIiB3aWR0aD0iMTc1IiBoZWlnaHQ9IjIzMCIgcng9IjEwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxyZWN0IHg9IjIyMCIgeT0iNzAiIHdpZHRoPSIxNzUiIGhlaWdodD0iMzUiIHJ4PSIxMCIgZmlsbD0idXJsKCNzdGF0c0dyYWQpIi8+CiAgPHRleHQgeD0iMzA3IiB5PSI5NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlN0YXRpc3RpY2FsPC90ZXh0PgoKICA8dGV4dCB4PSIyNDAiIHk9IjEyNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMwNTk2NjkiPnN1bShmaWVsZCk8L3RleHQ+CiAgPHRleHQgeD0iMjQwIiB5PSIxNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+VG90YWwgb2YgdmFsdWVzPC90ZXh0PgoKICA8dGV4dCB4PSIyNDAiIHk9IjE2NSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMwNTk2NjkiPmF2ZyhmaWVsZCk8L3RleHQ+CiAgPHRleHQgeD0iMjQwIiB5PSIxODAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+QXZlcmFnZSB2YWx1ZTwvdGV4dD4KCiAgPHRleHQgeD0iMjQwIiB5PSIyMDUiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMDU5NjY5Ij5taW4oZmllbGQpPC90ZXh0PgogIDx0ZXh0IHg9IjI0MCIgeT0iMjIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiPk1pbmltdW0gdmFsdWU8L3RleHQ+CgogIDx0ZXh0IHg9IjI0MCIgeT0iMjQ1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzA1OTY2OSI+bWF4KGZpZWxkKTwvdGV4dD4KICA8dGV4dCB4PSIyNDAiIHk9IjI2MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj5NYXhpbXVtIHZhbHVlPC90ZXh0PgoKICA8cmVjdCB4PSIyNDAiIHk9IjI3NSIgd2lkdGg9IjEzNSIgaGVpZ2h0PSIxOCIgcng9IjQiIGZpbGw9IiNkMWZhZTUiLz4KICA8dGV4dCB4PSIzMDciIHk9IjI4OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMDQ3ODU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5SZXR1cm5zOiBudW1iZXIgLyBpbnB1dCB0eXBlPC90ZXh0PgoKICA8IS0tIENvbGxlY3Rpb24gRnVuY3Rpb25zIC0tPgogIDxyZWN0IHg9IjQxMCIgeT0iNzAiIHdpZHRoPSIxNzUiIGhlaWdodD0iMjMwIiByeD0iMTAiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzhiNWNmNiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHJlY3QgeD0iNDEwIiB5PSI3MCIgd2lkdGg9IjE3NSIgaGVpZ2h0PSIzNSIgcng9IjEwIiBmaWxsPSJ1cmwoI2NvbGxlY3Rpb25HcmFkKSIvPgogIDx0ZXh0IHg9IjQ5NyIgeT0iOTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Db2xsZWN0aW9uPC90ZXh0PgoKICA8dGV4dCB4PSI0MzAiIHk9IjEyNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM3YzNhZWQiPmNvbGxlY3RBcnJheShmKTwvdGV4dD4KICA8dGV4dCB4PSI0MzAiIHk9IjE0MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj5BbGwgdmFsdWVzIGFzIGFycmF5PC90ZXh0PgoKICA8dGV4dCB4PSI0MzAiIHk9IjE2NSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM3YzNhZWQiPmNvbGxlY3REaXN0aW5jdChmKTwvdGV4dD4KICA8dGV4dCB4PSI0MzAiIHk9IjE4MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj5VbmlxdWUgdmFsdWVzIGFycmF5PC90ZXh0PgoKICA8dGV4dCB4PSI0MzAiIHk9IjIwNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM3YzNhZWQiPnRha2VGaXJzdChmKTwvdGV4dD4KICA8dGV4dCB4PSI0MzAiIHk9IjIyMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj5GaXJzdCB2YWx1ZSBpbiBncm91cDwvdGV4dD4KCiAgPHRleHQgeD0iNDMwIiB5PSIyNDUiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjN2MzYWVkIj50YWtlTGFzdChmKTwvdGV4dD4KICA8dGV4dCB4PSI0MzAiIHk9IjI2MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj5MYXN0IHZhbHVlIGluIGdyb3VwPC90ZXh0PgoKICA8cmVjdCB4PSI0MzAiIHk9IjI3NSIgd2lkdGg9IjEzNSIgaGVpZ2h0PSIxOCIgcng9IjQiIGZpbGw9IiNlZGU5ZmUiLz4KICA8dGV4dCB4PSI0OTciIHk9IjI4OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNmQyOGQ5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5jb2xsZWN0KjogYXJyYXkgwrcgdGFrZSo6IHZhbHVlPC90ZXh0PgoKICA8IS0tIFRpbWUgRnVuY3Rpb25zIC0tPgogIDxyZWN0IHg9IjYwMCIgeT0iNzAiIHdpZHRoPSIxNzAiIGhlaWdodD0iMjMwIiByeD0iMTAiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHJlY3QgeD0iNjAwIiB5PSI3MCIgd2lkdGg9IjE3MCIgaGVpZ2h0PSIzNSIgcng9IjEwIiBmaWxsPSJ1cmwoI3RpbWVHcmFkQWdnKSIvPgogIDx0ZXh0IHg9IjY4NSIgeT0iOTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5QZXJjZW50aWxlPC90ZXh0PgoKICA8dGV4dCB4PSI2MjAiIHk9IjEyNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNkOTc3MDYiPnBlcmNlbnRpbGUoZiw1MCk8L3RleHQ+CiAgPHRleHQgeD0iNjIwIiB5PSIxNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+TWVkaWFuIChwNTApPC90ZXh0PgoKICA8dGV4dCB4PSI2MjAiIHk9IjE2NSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNkOTc3MDYiPnBlcmNlbnRpbGUoZiw5NSk8L3RleHQ+CiAgPHRleHQgeD0iNjIwIiB5PSIxODAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+OTV0aCBwZXJjZW50aWxlPC90ZXh0PgoKICA8dGV4dCB4PSI2MjAiIHk9IjIwNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNkOTc3MDYiPnBlcmNlbnRpbGUoZiw5OSk8L3RleHQ+CiAgPHRleHQgeD0iNjIwIiB5PSIyMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+OTl0aCBwZXJjZW50aWxlPC90ZXh0PgoKICA8dGV4dCB4PSI2MjAiIHk9IjI0NSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNkOTc3MDYiPnN0ZGRldihmaWVsZCk8L3RleHQ+CiAgPHRleHQgeD0iNjIwIiB5PSIyNjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+U3RhbmRhcmQgZGV2aWF0aW9uPC90ZXh0PgoKICA8cmVjdCB4PSI2MjAiIHk9IjI3NSIgd2lkdGg9IjEzMCIgaGVpZ2h0PSIxOCIgcng9IjQiIGZpbGw9IiNmZWYzYzciLz4KICA8dGV4dCB4PSI2ODUiIHk9IjI4OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5SZXR1cm5zOiBkb3VibGU8L3RleHQ+Cjwvc3ZnPgo=" alt="Aggregation Functions" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+Aggregation Functions Reference:
+
+Counting Functions:
+- count() - Count all records
+- countIf(condition) - Conditional count
+- countDistinct(field) - Count unique values
+
+Numeric Functions:
+- sum(field) - Sum values
+- avg(field) - Average
+- min(field) - Minimum value
+- max(field) - Maximum value
+
+Collection Functions:
+- takeFirst(field) - First value
+- takeLast(field) - Last value
+- collectDistinct(field) - Array of unique values
+
+All aggregations must use named aliases for downstream operations.
+-->
+<h3>Common Aggregation Functions</h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>count()</code></td>
+<td>Count records</td>
+<td><code>summarize {total = count()}</code></td>
+</tr>
+<tr>
+<td><code>countIf(condition)</code></td>
+<td>Conditional count</td>
+<td><code>countIf(loglevel == &quot;ERROR&quot;)</code></td>
+</tr>
+<tr>
+<td><code>countDistinct(field)</code></td>
+<td>Unique values</td>
+<td><code>countDistinct(k8s.pod.name)</code></td>
+</tr>
+<tr>
+<td><code>sum(field)</code></td>
+<td>Sum values</td>
+<td><code>sum(bytes)</code></td>
+</tr>
+<tr>
+<td><code>avg(field)</code></td>
+<td>Average</td>
+<td><code>avg(response_time)</code></td>
+</tr>
+<tr>
+<td><code>min(field)</code></td>
+<td>Minimum</td>
+<td><code>min(timestamp)</code></td>
+</tr>
+<tr>
+<td><code>max(field)</code></td>
+<td>Maximum</td>
+<td><code>max(timestamp)</code></td>
+</tr>
+<tr>
+<td><code>takeFirst(field)</code></td>
+<td>First value</td>
+<td><code>takeFirst(content)</code></td>
+</tr>
+<tr>
+<td><code>takeLast(field)</code></td>
+<td>Last value</td>
+<td><code>takeLast(content)</code></td>
+</tr>
+<tr>
+<td><code>collectDistinct(field)</code></td>
+<td>Array of unique values</td>
+<td><code>collectDistinct(loglevel)</code></td>
+</tr>
+</tbody>
+</table>
+<h3>🚨 Important: Named Aliases Required</h3>
+<pre><code class="language-dql">// ✅ CORRECT - Named aliases
+| summarize {count = count(), errors = countIf(...)}, by: {...}
+| sort count desc
+
+// ❌ WRONG - Anonymous aggregation can't be used in sort
+| summarize count(), by: {...}
+| sort count() desc  // ERROR!
+</code></pre>
+<pre><code class="language-dql">// Basic aggregations
+fetch logs, from: now() - 1h
+| summarize {
+    total_logs = count(),
+    unique_hosts = countDistinct(dt.entity.host),
+    unique_namespaces = countDistinct(k8s.namespace.name),
+    unique_pods = countDistinct(k8s.pod.name)
+  }
+</code></pre>
+<pre><code class="language-dql">// Aggregations with grouping
+// status == &quot;ERROR&quot; covers every error-class level (ERROR, SEVERE, CRITICAL, FATAL, …);
+// loglevel == &quot;ERROR&quot; alone misses SEVERE and the rest
+fetch logs, from: now() - 1h
+| summarize {
+    total = count(),
+    errors = countIf(status == &quot;ERROR&quot;),
+    warnings = countIf(status == &quot;WARN&quot;),
+    info = countIf(status == &quot;INFO&quot; AND NOT in(loglevel, {&quot;DEBUG&quot;, &quot;TRACE&quot;}))
+  }, by: {k8s.namespace.name}
+| sort total desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Error rate calculation
+fetch logs, from: now() - 1h
+| summarize {
+    total = count(),
+    errors = countIf(status == &quot;ERROR&quot;)
+  }, by: {k8s.namespace.name}
+| filter total &gt; 100  // Minimum sample size
+| fieldsAdd error_rate_pct = round((errors * 100.0) / total, decimals: 2)
+| sort error_rate_pct desc
+| limit 15
+</code></pre>
+<p><a id="time-series-analysis"></a></p>
+<h2>2. Time Series Analysis</h2>
+<p>The <code>makeTimeseries</code> command creates time-bucketed data for trend visualization.</p>
+<pre><code class="language-dql">// Log volume over time (5-minute buckets)
+fetch logs, from: now() - 6h
+| makeTimeseries {log_count = count()}, interval: 5m
+</code></pre>
+<pre><code class="language-dql">// Error trend over time
+fetch logs, from: now() - 6h
+| makeTimeseries {
+    total = count(),
+    errors = countIf(status == &quot;ERROR&quot;),
+    warnings = countIf(status == &quot;WARN&quot;)
+  }, interval: 5m
+</code></pre>
+<pre><code class="language-dql">// Time series by dimension (namespace)
+fetch logs, from: now() - 6h
+| filter isNotNull(k8s.namespace.name)
+| makeTimeseries {
+    log_count = count()
+  }, by: {k8s.namespace.name}, interval: 10m
+</code></pre>
+<pre><code class="language-dql">// Error rate time series by host
+fetch logs, from: now() - 6h
+| filter isNotNull(dt.entity.host)
+| makeTimeseries {
+    total = count(),
+    errors = countIf(status == &quot;ERROR&quot;)
+  }, by: {dt.entity.host}, interval: 15m
+</code></pre>
+<p><a id="statistical-analysis"></a></p>
+<h2>3. Statistical Analysis</h2>
+<pre><code class="language-dql">// Log volume statistics by source
+fetch logs, from: now() - 24h
+| summarize {
+    total = count(),
+    first_seen = min(timestamp),
+    last_seen = max(timestamp)
+  }, by: {dt.openpipeline.source}
+// duration ÷ duration yields a number; a long ÷ duration would return null
+| fieldsAdd span = last_seen - first_seen
+| fieldsAdd duration_hours = round(span / 1h, decimals: 1)
+| fieldsAdd logs_per_hour = round(total / (span / 1h), decimals: 0)
+| sort total desc
+</code></pre>
+<pre><code class="language-dql">// Content-length statistics, including the 95th percentile
+fetch logs, from: now() - 1h
+| fieldsAdd content_length = stringLength(content)
+| summarize {
+    avg_length = avg(content_length),
+    p95_length = percentile(content_length, 95),
+    min_length = min(content_length),
+    max_length = max(content_length),
+    total_logs = count()
+  }, by: {k8s.namespace.name}
+| sort avg_length desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Hourly distribution analysis
+fetch logs, from: now() - 24h
+| fieldsAdd hour_bucket = bin(timestamp, 1h)
+| summarize {log_count = count()}, by: {hour_bucket}
+| sort hour_bucket asc
+</code></pre>
+<pre><code class="language-dql">// Daily distribution analysis
+fetch logs, from: now() - 7d
+| fieldsAdd day_bucket = bin(timestamp, 24h)
+| summarize {
+    log_count = count(),
+    error_count = countIf(status == &quot;ERROR&quot;)
+  }, by: {day_bucket}
+| sort day_bucket asc
+</code></pre>
+<p><a id="dashboard-ready-queries"></a></p>
+<h2>4. Dashboard-Ready Queries</h2>
+<blockquote>
+<p>📊 <strong>Reference queries moved to OPLOGS-99.</strong> See <strong>OPLOGS-99 § 9.1 Dashboard-Ready Queries</strong> for single-value, time-series, breakdown, and percentile queries optimized for dashboard tiles. The teaching content for <em>how</em> dashboard queries are constructed lives in OPLOGS-05 (querying-parsing).</p>
+</blockquote>
+<blockquote>
+<p>💰 <strong>Cost-aware design — prefer a metric for queries that run on a schedule.</strong> Dashboard tiles and alerts re-run their query on every render and evaluation. A <code>fetch logs … | summarize</code> behind a recurring tile pays the Grail <strong>log Query</strong> cost every time, whereas the same answer sourced from a metric does not — the Metrics powered by Grail <strong>Query</strong> dimension is always included at no additional charge, so metric reads never appear on the bill. For any recurring aggregate, check for an out-of-the-box metric first, and otherwise extract one from the log stream at ingest (OpenPipeline metric extraction — see OPLOGS-03 §3). Reserve <code>fetch logs</code> for one-shot investigation. <strong>FAQ-09</strong> covers the full decision and the DPS query economics.</p>
+</blockquote>
+<p><a id="trend-analysis"></a></p>
+<h2>5. Trend Analysis</h2>
+<pre><code class="language-dql">// Compare current hour to previous hour
+fetch logs, from: now() - 2h
+| fieldsAdd period = if(timestamp &gt; now() - 1h, &quot;current&quot;, else: &quot;previous&quot;)
+| summarize {count = count()}, by: {period, loglevel}
+| sort period asc, count desc
+</code></pre>
+<pre><code class="language-dql">// New error patterns: first seen in the last 30 minutes of a 24-hour window
+// (a 1-hour window would call any pattern &quot;new&quot; that simply had not occurred in that hour)
+fetch logs, from: now() - 24h
+| filter status == &quot;ERROR&quot;
+// Collapse UUIDs, then digits: a raw prefix makes every timestamped line unique, and replacing digits alone
+// leaves a UUID's hex letters, so every request ID becomes its own &quot;new&quot; pattern
+// (validation tenant, 24h of errors: 30,852 digit-only signatures vs 223 with UUIDs collapsed, 10/12/2026)
+| fieldsAdd error_sig = substring(replacePattern(replacePattern(content, &quot;[0-9a-fA-F]{8} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{12}&quot;, replacement: &quot;&lt;id&gt;&quot;), &quot;[0-9]+&quot;, replacement: &quot;#&quot;), from: 0, to: 80)
+| summarize {
+    count = count(),
+    first_seen = min(timestamp)
+  }, by: {error_sig, k8s.namespace.name}
+| filter first_seen &gt; now() - 30m
+| sort first_seen desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Volume anomaly: latest complete 15-minute bucket vs the 6-hour average, per namespace
+// The window is aligned to bucket boundaries with bin(now(), 15m); otherwise the last
+// bucket is still filling and every namespace looks like a drop.
+fetch logs, from: bin(now(), 15m) - 6h, to: bin(now(), 15m)
+| filter isNotNull(k8s.namespace.name)
+| makeTimeseries {log_count = count()}, by: {k8s.namespace.name}, interval: 15m
+| fieldsAdd baseline = arrayAvg(log_count), latest = arrayLast(log_count)
+| filter baseline &gt; 0
+| fieldsAdd ratio = round(toDouble(latest) / baseline, decimals: 2)
+| fields k8s.namespace.name, baseline, latest, ratio
+| sort ratio desc
+| limit 20
+</code></pre>
+<p><a id="log-pattern-analysis"></a></p>
+<h2>6. Log Pattern Analysis</h2>
+<pre><code class="language-dql">// Top log patterns (by content prefix)
+fetch logs, from: now() - 1h
+// UUIDs → &quot;&lt;id&gt;&quot;, then digits → &quot;#&quot;, so timestamps and IDs do not make every line its own pattern
+| fieldsAdd pattern = substring(replacePattern(replacePattern(content, &quot;[0-9a-fA-F]{8} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{12}&quot;, replacement: &quot;&lt;id&gt;&quot;), &quot;[0-9]+&quot;, replacement: &quot;#&quot;), from: 0, to: 60)
+| summarize {count = count()}, by: {pattern}
+| sort count desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Unique log levels and statuses
+fetch logs, from: now() - 1h
+| summarize {
+    loglevels = collectDistinct(loglevel),
+    statuses = collectDistinct(status),
+    sources = collectDistinct(dt.openpipeline.source)
+  }
+</code></pre>
+<pre><code class="language-dql">// Log diversity score (unique patterns per namespace)
+fetch logs, from: now() - 1h
+| fieldsAdd pattern = substring(replacePattern(replacePattern(content, &quot;[0-9a-fA-F]{8} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{12}&quot;, replacement: &quot;&lt;id&gt;&quot;), &quot;[0-9]+&quot;, replacement: &quot;#&quot;), from: 0, to: 50)
+| summarize {
+    total_logs = count(),
+    unique_patterns = countDistinct(pattern)
+  }, by: {k8s.namespace.name}
+| fieldsAdd diversity_ratio = round((unique_patterns * 100.0) / total_logs, decimals: 2)
+| sort diversity_ratio desc
+| limit 15
+</code></pre>
+<p><a id="operational-dashboard-queries"></a></p>
+<h2>7. Operational Dashboard Queries</h2>
+<blockquote>
+<p>🚦 <strong>Reference queries moved to OPLOGS-99.</strong> See <strong>OPLOGS-99 § 9.2 Operational Dashboard Queries</strong> for SLO-style queries: error budgets, top-N services by volume, per-host log distribution.</p>
+</blockquote>
+<hr />
+<p><a id="summary"></a></p>
+<h2>📝 Summary</h2>
+<p>In this notebook, you learned:</p>
+<p>✅ <strong>Aggregation functions</strong> - count, countIf, countDistinct, sum, avg<br />
+✅ <strong>Time series</strong> - makeTimeseries with intervals<br />
+✅ <strong>Statistical analysis</strong> - hourly/daily patterns, percentiles<br />
+✅ <strong>Dashboard queries</strong> - Single values, charts, tables<br />
+✅ <strong>Trend analysis</strong> - Period comparison, anomaly detection<br />
+✅ <strong>Pattern analysis</strong> - Log clustering and diversity</p>
+<hr />
+<p><a id="next-steps"></a></p>
+<h2>➡️ Next Steps</h2>
+<p>Continue to <strong>OPLOGS-08: Security &amp; Data Protection</strong> for data protection patterns.</p>
+<hr />
+<p><a id="references"></a></p>
+<h2>📚 References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions/aggregation-functions">Aggregation functions (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/aggregation-commands#makeTimeseries">DQL aggregation commands (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks">Dashboards and Notebooks (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

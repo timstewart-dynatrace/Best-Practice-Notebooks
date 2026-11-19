@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>APPSEC-09: IAM and Gen3 Permissions for AppSec</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">APPSEC — Application Security</a><span class="sep">/</span><span aria-current="page">APPSEC-09</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>APPSEC-09: IAM and Gen3 Permissions for AppSec</h1>
+<blockquote>
+<p><strong>Series:</strong> APPSEC — Application Security | <strong>Notebook:</strong> 9 of 10 | <strong>Created:</strong> June 2026 | <strong>Last Updated:</strong> 10/28/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>AppSec data is among the most sensitive material in Dynatrace — vulnerability inventory, captured attack payloads, compliance findings. Granting too much access exposes private payloads; granting too little blocks the SOC from doing its job. This notebook is the IAM-design notebook for AppSec: the permission catalog (verified verbatim against the IAM policy statements reference), three persona policies, boundary patterns, and the privacy carve-out for <code>view-sensitive-request-data</code>.</p>
+<p>This is the most-grounded notebook in the series — the <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a> was resolvable at series-creation time and the tokens below were re-verified verbatim on 10/02/2026.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5BcHBTZWMgSUFNIFBlcm1pc3Npb24gTWF0cml4PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPlBlcnNvbmEgLT4gcGVybWlzc2lvbiB0b2tlbnMgKHZlcmlmaWVkIGF0IElBTSBwb2xpY3kgcmVmKTwvdGV4dD4KICA8cmVjdCB4PSI0MCIgeT0iOTUiIHdpZHRoPSIyODAiIGhlaWdodD0iMTcwIiBmaWxsPSIjQTg1NUY3IiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiNBODU1RjciIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjE4MCIgeT0iMTM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5TZWN1cml0eSBBbmFseXN0PC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSIxNjUiIHdpZHRoPSIyNDAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E4NTVGNyIgcng9IjYiLz4KICA8dGV4dCB4PSIxODAiIHk9IjIxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+cmVhZC1vbmx5PC90ZXh0PgogIDxyZWN0IHg9IjMzNSIgeT0iOTUiIHdpZHRoPSIyODAiIGhlaWdodD0iMTcwIiBmaWxsPSIjQTg1NUY3IiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiNBODU1RjciIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjQ3NSIgeT0iMTM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5TZWN1cml0eSBFbmdpbmVlcjwvdGV4dD4KICA8cmVjdCB4PSIzNTUiIHk9IjE2NSIgd2lkdGg9IjI0MCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTg1NUY3IiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ3NSIgeT0iMjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExIj5tYW5hZ2UgKHRlbmFudC13aWRlIHdyaXRlKTwvdGV4dD4KICA8cmVjdCB4PSI2MzAiIHk9Ijk1IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE3MCIgZmlsbD0iI0E4NTVGNyIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjQTg1NUY3IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI3NzAiIHk9IjEzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+QXBwRGV2IChvd24gdGVhbSk8L3RleHQ+CiAgPHJlY3QgeD0iNjUwIiB5PSIxNjUiIHdpZHRoPSIyNDAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E4NTVGNyIgcng9IjYiLz4KICA8dGV4dCB4PSI3NzAiIHk9IjIxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+bmFtZXNwYWNlLXNjb3BlZCBHcmFpbCByZWFkPC90ZXh0PgogIDxyZWN0IHg9IjQwIiB5PSIyNzUiIHdpZHRoPSIyODAiIGhlaWdodD0iMTcwIiBmaWxsPSIjQTg1NUY3IiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiNBODU1RjciIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjE4MCIgeT0iMzE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5zdG9yYWdlOnNlY3VyaXR5LmV2ZW50czpyZWFkPC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSIzNDUiIHdpZHRoPSIyNDAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E4NTVGNyIgcng9IjYiLz4KICA8dGV4dCB4PSIxODAiIHk9IjM5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+KyBzdG9yYWdlOmJ1Y2tldHM6cmVhZDwvdGV4dD4KICA8cmVjdCB4PSIzMzUiIHk9IjI3NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiNBODU1RjciIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iI0E4NTVGNyIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDc1IiB5PSIzMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPnZ1bG5lcmFiaWxpdGllczpyZWFkPC90ZXh0PgogIDxyZWN0IHg9IjM1NSIgeT0iMzQ1IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBODU1RjciIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDc1IiB5PSIzOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPnZ1bG5lcmFiaWxpdHktc2VydmljZSAodGVuYW50LXdpZGUpPC90ZXh0PgogIDxyZWN0IHg9IjYzMCIgeT0iMjc1IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE3MCIgZmlsbD0iI0E4NTVGNyIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjQTg1NUY3IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI3NzAiIHk9IjMxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+c3RvcmFnZTpmaWVsZHNldHM6cmVhZDwvdGV4dD4KICA8cmVjdCB4PSI2NTAiIHk9IjM0NSIgd2lkdGg9IjI0MCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTg1NUY3IiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc3MCIgeT0iMzkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExIj5zZW5zaXRpdmUgZGF0YSAoKyBjbGFzc2ljIHJvbGUpPC90ZXh0Pgo8L3N2Zz4K" alt="AppSec IAM persona matrix" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Persona | Read | Manage | Sensitive payload |
+|---------|------|--------|-------------------|
+| Analyst | yes | no | no |
+| Security Engineer | yes | yes (tenant-wide — write takes no conditions) | optional |
+| AppDev | namespace-scoped Grail findings | no | no |
+-->
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#appsec-iam-different">1. AppSec IAM in Gen3 — Same DSL, Specific Tokens</a></li>
+<li><a href="#permission-catalog">2. The AppSec Permission Catalog (Verified)</a></li>
+<li><a href="#personas">3. Persona Policies (Worked Examples)</a></li>
+<li><a href="#boundary-patterns">4. Boundary Patterns for AppSec Data</a></li>
+<li><a href="#sensitive-payload">5. Privacy: view-sensitive-request-data</a></li>
+<li><a href="#managed-policies">6. Reach for Managed Policies First</a></li>
+<li><a href="#auth-routing">7. OAuth Client vs Platform Token Scope Routing</a></li>
+<li><a href="#audit">8. Audit and Periodic Review</a></li>
+<li><a href="#evolving">9. What's Still Evolving</a></li>
+<li><a href="#next">10. Next Steps</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Gen3 SaaS with Grail; AppSec entitlement enabled</td>
+</tr>
+<tr>
+<td><strong>OneAgent</strong></td>
+<td>Full-Stack mode (or code-module attached) on monitored hosts</td>
+</tr>
+<tr>
+<td><strong>Read access</strong></td>
+<td>To run the DQL: <code>storage:security.events:read</code> <strong>plus</strong> <code>storage:buckets:read</code> (a table permission alone reads nothing). The Vulnerabilities and Threats &amp; Exploits apps have their own requirements — see APPSEC-09 for the full model</td>
+</tr>
+<tr>
+<td><strong>Background</strong></td>
+<td>APPSEC-01 (fundamentals + three-pillar framing)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="appsec-iam-different"></a></p>
+<h2>1. AppSec IAM in Gen3 — Same DSL, Specific Tokens</h2>
+<p>AppSec data in Gen3 lives in Grail (<code>security.events</code>) and the <code>vulnerability-service</code> API. Both are governed by the same <code>ALLOW &lt;service&gt;:&lt;resource&gt;:&lt;action&gt; WHERE &lt;conditions&gt;</code> policy DSL as the rest of Gen3 — not by classic environment roles.</p>
+<p>The <code>environment:roles:*</code> permissions — <code>view-security-problems</code>, <code>manage-security-problems</code>, <code>view-sensitive-request-data</code> — belong to the <strong>deprecated classic apps</strong> (Third-Party Vulnerabilities, Security Overview). In Latest Dynatrace the surfaces are:</p>
+<ul>
+<li>Grail data → <code>storage:security.events:read</code> <strong>plus</strong> <code>storage:buckets:read</code> (and <code>storage:fieldsets:read</code> for sensitive fields — § 5)</li>
+<li>The Vulnerabilities app and API → <code>vulnerability-service:vulnerabilities:read</code> / <code>:write</code>, plus the app's documented default policies: <em>Read Entities</em>, <em>Read Security Events</em>, and one of <em>Admin User</em>, <em>Pro User</em> or <em>Standard User</em></li>
+<li>Classic apps only → <code>environment:roles:*</code></li>
+</ul>
+<p>A complete AppSec persona policy needs the Grail grants and the vulnerability-service grants; the classic roles matter only while you still use the classic apps. See IAM-04 § 2, <em>Policy Statement Syntax</em>, for the underlying DSL grammar.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a> — <code>storage:security.events:read</code>: <em>&quot;Read security.events from grail&quot;</em>; <code>vulnerability-service:vulnerabilities:read</code>: <em>&quot;Allows viewing vulnerabilities&quot;</em>; <a href="https://docs.dynatrace.com/docs/secure/application-security/vulnerability-analytics">Vulnerability Analytics (DT docs)</a> — <em>&quot;This permissions section refers to the classic Third-Party Vulnerabilities and Security Overview apps, which are deprecated.&quot;</em>; <a href="https://docs.dynatrace.com/docs/secure/vulnerabilities">Vulnerabilities (DT docs)</a> — <em>&quot;Read Entities Read Security Events One of the following user policies: Admin User , Pro User , Standard User&quot;</em> (all re-read 10/02/2026).</sub></p>
+</blockquote>
+<p><a id="permission-catalog"></a></p>
+<h2>2. The AppSec Permission Catalog (Verified)</h2>
+<p>Tokens below were verified verbatim on 10/02/2026 against the IAM policy statements reference. Re-verify before pinning these into a production policy.</p>
+<h3>AppSec-specific tokens</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Purpose</th>
+<th>Optional conditions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>environment:roles:view-security-problems</code></td>
+<td>Classic apps only: view security problems</td>
+<td>Management zone scope</td>
+</tr>
+<tr>
+<td><code>environment:roles:manage-security-problems</code></td>
+<td>Classic apps only: manage security problems</td>
+<td>Management zone scope</td>
+</tr>
+<tr>
+<td><code>environment:roles:view-sensitive-request-data</code></td>
+<td>View sensitive request data (classic; the <em>Read Sensitive Data</em> default policy pairs it with <code>storage:fieldsets:read</code>)</td>
+<td>Management zone scope</td>
+</tr>
+<tr>
+<td><code>environment:roles:configure-request-capture-data</code></td>
+<td>Configure capture of sensitive data</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>storage:security.events:read</code></td>
+<td>Read security events from Grail</td>
+<td>Bucket, event-type, K8s namespace, cluster, host, cloud account</td>
+</tr>
+<tr>
+<td><code>storage:buckets:read</code></td>
+<td>Read records from Grail buckets — <strong>required in addition to</strong> <code>storage:security.events:read</code>; scope it with <code>WHERE storage:table-name = &quot;security.events&quot;</code></td>
+<td>Table name, bucket name</td>
+</tr>
+<tr>
+<td><code>storage:fieldsets:read</code></td>
+<td>Read data from fieldsets — the Grail half of sensitive-data access (§ 5)</td>
+<td>Table, bucket, fieldset name</td>
+</tr>
+<tr>
+<td><code>openpipeline:security.events:ingest</code></td>
+<td>Ingest security events into OpenPipeline</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>vulnerability-service:vulnerabilities:read</code></td>
+<td>View vulnerabilities (programmatic)</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>vulnerability-service:vulnerabilities:write</code></td>
+<td>Modify vulnerability information — in the app: mute status and ticket links of affected entities</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>security-intelligence:enrichments:run</code></td>
+<td>Run enrichments (IP-address attribution, integration-app discovery) — relevant for Threats &amp; Exploits / RAP investigation</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3>Platform-collateral tokens AppSec apps load on top of the above</h3>
+<p>The AppSec product surfaces (Vulnerabilities app, Threats &amp; Exploits app, Security Posture Management app) also need general Gen3 platform reads to load and operate — these are <strong>not AppSec-specific</strong>, they're what every Gen3 app needs:</p>
+<p><code>storage:entities:read</code>, <code>storage:logs:read</code>, <code>storage:filter-segments:read</code>, <code>document:documents:read</code>, <code>settings:objects:read</code>, <code>hub:catalog:read</code>, <code>state:user-app-states:read</code>, <code>state:user-app-states:write</code></p>
+<p>These are usually already granted by the managed user policies covered in § 6 — call them out explicitly in audit conversations so reviewers know they're collateral, not AppSec-elevated access. <code>storage:buckets:read</code> is deliberately <strong>not</strong> in this list: every <code>fetch security.events</code> needs it, so the persona policies in § 3 grant it explicitly rather than assume it.</p>
+<h3>Critical corrections (verified)</h3>
+<ol>
+<li><strong>There is no <code>storage:security_problems:read</code> token.</strong> Vulnerability read access in Latest Dynatrace is <code>vulnerability-service:vulnerabilities:read</code>; <code>environment:roles:view-security-problems</code> only serves the classic apps. Common mistake when copying patterns from other Grail tables.</li>
+<li><strong>The storage token is <code>security.events</code> with a dot</strong>, not <code>security_events</code> with an underscore. The ingest token lives in the <code>openpipeline</code> service — <code>openpipeline:security.events:ingest</code> — not in <code>storage</code>.</li>
+<li><strong><code>environment-api:security-problems:read</code> is NOT in the IAM policy reference</strong> as of 10/02/2026. If you see this token cited (some docs assistants surface it), it's not a current IAM permission token — use <code>vulnerability-service:vulnerabilities:read</code> for programmatic vuln access instead.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a> — every token re-read 10/02/2026, including <code>storage:buckets:read</code> (<em>&quot;Grants permission to read records from Grail buckets. Required additionally to a table permission.&quot;</em>) and <code>openpipeline:security.events:ingest</code> (<em>&quot;Grants permission to ingest security events into OpenPipeline&quot;</em>).</sub></p>
+</blockquote>
+<p><a id="personas"></a></p>
+<h2>3. Persona Policies (Worked Examples)</h2>
+<p>Three personas, three policies. Copy and adapt to your tenant's group structure. Each assumes the group also holds the Vulnerabilities app's documented default policies (<em>Read Entities</em>, <em>Read Security Events</em>, one of <em>Admin/Pro/Standard User</em>) — the statements below are the AppSec-specific part.</p>
+<h3>Persona A — Security Analyst (read-only)</h3>
+<pre><code>ALLOW storage:buckets:read WHERE storage:table-name = &quot;security.events&quot;;
+ALLOW storage:security.events:read;
+ALLOW vulnerability-service:vulnerabilities:read;
+</code></pre>
+<p>This is the SOC's daily-driver policy. Read everything, change nothing. Does <strong>not</strong> include sensitive-data access — see § 5.</p>
+<h3>Persona B — Security Engineer (manage)</h3>
+<pre><code>ALLOW storage:buckets:read WHERE storage:table-name = &quot;security.events&quot;;
+ALLOW storage:security.events:read;
+ALLOW vulnerability-service:vulnerabilities:read;
+ALLOW vulnerability-service:vulnerabilities:write;
+</code></pre>
+<p><code>vulnerability-service:vulnerabilities:write</code> takes no conditions, so in Latest Dynatrace it <strong>cannot be limited to production</strong>: whoever holds it can change mute status and ticket links on any vulnerability in the environment. Separate production from non-production by using separate environments, or by keeping the group that holds write small. A <code>WHERE environment:management-zone = …</code> condition on <code>environment:roles:manage-security-problems</code> only affects the deprecated classic apps — and management zones are not available in Latest Dynatrace.</p>
+<h3>Persona C — AppDev (namespace-scoped Grail read)</h3>
+<pre><code>ALLOW storage:buckets:read WHERE storage:table-name = &quot;security.events&quot;;
+ALLOW storage:security.events:read
+  WHERE storage:k8s.namespace.name IN (&quot;team-payments-prod&quot;, &quot;team-payments-staging&quot;);
+</code></pre>
+<p>This scopes <strong>Grail reads of records that carry <code>k8s.namespace.name</code></strong> — compliance findings and vulnerability findings (APPSEC-06 § 2). It does not give the team its own view of RVA vulnerabilities:</p>
+<ul>
+<li><strong>RVA vulnerability events carry no <code>k8s.namespace.name</code></strong>, so the namespace condition cannot match them. To scope them, set <code>dt.security_context</code> on security events with OpenPipeline enrichment and condition on that instead — and test with a scoped user before rollout.</li>
+<li><strong><code>vulnerability-service:vulnerabilities:read</code> is tenant-wide.</strong> Adding it would show the team every vulnerability in the Vulnerabilities app. Leave it out unless tenant-wide visibility is acceptable.</li>
+</ul>
+<p>Two syntax details: IAM lists use <code>IN (&quot;…&quot;, &quot;…&quot;)</code> with parentheses — DQL's <code>{…}</code> array syntax fails policy validation — and every persona needs <code>storage:buckets:read</code> alongside the table permission, or <code>fetch security.events</code> returns nothing.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a> for the conditions and operators on each token (<code>storage:k8s.namespace.name</code> accepts <code>=</code>, <code>IN</code>, <code>startsWith</code>, <code>MATCH</code>; <code>vulnerability-service:vulnerabilities:write</code> — <em>&quot;Allows modifying vulnerability related information&quot;</em> — lists none); <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policystatement-syntax">IAM policy statement syntax (DT docs)</a> for the <code>IN (&quot;…&quot;, &quot;…&quot;)</code> list form; <a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-09-team-based-global-alerting/upgrade-security-notifications">Upgrade security notifications (DT docs)</a> — <em>&quot;Management zones are not available in Latest Dynatrace. Replace management zone scoping with Grail record-based field filters.&quot;</em>; <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/vulnerability">Vulnerability events (DT semantic dictionary)</a> — RVA vulnerability events name clusters and workloads in <code>related_entities.*</code> arrays, and the Kubernetes resource fields appear only on finding and scan events (all re-read 10/02/2026). <strong>Derived:</strong> a namespace condition cannot match records that lack the field — not tested with a scoped user on RVA data, which the validation tenant does not have.</sub></p>
+</blockquote>
+<p><a id="boundary-patterns"></a></p>
+<h2>4. Boundary Patterns for AppSec Data</h2>
+<p>Beyond the three personas above, in community practice three boundary patterns recur in AppSec IAM:</p>
+<ol>
+<li><strong>Small write group</strong> — Persona B above. Write cannot be environment-scoped inside one environment, so keep the group that holds it small, or split production into its own environment.</li>
+<li><strong>Namespace-scoped read</strong> — Persona C above. AppDev team sees only its own namespaces.</li>
+<li><strong>Sensitive-payload carve-out</strong> — sensitive-data access (<code>storage:fieldsets:read</code>, plus <code>view-sensitive-request-data</code> for the classic apps) granted separately to a small named group (SOC tier 2 / incident responders), not to the general read-only group.</li>
+</ol>
+<p>For workflows that change vulnerabilities (ticket links, mute status), grant <code>vulnerability-service:vulnerabilities:write</code> to the dedicated service user the workflow runs as (§ 7), not to a shared OAuth client.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a> for boundary syntax.</sub></p>
+</blockquote>
+<p><a id="sensitive-payload"></a></p>
+<h2>5. Privacy: view-sensitive-request-data</h2>
+<p>RAP attack events can include the actual request payload that triggered the detection — the SQL injection string, the JNDI lookup URL, the command-injection input. These payloads frequently contain PII or other sensitive material that came through the application boundary.</p>
+<p>Dynatrace's <em>Read Sensitive Data</em> default policy grants two statements: <code>storage:fieldsets:read</code> (Grail) and <code>environment:roles:view-sensitive-request-data</code> (classic). Track both — an audit that lists only the role misses the Grail half. In community practice in regulated environments, three operating rules are common:</p>
+<ol>
+<li><strong>Don't grant it broadly.</strong> Grant to incident responders + SOC tier 2, not to general read-only roles. The default-deny posture matters.</li>
+<li><strong>Pair with <code>configure-request-capture-data</code></strong> for the small group responsible for tuning what gets captured.</li>
+<li><strong>Audit access regularly.</strong> Who has either permission, when did they last use it, against which events? Captured-payload access is exactly the surface auditors scrutinize.</li>
+</ol>
+<p>This is the carve-out where AppSec IAM most often gets too generous — make it explicit who has it and why.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies">Default policies (DT docs)</a> — <em>&quot;Read Sensitive Data Grants unconditional permissions to read sensitive data in Dynatrace.&quot;</em>, whose policy is <code>ALLOW storage:fieldsets:read;</code> plus <code>ALLOW environment:roles:view-sensitive-request-data;</code> under <code>//Classic</code>; <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a> — <code>environment:roles:configure-request-capture-data</code>: <em>&quot;Grants user the Configure capture of sensitive data permission.&quot;</em> (re-read 10/02/2026). <strong>Softened:</strong> the three operating rules are community practice.</sub></p>
+</blockquote>
+<p><a id="managed-policies"></a></p>
+<h2>6. Reach for Managed Policies First</h2>
+<p>Following IAM-04 § 6 guidance, prefer Dynatrace's default policies over hand-rolled custom policies wherever they cover the use case. The ones that matter for AppSec are documented by name:</p>
+<ul>
+<li><strong>Read Security Events</strong> — security events from the <code>events</code> and <code>security.events</code> tables and the default security-event buckets (includes <code>storage:buckets:read</code> for <code>security.events</code>)</li>
+<li><strong>Read Entities</strong> — required by the Vulnerabilities app</li>
+<li><strong>Admin User / Pro User / Standard User</strong> — one of these is required by the Vulnerabilities app</li>
+<li><strong>Read Sensitive Data</strong> — <code>storage:fieldsets:read</code> + the classic sensitive-data role (§ 5)</li>
+</ul>
+<p>If a default policy covers 80% of a persona's need, use it and add a small custom policy for the deltas, rather than rebuilding the whole grant set from scratch. This shrinks the audit surface and reduces drift across persona definitions.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies">Default policies (DT docs)</a> — <em>&quot;Read Security Events Grants unconditional access to the security events from both, events and security.events tables and to the default security event buckets.&quot;</em>; <a href="https://docs.dynatrace.com/docs/secure/vulnerabilities">Vulnerabilities (DT docs)</a> — <em>&quot;Read Entities Read Security Events One of the following user policies: Admin User , Pro User , Standard User&quot;</em> (re-read 10/02/2026).</sub></p>
+</blockquote>
+<p><a id="auth-routing"></a></p>
+<h2>7. OAuth Client vs Platform Token Scope Routing</h2>
+<p>Workflows and external automation authenticate differently:</p>
+<ul>
+<li><strong>Workflows</strong> run as their <em>actor</em> — by default the user who created the workflow, or a non-interactive service user you select. No token is involved: the workflow gets that identity's policies. For security workflows, give <strong>both</strong> the creating user and the service user <code>storage:security.events:read</code> (plus <code>storage:buckets:read</code>).</li>
+<li><strong>External automation</strong> (scripts, CI, Terraform) calling Grail or the vulnerability-service API: a platform token on a service user. AUTOM-04 § 3, <em>Provider Configuration</em>, covers the three-things-align model.</li>
+<li><strong>For classic config APIs</strong> that AppSec workflows occasionally touch (rare in v1 AppSec, more common as workflows chain into broader automation): classic API Token may still be required for some endpoints.</li>
+</ul>
+<p>In community practice, teams avoid granting <code>vulnerability-service:vulnerabilities:write</code> on a long-lived shared OAuth client — too much blast radius — and bind it to a dedicated Service User that holds only this permission. The policy-statement reference lists no conditions for <code>vulnerability-service:vulnerabilities:write</code>, so the permission itself cannot be narrowed — and management zones are not available in Latest Dynatrace to narrow it with. Scope <em>which</em> findings the workflow acts on in its trigger filter instead, using <code>dt.security_context</code>, a primary Grail field, or <code>primary_tags.*</code>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security">Workflow security (DT docs)</a> — <em>&quot;By default, the workflow actor is the user who created the workflow. However, there is the option to select a non-interactive service user as the actor of a workflow.&quot;</em>; <a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-09-team-based-global-alerting/upgrade-security-notifications">Upgrade security notifications (DT docs)</a> — <em>&quot;Management zones are not available in Latest Dynatrace. Replace management zone scoping with Grail record-based field filters.&quot;</em> and <em>&quot;Use custom metadata enrichment to set dt.security_context on security events via OpenPipeline, then filter by it in the workflow trigger.&quot;</em> and <em>&quot;Assign this permission to both the human user creating the Workflow and the service user the Workflow runs as.&quot;</em>; <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements (DT docs)</a> — <code>vulnerability-service:vulnerabilities:write</code> is listed with no conditions.</sub></p>
+</blockquote>
+<p><a id="audit"></a></p>
+<h2>8. Audit and Periodic Review</h2>
+<p>Audit IAM bindings for AppSec the same way you would audit any sensitive-data access. In community practice a quarterly minimum cadence is common — adapt it to your audit regime:</p>
+<ol>
+<li><strong>Who has <code>storage:fieldsets:read</code> or <code>view-sensitive-request-data</code>?</strong> Pull the group memberships; remove anyone who hasn't used it in 90 days.</li>
+<li><strong>Who has <code>vulnerability-service:vulnerabilities:write</code></strong> (and, while classic apps remain, <code>manage-security-problems</code>)? Write is a privileged, tenant-wide grant.</li>
+<li><strong>Which service users act as workflow actors</strong> with AppSec permissions? Confirm each one is still in active workflow service.</li>
+<li><strong>Are namespace-scoped policies still aligned with team ownership?</strong> Team boundaries shift; policies don't auto-update.</li>
+</ol>
+<p>The query for &quot;who can read security.events in production?&quot; can be answered via the IAM API (see IAM-04 § 7 Policy Testing and Validation).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="evolving"></a></p>
+<h2>9. What's Still Evolving</h2>
+<p>Three areas where the AppSec IAM model is less settled and verification-at-policy-time is warranted:</p>
+<ol>
+<li><strong>Boundary conditions on <code>vulnerability-service:vulnerabilities:read</code></strong> — at 10/02/2026 the policy reference shows no condition options for this token. If this changes, narrower programmatic AppDev access becomes possible.</li>
+<li><strong>Default-policy catalog</strong> — coverage changes per release. Re-read the default-policies page before relying on one in a persona design.</li>
+<li><strong>Cross-tenant AppSec access patterns</strong> — multi-tenant SOC operations are still operator-discipline rather than first-class IAM features.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Softened:</strong> none of the three are official Dynatrace roadmap items — they're observations of where the model is thinner than the rest of Gen3 IAM as of 10/02/2026. Re-verify at policy-author time.</sub></p>
+</blockquote>
+<p><a id="next"></a></p>
+<h2>10. Next Steps</h2>
+<ol>
+<li>Adopt the three persona policies as starting points. Adapt the namespace names to your tenant, and decide how you will scope RVA visibility (<code>dt.security_context</code>).</li>
+<li>List who has <code>storage:fieldsets:read</code> or <code>view-sensitive-request-data</code> today. If the list is longer than your incident-responder roster, narrow it.</li>
+<li>Read <strong>APPSEC-08</strong> for workflow actors and ticket linkage.</li>
+<li>Read <strong>IAM-04</strong> and <strong>IAM-05</strong> for the underlying DSL grammar and review patterns — this notebook only covers the AppSec-specific overlay.</li>
+</ol>
+<p><a id="references"></a></p>
+<h2>References</h2>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a></td>
+<td>Every permission token verified verbatim</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies">Default policies (DT docs)</a></td>
+<td>Read Security Events, Read Sensitive Data, user policies</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/secure/vulnerabilities">Vulnerabilities (DT docs)</a></td>
+<td>Vulnerabilities app permission requirements</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/secure/application-security">Application Security (DT docs)</a></td>
+<td>Three-pillar framing</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><sub><strong>⚠️ DISCLAIMER</strong>: This information was AI generated and is provided &quot;as-is&quot; without warranty. It was produced as an independent, community-driven project and <strong>not supported by Dynatrace</strong>. Always refer to official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> for the most current information.</sub></p>
+</blockquote>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

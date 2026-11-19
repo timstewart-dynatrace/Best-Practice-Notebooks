@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ-20: How Do I Monitor Zscaler With Dynatrace?</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">FAQ — Frequently Asked Questions</a><span class="sep">/</span><span aria-current="page">FAQ-20</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>FAQ-20: How Do I Monitor Zscaler With Dynatrace?</h1>
+<blockquote>
+<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 20 — Monitoring Zscaler With Dynatrace | <strong>Created:</strong> July 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Zscaler sits in the path of everything. Every user reaching a SaaS application, every user reaching a private application, and — where ZDX is licensed — the experience of those users on their own devices. When it degrades, the symptom presents as &quot;the application is slow,&quot; and the application team gets the ticket. That mismatch between where the problem is and where the ticket lands is the reason this integration keeps coming up.</p>
+<p>The starting position in most organizations is worse than it needs to be. The three product lines write to three separate data planes with no shared view, and the practical consequence is a troubleshooting workflow built on exporting logs from the admin console and pivoting them in a spreadsheet. That workflow does not scale, does not correlate, and cannot answer the question anyone actually asked, which is whether the user's experience was bad and why.</p>
+<p>Two things about this integration are worth knowing before you plan it, because both are commonly assumed the other way:</p>
+<ul>
+<li><strong>ZIA and ZPA have Dynatrace extensions; ZDX does not.</strong> <em>Corrected 11/11/2026 — earlier revisions of this entry said ZPA had no extension, and before 09/28/2026 that the Hub listed no Zscaler integration at all.</em> A Dynatrace <strong>Zscaler Internet Access (ZIA) extension</strong> is on the Hub (minimum Dynatrace version 1.345): it takes the ZIA Cloud NSS feeds, extracts <code>zia.*</code> metrics, and discovers ZIA Location, User and Tunnel entities in Smartscape. A <strong>Zscaler Private Access (ZPA) extension</strong> (minimum Dynatrace version 1.345; docs published 10/09/2026, announced in the SaaS 1.348 release notes) does the same for ZPA Log Streaming Service (LSS) logs — <code>zpa.*</code> metrics and ZPA user, application and App Connector topology — but still needs a log shipper you run, because LSS cannot reach Dynatrace on its own. No ZDX extension or Hub listing was found (checked 11/11/2026), so for ZDX you are still building and owning the integration — a normal position, but one to decide deliberately rather than discover in week three. Re-check the Hub before planning; listings appear over time.</li>
+<li><strong>The three product lines do not share a transport.</strong> ZIA can push over HTTPS; ZPA cannot; ZDX telemetry is pull-only — only ZDX <em>alerts</em> can be pushed, by webhook. A single ingestion design will not serve all three.</li>
+</ul>
+<p>This entry is the <strong>worked example of FAQ-19</strong>. Every structural decision — route, retention, topology, isolation — is made there generically; here they are made concretely for Zscaler. Read FAQ-19 first if you want the reasoning; read this if you want the answers.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#no-turnkey">Extensions for ZIA and ZPA, Build-Your-Own for ZDX</a></li>
+<li><a href="#data-planes">The Three Data Planes and What Each Answers</a></li>
+<li><a href="#transports">Transport Reality — Why One Route Will Not Work</a></li>
+<li><a href="#architecture">Recommended Ingestion Architecture</a></li>
+<li><a href="#extract">What to Extract, What to Discard</a></li>
+<li><a href="#topology">Suggested Topology Model</a></li>
+<li><a href="#field-mapping">Field Mapping Starting Point</a></li>
+<li><a href="#downstream">Dashboards, Alerting, and SLOs</a></li>
+<li><a href="#synthetics">Synthetic Monitoring — When It Adds Anything</a></li>
+<li><a href="#implementation">Implementation Sequence</a></li>
+<li><a href="#checklist">Administrator Checklist</a></li>
+<li><a href="#recommended-approach">Recommended Approach</a></li>
+<li><a href="#gotchas">Common Gotchas</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Zscaler licensing</strong></td>
+<td>ZIA and/or ZPA for the log feeds. <strong>ZDX is a separate SKU</strong> — § 3 explains why its absence changes what the integration can deliver, and it is worth confirming before scoping. <strong>ZDX API access requires the ZDX Advanced Plan</strong> (§ 4.2)</td>
+</tr>
+<tr>
+<td><strong>Zscaler admin access</strong></td>
+<td>Rights to configure NSS / Cloud NSS feeds (ZIA), LSS receivers (ZPA), and to create ZDX API keys. Usually a network or security team, not the observability team</td>
+</tr>
+<tr>
+<td><strong>Dynatrace environment</strong></td>
+<td>SaaS with <strong>Grail</strong> and <strong>OpenPipeline</strong></td>
+</tr>
+<tr>
+<td><strong>Network path</strong></td>
+<td>For ZPA LSS, a reachable TCP listener that App Connectors can egress to (§ 4)</td>
+</tr>
+<tr>
+<td><strong>Security sign-off</strong></td>
+<td>These feeds carry user identity, destination, device, and policy context. Decide retention before building — see FAQ-19 § 4 and § 6</td>
+</tr>
+<tr>
+<td><strong>Related reading</strong></td>
+<td><strong>FAQ-19</strong> (the generic pattern this entry instantiates), <strong>OPIPE</strong> / <strong>OPLOGS</strong> (OpenPipeline depth), <strong>ORGNZ</strong> (buckets), <strong>FAQ-15</strong> (DPL, for parsing CSV/TSV feeds), <strong>ALERT</strong> / <strong>SLO</strong> / <strong>DASH</strong> (downstream)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<p><strong>Activate the Dynatrace ZIA extension for ZIA and the ZPA extension for ZPA — ZPA still reaches Dynatrace through a log shipper you run — pull ZDX through its API if you have it, extract metrics and events at ingest, discard the raw records by default, and model what the extensions do not cover — ZDX, or a ZPA pipeline you build yourself — as <code>CUSTOM_*</code> Smartscape nodes.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Product line</th>
+<th>Transport it offers</th>
+<th>Route into Dynatrace</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ZIA</strong> (internet / SaaS)</td>
+<td>Cloud NSS — HTTPS feed to an API-based collector</td>
+<td><strong>Activate the ZIA extension</strong> (Dynatrace 1.345+): Cloud NSS feeds push direct to the log ingest API, and the extension supplies parsing, <code>zia.*</code> metrics, topology and dashboards</td>
+</tr>
+<tr>
+<td><strong>ZPA</strong> (private access)</td>
+<td>LSS — <strong>raw TCP, optionally TLS</strong></td>
+<td><strong>Activate the ZPA extension</strong> (Dynatrace 1.345+) and run a <strong>log shipper</strong> between LSS and the Dynatrace ingest API — LSS cannot reach a Dynatrace API unaided. The extension supplies parsing, <code>zpa.*</code> metrics, topology and dashboards</td>
+</tr>
+<tr>
+<td><strong>ZDX</strong> (digital experience)</td>
+<td><strong>REST API, pull only</strong> for scores and metrics (API key exchanged for a bearer token); alerts can also be pushed by webhook</td>
+<td><strong>Scheduled poller</strong> — workflow, extension, or collector</td>
+</tr>
+</tbody>
+</table>
+<p>And the single most important scoping point, stated plainly:</p>
+<blockquote>
+<p><strong>ZIA and ZPA logs are not a substitute for ZDX.</strong> They are the platform's own record of transactions it handled — excellent for access, policy, throughput, and connection outcomes. They do not contain device health, network-path quality, or page-fetch timing, because Zscaler does not observe those from the proxy. If the question is &quot;why was it slow for this user,&quot; logs alone will not answer it, and no amount of ingestion engineering changes that.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zia">Zscaler Internet Access (ZIA) extension (DT docs)</a> — <em>&quot;Activation has three parts: activate the extension from Dynatrace Hub, configure the two OpenPipeline dynamic routes, and configure the Zscaler Internet Access Cloud NSS feeds.&quot;</em>, <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zpa">Zscaler Private Access (ZPA) extension (DT docs)</a> — <em>&quot;so a log shipper between ZPA and Dynatrace is required rather than optional&quot;</em>, <a href="https://help.zscaler.com/zia/integrating-cloud-nss-cloud-based-siems">Integrating Cloud NSS with Cloud-Based SIEMs (Zscaler)</a>, <a href="https://help.zscaler.com/zpa/about-log-streaming-service">Log Streaming Service (LSS) (Zscaler)</a>, <a href="https://help.zscaler.com/legacy-apis/understanding-zdx-api">Understanding the ZDX API (Zscaler Legacy APIs)</a>, <a href="https://help.zscaler.com/zdx/about-webhooks">About Webhooks (Zscaler)</a>.</sub></p>
+</blockquote>
+<hr />
+<p><a id="no-turnkey"></a></p>
+<h2>2. Extensions for ZIA and ZPA, Build-Your-Own for ZDX</h2>
+<blockquote>
+<p><strong>Correction (11/11/2026).</strong> Earlier revisions of this section said ZPA had no Dynatrace extension or Hub listing. Dynatrace now publishes a <strong>Zscaler Private Access (ZPA) extension</strong> (docs published 10/09/2026, announced in the SaaS 1.348 release notes), alongside the <strong>Zscaler Internet Access (ZIA) extension</strong> recorded in the 09/28/2026 correction. It remains true for ZDX. The build-your-own guidance below still applies to ZDX, to any ZIA or ZPA feed type the extensions do not parse, and to a ZPA pipeline you choose to build yourself.</p>
+</blockquote>
+<h3>2.1 ZIA — activate the extension</h3>
+<p>The ZIA extension requires <strong>Dynatrace version 1.345</strong> or later and OpenPipeline Settings 2.0. Activation is three steps — activate it from the Hub, configure its two OpenPipeline dynamic routes (logs and metrics), and point the ZIA <strong>Cloud NSS feeds</strong> at the Dynatrace log ingest API with a <code>logs.ingest</code> token, using the extension's exact JSON feed output format (§ 6). In return you get:</p>
+<table>
+<thead>
+<tr>
+<th>What the extension supplies</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Parsing</strong></td>
+<td>A log pipeline that recognizes each supported feed by <code>sourcetype</code></td>
+</tr>
+<tr>
+<td><strong>Metrics</strong></td>
+<td>Counter and value metrics under the <strong><code>zia.*</code></strong> namespace</td>
+</tr>
+<tr>
+<td><strong>Topology</strong></td>
+<td><strong>ZIA Location</strong>, <strong>ZIA User</strong> and <strong>ZIA Tunnel</strong> Smartscape entities and their relationships</td>
+</tr>
+<tr>
+<td><strong>Content</strong></td>
+<td>Per-log-type dashboards, unified analysis screens, and alert templates</td>
+</tr>
+</tbody>
+</table>
+<p>It covers five Cloud NSS feed types — <strong>Web, Firewall, DNS, Tunnel, and Admin Audit</strong>. Any other ZIA feed you need (DLP, for instance) is back in build-your-own territory.</p>
+<p>The extension changes three things elsewhere in this entry. Its metric namespace is <code>zia.*</code>, not the <code>zscaler.zia.*</code> scheme suggested in § 8 — do not build a parallel ZIA scheme. It models <strong>users as entities</strong> (ZIA User), which § 7 advises against for a hand-built model — keep your custom model to what the ZIA and ZPA extensions do not cover, and do not add a second user entity. And its topology uses its own node types, so the § 7 custom nodes are for what neither extension covers.</p>
+<h3>2.2 ZPA — activate the extension, and run a log shipper</h3>
+<p>The ZPA extension requires <strong>Dynatrace version 1.345</strong> or later and OpenPipeline Settings 2.0. Activation has five parts — activate it from the Hub, configure its two OpenPipeline dynamic routes (logs and metrics), deploy a log shipper, configure the ZPA LSS Log Receivers, and verify. In return you get:</p>
+<table>
+<thead>
+<tr>
+<th>What the extension supplies</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Parsing</strong></td>
+<td>A log pipeline that recognizes each supported LSS log type by its <code>sourcetype</code> value</td>
+</tr>
+<tr>
+<td><strong>Metrics</strong></td>
+<td>Counter and value metrics under the <strong><code>zpa.*</code></strong> namespace</td>
+</tr>
+<tr>
+<td><strong>Topology</strong></td>
+<td>ZPA User, Application, App Group, App Connector and App Connector Group entities, plus Private Service Edge and Private Cloud Controller entities and their groups</td>
+</tr>
+<tr>
+<td><strong>Content</strong></td>
+<td>Dashboards, unified analysis screens, and alert templates — the templates ship disabled</td>
+</tr>
+</tbody>
+</table>
+<p>It covers nine LSS log types — App Connector Metrics and Status, User Activity, User Status, Browser Access, and Private Service Edge and Private Cloud Controller Metrics and Status. Any other ZPA log type you stream is still ingested, but gets no packaged metrics, dashboards or topology.</p>
+<p>What the extension does <strong>not</strong> remove is the transport constraint in § 4.1. It bundles no data source, and LSS still cannot post to a Dynatrace endpoint, so you deploy and operate a log shipper. Its page documents two — <strong>Fluent Bit</strong> (to the log ingest API) and <strong>BindPlane</strong> (to the OTLP logs endpoint) — and says any shipper capable of a TCP input and an HTTP output can fill the role. Three constraints from that page shape the rest of this entry:</p>
+<ul>
+<li><strong>Exact templates.</strong> Each Log Receiver must use the extension's own JSON log stream template. The ZPA default template cannot be used, because it carries no field identifying the log type.</li>
+<li><strong>Unmodified records.</strong> The shipper must forward each record exactly as LSS wrote it; one that reformats, enriches, truncates, reorders or drops part of a record breaks the parsers. The page's way to reduce volume is to trim each template to the fields the extension parses — not to edit records in the shipper.</li>
+<li><strong>One endpoint is enough.</strong> Every log type can share one shipper endpoint, because each record carries its own <code>sourcetype</code>. You still configure one Log Receiver per log type.</li>
+</ul>
+<p>The extension changes three things elsewhere in this entry. Its metric namespace is <code>zpa.*</code>, not the <code>zscaler.zpa.*</code> scheme suggested in § 8. Its topology uses its own ZPA node types, which cover the ZPA side of the § 7 custom model. And it models <strong>users as entities</strong> (ZPA User). The hand-built ZPA guidance in §§ 4–8 remains as the alternative for a pipeline you build yourself; where you use the extension, its page is the documented route.</p>
+<h3>2.3 ZDX — no listing, so you own it</h3>
+<p>No ZDX extension or Hub listing was found (checked 11/11/2026). The ingestion primitives you need all exist, but the ownership shape of the project is different, and it is better acknowledged at planning time:</p>
+<table>
+<thead>
+<tr>
+<th>What &quot;no listing&quot; means</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>You own the parsing</strong></td>
+<td>Field extraction is yours to write and maintain. There is no vendor-maintained mapping that updates itself</td>
+</tr>
+<tr>
+<td><strong>You own the schema drift</strong></td>
+<td>When Zscaler adds or renames a log field, nothing warns you. Your pipeline quietly produces nulls</td>
+</tr>
+<tr>
+<td><strong>You own the failure modes</strong></td>
+<td>An expired ZDX credential surfaces as missing data, not as an alert — unless you build that alert</td>
+</tr>
+<tr>
+<td><strong>Support boundaries are yours to navigate</strong></td>
+<td>Dynatrace supports its ingest APIs and OpenPipeline; Zscaler supports its feeds. The integration between them is yours</td>
+</tr>
+<tr>
+<td><strong>Effort is front-loaded but bounded</strong></td>
+<td>Once field mapping and topology are settled, the pipeline is stable. The cost is a project, not a permanent tax</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The one thing worth doing before you start:</strong> re-check the Hub. The ZIA and ZPA extensions are the proof that vendor integrations appear over time, and adopting a supported path is strictly better than maintaining a custom one.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zia">Zscaler Internet Access (ZIA) extension (DT docs)</a> — <em>&quot;Minimum required Dynatrace version: Dynatrace version 1.345&quot;</em>; discovers <em>&quot;ZIA Location, ZIA User, and ZIA Tunnel entities&quot;</em></sub></li>
+<li><sub><a href="https://www.dynatrace.com/hub/detail/zscaler-internet-access-zia/">Zscaler Internet Access (ZIA) (Dynatrace Hub)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zpa">Zscaler Private Access (ZPA) extension (DT docs)</a> — <em>&quot;Minimum required Dynatrace version: Dynatrace version 1.345.&quot;</em>; <em>&quot;The extension bundles no data source, so there is nothing to install on an ActiveGate.&quot;</em>; <em>&quot;The custom log stream templates replace the ZPA defaults&quot;</em>; <em>&quot;The shipper must forward records unmodified&quot;</em>; <em>&quot;Every log type can share the same shipper endpoint&quot;</em></sub></li>
+<li><sub><a href="https://www.dynatrace.com/hub/detail/zscaler-private-access-zpa/">Zscaler Private Access (ZPA) (Dynatrace Hub)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">SaaS 1.348 release notes (DT docs)</a> — <em>&quot;New Zscaler Private Access (ZPA) and Zscaler Internet Access (ZIA) extensions&quot;</em></sub></li>
+<li><sub><a href="https://www.dynatrace.com/hub/">Dynatrace Hub (Dynatrace)</a> — no ZDX listing found, checked 11/11/2026</sub></li>
+<li><sub><strong>Derived:</strong> the ownership consequences in § 2.3 follow from the absence of a vendor-maintained listing, not from a Dynatrace statement about Zscaler specifically</sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="data-planes"></a></p>
+<h2>3. The Three Data Planes and What Each Answers</h2>
+<p>Map your questions to data planes before configuring a single feed. This is FAQ-19 § 2 applied to Zscaler, and it is the step that prevents an expensive log-volume project that answers the wrong questions.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+VGhyZWUgRGF0YSBQbGFuZXMsIFRocmVlIERpZmZlcmVudCBRdWVzdGlvbnM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+QWNjZXNzIGxvZ3MgcmVjb3JkIHdoYXQgdGhlIHBsYXRmb3JtIGhhbmRsZWQuIE9ubHkgZXhwZXJpZW5jZSB0ZWxlbWV0cnkgcmVjb3JkcyBob3cgaXQgZmVsdC48L3RleHQ+CgogIDwhLS0gWlBBIC0tPgogIDxyZWN0IHg9IjQwIiB5PSI4MiIgd2lkdGg9IjI3MiIgaGVpZ2h0PSIzMDAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTc2IiB5PSIxMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI3MDAiPlpQQTwvdGV4dD4KICA8dGV4dCB4PSIxNzYiIHk9IjEzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UHJpdmF0ZSBhcHBsaWNhdGlvbiBhY2Nlc3M8L3RleHQ+CgogIDxyZWN0IHg9IjYwIiB5PSIxNDQiIHdpZHRoPSIyMzIiIGhlaWdodD0iNzQiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgcng9IjYiLz4KICA8dGV4dCB4PSIxNzYiIHk9IjE2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+QW5zd2VycyB3ZWxsPC90ZXh0PgogIDx0ZXh0IHg9IjE3NiIgeT0iMTg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5XaG8gcmVhY2hlZCB3aGljaCBwcml2YXRlIGFwcDwvdGV4dD4KICA8dGV4dCB4PSIxNzYiIHk9IjIwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Q29ubmVjdG9yIGhlYWx0aCBhbmQgc2F0dXJhdGlvbjwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjIzMCIgd2lkdGg9IjIzMiIgaGVpZ2h0PSI2MiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiByeD0iNiIvPgogIDx0ZXh0IHg9IjE3NiIgeT0iMjUxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5UcmFuc3BvcnQ8L3RleHQ+CiAgPHRleHQgeD0iMTc2IiB5PSIyNzEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPkxTUyDigJQgcmF3IFRDUCAvIFRMUzwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjMwNCIgd2lkdGg9IjIzMiIgaGVpZ2h0PSI2MiIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjREUzNTBCIiByeD0iNiIvPgogIDx0ZXh0IHg9IjE3NiIgeT0iMzI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5DYW5ub3QgYW5zd2VyPC90ZXh0PgogIDx0ZXh0IHg9IjE3NiIgeT0iMzQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5FbmRwb2ludCBoZWFsdGggwrcgcGF0aCBxdWFsaXR5PC90ZXh0PgogIDx0ZXh0IHg9IjE3NiIgeT0iMzYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5QYWdlLWZldGNoIHRpbWluZzwvdGV4dD4KCiAgPCEtLSBaSUEgLS0+CiAgPHJlY3QgeD0iMzI5IiB5PSI4MiIgd2lkdGg9IjI3MiIgaGVpZ2h0PSIzMDAiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIxMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI3MDAiPlpJQTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjEzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+SW50ZXJuZXQgYW5kIFNhYVMgYWNjZXNzPC90ZXh0PgoKICA8cmVjdCB4PSIzNDkiIHk9IjE0NCIgd2lkdGg9IjIzMiIgaGVpZ2h0PSI3NCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5BbnN3ZXJzIHdlbGw8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIxODQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlNhYVMgdXNhZ2UsIFVSTHMsIHJlc3BvbnNlIGNvZGVzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Qb2xpY3kgb3V0Y29tZXMgYW5kIHRocm91Z2hwdXQ8L3RleHQ+CgogIDxyZWN0IHg9IjM0OSIgeT0iMjMwIiB3aWR0aD0iMjMyIiBoZWlnaHQ9IjYyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIyNTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlRyYW5zcG9ydDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjI3MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+Q2xvdWQgTlNTIOKAlCBIVFRQUyBwdXNoPC90ZXh0PgoKICA8cmVjdCB4PSIzNDkiIHk9IjMwNCIgd2lkdGg9IjIzMiIgaGVpZ2h0PSI2MiIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjREUzNTBCIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5DYW5ub3QgYW5zd2VyPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5FbmRwb2ludCBoZWFsdGggwrcgcGF0aCBxdWFsaXR5PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5UaW1pbmcgaXMgcHJveHktb2JzZXJ2ZWQgb25seTwvdGV4dD4KCiAgPCEtLSBaRFggLS0+CiAgPHJlY3QgeD0iNjE4IiB5PSI4MiIgd2lkdGg9IjI3MiIgaGVpZ2h0PSIzMDAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iOCIvPgogIDx0ZXh0IHg9Ijc1NCIgeT0iMTEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iNzAwIj5aRFg8L3RleHQ+CiAgPHRleHQgeD0iNzU0IiB5PSIxMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkRpZ2l0YWwgZXhwZXJpZW5jZSDigJQgc2VwYXJhdGUgU0tVPC90ZXh0PgoKICA8cmVjdCB4PSI2MzgiIHk9IjE0NCIgd2lkdGg9IjIzMiIgaGVpZ2h0PSI3NCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc1NCIgeT0iMTY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5BbnN3ZXJzIHdlbGw8L3RleHQ+CiAgPHRleHQgeD0iNzU0IiB5PSIxODQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkRldmljZSBoZWFsdGggwrcgcGF0aCDCtyBETlMgLyBQRlQgLyBUVEZCPC90ZXh0PgogIDx0ZXh0IHg9Ijc1NCIgeT0iMjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5aRFggc2NvcmUgMOKAkzEwMCBwZXIgdXNlcjwvdGV4dD4KCiAgPHJlY3QgeD0iNjM4IiB5PSIyMzAiIHdpZHRoPSIyMzIiIGhlaWdodD0iNjIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgcng9IjYiLz4KICA8dGV4dCB4PSI3NTQiIHk9IjI1MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+VHJhbnNwb3J0PC90ZXh0PgogIDx0ZXh0IHg9Ijc1NCIgeT0iMjcxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5BUEkgcHVsbCDCtyBhbGVydHMgYWxzbyBieSB3ZWJob29rPC90ZXh0PgoKICA8cmVjdCB4PSI2MzgiIHk9IjMwNCIgd2lkdGg9IjIzMiIgaGVpZ2h0PSI2MiIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc1NCIgeT0iMzI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5UaGUgZXhwZXJpZW5jZSBhbnN3ZXI8L3RleHQ+CiAgPHRleHQgeD0iNzU0IiB5PSIzNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk1lYXN1cmVzIGFjdGl2ZWx5IGZyb20gdGhlIGVuZHBvaW50LDwvdGV4dD4KICA8dGV4dCB4PSI3NTQiIHk9IjM2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+bm90IGF0IHRoZSBwcm94eTwvdGV4dD4KCiAgPGxpbmUgeDE9IjQwIiB5MT0iNDA0IiB4Mj0iODkwIiB5Mj0iNDA0IiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgoKICA8cmVjdCB4PSI0MCIgeT0iNDE4IiB3aWR0aD0iODUwIiBoZWlnaHQ9IjU4IiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDQxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5aSUEgYW5kIFpQQSBsb2dzIGFyZSBub3QgYSBzdWJzdGl0dXRlIGZvciBaRFg8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0NjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPldpdGhvdXQgWkRYIHlvdSBjYW4gYnVpbGQgZXhjZWxsZW50IGFjY2VzcywgdHJhZmZpYywgYW5kIGluZnJhc3RydWN0dXJlLWhlYWx0aCBtb25pdG9yaW5nIOKAlCBhbmQgbm90IHVzZXItZXhwZXJpZW5jZSBtb25pdG9yaW5nLiBTY29wZSBvbiB0aGF0IGJhc2lzLjwvdGV4dD4KPC9zdmc+Cg==" alt="The three Zscaler data planes and what each answers" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Plane | Answers well | Transport | Cannot answer |
+|---|---|---|---|
+| ZPA — private application access | Who reached which private app; connector health and saturation | LSS — raw TCP/TLS | Endpoint health, path quality, page-fetch timing |
+| ZIA — internet and SaaS access | SaaS usage, URLs, response codes, policy outcomes, throughput | Cloud NSS — HTTPS push | Endpoint health, path quality; timing is proxy-observed only |
+| ZDX — digital experience (separate SKU) | Device health, network path, DNS/PFT/TTFB, ZDX score 0-100 per user | REST API pull for telemetry; alerts also by webhook | — measures actively from the endpoint, not at the proxy |
+ZIA and ZPA logs are not a substitute for ZDX. Without ZDX you can build excellent access, traffic, and infrastructure-health monitoring, and not user-experience monitoring.
+For environments where SVG doesn't render
+-->
+<h3>3.1 ZPA — private application access</h3>
+<p>Treat ZPA logs as a <strong>session and access-path dataset</strong>, not as generic log noise. They describe how users reach private applications through the ZPA fabric: identity, application, application group, service edge, App Connector, connection status, byte counts, and timing fields where present.</p>
+<ul>
+<li><strong>User Activity</strong> (<code>zpn_trans_log</code>) — who reached which private application, from where, and whether the session succeeded.</li>
+<li><strong>App Connector Status and Metrics</strong> (<code>zpn_ast_auth_log</code>, <code>zpn_ast_comprehensive_stats</code>) — whether connector infrastructure is healthy, saturated, disconnected, or unbalanced. This is the highest-value ZPA feed for infrastructure alerting and the one most often overlooked.</li>
+<li><strong>Timing fields</strong> are <strong>Zscaler-observed latency indicators</strong>, not endpoint experience. Connection-setup time is a real, useful signal about the access path; it is not page-load time and should never be presented as such.</li>
+</ul>
+<h3>3.2 ZIA — internet and SaaS access</h3>
+<p>ZIA provides web, DNS, firewall, tunnel, DLP, and SaaS traffic metadata — proxy-observed visibility into usage, destinations, ports, categories, policy outcomes, errors, and throughput.</p>
+<ul>
+<li><strong>Web logs</strong> — SaaS application access, URLs, response codes, application names and categories, request and response sizes.</li>
+<li><strong>DNS and firewall logs</strong> — destination resolution, ports, protocols, allow/deny behavior, traffic patterns.</li>
+<li><strong>Proxy-level performance indicators</strong> can be derived, but they are measured at the proxy. Present them as such.</li>
+</ul>
+<h3>3.3 ZDX — digital experience</h3>
+<p>ZDX is the only one of the three that closes the experience gap, because it measures actively from the endpoint rather than recording transactions at the proxy. It produces a <strong>ZDX Score per user from 0–100</strong>, aggregated over user, application, location, department, and organization, plus:</p>
+<ul>
+<li><strong>Device layer</strong> — CPU, memory, Wi-Fi quality, device health, endpoint events.</li>
+<li><strong>Network layer</strong> — latency, packet loss, hop and path visibility, ISP and last-mile indicators, cloud-path probe output.</li>
+<li><strong>Application layer</strong> — DNS time, page-fetch time, server response / TTFB, availability.</li>
+</ul>
+<p>ZDX covers customer-defined applications alongside predefined ones such as Microsoft 365, Salesforce, ServiceNow, Zoom, and Box.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://help.zscaler.com/zpa/about-log-streaming-service">Log Streaming Service (LSS) (Zscaler)</a> — ZPA log types and the raw TCP/TLS receiver transport</sub></li>
+<li><sub><a href="https://help.zscaler.com/zia/integrating-cloud-nss-cloud-based-siems">Integrating Cloud NSS with Cloud-Based SIEMs (Zscaler)</a> — the ZIA HTTPS push feed</sub></li>
+<li><sub><a href="https://help.zscaler.com/legacy-apis/understanding-zdx-api">Understanding the ZDX API (Zscaler Legacy APIs)</a> — the API pull and the two-hour report window; <a href="https://help.zscaler.com/zdx/about-webhooks">About Webhooks (Zscaler)</a> — the alert push path</sub></li>
+<li><sub><a href="https://help.zscaler.com/zdx/understanding-zdx-score">Understanding the ZDX Score (Zscaler)</a> — <em>&quot;The ZDX Score is based on a scale of 0 (lowest) to 100 (highest)&quot;</em>, with scores for users, applications, departments, locations and cities</sub></li>
+<li><sub><strong>Derived:</strong> the <em>cannot answer</em> column is this entry's reading of what each plane's vantage point excludes — no Zscaler page states the exclusions as such.</sub></li>
+</ul>
+</blockquote>
+<h3>3.4 Which plane answers which question</h3>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>ZPA logs</th>
+<th>ZIA logs</th>
+<th>ZDX</th>
+<th>How to combine them</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Who accessed what?</strong></td>
+<td>Strong — private apps</td>
+<td>Strong — SaaS and web</td>
+<td>User and app context</td>
+<td>Normalize <code>user</code> / <code>app</code> into shared dimensions; hash <code>user</code> (§ 6)</td>
+</tr>
+<tr>
+<td><strong>Was it slow?</strong></td>
+<td>Connection-setup timing proxies</td>
+<td>Proxy-level transaction timing</td>
+<td><strong>Best source</strong></td>
+<td>Use logs to localize, ZDX to characterize experience</td>
+</tr>
+<tr>
+<td><strong>Is the endpoint unhealthy?</strong></td>
+<td>No</td>
+<td>Limited / indirect</td>
+<td><strong>Yes</strong></td>
+<td>ZDX device metrics only</td>
+</tr>
+<tr>
+<td><strong>Is an ISP or network path degraded?</strong></td>
+<td>Limited</td>
+<td>Limited</td>
+<td><strong>Yes</strong></td>
+<td>ZDX cloud-path metrics only</td>
+</tr>
+<tr>
+<td><strong>Is connector infrastructure saturated?</strong></td>
+<td><strong>Yes</strong> — connector metrics and status</td>
+<td>No</td>
+<td>Indirect, via app experience</td>
+<td>Model connectors as entities (§ 7); alert on saturation and disconnects</td>
+</tr>
+<tr>
+<td><strong>Can raw records be minimized?</strong></td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Pull is already aggregated</td>
+<td>Extract metric / event / alert, then discard (§ 6)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The honest conclusion.</strong> Without ZDX, you can build a genuinely good access, traffic, and infrastructure-health integration — and you cannot build user-experience monitoring. Scope the project on that basis rather than discovering it at the demo.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://help.zscaler.com/zpa/understanding-user-activity-log-fields">Understanding User Activity Log Fields (Zscaler)</a></sub></li>
+<li><sub><a href="https://github.com/zscaler/terraform-provider-zpa/blob/master/docs/resources/zpa_lss_config_controller.md">zpa_lss_config_controller (Zscaler GitHub)</a> — the <code>zpn_*</code> log-type codes cited in § 3.1</sub></li>
+<li><sub><a href="https://help.zscaler.com/zdx/understanding-zdx-score">Understanding the ZDX Score (Zscaler)</a> — the 0–100 ZDX Score for users, applications, departments, locations and cities</sub></li>
+<li><sub><a href="https://help.zscaler.com/downloads/zdx/reference-architecture/zscaler-digital-experience-zdx/zscaler-digital-experience-zdx-reference-architecture.pdf">Zscaler Digital Experience reference architecture (Zscaler)</a></sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="transports"></a></p>
+<h2>4. Transport Reality — Why One Route Will Not Work</h2>
+<p>This is the section that most often invalidates a diagram drawn before the transports were checked. A typical first architecture shows &quot;Zscaler → Dynatrace ingest&quot; as a single arrow covering both ZIA and ZPA. <strong>That arrow is correct for ZIA and wrong for ZPA</strong>, and the difference is not a configuration detail — it decides whether you need to run infrastructure.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><strong>ZIA — Cloud NSS</strong></th>
+<th><strong>ZPA — LSS</strong></th>
+<th><strong>ZDX — API</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Direction</strong></td>
+<td>Push</td>
+<td>Push</td>
+<td><strong>Pull</strong> for telemetry; alerts can also push by webhook</td>
+</tr>
+<tr>
+<td><strong>Transport</strong></td>
+<td><strong>HTTPS</strong> to an API-based collector</td>
+<td><strong>Raw TCP</strong>, optional TLS</td>
+<td>HTTPS REST</td>
+</tr>
+<tr>
+<td><strong>Auth</strong></td>
+<td>Custom headers on the feed</td>
+<td>None at transport level — network reachability is the control; optional mutual TLS</td>
+<td><strong>API key</strong> (key ID + secret) exchanged at <code>/oauth/token</code> for a 60-minute bearer token</td>
+</tr>
+<tr>
+<td><strong>Formats</strong></td>
+<td><strong>JSON</strong> — the exact format the ZIA extension requires; custom templates only for a self-built pipeline</td>
+<td>CSV, TSV or <strong>JSON</strong> templates — the ZPA extension requires its own JSON templates</td>
+<td>JSON</td>
+</tr>
+<tr>
+<td><strong>Reaches Dynatrace unaided?</strong></td>
+<td><strong>Yes</strong></td>
+<td><strong>No — collector hop required</strong></td>
+<td>No — needs a scheduled caller</td>
+</tr>
+</tbody>
+</table>
+<h3>4.1 ZPA LSS — the constraint to design around</h3>
+<p>LSS is configured as a <strong>log receiver</strong> defined by a host, a port, and an optional TLS flag; App Connectors open a TCP connection to it and stream. There is no HTTPS output and no custom-header support, which means <strong>LSS cannot authenticate to the Dynatrace log ingest API</strong>. Something must terminate the TCP stream and forward it.</p>
+<blockquote>
+<p><strong>Two pages describe the direction differently.</strong> Zscaler describes LSS as a service that <em>&quot;initiates a log stream through a Public Service Edge for Private Access&quot;</em>, and says the App Connector <em>&quot;receives the log stream and then forwards it to a log receiver&quot;</em>. On that reading, the connection your receiver accepts comes from an App Connector in your own network, which is how this section describes it. The Dynatrace ZPA extension page (published 10/09/2026) says, about testing the inbound path, that <em>&quot;LSS connects from the Zscaler cloud and there is no host there to run a command on.&quot;</em> This entry follows Zscaler, which documents its own data path. If your receiver admits only known sources, check at the shipper which addresses actually connect before you finalize firewall rules.</p>
+</blockquote>
+<p>Your options:</p>
+<table>
+<thead>
+<tr>
+<th>Terminator</th>
+<th>When it fits</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Fluent Bit or BindPlane</strong></td>
+<td>The two shippers the ZPA extension documents (§ 2.2). Fluent Bit posts to the log ingest API, BindPlane to the OTLP logs endpoint; both forward records unparsed</td>
+</tr>
+<tr>
+<td><strong>OpenTelemetry Collector</strong></td>
+<td>The general answer. Run it near the connectors, use a TCP or syslog receiver, forward to Dynatrace</td>
+</tr>
+<tr>
+<td><strong>ActiveGate syslog ingestion</strong></td>
+<td>Self-built pipelines only, if you template LSS output to syslog format — the ZPA extension needs its own JSON templates. Environment ActiveGate on Linux, 1.295+; multi-environment ActiveGates are not supported</td>
+</tr>
+<tr>
+<td><strong>An existing pipeline product</strong></td>
+<td>If Zscaler logs already flow to a SIEM through one, multi-home an output (§ 5.2) — usually the least new infrastructure</td>
+</tr>
+</tbody>
+</table>
+<p>Three further LSS properties shape the build:</p>
+<ul>
+<li><strong>One log type per receiver configuration.</strong> User Activity, App Connector Metrics, and App Connector Status are three separate LSS configurations. Each names its own host and TCP port. With the ZPA extension's templates every log type can share one shipper endpoint, because each record carries its own <code>sourcetype</code> (§ 2.2). For a self-built pipeline on a template without a log-type field, community practice is one port per log type, so the collector can tell the streams apart. Plan the configuration count up front.</li>
+<li><strong>Choose JSON as the log template.</strong> With the ZPA extension that means its own published templates, which are required (§ 2.2). For a self-built pipeline, LSS offers CSV, TSV, and JSON templates. CSV means positional DPL parsing that breaks silently when Zscaler adds a column, whereas JSON tolerates schema growth.</li>
+<li><strong>A receiver outage is data loss.</strong> Apart from audit logs, LSS does not send what was generated while the connection to the receiver was down. Run the collector highly available if gaps in the feed matter to you.</li>
+</ul>
+<h3>4.2 ZDX — pull for telemetry, webhooks for alerts</h3>
+<p>The ZDX API authenticates with an <strong>API key</strong> — a key ID and secret created on the ZDX Admin Portal — exchanged at <code>/oauth/token</code> for a bearer token that lasts 60 minutes. API access requires the <strong>ZDX Advanced Plan</strong>; confirm it in phase 1. Zscaler files this flow under <em>Legacy Zscaler APIs</em>, and its getting-started page sends anyone using Zscaler OneAPI endpoints to API clients in the Authentication Service instead — check which applies to your tenant before you build the poller. The property that shapes your poller: most report endpoints serve a <strong>two-hour window per request</strong>, so longer ranges require multiple calls.</p>
+<p>ZDX <strong>alerts</strong> have a second route: ZDX can push them by webhook, with Basic, Token, or OAuth authentication. That is a push path for alert notifications, not for scores or device metrics. Zscaler's webhook page does not say whether a ZDX webhook can call the Dynatrace ingest API directly with the authorization header it requires — test that, or plan a small relay, before relying on it.</p>
+<p>Practical consequences:</p>
+<ul>
+<li><strong>Poll on a schedule near the window</strong>, not aggressively. A poller asking for two hours every two hours is the natural cadence; asking every minute mostly re-fetches.</li>
+<li><strong>Lag the window.</strong> Zscaler estimates a 20-minute delay from collection to reporting, so a window fetched the moment it closes is incomplete. Offset each request by that delay, or re-fetch the previous window.</li>
+<li><strong>Drop <code>-1</code> scores before ingest.</strong> A ZDX Score of <code>-1</code> means no data is available, not a terrible score — ingested as a value it drags every average down and fires score-degradation alerts.</li>
+<li><strong>Backfill is a loop, not a parameter.</strong> Seeding history means iterating windows — build that in rather than bolting it on.</li>
+<li><strong>Credential expiry is a silent failure.</strong> The bearer token lasts an hour, so the poller re-authenticates on every run; a revoked or expired API key stops it. Nothing in Dynatrace knows the ZDX poller stopped. Alert on the <em>absence</em> of the ZDX metrics you extract, not just on their values.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://help.zscaler.com/zpa/about-log-streaming-service">Log Streaming Service (LSS) (Zscaler)</a> — <em>&quot;initiates a log stream through a Public Service Edge for Private Access&quot;</em>; <em>&quot;With the exception of audit log data, the LSS does not transmit any log data generated during a connection loss between the App Connector and the SIEM.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zpa">Zscaler Private Access (ZPA) extension (DT docs)</a> — <em>&quot;LSS connects from the Zscaler cloud&quot;</em>, read 11/11/2026</sub></li>
+<li><sub><a href="https://help.zscaler.com/zpa/configuring-log-receiver">Configuring a Log Receiver (Zscaler)</a> — one Log Type, one TCP port and one Log Template (CSV, TSV or JSON) per receiver configuration</sub></li>
+<li><sub><a href="https://help.zscaler.com/legacy-apis/understanding-zdx-api">Understanding the ZDX API (Zscaler Legacy APIs)</a> — <em>&quot;Most Report API endpoints require a 2-hour time range to provide 2 hours of data.&quot;</em>; <em>&quot;This can cause a delay from collection to reporting, which is estimated to be 20 minutes.&quot;</em>; <em>&quot;If you receive a ZDX Score of -1 on the ZDX API, then there is no data available.&quot;</em></sub></li>
+<li><sub><a href="https://help.zscaler.com/legacy-apis/getting-started-zdx-api">Getting Started with the ZDX API (Zscaler Legacy APIs)</a> — <em>&quot;Be a ZDX Advanced Plan User.&quot;</em>; <em>&quot;Upon successful authentication, a bearer token will last 3,600 seconds or 60 minutes.&quot;</em></sub></li>
+<li><sub><a href="https://help.zscaler.com/zdx/about-webhooks">About Webhooks (Zscaler)</a> — <em>&quot;When an event occurs, the webhook sends real-time data to a specific URL or API endpoint as an HTTP callback.&quot;</em></sub></li>
+<li><sub><a href="https://help.zscaler.com/zia/integrating-cloud-nss-cloud-based-siems">Integrating Cloud NSS with Cloud-Based SIEMs (Zscaler)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zia">Zscaler Internet Access (ZIA) extension (DT docs)</a> — <em>&quot;Each feed must use the exact JSON Feed Output Format below so that field names match the pipeline parsers.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-syslog">Syslog ingestion with ActiveGate (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zpa">Zscaler Private Access (ZPA) extension (DT docs)</a> — <em>&quot;so a log shipper between ZPA and Dynatrace is required rather than optional&quot;</em>; <em>&quot;Every log type can share the same shipper endpoint&quot;</em></sub></li>
+<li><sub><strong>Derived:</strong> the ActiveGate-syslog row is limited to self-built pipelines because the ZPA extension needs its own JSON templates, forwarded unmodified. The one-port-per-log-type layout is community practice for self-built pipelines, not a documented requirement</sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="architecture"></a></p>
+<h2>5. Recommended Ingestion Architecture</h2>
+<p>Two patterns, chosen by whether Zscaler logs already flow through a pipeline product you operate.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJmYTIwLWFycm93IiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8dGV4dCB4PSI0NjUiIHk9IjM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5Ud28gSW5nZXN0aW9uIFBhdHRlcm5zIOKAlCBhbmQgV2h5IFpQQSBOZWVkcyBhIEhvcDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5aRFggdGVsZW1ldHJ5IG5ldmVyIGpvaW5zIHRoZSBsb2cgcGF0aDogYW4gQVBJIHB1bGwgcHJvZHVjaW5nIG1ldHJpY3MsIG9uIGEgc2VwYXJhdGUgdHJhY2s8L3RleHQ+CgogIDwhLS0gUGF0dGVybiBBIC0tPgogIDxyZWN0IHg9IjQwIiB5PSI3NiIgd2lkdGg9Ijg1MCIgaGVpZ2h0PSIxODQiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDYiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNjIiIHk9IjEwMCIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+UGF0dGVybiBBIOKAlCBkaXJlY3QsIHBsdXMgYSBsb2cgc2hpcHBlciBmb3IgWlBBPC90ZXh0PgogIDx0ZXh0IHg9IjYyIiB5PSIxMTgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPldoZW4gbG9ncyBhcmUgbm90IGFscmVhZHkgY2VudHJhbGl6ZWQuIFlvdSBydW4gb25lIGxvZyBzaGlwcGVyOyB0aGUgZmVlZCBkZXBlbmRzIG9uIG5vYm9keSBlbHNlLjwvdGV4dD4KCiAgPHJlY3QgeD0iNjIiIHk9IjEzMCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI0NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiByeD0iNiIvPgogIDx0ZXh0IHg9IjEyNyIgeT0iMTQ5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5aSUE8L3RleHQ+CiAgPHRleHQgeD0iMTI3IiB5PSIxNjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkNsb3VkIE5TUyDCtyBIVFRQUzwvdGV4dD4KICA8bGluZSB4MT0iMTkyIiB5MT0iMTUzIiB4Mj0iMjUyIiB5Mj0iMTUzIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2ZhMjAtYXJyb3cpIi8+CgogIDxyZWN0IHg9IjYyIiB5PSIxOTIiIHdpZHRoPSIxMzAiIGhlaWdodD0iNDYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgcng9IjYiLz4KICA8dGV4dCB4PSIxMjciIHk9IjIxMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+WlBBPC90ZXh0PgogIDx0ZXh0IHg9IjEyNyIgeT0iMjI3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEwIj5MU1MgwrcgcmF3IFRDUC9UTFM8L3RleHQ+CiAgPGxpbmUgeDE9IjE5MiIgeTE9IjIxNSIgeDI9IjI1MiIgeTI9IjIxNSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNmYTIwLWFycm93KSIvPgoKICA8cmVjdCB4PSIyNTIiIHk9IjE5MiIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI0NiIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMzI3IiB5PSIyMTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkxvZyBzaGlwcGVyIGhvcDwvdGV4dD4KICA8dGV4dCB4PSIzMjciIHk9IjIyNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+Rmx1ZW50IEJpdCAvIEJpbmRQbGFuZSAvIE9UZWw8L3RleHQ+CiAgPGxpbmUgeDE9IjQwMiIgeTE9IjIxNSIgeDI9IjQ3MiIgeTI9IjE4MiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNmYTIwLWFycm93KSIvPgogIDxsaW5lIHgxPSIyNTIiIHkxPSIxNTMiIHgyPSI0NzIiIHkyPSIxNTMiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZmEyMC1hcnJvdykiLz4KCiAgPHJlY3QgeD0iNDcyIiB5PSIxMzAiIHdpZHRoPSIxNTAiIGhlaWdodD0iMTA4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMiIgcng9IjYiLz4KICA8dGV4dCB4PSI1NDciIHk9IjE2NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+RHluYXRyYWNlPC90ZXh0PgogIDx0ZXh0IHg9IjU0NyIgeT0iMTg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5sb2cgaW5nZXN0IEFQSTwvdGV4dD4KICA8dGV4dCB4PSI1NDciIHk9IjIwMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+KyBaSUEgLyBaUEEgZXh0ZW5zaW9uczwvdGV4dD4KICA8bGluZSB4MT0iNjIyIiB5MT0iMTg0IiB4Mj0iNjgyIiB5Mj0iMTg0IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2ZhMjAtYXJyb3cpIi8+CgogIDxyZWN0IHg9IjY4MiIgeT0iMTMwIiB3aWR0aD0iMTg2IiBoZWlnaHQ9IjEwOCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc3NSIgeT0iMTU0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5FeHRyYWN0LCB0aGVuIGRpc2NhcmQ8L3RleHQ+CiAgPHRleHQgeD0iNzc1IiB5PSIxNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTAiPlpJQSBleHQuOiB6aWEuKiArIGVudGl0aWVzPC90ZXh0PgogIDx0ZXh0IHg9Ijc3NSIgeT0iMTg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEwIj5aUEEgZXh0LjogenBhLiogKyBlbnRpdGllczwvdGV4dD4KICA8dGV4dCB4PSI3NzUiIHk9IjIwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+U2VsZi1idWlsdDogQ1VTVE9NXyogbm9kZXM8L3RleHQ+CiAgPHRleHQgeD0iNzc1IiB5PSIyMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnJhdyDihpIgTm8gc3RvcmFnZSBhc3NpZ25tZW50PC90ZXh0PgoKICA8IS0tIFpEWCBzZXBhcmF0ZSB0cmFjayAtLT4KICA8cmVjdCB4PSI2MiIgeT0iMjcyIiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjQ2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMiIgcng9IjYiLz4KICA8dGV4dCB4PSIxMjciIHk9IjI5MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+WkRYPC90ZXh0PgogIDx0ZXh0IHg9IjEyNyIgeT0iMzA3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEwIj5SRVNUIEFQSSDCtyBwdWxsPC90ZXh0PgoKICA8cmVjdCB4PSIyNTIiIHk9IjI3MiIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI0NiIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSIzMjciIHk9IjI5MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+U2NoZWR1bGVkIHBvbGxlcjwvdGV4dD4KICA8dGV4dCB4PSIzMjciIHk9IjMwNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+Mi1ob3VyIHdpbmRvdyBwZXIgcmVxdWVzdDwvdGV4dD4KICA8bGluZSB4MT0iMTkyIiB5MT0iMjk1IiB4Mj0iMjUyIiB5Mj0iMjk1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2ZhMjAtYXJyb3cpIi8+CiAgPHBhdGggZD0iTSA0MDIgMjk1IFEgNDYwIDI5NSA1MDAgMjQ2IiBmaWxsPSJub25lIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtZGFzaGFycmF5PSI0LDMiIG1hcmtlci1lbmQ9InVybCgjZmEyMC1hcnJvdykiLz4KICA8dGV4dCB4PSI0NTUiIHk9IjMxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+bWV0cmljIGluZ2VzdCDigJQgc2VwYXJhdGUgdHJhY2s8L3RleHQ+CgogIDwhLS0gUGF0dGVybiBCIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIzMzgiIHdpZHRoPSI4NTAiIGhlaWdodD0iMTQwIiBmaWxsPSIjMjJEM0VFIiBvcGFjaXR5PSIwLjA2IiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjYyIiB5PSIzNjIiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPlBhdHRlcm4gQiDigJQgbXVsdGktaG9tZSBmcm9tIGFuIGV4aXN0aW5nIHBpcGVsaW5lPC90ZXh0PgogIDx0ZXh0IHg9IjYyIiB5PSIzODAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPldoZW4gbG9ncyBhbHJlYWR5IHJlYWNoIGEgU0lFTS4gQWRkIGFuIG91dHB1dCDigJQgbmV2ZXIgcmUtcG9pbnQgdGhlIHNvdXJjZS4gU29sdmVzIHRoZSBaUEEgdHJhbnNwb3J0IHByb2JsZW0gZm9yIGZyZWUuPC90ZXh0PgoKICA8cmVjdCB4PSI2MiIgeT0iMzk0IiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM0NzU1NjkiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTI3IiB5PSI0MTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlpJQSArIFpQQTwvdGV4dD4KICA8dGV4dCB4PSIxMjciIHk9IjQzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+dW5jaGFuZ2VkPC90ZXh0PgogIDxsaW5lIHgxPSIxOTIiIHkxPSI0MjQiIHgyPSIyNTIiIHkyPSI0MjQiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZmEyMC1hcnJvdykiLz4KCiAgPHJlY3QgeD0iMjUyIiB5PSIzOTQiIHdpZHRoPSIxNTAiIGhlaWdodD0iNjAiIGZpbGw9IiMyMkQzRUUiIG9wYWNpdHk9IjAuMTIiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iNiIvPgogIDx0ZXh0IHg9IjMyNyIgeT0iNDE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5FeGlzdGluZyBwaXBlbGluZTwvdGV4dD4KICA8dGV4dCB4PSIzMjciIHk9IjQzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+YWxyZWFkeSB0ZXJtaW5hdGVzIFRDUDwvdGV4dD4KCiAgPGxpbmUgeDE9IjQwMiIgeTE9IjQxMCIgeDI9IjQ3MiIgeTI9IjQxMCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNmYTIwLWFycm93KSIvPgogIDxyZWN0IHg9IjQ3MiIgeT0iMzkwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjM0IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM0NzU1NjkiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNTYyIiB5PSI0MTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPlNJRU0gb3V0cHV0IOKAlCB1bnRvdWNoZWQ8L3RleHQ+CgogIDxsaW5lIHgxPSI0MDIiIHkxPSI0NDAiIHgyPSI0NzIiIHkyPSI0NDYiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZmEyMC1hcnJvdykiLz4KICA8cmVjdCB4PSI0NzIiIHk9IjQzMCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIzNCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNTYyIiB5PSI0NTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPk5ldyBEeW5hdHJhY2Ugb3V0cHV0PC90ZXh0PgoKICA8cmVjdCB4PSI2NzIiIHk9IjM5NCIgd2lkdGg9IjE5NiIgaGVpZ2h0PSI2MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc3MCIgeT0iNDE2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5UcmFkZS1vZmY8L3RleHQ+CiAgPHRleHQgeD0iNzcwIiB5PSI0MzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmluaGVyaXRzIHRoZSBwaXBlbGluZSdzIGF2YWlsYWJpbGl0eTwvdGV4dD4KICA8dGV4dCB4PSI3NzAiIHk9IjQ0OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+YW5kIGNoYW5nZSBwcm9jZXNzPC90ZXh0Pgo8L3N2Zz4K" alt="Two Zscaler ingestion patterns, with ZDX on a separate track" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Pattern | ZIA | ZPA | ZDX |
+|---|---|---|---|
+| A — direct plus a log shipper | Cloud NSS HTTPS direct to the log ingest API | LSS raw TCP/TLS into a log shipper (Fluent Bit, BindPlane or an OTel Collector), then the ZPA extension; ActiveGate syslog only for a self-built pipeline | Scheduled poller into metric ingest — separate track |
+| B — multi-home from an existing pipeline | Existing pipeline gains a new Dynatrace output; the SIEM output is untouched | Same; the pipeline already terminates TCP, so no new collector | Unchanged — ZDX is pull, so the pipeline is not in this path |
+ZIA runs through the ZIA extension's own pipelines, metrics and ZIA Location / User / Tunnel entities, and ZPA through the ZPA extension's (zpa.* metrics, ZPA entities). For ZDX and any self-built pipeline, OpenPipeline extracts metrics, events, and CUSTOM_* nodes, then discards raw via No storage assignment; any retained raw goes to a dedicated bucket. ZDX telemetry never joins the log path. Pattern B's trade-off is that the feed inherits the pipeline's availability and change process.
+For environments where SVG doesn't render
+-->
+<h3>5.1 Pattern A — direct, plus a log shipper for ZPA</h3>
+<p>Appropriate when Zscaler logs are not already centralized, or when the existing pipeline is not something you want to depend on.</p>
+<table>
+<thead>
+<tr>
+<th>Feed</th>
+<th>Path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ZIA</strong></td>
+<td>Cloud NSS → <strong>Dynatrace log ingest API</strong> → the <strong>ZIA extension's</strong> OpenPipeline routes (§ 2.1)</td>
+</tr>
+<tr>
+<td><strong>ZPA</strong></td>
+<td>LSS → <strong>log shipper</strong> (Fluent Bit, BindPlane or an OTel Collector) → Dynatrace → the <strong>ZPA extension's</strong> OpenPipeline routes (§ 2.2). ActiveGate syslog only for a self-built pipeline</td>
+</tr>
+<tr>
+<td><strong>ZDX</strong></td>
+<td>Scheduled poller → Dynatrace metric ingest → OpenPipeline</td>
+</tr>
+</tbody>
+</table>
+<p>You run and monitor one log shipper — highly available if gaps matter, because LSS does not resend what it generated while the receiver was unreachable (§ 4.1). In exchange, the observability feed has no dependency on another team's platform.</p>
+<h3>5.2 Pattern B — multi-home from an existing pipeline</h3>
+<p>Appropriate — and usually preferable — when Zscaler logs already reach a SIEM or security data lake through a pipeline product. <strong>Add an output; do not re-point the source.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Feed</th>
+<th>Path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ZIA + ZPA</strong></td>
+<td>Zscaler → existing pipeline → <em>(existing SIEM output, untouched)</em> + <strong>new Dynatrace output</strong>. For ZIA, the extension's route matches on the NSS <code>sourcetype</code>, so the forwarded records must keep the Cloud NSS JSON shape it expects — or send ZIA direct (Pattern A) and multi-home ZPA only. For ZPA under the extension, the pipeline must forward its LSS records unmodified (§ 2.2)</td>
+</tr>
+<tr>
+<td><strong>ZDX</strong></td>
+<td>Scheduled poller → Dynatrace (unchanged — ZDX is pull, so the pipeline is not in this path)</td>
+</tr>
+</tbody>
+</table>
+<p>Why this is usually the right enterprise answer:</p>
+<ul>
+<li><strong>The security pipeline is undisturbed.</strong> Re-pointing a feed a SOC depends on is a change with a blast radius outside observability. Adding an output is not.</li>
+<li><strong>You get a transformation point you control.</strong> Mask, hash, and reduce fields on the observability copy while the security copy stays complete — except on records an extension parses, which must keep the extension's exact format (§ 2.2, § 6).</li>
+<li><strong>The ZPA transport problem is already solved.</strong> The pipeline terminates TCP already; its outputs are ordinary HTTP. No new collector.</li>
+</ul>
+<p>Dynatrace publishes Hub destinations for at least one common pipeline product over both HTTP and OpenTelemetry, so this is a supported path rather than an improvisation.</p>
+<p><strong>The trade-off, stated plainly:</strong> the observability feed inherits the pipeline's availability, release cadence, and change process. Where that pipeline is already business-critical, this costs nothing. Where it is a best-effort side system, Pattern A is more honest.</p>
+<p><strong>Note that ZDX telemetry does not participate in either pattern's log path.</strong> It is an API pull producing metrics, and it stays a separate track. Teams routinely under-scope it because the architecture diagram shows one Zscaler box.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zpa">Zscaler Private Access (ZPA) extension (DT docs)</a> — <em>&quot;The shipper must forward records unmodified&quot;</em>, <a href="https://www.dynatrace.com/hub/detail/cribl-via-http/">Cribl via HTTP (Dynatrace Hub)</a>, <a href="https://www.dynatrace.com/hub/detail/cribl-via-opentelemetry/">Cribl via OpenTelemetry (Dynatrace Hub)</a>, <a href="https://www.dynatrace.com/hub/detail/syslog-via-opentelemetry-collector/">Syslog via OpenTelemetry Collector (Dynatrace Hub)</a>.</sub></p>
+</blockquote>
+<hr />
+<p><a id="extract"></a></p>
+<h2>6. What to Extract, What to Discard</h2>
+<p>Zscaler logs carry user identity, destination, device, policy, and application context. Raw retention should be a decision someone signs, not a default someone inherits. The mechanics — and the <code>Drop record</code> versus <code>No storage assignment</code> trap that silently defeats this pattern — are in <strong>FAQ-19 § 4</strong>; do not configure this without reading it.</p>
+<table>
+<thead>
+<tr>
+<th>Extract</th>
+<th>Example</th>
+<th>Retention posture</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Metric</strong></td>
+<td>Average ZPA connection-setup time by application; ZIA request and error counts by application; connector CPU / memory / active connections; ZDX score by application and location</td>
+<td><strong>Keep the metric.</strong> Discard the source record unless separately justified</td>
+</tr>
+<tr>
+<td><strong>Business event</strong></td>
+<td>A user reached a critical private application from an unusual region</td>
+<td><strong>Keep</strong>, with minimal fields</td>
+</tr>
+<tr>
+<td><strong>Alert / problem</strong></td>
+<td>Connector disconnected; SaaS error rate spike; ZDX score degradation</td>
+<td><strong>Keep</strong> with entity context attached (§ 7)</td>
+</tr>
+<tr>
+<td><strong>Raw record</strong></td>
+<td>Full ZIA or ZPA transaction payload</td>
+<td><strong>Discard by default.</strong> Retain only where security or compliance asks — then in a dedicated bucket with its own permissions</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Field-level controls in the Processing stage, before storage:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field class</th>
+<th>Control</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Username</code> and user identifiers</td>
+<td><strong>Hash</strong> — preserves correlation across ZIA / ZPA / ZDX without exposing identity. Note that a hash of a username drawn from a known directory is enumerable; this is a control against casual exposure, not a privacy guarantee</td>
+</tr>
+<tr>
+<td>Full URLs with query strings</td>
+<td><strong>Mask</strong> or truncate to host and path — query strings routinely carry tokens and identifiers</td>
+</tr>
+<tr>
+<td>Fields with no analytical use</td>
+<td><strong>Remove.</strong> Cheapest control; apply first</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Normalize before you extract.</strong> Zscaler's feeds disagree with each other about field names — <code>appname</code> in ZIA web logs, <code>Application</code> in ZPA User Activity, an application field again in the ZDX API response. Rename all three into a single canonical <code>app</code> dimension in the Processing stage. Metric dimensions and Smartscape ID components are computed from fields as they stand at their stage, so renaming afterwards leaves metrics dimensioned on the old names with no way to retrofit them.</p>
+<p><strong>ZIA under the extension.</strong> The extension parses only feeds that use its exact JSON output format: a changed <code>sourcetype</code>, a non-JSON output type, or renamed fields mean the logs are still ingested but not parsed — no metrics, no topology, empty dashboards. Its page documents parsing, metric extraction and topology, and says nothing about where the raw ZIA records are stored, so check where they land (the bucket query below shows it) rather than assuming they are discarded.</p>
+<p><strong>ZPA under the extension.</strong> The same holds for ZPA: records must use the extension's templates and arrive unmodified, or they are ingested but not parsed. Its page documents parsing, metrics and topology and does not say where the raw ZPA records are stored, so check that with the bucket query below as well.</p>
+<p>If you run a <strong>self-built</strong> ZIA pipeline on a non-JSON NSS template instead, a parsing example is worth having in hand. This runs as-is and scans nothing:</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — stage order, and the <code>Drop record</code> versus <code>No storage assignment</code> behaviour this table depends on, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment">Configure data storage and retention for logs (DT docs)</a> — route-based storage assignment and per-bucket retention. <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zia">Zscaler Internet Access (ZIA) extension (DT docs)</a> — <em>&quot;an output type other than JSON, or renamed or missing fields mean the logs are still ingested but are not parsed.&quot;</em> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zpa">Zscaler Private Access (ZPA) extension (DT docs)</a> — <em>&quot;a renamed field, or a missing one means the logs are still ingested but are not parsed&quot;</em>. <strong>Derived:</strong> the retention-posture column applies FAQ-19 § 4's extract-then-discard rule to Zscaler's signal mix.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// DPL parse of a templated ZIA-style web log line — for a SELF-BUILT ZIA
+// pipeline only; the ZIA extension requires its exact JSON feed format.
+// Runs standalone against a synthetic record — zero bytes scanned.
+// Adapt the matchers to your own NSS feed template.
+// The leading LD skips the timestamp: in OpenPipeline the event timestamp is
+// mapped by its own processor rather than parsed out of the message body.
+data record(content = &quot;2026-07-31T10:15:02Z user=jdoe@example.com app=Salesforce url=https://example.my.salesforce.com/services/data respcode=200 reqsize=812 respsize=44311 location=US-East&quot;)
+| parse content, &quot;LD 'user=' STRING:user ' app=' LD:app ' url=' LD:url ' respcode=' INT:respcode ' reqsize=' INT:reqsize ' respsize=' INT:respsize ' location=' LD:location&quot;
+| fields user, app, respcode, reqsize, respsize, location
+</code></pre>
+<p>For a <strong>self-built</strong> ZPA pipeline on JSON output — recommended in § 4.1 — parsing is simpler and survives Zscaler adding fields. (With the ZPA extension, its own pipeline parses its templates.)</p>
+<pre><code class="language-dql">// JSON-format ZPA User Activity record, for a SELF-BUILT ZPA pipeline only —
+// the ZPA extension parses its own templates. Also runs standalone at zero scan.
+// Prefer this over CSV: adding a field upstream does not break the parse.
+// Zscaler documents most ZPA timing fields in microseconds; the unit of
+// ConnectionSetupTime is not stated — confirm it from your own feed before
+// converting or labelling it.
+data record(content = &quot;{\&quot;LogTimestamp\&quot;:\&quot;2026-07-31T10:15:02Z\&quot;,\&quot;Username\&quot;:\&quot;jdoe@example.com\&quot;,\&quot;Application\&quot;:\&quot;payroll-app\&quot;,\&quot;Connector\&quot;:\&quot;dc1-connector-01\&quot;,\&quot;ClientZEN\&quot;:\&quot;iad3-zpa-edge\&quot;,\&quot;ConnectionStatus\&quot;:\&quot;active\&quot;,\&quot;ConnectionSetupTime\&quot;:42}&quot;)
+| parse content, &quot;JSON:j&quot;
+| fieldsAdd user = j[Username], app = j[Application], connector = j[Connector], edge = j[ClientZEN], setup_time = j[ConnectionSetupTime]
+| fields user, app, connector, edge, setup_time
+</code></pre>
+<p>While raw records are still being retained — during build-out, or where compliance requires it — confirm they land in the dedicated bucket rather than the default. This applies to the ZIA and ZPA extensions' records too. (Executed 10/02/2026: valid, no notifications, no rows on a tenant without Zscaler data. Re-run 10/15/2026: no rows, 0.11 GB scanned for the hour against 2.1 GB unfiltered. Re-run 11/11/2026 with the ZPA match added: valid, no notifications, no rows, 0.08 GB scanned for the hour.)</p>
+<pre><code class="language-dql">// Where are retained Zscaler records landing? Any row whose bucket is
+// default_logs is a Zscaler record that missed its bucket assignment.
+// ZIA feeds carry sourcetype &quot;zscalernss-*&quot; (the ZIA extension's route key);
+// ZPA records sent with the ZPA extension's templates carry &quot;zscalerlss&quot; in
+// content (its route key). The log.source match is a placeholder for however
+// a self-built ZPA collector tags its records — adapt it. Every record in the window is evaluated, and the
+// bytes scanned follow what the filter matches (see FAQ-09): keep the window short.
+fetch logs, from:-1h
+| filter matchesPhrase(sourcetype, &quot;zscalernss&quot;) or matchesPhrase(content, &quot;zscalerlss&quot;) or matchesValue(log.source, &quot;*zscaler*&quot;)
+| summarize records = count(), by:{dt.system.bucket}
+</code></pre>
+<p>Once metric extraction is live, confirm the metrics exist before building dashboards on them. This costs nothing to run:</p>
+<pre><code class="language-dql">// Which Zscaler metrics has extraction actually produced?
+// zia.* comes from the ZIA extension and zpa.* from the ZPA extension;
+// zscaler.* is the self-built scheme suggested in section 8 — adjust it to
+// whatever you settled on.
+// Zero rows means extraction is not producing — check the pipeline before
+// assuming a dashboard problem.
+metrics
+| filter startsWith(metric.key, &quot;zia.&quot;) or startsWith(metric.key, &quot;zpa.&quot;) or startsWith(metric.key, &quot;zscaler.&quot;)
+| fields metric.key
+</code></pre>
+<p>And a representative consumption query over an extracted metric:</p>
+<pre><code class="language-dql">// Top SaaS applications by request volume, from the extracted metric
+// rather than from a recurring log scan. zscaler.zia.request.count is the
+// section 8 scheme for a SELF-BUILT ZIA pipeline; with the ZIA extension,
+// query its zia.* metrics instead (list them with the query above).
+timeseries requests = sum(zscaler.zia.request.count), from:-24h, by:{app, location}
+| fieldsAdd total = arraySum(requests)
+| sort total desc
+| limit 10
+</code></pre>
+<hr />
+<p><a id="topology"></a></p>
+<h2>7. Suggested Topology Model</h2>
+<p>The highest-leverage design decision in this integration, and the one that pays off in every dashboard and alert afterwards. <strong>Scope it to what the extensions do not cover</strong> — the ZIA extension already discovers ZIA Location, ZIA User and ZIA Tunnel entities (§ 2.1), and the ZPA extension ZPA User, Application, App Group, App Connector and App Connector Group entities among others (§ 2.2). With both extensions in place the model below is for ZDX; its ZPA rows apply only to a ZPA pipeline you build yourself — do not build <code>CUSTOM_*</code> ZPA nodes alongside the extension's own. The mechanics — Smartscape ID components, <code>CUSTOM_</code> / <code>EXT_</code> naming, static versus dynamic edges, and the prerequisite that both IDs exist on the record before an edge processor runs — are in <strong>FAQ-19 § 5</strong>. What follows is the Zscaler-specific model.</p>
+<table>
+<thead>
+<tr>
+<th>Node type</th>
+<th>Examples</th>
+<th>Defined by</th>
+<th>Why it earns entity status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CUSTOM_SECURE_ACCESS_APP</code></td>
+<td>Salesforce, ServiceNow, Microsoft 365, <code>payroll-app</code></td>
+<td>ZPA User Activity (ZIA web logs only if you run your own ZIA pipeline instead of the extension)</td>
+<td>The join key across the planes you model yourself. Routes metrics and alerts to the right application owner. With the ZPA extension in place, a ZDX record can meet the extension's <code>ZPA_APPLICATION</code> entity only on the application name: the extension page lists its node types but not how their IDs are built, so a hand-built edge to them cannot be specified</td>
+</tr>
+<tr>
+<td><code>CUSTOM_APP_CONNECTOR</code></td>
+<td><code>dc1-connector-01</code></td>
+<td>ZPA App Connector Metrics</td>
+<td>Enables connector health and saturation alerting — the clearest infrastructure win in the whole integration</td>
+</tr>
+<tr>
+<td><code>CUSTOM_CONNECTOR_GROUP</code></td>
+<td><code>finance-app-connectors</code></td>
+<td>ZPA connector metadata</td>
+<td>Regional and application-specific operations; the natural grouping for on-call ownership</td>
+</tr>
+<tr>
+<td><code>CUSTOM_SERVICE_EDGE</code></td>
+<td><code>iad3-zpa-edge</code></td>
+<td>ZPA User Activity (<code>ClientZEN</code>)</td>
+<td>Isolates edge-specific degradation from application-specific degradation</td>
+</tr>
+<tr>
+<td><code>CUSTOM_ACCESS_LOCATION</code></td>
+<td><code>US-East</code>, a named office</td>
+<td>ZPA and ZDX (ZIA locations are the extension's ZIA Location entity)</td>
+<td>The primary triage and grouping axis, and the one executives ask about</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Modeling notes that matter in practice:</strong></p>
+<ul>
+<li><strong>One feed defines each node; the rest enrich by ID only.</strong> App Connector Metrics defines <code>CUSTOM_APP_CONNECTOR</code> — User Activity references it. Extracting the same node from two feeds gives you two sources of truth for its fields.</li>
+<li><strong>Choose stable ID components.</strong> Prefer Zscaler-assigned identifiers over display names. A connector renamed in the admin console should not become a second entity.</li>
+<li><strong>Static edges for structure, dynamic for observation.</strong> A connector <em>belongs to</em> a connector group — static. A service edge <em>served</em> an application during a window — dynamic, which means both Smartscape IDs must already be on the record when the edge processor runs.</li>
+<li><strong>Do not model users as entities in your own model.</strong> User identity is a hashed dimension (§ 6), not a node type. Modeling it produces enormous cardinality and a compliance surface you spent § 6 avoiding. The ZIA and ZPA extensions make the opposite choice — they discover ZIA User and ZPA User entities — so decide deliberately whether that is acceptable for your data, and do not add a second user entity for ZDX.</li>
+<li><strong>Resist over-modeling.</strong> Five node types is a maintainable topology. Fifteen is a second system.</li>
+</ul>
+<p>Verify the model exists before building on it — <code>smartscapeNodes</code> returns zero rows rather than an error for a type that was never extracted, so an empty result proves only that the query is valid:</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zia">Zscaler Internet Access (ZIA) extension (DT docs)</a> — the extension's ZIA Location / User / Tunnel entities, <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zpa">Zscaler Private Access (ZPA) extension (DT docs)</a> — <em>&quot;The extension creates ZPA_USER, ZPA_APPLICATION, ZPA_APP_GROUP&quot;</em> (no ID components documented, checked 11/11/2026), <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/smartscape-extraction">Smartscape node and edge extraction in OpenPipeline (DT docs)</a> — <code>CUSTOM_*</code> node and edge extraction, ID components, and the requirement that both IDs be present on the record before an edge processor runs, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-topology">Define custom topology via OpenPipeline (DT docs)</a> — end-to-end worked example. <strong>Derived:</strong> the five-node Zscaler model is this entry's proposal, not a documented reference architecture.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Which self-built (CUSTOM_*) Zscaler node types has extraction produced?
+// The ZPA extension's own node types are ZPA_* types, not CUSTOM_* (section 2.2).
+// Zero rows before the pipeline runs is expected, not an error.
+smartscapeNodes &quot;CUSTOM_*&quot;, from:-7d
+| dedup type
+| fields type
+</code></pre>
+<pre><code class="language-dql">// Stale App Connectors — the disconnect signal worth alerting on.
+// Self-built model (section 7). With the ZPA extension, App Connectors are its
+// own ZPA nodes, and its &quot;Not Reporting&quot; alert templates cover silence.
+// lifetime[end] is a rolling &quot;observed until&quot; timestamp. A connector whose
+// lifetime[end] is older than 10 minutes has stopped reporting.
+//
+// from:-7d is REQUIRED. Without it, smartscapeNodes returns only nodes seen
+// in the default 2 h window, so a connector silent for longer is not returned
+// at all and this check reads &quot;none stale&quot; exactly when connectors are lost.
+// Verified 10/02/2026 on HOST: 6 stale hosts with from:-7d, 0 without it.
+//
+// lifetime[end] is ALWAYS populated, even on a stale node, so it is not a
+// tombstone: null-testing it selects nothing. Compare against now(). Flip the
+// comparison (&gt; now() - 10m) to list live connectors instead.
+smartscapeNodes CUSTOM_APP_CONNECTOR, from:-7d
+| fieldsAdd last_seen = lifetime[end]
+| filter last_seen &lt; now() - 10m
+| fields id, name, last_seen
+</code></pre>
+<pre><code class="language-dql">// Which connectors serve which private applications — self-built model (section 7).
+// Node types uppercase, edge types lowercase.
+//
+// traverse REPLACES the record with the target node's own fields — id, name, type.
+// There is no sourceName or targetName: DQL resolves unknown identifiers to null
+// WITHOUT raising FIELD_DOES_NOT_EXIST, so selecting them returns the right number
+// of rows with every value empty and no error to tell you (verified 08/27/2026).
+// A wrong edge type likewise returns zero rows with no error — check smartscapeEdges
+// if this comes back empty.
+smartscapeNodes CUSTOM_SECURE_ACCESS_APP
+| traverse edgeTypes: {served_by}, targetTypes: {CUSTOM_APP_CONNECTOR}, direction: forward
+| fields id, name, type
+</code></pre>
+<hr />
+<p><a id="field-mapping"></a></p>
+<h2>8. Field Mapping Starting Point</h2>
+<p>A starting point, <strong>not a specification.</strong> Zscaler field names vary by product line, feed type, NSS template, and account configuration. Validate every one against your own feed output before building on it — and expect at least a few to differ.</p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Field class</th>
+<th>Example source fields</th>
+<th>Canonical Dynatrace dimension</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ZPA User Activity</td>
+<td>Identity / app</td>
+<td><code>Username</code>, <code>Application</code>, <code>AppGroup</code></td>
+<td><code>user</code> (hashed), <code>app</code>, <code>app_group</code></td>
+<td>Access analytics; <code>app</code> is the cross-plane join key — by name only where an extension owns the entity (§ 7)</td>
+</tr>
+<tr>
+<td>ZPA User Activity</td>
+<td>Path</td>
+<td><code>ClientZEN</code>, <code>Connector</code>, <code>ClientCity</code></td>
+<td><code>service_edge</code>, <code>connector</code>, <code>location</code></td>
+<td>Root-cause isolation; feeds the § 7 ID components</td>
+</tr>
+<tr>
+<td>ZPA User Activity</td>
+<td>Timing</td>
+<td><code>ConnectionSetupTime</code>, <code>CAProcessingTime</code>, <code>AppLearnTime</code></td>
+<td><code>setup_time</code> (unit not documented — confirm from your feed), <code>ca_time_us</code>, <code>app_learn_time_us</code> (documented in microseconds)</td>
+<td>Latency <strong>proxies</strong> — Zscaler-observed, not endpoint experience</td>
+</tr>
+<tr>
+<td>ZPA Connector Metrics</td>
+<td>Capacity</td>
+<td><code>CPUUtilization</code>, <code>Memory</code>, <code>ActiveConnections</code></td>
+<td><code>connector.cpu</code>, <code>connector.memory</code>, <code>connector.connections</code></td>
+<td>Connector saturation alerting</td>
+</tr>
+<tr>
+<td>ZIA Web</td>
+<td>SaaS / app</td>
+<td><code>appname</code>, <code>url</code>, <code>respcode</code>, <code>reqsize</code>, <code>respsize</code></td>
+<td><code>app</code>, <code>url</code>, <code>response_code</code>, <code>bytes_in</code>, <code>bytes_out</code></td>
+<td>SaaS performance and error rates</td>
+</tr>
+<tr>
+<td>ZDX API</td>
+<td>Experience</td>
+<td>score, DNS time, page-fetch time, TTFB, latency, packet loss</td>
+<td><code>zscaler.zdx.*</code> metrics</td>
+<td>True user-experience monitoring</td>
+</tr>
+</tbody>
+</table>
+<p><strong>A suggested metric naming scheme.</strong> Consistency here is what makes dashboards and SLOs composable later. It is for ZDX and for any ZPA or ZIA pipeline you build yourself; <strong>the ZIA extension's metrics are under <code>zia.*</code> and the ZPA extension's under <code>zpa.*</code></strong>, so the <code>zscaler.zia.*</code> and <code>zscaler.zpa.*</code> rows below apply only to pipelines you build yourself:</p>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Metric key</th>
+<th>Dimensions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ZDX score</td>
+<td><code>zscaler.zdx.score</code></td>
+<td><code>app</code>, <code>user_group</code>, <code>location</code></td>
+</tr>
+<tr>
+<td>Page-fetch time</td>
+<td><code>zscaler.zdx.page_fetch_time</code></td>
+<td><code>app</code>, <code>location</code></td>
+</tr>
+<tr>
+<td>DNS time</td>
+<td><code>zscaler.zdx.dns_time</code></td>
+<td><code>app</code>, <code>location</code></td>
+</tr>
+<tr>
+<td>Server response / TTFB</td>
+<td><code>zscaler.zdx.server_response_time</code></td>
+<td><code>app</code></td>
+</tr>
+<tr>
+<td>Device CPU / memory</td>
+<td><code>zscaler.zdx.device.cpu</code>, <code>.memory</code></td>
+<td><code>device</code>, <code>location</code></td>
+</tr>
+<tr>
+<td>Packet loss / latency</td>
+<td><code>zscaler.zdx.network.packet_loss</code>, <code>.latency</code></td>
+<td><code>path</code>, <code>isp</code>, <code>location</code></td>
+</tr>
+<tr>
+<td>ZPA connection setup</td>
+<td><code>zscaler.zpa.setup_time</code> — confirm the unit from your feed before converting</td>
+<td><code>app</code>, <code>connector</code>, <code>service_edge</code></td>
+</tr>
+<tr>
+<td>ZIA requests / errors</td>
+<td><code>zscaler.zia.request.count</code>, <code>.error.count</code></td>
+<td><code>app</code>, <code>location</code>, <code>response_code</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Mind cardinality.</strong> <code>user</code> as a metric dimension will produce a metric with as many series as you have employees, which is a cost and a limit problem rather than an analytical one. Keep <code>user</code> on events and records; keep metrics dimensioned on <code>app</code>, <code>location</code>, <code>connector</code>, and similar bounded sets. FAQ-11 covers the cardinality mechanics.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://help.zscaler.com/zpa/understanding-user-activity-log-fields">Understanding User Activity Log Fields (Zscaler)</a> — <em>&quot;The time in microseconds taken for processing in the central authority&quot;</em> (<code>CAProcessingTime</code>); <code>ConnectionSetupTime</code> is described without a unit, <a href="https://help.zscaler.com/legacy-apis/understanding-zdx-api">Understanding the ZDX API (Zscaler Legacy APIs)</a>. <strong>Derived:</strong> the metric naming scheme and canonical dimension names are this entry's convention, not a Zscaler or Dynatrace standard — adopt or replace it wholesale, but do so once.</sub></p>
+</blockquote>
+<hr />
+<p><a id="downstream"></a></p>
+<h2>9. Dashboards, Alerting, and SLOs</h2>
+<p>With topology attached and metrics extracted, everything downstream is ordinary. Build it the way the rest of this corpus documents — this section says <em>what</em> to build; the named series say <em>how</em>.</p>
+<h3>9.1 Dashboards worth building</h3>
+<p>Aligned to audience and data plane. Field names depend on your normalization (§ 8), so treat these as content specifications.</p>
+<table>
+<thead>
+<tr>
+<th>Dashboard</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Executive experience overview</strong></td>
+<td>ZDX score by application and location; top degraded SaaS and private applications; open problems by application entity</td>
+</tr>
+<tr>
+<td><strong>ZPA private access operations</strong></td>
+<td>Sessions by application, user, location; connection-setup time p50 / p95 / p99; failures by application, connector, service edge; connector CPU, memory, active connections. Start from the ZPA extension's dashboards (§ 2.2)</td>
+</tr>
+<tr>
+<td><strong>ZIA SaaS operations</strong></td>
+<td>Top SaaS applications by volume; 4xx / 5xx by application; policy-induced latency and denies; throughput by application and location. Start from the ZIA extension's per-log-type dashboards (§ 2.1)</td>
+</tr>
+<tr>
+<td><strong>ZDX digital experience</strong></td>
+<td>Application score and trend; DNS / page-fetch / TTFB by application; endpoint CPU, memory, Wi-Fi; path latency and packet loss by ISP and location</td>
+</tr>
+<tr>
+<td><strong>Pipeline health</strong></td>
+<td>Records processed, metrics extracted, events created, records discarded by policy — the dashboard that tells you the integration itself is alive</td>
+</tr>
+</tbody>
+</table>
+<p>That last one is not optional. A silently stalled LSS receiver or an expired ZDX credential presents as flat lines on the other four dashboards, which reads identically to &quot;everything is fine.&quot;</p>
+<h3>9.2 Alerting</h3>
+<p>Raise alerts <strong>against the entities from § 7</strong>, never against raw log matches. An alert carrying an application entity, its connector, and its region is actionable; one carrying a log line is a research project. Every alert should answer four questions: which application is impacted, where, which layer is suspected, and what evidence supports it.</p>
+<table>
+<thead>
+<tr>
+<th>Alert</th>
+<th>Entity context</th>
+<th>Evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Private-app latency p95 breach</td>
+<td>Application + connector + region</td>
+<td>ZPA setup time, connector metrics</td>
+</tr>
+<tr>
+<td>Connector saturation</td>
+<td>App Connector + connector group</td>
+<td>CPU, memory, active connections</td>
+</tr>
+<tr>
+<td>Connector disconnected</td>
+<td>App Connector</td>
+<td><code>lifetime[end]</code> older than 10 minutes — queried with a <code>from:</code> wider than the default 2 h window (§ 7)</td>
+</tr>
+<tr>
+<td>SaaS error spike</td>
+<td>Application</td>
+<td>ZIA response codes, request counts</td>
+</tr>
+<tr>
+<td>ZDX score degradation</td>
+<td>Application + location / user group</td>
+<td>ZDX score (with <code>-1</code> no-data values dropped), DNS / PFT / TTFB, device and network metrics</td>
+</tr>
+<tr>
+<td><strong>Feed stopped</strong></td>
+<td>The pipeline itself</td>
+<td>Absence of expected metrics</td>
+</tr>
+</tbody>
+</table>
+<p>With the ZPA extension, start from its alert templates: they ship disabled, and only its &quot;Not Reporting&quot; templates alert on absent data (§ 2.2).</p>
+<p><code>ALERT-01</code> covers the end-to-end architecture, <code>ALERT-02</code> the detection-mechanism decision, <code>ALERT-03</code> routing and cost, and <code>ALERT-04</code> the ServiceNow integration ladder. Where an external event-correlation platform is the destination, the topology work in § 7 is exactly what makes those payloads worth correlating.</p>
+<h3>9.3 SLOs</h3>
+<p>Extracted metrics are already the right shape for an SLI. Define the objective in Dynatrace — where the query can be validated against live topology — using <code>SLO-02</code> for SLI definition and <code>SLO-04</code> for burn-rate alerting. Where an external SLO tool consumes the data, it queries the same validated metrics through a service user; defining the SLI in Dynatrace first is what keeps the two consistent.</p>
+<p>Candidate SLIs: ZDX score above threshold by application; private-application connection success rate; SaaS error rate by application.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zpa">Zscaler Private Access (ZPA) extension (DT docs)</a> — <em>&quot;Alert templates are disabled by default.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<p><a id="synthetics"></a></p>
+<h2>10. Synthetic Monitoring — When It Adds Anything</h2>
+<p><strong>Start by assuming you do not need it.</strong> Where ZDX is licensed, it already provides active application and network-path measurement from real endpoints, which is most of what a synthetic test would tell you — and it measures where users actually are, which private locations only approximate.</p>
+<p>Synthetic monitoring earns its place in three cases:</p>
+<ol>
+<li><strong>No ZDX licence.</strong> Synthetics become your only active experience measurement. This is a real gap-filler, though it measures a robot's experience, not a user's.</li>
+<li><strong>You need to isolate Zscaler's contribution specifically.</strong> Running the same journey through and around the Zscaler path is a controlled comparison ZDX does not offer.</li>
+<li><strong>A journey ZDX does not cover.</strong> A multi-step transaction through a private application, where per-step timing matters.</li>
+</ol>
+<p>If you do proceed:</p>
+<ul>
+<li><strong>Deploy private synthetic locations where user workstations actually sit</strong>, so the path traverses Zscaler the way a user's would. A synthetic in a data centre with a different egress path is measuring a different network.</li>
+<li><strong>Run browser and API tests against the critical SaaS applications</strong> — the same ones already modeled as entities in § 7, so results correlate.</li>
+<li><strong>Test private applications through ZPA only where access is explicitly permitted.</strong> This needs the ZPA administrator's agreement; a synthetic account with private-application access is a security decision.</li>
+<li><strong>Compare direct versus through-Zscaler paths deliberately</strong>, not by default. Two tests per journey doubles the cost and only pays off when isolating Zscaler's contribution is the actual question.</li>
+<li><strong>Correlate results with the ZIA / ZPA logs and ZDX metrics</strong> already in Grail — the correlation is the value, not the test in isolation.</li>
+</ul>
+<p>The <code>SYNTH</code> series covers configuration; the decision above is the part specific to this integration.</p>
+<hr />
+<p><a id="implementation"></a></p>
+<h2>11. Implementation Sequence</h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Objective</th>
+<th>Key actions</th>
+<th>Deliverable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1. Discovery</strong></td>
+<td>Know what feeds exist and who owns them</td>
+<td>Inventory ZIA, ZPA, ZDX licensing (ZDX API access needs the Advanced Plan) and log types; identify existing pipeline and SIEM routing; confirm retention constraints and their owner</td>
+<td>Data-source matrix with owners; a signed retention position</td>
+</tr>
+<tr>
+<td><strong>2. Route decision</strong></td>
+<td>One route per feed, from its transport</td>
+<td>Apply § 4; choose Pattern A or B (§ 5); stand up the log shipper if Pattern A</td>
+<td>An architecture that survives contact with ZPA</td>
+</tr>
+<tr>
+<td><strong>3. Ingestion</strong></td>
+<td>Data landing in Grail</td>
+<td>Activate the ZIA extension and configure its Cloud NSS feeds; activate the ZPA extension, deploy its log shipper and configure one LSS receiver per log type with the extension's templates; build the ZDX poller</td>
+<td>Validated datasets, one feed at a time</td>
+</tr>
+<tr>
+<td><strong>4. Normalize and extract</strong></td>
+<td>Signal, not volume</td>
+<td>Rename to canonical dimensions; extract metrics and events; apply masking and hashing; <strong>No storage assignment</strong> for discard</td>
+<td>Security-approved OpenPipeline rules</td>
+</tr>
+<tr>
+<td><strong>5. Topology</strong></td>
+<td>Entities, not strings</td>
+<td>Build the § 7 node and edge processors for what the extensions do not cover; verify with <code>smartscapeNodes</code></td>
+<td>A verified topology model</td>
+</tr>
+<tr>
+<td><strong>6. Dashboards</strong></td>
+<td>Visibility</td>
+<td>Build the five dashboards in § 9.1 — pipeline health first</td>
+<td>Dashboards that filter on entities</td>
+</tr>
+<tr>
+<td><strong>7. Alerting and SLOs</strong></td>
+<td>Actionable output</td>
+<td>Attach alerts to entities; define SLIs on extracted metrics; wire routing</td>
+<td>An alert model with topology in the payload</td>
+</tr>
+<tr>
+<td><strong>8. Synthetics</strong></td>
+<td>Only if § 10 justifies it</td>
+<td>Private locations on user paths; correlate with existing signals</td>
+<td>Synthetic tests and baselines</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Sequence notes.</strong> Do phase 1 before promising anything — ZDX licensing in particular decides what the integration can deliver (§ 3.4). Build phase 5 before phase 6, or you will rebuild the dashboards. Phase 3 is per-feed: finish one end to end before starting the next, because the second feed costs a fraction of the first once the pattern is established.</p>
+<hr />
+<p><a id="checklist"></a></p>
+<h2>12. Administrator Checklist</h2>
+<p>Questions for the Zscaler administrator. Most integration delays trace to one of these being answered late.</p>
+<p><strong>Feeds and licensing</strong></p>
+<ul>
+<li>Which <strong>ZIA</strong> log types are available — web, DNS, firewall, tunnel, DLP, audit? For the types the ZIA extension covers, can each Cloud NSS feed use the extension's exact JSON output format?</li>
+<li>Which <strong>ZPA</strong> log types are available — user activity, user status, App Connector status, App Connector metrics, browser access, audit, AppProtection?</li>
+<li>Is <strong>ZDX licensed and enabled</strong>, and is <strong>API access</strong> available? The ZDX API requires the <strong>ZDX Advanced Plan</strong>. (Decides whether experience monitoring is in scope at all.)</li>
+</ul>
+<p><strong>Routing and transport</strong></p>
+<ul>
+<li>Are logs sent directly from Zscaler, or already routed through a pipeline product?</li>
+<li>If a pipeline exists, can it <strong>multi-home</strong> the selected streams to Dynatrace without changing the existing security output?</li>
+<li>For ZPA LSS: where can a <strong>TCP listener</strong> be placed that App Connectors can reach, and will TLS be used?</li>
+<li>Can each LSS receiver use the ZPA extension's exact log stream template — or, for a self-built pipeline, <strong>JSON</strong> rather than CSV or TSV?</li>
+<li>Can the ZPA log shipper run <strong>highly available</strong>? LSS does not resend logs (audit logs excepted) generated while the receiver is unreachable.</li>
+</ul>
+<p><strong>Security and data handling</strong></p>
+<ul>
+<li>Which fields require <strong>masking, hashing, exclusion, or drop-after-extract</strong>?</li>
+<li>Who <strong>signs off</strong> on retaining raw records, and for how long?</li>
+<li>Which <strong>user directory</strong> backs the identity fields? (Determines whether hashing is meaningfully protective — § 6.)</li>
+</ul>
+<p><strong>Scope</strong></p>
+<ul>
+<li>Which <strong>applications, user groups, regions, and connector groups</strong> are in scope?</li>
+<li>What are the <strong>alert routing</strong> requirements and destinations?</li>
+<li>Can <strong>private synthetic locations</strong> be placed behind the Zscaler path, and is synthetic access to private applications permitted?</li>
+</ul>
+<hr />
+<p><a id="recommended-approach"></a></p>
+<h2>13. Recommended Approach</h2>
+<p><strong>If you have ZDX:</strong> pull it first. It answers the questions that generate the tickets, its volume is modest, and it is the fastest visible win. Add ZPA connector metrics next — it is the clearest infrastructure signal and small. Add ZIA and ZPA transaction logs last and in signal-first mode, because they are the largest and the ones most likely to become a storage problem if ingested before the extraction rules exist.</p>
+<p><strong>If you do not have ZDX:</strong> be explicit that this is an access, traffic, and infrastructure-health integration rather than experience monitoring, and scope the outcome accordingly. Lead with ZPA connector metrics and ZIA error rates, both of which are genuinely valuable and inexpensive. Decide separately whether synthetics (§ 10) are worth filling the experience gap with, or whether the ZDX licence is the better purchase.</p>
+<p><strong>In both cases:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Do</th>
+<th>Instead of</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Activate the ZIA and ZPA extensions for the feeds they cover</td>
+<td>Hand-building parsers, metrics and topology they already supply</td>
+</tr>
+<tr>
+<td>Route each product line by its own transport</td>
+<td>One diagram arrow labelled &quot;Zscaler → Dynatrace&quot;</td>
+</tr>
+<tr>
+<td>Extract metrics and events, discard raw by default</td>
+<td>Retaining everything and deciding later</td>
+</tr>
+<tr>
+<td>Use <strong>No storage assignment</strong>, not <strong>Drop record</strong></td>
+<td>Silently dropping records before extraction runs (FAQ-19 § 4.1)</td>
+</tr>
+<tr>
+<td>Model applications, connectors, edges as entities</td>
+<td>Filtering dashboards on log string fields</td>
+</tr>
+<tr>
+<td>Hash user identity, keep it off metric dimensions</td>
+<td>Retaining plaintext usernames, or exploding metric cardinality</td>
+</tr>
+<tr>
+<td>Multi-home from an existing pipeline where one exists</td>
+<td>Re-pointing a feed the SOC depends on</td>
+</tr>
+<tr>
+<td>Build the pipeline-health dashboard early</td>
+<td>Discovering a stalled feed via flat lines on a business dashboard</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="gotchas"></a></p>
+<h2>14. Common Gotchas</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gotcha</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Assuming ZIA and ZPA logs can replace ZDX.</strong> They record transactions at the proxy; they contain no device health, path quality, or page-fetch timing</td>
+<td>Scope experience monitoring on ZDX availability (§ 3.4)</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Drawing one arrow from Zscaler to Dynatrace.</strong> ZIA pushes HTTPS, ZPA pushes raw TCP, ZDX telemetry is pull-only (its alerts can push by webhook)</td>
+<td>Route per product line (§ 4)</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Expecting ZPA LSS to reach the ingest API.</strong> LSS has no HTTPS output and no header support</td>
+<td>Run a log shipper — Fluent Bit or BindPlane as the ZPA extension documents, an OTel Collector, or an existing pipeline; ActiveGate syslog only for a self-built pipeline (§ 4.1)</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>One LSS configuration for all ZPA log types.</strong> Each receiver configuration streams one log type</td>
+<td>Plan a configuration per log type (§ 4.1)</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Leaving the LSS template on a default.</strong> The ZPA extension cannot use the ZPA default template, which carries no log-type field; on a self-built pipeline, positional CSV parsing breaks silently when Zscaler adds a column</td>
+<td>Use the extension's templates, or JSON for a self-built pipeline (§ 2.2, § 4.1)</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Polling the ZDX API aggressively — or too early.</strong> Most report endpoints serve a two-hour window per request, data reaches the API an estimated 20 minutes after collection, and a score of <code>-1</code> means no data</td>
+<td>Match cadence to the window and lag it; drop <code>-1</code> scores; build backfill as a loop (§ 4.2)</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>No alert on feed absence.</strong> An expired ZDX credential or stalled receiver looks exactly like &quot;no problems&quot;</td>
+<td>Alert on absence of expected metrics; build the pipeline-health dashboard (§ 9.1)</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong><code>Drop record</code> used for extract-then-discard.</strong> It runs before every extractor</td>
+<td>Use <strong>No storage assignment</strong> in the Bucket assignment stage (FAQ-19 § 4.1)</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>Presenting ZPA timing as user experience.</strong> Connection-setup time is a Zscaler-observed access-path proxy</td>
+<td>Label it as such on dashboards; use ZDX for experience (§ 3.1)</td>
+</tr>
+<tr>
+<td>10</td>
+<td><strong><code>user</code> as a metric dimension.</strong> One series per employee</td>
+<td>Keep <code>user</code> on events and records; dimension metrics on bounded sets (§ 8)</td>
+</tr>
+<tr>
+<td>11</td>
+<td><strong>Extracting the same node from two feeds.</strong> Two sources of truth for one entity's fields</td>
+<td>One defining feed per node type; others enrich by ID only (§ 7)</td>
+</tr>
+<tr>
+<td>12</td>
+<td><strong>Retaining raw into the default bucket</strong> by omission</td>
+<td>Dedicated bucket with its own permissions and retention (§ 6, FAQ-19 § 6)</td>
+</tr>
+<tr>
+<td>13</td>
+<td><strong>Building synthetics before checking ZDX.</strong> Where ZDX is licensed it usually already answers the question, from real endpoints</td>
+<td>Apply the § 10 test first</td>
+</tr>
+<tr>
+<td>14</td>
+<td><strong>Treating the field mapping in § 8 as a specification.</strong> Names vary by feed type, template, and account</td>
+<td>Validate against your own feed output before building</td>
+</tr>
+<tr>
+<td>15</td>
+<td><strong>Hand-building ZIA or ZPA when an extension covers it.</strong> A parallel <code>zscaler.zia.*</code> or <code>zscaler.zpa.*</code> scheme and custom ZIA or ZPA nodes duplicate what the extensions supply</td>
+<td>Activate the extensions (§ 2.1, § 2.2); keep custom work to ZDX and feed types they do not parse</td>
+</tr>
+<tr>
+<td>16</td>
+<td><strong>Reshaping a feed an extension parses.</strong> A non-JSON ZIA output type, renamed fields, or a shipper that reformats ZPA records leaves the logs ingested but not parsed — no metrics, no topology, empty dashboards</td>
+<td>Use each extension's exact format and forward ZPA records unmodified (§ 2.2, § 6)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

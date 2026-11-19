@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTM-05: OneAgent Deployment on Managed</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DTM — Dynatrace Managed</a><span class="sep">/</span><span aria-current="page">DTM-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DTM-05: OneAgent Deployment on Managed</h1>
+<blockquote>
+<p><strong>Series:</strong> DTM — Dynatrace Managed | <strong>Reference:</strong> 05 — OneAgent Deployment on Managed | <strong>Created:</strong> October 2026 | <strong>Last Updated:</strong> 11/10/2026</p>
+</blockquote>
+<blockquote>
+<p><strong>Dynatrace Classic only.</strong> This series applies to <strong>Dynatrace Managed</strong>, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.</p>
+</blockquote>
+<h2>Overview</h2>
+<p>OneAgent works the same way on Managed as on SaaS once it is running. What differs is how it reaches the cluster, the decisions baked into it at installation, and how its updates are governed per environment. This notebook covers those parts. Operating-system support, deployment methods and Kubernetes are covered for SaaS in ONBRD-05 and the K8S series; the concepts carry over, but the installer, tokens and addresses come from your own cluster.</p>
+<p><strong>What you'll learn:</strong></p>
+<ul>
+<li>How OneAgent chooses its route to a Managed cluster</li>
+<li>Which decisions to make before the first OneAgent is installed</li>
+<li>How network-zone fallback modes change what happens in an outage</li>
+<li>How to set an update policy that doesn't surprise anyone</li>
+<li>The CPU baseline to check across the estate now</li>
+</ul>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#reaching-cluster">How OneAgent Reaches the Cluster</a></li>
+<li><a href="#install-decisions">Decide Before the First Installation</a></li>
+<li><a href="#zone-fallback">Network-Zone Fallback</a></li>
+<li><a href="#update-policy">Update Policy</a></li>
+<li><a href="#cpu-baseline">Check the CPU Baseline</a></li>
+<li><a href="#doc-gaps">What the Documentation Does Not Say</a></li>
+<li><a href="#recommendation">Recommended Approach</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace deployment</strong></td>
+<td>A Dynatrace Managed cluster</td>
+</tr>
+<tr>
+<td><strong>Access</strong></td>
+<td>Environment <em>Download &amp; install OneAgent</em> permission (DTM-03 §6); <em>Change monitoring settings</em> for update settings</td>
+</tr>
+<tr>
+<td><strong>Query language</strong></td>
+<td>None. Managed has no Grail, so this series has <strong>no DQL cells</strong></td>
+</tr>
+<tr>
+<td><strong>Version basis</strong></td>
+<td>Written against the Managed documentation read 10/21/2026</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<p>Give OneAgents an <strong>Environment ActiveGate</strong> in every segment, so they never fall back to a Cluster ActiveGate. Decide <strong>network zones and host groups before rollout</strong> and set them at installation: a host group changes how process groups are detected. Choose a <strong>network-zone fallback mode</strong> deliberately. Set <strong>update policy per host group</strong>, using <strong>update windows</strong>, and plan the <strong>process restarts</strong> that every update needs. Inventory <strong>CPUs below x86-64-v2</strong> now.</p>
+<p><a id="reaching-cluster"></a></p>
+<h2>2. How OneAgent Reaches the Cluster</h2>
+<p><strong>The route is in the installer.</strong> <em>&quot;OneAgent uses a list of communication endpoints that are embedded in the installer to connect to the environment.&quot;</em> That is why the ActiveGate for a sealed segment has to exist before the installer is downloaded (DTM-04 §3).</p>
+<p><strong>The preference order.</strong> Within each network-zone group, <em>&quot;Index 1—Environment ActiveGates Index 2—Cluster ActiveGates Index 3—Embedded ActiveGates&quot;</em>. OneAgents spread over the best available tier: <em>&quot;if several ActiveGates with the low index are available, OneAgents will try to switch between the available ActiveGates on a regular basis.&quot;</em></p>
+<p><strong>Without a zone, the choice is random.</strong> <em>&quot;Such OneAgents try to connect to any ActiveGate in a random order and choose the first responding Environment ActiveGate.&quot;</em> And on Managed, the last resort is costly: <em>&quot;If no Environment ActiveGate can be reached, OneAgents connect to the first responding Cluster ActiveGate.&quot;</em> <em>&quot;In that case, OneAgent traffic goes to the Dynatrace Managed cluster uncompressed.&quot;</em></p>
+<p><strong>Open the firewall to the addresses the cluster gives you.</strong> <em>&quot;The remote Dynatrace addresses to add to the allow list are given on the installation page for OneAgent.&quot;</em> And <em>&quot;All hosts that are to be monitored need to be able to send data to the Dynatrace cluster.&quot;</em>, either directly or through an ActiveGate.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/configuration/set-up-reverse-proxy-for-oneagent">Reverse proxy or load balancer for OneAgent (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/manage/network-zones-classic/oneagent-connectivity">OneAgent connectivity in network zones (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/installation-and-operation/linux/installation/install-oneagent-on-linux">Install OneAgent on Linux (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="install-decisions"></a></p>
+<h2>3. Decide Before the First Installation</h2>
+<p>Three things are set on the installation command line and are disruptive to change later.</p>
+<p><strong>Host group — decide it first.</strong> It does more than group hosts. <em>&quot;When the same process is running in two different host groups, Dynatrace will create one process group for each host group.&quot;</em> Services follow: <em>&quot;Consequently, services are also grouped per host group.&quot;</em> Moving hosts between groups later changes how their processes and services are grouped, and <em>&quot;OneAgent will automatically restart after the changes are applied.&quot;</em> Set it with <code>--set-host-group</code>. The rules: alphanumerics, hyphens, underscores and periods; <em>&quot;Must not start with dt.&quot;</em>; <em>&quot;Maximum length is 100 characters.&quot;</em>; <em>&quot;Each host belongs to at most one host group&quot;</em>. FAQ-01 discusses naming strategies (written for SaaS; the host-group mechanics are the same).</p>
+<p><strong>Network zone</strong> — set at installation alongside the host group, so the first connection is already local (§4, DTM-04 §5).</p>
+<p><strong>Privileges.</strong> <em>&quot;You only need root rights to start OneAgent installation.&quot;</em> OneAgent then runs in non-privileged mode where the system supports it; the documented opt-out is the <code>NON_ROOT_MODE=0</code> parameter. Installers are downloaded with a PaaS token, and the installing user needs the environment's <em>Download &amp; install OneAgent</em> permission (DTM-03 §6).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/observe/infrastructure-observability/hosts/configuration/organize-your-environment-using-host-groups">Organize your environment using host groups (DT docs)</a> — <em>&quot;You can define alerting thresholds and OneAgent update settings on a per-host-group basis.&quot;</em>, <a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/installation-and-operation/linux/installation/install-oneagent-on-linux">Install OneAgent on Linux (DT docs)</a> — <em>&quot;You need Download/install OneAgent permissions to download and install OneAgent.&quot;</em></sub></p>
+</blockquote>
+<p><a id="zone-fallback"></a></p>
+<h2>4. Network-Zone Fallback</h2>
+<p>A zone tells OneAgent where to go first; the <strong>fallback mode</strong> decides how far it may go when its zone has no ActiveGate left:</p>
+<table>
+<thead>
+<tr>
+<th>Fallback mode</th>
+<th>OneAgent may use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>Any ActiveGate</em> (default)</td>
+<td>Its zone, the alternative zones, the default zone, then any other ActiveGate</td>
+</tr>
+<tr>
+<td><em>Only DefaultZone</em></td>
+<td>Its zone, the alternative zones, and the default zone</td>
+</tr>
+<tr>
+<td><em>None (drop traffic)</em></td>
+<td>Its zone and the alternative zones only</td>
+</tr>
+</tbody>
+</table>
+<p>The docs map them to the priority groups: <em>&quot;Any ActiveGate (default) corresponds to priority groups 1, 2, 3, and 4.&quot;</em>, <em>&quot;None (drop traffic) corresponds to priority groups 1 and 2.&quot;</em></p>
+<p><strong>Best practice:</strong> use <em>None</em> only where data must never leave a segment, and then give that segment enough ActiveGates that losing one doesn't drop its data (DTM-04 §4). Elsewhere, keep the default and rely on alternative zones to choose the next-best route. With Premium HA, the alternative zone is how OneAgents reach the other data center (DTM-04 §5).</p>
+<p>A multi-environment ActiveGate has one zone for all its environments: <em>&quot;Multi-environment ActiveGate can have only one zone that is valid across all connected environments.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/manage/network-zones-classic/oneagent-connectivity">OneAgent connectivity in network zones (DT docs)</a> — <em>&quot;Only DefaultZone corresponds to priority groups 1, 2, and 3.&quot;</em></sub></p>
+</blockquote>
+<p><a id="update-policy"></a></p>
+<h2>5. Update Policy</h2>
+<p>OneAgent updates are configured per environment at three levels, and <em>&quot;Host settings override host group settings, and host group settings override global settings.&quot;</em> Each level offers <em>Automatic updates at earliest convenience</em>, <em>Automatic updates during update windows</em>, or <em>No automatic updates</em> (host groups and hosts can also inherit).</p>
+<p>Points that shape the policy:</p>
+<ul>
+<li><strong>Every update needs process restarts.</strong> <em>&quot;Following OneAgent automatic updates, you do need to restart all server processes.&quot;</em> Until then, <em>&quot;these processes will continue to be monitored with the previous version of OneAgent.&quot;</em> Schedule updates where restarts can follow.</li>
+<li><strong>Turning automatic updates off is silent.</strong> <em>&quot;OneAgent doesn't update on its own. You aren't notified when instances are outdated.&quot;</em> If you choose it, watch the update statuses in <strong>Settings &gt; Deployment &gt; OneAgent updates</strong>.</li>
+<li><strong>Windows are shared with ActiveGates.</strong> <em>&quot;The same windows govern Environment ActiveGate updates&quot;</em>, so plan one calendar for both (DTM-04 §7).</li>
+<li><strong>New hosts wait.</strong> <em>&quot;By default, Dynatrace waits 45 minutes before updating hosts (both EC2 and non-EC2).&quot;</em> <em>Update now</em> skips the wait.</li>
+<li><strong>Installers are verified.</strong> <em>&quot;OneAgent installers are signed and the signature is verified for each downloaded installer package.&quot;</em></li>
+</ul>
+<p><strong>Best practice:</strong> use host groups as update rings. In community practice, a small non-production group updates at earliest convenience and production follows in update windows a few days later — verify the gap against your own change process.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/oneagent-update">OneAgent update (DT docs)</a> — <em>&quot;By default, global automatic OneAgent updates are turned on, but this is configurable at the global, host group, and host level.&quot;</em></sub></p>
+</blockquote>
+<p><a id="cpu-baseline"></a></p>
+<h2>6. Check the CPU Baseline</h2>
+<p>OneAgent on x86-64 requires a minimum CPU level: <em>&quot;Minimum Supported Microarchitecture Level: x86-64-v2&quot;</em>. Enforcement starts with OneAgent 1.357: <em>&quot;With OneAgent version 1.357+ , OneAgent checks your CPU at startup. If the CPU doesn't support x86-64-v2, OneAgent stops and doesn't monitor the host or the applications running on it.&quot;</em> <em>&quot;Systems not meeting the x86-64-v2 baseline will not be able to run the Dynatrace OneAgent.&quot;</em> New OneAgent versions reach a Managed cluster and its hosts in stages and through your update policy, so verify which OneAgent version each host runs before you rely on either behavior.</p>
+<p>The docs name the first generations that qualify: <em>&quot;Intel Nehalem was the first Intel architecture to fully support the x86-64-v2 baseline.&quot;</em> and <em>&quot;AMD Bulldozer and its successors support the x86-64-v2 baseline.&quot;</em> For virtual machines: <em>&quot;Virtualized environments should ensure CPU feature passthrough is enabled to meet the microarchitecture requirements.&quot;</em></p>
+<p><strong>Best practice:</strong> find hosts and VM templates below x86-64-v2 now, before OneAgent 1.357 reaches them. On-premises estates that run Managed are more likely than cloud estates to have old hardware or VMs with restricted CPU features. For a host you cannot move in time, the page's own advice: <em>&quot;If a host's CPU doesn't support the x86-64-v2 microarchitecture level, prevent OneAgent from updating to OneAgent version 1.357+ so monitoring continues.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/oa-requirements">OneAgent requirements (DT docs)</a> — <em>&quot;x86-64-v2 is a baseline that includes support for SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, and CMPXCHG16B instructions.&quot;</em>. <strong>Derived:</strong> &quot;more likely to have old hardware&quot; is the notebook's reasoning about on-premises estates, not a documented statement.</sub></p>
+</blockquote>
+<p><a id="doc-gaps"></a></p>
+<h2>7. What the Documentation Does Not Say</h2>
+<p><strong>Not found</strong>, in the Managed documentation read 10/21/2026:</p>
+<table>
+<thead>
+<tr>
+<th>Gap</th>
+<th>Working assumption in this notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>How a OneAgent's version relates to the cluster's version (whether a OneAgent can be newer than the cluster)</td>
+<td>Update OneAgents from what the cluster offers in <strong>OneAgent updates</strong>; the ActiveGate update page describes its target versions as versions <em>&quot;available on the cluster&quot;</em></td>
+</tr>
+<tr>
+<td>A recommended gap between update rings</td>
+<td>Set it from your own change process (§5)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>An old host-group page.</strong> The host-group page was last updated 08/21/2023; its install example uses OneAgent 1.177. The mechanics it describes are what this notebook relies on; check the installer options on your cluster's own installation page.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/operation/update-activegate">Update ActiveGate (DT docs)</a> — <em>&quot;The newest stable ActiveGate version available on the cluster.&quot;</em>, <a href="https://docs.dynatrace.com/managed/observe/infrastructure-observability/hosts/configuration/organize-your-environment-using-host-groups">Organize your environment using host groups (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="recommendation"></a></p>
+<h2>8. Recommended Approach</h2>
+<ol>
+<li><strong>Deploy Environment ActiveGates before OneAgents</strong> in every segment, so installers carry the right endpoints and no OneAgent falls back to a Cluster ActiveGate (§2, DTM-04 §3).</li>
+<li><strong>Design host groups and network zones first</strong>, and set both on the installation command line (§3).</li>
+<li><strong>Choose each zone's fallback mode on purpose</strong>; use <em>None</em> only where data must stay in the segment, with enough ActiveGates there (§4).</li>
+<li><strong>Use host groups as update rings</strong>, with update windows shared with the ActiveGates, and plan the process restarts each update needs (§5).</li>
+<li><strong>If you turn automatic updates off, watch the update statuses</strong>, because nothing tells you OneAgents are outdated (§5).</li>
+<li><strong>Inventory CPUs and VM templates against x86-64-v2</strong> now (§6).</li>
+</ol>
+<p><a id="summary"></a></p>
+<h2>9. Summary and Next Steps</h2>
+<p>On Managed, OneAgent's route, its host group and its network zone are fixed at installation, and its update policy is set per environment, host group and host. Put Environment ActiveGates in place first, decide host groups and zones before rollout, and treat host groups as update rings with planned restarts.</p>
+<p><strong>Next in the series:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Covers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DTM-04: ActiveGate Deployment on Managed</td>
+<td>The ActiveGates OneAgents connect to</td>
+</tr>
+<tr>
+<td>DTM-99: Best Practice Summary and Health-Check Checklist</td>
+<td>The design, configuration and health checklists</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Series map:</strong> DTM-00: The Dynatrace Managed Journey routes every notebook in this series.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/managed">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SLO-06: Site Reliability Guardians</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SLO — Service Level Objectives</a><span class="sep">/</span><span aria-current="page">SLO-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SLO-06: Site Reliability Guardians</h1>
+<blockquote>
+<p><strong>Series:</strong> SLO — Service Level Objectives | <strong>Notebook:</strong> 6 of 7 | <strong>Created:</strong> August 2026 | <strong>Last Updated:</strong> 11/19/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>An SLO answers <em>&quot;is this service reliable over time?&quot;</em> — evaluated continuously against a rolling or calendar window (SLO-01). A <strong>Site Reliability Guardian (SRG)</strong> answers a narrower, sharper question: <em>&quot;is this specific change safe to release?&quot;</em> — a set of DQL-based objectives validated once, at a point in time, against a deployment or business event. This notebook covers what a guardian validates, how objectives and thresholds work, creating and triggering guardians, provisioning them as code, where guardians plug into a CI/CD pipeline, and how guardians and SLOs complement rather than compete with each other.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#what">What a Guardian Validates</a></li>
+<li><a href="#objectives">Objectives, Thresholds, and the Result Model</a></li>
+<li><a href="#creating">Creating a Guardian</a></li>
+<li><a href="#triggering">Triggering Validation</a></li>
+<li><a href="#as-code">Guardians as Code</a></li>
+<li><a href="#cicd">CI/CD Pipeline Integration</a></li>
+<li><a href="#decision">Guardian vs SLO — Which One, or Both</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS Gen3 with the Site Reliability Guardian app</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>app-settings:objects:read</code> / <code>app-settings:objects:write</code> (read and write guardian configurations); <code>storage:buckets:read</code>; <code>storage:events:write</code> (write business events during validations); the read scopes your objectives touch (<code>storage:logs:read</code>, <code>storage:metrics:read</code>, <code>storage:bizevents:read</code>, <code>storage:events:read</code>, <code>storage:spans:read</code>, <code>storage:entities:read</code>). For automation: <code>automation:workflows:read</code>, <code>automation:workflows:admin</code>, and <code>automation:workflows:run</code> (the last only if the pipeline triggers the workflow via API)</td>
+</tr>
+<tr>
+<td><strong>Tooling (as code)</strong></td>
+<td>Terraform with the <code>dynatrace-oss/dynatrace</code> provider, or Monaco</td>
+</tr>
+<tr>
+<td><strong>Prior reading</strong></td>
+<td>SLO-01 (SLI/SLO fundamentals), SLO-02 (writing DQL SLI queries — the same DQL skill authors guardian objectives)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/site-reliability-guardian">Site Reliability Guardian (DT docs)</a>, permissions table read 10/12/2026.</sub></p>
+</blockquote>
+<p><a id="what"></a></p>
+<h2>1. What a Guardian Validates</h2>
+<p>A <strong>Site Reliability Guardian</strong> is a Dynatrace app that automates change impact analysis to validate service availability, performance, and capacity objectives for a set of guarded entities. Where an SLO is a standing promise evaluated continuously, a guardian is a <strong>point-in-time validation</strong> run against a specific event. The app supports two guardian types:</p>
+<table>
+<thead>
+<tr>
+<th>Guardian type</th>
+<th><code>eventKind</code></th>
+<th>Triggered by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Lifecycle guardian</strong></td>
+<td><code>SDLC_EVENT</code></td>
+<td>Software delivery events — a deployment, a release-stage transition</td>
+</tr>
+<tr>
+<td><strong>Business guardian</strong></td>
+<td><code>BIZ_EVENT</code></td>
+<td>Business events — a marketing-campaign launch, a pricing change</td>
+</tr>
+</tbody>
+</table>
+<p>Both guardian types share the same mechanics: a named group of <strong>objectives</strong>, each one a DQL query evaluated against a chosen timeframe, checked against thresholds, and rolled up into a single result for the guardian as a whole.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5TaXRlIFJlbGlhYmlsaXR5IEd1YXJkaWFuIOKAlCBWYWxpZGF0aW9uIExpZmVjeWNsZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5BIHBvaW50LWluLXRpbWUgZGVwbG95bWVudCBnYXRlLCBub3QgYSBjb250aW51b3VzIFNMTzwvdGV4dD4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIKICAgICAgICAgICAgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBTdGFnZSAxOiBFdmVudCAtLT4KICA8cmVjdCB4PSIzMCIgeT0iMTAwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjcwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjEwNSIgeT0iMTI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj4xLiBFdmVudDwvdGV4dD4KICA8dGV4dCB4PSIxMDUiIHk9IjE0NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+RGVwbG95bWVudCAoU0RMQyk8L3RleHQ+CiAgPHRleHQgeD0iMTA1IiB5PSIxNTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPm9yIGJ1c2luZXNzIGV2ZW50PC90ZXh0PgoKICA8bGluZSB4MT0iMTgwIiB5MT0iMTM1IiB4Mj0iMjA4IiB5Mj0iMTM1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgoKICA8IS0tIFN0YWdlIDI6IFRyaWdnZXIgLS0+CiAgPHJlY3QgeD0iMjEwIiB5PSIxMDAiIHdpZHRoPSIxNTAiIGhlaWdodD0iNzAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMjg1IiB5PSIxMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPjIuIFRyaWdnZXI8L3RleHQ+CiAgPHRleHQgeD0iMjg1IiB5PSIxNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPldvcmtmbG93IGFjdGlvbiBvcjwvdGV4dD4KICA8dGV4dCB4PSIyODUiIHk9IjE1OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+bWFudWFsIFZhbGlkYXRlPC90ZXh0PgoKICA8bGluZSB4MT0iMzYwIiB5MT0iMTM1IiB4Mj0iMzg4IiB5Mj0iMTM1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgoKICA8IS0tIFN0YWdlIDM6IEV2YWx1YXRlIC0tPgogIDxyZWN0IHg9IjM5MCIgeT0iMTAwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjcwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj4zLiBFdmFsdWF0ZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjE0NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+RWFjaCBvYmplY3RpdmUncyBEUUw8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIxNTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnJ1bnMgKHVwIHRvIDUwKTwvdGV4dD4KCiAgPGxpbmUgeDE9IjU0MCIgeTE9IjEzNSIgeDI9IjU2OCIgeTI9IjEzNSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KCiAgPCEtLSBTdGFnZSA0OiBDbGFzc2lmeSAtLT4KICA8cmVjdCB4PSI1NzAiIHk9IjEwMCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI3MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI2NDUiIHk9IjEyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+NC4gQ2xhc3NpZnk8L3RleHQ+CiAgPHRleHQgeD0iNjQ1IiB5PSIxNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlBlci1vYmplY3RpdmUgcmVzdWx0PC90ZXh0PgogIDx0ZXh0IHg9IjY0NSIgeT0iMTU5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj52cy4gdGFyZ2V0IC8gd2FybmluZzwvdGV4dD4KCiAgPGxpbmUgeDE9IjcyMCIgeTE9IjEzNSIgeDI9Ijc0OCIgeTI9IjEzNSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KCiAgPCEtLSBTdGFnZSA1OiBHYXRlIC0tPgogIDxyZWN0IHg9Ijc1MCIgeT0iMTAwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjcwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjgyNSIgeT0iMTI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj41LiBHYXRlPC90ZXh0PgogIDx0ZXh0IHg9IjgyNSIgeT0iMTQ2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5QaXBlbGluZSByZWFkcyByZXN1bHQ6PC90ZXh0PgogIDx0ZXh0IHg9IjgyNSIgeT0iMTU5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5wcm9tb3RlIG9yIGJsb2NrPC90ZXh0PgoKICA8IS0tIERvd24gYXJyb3cgZnJvbSBDbGFzc2lmeSB0byByZXN1bHQgbW9kZWwgLS0+CiAgPGxpbmUgeDE9IjY0NSIgeTE9IjE3MCIgeDI9IjY0NSIgeTI9IjIwMCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KCiAgPCEtLSBSZXN1bHQgbW9kZWwgY29udGFpbmVyIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIyMDUiIHdpZHRoPSI4NTAiIGhlaWdodD0iMTIwIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA2IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5SZXN1bHQgTW9kZWwg4oCUIG1vc3Qgc2V2ZXJlIGluZGl2aWR1YWwgb2JqZWN0aXZlIHdpbnMgdGhlIGd1YXJkaWFuJ3Mgb3ZlcmFsbCByZXN1bHQ8L3RleHQ+CgogIDwhLS0gNSBzZXZlcml0eSBjaGlwcyAtLT4KICA8cmVjdCB4PSI3MCIgeT0iMjQ1IiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjEiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTQ1IiB5PSIyNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlBhc3M8L3RleHQ+CiAgPHRleHQgeD0iMTQ1IiB5PSIyODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPndpdGhpbiB0YXJnZXQ8L3RleHQ+CgogIDxyZWN0IHg9IjIzNSIgeT0iMjQ1IiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjEiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMzEwIiB5PSIyNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPldhcm5pbmc8L3RleHQ+CiAgPHRleHQgeD0iMzEwIiB5PSIyODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnBhc3Qgd2FybmluZyBsaW5lPC90ZXh0PgoKICA8cmVjdCB4PSI0MDAiIHk9IjI0NSIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI2MCIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4xIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ3NSIgeT0iMjcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5GYWlsPC90ZXh0PgogIDx0ZXh0IHg9IjQ3NSIgeT0iMjg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5wYXN0IHRhcmdldDwvdGV4dD4KCiAgPHJlY3QgeD0iNTY1IiB5PSIyNDUiIHdpZHRoPSIxNTAiIGhlaWdodD0iNjAiIGZpbGw9IiM2NDc0OEIiIG9wYWNpdHk9IjAuMTUiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNjQwIiB5PSIyNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNFMkU4RjAiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkVycm9yPC90ZXh0PgogIDx0ZXh0IHg9IjY0MCIgeT0iMjg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5ubyBkYXRhIC8gYmFkIHF1ZXJ5PC90ZXh0PgoKICA8cmVjdCB4PSI3MzAiIHk9IjI0NSIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4xIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjgwNSIgeT0iMjcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5JbmZvPC90ZXh0PgogIDx0ZXh0IHg9IjgwNSIgeT0iMjg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5ubyB0aHJlc2hvbGQgc2V0PC90ZXh0PgoKICA8IS0tIFNMTyB2cyBTUkcgY29tcGFyaXNvbiBzdHJpcCAtLT4KICA8bGluZSB4MT0iNDAiIHkxPSIzNTAiIHgyPSI4OTAiIHkyPSIzNTAiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CgogIDxyZWN0IHg9IjE1MCIgeT0iMzc1IiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjkwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjMwMCIgeT0iNDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5TTE8gKFNMTy0wMeKAkzA1KTwvdGV4dD4KICA8dGV4dCB4PSIzMDAiIHk9IjQyMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+SXMgdGhpcyBzZXJ2aWNlIHJlbGlhYmxlPC90ZXh0PgogIDx0ZXh0IHg9IjMwMCIgeT0iNDM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5vdmVyIHRpbWU/IENvbnRpbnVvdXMuPC90ZXh0PgoKICA8dGV4dCB4PSI0NjUiIHk9IjQyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9IjcwMCI+KzwvdGV4dD4KCiAgPHJlY3QgeD0iNDgwIiB5PSIzNzUiIHdpZHRoPSIzMDAiIGhlaWdodD0iOTAiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNjMwIiB5PSI0MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkd1YXJkaWFuIChTTE8tMDYpPC90ZXh0PgogIDx0ZXh0IHg9IjYzMCIgeT0iNDIyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5JcyB0aGlzIGNoYW5nZSBzYWZlPC90ZXh0PgogIDx0ZXh0IHg9IjYzMCIgeT0iNDM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj50byByZWxlYXNlPyBQb2ludC1pbi10aW1lLjwvdGV4dD4KCiAgPHRleHQgeD0iNDY1IiB5PSI0ODYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAiPlJFRkVSRU5DRV9TTE8gcG9pbnRzIG9ubHkgYXQgYSBDbGFzc2ljIFNMTyBhbmQgaXMgZGVwcmVjYXRlZCDigJQgcmV1c2UgdGhlIFNMTydzIFNMSSBxdWVyeSBpbiBhIERRTCBvYmplY3RpdmUuPC90ZXh0Pgo8L3N2Zz4K" alt="SRG validation lifecycle" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Action |
+|------|--------|
+| 1 Event | Deployment or business event occurs |
+| 2 Trigger | Workflow (or manual Validate) starts guardian validation |
+| 3 Evaluate | Each objective's DQL query runs against the event timeframe |
+| 4 Classify | Per-objective result: Pass / Warning / Fail / Error / Info |
+| 5 Roll up | Guardian result = most severe individual objective result |
+| 6 Gate | CI/CD pipeline reads the result and promotes or blocks |
+For environments where SVG doesn't render
+-->
+<p><a id="objectives"></a></p>
+<h2>2. Objectives, Thresholds, and the Result Model</h2>
+<p>Each objective is, at its core, a DQL query returning a single scalar value, checked against a threshold. This is the same DQL skill from SLO-02 — a guardian objective and an SLO's SLI query are structurally the same <em>good ÷ total</em> or scalar-metric shape. What differs is the timeframe (a short deployment window, not a rolling 30 days) and what happens with the result (gate a release, not accumulate an error budget).</p>
+<h3>Objective type</h3>
+<table>
+<thead>
+<tr>
+<th><code>objectiveType</code></th>
+<th>What it evaluates</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>DQL</code></strong></td>
+<td>A DQL query you write, evaluated over the guardian's validation timeframe</td>
+</tr>
+<tr>
+<td><strong><code>REFERENCE_SLO</code></strong></td>
+<td>An existing <strong>Classic</strong> SLO, by its <code>func:slo.*</code> metric key. The docs mark this option <strong>deprecated</strong>. For an SLO built in the modern SLO app (SLO-01/02), reuse its SLI query in a <code>DQL</code> objective instead</td>
+</tr>
+</tbody>
+</table>
+<h3>Threshold type</h3>
+<table>
+<thead>
+<tr>
+<th>Threshold type</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>No thresholds</strong></td>
+<td>Informational only — the objective reports a value but never fails the guardian</td>
+</tr>
+<tr>
+<td><strong>Static thresholds</strong></td>
+<td>Fixed <code>target</code> (fail point) and <code>warning</code> (soft threshold) values</td>
+</tr>
+<tr>
+<td><strong>Auto-adaptive thresholds</strong></td>
+<td>Threshold computed from history by the Dynatrace Intelligence threshold analyzer. It needs at least 5 validations first, and returns <strong>Info</strong> during that learning phase. DQL objectives only</td>
+</tr>
+</tbody>
+</table>
+<p>A <code>comparisonOperator</code> says which direction is good — &quot;a higher value is good&quot; (<code>GREATER_THAN_OR_EQUAL</code>) or &quot;a lower value is good&quot; (<code>LESS_THAN_OR_EQUAL</code>). An error-rate objective is a lower-is-good comparison against a <code>target</code>/<code>warning</code> pair; a request-count or bizevent-count objective is usually higher-is-good.</p>
+<h3>Result model</h3>
+<p>Each objective resolves to one of five states, and <strong>the guardian's overall result is the most severe individual objective result</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Result</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Pass</strong></td>
+<td>Value within the acceptable range</td>
+</tr>
+<tr>
+<td><strong>Warning</strong></td>
+<td>Value crossed the warning threshold but not the fail threshold</td>
+</tr>
+<tr>
+<td><strong>Fail</strong></td>
+<td>Value crossed the fail threshold</td>
+</tr>
+<tr>
+<td><strong>Error</strong></td>
+<td>The indicator could not be derived (bad query, no data)</td>
+</tr>
+<tr>
+<td><strong>Info</strong></td>
+<td>Informational objective (no threshold), or an auto-adaptive objective still learning — never drives Fail</td>
+</tr>
+</tbody>
+</table>
+<p>Two objective queries below, live-verified against the validation tenant, in the shape a guardian would actually run them — a short window, since a guardian validates one change, not a rolling reliability posture.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/site-reliability-guardian/reference">Add Site Reliability Guardian objective (DT docs)</a> — under a <em>Deprecated</em> badge: <em>&quot;If you want to reference a Classic SLO, you need to create a Classic SLO first and then the SRG allows you to select it.&quot;</em> <a href="https://docs.dynatrace.com/docs/deliver/site-reliability-guardian">Site Reliability Guardian (DT docs)</a> — <em>&quot;The Dynatrace Intelligence threshold analyzer requires a minimum of 5 validations for auto-adaptive thresholds to take effect. During this learning phase, the objective validation returns an info state.&quot;</em> Read 10/12/2026.</sub></p>
+</blockquote>
+<p><strong>Error rate — lower is good (<code>LESS_THAN_OR_EQUAL</code> comparison):</strong></p>
+<pre><code class="language-dql">// Guardian objective — error rate. Lower is good; compare against target/warning with LESS_THAN_OR_EQUAL.
+// Live-verified 10/12/2026: returned 3.08% over the last 30 minutes, notifications [].
+// Drop from: when pasting into a guardian objective — the validation sets the window.
+timeseries {
+  total = sum(dt.service.request.count),
+  failures = sum(dt.service.request.failure_count)
+}, from:-30m
+| fieldsAdd errorRate = arraySum(failures) / arraySum(total) * 100
+| fields errorRate
+</code></pre>
+<p><strong>Availability — higher is good (<code>GREATER_THAN_OR_EQUAL</code> comparison):</strong></p>
+<pre><code class="language-dql">// Guardian objective — availability. Higher is good; compare against target/warning with GREATER_THAN_OR_EQUAL.
+// Live-verified 11/09/2026: returned 95.88% over the last 30 minutes, notifications [].
+// Drop from: when pasting into a guardian objective — the validation sets the window.
+timeseries {
+  total = sum(dt.service.request.count),
+  failures = sum(dt.service.request.failure_count)
+}, from:-30m
+| fieldsAdd availability = ((arraySum(total) - arraySum(failures)) / arraySum(total)) * 100
+| fields availability
+</code></pre>
+<p><a id="creating"></a></p>
+<h2>3. Creating a Guardian</h2>
+<p>Two ways to create a guardian in the app:</p>
+<ul>
+<li><strong>From a template</strong> — pick a template, run its prefilled DQL query to select guarded entities (or select all rows on the current page), then refine the pre-populated objectives.</li>
+<li><strong>Blank</strong> — set the guardian type and name, then add objectives with your own DQL queries. When you select an entity, the app prefills the query with the correct scoping — replace any remaining placeholder (e.g. <code>HOST-PLACEHOLDER</code>) with your actual value.</li>
+</ul>
+<p><strong>Limit:</strong> a guardian supports a maximum of <strong>50 objectives</strong>.</p>
+<p><strong>Variables</strong> parameterize a guardian at the group level — define a guardian-level variable (prefixed <code>$</code>, e.g. <code>$MyTotal</code>), reference it inside an objective's DQL query, and set its value either at creation time or per validation run. This is what makes one guardian definition reusable across environments (dev / staging / prod) instead of hardcoding a threshold or entity per guardian copy.</p>
+<p><a id="triggering"></a></p>
+<h2>4. Triggering Validation</h2>
+<p>A guardian's objectives don't evaluate themselves — validation is triggered one of two ways:</p>
+<ul>
+<li><strong>On-demand</strong> — an operator opens the guardian and selects <strong>Validate</strong>. Useful while authoring objectives, or for an ad hoc check.</li>
+<li><strong>Automated, via Workflow</strong> — a workflow with an event trigger runs the <code>dynatrace.site.reliability.guardian:validate-guardian-action</code> task, which validates a named guardian over a timeframe whenever a matching event arrives.</li>
+</ul>
+<p>Dynatrace's release-validation tutorial <em>&quot;recommends using SDLC events to implement the release validation use case. Business events are also supported.&quot;</em> Its trigger filter matches finished deployments: <code>event.kind == &quot;SDLC_EVENT&quot; AND event.type == &quot;deployment&quot; AND event.status == &quot;finished&quot;</code>. The tutorial makes a stage filter optional: add <code>AND cicd.deployment.release_stage == &quot;staging&quot;</code> (or your stage) to validate only deployments to that stage. The tutorial sets the action's timeframe to <em>&quot;Last 2 hours&quot;</em>, to be adjusted to your deployment and stabilization window, and maps guardian variables from the triggering event so the release metadata is stored with the result:</p>
+<table>
+<thead>
+<tr>
+<th>Guardian variable</th>
+<th>Expression</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>deployment.name</code></td>
+<td><code>{{event()['cicd.deployment.name']}}</code></td>
+</tr>
+<tr>
+<td><code>service.id</code></td>
+<td><code>{{event()['cicd.deployment.service.id']}}</code></td>
+</tr>
+<tr>
+<td><code>commit_revision</code></td>
+<td><code>{{event()['vcs.ref.base.revision']}}</code></td>
+</tr>
+<tr>
+<td><code>version</code></td>
+<td><code>{{event()['event.version']}}</code></td>
+</tr>
+</tbody>
+</table>
+<p>The Monaco example on the Site Reliability Guardian as code page parameterizes the trigger differently, as <code>eventFilters</code> with <code>application: easytrade</code> and <code>stage: production</code>. Use whichever matches the events your pipeline actually sends.</p>
+<p>This is ordinary Workflow mechanics — event trigger, filter condition, action — covered in general by the <strong>WFLOW series</strong>. What's specific to guardians is the action type and the fact that its result (Pass / Warning / Fail) is what a CI/CD pipeline reads back to decide whether to proceed (§6).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/quality-gates">Set up automated release validation with Site Reliability Guardian (DT docs)</a> — updated Jul 20, 2026, read 10/14/2026. <a href="https://docs.dynatrace.com/docs/deliver/site-reliability-guardian/config-as-code-srg">Site Reliability Guardian as code (DT docs)</a> — the <code>eventFilters</code> example; updated Aug 23, 2026, read 10/14/2026.</sub></p>
+</blockquote>
+<p><a id="as-code"></a></p>
+<h2>5. Guardians as Code</h2>
+<p>A guardian evaluated only by hand in the UI doesn't scale past one team's first pipeline. Provision it the same way SLO-05 provisions SLOs.</p>
+<h3>Terraform</h3>
+<p>The <code>dynatrace_site_reliability_guardian</code> resource — schema confirmed against the <code>dynatrace-oss/dynatrace</code> provider registry, 08/31/2026:</p>
+<pre><code class="language-terraform"># dynatrace_site_reliability_guardian — schema confirmed against the
+# dynatrace-oss/dynatrace provider registry, 08/31/2026.
+resource &quot;dynatrace_site_reliability_guardian&quot; &quot;checkout_release_gate&quot; {
+  name       = &quot;Checkout Release Gate&quot;
+  event_kind = &quot;SDLC_EVENT&quot;
+  tags       = [&quot;stage:staging&quot;]
+
+  objectives {
+    objective {
+      name                = &quot;Error rate&quot;
+      objective_type      = &quot;DQL&quot;
+      comparison_operator = &quot;LESS_THAN_OR_EQUAL&quot;
+      # No from: — the validation (workflow timeframeSelector or Validate dialog) sets the window.
+      dql_query           = &lt;&lt;-EOT
+        timeseries { total = sum(dt.service.request.count), failures = sum(dt.service.request.failure_count) }
+        | fieldsAdd errorRate = arraySum(failures) / arraySum(total) * 100
+        | fields errorRate
+      EOT
+      target  = 8
+      warning = 6
+    }
+    objective {
+      name                = &quot;Checkout volume&quot;
+      objective_type      = &quot;DQL&quot;
+      comparison_operator = &quot;GREATER_THAN_OR_EQUAL&quot;
+      # No from: — the validation sets the window.
+      dql_query           = &lt;&lt;-EOT
+        fetch bizevents
+        | filter event.type == &quot;checkout&quot;
+        | summarize count()
+      EOT
+      target  = 50
+      warning = 55
+    }
+  }
+}
+</code></pre>
+<p>A few things this schema encodes, and where it diverges from the SLO-05 Terraform resources so you don't carry that field naming over by mistake:</p>
+<ul>
+<li><strong><code>target</code> / <code>warning</code></strong> sit directly on each objective. <code>dynatrace_platform_slo</code> (SLO-05) uses the same two names inside <code>criteria_detail</code>; only the classic <code>dynatrace_slo_v2</code> uses <code>target_success</code> / <code>target_warning</code>.</li>
+<li><strong><code>comparison_operator</code></strong> takes exactly <code>GREATER_THAN_OR_EQUAL</code> or <code>LESS_THAN_OR_EQUAL</code> — not the SLO app's own comparison vocabulary.</li>
+<li><strong><code>objective_type = &quot;REFERENCE_SLO&quot;</code></strong> is the alternative to <code>DQL</code>: set <code>reference_slo</code> to a <strong>Classic</strong> SLO's <code>func:slo.*</code> metric key instead of writing a query. The docs mark referencing a Classic SLO as deprecated (§2), and a modern SLO-app SLO cannot be selected this way.</li>
+<li><strong><code>event_kind</code></strong> is <code>SDLC_EVENT</code> or <code>BIZ_EVENT</code> — matching the guardian-type distinction from §1.</li>
+</ul>
+<h3>Monaco</h3>
+<p>Monaco projects use a three-file convention rather than a single settings object:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>guardian.json</code></td>
+<td>The guardian definition — name, <code>eventKind</code>, tags, and the <code>objectives</code> array (<code>objectiveType</code>, <code>dqlQuery</code> or a reference, <code>target</code>, <code>warning</code>, <code>comparisonOperator</code>)</td>
+</tr>
+<tr>
+<td><code>workflow.json</code></td>
+<td>The automation template that triggers validation — an event trigger with a filter condition, and a task invoking the guardian-validate action</td>
+</tr>
+<tr>
+<td><code>config.yaml</code></td>
+<td>Shared parameters both files reference, so one edit updates both the guardian and the workflow that validates it</td>
+</tr>
+</tbody>
+</table>
+<h3>dtctl: no dedicated resource, but reachable as settings</h3>
+<p>As of <code>dtctl</code> 0.40.0 (checked 09/28/2026), <code>dtctl get --help</code> lists no dedicated <code>guardians</code> resource. Guardians are Settings 2.0 objects, though — the Site Reliability Guardian as code page's Monaco example deploys them to the <code>app:dynatrace.site.reliability.guardian:guardians</code> schema — so <code>dtctl get settings --schema app:dynatrace.site.reliability.guardian:guardians</code> lists them (verified against a validation tenant the same day), and a settings object read that way can be round-tripped through <code>dtctl apply</code>. Terraform and Monaco remain the documented config-as-code paths; the settings route is a convenience for inspection and one-off edits.</p>
+<p><a id="cicd"></a></p>
+<h2>6. CI/CD Pipeline Integration</h2>
+<p>The guardian mechanics above only pay off wired into a pipeline. The shape is consistent across CI/CD platforms:</p>
+<ol>
+<li><strong>Deploy</strong> the change to the target environment.</li>
+<li><strong>Emit a deployment event</strong> (an SDLC event, if using a lifecycle guardian) so Dynatrace has something to correlate the validation window against.</li>
+<li><strong>Trigger the guardian workflow</strong> — either directly from the pipeline (call the workflow/guardian API) or let the event trigger from step 2 fire it automatically (§4).</li>
+<li><strong>Read back the result</strong> with the results query at the end of this section. A Pass gates the pipeline forward; a Fail blocks promotion; a Warning is a judgment call — treat it like the slow-burn tier in SLO-04, a signal to the team rather than an automatic block.</li>
+</ol>
+<p><strong>AUTOM-07</strong> documents the working samples for this: <code>github_pipeline_observability</code> / <code>gitlab_pipeline_observability</code> / <code>argocd_observability</code> (Monaco and Terraform variants) ingest SDLC events via OpenPipeline with pre-built dashboards, and the former <a href="https://github.com/Dynatrace/dynatrace-automation-tools">dynatrace-automation-tools</a> CLI, which wrapped guardian validation, is now <strong>archived and no longer maintained</strong> (its README points to dtctl). For new pipelines, send the SDLC event through the native CI/CD integrations. AUTOM-07's Community Resources section has the full sample matrix across GitHub Actions, GitLab CI, Azure DevOps, and ArgoCD.</p>
+<p><strong>Results query.</strong> After the guardian completes a validation, <em>&quot;Dynatrace emits a validation finished SDLC event&quot;</em>. The release-validation tutorial reads it with the query below: <code>validation.result</code> is the guardian's overall result, and <code>dt.srg.validation.summary</code> holds the per-objective results. For one row per objective, filter on <code>event.type == &quot;validation.objective&quot;</code> instead. Replace <code>payment-api</code> with your guardian's tag. This query runs on the validation tenant but returns no rows there, because that tenant has no guardian validations, so it has not been checked against real guardian output.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/quality-gates">Set up automated release validation with Site Reliability Guardian (DT docs)</a> — the results query, read 10/14/2026; <code>from:</code> added here. Executed 10/14/2026: no error, notifications <code>[]</code>, 0 rows; the same tenant held 10.1M events and 0 <code>SDLC_EVENT</code> records over 30 days.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Guardian validation results — the release-validation tutorial's query
+// Executed 10/14/2026: runs, notifications [], 0 rows (no guardian validations on that tenant)
+// Replace &quot;payment-api&quot; with your guardian's tag
+fetch events, from:-24h
+| filter event.kind == &quot;SDLC_EVENT&quot;
+| filter event.provider == &quot;dynatrace.site.reliability.guardian&quot;
+| filter event.type == &quot;validation&quot;
+| filter event.status == &quot;finished&quot;
+| filter contains(dt.srg.tags, &quot;payment-api&quot;)
+| fields timestamp, validation.result, version = event.version, guardian_name = dt.srg.name, guardian_id = dt.srg.id, guardian_objective_results = dt.srg.validation.summary, executed_workflow = dt.automation_engine.workflow.id
+</code></pre>
+<p><a id="decision"></a></p>
+<h2>7. Guardian vs SLO — Which One, or Both</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>SLO (SLO-01–05)</th>
+<th>Site Reliability Guardian</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Question answered</strong></td>
+<td>Is this service reliable over time?</td>
+<td>Is this specific change safe to release?</td>
+</tr>
+<tr>
+<td><strong>Evaluation</strong></td>
+<td>Continuous, rolling or calendar window (SLO-01 §4, SLO-03 §5)</td>
+<td>Point-in-time, triggered by an event</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td>Error budget consumption, burn rate (SLO-03)</td>
+<td>Pass / Warning / Fail / Error / Info per objective</td>
+</tr>
+<tr>
+<td><strong>Alerting fit</strong></td>
+<td>Burn-rate alerting, ongoing (SLO-04)</td>
+<td>Pipeline gate — block or promote a deployment</td>
+</tr>
+<tr>
+<td><strong>As code</strong></td>
+<td><code>dynatrace_platform_slo</code> (SLO-05)</td>
+<td><code>dynatrace_site_reliability_guardian</code> (§5)</td>
+</tr>
+</tbody>
+</table>
+<p>They are not competing mechanisms. To use both together, reuse the SLO's SLI query as a <code>DQL</code> objective — or its burn-rate form, which the SLO docs describe as <em>&quot;input for regularly scheduled evaluations via Site-Reliability Guardian&quot;</em>. (<code>REFERENCE_SLO</code> works only with a Classic SLO, and the docs mark it deprecated, §2.) The division of labor: <strong>the SLO defines what &quot;reliable&quot; means for the service on an ongoing basis; the guardian asks whether the change you're about to ship keeps it that way.</strong> A team with no SLOs yet can still use guardians standalone with DQL objectives (§2) — a guardian doesn't require an SLO to exist first — but a mature setup typically has SLOs defining the target and guardians enforcing it at every release.</p>
+<h2>Summary</h2>
+<p>In this notebook you learned:</p>
+<ol>
+<li><strong>What a guardian validates</strong> — point-in-time change validation, not continuous reliability; Lifecycle (<code>SDLC_EVENT</code>) vs Business (<code>BIZ_EVENT</code>) guardian types</li>
+<li><strong>Objectives and thresholds</strong> — <code>DQL</code> objectives (and the deprecated, Classic-only <code>REFERENCE_SLO</code>), static / auto-adaptive / no-threshold modes, and the five-state Pass / Warning / Fail / Error / Info result model (most severe wins)</li>
+<li><strong>Creating a guardian</strong> — template vs blank, the 50-objective limit, guardian-level variables</li>
+<li><strong>Triggering validation</strong> — on-demand Validate vs the automated Workflow action</li>
+<li><strong>Guardians as code</strong> — the <code>dynatrace_site_reliability_guardian</code> Terraform resource, the Monaco three-file convention, and reaching guardians through <code>dtctl</code> settings</li>
+<li><strong>CI/CD integration</strong> — the deploy → event → trigger → gate shape, and where AUTOM-07's working samples plug in</li>
+<li><strong>Guardian vs SLO</strong> — complementary, not competing; a guardian objective reuses the SLO's SLI query</li>
+</ol>
+<h2>Series Summary</h2>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Topic</th>
+<th>Key Takeaway</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SLO-01</td>
+<td>Fundamentals</td>
+<td>SLI/SLO/error-budget building blocks, modern vs classic SLO app</td>
+</tr>
+<tr>
+<td>SLO-02</td>
+<td>Defining SLIs</td>
+<td>Good/total DQL for availability, latency, error-rate, and business SLIs</td>
+</tr>
+<tr>
+<td>SLO-03</td>
+<td>Composition &amp; Error Budgets</td>
+<td>Burn-rate math, composite/weighted-global SLOs, rolling vs calendar windows</td>
+</tr>
+<tr>
+<td>SLO-04</td>
+<td>Alerting</td>
+<td>Burn-rate over threshold-on-SLI; fast/slow-burn multiwindow alerts</td>
+</tr>
+<tr>
+<td>SLO-05</td>
+<td>SLOs as Code</td>
+<td>Terraform/Monaco/API provisioning for the modern SLO app</td>
+</tr>
+<tr>
+<td>SLO-06</td>
+<td>Site Reliability Guardians</td>
+<td>Point-in-time deployment validation gates, complementary to ongoing SLOs</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/site-reliability-guardian">Site Reliability Guardian (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/deliver/site-reliability-guardian/create-srg">Create a Site Reliability Guardian (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/deliver/site-reliability-guardian/reference">Add Site Reliability Guardian objective (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/deliver/site-reliability-guardian/config-as-code-srg">Site Reliability Guardian as code (DT docs)</a>, <a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/site_reliability_guardian">dynatrace_site_reliability_guardian resource (Dynatrace provider docs)</a>. Terraform schema and the objective/threshold model fetched at source 08/31/2026; the two DQL objective queries in §2 were executed against the validation tenant the same day. On 10/12/2026 the error-rate objective was rewritten to count failures (it had measured the share of requests slower than 500 ms) and re-executed, and the <code>REFERENCE_SLO</code>, auto-adaptive and permissions statements were re-read against the pages above; the SLO-docs quote in §7 is from <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives">Service-Level Objectives (DT docs)</a>. The <code>dtctl</code> note in §5 is a dated check (<code>dtctl</code> 0.40.0, <code>dtctl get --help</code>, <code>dtctl apply --help</code> (its examples include updating a settings object) and <code>dtctl get settings --schema app:dynatrace.site.reliability.guardian:guardians</code>, 09/28/2026); the schema ID is the one the Site Reliability Guardian as code page's Monaco example uses.</sub></p>
+</blockquote>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

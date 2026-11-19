@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ORGNZ-10: Advanced Segment Definitions</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ORGNZ — Organize Data: Buckets, Segments, Security</a><span class="sep">/</span><span aria-current="page">ORGNZ-10</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ORGNZ-10: Advanced Segment Definitions</h1>
+<blockquote>
+<p><strong>Series:</strong> ORGNZ — Organize Data: Buckets, Segments, Security | <strong>Notebook:</strong> 10 of 10 | <strong>Created:</strong> February 2026 | <strong>Last Updated:</strong> 11/07/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook is a deep-dive into the mechanics of creating effective segment definitions in Dynatrace Grail. While <strong>ORGNZ-08</strong> introduced segments, their structure, and design patterns, this notebook focuses on the practical details: filter condition syntax, data type include rules, metadata enrichment for segments, advanced variable patterns, and troubleshooting techniques.</p>
+<p>The content draws from real-world implementation patterns, including host group-based segmentation strategies used in enterprise environments.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#filter-condition-syntax">Filter Condition Syntax</a></li>
+<li><a href="#data-type-include-rules">Data Type Include Rules</a></li>
+<li><a href="#primary-grail-fields-and-enrichment">Primary Grail Fields and Enrichment</a></li>
+<li><a href="#advanced-variable-patterns">Advanced Variable Patterns</a></li>
+<li><a href="#host-group-based-segments">Host Group-Based Segments</a></li>
+<li><a href="#segment-visibility-and-sharing">Segment Visibility and Sharing</a></li>
+<li><a href="#cross-app-integration">Cross-App Integration</a></li>
+<li><a href="#known-limitations-and-workarounds">Known Limitations and Workarounds</a></li>
+<li><a href="#troubleshooting-and-performance">Troubleshooting and Performance</a></li>
+<li><a href="#segments-via-settings-api-and-terraform">Segments via the Filter Segments API and Terraform</a></li>
+<li><a href="#consuming-segments-via-the-query-api">Consuming Segments via the Query API</a></li>
+<li><a href="#davis-problem-segment-include-shape">Davis Problem Segment Include Shape</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS environment with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:filter-segments:read</code> and <code>storage:filter-segments:write</code></td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>Completed ORGNZ-08 (Grail Segments fundamentals)</td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>At least 1 hour of log, span, and entity data</td>
+</tr>
+</tbody>
+</table>
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ul>
+<li>Master filter condition syntax including operators, field access, and combining conditions</li>
+<li>Understand data type include rules and the one-include-per-type constraint</li>
+<li>Know which metadata fields propagate across all signals (and which don't)</li>
+<li>Create advanced variable definitions using DQL entity queries</li>
+<li>Build host group-based segments from real-world naming conventions</li>
+<li>Troubleshoot common segment issues and apply performance best practices</li>
+</ul>
+<p><a id="filter-condition-syntax"></a></p>
+<h2>1. Filter Condition Syntax</h2>
+<p>Segment filter conditions define which data a segment includes. Understanding the available operators and field access patterns is critical for building effective segments.</p>
+<h3>Supported Operators</h3>
+<table>
+<thead>
+<tr>
+<th>Operator</th>
+<th>Example</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>=</code> (equals)</td>
+<td><code>k8s.namespace.name = &quot;production&quot;</code></td>
+<td>Exact match, best performance</td>
+</tr>
+<tr>
+<td><code>starts-with</code></td>
+<td><code>dt.host_group.id = $platform*</code></td>
+<td>Prefix match with wildcard <code>*</code></td>
+</tr>
+<tr>
+<td><code>IN</code></td>
+<td><code>k8s.namespace.name IN (&quot;prod&quot;, &quot;staging&quot;)</code></td>
+<td>Match any value in list</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>No exclusions.</strong> The <a href="https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits">Segment limits (DT docs)</a> page states <em>&quot;Only operators <code>=</code>, and <code>in()</code> are supported.&quot;</em> — there is no not-equals or <code>NOT IN</code>, so a segment cannot exclude values. Name what to include instead, or push the exclusion into ingest enrichment so the data carries a field you can include on.</p>
+<p><strong>Important — operator availability depends on data type:</strong></p>
+<ul>
+<li>The underlying operator set is <strong><code>=</code> and <code>in()</code></strong> only. <code>starts-with</code>, <code>contains</code>, and <code>ends-with</code> are not separate operators — they are expressed by placing a <strong>wildcard <code>*</code> inside the value</strong> (<code>&quot;prefix*&quot;</code>, <code>&quot;*text*&quot;</code>, <code>&quot;*suffix&quot;</code>).</li>
+<li><strong>Signal data includes</strong> (logs, spans, events, metrics) accept wildcards freely, so all three matching modes are available.</li>
+<li><strong>Classic entity includes</strong> (<code>dt.entity.*</code>; legacy, avoid in new segments, §2): <code>entity.name</code> supports <strong>starts-with only</strong> (<code>entity.name = &quot;payment*&quot;</code>); contains and ends-with are not supported on any classic-entity property, and other entity <em>properties</em> support exact <code>equals</code> only. The <a href="https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits">Segment limits (DT docs)</a> page: <em>&quot;starts-with, contains, and ends-with are not supported&quot;</em>, <em>&quot;entity.name supports starts-with&quot;</em>, <em>&quot;Other properties only support equals&quot;</em>. Tag conditions test <strong>membership in the tag set</strong> rather than a substring, so verify tag-based entity includes against your own tenant.</li>
+<li>An asterisk may follow a variable name in a starts-with condition — <code>foo = $bar*</code>.</li>
+</ul>
+<p>For cross-signal consistency, prefer prefix-based naming conventions (e.g., <code>prod-web-tier</code> not <code>web-tier-prod</code>) so <code>starts-with</code> works everywhere.</p>
+</blockquote>
+<h3>Field Access Patterns</h3>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Example</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Direct field</td>
+<td><code>k8s.namespace.name = &quot;production&quot;</code></td>
+<td>Primary Grail Fields</td>
+</tr>
+<tr>
+<td>Primary Grail tag</td>
+<td><code>primary_tags.env = &quot;production&quot;</code></td>
+<td>Tags set at the source; reach signals and service metrics</td>
+</tr>
+<tr>
+<td>Smartscape node ID</td>
+<td><code>type = &quot;SERVICE&quot; AND id in ($dt.smartscape.service)</code></td>
+<td><code>Entities</code> include; the IDs come from a variable (ORGNZ-08)</td>
+</tr>
+<tr>
+<td>Host group</td>
+<td><code>dt.host_group.id = &quot;prod-web&quot;</code></td>
+<td>Host group filtering (signal data)</td>
+</tr>
+<tr>
+<td>JSON field</td>
+<td><code>content$.uri = &quot;/health&quot;</code></td>
+<td>Nested JSON in log content</td>
+</tr>
+</tbody>
+</table>
+<h3>Combining Conditions</h3>
+<ul>
+<li><strong>AND</strong> — Multiple conditions within a single include are AND-combined:<pre><code>k8s.namespace.name = &quot;production&quot; AND k8s.cluster.name = &quot;main-cluster&quot;
+</code></pre>
+</li>
+<li><strong>OR</strong> — Use the <code>or</code> keyword within a single include (you cannot have multiple includes for the same data type):<pre><code>k8s.namespace.name = &quot;production&quot; OR k8s.namespace.name = &quot;staging&quot;
+</code></pre>
+</li>
+</ul>
+<h3>Test Your Filter Conditions</h3>
+<p>Before creating a segment, always validate your filter conditions with DQL. Run the equivalent filter clause as a DQL query to verify the results match your expectations.</p>
+<p><a id="data-type-include-rules"></a></p>
+<h2>2. Data Type Include Rules</h2>
+<p>Segments use <strong>includes</strong> to define which data types are filtered. Understanding how includes work is essential for building segments that behave as expected.</p>
+<h3>One Include Per Data Type</h3>
+<p>A segment can have <strong>only one include block per data type</strong>. You cannot define two separate include blocks for <code>logs</code>. To match multiple conditions, combine them with <code>OR</code> within a single include.</p>
+<h3>Supported Data Types</h3>
+<table>
+<thead>
+<tr>
+<th>Data Type</th>
+<th>Category</th>
+<th>Example Filter</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Data (all types)</strong></td>
+<td>Signals and Smartscape nodes</td>
+<td><code>k8s.namespace.name = $k8s.namespace.name</code> — the recommended starting point</td>
+</tr>
+<tr>
+<td><code>logs</code></td>
+<td>Signal data</td>
+<td><code>k8s.namespace.name = &quot;prod&quot;</code></td>
+</tr>
+<tr>
+<td><code>spans</code></td>
+<td>Signal data</td>
+<td><code>service.name = &quot;checkout*&quot;</code></td>
+</tr>
+<tr>
+<td><code>events</code></td>
+<td>Signal data</td>
+<td><code>event.type = &quot;CUSTOM_INFO&quot;</code></td>
+</tr>
+<tr>
+<td><code>bizevents</code></td>
+<td>Signal data</td>
+<td><code>event.provider = &quot;my-app&quot;</code></td>
+</tr>
+<tr>
+<td><strong>Entities</strong> (<em>More &gt; Entities</em>)</td>
+<td>Smartscape nodes</td>
+<td><code>type = &quot;SERVICE&quot; AND id in ($dt.smartscape.service)</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.*</code> (<em>Classic entities (by type)</em>)</td>
+<td>Classic entity — legacy</td>
+<td>Avoid in new segments (below)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Legacy classic-entity includes.</strong> The Services and Smartscape segment tutorial says <em>&quot;Do not use legacy dt.entity.</em> attributes in include blocks in your segments&quot;* and to replace them with <code>dt.smartscape.*</code> attributes; the segment editor shows a warning on existing ones. For services, <em>&quot;Do not use dt.entity.service in your segments. Instead, use dt.smartscape.service.&quot;</em> ORGNZ-08 § <em>Scoping Services and Smartscape</em> has the replacement build.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/application-observability/services/segment-services">Use segments to scope Services and Smartscape apps (DT docs)</a> — as quoted, <a href="https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-filter-smartscape-nodes">Filter Smartscape nodes with segments (DT docs)</a> — <em>&quot;the recommended Data (all types) include block or the type-specific include block for entities&quot;</em>.</sub></p>
+</blockquote>
+<h3>How Conditions Apply Per Data Type</h3>
+<p>When a segment is active and a user queries a specific data type, <strong>only the matching include rule is injected</strong>:</p>
+<ul>
+<li>Running <code>fetch logs</code> → only the <code>logs</code> include condition applies</li>
+<li>A <code>Data (all types)</code> include applies to every data object, Smartscape nodes included</li>
+<li>An <code>Entities</code> include applies only to Smartscape nodes and does <strong>NOT</strong> filter signal data (and signal includes do not filter nodes)</li>
+</ul>
+<blockquote>
+<p><strong>Critical:</strong> Not all metadata is available on all data types. For example, <code>java.jar.file</code> exists only on spans. If you filter a segment by <code>java.jar.file</code>, it will only apply to spans — not to logs, metrics, or events. <strong>Always use Primary Grail Fields for cross-signal segment filtering.</strong></p>
+</blockquote>
+<h3>Include Limits</h3>
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Maximum includes per segment</td>
+<td>20</td>
+</tr>
+<tr>
+<td>Include blocks per data type</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Expressions per filter condition</td>
+<td>10</td>
+</tr>
+</tbody>
+</table>
+<p>Since each data type gets at most 1 include, a segment can cover up to 20 distinct data types or entity types.</p>
+<h3>Configuring a segment can itself consume query budget</h3>
+<p>Easy to miss because it happens before the segment is saved: the <strong>preview</strong> query the segment editor runs
+while you build the filter is a real query. <em>&quot;If the queried data type is billable, the preview query will
+contribute to query consumption&quot;</em>; if the data type is included in your subscription, it costs nothing extra.</p>
+<p>The exposure is deliberately bounded — <em>&quot;all preview queries are subject to strict constraints, including a
+limit of 50 records, sampling, and scan limits&quot;</em> — so this is a note for anyone iterating on segment
+definitions against billable data all afternoon, not a reason to avoid the editor. Note the scope: the
+documented consumption statement covers <strong>configuration-time previews</strong>, not the cost of a segment once it is
+applied to ordinary queries.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-query-consumption">Segments — query consumption (DT docs)</a> — both quoted sentences; read at source 08/27/2026.</sub></p>
+</blockquote>
+<p><a id="primary-grail-fields-and-enrichment"></a></p>
+<h2>3. Primary Grail Fields and Enrichment</h2>
+<p>The foundation of effective segment definitions is <strong>metadata enrichment</strong>. In Dynatrace's 3rd-generation architecture, each data point is treated independently. Unlike 2nd-gen where signals were tightly coupled to entities via Management Zones, in 3rd-gen every signal (logs, spans, metrics, events) must be enriched with the corresponding metadata.</p>
+<h3>Primary Grail Fields</h3>
+<p>Primary Grail Fields are infrastructure-related fields. Dynatrace says it <em>&quot;automatically enriches them on all signals (logs, metrics, spans, events, and problems) and on all relevant Smartscape nodes&quot;</em>, and adds that <em>&quot;Not every primary Grail field exists in every situation&quot;</em> — <code>dt.host_group.id</code>, for example, <em>&quot;is only present when you configure a host group for a host.&quot;</em> So a record carries a field only when its source does. Within that limit they are the ideal fields for segment filter conditions, because one condition reaches every signal from the same source.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags">Primary Grail fields and tags (DT docs)</a> — updated 10/06/2026, as quoted.</sub></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Primary Grail Field</th>
+<th>DQL Field Name</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Host Group</strong></td>
+<td><code>dt.host_group.id</code></td>
+<td>OneAgent host group configuration</td>
+</tr>
+<tr>
+<td><strong>Kubernetes Cluster</strong></td>
+<td><code>k8s.cluster.name</code></td>
+<td>K8s integration</td>
+</tr>
+<tr>
+<td><strong>Kubernetes Namespace</strong></td>
+<td><code>k8s.namespace.name</code></td>
+<td>K8s integration</td>
+</tr>
+<tr>
+<td><strong>AWS Account</strong></td>
+<td><code>aws.account.id</code></td>
+<td>AWS integration</td>
+</tr>
+<tr>
+<td><strong>Azure Subscription</strong></td>
+<td><code>azure.subscription</code></td>
+<td>Azure integration</td>
+</tr>
+<tr>
+<td><strong>GCP Project</strong></td>
+<td><code>gcp.project.id</code></td>
+<td>GCP integration</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Best Practice:</strong> Always prefer Primary Grail Fields in segment definitions. They are indexed, automatically enriched, and consistent across all signal types.</p>
+</blockquote>
+<h3>What Propagates to Service Metrics</h3>
+<p>Derived data — service metrics, Davis events and problems — carries primary Grail fields, the special fields and primary Grail tags <strong>when the entities behind it carry them</strong>. Standard tags and signal-local attributes do not:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Propagates to Service Metrics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Primary Grail Fields (<code>dt.host_group.id</code>, <code>k8s.namespace.name</code>, …)</td>
+<td>Yes, where the source carries them — coverage on problems can be low (below)</td>
+</tr>
+<tr>
+<td><code>dt.security_context</code></td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>dt.cost.costcenter</code>, <code>dt.cost.product</code></td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Primary Grail Tags (<code>primary_tags.&lt;key&gt;</code>)</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Host tags without the <code>primary_tags.</code> prefix, Kubernetes labels, cloud tags</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td>Signal-local attributes (e.g. OpenTelemetry attributes without the <code>primary_tags.</code> convention)</td>
+<td><strong>No</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Coverage on problems is not coverage on logs.</strong> On the validation tenant on 10/14/2026, 10 of 519 problems in 24 hours carried <code>dt.host_group.id</code>, against 57.2% of logs. On problem records <code>k8s.namespace.name</code> is an array, so a DQL check needs <code>matchesValue()</code>. Run the coverage query in §12 before keying a problem segment on any field.</p>
+</blockquote>
+<p>The Management Zones → Segments upgrade guide still lists only the three special fields as reaching derived data; the primary Grail fields and tags page is broader, and on the validation tenant on 10/06/2026 <code>dt.service.request.count</code> split cleanly by two different <code>primary_tags.*</code> keys. MZ2POL-05 §5.2 and FAQ-26 §4 cover the conflict and the full reach-by-kind matrix.</p>
+<blockquote>
+<p><strong>Host group: the docs disagree with the tenant.</strong> The Services and Smartscape segment tutorial says <em>&quot;a host group is not automatically propagated to service metrics.&quot;</em> On the validation tenant on 10/14/2026, <code>dt.service.request.count</code> did carry <code>dt.host_group.id</code>: 143,402 requests in 2 h were attributed to one host group, and 92,604 had none. The practical answer doesn't depend on which is right. For a service segment on a host group, build all three parts the tutorial lists (ORGNZ-08 § <em>Scoping Services and Smartscape</em>) rather than relying on the <code>Data (all types)</code> include alone.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/application-observability/services/segment-services">Use segments to scope Services and Smartscape apps (DT docs)</a> — as quoted; tenant check 10/14/2026.</sub></p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags">Primary Grail fields and tags (DT docs)</a> — <em>&quot;Dynatrace enriches all derived signals (service metrics, Davis events, and problems) with the same tags.&quot;</em>, <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-otel">Enrich OpenTelemetry with primary Grail fields and tags (DT docs)</a> — non-convention attributes <em>&quot;aren't automatically propagated across signal types or to Davis events and problems.&quot;</em>, <a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments">Best practice examples: from Management Zones to Segments (DT docs)</a> — <em>&quot;Currently, only keys will be carried over to derived data: dt.security_context, dt.cost.costcenter, and dt.cost.product.&quot;</em></sub></p>
+</blockquote>
+<h3>Primary Grail Tags</h3>
+<p>When Primary Grail Fields don't align with how your organization wants to segment data (e.g., shared infrastructure with multiple apps on one host group), use <strong>Primary Grail Tags</strong>.</p>
+<ul>
+<li>Identified by the prefix <code>primary_tags.</code></li>
+<li>Example: <code>primary_tags.stage=prod</code>, <code>primary_tags.team=platform</code></li>
+<li>Set via host tags, environment variables (<code>DT_TAGS</code>), Kubernetes annotations or central enrichment rules, or OpenPipeline — not host properties (see <em>Enrichment via Host Tags</em> below)</li>
+<li>Propagated across all data points, similar to Primary Grail Fields</li>
+</ul>
+<blockquote>
+<p><strong>Kubernetes coverage:</strong> both central enrichment rules and dedicated annotations (<code>metadata.dynatrace.com/primary_tags.&lt;key&gt;</code>) reach Kubernetes platform metrics, Kubernetes events and Smartscape Kubernetes entities, so one <code>primary_tags.*</code> include scopes K8s metrics, events, logs and spans alike. On the validation tenant on 10/13/2026, 7,377 of 8,617 Kubernetes events in 24 h carried a <code>primary_tags.*</code> field, and <code>dt.kubernetes.container.restarts</code> split by it. Two documented caveats apply:</p>
+<ul>
+<li>OneAgent-based enrichment needs the <strong>Cloud Native Full Stack</strong> or <strong>Application Monitoring</strong> deployment mode; Classic Full Stack is not supported.</li>
+<li>The cost-allocation page says <strong>pod</strong> annotations don't reach Kubernetes metrics, events, Smartscape entities or Prometheus metrics, while the Kubernetes page ticks a combined pod/workload/namespace column. Until the pages agree, set any tag that must scope K8s metrics with a central rule or at namespace level.</li>
+</ul>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s">Enrich Kubernetes telemetry with primary Grail fields and tags (DT docs)</a> — <em>&quot;consistently across logs, metrics, spans, events, and Smartscape entities&quot;</em>; <em>&quot;OneAgent-based enrichment requires the Cloud Native Full Stack or Application Monitoring deployment mode. Classic Full Stack is not supported.&quot;</em>, <a href="https://docs.dynatrace.com/docs/manage/tags/tags-cost-allocation">Configure cost allocation (DT docs)</a> — <em>&quot;Pod annotations don't enrich Kubernetes metrics, events, Smartscape entities, or Prometheus metrics.&quot;</em></sub></p>
+</blockquote>
+<h3>Enrichment Approaches</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Approach</th>
+<th>Effort</th>
+<th>Granularity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dedicated Infrastructure</strong></td>
+<td>Host group + host tags</td>
+<td>Low</td>
+<td>Host-level</td>
+</tr>
+<tr>
+<td><strong>Shared Infrastructure</strong></td>
+<td><code>DT_TAGS</code> environment variable per process</td>
+<td>Higher</td>
+<td>Process-level</td>
+</tr>
+<tr>
+<td><strong>Kubernetes</strong></td>
+<td>Primary Grail Fields (automatic)</td>
+<td>None</td>
+<td>Namespace/cluster</td>
+</tr>
+<tr>
+<td><strong>Cloud (AWS/Azure/GCP)</strong></td>
+<td>Native cloud tags</td>
+<td>None</td>
+<td>Account/subscription</td>
+</tr>
+</tbody>
+</table>
+<h3>Enrichment via Host Tags</h3>
+<p>For dedicated infrastructure, set these as <strong>host tags</strong> — at OneAgent installation (<code>--set-host-tag</code>), with <code>oneagentctl --set-host-tag</code>, or via <strong>Deployment Status</strong>:</p>
+<ol>
+<li><code>dt.security_context=&lt;team-or-app&gt;</code> — For IAM access control</li>
+<li><code>dt.cost.costcenter=&lt;cost-center&gt;</code> — For cost allocation</li>
+<li><code>dt.cost.product=&lt;product&gt;</code> — For product tracking</li>
+<li><code>primary_tags.&lt;key&gt;=&lt;value&gt;</code> — For custom enrichment</li>
+</ol>
+<p>The docs name host tags for each of these: <em>&quot;OneAgent host tags: Add dt.security_context=<value> as a host tag during installation or via Deployment Status.&quot;</em> and <em>&quot;You can also set dt.cost.costcenter and dt.cost.product directly as host tags during OneAgent installation or via the central primary Grail tag configuration.&quot;</em> For <code>primary_tags.*</code> the distinction is now enforced: from OneAgent 1.345, host-level primary tags are derived from host tags only, and values set as host properties stop being promoted (see <strong>ORGNZ-99</strong> row 60a).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/tags-security-context">Configure security context (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage/tags/tags-cost-allocation">Configure cost allocation (DT docs)</a>.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Restart Requirements:</strong></p>
+<ul>
+<li><strong>Logs</strong>: No application restart needed — OneAgent log module auto-enriches after its own restart</li>
+<li><strong>Spans</strong>: Application restart <strong>required</strong> to apply enrichment to traces</li>
+<li><strong>Metrics</strong>: OneAgent restart applies automatically</li>
+</ul>
+</blockquote>
+<h3>Verify Enrichment Coverage</h3>
+<p>Before building segments, verify that the fields you plan to filter on actually exist on your signal data. Fields with 0% coverage need enrichment via OneAgent configuration or OpenPipeline.</p>
+<p><a id="advanced-variable-patterns"></a></p>
+<h2>4. Advanced Variable Patterns</h2>
+<p>Variables make segments dynamic by letting users select values at runtime (e.g., choosing a host group or namespace from a dropdown).</p>
+<h3>Primary vs Secondary Variables</h3>
+<p>The variable definition is a DQL query. The columns in the result set determine the variable behavior:</p>
+<table>
+<thead>
+<tr>
+<th>Column Position</th>
+<th>Role</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>First column</strong></td>
+<td>Primary variable</td>
+<td>Shown in the dropdown selector</td>
+</tr>
+<tr>
+<td><strong>Additional columns</strong></td>
+<td>Secondary variables</td>
+<td>Available for use in filter conditions</td>
+</tr>
+</tbody>
+</table>
+<h3>Variable Rules</h3>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Maximum values in dropdown</td>
+<td>15,000 (a 5 MB byte cap also applies)</td>
+</tr>
+<tr>
+<td>Selected values per segment</td>
+<td>100 maximum</td>
+</tr>
+<tr>
+<td>Wildcard</td>
+<td>Allowed <strong>after</strong> variable name: <code>$cluster*</code> (starts-with)</td>
+</tr>
+<tr>
+<td>No wildcard in names</td>
+<td>Variable names and values cannot contain <code>*</code></td>
+</tr>
+<tr>
+<td>Permissions</td>
+<td>Users must have read access to entities queried by the variable DQL</td>
+</tr>
+<tr>
+<td>Empty dropdown</td>
+<td>Usually means the user lacks permission for the variable query</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits">Segment limits (DT docs)</a> — <em>&quot;15,000 values in the variable dropdown (5 MB byte cap also applies)&quot;</em>.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>SaaS 1.347 — staged tenant rollout from 09/16/2026:</strong> segment variable queries move from the consuming app's context to the Segments app's. Once the change reaches your tenant, <em>&quot;variable queries succeed even when the consuming app lacks the required data scopes&quot;</em>, provided users hold <code>ALLOW app-engine:apps:run WHERE shared:app-id = 'dynatrace.segments.management'</code> — without it, <em>&quot;variable queries will fall back to the old behavior.&quot;</em> Until then, the two permission rows above describe the working behaviour. Source: <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-347">What's new in SaaS 1.347 (DT docs)</a>.</p>
+</blockquote>
+<h3>Variable DQL Examples</h3>
+<p>The following queries demonstrate how to create variable definitions for common use cases.</p>
+<p><strong>All Kubernetes namespaces (primary variable only):</strong></p>
+<pre><code class="language-dql">smartscapeNodes &quot;K8S_NAMESPACE&quot;
+| fields k8s.namespace.name
+| dedup k8s.namespace.name
+| sort lower(k8s.namespace.name)
+</code></pre>
+<p><strong>All host groups (primary variable only):</strong></p>
+<pre><code class="language-dql">smartscapeNodes &quot;HOST&quot;
+| filter isNotNull(dt.host_group.id)
+| fields dt.host_group.id
+| dedup dt.host_group.id
+| sort lower(dt.host_group.id)
+</code></pre>
+<p>Both validated 10/14/2026 on the validation tenant (12 namespaces, 3 host groups; 0 bytes scanned). The single column becomes the primary variable, <code>$k8s.namespace.name</code> or <code>$dt.host_group.id</code>. For a variable with a secondary column — namespaces with the IDs of their services — use the <code>metrics</code> query in ORGNZ-08 § <em>Scoping Services and Smartscape</em>.</p>
+<h3>Legacy Multi-Include Pattern: Tag-Based Variables on Classic Process Groups</h3>
+<p>This pattern is kept for segments that already use it. It is legacy (see the note at the end), so don't use it for new segments. A variable query over classic process-group tags, CloudFoundry organizations in this example, can return three variables:</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Example Value</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>$value</code></td>
+<td><code>TeamA</code></td>
+<td>Display in dropdown</td>
+</tr>
+<tr>
+<td><code>$id</code></td>
+<td><code>PROCESS_GROUP-1234567</code></td>
+<td>Filter signal data by entity ID</td>
+</tr>
+<tr>
+<td><code>$AppTag</code></td>
+<td><code>[CloudFoundry]Organization:TeamA</code></td>
+<td>Match entity tags</td>
+</tr>
+</tbody>
+</table>
+<p>Use these variables across <strong>multiple includes</strong> to build a segment that filters both entity and signal data:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgNTA2Ij4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmdHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBmMTcyYSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxZTI5M2IiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InF1ZXJ5R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM2I4MmY2Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzI1NjNlYiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic2xhdGVHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2NDc0OGIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNDc1NTY5Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ0ZWFsR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTRiOGE2Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBkOTQ4OCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icHVycGxlR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojOGI1Y2Y2Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdjM2FlZCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idGVhbENoaWxkR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMGQ5NDg4Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBmNzY2ZSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icHVycGxlQ2hpbGRHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3YzNhZWQiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNmQyOGQ5Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0ic2hhZG93IiB4PSItMTAlIiB5PSItMTAlIiB3aWR0aD0iMTIwJSIgaGVpZ2h0PSIxMjAlIj4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMiIgZHk9IjIiIHN0ZERldmlhdGlvbj0iMyIgZmxvb2Qtb3BhY2l0eT0iMC4zIi8+CiAgICA8L2ZpbHRlcj4KICAgIDxtYXJrZXIgaWQ9ImFycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iOCIgcmVmWD0iOSIgcmVmWT0iNCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNCBMMCw4IFoiIGZpbGw9IiM5NGEzYjgiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyb3dUZWFsIiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iOCIgcmVmWD0iOSIgcmVmWT0iNCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNCBMMCw4IFoiIGZpbGw9IiM1ZWVhZDQiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyb3dQdXJwbGUiIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI4IiByZWZYPSI5IiByZWZZPSI0IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw0IEwwLDggWiIgZmlsbD0iI2M0YjVmZCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNiZ0dyYWQpIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iMzUwIiB5PSIyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2Y4ZmFmYyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyIgZm9udC13ZWlnaHQ9IjYwMCI+TXVsdGktSW5jbHVkZSBTZWdtZW50OiBUYWctQmFzZWQgVmFyaWFibGVzPC90ZXh0PgoKICA8IS0tIOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkCAtLT4KICA8IS0tIFJvdyAxOiBWYXJpYWJsZSBEUUwgUXVlcnkgICAgICAgICAgICAgICAgICAtLT4KICA8IS0tIOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkCAtLT4KICA8cmVjdCB4PSI3NSIgeT0iNDQiIHdpZHRoPSI1NTAiIGhlaWdodD0iNDgiIHJ4PSI4IiBmaWxsPSJ1cmwoI3F1ZXJ5R3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMzUwIiB5PSI2NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI2MDAiPlZhcmlhYmxlIERRTDogUHJvY2VzcyBHcm91cCBUYWcgUGFyc2luZzwvdGV4dD4KICA8dGV4dCB4PSIzNTAiIHk9IjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYmZkYmZlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5mZXRjaCBkdC5lbnRpdHkucHJvY2Vzc19ncm91cCB8IGV4cGFuZCB0YWdzIHwgcGFyc2UgW0Nsb3VkRm91bmRyeV1Pcmdhbml6YXRpb248L3RleHQ+CgogIDwhLS0gQXJyb3dzOiBRdWVyeSBib3gg4oaSIFZhcmlhYmxlcyAtLT4KICA8bGluZSB4MT0iMTMwIiB5MT0iOTIiIHgyPSIxMzAiIHkyPSIxMTUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CiAgPGxpbmUgeDE9IjMzMCIgeTE9IjkyIiB4Mj0iMzMwIiB5Mj0iMTE1IiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgogIDxsaW5lIHgxPSI1NTAiIHkxPSI5MiIgeDI9IjU1MCIgeTI9IjExNSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KCiAgPCEtLSDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZAgLS0+CiAgPCEtLSBSb3cgMjogVGhyZWUgVmFyaWFibGUgQm94ZXMgICAgICAgICAgICAgICAgLS0+CiAgPCEtLSDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZAgLS0+CgogIDwhLS0gJHZhbHVlIChzbGF0ZSAtIGRyb3Bkb3duIGRpc3BsYXkgb25seSkgLS0+CiAgPHJlY3QgeD0iNTAiIHk9IjEyMiIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI0NiIgcng9IjYiIGZpbGw9InVybCgjc2xhdGVHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIxMzAiIHk9IjE0MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPiR2YWx1ZTwvdGV4dD4KICA8dGV4dCB4PSIxMzAiIHk9IjE1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2NiZDVlMSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+VGVhbUEgKGRyb3Bkb3duKTwvdGV4dD4KCiAgPCEtLSAkQXBwVGFnICh0ZWFsIC0gZW50aXR5IHRhZyBtYXRjaGluZykgLS0+CiAgPHJlY3QgeD0iMjMwIiB5PSIxMjIiIHdpZHRoPSIyMDAiIGhlaWdodD0iNDYiIHJ4PSI2IiBmaWxsPSJ1cmwoI3RlYWxHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIzMzAiIHk9IjE0MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPiRBcHBUYWc8L3RleHQ+CiAgPHRleHQgeD0iMzMwIiB5PSIxNTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNjY2ZiZjEiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPltDRl1Pcmdhbml6YXRpb246VGVhbUE8L3RleHQ+CgogIDwhLS0gJGlkIChwdXJwbGUgLSBzaWduYWwgZmlsdGVyaW5nKSAtLT4KICA8cmVjdCB4PSI0NTAiIHk9IjEyMiIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI0NiIgcng9IjYiIGZpbGw9InVybCgjcHVycGxlR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iNTUwIiB5PSIxNDEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj4kaWQ8L3RleHQ+CiAgPHRleHQgeD0iNTUwIiB5PSIxNTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOWQ1ZmYiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPlBST0NFU1NfR1JPVVAtLi4uPC90ZXh0PgoKICA8IS0tIOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkCAtLT4KICA8IS0tIFNlY3Rpb24gRGl2aWRlciBhbmQgTGFiZWxzICAgICAgICAgICAgICAgICAtLT4KICA8IS0tIOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkCAtLT4KICA8bGluZSB4MT0iMzcwIiB5MT0iMTkyIiB4Mj0iMzcwIiB5Mj0iNDcwIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLWRhc2hhcnJheT0iNCw0Ii8+CiAgPHRleHQgeD0iMTkwIiB5PSIyMDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiIGxldHRlci1zcGFjaW5nPSIxLjUiPkVOVElUWSBJTkNMVURFUzwvdGV4dD4KICA8dGV4dCB4PSI1MzAiIHk9IjIwMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCIgbGV0dGVyLXNwYWNpbmc9IjEuNSI+U0lHTkFMIElOQ0xVREVTPC90ZXh0PgoKICA8IS0tIEFycm93czogJEFwcFRhZyDihpIgRW50aXR5IHNlY3Rpb24sICRpZCDihpIgU2lnbmFsIHNlY3Rpb24gLS0+CiAgPGxpbmUgeDE9IjMzMCIgeTE9IjE2OCIgeDI9IjE5MCIgeTI9IjIxNiIgc3Ryb2tlPSIjNWVlYWQ0IiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvd1RlYWwpIi8+CiAgPGxpbmUgeDE9IjU1MCIgeTE9IjE2OCIgeDI9IjUzMCIgeTI9IjIxNiIgc3Ryb2tlPSIjYzRiNWZkIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvd1B1cnBsZSkiLz4KCiAgPCEtLSDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZAgLS0+CiAgPCEtLSBMZWZ0OiBFbnRpdHkgSW5jbHVkZXMgICAgICAgICAgICAgICAgICAgICAgLS0+CiAgPCEtLSDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZAgLS0+CgogIDwhLS0gUHJvY2VzcyBHcm91cCAoYW5jaG9yIGVudGl0eSBpbmNsdWRlKSAtLT4KICA8cmVjdCB4PSIzNSIgeT0iMjIwIiB3aWR0aD0iMzEwIiBoZWlnaHQ9IjQ0IiByeD0iNiIgZmlsbD0idXJsKCN0ZWFsR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMTkwIiB5PSIyMzkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5Qcm9jZXNzIEdyb3VwPC90ZXh0PgogIDx0ZXh0IHg9IjE5MCIgeT0iMjU0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjY2NmYmYxIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj50YWdzID0gJEFwcFRhZzwvdGV4dD4KCiAgPCEtLSBUcmVlIGNvbm5lY3RvcjogdmVydGljYWwgdHJ1bmsgLS0+CiAgPGxpbmUgeDE9IjY4IiB5MT0iMjY0IiB4Mj0iNjgiIHkyPSI0MzIiIHN0cm9rZT0iIzVlZWFkNCIgc3Ryb2tlLXdpZHRoPSIyIi8+CgogIDwhLS0gVHJlZSBicmFuY2gg4oaSIFBHSSAtLT4KICA8bGluZSB4MT0iNjgiIHkxPSIzMTYiIHgyPSI4OCIgeTI9IjMxNiIgc3Ryb2tlPSIjNWVlYWQ0IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dUZWFsKSIvPgogIDxyZWN0IHg9Ijk1IiB5PSIyOTYiIHdpZHRoPSIyNDUiIGhlaWdodD0iNDAiIHJ4PSI1IiBmaWxsPSJ1cmwoI3RlYWxDaGlsZEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjIxOCIgeT0iMzEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjUwMCI+UHJvY2VzcyBHcm91cCBJbnN0YW5jZTwvdGV4dD4KICA8dGV4dCB4PSIyMTgiIHk9IjMyNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk5ZjZlNCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmb250LXN0eWxlPSJpdGFsaWMiPmluc3RhbmNlX29mIFByb2Nlc3MgR3JvdXA8L3RleHQ+CgogIDwhLS0gVHJlZSBicmFuY2gg4oaSIEhvc3QgLS0+CiAgPGxpbmUgeDE9IjY4IiB5MT0iMzc0IiB4Mj0iODgiIHkyPSIzNzQiIHN0cm9rZT0iIzVlZWFkNCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93VGVhbCkiLz4KICA8cmVjdCB4PSI5NSIgeT0iMzU0IiB3aWR0aD0iMjQ1IiBoZWlnaHQ9IjQwIiByeD0iNSIgZmlsbD0idXJsKCN0ZWFsQ2hpbGRHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIyMTgiIHk9IjM3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI1MDAiPkhvc3Q8L3RleHQ+CiAgPHRleHQgeD0iMjE4IiB5PSIzODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5OWY2ZTQiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZm9udC1zdHlsZT0iaXRhbGljIj5ydW5zIFByb2Nlc3MgR3JvdXA8L3RleHQ+CgogIDwhLS0gVHJlZSBicmFuY2gg4oaSIFNlcnZpY2UgLS0+CiAgPGxpbmUgeDE9IjY4IiB5MT0iNDMyIiB4Mj0iODgiIHkyPSI0MzIiIHN0cm9rZT0iIzVlZWFkNCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93VGVhbCkiLz4KICA8cmVjdCB4PSI5NSIgeT0iNDEyIiB3aWR0aD0iMjQ1IiBoZWlnaHQ9IjQwIiByeD0iNSIgZmlsbD0idXJsKCN0ZWFsQ2hpbGRHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIyMTgiIHk9IjQyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI1MDAiPlNlcnZpY2U8L3RleHQ+CiAgPHRleHQgeD0iMjE4IiB5PSI0NDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5OWY2ZTQiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZm9udC1zdHlsZT0iaXRhbGljIj5ydW5zX29uIFByb2Nlc3MgR3JvdXA8L3RleHQ+CgogIDwhLS0gUm90YXRlZCBsYWJlbDogcmVsYXRpb25zaGlwIHRyYXZlcnNhbCAtLT4KICA8dGV4dCB4PSIwIiB5PSIwIiBmaWxsPSIjNWVlYWQ0IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZvbnQtd2VpZ2h0PSI1MDAiIGxldHRlci1zcGFjaW5nPSIwLjUiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDQyLDQwMCkgcm90YXRlKC05MCkiPlJFTEFUSU9OU0hJUCBUUkFWRVJTQUw8L3RleHQ+CgogIDwhLS0g4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQIC0tPgogIDwhLS0gUmlnaHQ6IFNpZ25hbCBJbmNsdWRlcyAgICAgICAgICAgICAgICAgICAgIC0tPgogIDwhLS0g4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQIC0tPgoKICA8IS0tIFNwYW5zIC0tPgogIDxyZWN0IHg9IjM5MyIgeT0iMjIwIiB3aWR0aD0iMjcyIiBoZWlnaHQ9IjQ0IiByeD0iNiIgZmlsbD0idXJsKCNwdXJwbGVHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSI1MjkiIHk9IjIzOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPlNwYW5zPC90ZXh0PgogIDx0ZXh0IHg9IjUyOSIgeT0iMjU0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZTlkNWZmIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5kdC5lbnRpdHkucHJvY2Vzc19ncm91cCBpbiAoJGlkKTwvdGV4dD4KCiAgPCEtLSBMb2dzIC0tPgogIDxyZWN0IHg9IjM5MyIgeT0iMjgwIiB3aWR0aD0iMjcyIiBoZWlnaHQ9IjQ0IiByeD0iNiIgZmlsbD0idXJsKCNwdXJwbGVDaGlsZEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjUyOSIgeT0iMjk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjUwMCI+TG9nczwvdGV4dD4KICA8dGV4dCB4PSI1MjkiIHk9IjMxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2RkZDZmZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+ZHQuZW50aXR5LnByb2Nlc3NfZ3JvdXAgaW4gKCRpZCk8L3RleHQ+CgogIDwhLS0gTWV0cmljcyAtLT4KICA8cmVjdCB4PSIzOTMiIHk9IjM0MCIgd2lkdGg9IjI3MiIgaGVpZ2h0PSI0NCIgcng9IjYiIGZpbGw9InVybCgjcHVycGxlQ2hpbGRHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiIG9wYWNpdHk9IjAuODUiLz4KICA8dGV4dCB4PSI1MjkiIHk9IjM1OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI1MDAiPk1ldHJpY3M8L3RleHQ+CiAgPHRleHQgeD0iNTI5IiB5PSIzNzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNkZGQ2ZmUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPmR0LmVudGl0eS5wcm9jZXNzX2dyb3VwIGluICgkaWQpPC90ZXh0PgoKICA8IS0tIEV2ZW50cyAtLT4KICA8cmVjdCB4PSIzOTMiIHk9IjQwMCIgd2lkdGg9IjI3MiIgaGVpZ2h0PSI0NCIgcng9IjYiIGZpbGw9InVybCgjcHVycGxlQ2hpbGRHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiIG9wYWNpdHk9IjAuNyIvPgogIDx0ZXh0IHg9IjUyOSIgeT0iNDE5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjUwMCI+RXZlbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjUyOSIgeT0iNDM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZGRkNmZlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5kdC5lbnRpdHkucHJvY2Vzc19ncm91cCBpbiAoJGlkKTwvdGV4dD4KCiAgPCEtLSBSb3RhdGVkIGxhYmVsOiBlbnRpdHkgSUQgZmlsdGVyIC0tPgogIDx0ZXh0IHg9IjAiIHk9IjAiIGZpbGw9IiNjNGI1ZmQiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZm9udC13ZWlnaHQ9IjUwMCIgbGV0dGVyLXNwYWNpbmc9IjAuNSIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzgzLDQwMCkgcm90YXRlKC05MCkiPkVOVElUWSBJRCBGSUxURVI8L3RleHQ+CgogIDwhLS0g4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQIC0tPgogIDwhLS0gRm9vdGVyICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIC0tPgogIDwhLS0g4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQIC0tPgogIDx0ZXh0IHg9IjM1MCIgeT0iNDc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhiIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5PbmUgdmFyaWFibGUgcXVlcnkgJiN4MjE5MjsgY2FzY2FkaW5nIGluY2x1ZGVzIGFjcm9zcyBlbnRpdHkgdG9wb2xvZ3kgKyBzaWduYWwgZGF0YTwvdGV4dD4KICA8dGV4dCB4PSIzNTAiIHk9IjQ5NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZiYmYyNCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5Ij5DbGFzc2ljIHBhdHRlcm46IGVudGl0eSByZWxhdGlvbnNoaXBzIGluIHNlZ21lbnRzIGFyZSBvbmx5IHN1cHBvcnRlZCBmb3IgYmFja3dhcmQgY29tcGF0aWJpbGl0eSB3aXRoIGNsYXNzaWMgZW50aXRpZXM8L3RleHQ+Cjwvc3ZnPg==" alt="Multi-Include Segment Pattern" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Include Type | Filter | Category |
+|-------------|--------|----------|
+| Process Group | tags = $AppTag | Entity include (anchor) |
+| Process Group Instance | instance_of Process Group | Entity include (relationship traversal) |
+| Host | runs Process Group | Entity include (relationship traversal) |
+| Service | runs_on Process Group | Entity include (relationship traversal) |
+| Spans | dt.entity.process_group in ($id) | Signal include (entity ID filter) |
+| Logs | dt.entity.process_group in ($id) | Signal include (entity ID filter) |
+| Metrics | dt.entity.process_group in ($id) | Signal include (entity ID filter) |
+| Events | dt.entity.process_group in ($id) | Signal include (entity ID filter) |
+Classic pattern: entity relationships in segments are only supported for backward compatibility with classic entities.
+For environments where SVG doesn't render
+-->
+<table>
+<thead>
+<tr>
+<th>Include Type</th>
+<th>Filter</th>
+<th>How It Works</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Process Group</strong></td>
+<td><code>tags = $AppTag</code></td>
+<td>Matches process groups by tag</td>
+</tr>
+<tr>
+<td><strong>Process Group Instance</strong></td>
+<td><code>instance_of Process Group</code></td>
+<td>Relationship traversal — includes instances of matched process groups</td>
+</tr>
+<tr>
+<td><strong>Host</strong></td>
+<td><code>runs Process Group</code></td>
+<td>Relationship traversal — includes hosts running matched process groups</td>
+</tr>
+<tr>
+<td><strong>Service</strong></td>
+<td><code>runs_on Process Group</code></td>
+<td>Relationship traversal — includes services on matched process groups</td>
+</tr>
+<tr>
+<td><strong>Spans</strong></td>
+<td><code>dt.entity.process_group in ($id)</code></td>
+<td>Signal include — filters spans by process group entity ID</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Key Insight:</strong> This pattern bridges entity and signal data in a single segment. Entity includes use tag matching and relationship traversal to cascade across the topology, while signal includes use the entity ID variable to filter spans, logs, and metrics directly. This is especially powerful when Primary Grail Fields are not available for your use case and you need to segment by application-level metadata like CloudFoundry organizations or custom tags.</p>
+</blockquote>
+<blockquote>
+<p><strong>This is a legacy pattern.</strong> Its relationship rows are classic-entity traversal, which applies <em>&quot;to legacy dt.entity.</em> attributes only and don't work with Smartscape entities.&quot;* Dynatrace also advises against <code>dt.entity.*</code> attributes in include blocks. Its <code>$id</code> variable is an entity-ID lookup, and the AWS end-to-end example says <em>&quot;Don't use segment variables to look up entity IDs. The exception is services, because SERVICE nodes don't carry primary Grail tags and the segment needs the lookup to include them.&quot;</em> Keep it only for segments that already depend on it. For new segments, set a primary Grail tag at the source (FAQ-02, MZ2POL-10) and filter a <code>Data (all types)</code> include on it. If services must appear in Smartscape, derive their IDs with a variable rather than a <code>runs_on</code> traversal (ORGNZ-08 § <em>Scoping Services and Smartscape</em>).</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/application-observability/services/segment-services">Use segments to scope Services and Smartscape apps (DT docs)</a> — as quoted, <a href="https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws">Apply primary Grail tags across an example AWS estate (DT docs)</a> — <em>&quot;Don't use segment variables to look up entity IDs.&quot;</em></sub></p>
+</blockquote>
+<h3>Using Variables in Filter Conditions</h3>
+<p>After defining a variable query, reference the columns in your segment filter:</p>
+<pre><code class="language-text">Data (all types):  k8s.namespace.name = $k8s.namespace.name
+Entities:          type = &quot;SERVICE&quot; AND id in ($dt.smartscape.service)
+</code></pre>
+<p>Where <code>$k8s.namespace.name</code> references the primary variable (first column) and <code>$dt.smartscape.service</code> references the secondary variable (second column). This is the service build from ORGNZ-08.</p>
+<p><strong>Wildcard with variables</strong> — Use <code>$variable*</code> to match prefixes:</p>
+<pre><code>Filter: dt.host_group.id = $platform*
+</code></pre>
+<p>This matches all host groups that <strong>start with</strong> the selected platform value.</p>
+<p><a id="host-group-based-segments"></a></p>
+<h2>5. Host Group-Based Segments</h2>
+<p>A common enterprise pattern is encoding multiple dimensions into host group names using a naming convention. This section shows how to create segments from these encoded dimensions.</p>
+<h3>Real-World Pattern</h3>
+<p>Consider a customer using the host group naming convention <code>&lt;platform&gt;_&lt;app&gt;_&lt;stage&gt;</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Host Group</th>
+<th>Platform</th>
+<th>App</th>
+<th>Stage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>k8s_multi_prod</code></td>
+<td>k8s</td>
+<td>multi</td>
+<td>prod</td>
+</tr>
+<tr>
+<td><code>k8s_easytravel_staging</code></td>
+<td>k8s</td>
+<td>easytravel</td>
+<td>staging</td>
+</tr>
+<tr>
+<td><code>onPrem_easytravel_staging</code></td>
+<td>onPrem</td>
+<td>easytravel</td>
+<td>staging</td>
+</tr>
+<tr>
+<td><code>onPrem_easytrade_prod</code></td>
+<td>onPrem</td>
+<td>easytrade</td>
+<td>prod</td>
+</tr>
+</tbody>
+</table>
+<h3>Best Practice: One Segment Per Dimension</h3>
+<p>Create a <strong>separate segment for each dimension</strong> (platform, app, stage). This gives users the flexibility to combine them as needed.</p>
+<h3>Step 1: Extract Dimensions with DQL</h3>
+<p>Use DQL to parse the host group name and extract each dimension as a variable:</p>
+<h3>Step 2: Create Variable DQL for Each Dimension</h3>
+<p><strong>Platform variable:</strong></p>
+<pre><code class="language-dql">smartscapeNodes &quot;HOST&quot;
+| filter isNotNull(dt.host_group.id)
+| parse dt.host_group.id, &quot;&quot;&quot;LD:platform '_' LD:app '_' LD:stage&quot;&quot;&quot;
+| filter isNotNull(platform)
+| fields platform
+| dedup platform
+</code></pre>
+<p><strong>App variable:</strong></p>
+<pre><code class="language-dql">smartscapeNodes &quot;HOST&quot;
+| filter isNotNull(dt.host_group.id)
+| parse dt.host_group.id, &quot;&quot;&quot;LD:platform '_' LD:app '_' LD:stage&quot;&quot;&quot;
+| filter isNotNull(app)
+| fields app
+| dedup app
+</code></pre>
+<p><strong>Stage variable:</strong></p>
+<pre><code class="language-dql">smartscapeNodes &quot;HOST&quot;
+| filter isNotNull(dt.host_group.id)
+| parse dt.host_group.id, &quot;&quot;&quot;LD:platform '_' LD:app '_' LD:stage&quot;&quot;&quot;
+| filter isNotNull(stage)
+| fields stage
+| dedup stage
+</code></pre>
+<p>There is no <code>HOST_GROUP</code> Smartscape node type. The host group is the <code>dt.host_group.id</code> field on <code>HOST</code> nodes, so these queries start from hosts and dedup. Validated 10/14/2026 against host groups named with a <code>-</code> separator; 0 bytes scanned.</p>
+<h3>Step 3: Define Filter Conditions</h3>
+<table>
+<thead>
+<tr>
+<th>Segment</th>
+<th>Filter Condition</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Platform</td>
+<td><code>dt.host_group.id = $platform*</code></td>
+<td>Matches host groups starting with selected platform</td>
+</tr>
+<tr>
+<td>App</td>
+<td><code>primary_tags.app = $app</code></td>
+<td>Tag app at the source (see note)</td>
+</tr>
+<tr>
+<td>Stage</td>
+<td><code>primary_tags.stage = $stage</code></td>
+<td>Tag stage at the source (see note)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> the documented way to use a variable with a wildcard is a trailing one, <code>$var*</code> (<em>&quot;Asterisks are allowed to follow variable names in conditions for starts-with&quot;</em>). That works for the dimension at the front of the name, here platform. A variable inside or at the end of a value (<code>contains</code> / <code>ends-with</code>) is not a documented form. For app and stage, set them as primary Grail tags at the source and build those variables from the tags, or order the name so the dimension you filter on comes first. Always test with the segment preview before deploying.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits">Segment limits (DT docs)</a> — as quoted.</sub></p>
+</blockquote>
+<h3>Step 4: Validate Across Signal Types</h3>
+<p>After creating the segments, validate they filter correctly across:</p>
+<ul>
+<li><strong>Logs</strong> — Check record count reduction when segment is applied</li>
+<li><strong>Distributed Traces</strong> — Verify spans are filtered by the host group dimension</li>
+<li><strong>Hosts / Services</strong> — Confirm entity filtering matches expectations</li>
+<li><strong>Infrastructure</strong> — Verify metrics are scoped correctly</li>
+</ul>
+<blockquote>
+<p><strong>Tip:</strong> The host group is a Primary Grail Field, so it propagates across all signal types. This makes it an excellent candidate for segment filtering.</p>
+</blockquote>
+<blockquote>
+<p><strong>K8s analog.</strong> For Kubernetes-heavy tenants, the equivalent Primary Grail Fields are <code>k8s.cluster.name</code> (cluster-scoped segment) and <code>k8s.namespace.name</code> (namespace-scoped segment). The canonical <a href="https://docs.dynatrace.com/docs/manage/segments/use-cases/segments-use-cases-kubernetes-clusters">Segment Kubernetes clusters (DT docs)</a> walkthrough uses exactly this pattern — one filter condition (e.g. <code>k8s.cluster.name = &quot;gke-klu&quot;</code>) applied across signals and entities. The Kubernetes-namespace entity type is <code>dt.entity.cloud_application_namespace</code> (not the more intuitive-sounding <code>dt.entity.kubernetes_namespace</code> — which does not exist).</p>
+</blockquote>
+<blockquote>
+<p><strong>Docs disagree.</strong> The Kubernetes use case suggests selecting <em>&quot;all related entities of Kubernetes namespaces (dt.entity.cloud_application_namespace)&quot;</em>, while the later Services and Smartscape tutorial (published 10/07/2026) says not to use <code>dt.entity.*</code> attributes in include blocks. You don't need the classic type for this. On the validation tenant on 10/14/2026, all 23 <code>K8S_NAMESPACE</code> Smartscape nodes carried both <code>k8s.namespace.name</code> and <code>k8s.cluster.name</code>, so a <code>Data (all types)</code> include on either field also reaches the namespace nodes.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/segments/use-cases/segments-use-cases-kubernetes-clusters">Segment data by Kubernetes clusters (DT docs)</a> — as quoted, <a href="https://docs.dynatrace.com/docs/observe/application-observability/services/segment-services">Use segments to scope Services and Smartscape apps (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-filter-smartscape-nodes">Filter Smartscape nodes with segments (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="segment-visibility-and-sharing"></a></p>
+<h2>6. Segment Visibility and Sharing</h2>
+<h3>Visibility Settings</h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Unlisted</strong> (default)</td>
+<td>Visible only in the owner's list of segments</td>
+</tr>
+<tr>
+<td><strong>Anyone in the environment</strong></td>
+<td>Listed in everyone's segment list in the environment</td>
+</tr>
+</tbody>
+</table>
+<h3>Permissions Model</h3>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Action</th>
+<th>Included In</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>storage:filter-segments:read</code></td>
+<td>View and use segments</td>
+<td>Standard User, Pro User, Admin User</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:write</code></td>
+<td>Create and edit segments</td>
+<td>Standard User, Pro User, Admin User</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:share</code></td>
+<td>Share with others</td>
+<td>Pro User, Admin User</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:delete</code></td>
+<td>Delete segments</td>
+<td>Standard User, Pro User, Admin User</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:admin</code></td>
+<td>Maintain all segments in the environment, including ones you do not own</td>
+<td>Admin User</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies">Dynatrace default policies reference (DT docs)</a> — Standard User: <em>&quot;ALLOW storage:filter-segments:read, storage:filter-segments:write, storage:filter-segments:delete;&quot;</em>; Pro User adds <code>storage:filter-segments:share</code>; Admin User adds <code>storage:filter-segments:admin</code>. <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/segment.md">dynatrace_segment resource (Dynatrace GitHub)</a> — <em>&quot;Maintain all Filter-Segments on the environment&quot;</em>.</sub></p>
+</blockquote>
+<h3>Governance Recommendations</h3>
+<ul>
+<li><strong>Platform team</strong> owns environment and infrastructure segments and sets them to <em>Anyone in the environment</em></li>
+<li><strong>Application teams</strong> own app-specific segments, kept <em>Unlisted</em>, and surface them by reference from team-owned notebooks or dashboards (there is no direct &quot;share with group&quot; mechanism on the segment itself — sharing flows through the containing document)</li>
+<li>Maintain a small set of &quot;official&quot; environment-wide segments</li>
+<li>Use consistent naming: <code>team-</code>, <code>env-</code>, <code>app-</code>, <code>region-</code> prefixes</li>
+</ul>
+<blockquote>
+<p><strong>Visibility ≠ access control.</strong> The visibility setting only affects whether a segment is listed in other users' segment pickers. <strong>Anyone with <code>storage:filter-segments:read</code> can apply any segment they know the ID of</strong> — IAM policies on the underlying data (logs/spans/buckets) are what actually gate what they see when the segment is applied.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-visibility">Visibility of segments (DT docs)</a> — verbatim: <em>&quot;the <strong>Visibility</strong> setting doesn't affect general access to segments&quot;</em> and <em>&quot;Unlisted segments can still be made available to others by being referenced in apps, such as in shared notebooks and dashboards.&quot;</em></sub></p>
+</blockquote>
+<p><a id="cross-app-integration"></a></p>
+<h2>7. Cross-App Integration</h2>
+<h3>Selections across apps</h3>
+<p>The segment docs say segments filter data <em>&quot;across apps&quot;</em>. They do not document whether a selection carries over when you move from one app to the next, and <strong>pinned</strong> selections are per app: <em>&quot;Pinned segment selections are unique per app&quot;</em>. In community practice, teams check how each app they use handles the active selection before building an investigation flow that depends on it.</p>
+<h3>App Support Matrix</h3>
+<table>
+<thead>
+<tr>
+<th>App</th>
+<th>Documented</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dashboards</strong></td>
+<td>Yes</td>
+<td>Dashboard-level and tile-level segments</td>
+</tr>
+<tr>
+<td><strong>Notebooks</strong></td>
+<td>Yes</td>
+<td>Segment selector at top of notebook</td>
+</tr>
+<tr>
+<td><strong>Problems</strong></td>
+<td>Yes</td>
+<td>Requires events include with <code>event.kind = &quot;DAVIS_PROBLEM&quot;</code> (§12)</td>
+</tr>
+<tr>
+<td><strong>Workflows</strong></td>
+<td>Yes</td>
+<td>Available in workflow DQL steps</td>
+</tr>
+<tr>
+<td><strong>Distributed Tracing</strong></td>
+<td>Yes</td>
+<td>Filters span queries</td>
+</tr>
+<tr>
+<td><strong>Discovery &amp; Coverage</strong></td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Services</strong> (Explorer)</td>
+<td>Yes</td>
+<td>Needs a <code>Data (all types)</code> include on a field service metrics carry</td>
+</tr>
+<tr>
+<td><strong>Smartscape</strong></td>
+<td>Yes</td>
+<td>Needs an <code>Entities</code> include; a metrics-only segment leaves the topology unfiltered</td>
+</tr>
+<tr>
+<td><strong>Kubernetes</strong> (Explorer)</td>
+<td>Yes</td>
+<td>Segment selector in the Explorer</td>
+</tr>
+<tr>
+<td><strong>Logs, SLOs, Site Reliability Guardian</strong></td>
+<td>Not on the documented list</td>
+<td>The getting-started pages say <em>&quot;Support for segments in further apps will follow.&quot;</em> Check the app's segment selector in your tenant</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-analyze-monitoring-data">Analyze monitoring data with segments (DT docs)</a> — app list (Dashboards, Notebooks, Problems, Workflows, Distributed Tracing, Discovery &amp; Coverage) and pins as quoted, <a href="https://docs.dynatrace.com/docs/observe/application-observability/services/segment-services">Use segments to scope Services and Smartscape apps (DT docs)</a> — Services and Smartscape, <a href="https://docs.dynatrace.com/docs/manage/segments/use-cases/segments-use-cases-kubernetes-clusters">Segment data by Kubernetes clusters (DT docs)</a> — Kubernetes Explorer, Problems and Services.</sub></p>
+</blockquote>
+<h3>Dashboard Segment Behavior</h3>
+<ul>
+<li><strong>Dashboard-level segment</strong> applies to all tiles</li>
+<li><strong>Tile-level segment</strong> overrides the dashboard segment for that specific tile</li>
+<li>Use this pattern for executive dashboards that show cross-team metrics alongside team-specific views</li>
+</ul>
+<p><a id="known-limitations-and-workarounds"></a></p>
+<h2>8. Known Limitations and Workarounds</h2>
+<table>
+<thead>
+<tr>
+<th>Limitation</th>
+<th>Detail</th>
+<th>Workaround</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>detected problems require event includes</strong></td>
+<td>To filter problems with segments, define an events include with <code>event.kind = &quot;DAVIS_PROBLEM&quot;</code>; entity includes alone do not filter problem records</td>
+<td>Add event-type includes alongside entity includes</td>
+</tr>
+<tr>
+<td><strong>Single relationship traversal</strong></td>
+<td>Entity relationships can only traverse one hop, and work only on legacy <code>dt.entity.*</code> attributes</td>
+<td>Don't build on traversal; use a <code>Data (all types)</code> include, and a variable plus <code>Entities</code> include for services (ORGNZ-08)</td>
+</tr>
+<tr>
+<td><strong>Service variable ceiling</strong></td>
+<td>The metrics-based service-ID variable <em>&quot;works reliably for up to 10,000 services&quot;</em></td>
+<td>Split a broad segment — one per cluster or region</td>
+</tr>
+<tr>
+<td><strong>Inclusions only, no exclusions</strong></td>
+<td>Cannot say &quot;everything EXCEPT team-X&quot;</td>
+<td>Explicitly include what you want (MZ supported exclusions; segments do not)</td>
+</tr>
+<tr>
+<td><strong>Entity properties are equals-only</strong></td>
+<td>Legacy classic entity includes only: on them, <code>entity.name</code> supports starts-with only; contains and ends-with are not supported on any classic-entity property, and other properties support exact <code>equals</code> only</td>
+<td>Use prefix-based naming conventions; put the broader condition on a signal include</td>
+</tr>
+<tr>
+<td><strong>1 include per data type</strong></td>
+<td>Cannot have two <code>logs</code> include blocks</td>
+<td>Combine conditions with <code>OR</code> within a single include</td>
+</tr>
+<tr>
+<td><strong>Max 20 includes per segment</strong></td>
+<td>Hard limit on rule count</td>
+<td>Consolidate rules; use variables for flexibility</td>
+</tr>
+<tr>
+<td><strong>Max 10 expressions per filter</strong></td>
+<td>Limits filter complexity</td>
+<td>Use OpenPipeline to pre-enrich data with simpler filter fields</td>
+</tr>
+<tr>
+<td><strong>Variable dropdown empty</strong></td>
+<td>Users without entity read permissions see empty dropdown</td>
+<td>Ensure variable DQL targets entities the user can read</td>
+</tr>
+</tbody>
+</table>
+<p><a id="troubleshooting-and-performance"></a></p>
+<h2>9. Troubleshooting and Performance</h2>
+<h3>Common Issues</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Empty variable dropdown</td>
+<td>Missing read permissions for the data the variable DQL queries</td>
+<td>Grant <code>storage:entities:read</code> (and <code>storage:&lt;table&gt;:read</code> for any other data object the variable DQL reads). Once SaaS 1.347 reaches your tenant, also <code>app-engine:apps:run</code> on <code>dynatrace.segments.management</code> (§4)</td>
+</tr>
+<tr>
+<td>Segment shows no data</td>
+<td>Filter field not enriched on signal data</td>
+<td>Verify enrichment with audit queries from Section 3</td>
+</tr>
+<tr>
+<td>Segment filters entities but not logs</td>
+<td>An <code>Entities</code> include doesn't apply to signals</td>
+<td>Use a <code>Data (all types)</code> include, which applies to signals and nodes</td>
+</tr>
+<tr>
+<td>Unexpected data included</td>
+<td>OR logic combining values</td>
+<td>Review filter condition logic within the include</td>
+</tr>
+<tr>
+<td>Segment missing in app</td>
+<td>Segment set to unlisted and not shared</td>
+<td>Share segment or set visibility to public</td>
+</tr>
+<tr>
+<td>Segment works for logs but not spans</td>
+<td>Field exists on logs but not spans</td>
+<td>Use Primary Grail Fields for cross-signal consistency</td>
+</tr>
+</tbody>
+</table>
+<h3>Performance Best Practices</h3>
+<p>Every segment filter condition is injected into every query the user runs. Keep conditions simple:</p>
+<ol>
+<li><strong>Prefer Primary Grail Fields</strong> — They are indexed and optimized for filtering</li>
+<li><strong>Use exact matches</strong> — <code>=</code> is faster than <code>starts-with</code></li>
+<li><strong>Minimize expressions</strong> — Fewer conditions = better query performance</li>
+<li><strong>Use OpenPipeline pre-processing</strong> — If conditions would be complex, pre-enrich a simple field (like <code>dt.security_context</code>) and filter on that instead</li>
+<li><strong>Narrow scope first</strong> — Start with the most restrictive condition in AND combinations</li>
+</ol>
+<h3>Naming Conventions</h3>
+<table>
+<thead>
+<tr>
+<th>Prefix</th>
+<th>Use Case</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>team-</code></td>
+<td>Team-based segments</td>
+<td><code>team-platform-infra</code>, <code>team-checkout</code></td>
+</tr>
+<tr>
+<td><code>env-</code></td>
+<td>Environment segments</td>
+<td><code>env-production</code>, <code>env-staging</code></td>
+</tr>
+<tr>
+<td><code>app-</code></td>
+<td>Application segments</td>
+<td><code>app-checkout-full</code>, <code>app-payments</code></td>
+</tr>
+<tr>
+<td><code>region-</code></td>
+<td>Regional segments</td>
+<td><code>region-us-east</code>, <code>region-eu-west</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Segment Lifecycle</h3>
+<ol>
+<li><strong>Design</strong> — Identify data types, filter conditions, variables</li>
+<li><strong>Test</strong> — Validate filter logic with DQL queries</li>
+<li><strong>Create</strong> — Build in the Segments app</li>
+<li><strong>Share</strong> — Distribute to appropriate users/groups</li>
+<li><strong>Monitor</strong> — Check for empty results, permission issues</li>
+<li><strong>Retire</strong> — Remove when no longer needed; review quarterly</li>
+</ol>
+<h3>Discover Available Filter Candidates</h3>
+<p>Before choosing a filter field, see how many distinct values each candidate has on the data the segment will filter. A field with one value can't separate anything, and a field with none isn't enriched yet:</p>
+<pre><code class="language-dql">fetch logs, from:-1h
+| summarize
+    total = count(),
+    host_groups = countDistinctExact(dt.host_group.id),
+    namespaces = countDistinctExact(k8s.namespace.name),
+    clusters = countDistinctExact(k8s.cluster.name),
+    security_contexts = countDistinctExact(dt.security_context),
+    cost_centers = countDistinctExact(dt.cost.costcenter)
+</code></pre>
+<p>Validated 10/14/2026: 795,225 log records in an hour carried 1 host group, 9 namespaces, 4 clusters, 3 security contexts and 1 cost center. Pair it with the coverage audit below, which shows what share of records carries each field.</p>
+<h3>DQL: Enrichment Coverage Audit</h3>
+<p>Audit primary Grail field population before building segment definitions:</p>
+<pre><code class="language-dql">// Audit primary Grail field coverage on logs — low-coverage fields need enrichment before segment use
+fetch logs, from:-1h
+| summarize
+    total = count(),
+    with_namespace = countIf(isNotNull(k8s.namespace.name)),
+    with_cluster = countIf(isNotNull(k8s.cluster.name)),
+    with_host_group = countIf(isNotNull(dt.host_group.id)),
+    with_security_ctx = countIf(isNotNull(dt.security_context))
+| fieldsAdd
+    ns_pct = round(toDouble(with_namespace) / toDouble(total) * 100, decimals: 1),
+    cluster_pct = round(toDouble(with_cluster) / toDouble(total) * 100, decimals: 1),
+    hg_pct = round(toDouble(with_host_group) / toDouble(total) * 100, decimals: 1),
+    sec_pct = round(toDouble(with_security_ctx) / toDouble(total) * 100, decimals: 1)
+</code></pre>
+<p><a id="segments-via-settings-api-and-terraform"></a></p>
+<h2>10. Segments via the Filter Segments API and Terraform</h2>
+<p>Segments authored in the Segments app are convenient for exploration, but <strong>production-grade segment libraries should be managed as code</strong>. Manual segments drift, get orphaned when their creator leaves, and lack the review/promotion discipline that buckets and IAM policies already have in mature tenants.</p>
+<blockquote>
+<p><strong>Corrected 09/24/2026.</strong> Earlier versions of this section described segments as Settings 2.0 objects under a <code>builtin:filter-segments</code> schema, created with <code>POST /api/v2/settings/objects</code>. That schema does not exist — the Settings API answers 404 for it — so that call cannot create a segment. Segments have their own platform API.</p>
+</blockquote>
+<h3>The Filter Segments API</h3>
+<p>Segments are managed through the <strong>Filter Segments API</strong> at <code>/platform/storage/filter-segments/v1/filter-segments</code>, authenticated with a platform token. The body carries the same fields you fill in the UI:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>Segment name shown in the UI (the API addresses a segment by its generated <code>uid</code>)</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>Free-text purpose statement</td>
+</tr>
+<tr>
+<td><code>isPublic</code></td>
+<td><code>false</code> — <em>&quot;The filter-segment is private and only visible to the owner&quot;</em>; <code>true</code> — <em>&quot;The filter-segment is visible to everyone in the environment&quot;</em> (needs <code>storage:filter-segments:share</code>)</td>
+</tr>
+<tr>
+<td><code>includes</code></td>
+<td>Array of <code>{ &quot;dataObject&quot;: …, &quot;filter&quot;: … }</code> — one per data object (see §2)</td>
+</tr>
+<tr>
+<td><code>variables</code></td>
+<td>Optional DQL-backed variable definition (see §4): <code>{ &quot;type&quot;: &quot;query&quot;, &quot;value&quot;: &quot;&lt;DQL&gt;&quot; }</code></td>
+</tr>
+</tbody>
+</table>
+<p>For <code>dataObject</code>, <em>&quot;Use '_all_data_object' to apply it to all dataObjects.&quot;</em> The <code>filter</code> is the segment's filter expression as the Segments app stores it — on the validation tenant (read 09/24/2026) the Dynatrace ready-made segments store plain text such as <code>dt.host_group.id = $dt.host_group.id</code>, while the SDK's own create example carries a serialized filter tree. Rather than hand-writing that value, build the segment once in the UI, read it back, and version the JSON you get. With <code>$DT_ENV</code> set to <code>https://&lt;environment-id&gt;.apps.dynatrace.com</code>, the first call lists segments (<code>uid</code>, <code>name</code>, <code>isPublic</code>, <code>owner</code>); the second returns one segment with its includes and variables — the body to keep in version control:</p>
+<pre><code class="language-bash">curl -s &quot;$DT_ENV/platform/storage/filter-segments/v1/filter-segments&quot; \
+  -H &quot;Authorization: Bearer $DT_PLATFORM_TOKEN&quot;
+
+curl -s &quot;$DT_ENV/platform/storage/filter-segments/v1/filter-segments/&lt;uid&gt;?add-fields=INCLUDES&amp;add-fields=VARIABLES&quot; \
+  -H &quot;Authorization: Bearer $DT_PLATFORM_TOKEN&quot;
+</code></pre>
+<p>Create a segment by sending a body of that shape with <code>POST</code> to the collection path — the SDK's <code>createFilterSegment</code>, which needs <code>storage:filter-segments:write</code>, plus <code>storage:filter-segments:share</code> when <code>isPublic</code> is <code>true</code>.</p>
+<blockquote>
+<p><strong>Auth scheme:</strong> Platform Tokens (<code>dt0s16.*</code> / <code>dt0s01.*</code>) require the <code>Bearer</code> header; classic API Tokens (<code>dt0c01.*</code>) require <code>Authorization: Api-Token</code>. Mixing schemes returns 401 even with all the right scopes — see AUTOM-04 §3 for the routing rules.</p>
+</blockquote>
+<h3>Manage via Terraform</h3>
+<p>The <code>dynatrace-oss/dynatrace</code> Terraform provider exposes segments through the <code>dynatrace_segment</code> resource, whose top-level attributes (<code>name</code>, <code>description</code>, <code>is_public</code>, <code>includes</code>, <code>variables</code>) mirror the API body above. The resource documentation asks for an <strong>OAuth client</strong> — <em>&quot;please define the environment variables <code>DT_CLIENT_ID</code>, <code>DT_CLIENT_SECRET</code>, <code>DT_ACCOUNT_ID</code> with an OAuth client&quot;</em> — carrying these permissions:</p>
+<ul>
+<li><code>storage:filter-segments:read</code> and <code>storage:filter-segments:write</code> for create/update</li>
+<li><code>storage:filter-segments:share</code> if the segment's visibility is set beyond the owner (there is no share-with-specific-group mechanism — see §6)</li>
+<li><code>storage:filter-segments:delete</code> if <code>terraform destroy</code> should remove segments</li>
+<li><code>storage:filter-segments:admin</code> (<em>&quot;Maintain all Filter-Segments on the environment&quot;</em>) when the provider must manage segments it does not own</li>
+</ul>
+<p>It adds that <em>&quot;Depending on the segment configuration, additional <strong>storage permissions</strong> may be required for DQL-related access&quot;</em> — for example <code>storage:logs:read</code> or <code>storage:entities:read</code> for a segment whose variable DQL reads those data objects.</p>
+<p>See AUTOM-04 §6 for the resource-table-driven catalog (including which auth scheme each Terraform resource requires) and AUTOM-09 for the broader GitOps repo layout and state-backend recommendations.</p>
+<p><strong>Platform tokens.</strong> The provider accepts <code>DYNATRACE_PLATFORM_TOKEN</code> and documents that <em>&quot;Platform tokens can't be used for IAM (Account Management) or classic resources&quot;</em> — <code>dynatrace_segment</code> is neither. But the segment resource page documents only the OAuth-client path, so treat a platform token as untested for this resource and confirm it in a non-production plan/apply before relying on it. If the same configuration also holds classic API-token resources, setting <code>DYNATRACE_HTTP_OAUTH_PREFERENCE</code> to <code>true</code> means <em>&quot;the provider will favor platform or OAuth tokens over API tokens.&quot;</em></p>
+<h3>When IaC is worth the overhead</h3>
+<p>No Dynatrace documentation prescribes when a segment should move from the UI to code. In community practice, teams draw the line roughly as follows — adapt it to your own review process.</p>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Author in UI</th>
+<th>Manage as code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>One-off investigation segment used by a single engineer</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Standing &quot;official&quot; segments shared across teams (env, team, app)</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Segments referenced from dashboards or workflows that are themselves in code</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Segments enforcing a compliance scope (segment + bucket + policy triplet)</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Segments whose <code>variables</code> block contains DQL the team is iterating on</td>
+<td>Yes (then promote)</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<p>The split this adds up to: <strong>exploration in the UI, promotion to code</strong> the moment a segment becomes load-bearing for someone else's workflow.</p>
+<h3>Drift between UI and code</h3>
+<p>When a segment is managed in code but someone edits it through the UI, the next <code>terraform apply</code> (or API update) reverts the change. Two defenses:</p>
+<ol>
+<li><strong>Document ownership</strong> — add a <code>description</code> like <code>Managed in Terraform repo X — open a PR, do not edit here</code>.</li>
+<li><strong>Restrict write scope</strong> in production: only the IaC service user holds <code>storage:filter-segments:write</code> for public segments; everyone else gets <code>read</code> + private-segment authoring.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-analyze-monitoring-data">Get started with segments — analyze monitoring data (DT docs)</a>, <a href="https://developer.dynatrace.com/develop/sdks/client-filter-segment-management/">Grail storage filter-segments SDK (Dynatrace Developer)</a>. <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/segment.md">dynatrace_segment resource (Dynatrace GitHub)</a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md">Terraform provider authentication (Dynatrace GitHub)</a>. Endpoint paths read from the validation tenant 09/24/2026.</sub></p>
+</blockquote>
+<p><a id="consuming-segments-via-the-query-api"></a></p>
+<h2>11. Consuming Segments via the Query API</h2>
+<p>A common point of confusion: <strong>there is no inline DQL syntax that references a saved segment by name.</strong> You will not find a <code>loadSegments:</code> argument on <code>fetch</code>, nor a <code>| filter &lt;segment-name&gt;</code> pipe. Segments are applied as <strong>query context</strong>, passed alongside the DQL string in the Grail Query API request body.</p>
+<h3>Request shape</h3>
+<p>Segments attach to the <strong><code>/platform/storage/query/v1/query:execute</code></strong> request body as a <code>filterSegments</code> array. Each element references a segment by its <code>id</code> (the segment's <code>uid</code>) and can supply values for its variables:</p>
+<pre><code class="language-http">POST /platform/storage/query/v1/query:execute
+Authorization: Bearer &lt;platform-token&gt;
+Content-Type: application/json
+
+{
+  &quot;query&quot;: &quot;fetch logs, from:-1h | summarize count = count(), by:{loglevel}&quot;,
+  &quot;filterSegments&quot;: [
+    { &quot;id&quot;: &quot;&lt;segment-id&gt;&quot;, &quot;variables&quot;: [ { &quot;name&quot;: &quot;stage&quot;, &quot;values&quot;: [&quot;prod&quot;] } ] }
+  ]
+}
+</code></pre>
+<blockquote>
+<p><strong>Corrected 09/24/2026.</strong> Earlier versions showed a <code>segments: [{ &quot;segmentId&quot;: … }]</code> field. The query service does not define that field, so a request built from it runs <strong>unfiltered</strong> — IAM still applies, but the segment does not.</p>
+</blockquote>
+<p>The Grail query engine merges the segment's include filters into the executing query before scanning — same effect as if the filters had been hand-written into the DQL.</p>
+<h3>Where the API call happens</h3>
+<p>You almost never invoke the Query API directly. The Dynatrace surfaces that read and write to Grail pass <code>filterSegments</code> for you, transparently:</p>
+<table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>How segments are passed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Notebooks</strong></td>
+<td>Segment selector at top of notebook is injected into every cell's API call</td>
+</tr>
+<tr>
+<td><strong>Dashboards</strong></td>
+<td>Dashboard-level selector + per-tile override; injected into each tile's API call</td>
+</tr>
+<tr>
+<td><strong>Logs, Distributed Traces, Problems, SLOs apps</strong></td>
+<td>App's segment selector is included in every Grail call the app makes</td>
+</tr>
+<tr>
+<td><strong>Workflows DQL task</strong></td>
+<td>Task config carries a segments array; injected at execution time</td>
+</tr>
+<tr>
+<td><strong>Site Reliability Guardian validators</strong></td>
+<td>Validator config attaches segments to its evaluation queries</td>
+</tr>
+<tr>
+<td><strong>Direct API consumers</strong> (custom apps, scripts, terraform-provider-dynatrace queries)</td>
+<td><strong>You</strong> must add the <code>filterSegments</code> array to the request body</td>
+</tr>
+</tbody>
+</table>
+<h3>Implication for custom integrations</h3>
+<p>If you are writing a script that queries Grail through the API — for example, a Workflow JavaScript task using <code>@dynatrace-sdk/client-query</code>, a CI/CD job emitting a Site Reliability Guardian-style check, or a custom Dynatrace app — and you want it to honor a saved segment, <strong>you must pass the <code>filterSegments</code> array yourself</strong>. The DQL string alone will not pick up &quot;the currently active segment in the app&quot; — there is no such thing outside a UI session. In community practice, the most common cause of &quot;my segment works in the app but not in my script&quot; is the script's API call missing the <code>filterSegments</code> array — verify against your own integrations.</p>
+<h3>Variables in segments — how the value is supplied</h3>
+<p>If a segment defines variables (§4), the consumer must also supply the <strong>selected values</strong> for those variables. In the UI this is the dropdown selection; in the API each <code>filterSegments</code> element carries <code>variables: [{ &quot;name&quot;: …, &quot;values&quot;: [ … ] }]</code>, and <em>&quot;The values defined in the request will replace the variables used in the filter segments.&quot;</em> Several segments in one request narrow together: <em>&quot;If the request defines multiple segments, they will be combined using the AND boolean operator, and the Grail data will be filtered accordingly.&quot;</em></p>
+<p>Verified on the validation tenant 09/24/2026: <code>fetch logs, from:-1h | summarize n = count(), by:{k8s.namespace.name}</code> returned <code>easytrade</code>, <code>hipstershop</code>, <code>online-boutique</code> and more without a segment, and only <code>dynatrace</code> with the ready-made <code>k8s.namespace.name</code> segment passed as <code>filterSegments: [{ &quot;id&quot;: &quot;&lt;uid&gt;&quot;, &quot;variables&quot;: [{ &quot;name&quot;: &quot;k8s.namespace.name&quot;, &quot;values&quot;: [&quot;dynatrace&quot;] }] }]</code>.</p>
+<h3>Why this matters for design</h3>
+<p>Because segments are query context, <strong>a segment's effective behavior depends on who is calling</strong>. The same segment applied by a user with <code>storage:logs:read</code> on bucket A returns rows from bucket A; applied by a user without that scope, the same segment returns nothing from bucket A. Segments do not bypass IAM — they layer on top of it. This is the §9 &quot;Segments filters entities but not logs&quot; troubleshooting story restated as a design principle.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-queries">Segments in DQL queries (DT docs)</a>, <a href="https://developer.dynatrace.com/develop/platform-services/services/grail-service/">Grail service overview (Dynatrace Developer)</a>, <a href="https://developer.dynatrace.com/develop/sdks/client-query/">Grail storage query SDK (Dynatrace Developer)</a>.</sub></p>
+</blockquote>
+<p><a id="davis-problem-segment-include-shape"></a></p>
+<h2>12. Davis Problem Segment Include Shape</h2>
+<p>The Problems app is listed as supported in §7, but with a critical asterisk noted in §8: <strong>entity includes alone do not filter problem records</strong>. The Problems app documentation is explicit: <em>&quot;Since problems are stored as events in Grail, segments created for filtering problems must define an event filter.&quot;</em> Its own example is <code>cloud.region = &quot;us-east-1c&quot; AND event.kind = &quot;DAVIS_PROBLEM&quot;</code>.</p>
+<h3>Include shape</h3>
+<table>
+<thead>
+<tr>
+<th>Data type</th>
+<th>Filter</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>events</code></td>
+<td><code>event.kind = &quot;DAVIS_PROBLEM&quot;</code> AND your scoping condition</td>
+<td>Filters problem records to the team / env / app scope</td>
+</tr>
+<tr>
+<td><code>Data (all types)</code>, variable and <code>Entities</code> (optional)</td>
+<td>scoping condition on the same dimension (ORGNZ-08 § <em>Scoping Services and Smartscape</em>)</td>
+<td>Not applied to problems; scopes signals, Services and Smartscape when the same segment is used in other apps</td>
+</tr>
+</tbody>
+</table>
+<h3>Worked example — problems for one namespace</h3>
+<p>Build it in the Segments app with one include:</p>
+<table>
+<thead>
+<tr>
+<th>Include (data object)</th>
+<th>Filter</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>events</code></td>
+<td><code>event.kind = &quot;DAVIS_PROBLEM&quot; AND k8s.namespace.name = &quot;checkout-prod&quot;</code></td>
+</tr>
+</tbody>
+</table>
+<p>Name it <code>ns-checkout-prod-problems</code> and set visibility to <em>Anyone in the environment</em> (<code>isPublic: true</code> in the Filter Segments API, §10). The scoping field is chosen by coverage on problem records, not by what logs carry — see <em>Validating the include</em> below; the docs' own example scopes on <code>cloud.region</code>. In the segment filter <code>=</code> is fine even though <code>k8s.namespace.name</code> is an array on problems: segment conditions support <em>&quot;fields and values of type <code>STRING</code>, and <code>ARRAY_OR_STRINGS</code>&quot;</em>. It is DQL <code>==</code> in a validation query that misses arrays.</p>
+<p>In the Problems app, only the <code>events</code> include does any work: <em>&quot;Segment filters are directly applied to the problem Grail records. Consequently, no entity filters are applied to the problem unless the entity ID is chosen as a primary field of the filtered problem.&quot;</em> Drop the <code>events</code> include and the problem feed stops filtering. Entity includes alone are not enough.</p>
+<p>The other includes are optional and matter outside the Problems app. In community practice, teams add them so that one &quot;production&quot; segment also scopes the Services and Smartscape views an investigation moves into next. Build them as ORGNZ-08 describes, not as <code>dt.entity.host</code> or <code>dt.entity.service</code> includes, which Dynatrace now advises against (§2). Verify the behavior in the apps your teams use (§7).</p>
+<h3>Why this works</h3>
+<p>Davis problems live in the <code>events</code> data object with <code>event.kind = &quot;DAVIS_PROBLEM&quot;</code>. The Problems app issues DQL against that data, and <em>&quot;During query execution, Grail evaluates only relevant conditions of segments passed based on the query's targeted data object&quot;</em> — so a query over <code>events</code> reads the <code>events</code> include and ignores the entity includes.</p>
+<h3>Validating the include</h3>
+<p>Before saving the segment, check two things with DQL. Count problems on <code>dt.davis.problems</code>, which holds one record per problem. The <code>events</code> data object holds one record per problem <em>update</em>, so <code>count()</code> there over-reports — 15,735 records for 465 problems over 24 hours on a live tenant (10/05/2026).</p>
+<p><strong>1. Which scoping fields do your problems carry?</strong> A problem carries a primary Grail field only when the entities behind it do:</p>
+<pre><code class="language-dql">// Coverage of candidate scoping fields on problem records (one record per problem)
+fetch dt.davis.problems, from:-7d
+| summarize
+    problems = count(),
+    host_group = countIf(isNotNull(dt.host_group.id)),
+    namespace = countIf(isNotNull(k8s.namespace.name)),
+    cluster = countIf(isNotNull(k8s.cluster.name)),
+    security_context = countIf(isNotNull(dt.security_context)),
+    region = countIf(isNotNull(cloud.region))
+</code></pre>
+<p>On the validation tenant on 10/14/2026: 5,026 problems; <code>cloud.region</code> on 1,924, <code>k8s.cluster.name</code> on 1,495, <code>k8s.namespace.name</code> on 1,488, <code>dt.security_context</code> on 1,268 and <code>dt.host_group.id</code> on 111. A host-group-keyed problem segment would have shown about 2% of the problems.</p>
+<p><strong>2. Which problems does the include keep?</strong></p>
+<pre><code class="language-dql">// k8s.namespace.name is an array on problem records: matchesValue() matches any element; == matches nothing
+fetch dt.davis.problems, from:-24h
+| filter matchesValue(k8s.namespace.name, &quot;checkout-prod&quot;)
+| summarize problems = count()
+</code></pre>
+<p><code>summarize</code> without <code>by:</code> returns a row even when nothing matches, so a 0 here is a real zero for this filter. On the validation tenant on 10/14/2026 the same query with <code>k8s.namespace.name == &quot;easytrade&quot;</code> returned 0 problems, and with <code>matchesValue(k8s.namespace.name, &quot;easytrade&quot;)</code> returned 6.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app">Problems app (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-queries">Segments in DQL queries (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits">Segment limits (DT docs)</a> — as quoted, <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags">Primary Grail fields and tags (DT docs)</a> — <em>&quot;Not every primary Grail field exists in every situation.&quot;</em></sub></p>
+</blockquote>
+<h2>Summary</h2>
+<p>In this notebook you learned:</p>
+<ol>
+<li><strong>Filter condition syntax</strong> — Operators (<code>=</code> and <code>in()</code>, with <code>*</code> wildcards for starts-with/contains/ends-with; no exclusions), field access, AND/OR logic</li>
+<li><strong>Data type include rules</strong> — One include per type, conditions scoped to queried data type</li>
+<li><strong>Primary Grail Fields</strong> — Which metadata propagates across all signals (and which doesn't)</li>
+<li><strong>Enrichment approaches</strong> — Dedicated vs shared infrastructure, host tags vs DT_TAGS</li>
+<li><strong>Advanced variables</strong> — Primary/secondary, DQL queries, permission requirements</li>
+<li><strong>Host group-based segments</strong> — Parsing naming conventions, one segment per dimension</li>
+<li><strong>Visibility and sharing</strong> — Public vs unlisted, governance model</li>
+<li><strong>Cross-app integration</strong> — Persistence, dashboard vs tile-level segments</li>
+<li><strong>Limitations and troubleshooting</strong> — detected problem event includes, entity operator restrictions, performance tips</li>
+<li><strong>Segments via the Filter Segments API and Terraform</strong> — <code>/platform/storage/filter-segments/v1/filter-segments</code> (<code>name</code>, <code>isPublic</code>, <code>includes[{dataObject, filter}]</code>), the <code>dynatrace_segment</code> Terraform resource, UI-vs-code decision criteria, drift management</li>
+<li><strong>Consuming segments via the Query API</strong> — <code>filterSegments</code> array (<code>id</code> + <code>variables</code>) on <code>/platform/storage/query/v1/query:execute</code>; no inline DQL syntax; custom integrations must pass segments themselves</li>
+<li><strong>Davis problem segment include shape</strong> — Why entity includes alone are not enough; the load-bearing <code>events</code> include with <code>event.kind = &quot;DAVIS_PROBLEM&quot;</code></li>
+</ol>
+<h2>Series Summary</h2>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Topic</th>
+<th>Key Takeaway</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ORGNZ-01</td>
+<td>Introduction</td>
+<td>Three pillars of data organization</td>
+</tr>
+<tr>
+<td>ORGNZ-02</td>
+<td>Grail Buckets</td>
+<td>Bucket fundamentals and limits</td>
+</tr>
+<tr>
+<td>ORGNZ-03</td>
+<td>Bucket Strategy</td>
+<td>Naming, retention, design patterns</td>
+</tr>
+<tr>
+<td>ORGNZ-04</td>
+<td>Permissions Overview</td>
+<td>Permission levels and policy structure</td>
+</tr>
+<tr>
+<td>ORGNZ-05</td>
+<td>Bucket-Level Access</td>
+<td>IAM policies for bucket isolation</td>
+</tr>
+<tr>
+<td>ORGNZ-06</td>
+<td>Security Context</td>
+<td>Fine-grained access with dt.security_context</td>
+</tr>
+<tr>
+<td>ORGNZ-07</td>
+<td>Advanced Permissions</td>
+<td>Record and field-level patterns</td>
+</tr>
+<tr>
+<td>ORGNZ-08</td>
+<td>Grail Segments</td>
+<td>Segment fundamentals and design patterns</td>
+</tr>
+<tr>
+<td>ORGNZ-09</td>
+<td>Enterprise Patterns</td>
+<td>Combined approaches at scale</td>
+</tr>
+<tr>
+<td><strong>ORGNZ-10</strong></td>
+<td><strong>Advanced Segment Definitions</strong></td>
+<td><strong>Filter syntax, enrichment, variables, IaC, Query API, Davis problems, troubleshooting</strong></td>
+</tr>
+</tbody>
+</table>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments">Grail Segments overview (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-includes">Include data in segments (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-variables">Variables in segments (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-visibility">Visibility of segments (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments/use-cases/segments-use-cases-kubernetes-clusters">Segment Kubernetes clusters — use case (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits">Segment limits (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-queries">Segments in DQL queries (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-data-types">Supported data types in segments (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-analyze-monitoring-data">Get started with segments — analyze monitoring data (DT docs)</a></li>
+<li><a href="https://developer.dynatrace.com/develop/sdks/client-filter-segment-management/">Grail storage filter-segments SDK (Dynatrace Developer)</a></li>
+<li><a href="https://developer.dynatrace.com/develop/sdks/client-query/">Grail storage query SDK (Dynatrace Developer)</a></li>
+<li><a href="https://developer.dynatrace.com/develop/platform-services/services/grail-service/">Grail service overview (Dynatrace Developer)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app">Problems app (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/application-observability/services/segment-services">Use segments to scope Services and Smartscape apps (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-filter-smartscape-nodes">Filter Smartscape nodes with segments (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-analyze-monitoring-data">Analyze monitoring data with segments (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments/use-cases/segments-use-cases-logs-by-bucket">Segment logs by bucket (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from Dynatrace documentation and enterprise best practices. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

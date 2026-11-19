@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ-14: Should I Replace My Custom SQL Server Monitoring Scripts with the Dynatrace Extension?</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">FAQ — Frequently Asked Questions</a><span class="sep">/</span><span aria-current="page">FAQ-14</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>FAQ-14: Should I Replace My Custom SQL Server Monitoring Scripts with the Dynatrace Extension?</h1>
+<blockquote>
+<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 14 — Custom SQL Server Scripts vs. the Dynatrace Extension | <strong>Created:</strong> July 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Most teams arriving at Dynatrace with an established SQL Server estate bring a homegrown monitoring layer with them: a set of custom T-SQL queries polled by Telegraf, cron jobs, or a scheduler — blocked sessions, database status, agent job outcomes, log space, Always On health, instance status, and usually one or two exotic checks like tempdb version-store pressure. The scripts work, so the natural question is <em>&quot;can't we just keep them?&quot;</em></p>
+<p>You can — but in a typical estate the <strong>Microsoft SQL Server extension from Dynatrace Hub covers nearly the entire homegrown monitor set out of the box</strong>, and it delivers three things a script can never produce: topology, first-class Smartscape entities, and Davis analysis that knows which instance, database, or availability group a signal belongs to. This entry maps a typical custom monitor set onto the extension's signals, is honest about the gaps, and lays out the decision — including when keeping Telegraf is the right call.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#two-views">Two Views of a Database: Caller-Side vs Server-Side</a></li>
+<li><a href="#what-it-collects">What the Extension Collects Out of the Box</a></li>
+<li><a href="#mapping">Mapping a Typical Homegrown Monitor Set</a></li>
+<li><a href="#beyond-the-numbers">What You Gain Beyond the Numbers</a></li>
+<li><a href="#gaps-and-constraints">Honest Gaps and Constraints</a></li>
+<li><a href="#custom-extension">Closing Real Gaps with a Small Custom Extension</a></li>
+<li><a href="#keep-telegraf">The Keep-Telegraf Fallback</a></li>
+<li><a href="#setup-and-cost">Setup Essentials and Cost</a></li>
+<li><a href="#recommended-approach">Recommended Approach</a></li>
+<li><a href="#objections">Common Objections</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail</td>
+</tr>
+<tr>
+<td><strong>ActiveGate</strong></td>
+<td>An ActiveGate group with network reach to the SQL Server estate (host-based; a local OneAgent variant of the extension also exists)</td>
+</tr>
+<tr>
+<td><strong>SQL monitoring user</strong></td>
+<td><code>VIEW SERVER STATE</code> (SQL Server 2022+: <code>VIEW SERVER PERFORMANCE STATE</code>, plus <code>VIEW SERVER SECURITY STATE</code> for the Agent feature set's <code>sys.dm_server_services</code>); <code>VIEW ANY DEFINITION</code> for Always On views; read on <code>msdb</code> for jobs/backups; <code>ALTER ANY DATABASE</code> (or <code>CREATE DATABASE</code> in <code>master</code>) if OFFLINE databases must be visible — <code>VIEW ANY DATABASE</code> shows ONLINE databases only</td>
+</tr>
+<tr>
+<td><strong>Audience</strong></td>
+<td>DBA teams with existing script/Telegraf-based SQL Server monitoring; platform teams; account teams</td>
+</tr>
+<tr>
+<td><strong>Related series</strong></td>
+<td>DBMON (database monitoring mechanics, dashboards, alerting), FAQ-09 (metric vs log query economics), AUTOM (extension deployment at scale)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<p><strong>Yes, for almost all of a typical script estate.</strong> Deploy the Microsoft SQL Server extension (Hub, ActiveGate-based). In community practice, the monitor set most homegrown script estates carry is blocked sessions, database status, job outcomes, log space utilization, Always On sync health and failover posture, instance status, and file space — and each of those maps onto a documented <code>sql-server.*</code> metric or job-outcome log stream (§ 4). Run that mapping against your own script list before treating the verdict as yours. Keep custom collection only for the checks the extension genuinely doesn't make (in practice: tempdb version-store pressure, and filegroup-level rollups if that exact granularity drives an alert), and implement those as a small Extensions 2.0 SQL extension on the same ActiveGate.</p>
+<p>The reason to switch is not just parity. Scripts deliver numbers; the extension delivers numbers <strong>attached to entities</strong> — topology, Smartscape SQL Server instances/databases/availability groups, and Davis anomaly detection that can correlate a signal with the rest of the topology. Bypassing the extension and shipping raw script output into Dynatrace keeps the baselines (custom metrics can use them too) but forfeits the entity context most customers bought the platform for.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+Q3VzdG9tIFNRTCBTZXJ2ZXIgU2NyaXB0cyBvciB0aGUgRHluYXRyYWNlIEV4dGVuc2lvbj88L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+QSB0eXBpY2FsIGhvbWVncm93biBtb25pdG9yIHNldCBtYXBzIGFsbW9zdCBlbnRpcmVseSBvbnRvIHRoZSBIdWIgZXh0ZW5zaW9uIOKAlCBrZWVwIGN1c3RvbSBjb2xsZWN0aW9uIG9ubHkgZm9yIHRydWUgZ2Fwcy48L3RleHQ+CgogIDxkZWZzPgogICAgPG1hcmtlciBpZD0iYXIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gTEVGVDogaG9tZWdyb3duIHRvZGF5IC0tPgogIDxyZWN0IHg9IjI0IiB5PSI5MiIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIyNTYiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTQ0IiB5PSIxMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlRvZGF5OiBob21lZ3Jvd24gbW9uaXRvcmluZzwvdGV4dD4KICA8dGV4dCB4PSIxNDQiIHk9IjEzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5UZWxlZ3JhZiBTUUwgaW5wdXQgKyBjdXN0b20gVC1TUUw8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjE2MCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+4oCiIEJsb2NrZWQgc2Vzc2lvbnM8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjE3OCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+4oCiIERhdGFiYXNlIHN0YXR1czwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iMTk2IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExIj7igKIgQWdlbnQgam9iIG91dGNvbWVzPC90ZXh0PgogIDx0ZXh0IHg9IjQwIiB5PSIyMTQiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPuKAoiBMb2cgc3BhY2UgdXRpbGl6YXRpb248L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjIzMiIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+4oCiIEFsd2F5cyBPbiBzeW5jIGhlYWx0aCAvIGZhaWxvdmVyPC90ZXh0PgogIDx0ZXh0IHg9IjQwIiB5PSIyNTAiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPuKAoiBJbnN0YW5jZSBzdGF0dXM8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjI3MiIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+4oCiIHRlbXBkYiB2ZXJzaW9uIHN0b3JlPC90ZXh0PgogIDx0ZXh0IHg9IjQwIiB5PSIyOTAiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiPuKAoiBGaWxlZ3JvdXAgcm9sbHVwPC90ZXh0PgogIDx0ZXh0IHg9IjE0NCIgeT0iMzIyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEwIj5Zb3UgYnVpbGQgaXQsIHlvdSBwYXRjaCBpdCw8L3RleHQ+CiAgPHRleHQgeD0iMTQ0IiB5PSIzMzYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAiPnlvdSBtYWludGFpbiBpdCDigJQgZm9yZXZlci48L3RleHQ+CgogIDwhLS0gYXJyb3c6IG1vc3QgbW9uaXRvcnMgdG8gZXh0ZW5zaW9uIC0tPgogIDxsaW5lIHgxPSIyNjQiIHkxPSIxODAiIHgyPSIzNDQiIHkyPSIxODAiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2FyKSIvPgogIDx0ZXh0IHg9IjMwNCIgeT0iMTY4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5tb3N0IG1vbml0b3JzPC90ZXh0PgoKICA8IS0tIENFTlRFUjogZXh0ZW5zaW9uIC0tPgogIDxyZWN0IHg9IjM0OCIgeT0iOTIiIHdpZHRoPSIzMzAiIGhlaWdodD0iMjU2IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjUxMyIgeT0iMTE2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5NaWNyb3NvZnQgU1FMIFNlcnZlciBleHRlbnNpb248L3RleHQ+CiAgPHRleHQgeD0iNTEzIiB5PSIxMzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+RHluYXRyYWNlIEh1YiDigJQgcnVucyBvbiBhbiBBY3RpdmVHYXRlLCBTRUxFQ1Qtb25seTwvdGV4dD4KICA8dGV4dCB4PSIzNjQiIHk9IjE2MCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+Q292ZXJzIHRoZSB0eXBpY2FsIG1vbml0b3Igc2V0IG91dCBvZiB0aGUgYm94OjwvdGV4dD4KICA8dGV4dCB4PSIzNjQiIHk9IjE4MCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+RGVmYXVsdCDCtyBEYXRhYmFzZSBGaWxlcyDCtyBUcmFuc2FjdGlvbiBMb2dzPC90ZXh0PgogIDx0ZXh0IHg9IjM2NCIgeT0iMTk4IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5BbHdheXMgT24gwrcgSm9icyDCtyBBZ2VudCAgKCsgOCBtb3JlIGZlYXR1cmUgc2V0cyk8L3RleHQ+CiAgPHRleHQgeD0iMzY0IiB5PSIyMjIiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPnNxbC1zZXJ2ZXIuKiBtZXRyaWNzICsgam9iLW91dGNvbWUgbG9nIHN0cmVhbXM8L3RleHQ+CiAgPHJlY3QgeD0iMzY0IiB5PSIyMzgiIHdpZHRoPSIyOTgiIGhlaWdodD0iOTIiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNCIvPgogIDx0ZXh0IHg9IjUxMyIgeT0iMjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5XaGF0IHNjcmlwdHMgY2FuIG5ldmVyIGdpdmUgeW91PC90ZXh0PgogIDx0ZXh0IHg9IjM3NiIgeT0iMjc4IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwLjUiPuKckyBUb3BvbG9neSArIGZpcnN0LWNsYXNzIFNtYXJ0c2NhcGUgZW50aXRpZXM8L3RleHQ+CiAgPHRleHQgeD0iMzc2IiB5PSIyOTYiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAuNSI+4pyTIEVudGl0eS1hd2FyZSBEYXZpcyByb290LWNhdXNlIGNvcnJlbGF0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjM3NiIgeT0iMzE0IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwLjUiPuKckyBNYWludGFpbmVkIGJ5IER5bmF0cmFjZSDigJQgemVybyBzY3JpcHQgZHJpZnQ8L3RleHQ+CgogIDwhLS0gYXJyb3c6IGdhcHMgdG8gRUYyLjAgLS0+CiAgPGxpbmUgeDE9IjI2NCIgeTE9IjI4NCIgeDI9IjMwMCIgeTI9IjI4NCIgc3Ryb2tlPSIjRkNEMzREIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iMzAwIiB5MT0iMjg0IiB4Mj0iMzAwIiB5Mj0iMzk4IiBzdHJva2U9IiNGQ0QzNEQiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSIzMDAiIHkxPSIzOTgiIHgyPSIzNDQiIHkyPSIzOTgiIHN0cm9rZT0iI0ZDRDM0RCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2FyKSIvPgogIDx0ZXh0IHg9IjMwNCIgeT0iMzgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj50cnVlIGdhcHM8L3RleHQ+CgogIDwhLS0gQk9UVE9NIENFTlRFUjogRUYgMi4wIGN1c3RvbSAtLT4KICA8cmVjdCB4PSIzNDgiIHk9IjM2NiIgd2lkdGg9IjMzMCIgaGVpZ2h0PSI3MiIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI1MTMiIHk9IjM5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+U21hbGwgY3VzdG9tIEV4dGVuc2lvbnMgMi4wIFNRTCBleHRlbnNpb248L3RleHQ+CiAgPHRleHQgeD0iNTEzIiB5PSI0MDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAuNSI+U2luZ2xlLVNFTEVDVCBxdWVyaWVzLCBzYW1lIEFjdGl2ZUdhdGUsIHNhbWUgbW9uaXRvcmluZyB1c2VyPC90ZXh0PgogIDx0ZXh0IHg9IjUxMyIgeT0iNDI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5Zb3Ugb3duIGl0IOKAlCBidXQgaXQgc2hyaW5rcyB0byBvbmx5IHdoYXQgdGhlIGV4dGVuc2lvbiBsYWNrczwvdGV4dD4KCiAgPCEtLSBSSUdIVDogb3V0Y29tZXMgLS0+CiAgPHJlY3QgeD0iNjk0IiB5PSI5MiIgd2lkdGg9IjIxMiIgaGVpZ2h0PSIyNTYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjgwMCIgeT0iMTE2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5PcGVyYXRlIGluIER5bmF0cmFjZTwvdGV4dD4KICA8dGV4dCB4PSI3MDgiIHk9IjE0NCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMC41Ij7igKIgTWV0cmljIGV2ZW50cyAvIERhdmlzIGFub21hbHk8L3RleHQ+CiAgPHRleHQgeD0iNzA4IiB5PSIxNjAiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAuNSI+ICAgZGV0ZWN0b3JzIG9uIHNxbC1zZXJ2ZXIuKiBrZXlzPC90ZXh0PgogIDx0ZXh0IHg9IjcwOCIgeT0iMTgyIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwLjUiPuKAoiBEUUwgbG9nIGFsZXJ0cyBvbiBmYWlsZWRfam9iczwvdGV4dD4KICA8dGV4dCB4PSI3MDgiIHk9IjE5OCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMC41Ij4gICAoZXJyb3IgdGV4dCBpcyBxdWVyeWFibGUpPC90ZXh0PgogIDx0ZXh0IHg9IjcwOCIgeT0iMjIwIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwLjUiPuKAoiBEYXNoYm9hcmRzICsgbm90ZWJvb2tzIG92ZXI8L3RleHQ+CiAgPHRleHQgeD0iNzA4IiB5PSIyMzYiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAuNSI+ICAgR3JhaWwgd2l0aCBmdWxsIHRvcG9sb2d5IGNvbnRleHQ8L3RleHQ+CiAgPHRleHQgeD0iNzA4IiB5PSIyNTgiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAuNSI+4oCiIFJldGlyZSB0aGUgc2NyaXB0IGVzdGF0ZSBhZnRlciBhPC90ZXh0PgogIDx0ZXh0IHg9IjcwOCIgeT0iMjc0IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwLjUiPiAgIHBhcmFsbGVsLXJ1biB2YWxpZGF0aW9uIHdpbmRvdzwvdGV4dD4KICA8bGluZSB4MT0iNjc4IiB5MT0iMjIwIiB4Mj0iNjkwIiB5Mj0iMjIwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcikiLz4KCiAgPCEtLSBGT09URVI6IGZhbGxiYWNrIC0tPgogIDxyZWN0IHg9IjI0IiB5PSI0NTQiIHdpZHRoPSI4ODIiIGhlaWdodD0iMzQiIGZpbGw9IiMxRTI5M0IiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSI0NzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkZhbGxiYWNrOiBrZWVwIFRlbGVncmFmIOKGkiBEeW5hdHJhY2UgbWV0cmljcyBBUEkg4oCUIHF1ZXJpZXMgdW5jaGFuZ2VkLCBidXQgeW91IGZvcmZlaXQgdG9wb2xvZ3ksIFNtYXJ0c2NhcGUgZW50aXRpZXMsIGFuZCBlbnRpdHktYXdhcmUgRGF2aXMgY29ycmVsYXRpb24uPC90ZXh0Pgo8L3N2Zz4K" alt="Custom SQL Server Scripts or the Dynatrace Extension?" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Path | What happens | What you get / give up |
+|------|--------------|------------------------|
+| Hub extension (recommended) | Typical monitor set covered OOTB via sql-server.* metrics + job log streams | Topology, Smartscape entities, entity-aware Davis correlation; maintained by Dynatrace |
+| True gaps (tempdb version store, filegroup rollup) | Small custom EF 2.0 SQL extension, single-SELECT, same ActiveGate | You own it — but it shrinks to only what the extension lacks |
+| Keep Telegraf → Dynatrace metrics API | Queries unchanged | No topology, no Smartscape entities, no entity-aware Davis correlation (baselines still possible); second agent to operate |
+-->
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2">Microsoft SQL Server extension (DT docs)</a>, <a href="https://www.dynatrace.com/hub/detail/microsoft-sql-server-2/">SQL Server Monitoring (Dynatrace Hub)</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection-classic/metric-events">Metric events — Dynatrace Classic (DT docs)</a> — baselines for custom metrics, detailed in § 5.</sub></p>
+</blockquote>
+<p><a id="two-views"></a></p>
+<h2>2. Two Views of a Database: Caller-Side vs Server-Side</h2>
+<p>Dynatrace observes a database from two independent directions, and the distinction is what makes this question worth asking at all:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Caller-side (OneAgent / OpenTelemetry)</th>
+<th>Server-side (SQL Server extension)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Where it measures</strong></td>
+<td>Inside your application processes</td>
+<td>Inside the database engine, via DMV queries from an ActiveGate</td>
+</tr>
+<tr>
+<td><strong>What it sees</strong></td>
+<td>Every statement your services execute: response time, failure rate, throughput, per-statement breakdown (<code>db.system == &quot;mssql&quot;</code> spans)</td>
+<td>Engine internals: blocking, memory/buffer pool, transaction logs, Always On replicas, agent jobs, file space</td>
+</tr>
+<tr>
+<td><strong>What it can't see</strong></td>
+<td>Why the engine is slow (blocking, log pressure, failover), jobs, databases no instrumented app talks to</td>
+<td>Individual statement latency as your application experienced it</td>
+</tr>
+<tr>
+<td><strong>Agent on the DB host?</strong></td>
+<td>No (measures from the caller)</td>
+<td>No (remote from ActiveGate) — a local OneAgent variant exists</td>
+</tr>
+</tbody>
+</table>
+<p>Homegrown script estates exist because teams historically only had the server-side view to build on. The caller-side view (covered in the DBMON series) comes free with OneAgent instrumentation of your applications; the extension completes the picture on the server side. <strong>The two are complements, not alternatives</strong> — the migration decision is only about who produces the server-side signals: your scripts, or the extension.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2">Microsoft SQL Server extension (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-local">Microsoft SQL Server local extension (DT docs)</a>. <strong>Derived:</strong> the caller-side/server-side framing is a synthesis of the extension docs and Dynatrace's span-based database monitoring model.</sub></p>
+</blockquote>
+<p><a id="what-it-collects"></a></p>
+<h2>3. What the Extension Collects Out of the Box</h2>
+<p>The extension organizes collection into <strong>14 feature sets</strong>. The ones that matter for replacing a typical script estate:</p>
+<table>
+<thead>
+<tr>
+<th>Feature set</th>
+<th>Key signals (documented keys)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Default</strong> (always on)</td>
+<td><code>sql-server.general.processesBlocked</code>, <code>sql-server.databases.state</code>, <code>sql-server.uptime</code>, <code>sql-server.general.userConnections</code>, memory/CPU/worker-thread metrics</td>
+</tr>
+<tr>
+<td><strong>Transaction Logs</strong></td>
+<td><code>sql-server.databases.log.percentUsed</code>, <code>.log.filesUsedSize</code>, <code>.log.filesSize</code>, growth/shrink/truncation/flush-wait counts</td>
+</tr>
+<tr>
+<td><strong>Database Files</strong></td>
+<td><code>sql-server.databases.file.size</code> / <code>.usedSpace</code> / <code>.emptySpace</code> + a <code>largest_files</code> log stream (top 100 files every 5 minutes). <code>usedSpace</code> and <code>emptySpace</code> are reported <strong>only for the database the extension is connected to</strong></td>
+</tr>
+<tr>
+<td><strong>Always On</strong></td>
+<td>Availability-group, replica, and database-level health: <code>sql-server.always-on.ag.synchronizationHealth</code>, <code>sql-server.always-on.ar.role</code>, <code>sql-server.always-on.ar.failoverMode</code>, <code>sql-server.always-on.ar.operationalState</code>, <code>sql-server.always-on.db.synchronizationState</code>, <code>sql-server.always-on.db.logSendQueueSize</code> / <code>.logSendRate</code> / <code>.redoQueueSize</code> / <code>.redoRate</code></td>
+</tr>
+<tr>
+<td><strong>Jobs</strong></td>
+<td><code>current_jobs</code> log stream — a snapshot of current jobs every 5 minutes (<code>job_name</code>, <code>job_status</code>, <code>last_run_outcome</code>, duration, execution dates) — + <code>failed_jobs</code> log stream (<code>step_name</code>, <code>outcome</code>, <code>sql_severity</code>, <code>retries_attempted</code>, <strong>error message text</strong> in <code>content</code>)</td>
+</tr>
+<tr>
+<td><strong>Agent</strong></td>
+<td><code>sql-server.sql.agent.status</code></td>
+</tr>
+<tr>
+<td><strong>Locks and waits</strong></td>
+<td><code>all_requests</code> log stream — active requests with their locks and waits, every minute</td>
+</tr>
+<tr>
+<td>Memory / Locks / Latches / Queries / Sessions / Replication / Backups</td>
+<td>Buffer pool and page life expectancy, deadlocks, latch waits, top longest queries (2016+), session counts, backup age/size</td>
+</tr>
+</tbody>
+</table>
+<p>Two structural points worth internalizing:</p>
+<ul>
+<li><strong>The metric namespace is <code>sql-server.*</code></strong> — these are documented, versioned keys maintained by Dynatrace, not names you invented in a Telegraf config.</li>
+<li><strong>Job outcomes arrive as log streams, not metrics.</strong> That is an upgrade: the failure message text lands in Grail and is queryable with DQL, which polling <code>sysjobhistory</code> into a numeric metric never gave you.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2">Microsoft SQL Server extension (DT docs)</a> — feature sets, metric keys, and log-stream attributes are documented on this page; <em>&quot;are only reported for the database the extension is currently connected to&quot;</em>; <em>&quot;The extension fetches current jobs every five minutes.&quot;</em></sub></p>
+</blockquote>
+<p><a id="mapping"></a></p>
+<h2>4. Mapping a Typical Homegrown Monitor Set</h2>
+<p>In community practice, the monitor set below is the one seen most often in script/Telegraf estates — your inventory may differ, so run the mapping against your actual script list before deciding. Each coverage cell is read from the extension's documented metric and log-stream list. If your set looks like this, the extension replaces it nearly one-for-one:</p>
+<table>
+<thead>
+<tr>
+<th>Typical homegrown monitor</th>
+<th>Extension coverage</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Blocked sessions (poll <code>sysprocesses</code>)</td>
+<td>✅ <code>sql-server.general.processesBlocked</code></td>
+<td>Semantics differ slightly: scripts often count <em>blocking</em> SPIDs, the metric counts <em>blocked</em> processes — directionally equivalent, don't copy thresholds 1:1</td>
+</tr>
+<tr>
+<td>Database status (<code>sys.databases</code>)</td>
+<td>✅ <code>sql-server.databases.state</code></td>
+<td>Per database</td>
+</tr>
+<tr>
+<td>Agent job last-run outcome (<code>msdb.dbo.sysjobhistory</code>)</td>
+<td>✅ <code>current_jobs</code> / <code>failed_jobs</code> log streams</td>
+<td>Richer than the script — error text queryable</td>
+</tr>
+<tr>
+<td>Transaction log space</td>
+<td>✅ <code>sql-server.databases.log.percentUsed</code></td>
+<td>Exact equivalent</td>
+</tr>
+<tr>
+<td>Always On sync health</td>
+<td>✅ <code>sql-server.always-on.ag.synchronizationHealth</code> / <code>.ar.synchronizationHealth</code> / <code>.db.synchronizationHealth</code></td>
+<td>AG, replica, and database granularity</td>
+</tr>
+<tr>
+<td>Failover posture / replica role</td>
+<td>✅ <code>sql-server.always-on.ar.role</code>, <code>.ar.failoverMode</code>, <code>.ar.operationalState</code></td>
+<td>Point the Always On config at the <strong>primary</strong> replica</td>
+</tr>
+<tr>
+<td>Instance status / uptime</td>
+<td>✅ <code>sql-server.uptime</code> + connection/worker metrics</td>
+<td>Extension connectivity doubles as reachability signal</td>
+</tr>
+<tr>
+<td>Database file space</td>
+<td>⚠️ Database Files feature set</td>
+<td>File size per database and per file; used/empty space only for the database the extension is connected to</td>
+</tr>
+<tr>
+<td>tempdb version-store pressure</td>
+<td>❌ Not collected</td>
+<td>The one recurring hard gap — see section 7</td>
+</tr>
+<tr>
+<td>Filegroup-level %-of-maxsize rollup</td>
+<td>⚠️ File-level only</td>
+<td>No filegroup dimension exists on the file metrics</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2">Microsoft SQL Server extension (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="beyond-the-numbers"></a></p>
+<h2>5. What You Gain Beyond the Numbers</h2>
+<p>If the extension only matched your scripts metric-for-metric, the migration would be a wash. The case for switching is what arrives <em>around</em> the numbers:</p>
+<ol>
+<li><strong>Topology and entity context.</strong> Extension signals attach to SQL Server instance/database entities rather than floating as anonymous custom metrics. Since Semantic Dictionary 1.340, Smartscape models SQL Server natively — availability databases, groups, replicas, instances, and databases as first-class typed entities with relationships. A blocked-session spike is one click away from the services calling that database.</li>
+<li><strong>Entity-aware Davis analysis.</strong> Every extension metric is eligible for Davis anomaly detection — auto-adaptive and seasonal baselines instead of static thresholds. Your Telegraf metrics can use the same baselines, but they alert as series attached at most to a host — no SQL Server instance, database or availability-group entity — so Davis cannot place them in the database topology when it correlates a problem.</li>
+<li><strong>Zero maintenance.</strong> Dynatrace versions the extension against SQL Server releases, DMV changes, and permission-model changes (e.g., the 2022 <code>VIEW SERVER PERFORMANCE STATE</code> split). Every one of those is currently your job.</li>
+<li><strong>Unified alerting surface.</strong> Metric events, Davis problems, and DQL log alerts on <code>failed_jobs</code> all flow into the same problem/notification pipeline as the rest of your observability — no parallel alert path to operate.</li>
+</ol>
+<p>In community practice, the maintenance point is the one that lands hardest with DBA teams: the scripts are rarely the problem — the person who wrote them leaving is.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2">Microsoft SQL Server extension (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/semantic-dictionary/changelog">Semantic Dictionary 1.340 changelog (DT docs)</a> — 19 first-class Smartscape database models incl. SQL Server availability database/group/replica, instance, database; <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection-classic/metric-events">Metric events — Dynatrace Classic (DT docs)</a> — <em>&quot;Auto-adaptive thresholds and seasonal baselining are available only for metric selector events.&quot;</em> The page is labeled Dynatrace Classic and says <em>&quot;We encourage you to try Anomaly Detection for more advanced configuration options&quot;</em> (re-read 10/15/2026); <a href="https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics">Extend metrics (DT docs)</a> — custom metrics are <em>&quot;assigned to a host either automatically or by adding the dt.entity.host dimension&quot;</em>, and <em>&quot;You can also create custom alerts based on the ingested metrics.&quot;</em> <strong>Derived:</strong> the four-point value framing combines the cited sources with the DPS alerting model.</sub></p>
+</blockquote>
+<p><a id="gaps-and-constraints"></a></p>
+<h2>6. Honest Gaps and Constraints</h2>
+<p>The migration case survives honesty; hiding these helps no one:</p>
+<ul>
+<li><strong>No tempdb / version-store metrics.</strong> Nothing in any feature set covers <code>version_store_reserved_page_count</code> or the longest-running-transaction counter. If you run read-committed snapshot isolation at scale, this check matters and stays custom.</li>
+<li><strong>No filegroup dimension.</strong> File metrics are per-database and per-file. A filegroup %-of-maxsize rollup cannot be reconstructed from the documented dimensions.</li>
+<li><strong>Jobs bill as log ingest,</strong> not metrics (as do the largest-files and top-queries streams). Factor it into DPS planning — volumes are usually small (failed jobs and largest files are capped at 100 records per 5 minutes), but current jobs scale with your job count, and the <em>Locks and waits</em> <code>all_requests</code> stream emits every active request each minute — size it before enabling. It is also a different meter.</li>
+<li><strong>Always On needs deliberate config.</strong> Two monitoring configurations: Always On feature set → primary replicas only; everything else → all instances. Connecting primaries <em>and</em> secondaries with Always On enabled produces duplicate metrics — <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2">Microsoft SQL Server extension (DT docs)</a>: <em>&quot;Don't enable the &quot;Always On&quot; feature set on both the primary and the secondary replica in the same cluster.&quot;</em></li>
+<li><strong>Blocked-process semantics</strong> differ from typical scripts (blocked vs blocking counts) — revalidate thresholds during the parallel run.</li>
+<li><strong>The extension accepts no user-defined SQL.</strong> Custom checks don't bolt onto it; they live in a separate small extension (next section).</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2">Microsoft SQL Server extension (DT docs)</a> — feature-set catalog, dimension lists, Always On configuration guidance, and DDU/DPS notes, incl. <em>&quot;top 100 failed jobs * 12 * avg log size&quot;</em>, <em>&quot;Number of currently enabled jobs * 12 * avg log size&quot;</em> and <em>&quot;avg Number of active requests * 60 * avg log size&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="custom-extension"></a></p>
+<h2>7. Closing Real Gaps with a Small Custom Extension</h2>
+<p>For the checks the extension genuinely lacks, build a <strong>declarative Extensions 2.0 extension with the <code>sqlServer</code> data source</strong>. It runs on the same ActiveGate, uses the same monitoring user, and emits gauge/count metrics with dimensions — no agent, no scheduler, no script host.</p>
+<p>Constraints that will affect scripts as currently written:</p>
+<ul>
+<li><strong>Single, plain <code>SELECT</code> statements only.</strong> <code>DECLARE</code>, table variables, <code>INSERT…EXEC</code>, <code>sp_MSforeachdb</code>, and <code>IF/ELSE</code> are rejected — most homegrown checks need a rewrite into one SELECT (usually straightforward: subqueries + <code>CROSS JOIN</code> replace the procedural scaffolding).</li>
+<li><strong>Comments inside queries are rejected.</strong></li>
+<li>Default 10-second query timeout, and <em>&quot;Only one query can be executed at a time&quot;</em> — another reason a multi-statement script has to collapse into one SELECT.</li>
+</ul>
+<p>In community practice, the design rule worth adopting during the rewrite is <strong>emit raw values, not verdicts.</strong> A script that returns <code>1</code> when version store exceeds 30% of tempdb bakes the threshold into the collector. Emit the percentage as a gauge and put the <code>&gt; 30</code> in a Dynatrace metric event — thresholds become tunable, and Davis can baseline the raw signal.</p>
+<p>The DBMON series carries the mechanics of the server-side view; the <a href="https://docs.dynatrace.com/docs/ingest-from/extensions/develop-your-extensions/data-sources/sql/sql-reference">SQL data source reference (DT docs)</a> documents the YAML shape, scheduling (per-minute to cron), and dimension model.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/extensions/develop-your-extensions/data-sources/sql/sql-reference">SQL data source reference (DT docs)</a> — <em>&quot;Only one query can be executed at a time&quot;</em>, <em>&quot;Queries containing comments are rejected&quot;</em>, <em>&quot;Timeouts are specified in seconds; the default value is 10.&quot;</em></sub></p>
+</blockquote>
+<p><a id="keep-telegraf"></a></p>
+<h2>8. The Keep-Telegraf Fallback</h2>
+<p>Keeping Telegraf and pointing it at Dynatrace is legitimate — the Telegraf output plugin ships to the local OneAgent metric API (<code>:14499/metrics/ingest</code>) or the Metrics API v2, and the queries stay exactly as written since Telegraf executes them itself.</p>
+<p>Be clear-eyed about what that choice costs:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Extension path</th>
+<th>Keep-Telegraf path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Query rewrite</td>
+<td>Gaps only (single-SELECT)</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Topology / Smartscape entities</td>
+<td>✅</td>
+<td>❌ plain custom metrics</td>
+</tr>
+<tr>
+<td>Davis baselines</td>
+<td>✅ entity-aware — correlated into problems</td>
+<td>⚠️ available on the series, but no SQL Server entity context</td>
+</tr>
+<tr>
+<td>Maintenance owner</td>
+<td>Dynatrace (+ your small gap extension)</td>
+<td>You, indefinitely</td>
+</tr>
+<tr>
+<td>Agents to operate</td>
+<td>ActiveGate (already required)</td>
+<td>ActiveGate <strong>+</strong> Telegraf fleet</td>
+</tr>
+</tbody>
+</table>
+<p>If you skip the extension entirely and bring everything in through Telegraf, you are running Dynatrace as a metrics bucket — forfeiting the topology, entity model, and entity-aware Davis correlation that differentiate it, and handicapping the platform's ability to deliver the visibility and predictability you adopted it for. The fallback earns its keep as a <strong>transition state</strong> (parallel-run during migration) or for the rare check that resists a single-SELECT rewrite — not as the destination.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2">Microsoft SQL Server extension (DT docs)</a>. <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection-classic/metric-events">Metric events — Dynatrace Classic (DT docs)</a> — auto-adaptive and seasonal baselines for metric selector events. <strong>Derived:</strong> the trade-off table combines the extension's documented entity model with the plain-custom-metric behavior of API-ingested series.</sub></p>
+</blockquote>
+<p><a id="setup-and-cost"></a></p>
+<h2>9. Setup Essentials and Cost</h2>
+<ol>
+<li>Install the extension from <strong>Dynatrace Hub</strong> (remote flavor; a local OneAgent variant exists for hosts already running OneAgent).</li>
+<li>Designate an <strong>ActiveGate group</strong> for DB connections — each monitoring configuration handles hundreds of active endpoints on a single 2 vCPU / 4 GiB ActiveGate, with automatic failover within the group.</li>
+<li>Create the <strong>monitoring SQL user</strong> (grants in Prerequisites). The extension only executes <code>SELECT</code>s.</li>
+<li>Enable feature sets to match your monitor inventory — Default, Database Files, Transaction Logs, Always On, Jobs, Agent covers the typical set.</li>
+<li>Set up the <strong>two Always On configurations</strong> (section 6).</li>
+<li><strong>Cost:</strong> the extension is free; you pay for ingested data — <code>sql-server.*</code> keys as metrics ingest, the jobs/files/queries streams as log ingest.</li>
+</ol>
+<p>Verification once data flows — blocked processes from the Default feature set:</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2">Microsoft SQL Server extension (DT docs)</a> — Hub install, ActiveGate-group placement and failover, monitoring-user grants, and the feature-set list, <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-local">Microsoft SQL Server local extension (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/extensions/develop-your-extensions/data-sources/sql/sql-reference">SQL data source reference (DT docs)</a> — the SQL data source executes queries only. The sizing figure is published: <em>&quot;Each monitoring configuration can handle hundreds of active endpoints simultaneously on a single ActiveGate with 2vCPU and 4GiB RAM.&quot;</em>; the failed-jobs query below uses the documented <code>failed_jobs</code> fields (<em>&quot;job_name, step_name, outcome, content, duration, instance, server, sql_severity, retries_attempted, start_execution_date, stop_execution_date&quot;</em>) and <em>&quot;The extension fetches failed jobs every five minutes.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Blocked processes from the SQL Server extension (Default feature set)
+timeseries blocked = avg(`sql-server.general.processesBlocked`), from:-24h
+</code></pre>
+<p>And the failed-jobs log stream — the failure message text is right there in Grail. Two details matter. Filter on the extension and the <code>failed_jobs</code> event group, the way the extension documentation does, rather than on <code>last_run_outcome</code>: that field is on the <code>current_jobs</code> stream, a snapshot taken every 5 minutes, so counting its records counts snapshots rather than failures. And count distinct <code>stop_execution_date</code> values, so a failure that appears in more than one 5-minute fetch is counted once. <strong>This query follows the documented field list but has not been run against live SQL Server data</strong> (the validation tenant has no SQL Server extension deployed; it executes and returns no rows) — confirm the counts on your own estate before alerting on them. Extension 3.1.2 and later route its logs through dedicated OpenPipeline pipelines, and the extension notes that <em>&quot;OpenPipeline also handles some field names differently, for example, capitalization&quot;</em> — check <code>job_name</code> and <code>stop_execution_date</code> on one live record first:</p>
+<pre><code class="language-dql">// Failed SQL Server Agent jobs in the last 24h (Jobs feature set, failed_jobs stream).
+// Not yet run against live SQL Server data — verify on your estate.
+fetch logs, from:-24h
+| filter dt.extension.name == &quot;com.dynatrace.extension.sql-server&quot; and event.group == &quot;failed_jobs&quot;
+| summarize {failures = countDistinct(stop_execution_date), latest = max(stop_execution_date)}, by:{job_name, server}
+| sort failures desc
+</code></pre>
+<p><a id="recommended-approach"></a></p>
+<h2>10. Recommended Approach</h2>
+<p><em>The sequence below is community practice built on the two pages cited; each step's mechanics are sourced in the section it points to.</em></p>
+<ol>
+<li><strong>Inventory your script estate</strong> — every query, what it measures, and which alerts consume it.</li>
+<li><strong>Map each monitor</strong> against section 4. Expect the large majority to land on documented <code>sql-server.*</code> signals.</li>
+<li><strong>Deploy the extension</strong> per section 9; run it <strong>in parallel</strong> with the scripts for one or two operational cycles.</li>
+<li><strong>Rebuild alerts on the Dynatrace side</strong> — metric events / Davis anomaly detectors on the metrics, a DQL log alert on <code>failed_jobs</code> — revalidating each threshold against the extension's semantics rather than copying script thresholds blind.</li>
+<li><strong>Rewrite only the true gaps</strong> as a small EF 2.0 SQL extension (single-SELECT, raw values, thresholds in metric events).</li>
+<li><strong>Retire the redundant scripts</strong> after the parallel run confirms parity.</li>
+<li>Reserve keep-Telegraf for transition or for checks that genuinely resist rewrite — not as the standing architecture.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2">Microsoft SQL Server extension (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/extensions/develop-your-extensions/data-sources/sql/sql-reference">SQL data source reference (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="objections"></a></p>
+<h2>11. Common Objections</h2>
+<table>
+<thead>
+<tr>
+<th>Objection</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&quot;Our scripts already work.&quot;</td>
+<td>They work at the cost of permanent maintenance and zero context. The extension delivers the same signals with topology, Smartscape entities, and entity-aware Davis correlation — and Dynatrace maintains it.</td>
+</tr>
+<tr>
+<td>&quot;We have checks the extension doesn't cover.&quot;</td>
+<td>Usually one or two (tempdb version store is the classic). Those shrink into a small EF 2.0 extension; they don't justify keeping the whole estate.</td>
+</tr>
+<tr>
+<td>&quot;We don't want an agent on the DB hosts.&quot;</td>
+<td>The extension is remote — it runs on an ActiveGate and queries over the network. Nothing installs on the database host.</td>
+</tr>
+<tr>
+<td>&quot;Our thresholds are tuned; we can't lose them.&quot;</td>
+<td>Keep them as metric events during the parallel run, then let Davis baselines take over where they prove better. Note the blocked-sessions semantic difference before copying values.</td>
+</tr>
+<tr>
+<td>&quot;The DBA team owns monitoring, not the observability team.&quot;</td>
+<td>The monitoring SQL user, feature-set selection, and gap-extension queries all remain DBA-owned artifacts — the platform team owns the ActiveGate. The split is cleaner than a shared Telegraf config.</td>
+</tr>
+<tr>
+<td>&quot;Isn't this just more ingest cost?&quot;</td>
+<td>The extension itself is free; you pay for data — and you were already paying (or about to) to ingest the Telegraf versions of the same signals, without the entity context.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2">Microsoft SQL Server extension (DT docs)</a> — the remote-collection model behind the <em>no agent on the DB host</em> answer, and the covered feature sets, <a href="https://www.dynatrace.com/hub/detail/microsoft-sql-server-2/">SQL Server Monitoring (Dynatrace Hub)</a> — publisher and support route. <strong>Derived:</strong> the objection/response pairings are this entry's framing of the trade-offs; no source argues them.</sub></p>
+</blockquote>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPIPE-99: Best Practice Summary</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPIPE — OpenPipeline Beyond Logs</a><span class="sep">/</span><span aria-current="page">OPIPE-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPIPE-99: Best Practice Summary</h1>
+<blockquote>
+<p><strong>Series:</strong> OPIPE — OpenPipeline Beyond Logs | <strong>Notebook:</strong> 99 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/26/2026</p>
+</blockquote>
+<p>Definitive best practice settings for OpenPipeline beyond logs — spans, metrics, events, and cross-scope patterns. Each entry specifies the exact configuration.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#multi-scope-architecture">Multi-Scope Architecture</a></li>
+<li><a href="#matching-conditions">Matching Conditions</a></li>
+<li><a href="#span-filtering-enrichment">Span Filtering &amp; Enrichment</a></li>
+<li><a href="#sampling-aware-metrics-red">Sampling-Aware Metrics &amp; RED</a></li>
+<li><a href="#cardinality-management">Cardinality Management</a></li>
+<li><a href="#security-context">Security Context</a></li>
+<li><a href="#business-security-events">Business &amp; Security Events</a></li>
+<li><a href="#cross-scope-patterns">Cross-Scope Patterns</a></li>
+<li><a href="#ingestion-vs-query-time">Ingestion vs Query-Time</a></li>
+<li><a href="#production-readiness">Production Readiness</a></li>
+</ol>
+<hr />
+<p><a id="multi-scope-architecture"></a></p>
+<h2>1. Multi-Scope Architecture</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>One pipeline per source type per scope</td>
+<td>Separate pipelines for each distinct data source</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Never leave &gt;20% of volume on the default route</td>
+<td>Target 0% in the default bucket for production environments</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Route ordering: most specific first</td>
+<td>Security/audit → application → infrastructure → API-ingested → default catch-all</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Configure each scope independently</td>
+<td>Logs, Spans, Metrics, Events, Business Events, Security Events, and the other configuration scopes — changes in one scope have zero effect on others</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Know the fixed stage order</td>
+<td>Ingest → Routing → pipeline → Storage. Inside the pipeline the stage sequence is fixed: Processing (mask, drop, transform) → Smartscape node → Smartscape edge → Permission → Product allocation → Cost allocation → Bucket assignment → Metric extraction → Davis → Data extraction</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Know the default bucket retention</td>
+<td>Built-in buckets; on the validation tenant <code>default_logs</code> keeps 35 days and <code>default_spans</code> 10 days — read yours with <code>fetch dt.system.buckets</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Audit default bucket percentage weekly</td>
+<td><code>countIf(dt.system.bucket == &quot;default_logs&quot;)/count()</code> — CRITICAL if &gt;80%, WARNING if &gt;50%</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Check pipeline count per scope</td>
+<td><code>countDistinct(dt.openpipeline.pipelines)</code> — as a community rule of thumb, 3+ for logs and 2+ for spans</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="matching-conditions"></a></p>
+<h2>2. Matching Conditions</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scope each processor with its own matching condition</td>
+<td>There is no processor-group construct — every processor carries a DQL matcher; <code>true</code> applies it to all records</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Parse once, match on the result</td>
+<td>Extract the distinguishing value into a field early in Processing (<code>dt.temp.*</code> if it should not be stored, SaaS 1.345+) and match later processors on it</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Know which stages are first-match</td>
+<td>Permission, Product allocation, Cost allocation and Bucket assignment run only the first matching processor — list specific conditions first</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use conditional bucket assignment when only the destination differs</td>
+<td>Conditional <strong>Bucket assignment</strong> processors (first match wins) inside one pipeline, instead of a pipeline per bucket</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Make matchers in all-matches stages mutually exclusive</td>
+<td>Unless multi-match is intentional — overlapping processors can set conflicting field values</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use separate pipelines when lifecycle or owner differs</td>
+<td>Different bucket, retention, security context or owning team = separate pipeline</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use pipeline groups for centrally mandated stages</td>
+<td>A composition of base pipelines can restrict or mandate stages for member pipelines</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Exclude every mandated stage from members</td>
+<td>A stage enabled in both a base and a member pipeline runs in both — exclude it in the group's <code>memberStages</code> (prefer an <code>include</code> list) — see OPIPE-07</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Keep Permission, cost, product and bucket central</td>
+<td>Run them in base pipelines; they come before every extraction stage, so member-extracted data sees the central values</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Route only to member pipelines</td>
+<td>Base pipelines are not routable; first matching route wins; monitor the share of records on the default route</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Platform team owns the routing table</td>
+<td>Routing has no owner-based access control — write access to a scope's routing covers every route</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Decide the role at creation</td>
+<td><code>groupRole</code> and <code>routing</code> are permanent; a member belongs to one group, a base pipeline can serve several</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Budget the limits</td>
+<td>100 processors per base pipeline, 10 slots per group, 100 pipelines per scope, extraction in at most 5 pipelines per record</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Gate member pipelines in CI</td>
+<td>Metric-key prefix, Davis allow-list, dimension deny-list, processor counts — warn first, then fail</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="span-filtering-enrichment"></a></p>
+<h2>3. Span Filtering &amp; Enrichment</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Drop health check spans</td>
+<td>Drop: <code>url.path</code> matches <code>&quot;*health*&quot;</code> OR <code>&quot;/ready*&quot;</code> OR <code>&quot;/livez*&quot;</code>, or <code>span.name</code> matches <code>&quot;grpc.health.v1.Health/*&quot;</code> — HTTP span names often carry only the method, so match on the path</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Drop metrics scraping spans</td>
+<td>Drop: <code>url.path</code> matches <code>&quot;/metrics*&quot;</code> OR <code>&quot;/actuator/*&quot;</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Drop OPTIONS preflight spans</td>
+<td>Drop: <code>http.request.method == &quot;OPTIONS&quot;</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Drop synthetic/heartbeat spans</td>
+<td>Drop: <code>span.name</code> matches <code>&quot;*synthetic*&quot;</code> or <code>&quot;*heartbeat*&quot;</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Quantify noise before configuring drops</td>
+<td>Count health checks, scrapes, OPTIONS as % of total — measure your own share</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Route spans to purpose buckets</td>
+<td>Frontend: <code>frontend_spans</code> 14d. API: <code>api_spans</code> 35d. DB: <code>db_spans</code> 14d. Default: built-in retention</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Add <code>business.domain</code> enrichment</td>
+<td><code>matchesValue(service.name, &quot;checkout*&quot;)</code> → <code>business.domain = &quot;commerce&quot;</code> (<code>service.name</code> is on OTel spans only — use <code>dt.service.name</code> where that is what your spans carry)</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Add <code>environment</code> enrichment</td>
+<td><code>matchesValue(k8s.namespace.name, &quot;*prod*&quot;)</code> → <code>environment = &quot;production&quot;</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Pre-classify severity</td>
+<td><code>http.response.status_code &gt;= 500</code> → <code>incident.severity = &quot;high&quot;</code></td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>Prefer metric extraction over event generation</td>
+<td>Extraction: 1 data point/interval (low cost). Generation: 1 record/span (high cost)</td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<p><a id="sampling-aware-metrics-red"></a></p>
+<h2>4. Sampling-Aware Metrics &amp; RED</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Enable sampling-aware for count metrics</td>
+<td><code>span.request_count</code>, <code>span.error_count</code> must weight each span by 1 / its sampling probability (ATM stores the ratio as a denominator: 16 = 1 in 16) — enable both <strong>Account for aggregated spans</strong> and <strong>Extrapolate metrics to account for trace sampling</strong> on the counter processor</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use the sampling-aware histogram for duration</td>
+<td>Set <strong>Measurement: Duration</strong>, which enables the sampling options automatically. Percentiles are representative either way; extrapolated counts and sums are not without it</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Check spans for sampling metadata</td>
+<td><code>dt.system.sampling_ratio</code> is the query's read sampling, not the trace sampler — check <code>supportability.atm_sampling_ratio</code> and <code>sampling.threshold</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Check OTel spans for sampling metadata</td>
+<td>OpenTelemetry spans usually carry no sampling-rate metadata, so extrapolation is less effective on them</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Error rate ratios tolerate uniform sampling only</td>
+<td>Accurate when every request had the same chance of being kept; biased under tail sampling or when ATM samples request types at different rates</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Rate (RED)</td>
+<td>Metric: <code>span.request_count</code>, Sampling aware counter, <code>span.kind == &quot;server&quot;</code> AND <code>isNotNull(endpoint.name)</code> (request roots — one request can produce several server spans), dims: <code>dt.service.name</code>, <code>http.route</code>, both sampling options enabled</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Errors (RED)</td>
+<td>Metric: <code>span.error_count</code>, Sampling aware counter, <code>span.kind == &quot;server&quot;</code> AND <code>isNotNull(endpoint.name)</code> AND <code>status_code &gt;= 500</code>, dims: <code>dt.service.name</code>, <code>http.route</code>, <code>status_code</code>, both sampling options enabled</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Duration (RED)</td>
+<td>Metric: <code>span.duration</code>, Sampling aware histogram (Measurement: Duration), <code>span.kind == &quot;server&quot;</code> AND <code>isNotNull(endpoint.name)</code>, dims: <code>dt.service.name</code>, <code>http.route</code>, sampling-aware: Yes</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Validate against built-in metrics</td>
+<td>Compare <code>span.request_count</code> vs <code>dt.service.request.count</code> — significant divergence = misconfiguration. Service metrics are themselves <em>&quot;based on captured traces&quot;</em>, so low-frequency requests can differ in both</td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<p><a id="cardinality-management"></a></p>
+<h2>5. Cardinality Management</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Never use <code>trace.id</code>, <code>span.id</code>, or <code>content</code> as dimensions</td>
+<td>Unique per record = unbounded cardinality — past the 1M per-metric limit on Metrics Classic, and what Grail <em>&quot;may restrict or reject&quot;</em></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Never use <code>http.url</code> as dimension</td>
+<td>Use <code>http.route</code> (pattern) instead of <code>http.url</code> (instance with query params)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Never use <code>k8s.pod.name</code> as a metric dimension</td>
+<td>Use <code>k8s.deployment.name</code> (or <code>k8s.workload.name</code>); do not rewrite <code>k8s.pod.name</code> itself</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Remove <code>http.url</code> when <code>http.route</code> exists</td>
+<td><strong>Remove fields</strong> processor in the Processing stage</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Remove captured header attributes from spans</td>
+<td>List each <code>http.request.header.&lt;name&gt;</code> attribute by name — high-cardinality, rarely needed post-ingestion</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Normalize URL paths to patterns</td>
+<td><code>/users/12345/orders</code> → <code>/users/{id}/orders</code> in a DQL processor</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Group status codes into classes</td>
+<td><code>200/201/204</code> → <code>2xx</code>, <code>400/401/403</code> → <code>4xx</code>, <code>500/502/503</code> → <code>5xx</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Cardinality budget: SLO metrics (community practice)</td>
+<td>&lt;1,000 series, max 2-3 dimensions</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Cardinality budget: operational metrics (community practice)</td>
+<td>&lt;10,000 series, max 3-4 dimensions</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Cardinality budget: exploratory metrics (community practice)</td>
+<td>&lt;50,000 series, max 4-5 dimensions</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Run cardinality estimation before extraction</td>
+<td><code>countDistinct()</code> across proposed dimensions on 1h data — reject if &gt;100,000</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Bucket continuous values into tiers</td>
+<td>Duration: &lt;100ms=fast, 100-500ms=normal, 500ms-2s=slow, &gt;2s=very_slow</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Hashing pseudonymizes PII (salt it) but does NOT reduce cardinality</td>
+<td>An unsalted hash of an IP or email can be reversed by enumeration — use a secret salt or drop the field. 100K emails → 100K hashes: use removal/grouping to reduce</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="security-context"></a></p>
+<h2>6. Security Context</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Set <code>dt.security_context</code> on every scope with sensitive data</td>
+<td>The <strong>Permission</strong> stage in Logs, Spans, Metrics, Events, Bizevents — or a <code>dt.security_context</code> host tag, which applies to all logs, spans, metrics and events from that host</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Extension metrics: set explicitly</td>
+<td>Data does not inherit an entity's security context. Set <code>dt.security_context</code> per extension configuration, or in the Metrics scope Permission stage on a <code>metric.key</code> prefix</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use MATCH operator for array values</td>
+<td><code>=</code>, <code>STARTSWITH</code>, <code>IN</code> always return false for array-valued security contexts</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Business events: by event type</td>
+<td>Payment events → <code>&quot;finance-team&quot;</code>, signup → <code>&quot;marketing-team&quot;</code>, default → <code>&quot;product-team&quot;</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Spans: by namespace or service</td>
+<td><code>k8s.namespace.name</code> matches <code>&quot;team-alpha-*&quot;</code> → <code>&quot;team-alpha&quot;</code></td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="business-security-events"></a></p>
+<h2>7. Business &amp; Security Events</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Enrich business events with channel</td>
+<td><code>event.provider == &quot;mobile-app&quot;</code> → <code>channel = &quot;mobile&quot;</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Extract conversion funnel metrics</td>
+<td>Separate count per stage: views → adds → checkouts → purchases</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Extract revenue with a Value metric</td>
+<td><code>bizevent.purchase_revenue</code> on <code>order.total</code>, dims: <code>provider</code>, <code>channel</code>; sum at query time</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Business event retention</td>
+<td>90-365 days depending on reporting needs</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Never drop security events</td>
+<td>No drop rules on any security pipeline</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Never sample security events</td>
+<td>Every individual event is potentially significant</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Security event retention</td>
+<td>Vulnerability and detection findings: 365 days. Compliance: 2555 days (7 years). Platform <code>AUDIT_EVENT</code>s are in <code>dt.system.events</code>, not here</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Align to compliance frameworks</td>
+<td>Confirm with your compliance team. Commonly cited: PCI-DSS one year (three months immediately available); SOC 2 no fixed period; HIPAA six years for required documentation; GDPR no longer than necessary</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Security context on all security pipelines</td>
+<td><code>dt.security_context = &quot;security-team&quot;</code></td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<p><a id="cross-scope-patterns"></a></p>
+<h2>8. Cross-Scope Patterns</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Primary correlation key: <code>dt.smartscape.service</code></td>
+<td><code>dt.entity.service</code> is <code>deprecated</code>. Present on every span but only on logs from processes mapped to a service — measure coverage per scope before relying on it</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Give logs a service key if missing</td>
+<td>Set it at the source (OneAgent primary tags) or derive it in a DQL processor — OpenPipeline does not look up entities at ingestion</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Correlate spans with workloads</td>
+<td>Spans carry no <code>k8s.deployment.name</code> — join on <code>k8s.namespace.name</code> + <code>k8s.pod.name</code>, or map with an Inline lookup processor</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Extract same metric from two scopes for validation</td>
+<td><code>log.error_count</code> from logs + <code>span.error_count</code> from spans — divergence = pipeline issue</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Name related buckets with common prefix</td>
+<td><code>checkout_logs</code>, <code>checkout_spans</code>, <code>checkout_events</code> — enables <code>storage:bucket-name startsWith &quot;checkout_&quot;</code> IAM conditions</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Expire related buckets in logical sequence</td>
+<td>Spans first (14d), logs (35d), events (35d), business events (90d)</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use DQL for cross-scope correlation</td>
+<td>OpenPipeline cannot join across scopes — use DQL <code>lookup</code> and <code>append</code></td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<p><a id="ingestion-vs-query-time"></a></p>
+<h2>9. Ingestion vs Query-Time</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mask at ingestion — no exceptions</td>
+<td>PII must be redacted before storage</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Drop noise at ingestion</td>
+<td>Debug, health checks, synthetic — never store and filter later</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Set security context at ingestion only</td>
+<td>Cannot be added retroactively to stored data</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Extract metrics at ingestion only</td>
+<td>Cannot create metrics from historical data</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Route to buckets at ingestion only</td>
+<td>Bucket assignment is permanent — cannot move data after storage</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Keep raw for exploratory analysis</td>
+<td>If you don't know what you're looking for, store raw and DQL at query time</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Decision order</td>
+<td>(1) Sensitive? Mask. (2) Noise? Drop. (3) Access control? Security context. (4) Need metric? Extract. (5) Everything else? Store raw.</td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<p><a id="production-readiness"></a></p>
+<h2>10. Production Readiness</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No overlapping routing conditions</td>
+<td>Audit conditions for overlap — first match wins, order-dependent behavior is a bug</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Drop rules before extraction rules</td>
+<td>Filter noise before creating metrics — otherwise you extract from noise</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Volume monitoring on every pipeline</td>
+<td><code>makeTimeseries count(), by:{dt.openpipeline.pipelines}, interval:1h</code> — alert on spikes/drops</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Monitor what was not stored</td>
+<td>Self-monitoring metrics <code>dt.sfm.openpipeline.pipelines_out.records</code> (by <code>pipeline_id</code>, <code>bucket_name</code>) and <code>dt.sfm.openpipeline.not_stored.records</code> (by <code>configuration</code>, <code>reason</code>) — stored-record counts cannot see dropped records</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Document rollback plan before changes</td>
+<td>Record previous config — OpenPipeline cannot reprocess historical data</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Metric naming convention</td>
+<td><code>scope.metric_name</code> (e.g., <code>span.request_count</code>, <code>log.error_count</code>)</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Test cascade chains end-to-end</td>
+<td>Span → event → metric → SLO — failures propagate silently</td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

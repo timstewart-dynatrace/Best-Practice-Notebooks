@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OTEL-03: Collector Deployment Patterns</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OTEL — OpenTelemetry Integration</a><span class="sep">/</span><span aria-current="page">OTEL-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OTEL-03: Collector Deployment Patterns</h1>
+<blockquote>
+<p><strong>Series:</strong> OTEL — OpenTelemetry Integration | <strong>Notebook:</strong> 3 of 8 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 10/29/2026</p>
+</blockquote>
+<h2>Deploying the OpenTelemetry Collector</h2>
+<p>The OTel Collector can be deployed in various patterns depending on your infrastructure. This notebook covers deployment modes, Kubernetes configurations, and best practices for production.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#deployment-modes">Deployment Modes</a></li>
+<li><a href="#agent-mode-sidecardaemonset">Agent Mode (Sidecar/DaemonSet)</a></li>
+<li><a href="#gateway-mode">Gateway Mode</a></li>
+<li><a href="#kubernetes-deployment">Kubernetes Deployment</a></li>
+<li><a href="#scaling-prometheus-scraping">Scaling Prometheus Scraping</a></li>
+<li><a href="#docker-compose">Docker Compose</a></li>
+<li><a href="#high-availability">High Availability</a></li>
+<li><a href="#resource-sizing">Resource Sizing</a></li>
+<li><a href="#security-considerations">Security Considerations</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>OTEL-02: Collector Architecture</td>
+</tr>
+<tr>
+<td><strong>Tools</strong></td>
+<td>kubectl, Helm, or Docker</td>
+</tr>
+</tbody>
+</table>
+<p><a id="deployment-modes"></a></p>
+<h2>1. Deployment Modes</h2>
+<h3>Mode Comparison</h3>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Deployment</th>
+<th>Use Case</th>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Agent</strong></td>
+<td>DaemonSet/Sidecar</td>
+<td>Per-node collection</td>
+<td>Low latency, local processing</td>
+<td>More instances</td>
+</tr>
+<tr>
+<td><strong>Gateway</strong></td>
+<td>Deployment</td>
+<td>Centralized</td>
+<td>Single point, aggregation</td>
+<td>Potential bottleneck</td>
+</tr>
+<tr>
+<td><strong>Hybrid</strong></td>
+<td>Both</td>
+<td>Large scale</td>
+<td>Best of both</td>
+<td>Complex</td>
+</tr>
+</tbody>
+</table>
+<h3>Architecture Patterns</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgNDIwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibm9kZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzMzNDE1NTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWUyOTNiO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iY29sbGVjdG9yQWdlbnRHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmNTllMGI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Q5NzcwNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImNvbGxlY3RvckdhdGV3YXlHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNGI4YTY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBkOTQ4ODtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImFwcEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzYzNjZmMTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNGY0NmU1O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZHRHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNDk2ZmY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzAwNzBjOTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJzaGFkb3ciIHg9Ii0yMCUiIHk9Ii0yMCUiIHdpZHRoPSIxNDAlIiBoZWlnaHQ9IjE0MCUiPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIwIiBkeT0iMiIgc3RkRGV2aWF0aW9uPSIyIiBmbG9vZC1jb2xvcj0iIzAwMCIgZmxvb2Qtb3BhY2l0eT0iMC4zIi8+CiAgICA8L2ZpbHRlcj4KICAgIDxtYXJrZXIgaWQ9ImFycm93V2hpdGUiIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzk0YTNiOCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzBmMTcyYSIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjM1MCIgeT0iMjUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNmMWY1ZjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNvbGxlY3RvciBEZXBsb3ltZW50IE1vZGVzPC90ZXh0PgoKICA8IS0tID09PT09IEFHRU5UIE1PREUgKExFRlQpID09PT09IC0tPgogIDx0ZXh0IHg9IjE3MCIgeT0iNTAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNmNTllMGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFnZW50IE1vZGUgKERhZW1vblNldCk8L3RleHQ+CgogIDwhLS0gTm9kZSAxIC0tPgogIDxyZWN0IHg9IjMwIiB5PSI2NSIgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMTUiIHJ4PSI2IiBmaWxsPSJ1cmwoI25vZGVHcmFkKSIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI4MCIgeT0iODMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5vZGUgMTwvdGV4dD4KICA8IS0tIEFwcCAtLT4KICA8cmVjdCB4PSI0MiIgeT0iOTMiIHdpZHRoPSI3NiIgaGVpZ2h0PSIzMCIgcng9IjQiIGZpbGw9InVybCgjYXBwR3JhZCkiLz4KICA8dGV4dCB4PSI4MCIgeT0iMTEyIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFwcHM8L3RleHQ+CiAgPCEtLSBDb2xsZWN0b3IgLS0+CiAgPHJlY3QgeD0iNDIiIHk9IjEzMCIgd2lkdGg9Ijc2IiBoZWlnaHQ9IjQwIiByeD0iNCIgZmlsbD0idXJsKCNjb2xsZWN0b3JBZ2VudEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjgwIiB5PSIxNTAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q29sbGVjdG9yPC90ZXh0PgogIDx0ZXh0IHg9IjgwIiB5PSIxNjMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iI2ZlZjNjNyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QWdlbnQ8L3RleHQ+CgogIDwhLS0gTm9kZSAyIC0tPgogIDxyZWN0IHg9IjE0NSIgeT0iNjUiIHdpZHRoPSIxMDAiIGhlaWdodD0iMTE1IiByeD0iNiIgZmlsbD0idXJsKCNub2RlR3JhZCkiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMTk1IiB5PSI4MyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk0YTNiOCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Tm9kZSAyPC90ZXh0PgogIDxyZWN0IHg9IjE1NyIgeT0iOTMiIHdpZHRoPSI3NiIgaGVpZ2h0PSIzMCIgcng9IjQiIGZpbGw9InVybCgjYXBwR3JhZCkiLz4KICA8dGV4dCB4PSIxOTUiIHk9IjExMiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BcHBzPC90ZXh0PgogIDxyZWN0IHg9IjE1NyIgeT0iMTMwIiB3aWR0aD0iNzYiIGhlaWdodD0iNDAiIHJ4PSI0IiBmaWxsPSJ1cmwoI2NvbGxlY3RvckFnZW50R3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMTk1IiB5PSIxNTAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q29sbGVjdG9yPC90ZXh0PgogIDx0ZXh0IHg9IjE5NSIgeT0iMTYzIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjgiIGZpbGw9IiNmZWYzYzciIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFnZW50PC90ZXh0PgoKICA8IS0tIE5vZGUgMyAtLT4KICA8cmVjdCB4PSIyNjAiIHk9IjY1IiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjExNSIgcng9IjYiIGZpbGw9InVybCgjbm9kZUdyYWQpIiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjMxMCIgeT0iODMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5vZGUgMzwvdGV4dD4KICA8cmVjdCB4PSIyNzIiIHk9IjkzIiB3aWR0aD0iNzYiIGhlaWdodD0iMzAiIHJ4PSI0IiBmaWxsPSJ1cmwoI2FwcEdyYWQpIi8+CiAgPHRleHQgeD0iMzEwIiB5PSIxMTIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QXBwczwvdGV4dD4KICA8cmVjdCB4PSIyNzIiIHk9IjEzMCIgd2lkdGg9Ijc2IiBoZWlnaHQ9IjQwIiByeD0iNCIgZmlsbD0idXJsKCNjb2xsZWN0b3JBZ2VudEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjMxMCIgeT0iMTUwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNvbGxlY3RvcjwvdGV4dD4KICA8dGV4dCB4PSIzMTAiIHk9IjE2MyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4IiBmaWxsPSIjZmVmM2M3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BZ2VudDwvdGV4dD4KCiAgPCEtLSBBcnJvd3MgZnJvbSBhZ2VudHMgdG8gRHluYXRyYWNlIChBZ2VudCBNb2RlKSAtLT4KICA8bGluZSB4MT0iODAiIHkxPSIxNzAiIHgyPSI4MCIgeTI9IjE5NSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxsaW5lIHgxPSIxOTUiIHkxPSIxNzAiIHgyPSIxOTUiIHkyPSIxOTUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8bGluZSB4MT0iMzEwIiB5MT0iMTcwIiB4Mj0iMzEwIiB5Mj0iMTk1IiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPGxpbmUgeDE9IjgwIiB5MT0iMTk1IiB4Mj0iMTcwIiB5Mj0iMjEwIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPGxpbmUgeDE9IjE5NSIgeTE9IjE5NSIgeDI9IjE3MCIgeTI9IjIxMCIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxsaW5lIHgxPSIzMTAiIHkxPSIxOTUiIHgyPSIxNzAiIHkyPSIyMTAiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8bGluZSB4MT0iMTcwIiB5MT0iMjEwIiB4Mj0iMTcwIiB5Mj0iMjM1IiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93V2hpdGUpIi8+CgogIDwhLS0gRHluYXRyYWNlIChBZ2VudCBNb2RlKSAtLT4KICA8cmVjdCB4PSIxMDAiIHk9IjI0MCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9InVybCgjZHRHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIxNzAiIHk9IjI2NSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RHluYXRyYWNlPC90ZXh0PgoKICA8IS0tIEFnZW50IG1vZGUgY2hhcmFjdGVyaXN0aWNzIC0tPgogIDxyZWN0IHg9IjMwIiB5PSIyOTUiIHdpZHRoPSIzMzAiIGhlaWdodD0iNzAiIHJ4PSI2IiBmaWxsPSIjMWUyOTNiIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQ1IiB5PSIzMTUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNmNTllMGIiPkFnZW50IE1vZGUgQ2hhcmFjdGVyaXN0aWNzOjwvdGV4dD4KICA8dGV4dCB4PSI0NSIgeT0iMzMyIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM5NGEzYjgiPuKAoiBDb2xsZWN0b3Igb24gZXZlcnkgbm9kZSAoRGFlbW9uU2V0KTwvdGV4dD4KICA8dGV4dCB4PSI0NSIgeT0iMzQ3IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM5NGEzYjgiPuKAoiBMb2NhbCBwcm9jZXNzaW5nLCBsb3dlciBuZXR3b3JrIGhvcHM8L3RleHQ+CiAgPHRleHQgeD0iNDUiIHk9IjM2MiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjOTRhM2I4Ij7igKIgQmVzdCBmb3I6IGhvc3QgbWV0cmljcywgbG9jYWwgbG9nIGNvbGxlY3Rpb248L3RleHQ+CgogIDwhLS0gPT09PT0gR0FURVdBWSBNT0RFIChSSUdIVCkgPT09PT0gLS0+CiAgPHRleHQgeD0iNTMwIiB5PSI1MCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iIzE0YjhhNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+R2F0ZXdheSBNb2RlPC90ZXh0PgoKICA8IS0tIE5vZGUgMSAoR2F0ZXdheSkgLS0+CiAgPHJlY3QgeD0iMzkwIiB5PSI2NSIgd2lkdGg9IjEwMCIgaGVpZ2h0PSI3MCIgcng9IjYiIGZpbGw9InVybCgjbm9kZUdyYWQpIiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQ0MCIgeT0iODMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5vZGUgMTwvdGV4dD4KICA8cmVjdCB4PSI0MDIiIHk9IjkzIiB3aWR0aD0iNzYiIGhlaWdodD0iMzAiIHJ4PSI0IiBmaWxsPSJ1cmwoI2FwcEdyYWQpIi8+CiAgPHRleHQgeD0iNDQwIiB5PSIxMTIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QXBwcyArIFNESzwvdGV4dD4KCiAgPCEtLSBOb2RlIDIgKEdhdGV3YXkpIC0tPgogIDxyZWN0IHg9IjUwNSIgeT0iNjUiIHdpZHRoPSIxMDAiIGhlaWdodD0iNzAiIHJ4PSI2IiBmaWxsPSJ1cmwoI25vZGVHcmFkKSIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI1NTUiIHk9IjgzIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOTRhM2I4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Ob2RlIDI8L3RleHQ+CiAgPHJlY3QgeD0iNTE3IiB5PSI5MyIgd2lkdGg9Ijc2IiBoZWlnaHQ9IjMwIiByeD0iNCIgZmlsbD0idXJsKCNhcHBHcmFkKSIvPgogIDx0ZXh0IHg9IjU1NSIgeT0iMTEyIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFwcHMgKyBTREs8L3RleHQ+CgogIDwhLS0gTm9kZSAzIChHYXRld2F5KSAtLT4KICA8cmVjdCB4PSI2MjAiIHk9IjY1IiB3aWR0aD0iNjAiIGhlaWdodD0iNzAiIHJ4PSI2IiBmaWxsPSJ1cmwoI25vZGVHcmFkKSIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI2NTAiIHk9IjgzIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOTRhM2I4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Ob2RlIDM8L3RleHQ+CiAgPHJlY3QgeD0iNjI3IiB5PSI5MyIgd2lkdGg9IjQ2IiBoZWlnaHQ9IjMwIiByeD0iNCIgZmlsbD0idXJsKCNhcHBHcmFkKSIvPgogIDx0ZXh0IHg9IjY1MCIgeT0iMTEyIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjgiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFwcHM8L3RleHQ+CgogIDwhLS0gQXJyb3dzIGZyb20gbm9kZXMgdG8gZ2F0ZXdheSAtLT4KICA8bGluZSB4MT0iNDQwIiB5MT0iMTM1IiB4Mj0iNDQwIiB5Mj0iMTU1IiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPGxpbmUgeDE9IjU1NSIgeTE9IjEzNSIgeDI9IjU1NSIgeTI9IjE1NSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxsaW5lIHgxPSI2NTAiIHkxPSIxMzUiIHgyPSI2NTAiIHkyPSIxNTUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8bGluZSB4MT0iNDQwIiB5MT0iMTU1IiB4Mj0iNTMwIiB5Mj0iMTcwIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPGxpbmUgeDE9IjU1NSIgeTE9IjE1NSIgeDI9IjUzMCIgeTI9IjE3MCIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxsaW5lIHgxPSI2NTAiIHkxPSIxNTUiIHgyPSI1MzAiIHkyPSIxNzAiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8bGluZSB4MT0iNTMwIiB5MT0iMTcwIiB4Mj0iNTMwIiB5Mj0iMTgwIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93V2hpdGUpIi8+CgogIDwhLS0gR2F0ZXdheSBDb2xsZWN0b3IgLS0+CiAgPHJlY3QgeD0iNDUwIiB5PSIxODUiIHdpZHRoPSIxNjAiIGhlaWdodD0iNTAiIHJ4PSI4IiBmaWxsPSJ1cmwoI2NvbGxlY3RvckdhdGV3YXlHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSI1MzAiIHk9IjIxMCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+R2F0ZXdheSBDb2xsZWN0b3I8L3RleHQ+CiAgPHRleHQgeD0iNTMwIiB5PSIyMjUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzk5ZjZlNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGVwbG95bWVudCAoMisgcmVwbGljYXMpPC90ZXh0PgoKICA8IS0tIEFycm93IHRvIER5bmF0cmFjZSAtLT4KICA8bGluZSB4MT0iNTMwIiB5MT0iMjM1IiB4Mj0iNTMwIiB5Mj0iMjU1IiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93V2hpdGUpIi8+CgogIDwhLS0gRHluYXRyYWNlIChHYXRld2F5IE1vZGUpIC0tPgogIDxyZWN0IHg9IjQ2MCIgeT0iMjYwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0idXJsKCNkdEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjUzMCIgeT0iMjg1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EeW5hdHJhY2U8L3RleHQ+CgogIDwhLS0gR2F0ZXdheSBtb2RlIGNoYXJhY3RlcmlzdGljcyAtLT4KICA8cmVjdCB4PSIzOTAiIHk9IjMxNSIgd2lkdGg9IjI5MCIgaGVpZ2h0PSI4NSIgcng9IjYiIGZpbGw9IiMxZTI5M2IiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDA1IiB5PSIzMzUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiMxNGI4YTYiPkdhdGV3YXkgTW9kZSBDaGFyYWN0ZXJpc3RpY3M6PC90ZXh0PgogIDx0ZXh0IHg9IjQwNSIgeT0iMzUyIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM5NGEzYjgiPuKAoiBDZW50cmFsaXplZCBjb2xsZWN0b3IgKERlcGxveW1lbnQpPC90ZXh0PgogIDx0ZXh0IHg9IjQwNSIgeT0iMzY3IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM5NGEzYjgiPuKAoiBFYXNpZXIgbWFuYWdlbWVudCwgZmV3ZXIgY29ubmVjdGlvbnM8L3RleHQ+CiAgPHRleHQgeD0iNDA1IiB5PSIzODIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzk0YTNiOCI+4oCiIEJlc3QgZm9yOiBTREsgZXhwb3J0LCBjZW50cmFsaXplZCBwcm9jZXNzaW5nPC90ZXh0PgoKICA8IS0tIERpdmlkZXIgLS0+CiAgPGxpbmUgeDE9IjM3NSIgeTE9IjQ1IiB4Mj0iMzc1IiB5Mj0iNDA1IiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLWRhc2hhcnJheT0iNSw1Ii8+Cjwvc3ZnPg==" alt="Collector Deployment Modes" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+**Agent Mode (DaemonSet):**
+| Node | Component |
+|------|-----------|
+| Node 1 | Collector (local) |
+| Node 2 | Collector (local) |
+| Node 3 | Collector (local) |
+Each collector sends directly to Dynatrace
+
+**Gateway Mode:**
+| Layer | Component |
+|-------|-----------|
+| Nodes | Apps only |
+| Central | Gateway Collector |
+| Backend | Dynatrace |
+All data flows through central gateway
+For environments where SVG doesn't render
+-->
+<p><a id="agent-mode-sidecardaemonset"></a></p>
+<h2>2. Agent Mode (Sidecar/DaemonSet)</h2>
+<h3>DaemonSet Configuration</h3>
+<blockquote>
+<p><strong>Important:</strong> Always pin your Collector image to a specific version. Using <code>latest</code> can cause unexpected behavior during upgrades. Check the <a href="https://github.com/open-telemetry/opentelemetry-collector-releases/releases">OpenTelemetry Collector releases</a> for the current stable version.</p>
+</blockquote>
+<pre><code class="language-yaml">apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: otel-collector-agent
+  namespace: otel
+spec:
+  selector:
+    matchLabels:
+      app: otel-collector-agent
+  template:
+    metadata:
+      labels:
+        app: otel-collector-agent
+    spec:
+      containers:
+        - name: collector
+          image: otel/opentelemetry-collector-contrib:0.151.0
+          args:
+            - --config=/conf/otel-collector-config.yaml
+          ports:
+            - containerPort: 4317  # OTLP gRPC
+            - containerPort: 4318  # OTLP HTTP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: config
+              mountPath: /conf
+      volumes:
+        - name: config
+          configMap:
+            name: otel-collector-config
+</code></pre>
+<h3>Sidecar Pattern</h3>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: my-app
+spec:
+  containers:
+    - name: app
+      image: my-app:latest
+      env:
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: http://localhost:4317
+    - name: otel-collector
+      image: otel/opentelemetry-collector-contrib:0.151.0
+      args:
+        - --config=/conf/otel-collector-config.yaml
+      ports:
+        - containerPort: 4317
+</code></pre>
+<blockquote>
+<p><strong>Collector version currency (checked 10/28/2026):</strong> the pins in this notebook (<code>otel/opentelemetry-collector-contrib:0.151.0</code>, Dynatrace distro <code>v0.48.0</code>) are the <strong>validated baseline</strong> for these examples. Newer Dynatrace-distro releases exist — up to <strong>v0.59.0</strong> (released 10/27/2026, wrapping upstream v0.163.0). Review the <a href="https://github.com/Dynatrace/dynatrace-otel-collector/releases">release notes</a> for every version you cross before bumping; earlier examples of breaking changes include the <code>filter</code> processor's default <code>error_mode</code> changing to <code>ignore</code> (0.49), <code>span_metrics</code> rejecting duplicate dimension names at startup (0.50), and <code>memory_limiter</code> self-metrics being renamed to <code>otelcol_processor_memory_limiter_*</code> (0.51 — affects self-monitoring dashboards that chart those series). Upgrade deliberately per the always-pin guidance in this section, reviewing the <a href="https://github.com/Dynatrace/dynatrace-otel-collector/releases">release notes</a> for each version you cross.</p>
+</blockquote>
+<blockquote>
+<p><strong>Production image:</strong> the DaemonSet, sidecar and gateway examples pin Contrib so the YAML runs anywhere. For production, swap in the pinned Dynatrace distribution (<code>ghcr.io/dynatrace/dynatrace-otel-collector/dynatrace-otel-collector:v0.48.0</code>) — Dynatrace <em>&quot;recommends using the Contrib distribution only for testing purposes&quot;</em>. OTEL-07 § 1 covers what Dynatrace Support covers.</p>
+</blockquote>
+<p><a id="gateway-mode"></a></p>
+<h2>3. Gateway Mode</h2>
+<h3>Gateway Deployment</h3>
+<pre><code class="language-yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector-gateway
+  namespace: otel
+spec:
+  replicas: 2  # HA
+  selector:
+    matchLabels:
+      app: otel-collector-gateway
+  template:
+    metadata:
+      labels:
+        app: otel-collector-gateway
+    spec:
+      containers:
+        - name: collector
+          image: otel/opentelemetry-collector-contrib:0.151.0  # pinned — see the version-pinning callout in §2
+          args:
+            - --config=/conf/otel-collector-config.yaml
+          ports:
+            - containerPort: 4317
+            - containerPort: 4318
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 2000m
+              memory: 4Gi
+</code></pre>
+<h3>Gateway Service</h3>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector-gateway
+  namespace: otel
+spec:
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+  selector:
+    app: otel-collector-gateway
+</code></pre>
+<p><a id="kubernetes-deployment"></a></p>
+<h2>4. Kubernetes Deployment</h2>
+<h3>Helm Installation</h3>
+<pre><code class="language-bash"># Add Helm repo
+helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+helm repo update
+
+# Install as DaemonSet (agent mode)
+helm install otel-collector open-telemetry/opentelemetry-collector \
+  --namespace otel \
+  --create-namespace \
+  --set mode=daemonset \
+  --set image.repository=&quot;ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s&quot; \
+  --set command.name=&quot;otelcol-k8s&quot;
+
+# Install as Deployment (gateway mode)
+helm install otel-collector open-telemetry/opentelemetry-collector \
+  --namespace otel \
+  --create-namespace \
+  --set mode=deployment \
+  --set replicaCount=2 \
+  --set image.repository=&quot;ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s&quot; \
+  --set command.name=&quot;otelcol-k8s&quot;
+</code></pre>
+<p>The chart ships with no default image, so <code>image.repository</code> must be set or the install stops with an error; <code>command.name</code> must match the image (<code>otelcol-k8s</code> for the <code>-k8s</code> distribution).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/open-telemetry/opentelemetry-helm-charts/blob/main/charts/opentelemetry-collector/templates/NOTES.txt">opentelemetry-collector chart NOTES.txt (OpenTelemetry GitHub)</a> — <em>&quot;'image.repository' must be set.&quot;</em>; <a href="https://github.com/open-telemetry/opentelemetry-helm-charts/tree/main/charts/opentelemetry-collector">opentelemetry-collector chart README (OpenTelemetry GitHub)</a> — install line with <code>--set image.repository=… --set command.name=&quot;otelcol-k8s&quot;</code>.</sub></p>
+</blockquote>
+<h3>Helm Values for Dynatrace</h3>
+<pre><code class="language-yaml"># values.yaml
+mode: deployment
+replicaCount: 2
+
+image:
+  repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s
+command:
+  name: otelcol-k8s
+
+config:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+  processors:
+    batch:
+      timeout: 10s
+    memory_limiter:
+      check_interval: 1s
+      limit_mib: 800
+
+  exporters:
+    otlphttp:
+      endpoint: https://${DT_ENDPOINT}/api/v2/otlp
+      headers:
+        Authorization: Api-Token ${DT_TOKEN}
+
+  service:
+    pipelines:
+      traces:
+        receivers: [otlp]
+        processors: [memory_limiter, batch]
+        exporters: [otlphttp]
+      metrics:
+        receivers: [otlp]
+        processors: [memory_limiter, batch]
+        exporters: [otlphttp]
+      logs:
+        receivers: [otlp]
+        processors: [memory_limiter, batch]
+        exporters: [otlphttp]
+</code></pre>
+<h3>OpenTelemetry Operator (CRD-managed)</h3>
+<p>The Helm install above creates a raw <code>Deployment</code> that you own and roll over manually. The <strong>OpenTelemetry Operator</strong> introduces a higher-level pattern — install the operator once, then declare collectors as <code>OpenTelemetryCollector</code> custom resources. The operator reconciles the <code>Deployment</code>, <code>ConfigMap</code>, <code>ServiceAccount</code>, and the collector's container.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyb3dSZWNvbmNpbGUiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iMTAiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjQTc4QkZBIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtd2VpZ2h0PSI3MDAiPk9wZW5UZWxlbWV0cnkgT3BlcmF0b3I6IENvbGxlY3RvciBMaWZlY3ljbGU8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+RGVjbGFyYXRpdmUgY29sbGVjdG9yIGRlcGxveW1lbnQgdmlhIE9wZW5UZWxlbWV0cnlDb2xsZWN0b3IgQ1JEPC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PSBTdGVwIDE6IFVzZXIgd3JpdGVzIENSID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSIyMCIgeT0iNzUiIHdpZHRoPSIyODAiIGhlaWdodD0iMTAwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjE2MCIgeT0iOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPjEuIFVzZXIgZGVjbGFyZXMgYSBDb2xsZWN0b3I8L3RleHQ+CgogIDxyZWN0IHg9IjM1IiB5PSIxMDgiIHdpZHRoPSIyNTAiIGhlaWdodD0iNTUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjE2MCIgeT0iMTI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj5hcGlWZXJzaW9uOiBvcGVudGVsZW1ldHJ5LmlvL3YxYmV0YTE8L3RleHQ+CiAgPHRleHQgeD0iMTYwIiB5PSIxMzkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPmtpbmQ6IE9wZW5UZWxlbWV0cnlDb2xsZWN0b3I8L3RleHQ+CiAgPHRleHQgeD0iMTYwIiB5PSIxNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnNwZWMuY29uZmlnOiByZWNlaXZlcnMvcHJvY2Vzc29ycy9leHBvcnRlcnM8L3RleHQ+CgogIDwhLS0gQXBwbHkgYXJyb3cgLS0+CiAgPGxpbmUgeDE9IjMwNSIgeTE9IjEyMCIgeDI9IjM0NSIgeTI9IjEyMCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KICA8dGV4dCB4PSIzMjUiIHk9IjExMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+a3ViZWN0bDwvdGV4dD4KICA8dGV4dCB4PSIzMjUiIHk9IjEzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+YXBwbHk8L3RleHQ+CgogIDwhLS0gPT09PT09PT09PT09IFN0ZXAgMjogQVBJIHNlcnZlciBob2xkcyB0aGUgQ1IgPT09PT09PT09PT09IC0tPgogIDxyZWN0IHg9IjM1MCIgeT0iNzUiIHdpZHRoPSIyMzAiIGhlaWdodD0iMTAwIiBmaWxsPSIjMjJEM0VFIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPjIuIEt1YmVybmV0ZXMgQVBJIHNlcnZlcjwvdGV4dD4KCiAgPHJlY3QgeD0iMzY1IiB5PSIxMDgiIHdpZHRoPSIyMDAiIGhlaWdodD0iNTUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTI5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5DUiBzdG9yZWQgaW4gZXRjZDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjE0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+dmlzaWJsZSB0byBjb250cm9sbGVycyB2aWEgd2F0Y2g8L3RleHQ+CgogIDwhLS0gV2F0Y2ggYXJyb3cgLS0+CiAgPGxpbmUgeDE9IjU4NSIgeTE9IjEyMCIgeDI9IjYyNSIgeTI9IjEyMCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KICA8dGV4dCB4PSI2MDUiIHk9IjEzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+d2F0Y2g8L3RleHQ+CgogIDwhLS0gPT09PT09PT09PT09IFN0ZXAgMzogT3BlcmF0b3IgKGNvbnRyb2xsZXIpID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSI2MzAiIHk9Ijc1IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI3NzAiIHk9Ijk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj4zLiBPVGVsIE9wZXJhdG9yIChjb250cm9sbGVyKTwvdGV4dD4KCiAgPHJlY3QgeD0iNjQ1IiB5PSIxMDgiIHdpZHRoPSIyNTAiIGhlaWdodD0iNTUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc3MCIgeT0iMTI5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5jb250cm9sbGVyLXJ1bnRpbWUgcmVjb25jaWxlcjwvdGV4dD4KICA8dGV4dCB4PSI3NzAiIHk9IjE0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+SGVsbSBjaGFydCDigJQgaW5zdGFsbGVkIG9uY2UgcGVyIGNsdXN0ZXI8L3RleHQ+CgogIDwhLS0gPT09PT09PT09PT09IFN0ZXAgNDogT3BlcmF0b3IgcmVjb25jaWxlcyBtYW5hZ2VkIHJlc291cmNlcyA9PT09PT09PT09PT0gLS0+CiAgPHRleHQgeD0iNDY1IiB5PSIyMDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPjQuIE9wZXJhdG9yIHJlY29uY2lsZXMgbWFuYWdlZCByZXNvdXJjZXM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIyMjMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtc3R5bGU9Iml0YWxpYyI+Y3JlYXRlcyAvIHVwZGF0ZXMgLyBnYXJiYWdlLWNvbGxlY3RzIG9uIGV2ZXJ5IENSIGNoYW5nZTwvdGV4dD4KCiAgPCEtLSBSZWNvbmNpbGUgYXJyb3cgLS0+CiAgPHBhdGggZD0iTSA3NzAgMTc4IFEgNzcwIDIzNSA3MDAgMjQ1IiBmaWxsPSJub25lIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNCwzIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93UmVjb25jaWxlKSIvPgogIDx0ZXh0IHg9IjgyMCIgeT0iMjMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjExIiBmb250LXN0eWxlPSJpdGFsaWMiPnJlY29uY2lsZTwvdGV4dD4KCiAgPCEtLSBNYW5hZ2VkIHJlc291cmNlcyBncmlkIC0tPgogIDxyZWN0IHg9IjYwIiB5PSIyNDAiIHdpZHRoPSIyMDAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjE2MCIgeT0iMjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5EZXBsb3ltZW50PC90ZXh0PgogIDx0ZXh0IHg9IjE2MCIgeT0iMjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEwIj5vdGVsLWNvbGxlY3Rvci1jb2xsZWN0b3I8L3RleHQ+CiAgPHRleHQgeD0iMTYwIiB5PSIyOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnJlcGxpY2FzLCBpbWFnZSBwaW4sIGFyZ3M8L3RleHQ+CiAgPHRleHQgeD0iMTYwIiB5PSIzMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmVudiBmcm9tIENvbmZpZ01hcC9TZWNyZXQ8L3RleHQ+CgogIDxyZWN0IHg9IjI4MCIgeT0iMjQwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8dGV4dCB4PSIzODAiIHk9IjI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+Q29uZmlnTWFwPC90ZXh0PgogIDx0ZXh0IHg9IjM4MCIgeT0iMjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEwIj5vdGVsLWNvbGxlY3Rvci1jb2xsZWN0b3I8L3RleHQ+CiAgPHRleHQgeD0iMzgwIiB5PSIyOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnNwZWMuY29uZmlnIHJlbmRlcmVkIGlubGluZTwvdGV4dD4KICA8dGV4dCB4PSIzODAiIHk9IjMxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+cmVjZWl2ZXJzIC8gcHJvY2Vzc29ycyAvIGV4cG9ydGVyczwvdGV4dD4KCiAgPHJlY3QgeD0iNTAwIiB5PSIyNDAiIHdpZHRoPSIyMDAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjYwMCIgeT0iMjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5TZXJ2aWNlPC90ZXh0PgogIDx0ZXh0IHg9IjYwMCIgeT0iMjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEwIj5vdGVsLWNvbGxlY3Rvci1jb2xsZWN0b3I8L3RleHQ+CiAgPHRleHQgeD0iNjAwIiB5PSIyOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPk9UTFAgcG9ydHMgNDMxNyAoZ1JQQyk8L3RleHQ+CiAgPHRleHQgeD0iNjAwIiB5PSIzMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPjQzMTggKEhUVFApLCBoZWFsdGggMTMxMzM8L3RleHQ+CgogIDxyZWN0IHg9IjcyMCIgeT0iMjQwIiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8dGV4dCB4PSI4MTUiIHk9IjI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+U2VydmljZUFjY291bnQ8L3RleHQ+CiAgPHRleHQgeD0iODE1IiB5PSIyODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTAiPm90ZWwtY29sbGVjdG9yLWNvbGxlY3RvcjwvdGV4dD4KICA8dGV4dCB4PSI4MTUiIHk9IjI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+cG9kIGlkZW50aXR5IGZvciB0aGU8L3RleHQ+CiAgPHRleHQgeD0iODE1IiB5PSIzMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmNvbGxlY3RvciBjb250YWluZXI8L3RleHQ+CgogIDwhLS0gPT09PT09PT09PT09IFN0ZXAgNTogU2VwYXJhdGVseSBwcm92aXNpb25lZCBSQkFDID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSIyMCIgeT0iMzUwIiB3aWR0aD0iODkwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iNCwzIiByeD0iOCIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj41LiBZb3UgcHJvdmlzaW9uIHRoaXMgc2VwYXJhdGVseSDigJQgY2x1c3Rlci1zY29wZWQgcmVhZCBmb3IgUHJvbWV0aGV1cyBkaXNjb3Zlcnk8L3RleHQ+CgogIDxyZWN0IHg9IjUwIiB5PSIzODUiIHdpZHRoPSI0MDAiIGhlaWdodD0iNTUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjI1MCIgeT0iNDA0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5DbHVzdGVyUm9sZTwvdGV4dD4KICA8dGV4dCB4PSIyNTAiIHk9IjQyMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMCI+b3RlbC1jb2xsZWN0b3ItY2x1c3Rlci1yb2xlPC90ZXh0PgogIDx0ZXh0IHg9IjI1MCIgeT0iNDM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj52ZXJiczogZ2V0L2xpc3Qvd2F0Y2ggb24gcG9kcywgbm9kZXMsIHNlcnZpY2VzLCAqLmFwcHM8L3RleHQ+CgogIDxyZWN0IHg9IjQ4MCIgeT0iMzg1IiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjU1IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8dGV4dCB4PSI2ODAiIHk9IjQwNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+Q2x1c3RlclJvbGVCaW5kaW5nPC90ZXh0PgogIDx0ZXh0IHg9IjY4MCIgeT0iNDIxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEwIj5zdWJqZWN0OiBTZXJ2aWNlQWNjb3VudCBvdGVsLWNvbGxlY3Rvci1jb2xsZWN0b3I8L3RleHQ+CiAgPHRleHQgeD0iNjgwIiB5PSI0MzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnJlcXVpcmVkIGZvciBjcm9zcy1uYW1lc3BhY2UgUHJvbWV0aGV1cyBwb2QgZGlzY292ZXJ5PC90ZXh0PgoKICA8IS0tIEZvb3RlciAtLT4KICA8bGluZSB4MT0iMjAiIHkxPSI0NzAiIHgyPSI5MTAiIHkyPSI0NzAiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDY1IiB5PSI0ODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAiPk9wZXJhdG9yIHBhdHRlcm4gd2lucyB3aGVuIHlvdSBoYXZlIG11bHRpcGxlIGNvbGxlY3RvcnMgb3Igd2FudCBhdXRvLWluc3RydW1lbnRhdGlvbiBpbmplY3Rpb24gwrcgU2VlIE9URUwtMDMgwqc0IGZvciBib3RoIHJhdyBhbmQgb3BlcmF0b3ItbWFuYWdlZCBkZXBsb3ltZW50IHNoYXBlczwvdGV4dD4KPC9zdmc+Cg==" alt="Operator-managed collector lifecycle" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Resource | What it does |
+|-------|----------|--------------|
+| 1 | OpenTelemetryCollector CR | You write this — collector config inline — and `kubectl apply` it |
+| 2 | Kubernetes API server | Stores the CR; controllers see it via watch |
+| 3 | OpenTelemetry Operator | Controller installed once per cluster from the Helm chart; watches the CR |
+| 4 | Operator reconciles | Creates managed Deployment, ConfigMap, Service, ServiceAccount |
+| 5 | ClusterRole + ClusterRoleBinding | You provision these separately — cluster-scoped read for Prometheus pod discovery |
+For environments where SVG does not render
+-->
+<p><strong>Two-stage install:</strong></p>
+<pre><code class="language-bash"># Stage 1 — install the operator (once per cluster)
+helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+helm repo update
+
+helm install opentelemetry-operator open-telemetry/opentelemetry-operator \
+  --namespace opentelemetry-operator-system \
+  --create-namespace \
+  --set &quot;manager.collectorImage.repository=otel/opentelemetry-collector-k8s&quot; \
+  --set admissionWebhooks.certManager.enabled=false \
+  --set admissionWebhooks.autoGenerateCert.enabled=true \
+  --wait --timeout 5m
+
+# Stage 2 — declare a collector via custom resource
+kubectl apply -f opentelemetry-collector.yaml
+</code></pre>
+<p><strong><code>OpenTelemetryCollector</code> resource shape:</strong></p>
+<pre><code class="language-yaml">apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel-collector
+  namespace: o11y
+spec:
+  env:
+    - name: DT_ENDPOINT
+      valueFrom:
+        configMapKeyRef:
+          name: otel-collector-config
+          key: DT_ENDPOINT
+    - name: DT_API_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: otel-collector-secret
+          key: DT_API_TOKEN
+  config:
+    receivers:
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: kubernetes-pods
+              # See OTEL-05 §6 for the full receiver + relabel chain
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 75
+      batch:
+        send_batch_size: 10000
+        timeout: 10s
+    exporters:
+      otlphttp:
+        endpoint: ${env:DT_ENDPOINT}
+        headers:
+          Authorization: Api-Token ${env:DT_API_TOKEN}
+    service:
+      pipelines:
+        metrics:
+          receivers: [prometheus]
+          processors: [memory_limiter, batch]
+          exporters: [otlphttp]
+</code></pre>
+<p>The operator creates the <code>ServiceAccount</code> automatically (named <code>&lt;collectorName&gt;-collector</code>). For Prometheus pod discovery the collector still needs cluster-scoped read access — provision a <code>ClusterRole</code> and bind it separately:</p>
+<pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: otel-collector-cluster-role
+rules:
+  - apiGroups: [&quot;&quot;, &quot;apps&quot;, &quot;batch&quot;]
+    resources:
+      - pods
+      - namespaces
+      - nodes
+      - services
+      - replicasets
+      - deployments
+      - daemonsets
+      - statefulsets
+      - jobs
+      - cronjobs
+    verbs: [&quot;get&quot;, &quot;list&quot;, &quot;watch&quot;]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: otel-collector-cluster-role-binding
+subjects:
+  - kind: ServiceAccount
+    name: otel-collector-collector   # &lt;collectorName&gt;-collector
+    namespace: o11y
+roleRef:
+  kind: ClusterRole
+  name: otel-collector-cluster-role
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<p><strong>When to use which</strong> — in community practice, the choice tends to follow collector count and whether you want the operator's extras; weigh it against how your team already runs rollouts:</p>
+<table>
+<thead>
+<tr>
+<th>Choose</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Raw <code>Deployment</code> + Helm chart</td>
+<td>One or two collectors; team already manages Deployment rollouts; Helm-first workflows</td>
+</tr>
+<tr>
+<td><code>OpenTelemetryCollector</code> CRD + Operator</td>
+<td>Multiple collectors per cluster; auto-reload on config change; want OTLP auto-instrumentation injection for application pods</td>
+</tr>
+</tbody>
+</table>
+<p>In community practice, the operator's auto-instrumentation feature is often the deciding factor for greenfield Kubernetes deployments — annotate a pod with <code>instrumentation.opentelemetry.io/inject-python: &quot;true&quot;</code> and the operator injects an init container that loads the OTel agent, pointed at a <code>Service</code> your collector exposes. See <strong>OTEL-04 — Trace Instrumentation</strong> for the application-side pattern.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://github.com/open-telemetry/opentelemetry-operator">OpenTelemetry Operator (opentelemetry-operator GitHub)</a></sub></li>
+<li><sub><a href="https://github.com/open-telemetry/opentelemetry-operator/blob/main/docs/api/opentelemetrycollectors.md">OpenTelemetryCollector CRD reference (opentelemetry-operator GitHub)</a></sub></li>
+<li><sub><a href="https://github.com/open-telemetry/opentelemetry-operator/blob/main/docs/auto-instrumentation/README.md">Auto-instrumentation (opentelemetry-operator GitHub)</a> — <em>&quot;The operator can inject and configure OpenTelemetry auto-instrumentation libraries.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="scaling-prometheus-scraping"></a></p>
+<h2>5. Scaling Prometheus Scraping: Target Allocator &amp; Tiered Collectors</h2>
+<p>The single-collector pattern in <strong>OTEL-05 — Metrics Instrumentation, §6</strong> (one collector with a <code>prometheus</code> receiver scraping annotated pods) is the right starting point for a small or static set of endpoints. But it does not scale horizontally: a <code>prometheus</code> receiver owns a fixed target list, so a second replica makes <strong>both</strong> collectors scrape <strong>every</strong> target — double-counting metrics, not sharing load. Once you reach thousands of scrape targets or millions of data points per minute, you need a tiered architecture that shards scraping across replicas.</p>
+<p>This builds directly on the OpenTelemetry Operator pattern in §4 — the <strong>Target Allocator</strong> is an Operator component.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIj5UaWVyZWQgUHJvbWV0aGV1cyBTY3JhcGluZyB3aXRoIHRoZSBUYXJnZXQgQWxsb2NhdG9yPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPlNoYXJkIHNjcmFwaW5nIGFjcm9zcyByZXBsaWNhczsgcm91dGUgYnkgcmVzb3VyY2UgaGFzaCBzbyBjb3VudGVyJiM4NTk0O2RlbHRhIHN0YXRlIHN0YXlzIGNvcnJlY3Q8L3RleHQ+CgogIDxkZWZzPgogICAgPG1hcmtlciBpZD0idGEtYXJyb3ciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iMTAiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9InRhLWFycm93LWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iI0ZGQjgwMCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIFRhcmdldHMgLS0+CiAgPHJlY3QgeD0iMjQiIHk9IjEyMCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzIyRDNFRSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI5OSIgeT0iMTQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5Qcm9tZXRoZXVzIHRhcmdldHM8L3RleHQ+CiAgPHRleHQgeD0iOTkiIHk9IjE2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+QXBwIHBvZHMgZXhwb3NlPC90ZXh0PgogIDx0ZXh0IHg9Ijk5IiB5PSIxODIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPi9tZXRyaWNzPC90ZXh0PgoKICA8IS0tIERpc2NvdmVyeSBDUkRzIC0tPgogIDxyZWN0IHg9IjI0IiB5PSIyOTYiIHdpZHRoPSIxNTAiIGhlaWdodD0iMTIwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9Ijk5IiB5PSIzMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkRpc2NvdmVyeSBDUkRzPC90ZXh0PgogIDx0ZXh0IHg9Ijk5IiB5PSIzNDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlNlcnZpY2VNb25pdG9yPC90ZXh0PgogIDx0ZXh0IHg9Ijk5IiB5PSIzNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlBvZE1vbml0b3I8L3RleHQ+CiAgPHRleHQgeD0iOTkiIHk9IjM3NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+U2NyYXBlQ29uZmlnPC90ZXh0PgogIDx0ZXh0IHg9Ijk5IiB5PSIzOTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAiPmxhYmVsOiBwcm9tZXRoZXVzLmR5bmF0cmFjZS5jb208L3RleHQ+CgogIDwhLS0gVGFyZ2V0IEFsbG9jYXRvciAtLT4KICA8cmVjdCB4PSIyMDgiIHk9IjI5NiIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIxMjAiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMSIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMjc4IiB5PSIzMjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPlRhcmdldCBBbGxvY2F0b3I8L3RleHQ+CiAgPHRleHQgeD0iMjc4IiB5PSIzNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmNvbnNpc3RlbnQtaGFzaDwvdGV4dD4KICA8dGV4dCB4PSIyNzgiIHk9IjM2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dGFyZ2V0ICYjODU5NDsgc2NyYXBlcjwvdGV4dD4KICA8dGV4dCB4PSIyNzgiIHk9IjM4NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+cmViYWxhbmNlIG9uPC90ZXh0PgogIDx0ZXh0IHg9IjI3OCIgeT0iNDAyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5zY2FsZSBldmVudHM8L3RleHQ+CgogIDwhLS0gU2NyYXBlciB0aWVyIC0tPgogIDxyZWN0IHg9IjM4MiIgeT0iOTYiIHdpZHRoPSIxNjYiIGhlaWdodD0iMzMwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5TY3JhcGVyIHRpZXI8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIxMzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAiPkRlcGxveW1lbnQgJiMxODM7IEhQQTwvdGV4dD4KICA8cmVjdCB4PSI0MDAiIHk9IjE0OCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI1NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5zY3JhcGVyLTE8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIxODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnByb21ldGhldXMgcmVjZWl2ZXI8L3RleHQ+CiAgPHJlY3QgeD0iNDAwIiB5PSIyMTQiIHdpZHRoPSIxMzAiIGhlaWdodD0iNTYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgcng9IjYiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjIzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+c2NyYXBlci0yICYjODIzMDsgTjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjI1NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+cG9sbHMgYWxsb2NhdG9yPC90ZXh0PgogIDxyZWN0IHg9IjQwMCIgeT0iMjg0IiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjQ2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIzMDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPm1lbW9yeV9saW1pdGVyIG9ubHk8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIzMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAiPihzdGF0ZWxlc3MsIHNoYXJkYWJsZSk8L3RleHQ+CgogIDwhLS0gR2F0ZXdheSB0aWVyIC0tPgogIDxyZWN0IHg9IjU2NiIgeT0iOTYiIHdpZHRoPSIyMDYiIGhlaWdodD0iMzMwIiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjY2OSIgeT0iMTE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5HYXRld2F5IHRpZXI8L3RleHQ+CiAgPHRleHQgeD0iNjY5IiB5PSIxMzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAiPlN0YXRlZnVsU2V0ICYjMTgzOyBwZXItc2VyaWVzIHN0YXRlPC90ZXh0PgogIDxyZWN0IHg9IjU4NCIgeT0iMTQ2IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjI0IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNjY5IiB5PSIxNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTAiPm1lbW9yeV9saW1pdGVyPC90ZXh0PgogIDxyZWN0IHg9IjU4NCIgeT0iMTc2IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjI0IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNjY5IiB5PSIxOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTAiPm1ldHJpY19zdGFydF90aW1lPC90ZXh0PgogIDxyZWN0IHg9IjU4NCIgeT0iMjA2IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjM0IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNjY5IiB5PSIyMjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiPmN1bXVsYXRpdmV0b2RlbHRhPC90ZXh0PgogIDx0ZXh0IHg9IjY2OSIgeT0iMjM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkiPm1heF9zdGFsZW5lc3M8L3RleHQ+CiAgPHJlY3QgeD0iNTg0IiB5PSIyNDYiIHdpZHRoPSIxNzAiIGhlaWdodD0iMjQiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgcng9IjQiLz4KICA8dGV4dCB4PSI2NjkiIHk9IjI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMCI+azhzYXR0cmlidXRlczwvdGV4dD4KICA8cmVjdCB4PSI1ODQiIHk9IjI3NiIgd2lkdGg9IjE3MCIgaGVpZ2h0PSIyNCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiByeD0iNCIvPgogIDx0ZXh0IHg9IjY2OSIgeT0iMjkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEwIj50cmFuc2Zvcm08L3RleHQ+CiAgPHJlY3QgeD0iNTg0IiB5PSIzMDYiIHdpZHRoPSIxNzAiIGhlaWdodD0iMjQiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjQiLz4KICA8dGV4dCB4PSI2NjkiIHk9IjMyMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCI+b3RscGh0dHA8L3RleHQ+CgogIDwhLS0gRHluYXRyYWNlIC0tPgogIDxyZWN0IHg9Ijc5MiIgeT0iMjA2IiB3aWR0aD0iMTEyIiBoZWlnaHQ9IjExMCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iODQ4IiB5PSIyNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkR5bmF0cmFjZTwvdGV4dD4KICA8dGV4dCB4PSI4NDgiIHk9IjI3NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+T1RMUCBBUEk8L3RleHQ+CiAgPHRleHQgeD0iODQ4IiB5PSIyOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iOSI+L2FwaS92Mi9vdGxwPC90ZXh0PgoKICA8IS0tIEFycm93cyAtLT4KICA8IS0tIENSRHMgLT4gQWxsb2NhdG9yIC0tPgogIDxsaW5lIHgxPSIxNzQiIHkxPSIzNTYiIHgyPSIyMDYiIHkyPSIzNTYiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjdGEtYXJyb3cpIi8+CiAgPHRleHQgeD0iMTkwIiB5PSIzNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iOSI+ZGlzY292ZXI8L3RleHQ+CiAgPCEtLSBBbGxvY2F0b3IgLT4gU2NyYXBlcnMgKGFzc2lnbiwgYW1iZXIgZGFzaGVkKSAtLT4KICA8bGluZSB4MT0iMzQ4IiB5MT0iMzIwIiB4Mj0iMzk4IiB5Mj0iMjM2IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtZGFzaGFycmF5PSI0LDMiIG1hcmtlci1lbmQ9InVybCgjdGEtYXJyb3ctYW1iZXIpIi8+CiAgPHRleHQgeD0iMzcyIiB5PSIzMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iOSI+YXNzaWduPC90ZXh0PgogIDwhLS0gVGFyZ2V0cyAtPiBTY3JhcGVycyAoc2NyYXBlKSAtLT4KICA8bGluZSB4MT0iMTc0IiB5MT0iMTYwIiB4Mj0iMzk4IiB5Mj0iMTcyIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI3RhLWFycm93KSIvPgogIDx0ZXh0IHg9IjI4NiIgeT0iMTUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjkiPnNjcmFwZSAvbWV0cmljczwvdGV4dD4KICA8IS0tIFNjcmFwZXIgLT4gR2F0ZXdheSAobG9hZGJhbGFuY2luZyBleHBvcnRlciwgaW5zaWRlIHRoZSBzY3JhcGVyIHRpZXIpIC0tPgogIDxyZWN0IHg9IjQwMCIgeT0iMzQyIiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjYyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLWRhc2hhcnJheT0iMywyIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5sb2FkYmFsYW5jaW5nPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5leHBvcnRlcjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjM5NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+cm91dGluZ19rZXk6IHJlc291cmNlPC90ZXh0PgogIDxsaW5lIHgxPSI1MzAiIHkxPSIzNzMiIHgyPSI1NjQiIHkyPSIzNzMiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI3RhLWFycm93KSIvPgogIDwhLS0gR2F0ZXdheSAtPiBEeW5hdHJhY2UgLS0+CiAgPGxpbmUgeDE9Ijc3MiIgeTE9IjI2MSIgeDI9Ijc5MCIgeTI9IjI2MSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjdGEtYXJyb3cpIi8+CgogIDwhLS0gRm9vdGVyIG5vdGUgLS0+CiAgPGxpbmUgeDE9IjI0IiB5MT0iNDQ2IiB4Mj0iOTA2IiB5Mj0iNDQ2IiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjI0IiB5PSI0NjgiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAiPlNjcmFwaW5nIGlzIHN0YXRlbGVzcyAmIzg1OTQ7IHNjYWxlIHNjcmFwZXJzIGhvcml6b250YWxseS4gQ291bnRlciYjODU5NDtkZWx0YSBjb252ZXJzaW9uIG5lZWRzIHBlci1zZXJpZXMgbWVtb3J5ICYjODU5NDsgcm91dGUgYSBzZXJpZXMgdG8gb25lIGdhdGV3YXkgdmlhIHJlc291cmNlIGhhc2guPC90ZXh0PgogIDx0ZXh0IHg9IjI0IiB5PSI0ODQiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAiPkZ1bGwgSGVsbSB2YWx1ZXMgZm9yIGFsbCB0aHJlZSB0aWVyczogZHluYXRyYWNlLW90ZWwtY29sbGVjdG9yIHJlcG8gJiMxODM7IGNvbmZpZ19leGFtcGxlcy9wcm9tZXRoZXVzLWxhcmdlLXNjYWxlLzwvdGV4dD4KPC9zdmc+Cg==" alt="Tiered Prometheus scraping with Target Allocator" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Tier | Resource | Role |
+|------|----------|------|
+| Target Allocator | Operator component | Discovers targets via CRDs; consistent-hash assigns them to scrapers |
+| Scraper tier | Deployment + HPA | Stateless `prometheus` receiver that polls the allocator for its slice; scales horizontally; hand-off via `loadbalancing` exporter (`routing_key: resource`) |
+| Gateway tier | StatefulSet | Stateful processing (cumulativetodelta, k8sattributes); receives a resource-hashed stream so a series lands on one gateway |
+| Dynatrace | OTLP API | `otlphttp` export to `/api/v2/otlp` |
+For environments where SVG does not render
+-->
+<h3>Why two tiers</h3>
+<table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Tier</th>
+<th>Why it must live here</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Target discovery &amp; sharding</td>
+<td>Target Allocator</td>
+<td>One brain assigns targets to scrapers and rebalances on scale events</td>
+</tr>
+<tr>
+<td>Scraping</td>
+<td>Scraper (Deployment)</td>
+<td>Stateless and shardable — scale horizontally with an HPA</td>
+</tr>
+<tr>
+<td>Counter→delta conversion, enrichment</td>
+<td>Gateway (StatefulSet)</td>
+<td><code>cumulativetodelta</code> keeps <strong>per-series memory state</strong>; every sample for a series must reach the <strong>same</strong> instance</td>
+</tr>
+</tbody>
+</table>
+<p>The split exists because of <code>cumulativetodelta</code>. Prometheus counters are cumulative; Dynatrace requires delta temporality (cross-reference <strong>OTEL-07 — Dynatrace Integration, §9</strong>). Converting cumulative→delta requires remembering the previous value <strong>per series</strong>, so it cannot be sharded blindly — the gateway tier receives a <strong>resource-hashed</strong> stream so all samples of a series land on one gateway.</p>
+<h3>Target Allocator</h3>
+<p>The Allocator discovers targets from <strong>Prometheus Operator CRDs</strong> and distributes them across scrapers by consistent hashing. Each scraper's <code>prometheus</code> receiver polls the Allocator for its assigned slice instead of holding a static <code>scrape_configs</code> list:</p>
+<pre><code class="language-yaml"># Scraper tier — prometheus receiver driven by the Target Allocator
+receivers:
+  prometheus:
+    target_allocator:
+      endpoint: http://tiered-allocator-ta
+      interval: 15s
+      collector_id: ${env:K8S_POD_NAME}   # unique per scraper pod
+</code></pre>
+<p>The Allocator selects which CRDs to honor with label selectors:</p>
+<pre><code class="language-yaml"># Target Allocator config
+prometheus_cr:
+  enabled: true
+  scrapeInterval: 15s
+  service_monitor_selector:
+    matchlabels:
+      prometheus.dynatrace.com: &quot;true&quot;
+  pod_monitor_selector:
+    matchlabels:
+      prometheus.dynatrace.com: &quot;true&quot;
+  scrape_config_selector:
+    matchlabels:
+      prometheus.dynatrace.com: &quot;true&quot;
+</code></pre>
+<p>Targets are declared with the same three CRDs a Prometheus Operator stack uses — opt them in with the matching label:</p>
+<pre><code class="language-yaml">apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: my-service
+  labels:
+    prometheus.dynatrace.com: &quot;true&quot;
+spec:
+  selector:
+    matchLabels:
+      app: my-service
+  endpoints:
+    - port: metrics
+      interval: 60s
+</code></pre>
+<p><code>PodMonitor</code> selects pods directly (bypassing Services); <code>ScrapeConfig</code> is the native Prometheus format for annotation-based discovery.</p>
+<h3>Scraper tier → gateway tier</h3>
+<p>Scrapers do <strong>no</strong> stateful processing — a <code>memory_limiter</code> and then hand off via the <strong><code>loadbalancing</code></strong> exporter, keyed by <code>resource</code> so all series from a given source resource route to one gateway:</p>
+<pre><code class="language-yaml"># Scraper tier — route to gateways by resource hash
+exporters:
+  loadbalancing:
+    routing_key: resource          # load-bearing: keeps a series on one gateway
+    resolver:
+      k8s:
+        service: tiered-gateway.otel-ta
+    protocol:
+      otlp:
+        tls:
+          insecure: true
+</code></pre>
+<p>The gateway tier does the stateful work — converting counters, enriching with Kubernetes attributes, exporting to Dynatrace:</p>
+<pre><code class="language-yaml"># Gateway tier (StatefulSet)
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 95
+    spike_limit_percentage: 5
+  metric_start_time:
+  cumulativetodelta:
+    max_staleness: 10m        # ~10x scrape interval; evicts stale series
+    initial_value: drop
+  k8sattributes:
+    # extract metadata.dynatrace.com/* annotations + k8s.* resource attributes
+  transform: {}
+
+exporters:
+  otlphttp:
+    endpoint: ${env:DT_ENDPOINT}
+    headers:
+      Authorization: &quot;Api-Token ${env:DT_API_TOKEN}&quot;
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, metric_start_time, cumulativetodelta, k8sattributes, transform]
+      exporters: [otlphttp]
+</code></pre>
+<p><code>max_staleness</code> bounds gateway memory: a series not seen within that window is evicted, so pod churn does not grow state unbounded. Set it to roughly 10x the scrape interval.</p>
+<h3>Scaling the fleet</h3>
+<p>Both tiers run an HPA. Scale <strong>up</strong> immediately and <strong>down</strong> slowly, so a brief lull does not drop a replica mid-series and reset delta state:</p>
+<pre><code class="language-yaml">behavior:
+  scaleUp:
+    stabilizationWindowSeconds: 0
+  scaleDown:
+    stabilizationWindowSeconds: 300   # ~5x scrape interval
+</code></pre>
+<p>Replica counts scale roughly with data-point throughput. Dynatrace publishes a reference sizing (60-second scrape interval) — treat these as a <strong>starting point and size against your own data-points-per-minute and target count</strong>, not as fixed values:</p>
+<table>
+<thead>
+<tr>
+<th>Data points/min</th>
+<th>Targets</th>
+<th>Scraper replicas</th>
+<th>Gateway replicas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1M</td>
+<td>~5</td>
+<td>2</td>
+<td>2</td>
+</tr>
+<tr>
+<td>10M</td>
+<td>~60</td>
+<td>13</td>
+<td>4</td>
+</tr>
+<tr>
+<td>30M</td>
+<td>~334</td>
+<td>38</td>
+<td>8</td>
+</tr>
+<tr>
+<td>60M</td>
+<td>~667</td>
+<td>74</td>
+<td>18</td>
+</tr>
+<tr>
+<td>90M</td>
+<td>~1,000</td>
+<td>102</td>
+<td>23</td>
+</tr>
+</tbody>
+</table>
+<p>Hash-based distribution does not rebalance on actual load — a heavy target stays pinned to its assigned scraper. If one target dominates, split it across multiple ports/paths or vertically size the scraper that owns it.</p>
+<h3>Deploying the tiers</h3>
+<p>Four components deploy in the order the reference repo prescribes — RBAC and discovery CRs first, then one Helm release per tier:</p>
+<pre><code class="language-bash"># 1. ServiceAccounts, ClusterRoles, bindings + the ScrapeConfig CRs
+kubectl apply -f rbac.yaml
+kubectl apply -f scrapeconfig.yaml
+
+# 2. one Helm release per component
+helm upgrade --install allocator       &lt;chart&gt; -f allocator.values.yaml
+helm upgrade --install tier1-scraper   &lt;chart&gt; -f tier1-scraper.values.yaml
+helm upgrade --install tier2-gateway   &lt;chart&gt; -f tier2-gateway.values.yaml
+helm upgrade --install selfmon-scraper &lt;chart&gt; -f selfmon-scraper.yaml   # recommended
+</code></pre>
+<p>The repo ships one values file per component (<code>allocator.values.yaml</code>, <code>tier1-scraper.values.yaml</code>, <code>tier2-gateway.values.yaml</code>, <code>selfmon-scraper.yaml</code>) plus <code>rbac.yaml</code> and <code>scrapeconfig.yaml</code>. <strong>Prerequisite:</strong> the Prometheus Operator CRDs (<code>ServiceMonitor</code>/<code>PodMonitor</code>/<code>ScrapeConfig</code>) must already be installed — the Allocator consumes them.</p>
+<h3>RBAC: what each tier needs</h3>
+<p>Each tier runs under its own <code>ServiceAccount</code> bound to a <code>ClusterRole</code> scoped to only what that tier does — the Allocator needs the broadest access (it does discovery), scrapers need target-resolution reads, gateways need only the metadata <code>k8sattributes</code> enriches with:</p>
+<table>
+<thead>
+<tr>
+<th>ServiceAccount</th>
+<th>Reads</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tiered-otel-allocator</code></td>
+<td>pods, endpoints, services, endpointslices, nodes, nodes/metrics, configmaps, secrets, ingresses, namespaces + Prometheus CRDs (<code>servicemonitors</code>, <code>podmonitors</code>, <code>scrapeconfigs</code>, <code>probes</code>) + non-resource URL <code>/metrics</code></td>
+<td>Discovers targets from CRDs and the API server</td>
+</tr>
+<tr>
+<td><code>tiered-otel-scraper</code></td>
+<td>pods, endpoints, services, endpointslices, nodes, namespaces, replicasets, deployments, statefulsets, daemonsets, jobs, cronjobs (<code>get</code>/<code>list</code>/<code>watch</code>)</td>
+<td>Resolves scrape targets behind Services/Endpoints</td>
+</tr>
+<tr>
+<td><code>tiered-otel-gateway</code></td>
+<td>pods, namespaces, nodes, replicasets, jobs, cronjobs (<code>get</code>/<code>list</code>/<code>watch</code>)</td>
+<td><code>k8sattributes</code> enrichment metadata only</td>
+</tr>
+</tbody>
+</table>
+<p>Worked <code>ClusterRole</code> for the Allocator — the load-bearing one. Note the Prometheus CRD verbs and the <code>/metrics</code> non-resource URL, both of which the scraper/gateway roles omit:</p>
+<pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tiered-otel-allocator
+rules:
+  - apiGroups: [&quot;&quot;]
+    resources: [pods, endpoints, services, nodes, nodes/metrics, configmaps, secrets, namespaces]
+    verbs: [get, list, watch]
+  - apiGroups: [&quot;discovery.k8s.io&quot;]
+    resources: [endpointslices]
+    verbs: [get, list, watch]
+  - apiGroups: [&quot;monitoring.coreos.com&quot;]
+    resources: [servicemonitors, podmonitors, scrapeconfigs, probes]
+    verbs: [&quot;*&quot;]
+  - nonResourceURLs: [&quot;/metrics&quot;]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tiered-otel-allocator
+subjects:
+  - kind: ServiceAccount
+    name: tiered-otel-allocator
+    namespace: otel-ta
+roleRef:
+  kind: ClusterRole
+  name: tiered-otel-allocator
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<p>Each of the four ServiceAccounts gets a matching <code>ClusterRoleBinding</code>. Unlike the <code>OpenTelemetryCollector</code> CRD path in §4 (where the Operator creates the collector ServiceAccount for you), this Helm-values deployment provisions all four explicitly in <code>rbac.yaml</code>.</p>
+<h3>Target Allocator high availability</h3>
+<p>The Allocator sits on the control path — if it is unreachable, scrapers cannot learn their assignments. Run <strong>multiple Allocator replicas</strong>. Because the assignment algorithm is deterministic, the replicas need no leader election or shared state:</p>
+<blockquote>
+<p>&quot;Run multiple TA replicas for failure tolerance. Because the consistent-hashing algorithm is deterministic, all replicas independently produce the same target-to-scraper assignments without coordination.&quot;</p>
+</blockquote>
+<p>Every replica computes the identical target→scraper map from the same discovered set, so a scraper polling any replica gets a consistent answer and losing a replica is transparent — the scraper simply polls another.</p>
+<h3>Self-monitoring &amp; verification</h3>
+<p>The reference deployment ships a dedicated <strong>self-monitoring collector</strong> (<code>selfmon-scraper</code>) whose only job is to scrape the other collectors' and the allocator's internal telemetry and forward it to Dynatrace — the fleet observing itself. It is a <code>prometheus</code> receiver doing pod discovery in the collector namespace, keyed off annotations:</p>
+<pre><code class="language-yaml">receivers:
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: otel-selfmon
+          scrape_interval: 15s
+          kubernetes_sd_configs:
+            - role: pod
+              namespaces:
+                names: [otel-ta]
+          # keep pods annotated metrics.dynatrace.com/scrape: &quot;true&quot;;
+          # read the scrape port from metrics.dynatrace.com/port
+exporters:
+  otlphttp/dynatrace:
+    endpoint: ${env:DT_ENDPOINT}
+    headers:
+      Authorization: &quot;Api-Token ${env:DT_API_TOKEN}&quot;
+</code></pre>
+<p>Watch these collector self-metrics — they tell you whether the fleet is keeping up and whether routing is intact:</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Tier</th>
+<th>Healthy signal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>otelcol_receiver_accepted_metric_points</code></td>
+<td>Scraper</td>
+<td>Rises in step with scrape volume; flat-lining means scraping stalled</td>
+</tr>
+<tr>
+<td><code>otelcol_processor_incoming_items</code> vs <code>otelcol_processor_outgoing_items</code></td>
+<td>Gateway</td>
+<td>Roughly equal; a growing gap means a processor (usually <code>memory_limiter</code>) is dropping</td>
+</tr>
+<tr>
+<td><code>otelcol_exporter_send_failed_metric_points</code></td>
+<td>Gateway</td>
+<td>Near zero; sustained non-zero means export to Dynatrace is failing (auth, endpoint, or rate)</td>
+</tr>
+<tr>
+<td><code>otelcol_loadbalancer_num_resolutions</code></td>
+<td>Scraper</td>
+<td>Changes when the gateway set scales; a value stuck through a known scale event means stale routing</td>
+</tr>
+</tbody>
+</table>
+<p>Once these land in Dynatrace you can chart them with <code>timeseries</code> like any other metric and alert on the export-failure and processor-gap signals. Confirm the exact ingested metric keys in the metric browser first — collector self-metric naming varies by distribution and OTel Collector version.</p>
+<h3>Single collector vs. tiered — which to run</h3>
+<table>
+<thead>
+<tr>
+<th>Run</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Single collector (OTEL-05 §6)</td>
+<td>A small or static set of endpoints; no need for auto-scaling or redundancy</td>
+</tr>
+<tr>
+<td>Tiered + Target Allocator</td>
+<td>Thousands of pods or hundreds of distinct endpoints; millions of data points per minute; HPA-driven horizontal scaling instead of manually partitioning targets; CRD-based (<code>ServiceMonitor</code> / <code>PodMonitor</code> / <code>ScrapeConfig</code>) discovery</td>
+</tr>
+</tbody>
+</table>
+<p>Complete, runnable configs (Helm values for all three tiers, RBAC, self-monitoring) live in the Dynatrace OTel Collector repo under <code>config_examples/prometheus-large-scale/</code>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector-use-cases/prometheus/standard">Prometheus standard use case (DT docs)</a> — <em>&quot;The metric_start_time and cumulative_to_delta processors are stateful and must see every consecutive sample of a series in one place to compute deltas correctly.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/Dynatrace/dynatrace-otel-collector/tree/main/config_examples/prometheus-large-scale">prometheus-large-scale config examples (Dynatrace GitHub)</a> — tier-1 scraper / tier-2 gateway / allocator Helm values, adapted to the v0.151.0 pin (<code>cumulativetodelta</code>; the repo now spells it <code>cumulative_to_delta</code>)</sub></li>
+<li><sub><a href="https://github.com/open-telemetry/opentelemetry-operator">OpenTelemetry Operator (opentelemetry-operator GitHub)</a> — Target Allocator component</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/about-metrics-ingest">About OTLP metrics ingest (DT docs)</a> — <em>&quot;The Dynatrace backend exclusively works with delta values and requires the respective aggregation temporality.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="docker-compose"></a></p>
+<h2>6. Docker Compose</h2>
+<h3>Basic Setup</h3>
+<pre><code class="language-yaml"># docker-compose.yaml
+version: '3.8'
+
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.151.0  # pinned — never latest, even in local/dev compose files
+    command: [&quot;--config=/etc/otel-collector-config.yaml&quot;]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - &quot;4317:4317&quot;   # OTLP gRPC
+      - &quot;4318:4318&quot;   # OTLP HTTP
+      - &quot;13133:13133&quot; # Health check
+    environment:
+      - DT_ENDPOINT=${DT_ENDPOINT}
+      - DT_TOKEN=${DT_TOKEN}
+
+  my-app:
+    image: my-app:latest
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=my-app
+    depends_on:
+      - otel-collector
+</code></pre>
+<p><a id="high-availability"></a></p>
+<h2>7. High Availability</h2>
+<h3>HA Considerations</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>HA Strategy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Agent (DaemonSet)</strong></td>
+<td>Node failure = pod restarts</td>
+</tr>
+<tr>
+<td><strong>Gateway</strong></td>
+<td>Multiple replicas behind load balancer</td>
+</tr>
+<tr>
+<td><strong>Persistent Queue</strong></td>
+<td>Prevent data loss during restarts</td>
+</tr>
+</tbody>
+</table>
+<h3>Gateway with Persistent Queue</h3>
+<pre><code class="language-yaml">exporters:
+  otlphttp:
+    endpoint: https://${DT_ENDPOINT}/api/v2/otlp
+    sending_queue:
+      enabled: true
+      num_consumers: 10
+      queue_size: 1000
+      storage: file_storage
+    retry_on_failure:
+      enabled: true
+      initial_interval: 1s
+      max_interval: 30s
+      max_elapsed_time: 300s
+
+extensions:
+  file_storage:
+    directory: /var/lib/otel/storage
+    timeout: 10s
+
+service:
+  extensions: [file_storage]
+</code></pre>
+<h3>Pod Disruption Budget</h3>
+<pre><code class="language-yaml">apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: otel-collector-pdb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: otel-collector-gateway
+</code></pre>
+<p><a id="resource-sizing"></a></p>
+<h2>8. Resource Sizing</h2>
+<h3>Sizing Guidelines</h3>
+<p>These are community starting points, not published limits — measure your own spans per second and memory headroom, and resize from there:</p>
+<table>
+<thead>
+<tr>
+<th>Throughput</th>
+<th>CPU</th>
+<th>Memory</th>
+<th>Replicas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Low (&lt;1000 spans/s)</td>
+<td>100m</td>
+<td>256Mi</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Medium (&lt;10k spans/s)</td>
+<td>500m</td>
+<td>1Gi</td>
+<td>2</td>
+</tr>
+<tr>
+<td>High (&lt;100k spans/s)</td>
+<td>2</td>
+<td>4Gi</td>
+<td>3+</td>
+</tr>
+<tr>
+<td>Very High (&gt;100k spans/s)</td>
+<td>4+</td>
+<td>8Gi+</td>
+<td>5+</td>
+</tr>
+</tbody>
+</table>
+<h3>Memory Limiter Tuning</h3>
+<pre><code class="language-yaml">processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 800       # 80% of container memory limit
+    spike_limit_mib: 200 # Room for spikes
+</code></pre>
+<h3>Horizontal Pod Autoscaler</h3>
+<pre><code class="language-yaml">apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: otel-collector-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: otel-collector-gateway
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+</code></pre>
+<p><a id="security-considerations"></a></p>
+<h2>9. Security Considerations</h2>
+<blockquote>
+<p><strong>Workload Identity Federation — credential-free auth (SaaS 1.346 — staged rollout from 08/25/2026).</strong> Verbatim: <em>&quot;Workload Identity Federation (WIF) enables secure, credential-free authentication when exporting telemetry to external services and APIs. It removes the need for long-lived credentials in Dynatrace OpenTelemetry Collector deployments, following modern cloud-native security practices.&quot;</em> Where it applies, this removes the long-lived API token from the Collector's configuration and secret store entirely — the failure mode this section otherwise has to mitigate with rotation and secret management. Treat the token-based patterns shown here as the working path until WIF reaches your tenant and you have confirmed your export targets support it.</p>
+<p><sub>Source: <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-346">What's new in Dynatrace SaaS 1.346 (DT docs)</a></sub></p>
+</blockquote>
+<h3>Token Management</h3>
+<p>Store Dynatrace API tokens in Kubernetes Secrets:</p>
+<pre><code class="language-yaml"># Kubernetes Secret (create via kubectl or sealed-secrets)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dynatrace-otel-token
+type: Opaque
+stringData:
+  token: &lt;your-dynatrace-api-token&gt;
+</code></pre>
+<pre><code class="language-yaml"># Reference in Deployment
+env:
+  - name: DT_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: dynatrace-otel-token
+        key: token
+</code></pre>
+<h3>TLS Configuration</h3>
+<pre><code class="language-yaml">receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+        tls:
+          cert_file: /certs/server.crt
+          key_file: /certs/server.key
+          client_ca_file: /certs/ca.crt  # mTLS
+</code></pre>
+<h3>Network Policy</h3>
+<pre><code class="language-yaml">apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: otel-collector-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: otel-collector-gateway
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 4317
+        - protocol: TCP
+          port: 4318
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443
+</code></pre>
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Deployment modes: Agent vs. Gateway vs. Hybrid</li>
+<li>DaemonSet and Sidecar configurations for agent mode</li>
+<li>Gateway deployment with services</li>
+<li>Kubernetes deployment via Helm</li>
+<li>Docker Compose setup</li>
+<li>High availability with persistent queues</li>
+<li>Resource sizing guidelines</li>
+<li>Security best practices</li>
+</ul>
+<hr />
+<h2>Next Steps</h2>
+<table>
+<thead>
+<tr>
+<th>Next Notebook</th>
+<th>Topic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OTEL-04: Trace Instrumentation</strong></td>
+<td>Instrumenting code</td>
+</tr>
+<tr>
+<td><strong>OTEL-07: Dynatrace Integration</strong></td>
+<td>Complete DT setup</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://opentelemetry.io/docs/collector/deploy/">Collector Deployment</a></li>
+<li><a href="https://github.com/open-telemetry/opentelemetry-helm-charts">Helm Chart</a></li>
+<li><a href="https://hub.docker.com/r/otel/opentelemetry-collector-contrib">Docker Images</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector">Dynatrace OTel Collector (DT docs)</a> — <em>&quot;Dynatrace recommends using the Contrib distribution only for testing purposes.&quot;</em></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>APPSEC-05: Security Posture Management</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">APPSEC — Application Security</a><span class="sep">/</span><span aria-current="page">APPSEC-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>APPSEC-05: Security Posture Management</h1>
+<blockquote>
+<p><strong>Series:</strong> APPSEC — Application Security | <strong>Notebook:</strong> 5 of 10 | <strong>Created:</strong> June 2026 | <strong>Last Updated:</strong> 10/02/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Security Posture Management (SPM)</strong> evaluates the configuration state of Kubernetes clusters, cloud accounts (AWS, Azure, GCP), and VMware environments against hardening guidelines and compliance standards (CIS, PCI DSS, NIST, DORA, and others) and records the results as findings in the same <code>security.events</code> table as RVA and RAP.</p>
+<p>Where RVA and RAP are <em>runtime</em> signals (what's executing right now), SPM is a <em>config</em> signal (what's been declared in the platform). The two complement each other — a fully-patched runtime on a misconfigured platform is still vulnerable.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5TZWN1cml0eSBQb3N0dXJlIE1hbmFnZW1lbnQ8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+TWlzY29uZmlndXJhdGlvbnMgYW5kIGNvbXBsaWFuY2UgZmluZGluZ3Mgb24gbW9uaXRvcmVkIGVudGl0aWVzPC90ZXh0PgogIDxyZWN0IHg9IjQwIiB5PSI5NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiMxMEI5ODEiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzEwQjk4MSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIxMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPk1vbml0b3JlZCBlbnRpdGllczwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMTY1IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxMEI5ODEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPks4cyAvIGNsb3VkIC8gVk13YXJlPC90ZXh0PgogIDxyZWN0IHg9IjMzNSIgeT0iOTUiIHdpZHRoPSIyODAiIGhlaWdodD0iMTcwIiBmaWxsPSIjMTBCOTgxIiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiMxMEI5ODEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjQ3NSIgeT0iMTM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5Db25maWd1cmF0aW9uIGNhcHR1cmU8L3RleHQ+CiAgPHJlY3QgeD0iMzU1IiB5PSIxNjUiIHdpZHRoPSIyNDAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzEwQjk4MSIgcng9IjYiLz4KICA8dGV4dCB4PSI0NzUiIHk9IjIxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+SzhzIEFQSSArIG5vZGUgY29sbGVjdG9yIC8gUnVuZWNhc3Q8L3RleHQ+CiAgPHJlY3QgeD0iNjMwIiB5PSI5NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiMxMEI5ODEiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzEwQjk4MSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNzcwIiB5PSIxMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkJhc2VsaW5lIGNvbXBhcmlzb248L3RleHQ+CiAgPHJlY3QgeD0iNjUwIiB5PSIxNjUiIHdpZHRoPSIyNDAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzEwQjk4MSIgcng9IjYiLz4KICA8dGV4dCB4PSI3NzAiIHk9IjIxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+Q0lTIC8gTklTVCAvIERPUkEgLyDigKY8L3RleHQ+CiAgPHJlY3QgeD0iNDAiIHk9IjI3NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiMxMEI5ODEiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzEwQjk4MSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIzMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkZpbmRpbmdzIGluIHNlY3VyaXR5LmV2ZW50czwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMzQ1IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxMEI5ODEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIzOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPkNPTVBMSUFOQ0VfRklORElORzwvdGV4dD4KICA8cmVjdCB4PSIzMzUiIHk9IjI3NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiMxMEI5ODEiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzEwQjk4MSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDc1IiB5PSIzMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPlBvc3R1cmUgZGFzaGJvYXJkczwvdGV4dD4KICA8cmVjdCB4PSIzNTUiIHk9IjM0NSIgd2lkdGg9IjI0MCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTBCOTgxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ3NSIgeT0iMzkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExIj5ieSBmcmFtZXdvcms8L3RleHQ+CiAgPHJlY3QgeD0iNjMwIiB5PSIyNzUiIHdpZHRoPSIyODAiIGhlaWdodD0iMTcwIiBmaWxsPSIjMTBCOTgxIiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiMxMEI5ODEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9Ijc3MCIgeT0iMzE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5EcmlmdCBhbGVydHM8L3RleHQ+CiAgPHJlY3QgeD0iNjUwIiB5PSIzNDUiIHdpZHRoPSIyNDAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzEwQjk4MSIgcng9IjYiLz4KICA8dGV4dCB4PSI3NzAiIHk9IjM5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+dmlhIHdvcmtmbG93PC90ZXh0Pgo8L3N2Zz4K" alt="SPM compliance overview" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Environment | SPM flavor |
+|-------------|------------|
+| Kubernetes clusters | KSPM (Dynatrace) |
+| AWS / Azure / GCP accounts | CSPM (Runecast) |
+| VMware vSphere / NSX | VSPM (Runecast) |
+-->
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#scope">1. SPM Scope</a></li>
+<li><a href="#frameworks">2. Compliance Frameworks</a></li>
+<li><a href="#dql-spm">3. DQL: SPM Findings</a></li>
+<li><a href="#lifecycle">4. Finding Lifecycle</a></li>
+<li><a href="#next">5. Next Steps</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Gen3 SaaS with Grail; AppSec entitlement enabled</td>
+</tr>
+<tr>
+<td><strong>Monitoring mode</strong></td>
+<td>SPM works independently of OneAgent monitoring mode. KSPM collects from the Kubernetes API server and the Node Configuration Collector via ActiveGate; CSPM and VSPM ingest Runecast Analyzer findings</td>
+</tr>
+<tr>
+<td><strong>Read access</strong></td>
+<td>To run the DQL: <code>storage:security.events:read</code> <strong>plus</strong> <code>storage:buckets:read</code> (a table permission alone reads nothing). The Vulnerabilities and Threats &amp; Exploits apps have their own requirements — see APPSEC-09 for the full model</td>
+</tr>
+<tr>
+<td><strong>Background</strong></td>
+<td>APPSEC-01 (fundamentals + three-pillar framing)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="scope"></a></p>
+<h2>1. SPM Scope</h2>
+<p>SPM's scope is broader than the application — it covers the platform the applications run on. It comes in three flavors:</p>
+<table>
+<thead>
+<tr>
+<th>Flavor</th>
+<th>Evaluates</th>
+<th>Provided by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>KSPM</strong> — Kubernetes Security Posture Management</td>
+<td>Kubernetes clusters: misconfigurations, hardening guidelines, compliance violations</td>
+<td>Dynatrace (native)</td>
+</tr>
+<tr>
+<td><strong>CSPM</strong> — Cloud Security Posture Management</td>
+<td>AWS, Azure, and GCP accounts</td>
+<td>Runecast integration</td>
+</tr>
+<tr>
+<td><strong>VSPM</strong> — VMware Security Posture Management</td>
+<td>VMware environments, including vCenter and NSX-T</td>
+<td>Runecast integration</td>
+</tr>
+</tbody>
+</table>
+<p>Container-image vulnerabilities are <strong>not</strong> SPM — they are RVA findings (APPSEC-06 § 2). The exact catalog of checks lives in the SPM product surface and evolves per release.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/secure/application-security/spm">Security Posture Management (DT docs)</a> — <em>&quot;Security Posture Management provides comprehensive visibility into the security posture of your Kubernetes, cloud, and VMware environments.&quot;</em> and <em>&quot;Analyzed data originates from the Kubernetes API Server and the Kubernetes Node Configuration Collector via ActiveGate.&quot;</em>; <a href="https://docs.dynatrace.com/docs/secure/application-security">Application Security (DT docs)</a> — <em>&quot;Dynatrace Security Posture Management (SPM) works independently of monitoring modes.&quot;</em> (re-read 09/18/2026).</sub></p>
+</blockquote>
+<p><a id="frameworks"></a></p>
+<h2>2. Compliance Frameworks</h2>
+<p>SPM findings are grouped by compliance standard so a single misconfiguration shows up under each relevant one. The documented standards are BSI C5, BSI IT-Grundschutz, CIS, Cyber Essentials, DISA STIG, DORA, Essential Eight, GDPR, HIPAA, ISO 27001, KVKK, NIST, PCI DSS, Security Essentials, TISAX, and VMware SCG. Coverage differs by environment (Kubernetes, AWS, Azure, GCP, vSphere, NSX) — check the standards table in the SPM docs for your combination. In Grail the standard is <code>compliance.standard.short_name</code> (for example <code>CIS</code>).</p>
+<p>A single finding (e.g., &quot;S3 bucket without encryption&quot;) often maps to controls in multiple frameworks. Don't double-count by framework when measuring posture; pick a primary framework for governance reporting and let the others be a secondary view.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/secure/application-security/spm">Security Posture Management (DT docs)</a> — the <em>Compliance standards</em> table (re-read 09/18/2026). <strong>Softened:</strong> the pick-one-primary-framework recommendation is community practice.</sub></p>
+</blockquote>
+<p><a id="dql-spm"></a></p>
+<h2>3. DQL: SPM Findings</h2>
+<p>SPM results are <code>COMPLIANCE_FINDING</code> records with <code>product.name == &quot;Security Posture Management&quot;</code> (other <code>product.name</code> values are ingested third-party compliance findings, such as AWS Security Hub) — and most of them are <strong>not</strong> failures. Each scan writes one result per rule × object, with <code>compliance.result.status.level</code> set to <code>FAILED</code>, <code>PASSED</code>, <code>MANUAL</code>, or <code>NOT_RELEVANT</code>, and every scan writes a fresh set. Counting records therefore counts scan results, not misconfigurations. The query below keeps the latest result per object and rule, then counts only the ones still failing.</p>
+<pre><code class="language-dql">// Currently failing compliance rules by standard and severity (latest result per object + rule)
+fetch security.events, from:-7d
+| filter event.type == &quot;COMPLIANCE_FINDING&quot;
+| filter product.name == &quot;Security Posture Management&quot;  // SPM only; third-party compliance findings share the event type
+| dedup {object.id, compliance.rule.id}, sort:{timestamp desc}
+| filter compliance.result.status.level == &quot;FAILED&quot;
+| summarize failing = count(), by:{compliance.standard.short_name, compliance.rule.severity.level}
+| sort failing desc
+
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/compliance">Compliance (Semantic Dictionary) (DT docs)</a> — <code>compliance.result.status.level</code> (<em>&quot;Result status of the given resource object as evaluated by a scan.&quot;</em>, values <code>FAILED ; PASSED ; MANUAL ; NOT_RELEVANT</code>), <code>compliance.rule.id</code>, <code>object.id</code> (re-read 10/02/2026); the same page: <em>&quot;Both Dynatrace-generated and third-party ingested data are supported.&quot;</em> <strong>Dictionary (docs page):</strong> <code>compliance.rule.id</code>, <code>compliance.standard.short_name</code>, <code>compliance.rule.severity.level</code>, <code>object.id</code> (all <code>experimental</code>), read 10/02/2026. <strong>Live-verified 09/18/2026, re-run 10/02/2026</strong> against a tenant with KSPM enabled (last scan 08/28/2026, so it was run at <code>from:-60d</code> at the time of verification): of 313,391 <code>COMPLIANCE_FINDING</code> records, 302,281 were <code>NOT_RELEVANT</code>, 8,320 <code>PASSED</code>, 1,191 <code>MANUAL</code>, and only 1,599 <code>FAILED</code>. After keeping the latest result per object and rule, the query above returns 60 current failures — CIS CRITICAL 1 · HIGH 3 · MEDIUM 47 · LOW 9. Counting every record for the same state reports CIS CRITICAL 107,841 · MEDIUM 152,839 · HIGH 44,359 · LOW 8,352: always filter on <code>compliance.result.status.level</code> and deduplicate to the latest scan. If scans have stopped, the <code>-7d</code> window returns nothing — widen it before concluding the environment is compliant. An earlier revision of this entry filtered <code>event.type == &quot;POSTURE_FINDING&quot;</code> and grouped by <code>compliance.framework</code> / <code>finding.severity</code>; <strong>all three identifiers were wrong</strong> and returned nothing. That is the failure mode SPM queries are most prone to: a wrong identifier — or a wrong grain — is valid DQL, executes cleanly, and returns a result that looks plausible.</sub></p>
+</blockquote>
+<p><a id="lifecycle"></a></p>
+<h2>4. Finding Lifecycle</h2>
+<p>SPM results do <strong>not</strong> have the open / resolved / muted lifecycle of RVA vulnerabilities — the compliance event model has no mute or status field. Each scan re-evaluates every rule and writes a fresh result, so a fixed configuration shows up as <code>PASSED</code> (or the object disappears) on the next scan. Which standards are assessed is configurable: for KSPM in the Dynatrace Settings (<em>Configure assessment scope</em>), for CSPM/VSPM in the Runecast Analyzer.</p>
+<p>In community practice, two patterns follow — verify both against your own findings:</p>
+<ol>
+<li><strong>Fix and let the next scan close it</strong> — there is nothing to acknowledge in the product.</li>
+<li><strong>Record accepted deviations outside the product</strong> — many failing rules reflect legitimate architectural choices (a public-facing bucket holding intentionally-public assets). Without a per-finding mute, keep a register of accepted deviations with a documented reason, and exclude them in your reporting query.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/compliance">Compliance (Semantic Dictionary) (DT docs)</a> — the result values are <em>&quot;FAILED ; PASSED ; MANUAL ; NOT_RELEVANT&quot;</em>, and the page defines no mute or status field (read 10/02/2026); <a href="https://docs.dynatrace.com/docs/secure/application-security/spm">Security Posture Management (DT docs)</a> — <em>&quot;For Dynatrace Kubernetes Security Posture Management (KSPM) , you can manage compliance standards in the Dynatrace Settings , see Configure assessment scope .&quot;</em> <strong>Softened:</strong> the deviation-register pattern is community practice.</sub></p>
+</blockquote>
+<p><a id="next"></a></p>
+<h2>5. Next Steps</h2>
+<ol>
+<li>Run the query above, then check the same window with <code>summarize n = count(), by:{compliance.result.status.level}</code> to see how much of your SPM volume is actually failing.</li>
+<li>Pick a primary framework for governance reporting; use others as secondary views.</li>
+<li>Read <strong>APPSEC-06</strong> for Kubernetes + container security overlap with SPM.</li>
+<li>Read <strong>APPSEC-10</strong> for SPM dashboard patterns and the executive view.</li>
+</ol>
+<p><a id="references"></a></p>
+<h2>References</h2>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/secure/application-security">Application Security (DT docs)</a></td>
+<td>SPM as the third pillar; independent of monitoring modes</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/secure/application-security/spm">Security Posture Management (DT docs)</a></td>
+<td>KSPM / CSPM / VSPM flavors and supported compliance standards</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/compliance">Compliance (Semantic Dictionary) (DT docs)</a></td>
+<td><code>COMPLIANCE_FINDING</code> fields</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><sub><strong>⚠️ DISCLAIMER</strong>: This information was AI generated and is provided &quot;as-is&quot; without warranty. It was produced as an independent, community-driven project and <strong>not supported by Dynatrace</strong>. Always refer to official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> for the most current information.</sub></p>
+</blockquote>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

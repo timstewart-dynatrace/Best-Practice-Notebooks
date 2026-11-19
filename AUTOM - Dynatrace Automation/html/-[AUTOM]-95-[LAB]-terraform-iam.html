@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AUTOM-95 LAB: Terraform IAM Management</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">AUTOM — Dynatrace Automation</a><span class="sep">/</span><span aria-current="page">AUTOM-95 LAB</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>AUTOM-95 LAB: Terraform IAM Management</h1>
+<blockquote>
+<p><strong>Series:</strong> AUTOM — Dynatrace Automation | <strong>Reference:</strong> 95 — Terraform IAM Management LAB | <strong>Created:</strong> May 2026 | <strong>Last Updated:</strong> 10/02/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This hands-on LAB walks the full lifecycle of managing Dynatrace <strong>account-level IAM</strong> with the <code>dynatrace-oss/dynatrace</code> Terraform provider: groups, policies, permission boundaries, and policy bindings. It assumes you have read <strong>AUTOM-04</strong> (Terraform Provider) and want to take IAM specifically to production.</p>
+<blockquote>
+<p><strong>Related lab, different question:</strong> this LAB covers the <em>provider lifecycle</em> — scaffold, resource types, DSL discovery, bulk export/import, CI/CD. For a worked, live-verified walkthrough that <em>provisions the recommended persona + team access model</em> (one shared <code>${bindParam:team}</code> policy template, per-team <code>dt.security_context</code> boundaries, environment-scoped bindings) with expected output from real runs, see <strong>IAM-95</strong> (Terraform flavor) and <strong>IAM-96</strong> (Python flavor) in the IAM series.</p>
+</blockquote>
+<p>IAM is a separate concern from the tenant-level configuration covered in the main Terraform LAB (<strong>AUTOM-98</strong>):</p>
+<table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Auth</th>
+<th>API host</th>
+<th>Provider scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Tenant config</strong> (dashboards, alerting, settings)</td>
+<td>Platform Token (<code>dt0s16</code>) and/or classic API Token (<code>dt0c01</code>)</td>
+<td><code>&lt;tenant&gt;.live.dynatrace.com</code></td>
+<td>Most <code>dynatrace_*</code> resources</td>
+</tr>
+<tr>
+<td><strong>Account IAM</strong> (this LAB)</td>
+<td>OAuth client credentials (<code>DT_CLIENT_ID</code> + <code>DT_CLIENT_SECRET</code> + <code>DT_ACCOUNT_ID</code>)</td>
+<td><code>api.dynatrace.com</code></td>
+<td><code>dynatrace_iam_*</code> resources</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The split is enforced by the provider</strong>, not by us — the <a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_group"><code>dynatrace_iam_group</code> resource (Dynatrace provider docs)</a> explicitly requires <em>&quot;the environment variables <code>DT_CLIENT_ID</code>, <code>DT_CLIENT_SECRET</code>, <code>DT_ACCOUNT_ID</code> with an OAuth client.&quot;</em> Platform Tokens and classic API tokens are rejected.</p>
+<h3>What you'll do</h3>
+<ol>
+<li>Create an OAuth client with the four minimal scopes</li>
+<li>Stand up a Terraform scaffold for groups + policies + boundaries + bindings</li>
+<li>Learn where the permission DSL vocabulary is documented (the <strong>IAM policy reference</strong>) and how to list the statements your account already uses</li>
+<li>Bulk-export an entire account's existing IAM as HCL via the provider's built-in <code>-export</code> utility</li>
+<li>Import exported resources into Terraform state to bring them under management</li>
+<li>Avoid the load-bearing gotchas (bindings re-assign all policies; <code>settings:objects:delete</code> doesn't exist; <code>terraform validate</code> doesn't parse the DSL)</li>
+</ol>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#oauth-client">OAuth Client Setup</a></li>
+<li><a href="#provider-scaffold">Provider Scaffold</a></li>
+<li><a href="#groups">Groups</a></li>
+<li><a href="#service-users">Service Users</a></li>
+<li><a href="#dsl-fundamentals">Permission DSL Fundamentals</a></li>
+<li><a href="#dsl-discovery">Discovering Your Account's DSL Vocabulary</a></li>
+<li><a href="#policies">Policies</a></li>
+<li><a href="#per-service-verbs">Verbs Are Per-Service (<code>settings:objects:delete</code> Gotcha)</a></li>
+<li><a href="#boundaries">Boundaries</a></li>
+<li><a href="#bindings">Bindings (<code>v2</code> — Re-Assigns All)</a></li>
+<li><a href="#bulk-export">Bulk Export an Existing Account</a></li>
+<li><a href="#importing">Importing Exported Resources</a></li>
+<li><a href="#deprecated">Deprecated Arguments to Avoid</a></li>
+<li><a href="#cicd">CI/CD Integration</a></li>
+<li><a href="#troubleshooting">Troubleshooting HTTP 400 — <code>TF_LOG=DEBUG</code></a></li>
+<li><a href="#gotchas">Common Gotchas</a></li>
+<li><a href="#production">Production Considerations</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Terraform CLI</strong></td>
+<td>1.5 or later (verify with <code>terraform --version</code>)</td>
+</tr>
+<tr>
+<td><strong>Dynatrace SaaS account</strong></td>
+<td>Admin access required; Managed deployments are <strong>not</strong> supported by the IAM API</td>
+</tr>
+<tr>
+<td><strong>Account UUID</strong></td>
+<td>Visible in the URL on <code>account.dynatrace.com</code> (format: 8-4-4-4-12 hex, no <code>urn:dtaccount:</code> prefix)</td>
+</tr>
+<tr>
+<td><strong>Bash + <code>curl</code> + <code>jq</code></strong></td>
+<td>For the optional DSL-discovery script in §6</td>
+</tr>
+<tr>
+<td><strong>AUTOM-04 read</strong></td>
+<td>This LAB assumes you've covered the Terraform Provider lecture (provider setup, combined auth, resource types)</td>
+</tr>
+<tr>
+<td><strong>AUTOM-98 LAB optional</strong></td>
+<td>The main Terraform hands-on. Useful but not required — this LAB is self-contained.</td>
+</tr>
+</tbody>
+</table>
+<p><a id="oauth-client"></a></p>
+<h2>1. OAuth Client Setup</h2>
+<p>The IAM Account Management API requires an <strong>OAuth2 bearer token</strong>. Raw API tokens (<code>dt0c01.*</code>) and Platform Tokens (<code>dt0s16.*</code>) <strong>will not work</strong> — the API rejects them. The Terraform provider exchanges OAuth client credentials for short-lived bearer tokens automatically; you provide the client ID + secret + account UUID, the provider handles the rest.</p>
+<h3>Required OAuth client scopes</h3>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Needed for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>account-idm-read</code></td>
+<td>Read groups and users</td>
+</tr>
+<tr>
+<td><code>account-idm-write</code></td>
+<td>Create / delete groups</td>
+</tr>
+<tr>
+<td><code>iam-policies-management</code></td>
+<td>Create / update / delete policies, boundaries, bindings</td>
+</tr>
+<tr>
+<td><code>account-env-read</code></td>
+<td>Resolve environment references — required by the provider for <code>dynatrace_iam_policy</code>, <code>dynatrace_iam_policy_boundary</code>, and <code>dynatrace_iam_policy_bindings_v2</code> per the provider docs (<em>&quot;View environments (<code>account-env-read</code>)&quot;</em>), even when the policies are account-scoped</td>
+</tr>
+</tbody>
+</table>
+<p>Verify scope names in the OAuth client creation UI — Dynatrace has occasionally renamed scopes between releases.</p>
+<h3>Creating the OAuth client</h3>
+<ol>
+<li>Open <code>https://account.dynatrace.com</code> in your browser</li>
+<li><strong>Identity &amp; Access Management</strong> → <strong>OAuth clients</strong> → <strong>Create client</strong></li>
+<li>Description: e.g. <code>terraform-iam-management</code></li>
+<li>Grant the four scopes from the table above</li>
+<li>Click <strong>Create</strong></li>
+<li><strong>Copy the Client ID and Client Secret immediately</strong> — the secret is shown once and cannot be retrieved later. Store in a password manager / secret vault.</li>
+<li>Note your <strong>Account UUID</strong> from the browser URL on <code>account.dynatrace.com</code></li>
+</ol>
+<p>Background reading: <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients">OAuth clients (DT docs)</a>.</p>
+<h3>Environment variables</h3>
+<pre><code class="language-bash">export DT_CLIENT_ID=&quot;dt0s02.XXXXXXXX&quot;
+export DT_CLIENT_SECRET=&quot;dt0s02.XXXXXXXX.YYYYYYYY&quot;
+export DT_ACCOUNT_ID=&quot;abc12345-1234-1234-1234-abcdef012345&quot;
+</code></pre>
+<p><code>DT_ACCOUNT_ID</code> is your account UUID — the same value will appear in <code>terraform.tfvars</code> as <code>account_uuid</code> (Terraform variable). The provider reads it from the env var; resources also accept it as an HCL argument so bindings know which account scope to target.</p>
+<p>To avoid shell history, source from a <code>chmod 600</code> env file:</p>
+<pre><code class="language-bash">cat &gt; ~/.dt-iam.env &lt;&lt;'EOF'
+export DT_CLIENT_ID=&quot;...&quot;
+export DT_CLIENT_SECRET=&quot;...&quot;
+export DT_ACCOUNT_ID=&quot;...&quot;
+EOF
+chmod 600 ~/.dt-iam.env
+source ~/.dt-iam.env
+</code></pre>
+<p><a id="provider-scaffold"></a></p>
+<h2>2. Provider Scaffold</h2>
+<p>The scaffold uses one-resource-type-per-file — the same convention the <code>dynatrace-oss/dynatrace</code> provider's <code>-export</code> utility generates:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>versions.tf</code></td>
+<td>Terraform + provider version constraints (pin the provider)</td>
+</tr>
+<tr>
+<td><code>providers.tf</code></td>
+<td>Provider block — auth via env vars only, no credentials in HCL</td>
+</tr>
+<tr>
+<td><code>variables.tf</code></td>
+<td><code>account_uuid</code>, <code>management_zone_name</code></td>
+</tr>
+<tr>
+<td><code>terraform.tfvars</code></td>
+<td>Variable values (gitignored — never commit)</td>
+</tr>
+<tr>
+<td><code>terraform.tfvars.example</code></td>
+<td>Template for variable values (committed)</td>
+</tr>
+<tr>
+<td><code>groups.tf</code></td>
+<td><code>dynatrace_iam_group</code> resources</td>
+</tr>
+<tr>
+<td><code>policies.tf</code></td>
+<td><code>dynatrace_iam_policy</code> resources</td>
+</tr>
+<tr>
+<td><code>boundaries.tf</code></td>
+<td><code>dynatrace_iam_policy_boundary</code> resources</td>
+</tr>
+<tr>
+<td><code>bindings.tf</code></td>
+<td><code>dynatrace_iam_policy_bindings_v2</code> resources</td>
+</tr>
+</tbody>
+</table>
+<h3><code>versions.tf</code></h3>
+<pre><code class="language-hcl">terraform {
+  required_version = &quot;&gt;= 1.5&quot;
+
+  required_providers {
+    dynatrace = {
+      source = &quot;dynatrace-oss/dynatrace&quot;
+      # Pin to the current line. Bump after verifying IAM resource args
+      # against the new release notes — argument names have shifted in past
+      # provider releases (see §13 Deprecated Arguments below).
+      version = &quot;~&gt; 1.96&quot;
+    }
+  }
+}
+</code></pre>
+<h3><code>providers.tf</code></h3>
+<pre><code class="language-hcl"># Authentication is read from environment variables — never put credentials
+# in this file. See §1 for the required env vars and OAuth client scopes.
+provider &quot;dynatrace&quot; {}
+</code></pre>
+<h3><code>variables.tf</code></h3>
+<pre><code class="language-hcl">variable &quot;account_uuid&quot; {
+  type        = string
+  description = &quot;Dynatrace account UUID — visible in the account.dynatrace.com URL. Format: 8-4-4-4-12 hex (e.g. abc12345-1234-1234-1234-abcdef012345). Do NOT include the urn:dtaccount: prefix.&quot;
+
+  validation {
+    condition     = can(regex(&quot;^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$&quot;, var.account_uuid))
+    error_message = &quot;account_uuid must be a UUID in 8-4-4-4-12 hex format, without the urn:dtaccount: prefix.&quot;
+  }
+}
+
+variable &quot;management_zone_name&quot; {
+  type        = string
+  description = &quot;Management zone NAME (not its numeric ID) used by the production-only boundary example. Settings conditions match the zone by name.&quot;
+  default     = &quot;REPLACE_WITH_REAL_MZ_NAME&quot;
+}
+</code></pre>
+<h3><code>terraform.tfvars.example</code></h3>
+<pre><code class="language-hcl"># Copy to terraform.tfvars and fill in real values.
+# terraform.tfvars is gitignored — never commit real values.
+
+account_uuid         = &quot;abc12345-1234-1234-1234-abcdef012345&quot;
+management_zone_name = &quot;[Prod] Payments&quot;
+</code></pre>
+<h3>Initialize</h3>
+<pre><code class="language-bash">mkdir -p terraform/iam &amp;&amp; cd terraform/iam
+# (create the files above)
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with real values
+terraform init
+</code></pre>
+<p>State will be local (<code>terraform.tfstate</code> in this directory) — <strong>move to a remote backend before sharing this across operators</strong>. AUTOM-09 §3 covers state-backend setup (S3 with native locking / GCS / Azure Storage / HCP Terraform).</p>
+<p><a id="groups"></a></p>
+<h2>3. Groups (<code>dynatrace_iam_group</code>)</h2>
+<p>Groups are the unit of identity in Dynatrace IAM. Users (federated via SSO/IdP claims or manually added) belong to groups; permissions are granted to groups via policy bindings. <strong>Names matter</strong> when federating identity — match the group claim values your IdP emits (Azure AD, Okta, etc.) exactly.</p>
+<h3>Two example groups</h3>
+<pre><code class="language-hcl"># groups.tf
+
+# Note: the deprecated `permissions` block is intentionally omitted.
+# Use policy bindings (see §10) for permission assignment.
+
+resource &quot;dynatrace_iam_group&quot; &quot;platform_team&quot; {
+  name        = &quot;platform-team&quot;
+  description = &quot;Platform engineering — full admin access, scoped to production via boundary&quot;
+}
+
+resource &quot;dynatrace_iam_group&quot; &quot;dashboard_readers&quot; {
+  name        = &quot;dashboard-readers&quot;
+  description = &quot;Read-only access to monitoring data + dashboard editing&quot;
+}
+</code></pre>
+<p><code>terraform apply</code> creates both groups in your account. They have no permissions yet — those come via bindings in §10.</p>
+<p><a id="service-users"></a></p>
+<h2>4. Service Users (<code>dynatrace_iam_service_user</code>)</h2>
+<p>A <strong>service user</strong> is a non-human identity that holds IAM group memberships and is the identity <em>on whose behalf</em> automation runs. In production this is the identity your CI/CD pipelines act as, and the identity that owns the Platform Tokens minted for each job. The Terraform resource lets you provision the service user itself, attach it to one or more groups, and keep the whole identity model under version control alongside the groups and policies.</p>
+<p><strong>The 30-second mental model:</strong></p>
+<ul>
+<li><strong>You manage with Terraform:</strong> the service user resource + group memberships (this section).</li>
+<li><strong>You do NOT manage with Terraform:</strong> the Platform Tokens themselves. The provider has no <code>dynatrace_platform_token</code> resource (verified against provider source 2026-05-22 — see AUTOM-04 §3). Mint Platform Tokens out-of-band via the DT UI (Account Management → Service Users) or via <code>POST /iam/v1/accounts/{accountUuid}/platform-tokens</code>, then deliver them to CI via a secret manager.</li>
+</ul>
+<h3>Resource block</h3>
+<p>Verbatim shape from the <a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_service_user">provider docs</a>:</p>
+<pre><code class="language-hcl"># service-users.tf
+
+resource &quot;dynatrace_iam_service_user&quot; &quot;svc_terraform_ci&quot; {
+  name        = &quot;svc-terraform-ci&quot;
+  description = &quot;CI/CD pipeline identity for Terraform applies&quot;
+
+  # Reference the groups created in §3 — Terraform handles the dependency order.
+  groups = [
+    dynatrace_iam_group.platform_team.id,
+  ]
+}
+</code></pre>
+<h3>Arguments</h3>
+<table>
+<thead>
+<tr>
+<th>Argument</th>
+<th>Required?</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>yes</td>
+<td>Display name. Convention: prefix with <code>svc-</code> to keep service users distinguishable from human users in the UI listing.</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>optional</td>
+<td>Strongly recommended — the description is what tells the next operator <em>why</em> this identity exists.</td>
+</tr>
+<tr>
+<td><code>groups</code></td>
+<td>optional</td>
+<td>Set of group UUIDs. Reference via <code>dynatrace_iam_group.NAME.id</code> rather than hardcoded UUIDs — Terraform handles ordering and rebuild.</td>
+</tr>
+<tr>
+<td><code>email</code></td>
+<td>read-only</td>
+<td>Dynatrace assigns a synthetic email. Surfaces in audit logs as the actor name.</td>
+</tr>
+<tr>
+<td><code>id</code></td>
+<td>read-only</td>
+<td>The service user's UUID. <strong>Use this value as the <code>userUuid</code> body field when minting a Platform Token on behalf of the service user.</strong></td>
+</tr>
+</tbody>
+</table>
+<h3>OAuth scopes — no additional cost over §1</h3>
+<p>Provisioning service users uses the same OAuth scopes §1 already lists for groups and policies — <code>account-idm-read</code> and <code>account-idm-write</code>. No new scope to add to your OAuth client for this resource.</p>
+<h3>Bulk export caveat — excluded by default</h3>
+<p>The <code>terraform-provider-dynatrace -export</code> utility <em>excludes</em> service users from the default export (per the provider docs). When bootstrapping Terraform management of an existing account, pass them explicitly:</p>
+<pre><code class="language-bash">./iam-export.sh dynatrace_iam_service_user
+</code></pre>
+<p>(Or modify the wrapper in §11 to always include them.)</p>
+<h3>Design recommendation — domain-scoped service users, not one mega-user</h3>
+<p>Resist the temptation to create a single <code>svc-terraform</code> service user that holds every IAM policy your automation needs. Two reasons:</p>
+<ol>
+<li><strong>Least privilege.</strong> A compromised credential on a mega-user can do anything your automation can do; domain-scoped users (e.g., <code>svc-tf-settings</code>, <code>svc-tf-iam</code>, <code>svc-tf-synth</code>) limit the blast radius to one functional area.</li>
+<li><strong>Platform Token capacity headroom.</strong> Dynatrace enforces a per-user-per-account cap on Platform Tokens — <em>&quot;A maximum of 50 platform tokens can be generated by a user per account, or 100 for a service user.&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens">Platform tokens (DT docs)</a>, re-read 09/18/2026). Domain separation multiplies that ceiling proportionally. AUTOM-07 §11 covers the composed OAuth-client → ephemeral Platform Token pattern that exploits this separation.</li>
+</ol>
+<p>A reasonable starting set for a Terraform-driven CI shop:</p>
+<table>
+<thead>
+<tr>
+<th>Service user</th>
+<th>Group memberships (each binding via §10)</th>
+<th>Typical CI use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>svc-tf-settings</code></td>
+<td><code>monitoring-settings-writers</code></td>
+<td>Settings 2.0 management via <code>dynatrace_generic_setting</code></td>
+</tr>
+<tr>
+<td><code>svc-tf-iam</code></td>
+<td><code>iam-admins</code></td>
+<td>The bootstrap pipeline that applies this LAB itself</td>
+</tr>
+<tr>
+<td><code>svc-tf-synth</code></td>
+<td><code>synthetic-writers</code></td>
+<td>Synthetic monitor lifecycle</td>
+</tr>
+<tr>
+<td><code>svc-tf-slo</code></td>
+<td><code>slo-writers</code></td>
+<td>SLO and SRG definitions</td>
+</tr>
+</tbody>
+</table>
+<p>Add fleet replicas (<code>svc-tf-settings-01</code>, <code>-02</code>, …) only when one domain shows sustained concurrent-apply pressure against the Platform Token cap — not preemptively.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_service_user"><code>dynatrace_iam_service_user</code> (Dynatrace provider docs)</a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/iam_service_user.md"><code>iam_service_user.md</code> (Dynatrace GitHub)</a>, <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens">Platform tokens (DT docs)</a>. <strong>Derived:</strong> the domain-scoped service-user recommendation combines the provider's resource model with the Platform Token per-user quota; neither source recommends this composition by name.</sub></p>
+</blockquote>
+<p><a id="dsl-fundamentals"></a></p>
+<h2>5. Permission DSL Fundamentals</h2>
+<p>Dynatrace IAM uses a small permission DSL inside <code>statement_query</code> strings. Format:</p>
+<pre><code>ALLOW &lt;service&gt;:&lt;resource&gt;:&lt;action&gt;[, ...] [WHERE &lt;conditions&gt;];
+</code></pre>
+<p>Multiple <code>ALLOW</code> / <code>DENY</code> statements can be combined in a single query, separated by semicolons:</p>
+<pre><code>ALLOW settings:objects:read, settings:schemas:read;
+DENY settings:objects:write WHERE settings:schemaId = &quot;builtin:management-zones&quot;;
+</code></pre>
+<p><code>WHERE</code> clauses use conditions such as <code>settings:schemaId</code>, <code>settings:schemaGroup</code>, <code>settings:scope</code>, and each condition accepts only the operators listed for it (<code>=</code>, <code>IN (...)</code>, <code>startsWith</code>, …). Only conditions that the reference lists for a statement can be used on it. They do <strong>not</strong> support arbitrary predicates like <code>document:type = &quot;dashboard&quot;</code>: the <code>document:documents:*</code> statements list no conditions. Document access is decided per document — ownership plus sharing (<code>document:direct-shares:*</code> / <code>document:environment-shares:*</code>) — not by a policy condition.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a> — the <code>document</code> service lists <code>documents:read</code> / <code>write</code> / <code>delete</code> / <code>admin</code> and the share statements with no conditions.</sub></p>
+</blockquote>
+<h3>What the provider validates vs what Dynatrace validates</h3>
+<p><code>terraform validate</code> and <code>terraform plan</code> confirm <code>statement_query</code> is a string with the right HCL shape. They do <strong>not</strong> parse the DSL inside the string. The first time Dynatrace sees the query content is at <code>terraform apply</code>, and unsupported tokens come back as <strong>HTTP 400</strong> with the response body stripped by the provider.</p>
+<p>The practical implication: every new policy you write is one <code>apply</code> away from finding out whether your DSL strings parse. The next section is how to avoid that round trip.</p>
+<p><a id="dsl-discovery"></a></p>
+<h2>6. Discovering Your Account's DSL Vocabulary</h2>
+<p><strong>The statement catalog is published</strong> — the <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a> lists every <code>service:resource:action</code> statement with the conditions and operators each one accepts. Check new statements against it. The script below answers a different question: which statements <em>your</em> account already uses. That is the quickest way to copy proven patterns.</p>
+<h3>The discovery script (<code>iam-list.sh</code>)</h3>
+<p>This script does the OAuth bearer-token exchange, fetches groups + policies + boundaries via the Account Management API, and prints a deduplicated list of every permission token used across all your existing policies.</p>
+<pre><code class="language-bash">#!/usr/bin/env bash
+#
+# iam-list.sh — Dump existing Dynatrace IAM groups, policies, and
+# boundaries from an account. Print a deduplicated permission-token list
+# (the statements your account already uses).
+#
+# Required env vars: DT_CLIENT_ID, DT_CLIENT_SECRET, DT_ACCOUNT_ID
+# OAuth client scopes: account-idm-read, iam-policies-management, account-env-read
+
+set -euo pipefail
+
+OUT=&quot;/tmp&quot;
+while [ $# -gt 0 ]; do
+  case &quot;$1&quot; in
+    -o|--output) OUT=&quot;$2&quot;; shift 2 ;;
+    -h|--help)   echo &quot;Usage: $(basename &quot;$0&quot;) [-o OUTPUT_DIR]&quot;; exit 0 ;;
+    *)           echo &quot;Unknown arg: $1&quot;; exit 2 ;;
+  esac
+done
+
+: &quot;${DT_CLIENT_ID:?DT_CLIENT_ID must be set}&quot;
+: &quot;${DT_CLIENT_SECRET:?DT_CLIENT_SECRET must be set}&quot;
+: &quot;${DT_ACCOUNT_ID:?DT_ACCOUNT_ID must be set}&quot;
+
+command -v jq &gt;/dev/null || { echo &quot;ERROR: jq required&quot;; exit 1; }
+command -v curl &gt;/dev/null || { echo &quot;ERROR: curl required&quot;; exit 1; }
+
+mkdir -p &quot;$OUT&quot;
+
+TOKEN_URL=&quot;https://sso.dynatrace.com/sso/oauth2/token&quot;
+API_BASE=&quot;https://api.dynatrace.com&quot;
+
+echo &quot;[1/5] Exchanging OAuth client credentials for a bearer token...&quot;
+TOKEN_RESPONSE=$(curl -sS -X POST &quot;$TOKEN_URL&quot; \
+  -H &quot;Content-Type: application/x-www-form-urlencoded&quot; \
+  --data-urlencode &quot;grant_type=client_credentials&quot; \
+  --data-urlencode &quot;client_id=$DT_CLIENT_ID&quot; \
+  --data-urlencode &quot;client_secret=$DT_CLIENT_SECRET&quot; \
+  --data-urlencode &quot;scope=account-idm-read iam-policies-management account-env-read&quot; \
+  --data-urlencode &quot;resource=urn:dtaccount:$DT_ACCOUNT_ID&quot;)
+
+TOKEN=$(echo &quot;$TOKEN_RESPONSE&quot; | jq -r '.access_token // empty')
+[ -n &quot;$TOKEN&quot; ] || { echo &quot;ERROR: token exchange failed:&quot;; echo &quot;$TOKEN_RESPONSE&quot;; exit 1; }
+
+H=&quot;Authorization: Bearer $TOKEN&quot;
+
+echo &quot;[2/5] GET groups → $OUT/iam-groups.json&quot;
+curl -sS &quot;$API_BASE/iam/v1/accounts/$DT_ACCOUNT_ID/groups&quot; -H &quot;$H&quot; &gt; &quot;$OUT/iam-groups.json&quot;
+
+echo &quot;[3/5] GET policy summaries → $OUT/iam-policies-list.json&quot;
+curl -sS &quot;$API_BASE/iam/v1/repo/account/$DT_ACCOUNT_ID/policies&quot; -H &quot;$H&quot; &gt; &quot;$OUT/iam-policies-list.json&quot;
+
+echo &quot;[4/5] GET full policy details → $OUT/iam-policies-detail.json&quot;
+UUIDS=$(jq -r '.policies[]?.uuid // .items[]?.uuid // empty' &quot;$OUT/iam-policies-list.json&quot;)
+echo &quot;[]&quot; &gt; &quot;$OUT/iam-policies-detail.json&quot;
+for uuid in $UUIDS; do
+  DETAIL=$(curl -sS &quot;$API_BASE/iam/v1/repo/account/$DT_ACCOUNT_ID/policies/$uuid&quot; -H &quot;$H&quot;)
+  jq --argjson d &quot;$DETAIL&quot; '. += [$d]' &quot;$OUT/iam-policies-detail.json&quot; &gt; &quot;$OUT/iam-policies-detail.json.tmp&quot;
+  mv &quot;$OUT/iam-policies-detail.json.tmp&quot; &quot;$OUT/iam-policies-detail.json&quot;
+done
+echo &quot;      Fetched $(jq 'length' &quot;$OUT/iam-policies-detail.json&quot;) policy details&quot;
+
+echo &quot;[5/5] GET boundaries → $OUT/iam-boundaries.json&quot;
+curl -sS &quot;$API_BASE/iam/v1/repo/account/$DT_ACCOUNT_ID/boundaries&quot; -H &quot;$H&quot; &gt; &quot;$OUT/iam-boundaries.json&quot;
+
+echo
+echo &quot;=== Files written ===&quot;
+ls -la &quot;$OUT&quot;/iam-*.json
+
+echo
+echo &quot;=== Unique permission tokens used across all policies ===&quot;
+echo &quot;(the statements your account already uses)&quot;
+jq -r '.[].statementQuery // empty' &quot;$OUT/iam-policies-detail.json&quot; \
+  | grep -oE '[a-z][a-z0-9-]*:[a-z][a-z0-9-]*:[a-z][a-z0-9_-]*' \
+  | sort -u \
+  | sed 's/^/  /'
+</code></pre>
+<p>Save as <code>iam-list.sh</code>, <code>chmod +x</code>, and run:</p>
+<pre><code class="language-bash">./iam-list.sh                  # writes JSON to /tmp/iam-*.json
+./iam-list.sh -o ./out         # custom output directory
+</code></pre>
+<p>The final output is a deduplicated list of every <code>service:resource:action</code> token used in your account — for example:</p>
+<pre><code>  app-engine:apps:install
+  app-engine:apps:run
+  davis-copilot:conversations:execute
+  document:documents:admin
+  document:documents:delete
+  document:documents:read
+  document:documents:write
+  iam:policies:read
+  ...
+  settings:objects:admin
+  settings:objects:read
+  settings:objects:write
+  settings:schemas:read
+</code></pre>
+<p>That list shows the patterns your account already relies on. Copy from it, and check anything new against the IAM policy reference before you apply.</p>
+<h3>Why this matters</h3>
+<p>A real-world account dump (133 policies, deduplicated to ~130 unique tokens) returned <strong>zero occurrences</strong> of <code>settings:objects:delete</code> — matching the IAM policy reference, which lists no <code>:delete</code> verb on <code>settings:objects</code> (the AWS-IAM-style extrapolation that produces an HTTP 400 at apply time). The script makes this kind of verification a 30-second routine.</p>
+<p><a id="policies"></a></p>
+<h2>7. Policies (<code>dynatrace_iam_policy</code>)</h2>
+<p>A policy bundles one or more <code>ALLOW</code> / <code>DENY</code> statements behind a name + description and scopes them to an account (or, in the deprecated pattern, an environment — see §13).</p>
+<h3>Three example policies</h3>
+<pre><code class="language-hcl"># policies.tf
+
+resource &quot;dynatrace_iam_policy&quot; &quot;monitoring_read_only&quot; {
+  name        = &quot;monitoring-read-only&quot;
+  description = &quot;Read-only access to settings objects and schemas&quot;
+  account     = var.account_uuid
+
+  statement_query = &quot;ALLOW settings:objects:read, settings:schemas:read;&quot;
+}
+
+# Documents in Dynatrace Gen 3 (dashboards, notebooks, segments) live in
+# the `document:documents:*` namespace — not in Settings 2.0. This grants
+# edit (read/write/delete) on the documents a user can reach. The
+# document:documents:* statements take no conditions, so a boundary cannot
+# narrow them — per-document access comes from ownership and sharing.
+resource &quot;dynatrace_iam_policy&quot; &quot;dashboard_edit&quot; {
+  name        = &quot;dashboard-edit&quot;
+  description = &quot;Edit documents (dashboards, notebooks, segments) — full CRUD&quot;
+  account     = var.account_uuid
+
+  statement_query = &quot;ALLOW document:documents:read, document:documents:write, document:documents:delete;&quot;
+}
+
+# `settings:objects:admin` only bypasses the ownership check — on its own it
+# grants neither read nor write. Combine it with :read and :write (there is
+# no settings:objects:delete statement). Scope-limited via the
+# production-only boundary in §10.
+resource &quot;dynatrace_iam_policy&quot; &quot;production_admin&quot; {
+  name        = &quot;production-admin&quot;
+  description = &quot;Full settings management (read/write + ownership bypass) — scope-limited via the production-only boundary&quot;
+  account     = var.account_uuid
+
+  statement_query = &quot;ALLOW settings:objects:read, settings:objects:write, settings:objects:admin, settings:schemas:read;&quot;
+}
+</code></pre>
+<p>Apply and the policies exist in your account but are bound to <strong>no groups</strong> — bindings come in §10.</p>
+<blockquote>
+<p><strong><code>:admin</code> is not an umbrella verb.</strong> The <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a> is explicit: <em>&quot;Admin-mode only bypasses the ownership check - so to do anything useful, settings:objects:read and/or settings:objects:write are needed as well.&quot;</em> A policy with <code>settings:objects:admin</code> alone applies cleanly — <code>terraform apply</code> reports success and the next plan shows no changes — and then grants nothing when a user tries to read or edit a settings object.</p>
+</blockquote>
+<blockquote>
+<p><strong>Best practice:</strong> Check every token in a policy's <code>statement_query</code> against the <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a> before you apply — including tokens copied from the <code>iam-list.sh</code> output in §6. A token that is not in the reference is not a valid statement.</p>
+</blockquote>
+<p><a id="per-service-verbs"></a></p>
+<h2>8. Verbs Are Per-Service (<code>settings:objects:delete</code> Gotcha)</h2>
+<p>The DSL verb set is <strong>not regular</strong> across services. AWS-IAM-style extrapolation (<code>:read</code> / <code>:write</code> / <code>:delete</code> for every resource) does not work. Check each statement against the IAM policy reference; the <code>iam-list.sh</code> output from §6 shows which ones your account already uses.</p>
+<p>Verb sets as listed in the IAM policy reference:</p>
+<table>
+<thead>
+<tr>
+<th>Service:Resource</th>
+<th>Valid verbs (IAM policy reference)</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>settings:objects</code></td>
+<td><code>:read</code>, <code>:write</code>, <code>:admin</code></td>
+<td><strong>No <code>:delete</code></strong> — the reference documents only <code>:read</code> (<em>reading</em>), <code>:write</code> (<em>writing</em>) and <code>:admin</code>; in practice deletion rides on <code>:write</code>, but verify against your tenant. <code>:admin</code> is <strong>ownership bypass, not an umbrella</strong>: it must be combined with <code>:read</code> / <code>:write</code> (IAM policy statements reference). Verified: 133-policy account dump returned 0 occurrences of <code>settings:objects:delete</code>.</td>
+</tr>
+<tr>
+<td><code>settings:schemas</code></td>
+<td><code>:read</code></td>
+<td>Read-only — schemas are platform-defined, not user-managed.</td>
+</tr>
+<tr>
+<td><code>document:documents</code></td>
+<td><code>:read</code>, <code>:write</code>, <code>:delete</code>, <code>:admin</code></td>
+<td>Gen 3 documents (dashboards, notebooks, segments) have <code>:delete</code> separately from <code>:admin</code>. Different verb set than <code>settings:objects</code>.</td>
+</tr>
+<tr>
+<td><code>app-engine:apps</code></td>
+<td><code>:install</code>, <code>:run</code>, <code>:delete</code></td>
+<td>Verbs are domain-specific (<code>:install</code> / <code>:run</code> rather than <code>:read</code> / <code>:write</code>).</td>
+</tr>
+<tr>
+<td><code>iam:policies</code></td>
+<td><code>:read</code>, <code>:write</code></td>
+<td>Yes, you can manage IAM with IAM. There is no <code>:admin</code>.</td>
+</tr>
+<tr>
+<td><code>davis-copilot:conversations</code>, <code>davis-copilot:nl2dql</code>, <code>davis-copilot:dql2nl</code></td>
+<td><code>:execute</code></td>
+<td>Generative-AI statements use <code>:execute</code>, not <code>:read</code> / <code>:write</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>The pattern: <strong>verbs are per-service, not universal</strong>. Always check against the IAM policy reference before writing.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a> — statement list for <code>settings</code>, <code>document</code>, <code>app-engine</code>, <code>iam</code> and <code>davis-copilot</code>.</sub></p>
+</blockquote>
+<h3>The bug this prevents</h3>
+<pre><code class="language-hcl"># WRONG — produces HTTP 400 at apply with the body stripped by the provider
+statement_query = &quot;ALLOW settings:objects:read, settings:objects:write, settings:objects:delete;&quot;
+
+# RIGHT — read + write (no :delete statement exists); add :admin only if you need to bypass object ownership
+statement_query = &quot;ALLOW settings:objects:read, settings:objects:write, settings:schemas:read;&quot;
+</code></pre>
+<p>If apply fails on a policy with <code>HTTP 400</code> and no error body, re-run with <code>TF_LOG=DEBUG</code> (see §15).</p>
+<p><a id="boundaries"></a></p>
+<h2>9. Boundaries (<code>dynatrace_iam_policy_boundary</code>)</h2>
+<p><strong>Boundaries are Dynatrace's analog to cloud-provider IAM conditions</strong> — they constrain <em>where</em> a permission applies, not <em>what</em> it does. The mental model transfers from AWS <code>Condition</code> blocks, Azure role-assignment scopes, or GCP IAM conditions, but the vocabulary is narrower: instead of IP ranges, request tags, or timestamps, a boundary can use only the conditions that the IAM policy reference lists for the statements it is applied to — for example <code>environment:management-zone</code> (classic roles and settings), <code>settings:dt.security_context</code>, <code>settings:scope</code> and <code>settings:entity.hostGroup</code> on settings statements, and record fields such as <code>storage:bucket-name</code> on Grail storage statements. There is no host-tag condition. If you're coming from AWS/Azure/GCP RBAC, don't look for IP-based or time-based conditions — they don't exist in this model. Plan boundary design around the dimensions Dynatrace actually exposes.</p>
+<p>A boundary is a reusable <code>WHERE</code> clause that gets AND-ed onto a policy at binding time. It lets you write one policy granting (say) <code>settings:objects:admin</code> and then bind it with different boundaries for different groups — production admins get the full account, regional admins get one management zone, etc.</p>
+<h3>Common boundary patterns</h3>
+<pre><code class="language-hcl"># boundaries.tf
+
+# environment:management-zone matches the zone NAME, not its numeric ID.
+resource &quot;dynatrace_iam_policy_boundary&quot; &quot;production_only&quot; {
+  name  = &quot;production-only&quot;
+  query = &quot;environment:management-zone = \&quot;${var.management_zone_name}\&quot;;&quot;
+}
+
+# Other common patterns:
+#   environment:management-zone startsWith &quot;[Prod]&quot;
+#   settings:dt.security_context = &quot;production&quot;
+#   storage:bucket-name IN (&quot;prod_logs&quot;, &quot;prod_spans&quot;)
+</code></pre>
+<p>The <code>query</code> value is a WHERE clause without the <code>WHERE</code> keyword (the provider adds it during evaluation). String literals use escaped double quotes inside the HCL string.</p>
+<p><strong>What the management-zone condition covers on settings statements.</strong> The reference defines it as <em>&quot;The name of a management zone. This condition is applicable to either: any settings object that is allowed on the scope of an entity that can be matched into a management zone or settings objects of the schemas builtin:alerting.maintenance-window, builtin:alerting.profile, builtin:anomaly-detection.metric-events, builtin:monitoring.slo and builtin:problem.notifications.&quot;</em> So pass the zone's name, and do not expect this boundary to reach environment-scoped settings. Management zones are a Classic construct; on an upgraded tenant, base new boundaries on <code>settings:dt.security_context</code> (MZ2POL covers the move).</p>
+<h3>Finding valid boundary conditions</h3>
+<p>Boundary conditions are the same conditions the IAM policy reference lists under each statement, with the operators listed there. A boundary is evaluated only against statements that list its condition — the boundaries page puts it as <em>&quot;The boundary is automatically applied to all permissions where it fits&quot;</em>. The boundaries page states the rule directly — <em>&quot;Only conditions added to service configuration will be applied to relative permissions. This rule doesn't apply to global conditions.&quot;</em> — so a boundary whose condition fits none of the bound policy's statements leaves those statements unrestricted. Check the fit before you rely on a boundary. The discovery script in §6 also fetches your existing boundaries (<code>/iam-boundaries.json</code>), which is a quick way to see the conditions your account already uses.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries">Policy boundaries (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="bindings"></a></p>
+<h2>10. Bindings (<code>dynatrace_iam_policy_bindings_v2</code>)</h2>
+<p>A binding wires a group to a list of policies, optionally with boundaries applied per-policy. <strong>One <code>dynatrace_iam_policy_bindings_v2</code> resource per (group, scope) pair.</strong></p>
+<h3>Two example bindings</h3>
+<pre><code class="language-hcl"># bindings.tf
+
+# platform-team → production-admin, restricted to the production management
+# zone by the production-only boundary.
+resource &quot;dynatrace_iam_policy_bindings_v2&quot; &quot;platform_team_admin&quot; {
+  group   = dynatrace_iam_group.platform_team.id
+  account = var.account_uuid
+
+  policy {
+    id         = dynatrace_iam_policy.production_admin.id
+    boundaries = [dynatrace_iam_policy_boundary.production_only.id]
+  }
+}
+
+# dashboard-readers → monitoring-read-only + dashboard-edit. No boundary
+# (these are intentionally global to the account).
+resource &quot;dynatrace_iam_policy_bindings_v2&quot; &quot;dashboard_readers&quot; {
+  group   = dynatrace_iam_group.dashboard_readers.id
+  account = var.account_uuid
+
+  policy {
+    id = dynatrace_iam_policy.monitoring_read_only.id
+  }
+
+  policy {
+    id = dynatrace_iam_policy.dashboard_edit.id
+  }
+}
+</code></pre>
+<h3>⚠️ Critical: <code>bindings_v2</code> re-assigns <strong>all</strong> policies on each apply</h3>
+<p>Per the <a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_policy_bindings_v2"><code>dynatrace_iam_policy_bindings_v2</code> resource docs (Dynatrace provider docs)</a> (<a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/iam_policy_bindings_v2.md">same page in the provider repo (Dynatrace GitHub)</a>, which renders without JavaScript): <em>&quot;This resource re-assigns all policies bound to a group, so every policy that should remain bound must be specified in the configuration; otherwise, it will be unbound.&quot;</em> The same page adds the consequence in its own words: <em>&quot;During this process, there is a brief window where the group has no policies assigned, which may temporarily cause permission issues for users in that group.&quot;</em></p>
+<p>Three consequences:</p>
+<ol>
+<li><strong>If you remove a <code>policy {}</code> block from a <code>bindings_v2</code> resource</strong>, that policy is <strong>unbound</strong> from the group at the next apply.</li>
+<li><strong>If someone adds a policy via the UI</strong>, your next Terraform apply will <strong>remove it</strong>. This is a Dynatrace API behavior, not a Terraform one.</li>
+<li><strong>There is a brief window during apply where the group has zero policies attached</strong> — plan apply timing accordingly for production.</li>
+</ol>
+<p>For groups whose policy set is partly Terraform-managed and partly UI-managed, bring every assignment under Terraform. The V1 resource (<code>dynatrace_iam_policy_bindings</code>) is no escape hatch: it writes through the same Account Management endpoint, which <em>&quot;overwrites an existing set of policies&quot;</em> (<a href="https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/policy-management-api/bindings/put-group-bindings">PUT bindings of a user group (DT docs)</a>). Both binding resources replace the group's policy set at their level.</p>
+<h3>After apply</h3>
+<p>A successful apply against a fresh account leaves these 9 resources in state:</p>
+<ul>
+<li>2 groups (<code>platform-team</code>, <code>dashboard-readers</code>)</li>
+<li>1 service user (<code>svc-terraform-ci</code>, in <code>platform-team</code>)</li>
+<li>1 boundary (<code>production-only</code>)</li>
+<li>3 policies (<code>monitoring-read-only</code>, <code>dashboard-edit</code>, <code>production-admin</code>)</li>
+<li>2 bindings (<code>platform_team_admin</code> with the production boundary, <code>dashboard_readers</code> without)</li>
+</ul>
+<p><code>terraform plan</code> against the now-current state should show <strong>No changes</strong> — the canonical sign that Terraform sees what the API sees.</p>
+<p><a id="bulk-export"></a></p>
+<h2>11. Bulk Export an Existing Account</h2>
+<p>For accounts with existing IAM you want to bring under Terraform management, the <code>dynatrace-oss/dynatrace</code> provider ships with a built-in <strong>export utility</strong>. It's invoked by running the provider's compiled binary directly — not via <code>terraform &lt;subcommand&gt;</code>.</p>
+<p><strong>IAM is excluded from the default export</strong> — per the provider's own <code>-list-exclusions</code> output: <em>&quot;Account management requires OAuth2 client and is specific to SaaS.&quot;</em> The string is defined in the provider source at <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/dynatrace/export/resource_descriptor.go"><code>dynatrace/export/resource_descriptor.go</code> (Dynatrace GitHub)</a>; there is no docs page carrying it. To export IAM you must name the resources explicitly.</p>
+<h3>Step-by-step</h3>
+<p><strong>Step 1.</strong> Create the OAuth client (already done in §1).</p>
+<p><strong>Step 2.</strong> Create a working directory + <code>versions.tf</code> + run <code>terraform init</code> — this downloads the provider binary that contains the export utility:</p>
+<pre><code class="language-bash">mkdir -p ~/dt-iam-export &amp;&amp; cd ~/dt-iam-export
+
+cat &gt; versions.tf &lt;&lt;'EOF'
+terraform {
+  required_version = &quot;&gt;= 1.5&quot;
+  required_providers {
+    dynatrace = {
+      source  = &quot;dynatrace-oss/dynatrace&quot;
+      version = &quot;~&gt; 1.96&quot;
+    }
+  }
+}
+provider &quot;dynatrace&quot; {}
+EOF
+
+terraform init
+</code></pre>
+<p><strong>Step 3.</strong> Confirm IAM is excluded by default (and see all exclusions):</p>
+<pre><code class="language-bash">.terraform/providers/registry.terraform.io/dynatrace-oss/dynatrace/*/*/terraform-provider-dynatrace_v* \
+  -export -list-exclusions
+</code></pre>
+<p>You'll see a section titled <code>Account management requires OAuth2 client and is specific to SaaS</code> listing the IAM resource types:</p>
+<pre><code>dynatrace_iam_user
+dynatrace_iam_group
+dynatrace_iam_permission
+dynatrace_iam_policy
+dynatrace_iam_policy_bindings
+dynatrace_iam_policy_bindings_v2
+dynatrace_iam_policy_boundary
+</code></pre>
+<p><strong>Step 4.</strong> Set the environment variables:</p>
+<pre><code class="language-bash">export DT_CLIENT_ID=&quot;...&quot;
+export DT_CLIENT_SECRET=&quot;...&quot;
+export DT_ACCOUNT_ID=&quot;...&quot;
+# Required at provider startup even for IAM-only exports — the URL isn't
+# actually used for IAM API calls. Use any valid tenant URL.
+export DYNATRACE_ENV_URL=&quot;https://your-tenant.live.dynatrace.com&quot;
+</code></pre>
+<p><strong>Step 5.</strong> Run the export:</p>
+<pre><code class="language-bash">.terraform/providers/registry.terraform.io/dynatrace-oss/dynatrace/*/*/terraform-provider-dynatrace_v* \
+  -export -flat -id \
+  dynatrace_iam_group \
+  dynatrace_iam_policy \
+  dynatrace_iam_policy_boundary \
+  dynatrace_iam_policy_bindings_v2
+</code></pre>
+<p>Flag meanings:</p>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-export</code></td>
+<td>Switch the binary into export mode</td>
+</tr>
+<tr>
+<td><code>-flat</code></td>
+<td>Write all resources into one directory (no nested module structure) — easier to review</td>
+</tr>
+<tr>
+<td><code>-id</code></td>
+<td>Write each source resource's UUID as an HCL comment inside the file — crucial for <code>terraform import</code> in §12</td>
+</tr>
+</tbody>
+</table>
+<p>For an account with ~100 groups and ~150 policies the export takes 30–90 seconds. Expected output:</p>
+<pre><code>Downloading &quot;dynatrace_iam_policy_boundary&quot; Count:  24
+Downloading &quot;dynatrace_iam_group&quot; Count:  109
+Downloading &quot;dynatrace_iam_policy&quot; Count:  145
+Downloading &quot;dynatrace_iam_policy_bindings_v2&quot; Count:  122
+Post-Processing Resources ...
+Writing ___datasources___.tf
+Writing ___variables___.tf
+Writing main ___providers___.tf
+Finish Export ...
+... finished after 47 seconds
+</code></pre>
+<p><strong>Step 6.</strong> Review the output. The provider binary (v1.105) writes to <code>./configuration/</code> when <code>DYNATRACE_TARGET_FOLDER</code> is not set — it reports that it is using the folder <code>configuration</code> by default (<a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/dynatrace/export/initialize.go"><code>dynatrace/export/initialize.go</code> (Dynatrace GitHub)</a>) — while the <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/terraform-cli-commands#export-configuration-from-a-dynatrace-environment-using-the-dynatrace-terraform-provider">Terraform CLI commands (DT docs)</a> page names <code>.configuration</code>. Set <code>DYNATRACE_TARGET_FOLDER</code> to be explicit:</p>
+<pre><code class="language-bash">ls -la configuration/
+</code></pre>
+<p>You'll find one <code>.tf</code> file per resource plus <code>___datasources___.tf</code> / <code>___variables___.tf</code> / <code>___providers___.tf</code>. Each resource block looks like:</p>
+<pre><code class="language-hcl"># id = &quot;abc12345-...-...&quot;     &lt;-- the source UUID in a comment (because of -id)
+resource &quot;dynatrace_iam_group&quot; &quot;my_group&quot; {
+  name        = &quot;my-group&quot;
+  description = &quot;Some group&quot;
+}
+</code></pre>
+<p>The <code>id =</code> comment is your reference for <code>terraform import</code> in §12.</p>
+<p><strong>Step 7.</strong> Decide what to bring under management — see §12.</p>
+<h3>Optional wrapper script</h3>
+<p>For repeated use, this <code>iam-export.sh</code> wrapper handles binary discovery, env-var validation, and resource-list defaulting:</p>
+<pre><code class="language-bash">#!/usr/bin/env bash
+#
+# iam-export.sh — Bulk export Dynatrace IAM resources to HCL.
+# Requires: terraform init in the same directory first.
+
+set -euo pipefail
+
+DEFAULT_RESOURCES=(
+  dynatrace_iam_group
+  dynatrace_iam_policy
+  dynatrace_iam_policy_boundary
+  dynatrace_iam_policy_bindings_v2
+)
+
+OUT_DIR=&quot;${PWD}/exported-iam&quot;
+EXTRA=()
+while [ $# -gt 0 ]; do
+  case &quot;$1&quot; in
+    -o|--output) OUT_DIR=&quot;$2&quot;; shift 2 ;;
+    -h|--help)   echo &quot;Usage: $(basename &quot;$0&quot;) [-o OUTPUT_DIR] [extra_resource_type...]&quot;; exit 0 ;;
+    -*)          echo &quot;Unknown flag: $1&quot;; exit 2 ;;
+    *)           EXTRA+=(&quot;$1&quot;); shift ;;
+  esac
+done
+
+: &quot;${DT_CLIENT_ID:?DT_CLIENT_ID must be set}&quot;
+: &quot;${DT_CLIENT_SECRET:?DT_CLIENT_SECRET must be set}&quot;
+: &quot;${DT_ACCOUNT_ID:?DT_ACCOUNT_ID must be set}&quot;
+: &quot;${DYNATRACE_ENV_URL:?DYNATRACE_ENV_URL must be set (any valid tenant URL — required at provider startup)}&quot;
+
+PROVIDER_DIR=&quot;${PWD}/.terraform/providers/registry.terraform.io/dynatrace-oss/dynatrace&quot;
+[ -d &quot;$PROVIDER_DIR&quot; ] || { echo &quot;ERROR: run 'terraform init' first&quot;; exit 1; }
+
+BINARY=$(find &quot;$PROVIDER_DIR&quot; -name &quot;terraform-provider-dynatrace_v*&quot; -type f | head -1)
+[ -n &quot;$BINARY&quot; ] || { echo &quot;ERROR: provider binary not found; try 'terraform init -upgrade'&quot;; exit 1; }
+
+RESOURCES=(&quot;${DEFAULT_RESOURCES[@]}&quot;)
+if [ ${#EXTRA[@]} -gt 0 ]; then
+  RESOURCES+=(&quot;${EXTRA[@]}&quot;)
+fi
+
+mkdir -p &quot;$OUT_DIR&quot;
+export DYNATRACE_TARGET_FOLDER=&quot;$OUT_DIR&quot;
+
+echo &quot;Provider binary: $BINARY&quot;
+echo &quot;Output dir:      $OUT_DIR&quot;
+echo &quot;Resources:       ${RESOURCES[*]}&quot;
+echo
+
+(cd &quot;$OUT_DIR&quot; &amp;&amp; &quot;$BINARY&quot; -export -flat -id &quot;${RESOURCES[@]}&quot;)
+
+TF_COUNT=$(find &quot;$OUT_DIR&quot; -type f -name &quot;*.tf&quot; | wc -l | tr -d ' ')
+echo
+echo &quot;$TF_COUNT .tf files written under $OUT_DIR&quot;
+echo &quot;Next: cd $OUT_DIR &amp;&amp; ls   (then §12 for import)&quot;
+</code></pre>
+<p>Save as <code>iam-export.sh</code>, <code>chmod +x</code>, run from the directory where you ran <code>terraform init</code>. Add positional arguments to include extras: <code>./iam-export.sh dynatrace_iam_user dynatrace_iam_service_user</code>.</p>
+<p><a id="importing"></a></p>
+<h2>12. Importing Exported Resources Under Terraform Management</h2>
+<p>The exported files describe your account state <strong>at the moment of export</strong>. They do not populate Terraform state — every exported resource is foreign to your local state. To take over management:</p>
+<ol>
+<li>
+<p><strong>Pick which resources you want to manage.</strong> Not all of them — ad-hoc test groups, deprecated bindings, and one-off service accounts are often not worth keeping in state.</p>
+</li>
+<li>
+<p><strong>Copy the resource blocks you want into a working Terraform tree.</strong> Add a real <code>providers.tf</code> and <code>versions.tf</code> if working in a new directory.</p>
+</li>
+<li>
+<p><strong>Import each resource into state</strong> with <code>terraform import &lt;address&gt; &lt;id&gt;</code>:</p>
+<ul>
+<li><code>&lt;address&gt;</code> is the resource block address — e.g. <code>dynatrace_iam_group.my_group</code></li>
+<li><code>&lt;id&gt;</code> is the UUID from the <code># id =</code> comment</li>
+</ul>
+<pre><code class="language-bash">terraform import dynatrace_iam_group.my_group abc12345-1234-1234-1234-abcdef012345
+</code></pre>
+</li>
+<li>
+<p><strong>Run <code>terraform plan</code>.</strong> If the import worked, the plan should show <strong>No changes</strong> — Terraform sees the resource in state matching the resource in code.</p>
+</li>
+<li>
+<p><strong>From now on, the resource is Terraform-managed.</strong> Edits in HCL → <code>terraform apply</code>. Changes made in the Dynatrace UI will show up as drift in the next <code>terraform plan</code> — and a subsequent <code>apply</code> will revert them.</p>
+</li>
+</ol>
+<h3>Scripting imports</h3>
+<p>There is no <code>terraform import-all</code> command. For 100+ resources, write a shell loop that reads each file's <code># id =</code> comment:</p>
+<pre><code class="language-bash">for tf_file in *.tf; do
+  resource_block=$(grep -E '^resource &quot;[^&quot;]+&quot; &quot;[^&quot;]+&quot;' &quot;$tf_file&quot; | head -1 | awk -F'&quot;' '{print $2&quot;.&quot;$4}')
+  source_id=$(grep -E '^# id =' &quot;$tf_file&quot; | head -1 | sed -E 's/.*= *&quot;([^&quot;]+)&quot;.*/\1/')
+  if [ -n &quot;$resource_block&quot; ] &amp;&amp; [ -n &quot;$source_id&quot; ]; then
+    terraform import &quot;$resource_block&quot; &quot;$source_id&quot;
+  fi
+done
+</code></pre>
+<p>Test on a single file first. <strong>Some resources have compound IDs</strong> (UUID + account UUID joined by <code>#-#</code>) — those need the full compound string from the source <code>id</code>, not just the UUID.</p>
+<h3>Alternative: <code>-import-state</code> instead of <code>-flat -id</code></h3>
+<p>The provider supports <code>-import-state</code> instead of <code>-flat -id</code>, which auto-runs <code>terraform init</code> and imports the exported resources into state in one step. It's opinionated about target module structure — read the provider's export docs first if you take this path. For a learning LAB, the explicit <code>terraform import</code> flow above is more instructive.</p>
+<p><a id="deprecated"></a></p>
+<h2>13. Deprecated Arguments to Avoid</h2>
+<p>The provider has flagged these deprecations since v1.96. Do <strong>not</strong> re-add them:</p>
+<table>
+<thead>
+<tr>
+<th>Deprecated</th>
+<th>Replaced by</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dynatrace_iam_group.permissions {}</code> block</td>
+<td>Policies + <code>dynatrace_iam_policy_bindings_v2</code></td>
+<td>The block let you grant permissions inline on a group. Use bindings instead — they decouple groups from policies and let multiple groups reuse the same policy.</td>
+</tr>
+<tr>
+<td><code>dynatrace_iam_policy.environment</code> argument</td>
+<td><code>account = var.account_uuid</code></td>
+<td>The <code>environment</code> argument let you scope a policy to one tenant. Account-scoped policies are the current model — they work across all tenants in the account.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Not on this list:</strong> <code>dynatrace_iam_policy_bindings</code> (V1). The provider docs do not mark it deprecated. It takes a flat <code>policies</code> list, and V2 <em>&quot;also allows for specifying parameters and metadata to the bindings&quot;</em> (per-policy <code>boundaries</code> / <code>parameters</code>) — which is why this LAB uses V2. Both overwrite the group's policy set (§10).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/iam_policy_bindings_v2.md"><code>iam_policy_bindings_v2.md</code> (Dynatrace GitHub)</a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/iam_policy_bindings.md"><code>iam_policy_bindings.md</code> (Dynatrace GitHub)</a>.</sub></p>
+</blockquote>
+<h3>Why argument names shift between releases</h3>
+<p>IAM provider resources have had argument-name changes in past releases. Before bumping the provider version pin in <code>versions.tf</code>:</p>
+<ol>
+<li>Run <code>terraform init -upgrade</code> and note the resolved version</li>
+<li>Open the <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases">dynatrace-oss/dynatrace provider releases (GitHub)</a> and read the notes for every version between the pinned one and the new one</li>
+<li>Check the registry docs for each IAM resource you use — argument names, deprecations, new required fields</li>
+<li>Re-run <code>terraform plan</code> and confirm the diff matches your expectation</li>
+</ol>
+<p>A planned upgrade is the only kind that doesn't blow up at apply time.</p>
+<p><a id="cicd"></a></p>
+<h2>14. CI/CD Integration (Brief)</h2>
+<p>Running IAM Terraform from a CI/CD pipeline follows the same pattern as the tenant-level Terraform LAB (<strong>AUTOM-96</strong>) — with these IAM-specific adjustments:</p>
+<table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Tenant-level (AUTOM-96)</th>
+<th>IAM (this LAB)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Auth source</strong></td>
+<td>OIDC → Vault → Platform Token (<code>dt0s16</code>)</td>
+<td>OIDC → Vault → OAuth client credentials (<code>DT_CLIENT_ID</code> + <code>DT_CLIENT_SECRET</code>)</td>
+</tr>
+<tr>
+<td><strong>Required env vars</strong></td>
+<td><code>DYNATRACE_ENV_URL</code>, <code>DYNATRACE_PLATFORM_TOKEN</code> (or <code>DYNATRACE_API_TOKEN</code>), <code>DYNATRACE_HTTP_OAUTH_PREFERENCE=true</code></td>
+<td><code>DT_CLIENT_ID</code>, <code>DT_CLIENT_SECRET</code>, <code>DT_ACCOUNT_ID</code> (no <code>DYNATRACE_HTTP_OAUTH_PREFERENCE</code> needed — IAM is OAuth-only by construction)</td>
+</tr>
+<tr>
+<td><strong>State backend</strong></td>
+<td>Per-env state file (e.g. <code>s3://bucket/&lt;env&gt;/terraform.tfstate</code>)</td>
+<td>Single account-level state file (<code>s3://bucket/iam/terraform.tfstate</code>) — IAM is account-wide, not per-env</td>
+</tr>
+<tr>
+<td><strong>Plan-and-apply gate</strong></td>
+<td>PR comment with <code>terraform plan</code> output; protected environment for apply</td>
+<td>Same pattern, but apply gate should require <strong>second human approver</strong> — IAM changes affect every tenant in the account</td>
+</tr>
+<tr>
+<td><strong>Drift detection</strong></td>
+<td><code>terraform plan -detailed-exitcode</code> on a schedule</td>
+<td>Same — but more important here because UI changes to IAM trigger immediate revert on next apply (see §10 bindings caveat)</td>
+</tr>
+</tbody>
+</table>
+<p>For the full CI/CD pattern with worked YAML, see <strong>AUTOM-96 LAB: GitHub Actions CI/CD for Dynatrace Terraform</strong>. The auth-injection mechanics are the same — substitute OAuth client credentials for the Platform Token, drop the <code>DYNATRACE_HTTP_OAUTH_PREFERENCE</code> env var, and you have a working IAM pipeline.</p>
+<h3>Single SA writer rule applies</h3>
+<p>Per <strong>AUTOM-07 § Operational Model</strong>, your account should have a single Service Account (here: the OAuth client) that is the <strong>only writer</strong> of IAM via Terraform. Humans read-only via the UI; all changes flow through PRs → CI → apply by the SA. This makes the audit trail clean (every IAM change is a Git commit) and lets you turn off all human IAM writes at the IAM layer itself.</p>
+<p><a id="troubleshooting"></a></p>
+<h2>15. Troubleshooting HTTP 400 — <code>TF_LOG=DEBUG</code></h2>
+<p>When <code>terraform apply</code> fails on an IAM resource with <code>HTTP 400</code> and <strong>no error body</strong>, the provider has stripped Dynatrace's actual error message. To see what Dynatrace actually said, re-run with debug logging:</p>
+<pre><code class="language-bash">TF_LOG=DEBUG terraform apply 2&gt;&amp;1 | tee apply.log
+</code></pre>
+<p>Then search the log for <code>HTTP/2.0 400</code> (or <code>HTTP/1.1 400</code> for older Terraform versions):</p>
+<pre><code class="language-bash">grep -A 20 'HTTP/2.0 400' apply.log | less
+</code></pre>
+<p>The 20-line context window after the status line usually contains the JSON response body. Common patterns:</p>
+<table>
+<thead>
+<tr>
+<th>Error body fragment</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&quot;Invalid permission&quot;</code> + a token name</td>
+<td>Token is not a valid statement</td>
+<td>Check it against the IAM policy reference; <code>iam-list.sh</code> (§6) shows tokens your account already uses</td>
+</tr>
+<tr>
+<td><code>&quot;Boundary not found&quot;</code></td>
+<td>Boundary ID in a binding doesn't match a real boundary</td>
+<td>Check the binding's <code>boundaries = [...]</code> IDs against <code>terraform state list</code></td>
+</tr>
+<tr>
+<td><code>&quot;Group not found&quot;</code></td>
+<td>Group ID in a binding doesn't match a real group</td>
+<td>Same as above for groups</td>
+</tr>
+<tr>
+<td><code>&quot;Policy parse error&quot;</code></td>
+<td>DSL syntax error in <code>statement_query</code> (missing semicolon, malformed <code>WHERE</code>)</td>
+<td>Re-check the policy against the format in §5</td>
+</tr>
+</tbody>
+</table>
+<p>If the apply.log doesn't include the response body even with <code>TF_LOG=DEBUG</code>, also set:</p>
+<pre><code class="language-bash">export DYNATRACE_DEBUG=true
+export DYNATRACE_LOG_HTTP=terraform-provider-dynatrace.http.log
+TF_LOG=DEBUG terraform apply 2&gt;&amp;1 | tee apply.log
+</code></pre>
+<p><code>DYNATRACE_LOG_HTTP</code> writes a separate, complete HTTP transcript to a file alongside the run. <strong>Provider ≥ v1.101.0:</strong> the <code>DYNATRACE_HTTP_RESPONSE</code> switch that older versions of this LAB also set is gone — the <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases/tag/v1.101.0">v1.101.0 release notes (Dynatrace GitHub)</a> state <em>&quot;Removed the legacy HTTP client and the <code>DYNATRACE_HTTP_LEGACY</code> and <code>DYNATRACE_HTTP_RESPONSE</code> environment variables.&quot;</em> Whether v1.101+ still strips the error body was not re-verified on an apply for this revision — rely on <code>DYNATRACE_LOG_HTTP</code> for the full response.</p>
+<p><a id="gotchas"></a></p>
+<h2>16. Common Gotchas</h2>
+<p>Consolidated from §§ 4 through 14. Save this section for quick reference.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gotcha</th>
+<th>Why</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Platform Tokens and classic API tokens don't work for IAM</td>
+<td>IAM API requires OAuth2 bearer token; the provider enforces this per the resource docs</td>
+<td>Use OAuth client credentials (<code>DT_CLIENT_ID</code> + <code>DT_CLIENT_SECRET</code> + <code>DT_ACCOUNT_ID</code>) only</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>terraform validate</code> accepts invalid DSL</td>
+<td>The provider treats <code>statement_query</code> as an opaque string; Dynatrace parses at apply</td>
+<td>Check statements against the IAM policy reference before writing (§6, §8)</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>settings:objects:delete</code> doesn't exist</td>
+<td>DSL verb sets are per-service, not regular (verified: 133-policy dump returned 0 occurrences)</td>
+<td>Use <code>settings:objects:read</code> + <code>settings:objects:write</code>; add <code>settings:objects:admin</code> only for ownership bypass — alone it grants nothing</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>document:type = &quot;dashboard&quot;</code> WHERE predicate isn't supported</td>
+<td>Each statement accepts only the conditions the IAM policy reference lists for it; <code>document:documents:*</code> lists none</td>
+<td>Control document access per document (ownership, direct and environment shares) — not by policy condition or boundary</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>bindings_v2</code> re-assigns <strong>all</strong> policies on each apply</td>
+<td>Documented Dynatrace API behavior, not a Terraform bug</td>
+<td>Every policy that should remain bound must be in the bindings_v2 config</td>
+</tr>
+<tr>
+<td>6</td>
+<td>UI-added policies get wiped by next Terraform apply</td>
+<td>Same as #5</td>
+<td>Make Terraform the single writer of IAM; UI is read-only</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Brief window during apply where group has zero policies</td>
+<td>Re-assignment isn't atomic</td>
+<td>Schedule applies during low-impact windows for production</td>
+</tr>
+<tr>
+<td>8</td>
+<td>HTTP 400 with no error body</td>
+<td>Provider may not surface Dynatrace's error response</td>
+<td><code>TF_LOG=DEBUG</code> + <code>DYNATRACE_LOG_HTTP=&lt;file&gt;</code> (§15); <code>DYNATRACE_HTTP_RESPONSE</code> was removed in provider v1.101.0</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Export utility excludes IAM by default</td>
+<td><em>&quot;Account management requires OAuth2 client and is specific to SaaS&quot;</em></td>
+<td>Name the IAM resource types explicitly: <code>-export -flat -id dynatrace_iam_group dynatrace_iam_policy dynatrace_iam_policy_boundary dynatrace_iam_policy_bindings_v2</code></td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>DYNATRACE_ENV_URL</code> required at startup even for IAM-only export</td>
+<td>Provider initialization quirk; URL isn't used for IAM API calls</td>
+<td>Set to any valid tenant URL in the account</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Generated HCL is point-in-time</td>
+<td>Re-running <code>-export</code> produces fresh files, not incremental diffs</td>
+<td>Treat export as a discovery tool, not a sync mechanism</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Some resources have compound IDs (<code>UUID#-#account_uuid</code>)</td>
+<td>Resource-specific Dynatrace convention</td>
+<td>Use the full compound string from the source <code>id</code> when running <code>terraform import</code>, not just the UUID</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Argument names shift between provider releases</td>
+<td>IAM resources have had renames in past major releases</td>
+<td>Pin a version in <code>versions.tf</code>; read release notes before bumping (§13)</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Local state is a single point of compromise</td>
+<td>If state leaks, your IAM is exposed (and account UUID + group IDs are visible)</td>
+<td>Move to remote backend with at-rest encryption + IAM restrictions (AUTOM-09 §3)</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Greenfield accounts have no existing policies to copy from</td>
+<td><code>iam-list.sh</code> returns nothing on an empty account</td>
+<td>Build from the IAM policy reference; <code>ALLOW settings:objects:read, settings:schemas:read;</code> is a safe first policy</td>
+</tr>
+</tbody>
+</table>
+<p><a id="production"></a></p>
+<h2>17. Production Considerations</h2>
+<p>Before relying on this scaffold in production:</p>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Action</th>
+<th>Cross-reference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>State backend</strong></td>
+<td>Move from local state to remote (S3 with native locking / GCS / Azure Storage / HCP Terraform). Single account-level state file.</td>
+<td>AUTOM-09 §3</td>
+</tr>
+<tr>
+<td><strong>State encryption</strong></td>
+<td>At-rest encryption on the state bucket; IAM restriction so only the CI service principal can read</td>
+<td>AUTOM-09 §3</td>
+</tr>
+<tr>
+<td><strong>CI/CD</strong></td>
+<td>Plan-on-PR, apply-on-merge, environment-protected approval</td>
+<td>AUTOM-96 LAB</td>
+</tr>
+<tr>
+<td><strong>Single writer rule</strong></td>
+<td>OAuth client is the <em>only</em> writer of IAM via Terraform. UI is read-only for humans.</td>
+<td>AUTOM-07 § Single SA Writer</td>
+</tr>
+<tr>
+<td><strong>OAuth client rotation</strong></td>
+<td>OAuth client secret on the schedule your security policy sets (90 days is common community practice). Update the secret in your secret manager; no Terraform change needed.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Drift detection</strong></td>
+<td><code>terraform plan -detailed-exitcode</code> on a schedule; alert when exit code is 2 (drift detected)</td>
+<td>AUTOM-07 §3 <em>Drift Detection</em></td>
+</tr>
+<tr>
+<td><strong>Backup</strong></td>
+<td>Run <code>iam-export.sh</code> on a schedule into a backup repo — your account's state as committed HCL is a low-cost insurance policy</td>
+<td>§11</td>
+</tr>
+<tr>
+<td><strong>Account UUID + group IDs in code</strong></td>
+<td>These aren't secrets but they're identifying — treat the repo as &quot;internal&quot; rather than open-source</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Boundary conditions</strong></td>
+<td>Take conditions from the IAM policy reference (per statement); keep a per-account cheat-sheet of the boundaries you use, from <code>iam-list.sh</code> output</td>
+<td>§9</td>
+</tr>
+</tbody>
+</table>
+<p><a id="references"></a></p>
+<h2>18. References</h2>
+<h3>Provider documentation</h3>
+<ul>
+<li><a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest"><code>dynatrace-oss/dynatrace</code> provider (Terraform Registry)</a></li>
+<li><a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_group"><code>dynatrace_iam_group</code> resource (Dynatrace provider docs)</a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/iam_group.md"><code>iam_group.md</code> (Dynatrace GitHub)</a></li>
+<li><a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_policy"><code>dynatrace_iam_policy</code> resource (Dynatrace provider docs)</a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/iam_policy.md"><code>iam_policy.md</code> (Dynatrace GitHub)</a></li>
+<li><a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_policy_boundary"><code>dynatrace_iam_policy_boundary</code> resource (Dynatrace provider docs)</a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/iam_policy_boundary.md"><code>iam_policy_boundary.md</code> (Dynatrace GitHub)</a></li>
+<li><a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_policy_bindings_v2"><code>dynatrace_iam_policy_bindings_v2</code> resource (Dynatrace provider docs)</a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/iam_policy_bindings_v2.md"><code>iam_policy_bindings_v2.md</code> (Dynatrace GitHub)</a></li>
+<li><a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace">Provider GitHub repository (Dynatrace GitHub)</a> — <code>dynatrace/export/initialize.go</code> is the source-of-truth for export flags</li>
+<li><a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases">Provider releases (Dynatrace GitHub)</a> — read release notes before bumping pinned version</li>
+</ul>
+<h3>Dynatrace IAM documentation</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies">Manage user permissions: policies (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients">OAuth clients (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/terraform-cli-commands#export-configuration-from-a-dynatrace-environment-using-the-dynatrace-terraform-provider">Terraform CLI commands — Export utility (DT docs)</a></li>
+</ul>
+<h3>Adjacent AUTOM notebooks</h3>
+<ul>
+<li><strong>AUTOM-04</strong> — Terraform Provider lecture (provider config, combined auth, resource types overview)</li>
+<li><strong>AUTOM-07</strong> — CI/CD Integration (Single SA Writer rule; cross-platform CI/CD recipes)</li>
+<li><strong>AUTOM-09</strong> — Terraform GitOps Setup Recipe (state backends, modules, lifecycle protections)</li>
+<li><strong>AUTOM-96 LAB</strong> — GitHub Actions CI/CD for Dynatrace Terraform (full plan-and-apply pipeline)</li>
+<li><strong>AUTOM-98 LAB</strong> — Terraform for Dynatrace (general hands-on; this LAB-95 zooms in on IAM)</li>
+</ul>
+<hr />
+<p><em>Continue to <strong>AUTOM-09: Terraform GitOps Setup Recipe</strong> for state-backend setup and lifecycle protections that apply to IAM the same way they apply to tenant config; or <strong>AUTOM-96 LAB</strong> for the CI/CD pipeline pattern.</em></p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPMIG-06: Processing, Parsing &amp; Transformation</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPMIG — OpenPipeline Migration</a><span class="sep">/</span><span aria-current="page">OPMIG-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPMIG-06: Processing, Parsing &amp; Transformation</h1>
+<blockquote>
+<p><strong>Series:</strong> OPMIG — OpenPipeline Migration | <strong>Notebook:</strong> 6 of 10 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 10/30/2026</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#dql-processor-commands">DQL Processor Commands</a></li>
+<li><a href="#dynatrace-pattern-language-dpl">Dynatrace Pattern Language (DPL)</a></li>
+<li><a href="#real-world-log-format-examples-new">Real-World Log Format Examples ⭐ NEW</a></li>
+<li><a href="#common-parsing-patterns">Common Parsing Patterns</a></li>
+<li><a href="#data-transformation-examples">Data Transformation Examples</a></li>
+<li><a href="#parsing-pattern-library-new">Parsing Pattern Library ⭐ NEW</a></li>
+<li><a href="#elklogstash-migration-patterns-new">ELK/Logstash Migration Patterns ⭐ NEW</a></li>
+<li><a href="#technology-bundle-parsers">Technology Bundle Parsers</a></li>
+<li><a href="#drop-processors">Drop Processors</a></li>
+<li><a href="#advanced-processing-patterns">Advanced Processing Patterns</a></li>
+<li><a href="#validating-your-processing">Validating Your Processing</a></li>
+<li><a href="#dpl-architect-tool">DPL Architect Tool</a></li>
+<li><a href="#complete-processing-pipeline-example">Complete Processing Pipeline Example</a></li>
+</ol>
+<hr />
+<h2>Learning Objectives</h2>
+<p>By completing this notebook, you will:</p>
+<ol>
+<li>Master Dynatrace Pattern Language (DPL) for log parsing</li>
+<li>Configure DQL processors for data transformation</li>
+<li>⭐ <strong>NEW:</strong> Parse Apache, Nginx, and JSON logs with production-ready patterns</li>
+<li>⭐ <strong>NEW:</strong> Migrate from ELK/Logstash (Grok to DPL conversion)</li>
+<li>⭐ <strong>NEW:</strong> Use the complete Parsing Pattern Library (timestamps, stack traces, HTTP)</li>
+<li>Implement drop processors for cost optimization</li>
+<li>Validate parsing success rates and troubleshoot failures</li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS with Grail and OpenPipeline access — Managed is not covered by this series</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>settings:read</code> and <code>settings:write</code> (OpenPipeline configuration)</td>
+</tr>
+<tr>
+<td><strong>API Access</strong></td>
+<td><code>logs.read</code> token scope</td>
+</tr>
+<tr>
+<td><strong>DPL Architect</strong></td>
+<td>Access to <code>https://{env}.apps.dynatrace.com/ui/apps/dynatrace.dpl.architect</code></td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>OPMIG-01 through OPMIG-05; basic regex or pattern matching familiarity</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Processing Stage Overview</h2>
+<p>Masking, dropping, parsing and transformation are processors in the <strong>Processing</strong> stage — the first stage of every pipeline. The remaining stages (Smartscape node and edge, Permission, Product and Cost allocation, Bucket assignment, Metric extraction, Davis, Data extraction) follow in a fixed order that you cannot change; OPMIG-02 § <em>Understanding Processing Order</em> has the full ten-stage table. This notebook covers the Processing stage; OPMIG-07 covers extraction.</p>
+<h3>Processor Execution Order</h3>
+<p>Within the Processing stage, processors execute in the order they're defined, and <em>&quot;each processor output becomes the input for the next one.&quot;</em> You can reorder them in the UI.</p>
+<blockquote>
+<p>💡 <strong>Best Practice:</strong> Order processors logically — mask first, drop second, then parse, then enrich with computed fields based on parsed values.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — <em>&quot;The sequence of stages is fixed for all pipelines and cannot be modified.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<p><a id="dql-processor-commands"></a></p>
+<h2>DQL Processor Commands</h2>
+<p>The DQL processor supports a subset of DQL commands for data transformation.</p>
+<h3>Available Commands</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Purpose</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fieldsAdd</code></td>
+<td>Add new fields</td>
+<td><code>fieldsAdd env = &quot;production&quot;</code></td>
+</tr>
+<tr>
+<td><code>fieldsRemove</code></td>
+<td>Remove fields</td>
+<td><code>fieldsRemove sensitive_field</code></td>
+</tr>
+<tr>
+<td><code>fieldsRename</code></td>
+<td>Rename fields</td>
+<td><code>fieldsRename new_name = old</code></td>
+</tr>
+<tr>
+<td><code>parse</code></td>
+<td>Extract with DPL</td>
+<td><code>parse content, &quot;LD? 'count=' INT:count&quot;</code></td>
+</tr>
+<tr>
+<td><code>jsonExtract</code></td>
+<td>Lift a JSON string's root-level keys to fields</td>
+<td>JSON logs</td>
+</tr>
+<tr>
+<td><code>fieldsFlatten</code></td>
+<td>Flatten a nested record into fields</td>
+<td>after <code>parse … &quot;JSON:x&quot;</code></td>
+</tr>
+<tr>
+<td><code>fields</code> / <code>fieldsKeep</code></td>
+<td>Keep only the listed fields</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/openpipeline-dql-commands">DQL commands in OpenPipeline (DT docs)</a> — <em>&quot;jsonExtract Parses a JSON string and extracts the root-level keys of the JSON object to root-level record fields.&quot;</em></sub></p>
+</blockquote>
+<h3>fieldsAdd Examples</h3>
+<h4>Static Values</h4>
+<pre><code class="language-dql">fieldsAdd environment = &quot;production&quot;
+| fieldsAdd application = &quot;checkout-service&quot;
+| fieldsAdd team = &quot;platform-engineering&quot;
+</code></pre>
+<h4>Conditional Values (if/else)</h4>
+<pre><code class="language-dql">fieldsAdd severity = if(loglevel == &quot;ERROR&quot;, &quot;critical&quot;,
+                     else: if(loglevel == &quot;WARN&quot;, &quot;warning&quot;,
+                     else: &quot;info&quot;))
+</code></pre>
+<h4>Computed Values</h4>
+<pre><code class="language-dql">fieldsAdd message_length = stringLength(content)
+| fieldsAdd short_host = substring(host.name, from: 0, to: 15)
+| fieldsAdd is_error = loglevel == &quot;ERROR&quot;
+</code></pre>
+<h4>String Operations</h4>
+<pre><code class="language-dql">fieldsAdd normalized_status = lower(status)
+| fieldsAdd log_prefix = substring(content, from: 0, to: 50)
+| fieldsAdd clean_message = trim(content)
+</code></pre>
+<h4>Coalesce (First Non-Null)</h4>
+<pre><code class="language-dql">fieldsAdd effective_level = coalesce(loglevel, status, &quot;UNKNOWN&quot;)
+</code></pre>
+<h3>fieldsRemove Examples</h3>
+<pre><code class="language-dql">// Remove a single field
+fieldsRemove internal_id
+</code></pre>
+<pre><code class="language-dql">// Remove multiple fields in one command
+fieldsRemove temp_field, debug_info, internal_state
+</code></pre>
+<h3>fieldsRename Examples</h3>
+<pre><code class="language-dql">// Standardize field names
+fieldsRename user_id = userId
+| fieldsRename request_id = requestId
+| fieldsRename transaction_id = transactionId
+</code></pre>
+<hr />
+<p><a id="dynatrace-pattern-language-dpl"></a></p>
+<h2>Dynatrace Pattern Language (DPL)</h2>
+<p>DPL is a powerful pattern matching language for extracting structured data from text.</p>
+<h3>Core Matchers</h3>
+<table>
+<thead>
+<tr>
+<th>Matcher</th>
+<th>Description</th>
+<th>Matches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>INT</code></td>
+<td>Integer</td>
+<td><code>42</code>, <code>-17</code>, <code>0</code></td>
+</tr>
+<tr>
+<td><code>LONG</code></td>
+<td>Long integer</td>
+<td><code>1234567890123</code></td>
+</tr>
+<tr>
+<td><code>DOUBLE</code></td>
+<td>Decimal</td>
+<td><code>3.14</code>, <code>-0.5</code>, <code>1.0</code></td>
+</tr>
+<tr>
+<td><code>IPADDR</code></td>
+<td>IP address</td>
+<td><code>192.168.1.1</code>, <code>::1</code></td>
+</tr>
+<tr>
+<td><code>IPV4ADDR</code></td>
+<td>IPv4 only</td>
+<td><code>10.0.0.1</code></td>
+</tr>
+<tr>
+<td><code>IPV6ADDR</code></td>
+<td>IPv6 only</td>
+<td><code>2001:db8::1</code></td>
+</tr>
+<tr>
+<td><code>LD</code></td>
+<td>Line data (to delimiter)</td>
+<td>Any text until next match</td>
+</tr>
+<tr>
+<td><code>DATA</code></td>
+<td>Greedy match</td>
+<td>Everything remaining</td>
+</tr>
+<tr>
+<td><code>SPACE</code></td>
+<td>Whitespace</td>
+<td>Spaces, tabs</td>
+</tr>
+<tr>
+<td><code>NSPACE</code></td>
+<td>Non-whitespace</td>
+<td>Word-like content</td>
+</tr>
+<tr>
+<td><code>WORD</code></td>
+<td>Word chars</td>
+<td><code>hello</code>, <code>user123</code></td>
+</tr>
+<tr>
+<td><code>JSON</code></td>
+<td>JSON object</td>
+<td><code>{&quot;key&quot;: &quot;value&quot;}</code></td>
+</tr>
+<tr>
+<td><code>EOL</code></td>
+<td>End of line</td>
+<td>Line terminator</td>
+</tr>
+</tbody>
+</table>
+<h3>Pattern Syntax Elements</h3>
+<table>
+<thead>
+<tr>
+<th>Syntax</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MATCHER:field</code></td>
+<td>Extract to named field</td>
+<td><code>INT:count</code></td>
+</tr>
+<tr>
+<td><code>MATCHER</code></td>
+<td>Match but don't extract</td>
+<td><code>SPACE</code></td>
+</tr>
+<tr>
+<td><code>MATCHER?</code></td>
+<td>Optional match</td>
+<td><code>(':' INT:port)?</code></td>
+</tr>
+<tr>
+<td><code>'literal'</code></td>
+<td>Match exact text</td>
+<td><code>'error_code='</code></td>
+</tr>
+<tr>
+<td><code>(a|b)</code></td>
+<td>Alternatives</td>
+<td><code>('user='|'userId=')</code></td>
+</tr>
+<tr>
+<td><code>MATCHER{n,m}</code></td>
+<td>Bounds the characters the matcher consumes</td>
+<td><code>WORD{1,3}</code> on <code>hello</code> returns <code>hel</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Quantifier caveat:</strong> <code>{n,m}</code> is not universal. <code>INT</code> accepts only <code>*</code> and <code>+</code> —
+<code>INT{3}</code> is rejected. For fixed-width digit runs use a character class: <code>[0-9]{3}</code>.</p>
+</blockquote>
+<h3>Basic Parse Examples</h3>
+<pre><code class="language-dql">// Extract user ID after &quot;user=&quot;, anywhere in the line
+parse content, &quot;LD? 'user=' NSPACE:user_id&quot;
+
+// Extract error code (integer), anywhere in the line
+parse content, &quot;LD? 'error_code=' INT:error_code&quot;
+
+// Extract IP and port (line starts with the IP)
+parse content, &quot;IPADDR:client_ip ':' INT:port&quot;
+
+// Extract JSON payload
+parse content, &quot;LD? JSON:payload&quot;
+</code></pre>
+<blockquote>
+<p><strong>Three rules that decide whether a pattern returns anything</strong> (each verified with <code>data record(...)</code> on 10/02/2026):</p>
+<ol>
+<li><strong><code>parse</code> anchors at the start of the field.</strong> A pattern that opens with <code>'user='</code> returns <strong>null</strong> on every line that does not <em>begin</em> with <code>user=</code> — no error. Prefix it with <code>LD?</code> to skip any leading text (or none): <code>LD? 'user=' NSPACE:u</code> on <code>user=abc x</code> returns <code>abc</code>. At column 0 this can still go wrong: <code>LD? IPADDR:ip</code> on a line beginning with the IP returns <code>92.168.1.100</code>, and <code>LD? '&quot;' …</code> on a line beginning with <code>&quot;</code> returns null (run 10/30/2026). <code>parse</code> does <em>not</em> need to consume the whole field; trailing text is ignored.</li>
+<li><strong>A trailing <code>LD:x</code> runs to the end of the line</strong>, not the end of the value — <code>'requestId=' LD:id</code> on <code>requestId=abc-123 status=OK</code> returns <code>abc-123 status=OK</code>. End with <code>NSPACE:x</code>, a typed matcher, or a closing literal.</li>
+<li><strong><code>LD</code> never crosses a line break.</strong> In a multi-line record (a stack trace), <code>LD? 'at ' …</code> cannot reach line 2. Use <code>DATA? 'at ' …</code> for the first match, or <code>parseAll(content, &quot;…&quot;)</code> to collect every match as an array.</li>
+</ol>
+<p>FAQ-15 covers DPL matching semantics in depth.</p>
+</blockquote>
+<hr />
+<p><a id="real-world-log-format-examples-new"></a></p>
+<h2>Real-World Log Format Examples ⭐ NEW</h2>
+<p>Production-ready DPL patterns for the most common log formats.</p>
+<h3>Apache Access Logs (Common Log Format)</h3>
+<p><strong>Sample:</strong> <code>192.168.1.100 - frank [12/Dec/2024:10:30:45 +0000] &quot;GET /api/users HTTP/1.1&quot; 200 1234</code></p>
+<pre><code class="language-dql">parse content, &quot;&quot;&quot;
+  IPADDR:client_ip SPACE '-' SPACE LD:user SPACE
+  '[' TIMESTAMP('dd/MMM/yyyy:HH:mm:ss Z'):log_time ']' SPACE
+  '&quot;' LD:method SPACE LD:request_path SPACE LD:protocol '&quot;' SPACE
+  INT:status_code SPACE INT:response_bytes
+&quot;&quot;&quot;
+</code></pre>
+<p><strong>Extracted:</strong> client_ip, user, log_time, method, request_path, protocol, status_code, response_bytes</p>
+<h3>Nginx (with Response Time)</h3>
+<p><strong>Sample:</strong> <code>192.168.1.50 - - [12/Dec/2024:10:30:45 +0000] &quot;POST /api/checkout HTTP/1.1&quot; 201 456 &quot;-&quot; &quot;Mozilla/5.0&quot; &quot;0.342&quot;</code></p>
+<pre><code class="language-dql">parse content, &quot;&quot;&quot;
+  IPADDR:client_ip SPACE '-' SPACE '-' SPACE
+  '[' TIMESTAMP('dd/MMM/yyyy:HH:mm:ss Z'):log_time ']' SPACE
+  '&quot;' LD:method SPACE LD:request_path SPACE LD:protocol '&quot;' SPACE
+  INT:status_code SPACE INT:response_bytes SPACE
+  '&quot;' LD:referrer '&quot;' SPACE '&quot;' LD:user_agent '&quot;' SPACE
+  '&quot;' DOUBLE:response_time_sec '&quot;'
+&quot;&quot;&quot;
+| fieldsAdd response_time_ms = toLong(response_time_sec * 1000)
+</code></pre>
+<h3>JSON Application Logs</h3>
+<p><strong>Sample:</strong> <code>{&quot;timestamp&quot;:&quot;2024-12-12T10:30:45.123Z&quot;,&quot;level&quot;:&quot;ERROR&quot;,&quot;service&quot;:&quot;payment-api&quot;,&quot;message&quot;:&quot;Payment gateway timeout&quot;}</code></p>
+<p><strong>Option 1: <code>jsonExtract</code></strong> — lifts the root-level keys of the JSON in <code>content</code> to fields (OpenPipeline DQL processor command).</p>
+<p><strong>Option 2: Parse, then pick or flatten</strong></p>
+<pre><code class="language-dql">parse content, &quot;JSON:log_data&quot;
+| fieldsAdd service = log_data[service]
+| fieldsAdd message = log_data[message]
+| fieldsAdd level = log_data[level]
+</code></pre>
+<h3>Syslog (RFC 3164)</h3>
+<p><strong>Sample:</strong> <code>&lt;34&gt;Dec 12 10:30:45 webserver sshd[1234]: Failed password for admin from 192.168.1.100</code></p>
+<pre><code class="language-dql">parse content, &quot;&quot;&quot;
+  '&lt;' INT:priority '&gt;' 
+  TIMESTAMP('MMM dd HH:mm:ss'):log_time SPACE
+  LD:hostname SPACE LD:app_name '[' INT:pid ']:' SPACE
+  DATA:message
+&quot;&quot;&quot;
+// RFC 3164 timestamps carry no year: the parsed value gets the current year
+| fieldsAdd facility = toLong(priority / 8)
+| fieldsAdd severity = toLong(priority % 8)
+</code></pre>
+<h3>Java Application Logs (Log4j)</h3>
+<p><strong>Sample:</strong> <code>2024-12-12 10:30:45,123 [http-nio-8080-exec-5] ERROR com.example.Service - Payment failed</code></p>
+<pre><code class="language-dql">parse content, &quot;&quot;&quot;
+  TIMESTAMP('yyyy-MM-dd HH:mm:ss,SSS'):log_timestamp SPACE
+  '[' LD:thread ']' SPACE
+  LD:level SPACE LD:logger SPACE '-' SPACE
+  DATA:message
+&quot;&quot;&quot;
+</code></pre>
+<p><strong>Stack Trace Extraction:</strong></p>
+<pre><code class="language-dql">parse content, &quot;LD:exception_class ':' SPACE LD:exception_message EOL&quot;
+// Frames are on later lines, and LD stops at a line break — DATA? reaches the first frame
+| parse content, &quot;DATA? 'at ' LD:error_location '(' LD:file ':' INT:line_number ')'&quot;
+// or collect every frame as an array of records
+| fieldsAdd frames = parseAll(content, &quot;LD? 'at ' LD:method '(' LD:file ':' INT:line ')'&quot;)
+</code></pre>
+<h3>Kubernetes / Container Logs</h3>
+<p><strong>Sample:</strong> <code>2024-12-12T10:30:45.123456789Z stdout F {&quot;level&quot;:&quot;info&quot;,&quot;msg&quot;:&quot;Request processed&quot;}</code></p>
+<blockquote>
+<p>The <code>T</code> separator is written as a plain letter inside <code>TIMESTAMP('…')</code> — a quoted <code>\'T\'</code> is rejected (<em>Named pattern element 'T' is not valid</em>). The parsed value keeps millisecond precision.</p>
+</blockquote>
+<pre><code class="language-dql">parse content, &quot;&quot;&quot;
+  TIMESTAMP('yyyy-MM-ddTHH:mm:ss.SSSSSSSSSZ'):k8s_timestamp SPACE
+  LD:stream SPACE LD:log_tag SPACE
+  JSON:log_payload
+&quot;&quot;&quot;
+| fieldsAdd level = log_payload[level]
+| fieldsAdd msg = log_payload[msg]
+</code></pre>
+<hr />
+<hr />
+<p><a id="common-parsing-patterns"></a></p>
+<h2>Common Parsing Patterns</h2>
+<h3>Apache/Nginx Access Logs</h3>
+<p><strong>Sample log:</strong></p>
+<pre><code>192.168.1.100 - - [12/Dec/2024:10:30:45 +0000] &quot;GET /api/users HTTP/1.1&quot; 200 1234
+</code></pre>
+<p><strong>DPL Pattern:</strong></p>
+<pre><code class="language-dql">parse content, &quot;IPADDR:client_ip SPACE '-' SPACE LD:user SPACE '[' LD:log_time ']' SPACE '\&quot;' LD:method SPACE LD:path SPACE LD:protocol '\&quot;' SPACE INT:status_code SPACE INT:bytes&quot;
+</code></pre>
+<h3>Key-Value Logs</h3>
+<p><strong>Sample log:</strong></p>
+<pre><code>userId=12345, action=login, status=success, duration=150ms
+</code></pre>
+<p><strong>DPL Patterns:</strong></p>
+<pre><code class="language-dql">// Extract each key-value pair, wherever it sits in the line
+parse content, &quot;LD? 'userId=' INT:user_id&quot;
+| parse content, &quot;LD? 'action=' LD:action ','&quot;
+| parse content, &quot;LD? 'status=' LD:status ','&quot;
+| parse content, &quot;LD? 'duration=' INT:duration_ms 'ms'&quot;
+</code></pre>
+<h3>Flexible User ID Extraction</h3>
+<p><strong>Sample logs with varying formats:</strong></p>
+<pre><code>Processing request for user=john123
+User userId=john123 authenticated
+Request from user_id=john123 received
+</code></pre>
+<p><strong>DPL Pattern (alternatives):</strong></p>
+<pre><code class="language-dql">parse content, &quot;LD? ('user='|'userId='|'user_id=') NSPACE:user_id&quot;
+</code></pre>
+<h3>Timestamp Parsing</h3>
+<p><strong>DPL with timestamp format:</strong></p>
+<pre><code class="language-dql">parse content, &quot;TIMESTAMP('yyyy-MM-dd HH:mm:ss'):log_timestamp&quot;
+parse content, &quot;TIMESTAMP('dd/MMM/yyyy:HH:mm:ss Z'):apache_time&quot;
+</code></pre>
+<h3>Optional Fields</h3>
+<p><strong>Sample log:</strong></p>
+<pre><code>Request to server:8080 completed
+Request to server completed
+</code></pre>
+<p><strong>DPL Pattern (optional port):</strong></p>
+<pre><code class="language-dql">parse content, &quot;'Request to ' LD:server (':' INT:port)? ' completed'&quot;
+</code></pre>
+<h3>Stack Trace Extraction</h3>
+<p><strong>DPL Pattern:</strong></p>
+<pre><code class="language-dql">parse content, &quot;LD:exception_class ':' SPACE LD:exception_message&quot;
+// first line of the record only — LD stops at the line break
+</code></pre>
+<hr />
+<p><a id="data-transformation-examples"></a></p>
+<h2>Data Transformation Examples</h2>
+<h3>Example 1: Parse and Enrich Application Logs</h3>
+<p><strong>Input:</strong></p>
+<pre><code class="language-json">{&quot;content&quot;: &quot;[2024-12-12T10:30:45] ERROR PaymentService - Payment failed for orderId=12345, amount=99.99&quot;}
+</code></pre>
+<p><strong>Processor 1: Parse log structure</strong></p>
+<pre><code class="language-dql">parse content, &quot;'[' TIMESTAMP('yyyy-MM-ddTHH:mm:ss'):log_time ']' SPACE LD:level SPACE LD:service ' - ' DATA:message&quot;
+</code></pre>
+<p><strong>Processor 2: Extract payment details</strong></p>
+<pre><code class="language-dql">parse content, &quot;LD? 'orderId=' INT:order_id&quot;
+| parse content, &quot;LD? 'amount=' DOUBLE:amount&quot;
+</code></pre>
+<p><strong>Processor 3: Add computed fields</strong></p>
+<pre><code class="language-dql">fieldsAdd severity = if(level == &quot;ERROR&quot;, &quot;critical&quot;, else: &quot;normal&quot;)
+| fieldsAdd application_tier = &quot;payment&quot;
+</code></pre>
+<h3>Example 2: JSON Log Processing</h3>
+<p><strong>Input:</strong></p>
+<pre><code class="language-json">{&quot;content&quot;: &quot;{\&quot;level\&quot;:\&quot;info\&quot;,\&quot;msg\&quot;:\&quot;Request processed\&quot;,\&quot;duration_ms\&quot;:150}&quot;}
+</code></pre>
+<p><strong>Processor: Parse JSON and flatten</strong></p>
+<pre><code class="language-dql">parse content, &quot;JSON:json_data&quot;
+</code></pre>
+<p>To lift the keys to top-level fields, follow with <code>fieldsFlatten json_data</code> — or use <code>jsonExtract</code> instead of <code>parse</code>.</p>
+<h3>Example 3: Multi-Format Log Normalization</h3>
+<p><strong>Processor: Normalize different log level formats</strong></p>
+<pre><code class="language-dql">fieldsAdd normalized_level = if(contains(content, &quot;ERROR&quot;) OR contains(content, &quot;error&quot;), &quot;ERROR&quot;,
+                             else: if(contains(content, &quot;WARN&quot;) OR contains(content, &quot;warn&quot;), &quot;WARN&quot;,
+                             else: if(contains(content, &quot;INFO&quot;) OR contains(content, &quot;info&quot;), &quot;INFO&quot;,
+                             else: if(contains(content, &quot;DEBUG&quot;) OR contains(content, &quot;debug&quot;), &quot;DEBUG&quot;,
+                             else: &quot;UNKNOWN&quot;))))
+</code></pre>
+<hr />
+<p><a id="parsing-pattern-library-new"></a></p>
+<h2>Parsing Pattern Library ⭐ NEW</h2>
+<h3>Timestamp Patterns (10+ Formats)</h3>
+<table>
+<thead>
+<tr>
+<th>Format</th>
+<th>Example</th>
+<th>DPL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ISO 8601</td>
+<td><code>2024-12-12T10:30:45Z</code></td>
+<td><code>TIMESTAMP('yyyy-MM-ddTHH:mm:ssZ')</code></td>
+</tr>
+<tr>
+<td>ISO + MS</td>
+<td><code>2024-12-12T10:30:45.123Z</code></td>
+<td><code>TIMESTAMP('yyyy-MM-ddTHH:mm:ss.SSSZ')</code></td>
+</tr>
+<tr>
+<td>Apache</td>
+<td><code>12/Dec/2024:10:30:45 +0000</code></td>
+<td><code>TIMESTAMP('dd/MMM/yyyy:HH:mm:ss Z')</code></td>
+</tr>
+<tr>
+<td>Syslog</td>
+<td><code>Dec 12 10:30:45</code></td>
+<td><code>TIMESTAMP('MMM dd HH:mm:ss')</code></td>
+</tr>
+<tr>
+<td>Java</td>
+<td><code>2024-12-12 10:30:45,123</code></td>
+<td><code>TIMESTAMP('yyyy-MM-dd HH:mm:ss,SSS')</code></td>
+</tr>
+<tr>
+<td>MySQL</td>
+<td><code>2024-12-12 10:30:45</code></td>
+<td><code>TIMESTAMP('yyyy-MM-dd HH:mm:ss')</code></td>
+</tr>
+<tr>
+<td>Unix Epoch</td>
+<td><code>1702380645</code></td>
+<td><code>LONG:epoch</code> → <code>toTimestamp(epoch * 1000000000)</code> (a long is read as nanoseconds)</td>
+</tr>
+</tbody>
+</table>
+<h3>HTTP Request Patterns</h3>
+<pre><code class="language-dql">// Full request line (a literal &quot; inside the DQL string is escaped as \&quot;)
+parse content, &quot;LD? '\&quot;' LD:method SPACE LD:path SPACE LD:protocol '\&quot;'&quot;
+
+// Separate path and query
+parse content, &quot;LD? '\&quot;' LD:method SPACE LD:path ('?' LD:query)? SPACE LD:protocol '\&quot;'&quot;
+
+// RESTful API paths (/api/v1/users/12345)
+parse content, &quot;LD? '/api/v' INT:api_version '/' LD:resource '/' INT:id&quot;
+</code></pre>
+<h3>Key-Value Patterns</h3>
+<pre><code class="language-dql">// Simple: user=john count=42
+parse content, &quot;'user=' LD:user SPACE 'count=' INT:count&quot;
+
+// Quoted: user=&quot;John Doe&quot; email=&quot;john@example.com&quot;
+parse content, &quot;'user=\&quot;' LD:user '\&quot;' SPACE 'email=\&quot;' LD:email '\&quot;'&quot;
+
+// Logfmt: level=info msg=&quot;OK&quot; duration=150ms
+parse content, &quot;'level=' LD:level SPACE 'msg=\&quot;' LD:msg '\&quot;' SPACE 'duration=' INT:dur 'ms'&quot;
+</code></pre>
+<h3>Stack Trace Patterns</h3>
+<pre><code class="language-dql">// Java exception (first line)
+parse content, &quot;LD:exception_class ':' SPACE LD:exception_message EOL&quot;
+
+// Stack trace lines — every frame, as an array (LD cannot cross a line break)
+fieldsAdd frames = parseAll(content, &quot;LD? 'at ' LD:class_method '(' LD:file ':' INT:line ')'&quot;)
+
+// Caused by — anywhere in the record
+fieldsAdd causes = parseAll(content, &quot;'Caused by: ' LD:caused_by ':' SPACE LD:message&quot;)
+
+// Python traceback — first frame
+parse content, &quot;DATA? 'File \&quot;' LD:file '\&quot;, line ' INT:line ', in ' NSPACE:function&quot;
+</code></pre>
+<h3>PII Masking Patterns</h3>
+<p>Masking uses <code>replacePattern</code>, which takes a <strong>DPL</strong> pattern (not a regular expression — there is no <code>replaceAll</code> function). See OPMIG-08 for the full masking set.</p>
+<pre><code class="language-dql">// Credit cards (4111-1111-1111-1111 → ****-****-****-****); bounded so IDs and UUIDs are left alone
+fieldsAdd content = replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z-] CREDITCARD !&gt;&gt;[0-9A-Za-z-]&quot;, replacement: &quot;****-****-****-****&quot;)
+
+// Email addresses
+| fieldsAdd content = replacePattern(content, &quot;[a-zA-Z0-9._%+-]+ '@' [a-zA-Z0-9.-]+&quot;, replacement: &quot;***@***.***&quot;)
+
+// SSN (123-45-6789 → ***-**-****)
+| fieldsAdd content = replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z-] [0-9]{3} '-' [0-9]{2} '-' [0-9]{4} !&gt;&gt;[0-9A-Za-z-]&quot;, replacement: &quot;***-**-****&quot;)
+</code></pre>
+<p><strong>Partial masking (&quot;keep the last 4 digits&quot;)</strong> needs a lookahead, not a back-reference. <code>replacePattern</code> has no back-references, so the old <code>$4</code> example cannot be expressed, but a <code>&gt;&gt;</code> lookahead checks the last four digits without consuming them, so they survive the replacement. Bound both ends so the pattern cannot fire inside a longer number or an ID:</p>
+<pre><code class="language-dql">// 4111-1111-1111-1234 → ****-****-****-1234
+fieldsAdd content = replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z-] [0-9]{4} '-' [0-9]{4} '-' [0-9]{4} '-' &gt;&gt;([0-9]{4} !&gt;&gt;[0-9A-Za-z-])&quot;, replacement: &quot;****-****-****-&quot;)
+// 4111111111111234 → XXXXXXXXXXXX1234 (unbroken; the letter bound keeps hex IDs such as 3f2b9c1e4111111111111111aa intact)
+| fieldsAdd content = replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z-] [0-9]{12} &gt;&gt;([0-9]{4} !&gt;&gt;[0-9A-Za-z-])&quot;, replacement: &quot;XXXXXXXXXXXX&quot;)
+// 123-45-6789 → ***-**-6789
+| fieldsAdd content = replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z-] [0-9]{3} '-' [0-9]{2} '-' &gt;&gt;([0-9]{4} !&gt;&gt;[0-9A-Za-z-])&quot;, replacement: &quot;***-**-&quot;)
+</code></pre>
+<p>All three statements were run with <code>data record(...)</code> on 10/12/2026 and returned the values in the comments; <code>card=4111-1111-1111-1111, cvv=123</code> became <code>card=****-****-****-1111, cvv=123</code>.</p>
+<h3>Network Patterns</h3>
+<pre><code class="language-dql">// IP and port, anywhere in the line
+parse content, &quot;LD? IPADDR:ip ':' INT:port&quot;
+
+// IPv4 only
+parse content, &quot;LD? IPV4ADDR:ipv4&quot;
+
+// IPv6 only
+parse content, &quot;LD? IPV6ADDR:ipv6&quot;
+
+// URL parsing (an LD must be followed by something it can stop at, so the path starts at '/')
+parse content, &quot;LD:protocol '://' LD:hostname (':' INT:port)? '/' LD:path&quot;
+</code></pre>
+<p><code>LD?</code> can consume one character before a typed matcher that could also match further in: <code>LD? IPADDR:ip ':' INT:port</code> on <code>192.168.1.100:8080 rest</code> returns <code>92.168.1.100</code>, with no error. If the value can be at column 0, use <code>IPADDR:ip ':' INT:port</code> for those lines (run 10/30/2026).</p>
+<hr />
+<hr />
+<p><a id="elklogstash-migration-patterns-new"></a></p>
+<h2>ELK/Logstash Migration Patterns ⭐ NEW</h2>
+<h3>Grok vs. DPL: Key Differences</h3>
+<table>
+<thead>
+<tr>
+<th>Grok (Logstash)</th>
+<th>DPL (OpenPipeline)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>%{IP:client_ip}</code></td>
+<td><code>IPADDR:client_ip</code></td>
+</tr>
+<tr>
+<td><code>%{INT:count}</code></td>
+<td><code>INT:count</code></td>
+</tr>
+<tr>
+<td><code>%{WORD:user}</code></td>
+<td><code>WORD:user</code></td>
+</tr>
+<tr>
+<td><code>%{GREEDYDATA:msg}</code></td>
+<td><code>DATA:msg</code></td>
+</tr>
+<tr>
+<td><code>\\s+</code></td>
+<td><code>SPACE</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Apache Log Migration</h3>
+<p><strong>Grok:</strong> <code>%{COMBINEDAPACHELOG}</code></p>
+<p><strong>DPL:</strong></p>
+<pre><code class="language-dql">parse content, &quot;&quot;&quot;
+  IPADDR:client_ip SPACE LD:ident SPACE LD:auth SPACE
+  '[' TIMESTAMP('dd/MMM/yyyy:HH:mm:ss Z'):log_time ']' SPACE
+  '&quot;' LD:method SPACE LD:request_path (SPACE LD:http_version)? '&quot;' SPACE
+  INT:status_code SPACE (INT:response_bytes | '-') SPACE
+  '&quot;' LD:referrer '&quot;' SPACE '&quot;' LD:user_agent '&quot;'
+&quot;&quot;&quot;
+</code></pre>
+<h3>Logstash Filter → OpenPipeline Mapping</h3>
+<table>
+<thead>
+<tr>
+<th>Logstash Filter</th>
+<th>OpenPipeline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>grok { }</code></td>
+<td>DQL parse processor</td>
+</tr>
+<tr>
+<td><code>mutate { add_field }</code></td>
+<td><code>fieldsAdd field = &quot;value&quot;</code></td>
+</tr>
+<tr>
+<td><code>mutate { remove_field }</code></td>
+<td><code>fieldsRemove field</code></td>
+</tr>
+<tr>
+<td><code>mutate { rename }</code></td>
+<td><code>fieldsRename new = old</code></td>
+</tr>
+<tr>
+<td><code>drop { }</code></td>
+<td>Drop processor</td>
+</tr>
+<tr>
+<td><code>json { }</code></td>
+<td><code>jsonExtract</code>, or <code>parse content, &quot;JSON:x&quot;</code> + <code>fieldsFlatten x</code></td>
+</tr>
+<tr>
+<td><code>date { }</code></td>
+<td>TIMESTAMP in parse</td>
+</tr>
+</tbody>
+</table>
+<h3>Complete Migration Example</h3>
+<p><strong>Logstash:</strong></p>
+<pre><code class="language-ruby">filter {
+  if [level] == &quot;DEBUG&quot; { drop { } }
+  grok { match =&gt; { &quot;message&quot; =&gt; &quot;%{TIMESTAMP_ISO8601:ts} %{LOGLEVEL:level} %{GREEDYDATA:msg}&quot; } }
+  mutate { add_field =&gt; { &quot;env&quot; =&gt; &quot;production&quot; } }
+}
+</code></pre>
+<p><strong>OpenPipeline:</strong></p>
+<ol>
+<li>Drop processor: <code>loglevel == &quot;DEBUG&quot;</code></li>
+<li>DQL parse: <code>parse content, &quot;TIMESTAMP('yyyy-MM-ddTHH:mm:ss.SSSZ'):ts SPACE LD:level SPACE DATA:msg&quot;</code></li>
+<li>DQL add: <code>fieldsAdd env = &quot;production&quot;</code></li>
+</ol>
+<hr />
+<hr />
+<p><a id="technology-bundle-parsers"></a></p>
+<h2>Technology Bundle Parsers</h2>
+<p>The <strong>Technology bundle</strong> processor applies a library of predefined processors for a selected technology. The documented library is grouped by category, for example:</p>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Examples from the library</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Servers</td>
+<td>Apache HTTP (access, error logs), Nginx (access, error log), Apache Tomcat, HAProxy</td>
+</tr>
+<tr>
+<td>Syslog</td>
+<td>RFC 3164, RFC 5424, Generic, Cisco switch</td>
+</tr>
+<tr>
+<td>Applications</td>
+<td>Java (Spring Boot, Slf4j, Log4j, Logback, Util Logging, exception stack trace), Node.js, Go</td>
+</tr>
+<tr>
+<td>AWS / Azure</td>
+<td>API Gateway, CloudFront, EKS control plane, AKS, and more</td>
+</tr>
+</tbody>
+</table>
+<p>There is no generic &quot;JSON&quot; bundle — for JSON logs use <code>jsonExtract</code> or <code>parse … &quot;JSON:x&quot;</code> in a DQL processor. The fields a bundle adds are defined by the bundle; check its output on a sample record before you rely on a field name.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-processing/lma-tech-bundles-processors">Technology bundle processors for logs (DT docs)</a> — <em>&quot;The following table lists the technology bundles available in OpenPipeline.&quot;</em> (library read 10/02/2026).</sub></p>
+</blockquote>
+<h3>When to Use Technology Parsers</h3>
+<table>
+<thead>
+<tr>
+<th>Use Technology Parser</th>
+<th>Use Custom DQL/DPL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Standard log format</td>
+<td>Custom/proprietary format</td>
+</tr>
+<tr>
+<td>Quick setup needed</td>
+<td>Specific field extraction</td>
+</tr>
+<tr>
+<td>Common technology</td>
+<td>Conditional parsing</td>
+</tr>
+<tr>
+<td>All fields needed</td>
+<td>Selective extraction</td>
+</tr>
+</tbody>
+</table>
+<h3>Configuring Technology Parsers</h3>
+<ol>
+<li>Open pipeline in OpenPipeline settings</li>
+<li>Go to the <strong>Processing</strong> stage</li>
+<li>Click <strong>+ Processor</strong> → <strong>Technology bundle</strong></li>
+<li>Select the technology</li>
+<li>Configure matching condition</li>
+<li>Save</li>
+</ol>
+<hr />
+<p><a id="drop-processors"></a></p>
+<h2>Drop Processors</h2>
+<p>Drop processors remove records from the pipeline before storage.</p>
+<h3>Common Drop Patterns</h3>
+<table>
+<thead>
+<tr>
+<th>Use Case</th>
+<th>Matching Condition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Debug logs</td>
+<td><code>loglevel == &quot;DEBUG&quot;</code></td>
+</tr>
+<tr>
+<td>Trace logs</td>
+<td><code>loglevel == &quot;TRACE&quot;</code></td>
+</tr>
+<tr>
+<td>Health checks</td>
+<td><code>matchesValue(content, &quot;*health*&quot;)</code></td>
+</tr>
+<tr>
+<td>Readiness probes</td>
+<td><code>matchesValue(content, &quot;*/ready*&quot;)</code></td>
+</tr>
+<tr>
+<td>Metrics endpoints</td>
+<td><code>matchesValue(content, &quot;*/metrics*&quot;)</code></td>
+</tr>
+<tr>
+<td>Heartbeats</td>
+<td><code>matchesPhrase(content, &quot;heartbeat&quot;)</code></td>
+</tr>
+<tr>
+<td>Specific source</td>
+<td><code>log.source == &quot;noisy-service&quot;</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Matching conditions accept <code>matchesValue</code> (with <code>*</code> wildcards, any substring) and <code>matchesPhrase</code> (whole tokens); <code>contains()</code> is not enabled in a matcher.</p>
+</blockquote>
+<h3>Drop Processor Configuration</h3>
+<pre><code>Processor Type: Drop
+Name: Drop debug logs
+Matching Condition: loglevel == &quot;DEBUG&quot;
+</code></pre>
+<h3>Combining Drop Conditions</h3>
+<pre><code>// Drop all non-essential logs
+loglevel == &quot;DEBUG&quot; 
+  OR loglevel == &quot;TRACE&quot; 
+  OR matchesValue(content, &quot;*health*&quot;) 
+  OR matchesValue(content, &quot;*/metrics*&quot;)
+</code></pre>
+<blockquote>
+<p>⚠️ <strong>Important:</strong> Dropped data is gone forever. Test drop conditions carefully before deploying.</p>
+</blockquote>
+<hr />
+<p><a id="advanced-processing-patterns"></a></p>
+<h2>Advanced Processing Patterns</h2>
+<h3>Pattern 1: Fix Missing Timestamp</h3>
+<p>When logs have a custom timestamp format that's not recognized:</p>
+<pre><code class="language-dql">// Parse timestamp from content
+parse content, &quot;'[' TIMESTAMP('yyyy-MM-dd HH:mm:ss'):parsed_timestamp ']'&quot;
+</code></pre>
+<p>Parse into a <strong>new</strong> field (<code>parsed_timestamp</code>, <code>log_time</code>). Overwriting <code>timestamp</code> risks the record failing log schema validation — a stored log must have a <code>timestamp</code> <em>&quot;Within the ingestion range&quot;</em>, and one that is not is dropped. Set <code>timestamp</code> deliberately and only from a parsed <code>TIMESTAMP</code> value.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits">OpenPipeline limits (DT docs)</a> — <em>Schema validation for logs</em>: <em>&quot;A processed log record is persisted only if all the following field conditions are satisfied. If the schema is not valid, the log is dropped.&quot;</em></sub></p>
+</blockquote>
+<h3>Pattern 2: Fix Missing Log Level</h3>
+<p>When logs don't have a standard loglevel field:</p>
+<pre><code class="language-dql">// Extract level from content
+fieldsAdd loglevel = if(contains(content, &quot;[ERROR]&quot;) OR contains(content, &quot;ERROR:&quot;), &quot;ERROR&quot;,
+                     else: if(contains(content, &quot;[WARN]&quot;) OR contains(content, &quot;WARN:&quot;), &quot;WARN&quot;,
+                     else: if(contains(content, &quot;[INFO]&quot;) OR contains(content, &quot;INFO:&quot;), &quot;INFO&quot;,
+                     else: if(contains(content, &quot;[DEBUG]&quot;) OR contains(content, &quot;DEBUG:&quot;), &quot;DEBUG&quot;,
+                     else: &quot;NONE&quot;))))
+</code></pre>
+<h3>Pattern 3: Parse JSON from Within Text</h3>
+<p>When JSON is embedded in a log message:</p>
+<pre><code class="language-dql">// Extract JSON from text (trailing text after the JSON is ignored)
+parse content, &quot;LD? JSON:embedded_json&quot;
+</code></pre>
+<h3>Pattern 4: Compute Response Time Categories</h3>
+<pre><code class="language-dql">fieldsAdd response_category = if(duration_ms &lt; 100, &quot;fast&quot;,
+                              else: if(duration_ms &lt; 500, &quot;normal&quot;,
+                              else: if(duration_ms &lt; 1000, &quot;slow&quot;,
+                              else: &quot;very_slow&quot;)))
+</code></pre>
+<h3>Pattern 5: Standardize Boolean Fields</h3>
+<pre><code class="language-dql">fieldsAdd is_success = if(status == &quot;success&quot; OR status == &quot;ok&quot; OR status == &quot;200&quot;, true, else: false)
+</code></pre>
+<h3>Pattern 6: Extract Service Name from Path</h3>
+<pre><code class="language-dql">// From &quot;GET /api/v1/users HTTP/1.1&quot; → users
+parse content, &quot;LD? '/api/v' INT '/' NSPACE:service_name&quot;
+</code></pre>
+<hr />
+<p><a id="validating-your-processing"></a></p>
+<h2>Validating Your Processing</h2>
+<p>After configuring processors, validate that parsing is working correctly.</p>
+<pre><code class="language-dql">// Check parsing success rate across all pipelines
+// loglevel and status are never null: a record with no detected level reads NONE
+fetch logs, from: now() - 1h
+| summarize {
+    total = count(),
+    with_loglevel = countIf(loglevel != &quot;NONE&quot;)
+  }
+| fieldsAdd parsing_rate = round((toDouble(with_loglevel) / toDouble(total)) * 100, decimals: 1)
+</code></pre>
+<pre><code class="language-dql">// Parsing success rate by pipeline
+fetch logs, from: now() - 1h
+| filter isNotNull(dt.openpipeline.pipelines)
+| summarize {
+    total = count(),
+    parsed = countIf(loglevel != &quot;NONE&quot;)
+  }, by: {dt.openpipeline.pipelines}
+| fieldsAdd parsing_rate = round((toDouble(parsed) / toDouble(total)) * 100, decimals: 1)
+| sort parsing_rate asc
+</code></pre>
+<pre><code class="language-dql">// Sample logs that failed parsing (no level detected: loglevel is NONE)
+fetch logs, from: now() - 1h
+| filter loglevel == &quot;NONE&quot;
+| fields timestamp, log.source, dt.openpipeline.pipelines, content
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Verify specific parsed fields exist
+// Replace 'your_field' with fields your parsing should create
+fetch logs, from: now() - 1h
+| filter isNotNull(dt.openpipeline.pipelines)
+| summarize {
+    total = count(),
+    with_user_id = countIf(isNotNull(user_id)),
+    with_request_id = countIf(isNotNull(request_id))
+  }, by: {dt.openpipeline.pipelines}
+</code></pre>
+<pre><code class="language-dql">// Sample successfully parsed logs to verify field extraction
+fetch logs, from: now() - 1h
+| filter loglevel != &quot;NONE&quot;
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Verify drop processors are working
+// If drops are configured, debug log count should be low
+fetch logs, from: now() - 1h
+| summarize {debug_count = countIf(loglevel == &quot;DEBUG&quot;)}
+| fieldsAdd message = if(debug_count == 0, &quot;✅ Drop processor working - no debug logs&quot;,
+                       else: &quot;⚠️ Debug logs still present - check drop configuration&quot;)
+</code></pre>
+<pre><code class="language-dql">// Check log level distribution after processing
+fetch logs, from: now() - 1h
+| summarize {log_count = count()}, by: {loglevel}
+| sort log_count desc
+</code></pre>
+<hr />
+<p><a id="dpl-architect-tool"></a></p>
+<h2>DPL Architect Tool</h2>
+<p>Dynatrace provides a <strong>DPL Architect</strong> tool for building and testing patterns:</p>
+<h3>Accessing DPL Architect</h3>
+<ol>
+<li>Navigate to <strong>Settings → OpenPipeline</strong></li>
+<li>When adding a parse processor, click <strong>Open DPL Architect</strong></li>
+<li>Or access via: <code>https://{your-environment}.apps.dynatrace.com/ui/apps/dynatrace.dpl.architect</code></li>
+</ol>
+<h3>Using DPL Architect</h3>
+<ol>
+<li>Paste sample log content</li>
+<li>Build pattern interactively</li>
+<li>See extracted fields in real-time</li>
+<li>Copy pattern to processor definition</li>
+</ol>
+<blockquote>
+<p>💡 <strong>Tip:</strong> Always test patterns in DPL Architect before deploying to production pipelines.</p>
+</blockquote>
+<hr />
+<p><a id="complete-processing-pipeline-example"></a></p>
+<h2>Complete Processing Pipeline Example</h2>
+<h3>Pipeline: <code>application-logs</code></h3>
+<p><strong>Processor 1: Drop Debug (Drop)</strong></p>
+<pre><code>Matching: loglevel == &quot;DEBUG&quot; OR matchesValue(content, &quot;*[DEBUG]*&quot;)
+</code></pre>
+<p><strong>Processor 2: Parse Application Log (DQL)</strong></p>
+<pre><code class="language-dql">parse content, &quot;'[' TIMESTAMP('yyyy-MM-dd HH:mm:ss'):log_ts ']' SPACE '[' LD:level ']' SPACE '[' LD:thread ']' SPACE LD:class ' - ' DATA:message&quot;
+</code></pre>
+<p><strong>Processor 3: Extract Request ID (DQL)</strong></p>
+<pre><code class="language-dql">parse content, &quot;LD? 'requestId=' NSPACE:request_id&quot;
+</code></pre>
+<p><strong>Processor 4: Add Environment Tags (DQL)</strong></p>
+<pre><code class="language-dql">fieldsAdd environment = &quot;production&quot;
+| fieldsAdd application = &quot;checkout-service&quot;
+| fieldsAdd team = &quot;platform&quot;
+</code></pre>
+<p><strong>Processor 5: Compute Severity (DQL)</strong></p>
+<pre><code class="language-dql">fieldsAdd severity = if(level == &quot;ERROR&quot;, &quot;P1&quot;,
+                     else: if(level == &quot;WARN&quot;, &quot;P2&quot;,
+                     else: &quot;P3&quot;))
+</code></pre>
+<hr />
+<h2>Next Steps</h2>
+<p>Now that you can transform data, continue with:</p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Focus Area</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OPMIG-07</strong></td>
+<td>Metric &amp; Event Extraction</td>
+</tr>
+<tr>
+<td><strong>OPMIG-08</strong></td>
+<td>Security, Masking &amp; Compliance</td>
+</tr>
+<tr>
+<td><strong>OPMIG-09</strong></td>
+<td>Troubleshooting &amp; Validation</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">OpenPipeline Processing</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases">Processing Examples</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language">Dynatrace Pattern Language</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/dpl-architect">DPL Architect Tool</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/openpipeline-dql-functions">DQL Functions in OpenPipeline</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

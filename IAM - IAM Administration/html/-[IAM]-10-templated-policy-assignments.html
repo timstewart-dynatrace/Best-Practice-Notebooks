@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IAM-10: Templated Policy-Group Assignments</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">IAM — IAM Administration</a><span class="sep">/</span><span aria-current="page">IAM-10</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>IAM-10: Templated Policy-Group Assignments</h1>
+<blockquote>
+<p><strong>Series:</strong> IAM — IAM Administration | <strong>Notebook:</strong> 10 of 12 | <strong>Created:</strong> February 2026 | <strong>Last Updated:</strong> 11/10/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Parameterized policies eliminate the need to duplicate policies for every team, bucket, or security context. Instead of creating 20 nearly-identical policies for 20 teams, you create <strong>one policy template</strong> with <code>${bindParam:...}</code> placeholders and supply different values when binding the policy to each group.</p>
+<p>This notebook walks you through the complete lifecycle: template syntax, UI creation, IAM API binding, Monaco automation, common patterns, DQL audit queries, and troubleshooting.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#why-policy-templates">Why Policy Templates?</a></li>
+<li><a href="#template-syntax">Template Syntax Deep Dive</a></li>
+<li><a href="#creating-via-ui">Creating a Parameterized Policy via UI</a></li>
+<li><a href="#binding-via-api">Binding with Parameters via IAM API</a></li>
+<li><a href="#monaco-policy-as-code">Monaco YAML for Policy-as-Code</a></li>
+<li><a href="#common-template-patterns">Common Template Patterns</a></li>
+<li><a href="#dql-audit-queries">DQL Audit Queries</a></li>
+<li><a href="#troubleshooting-templated-policies">Troubleshooting Templated Policies</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Gen3 IAM enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>account-user-management</code> to create/modify policies and bindings</td>
+</tr>
+<tr>
+<td><strong>API Access</strong></td>
+<td>OAuth client (bearer token) with IAM management scopes — the Account Management API is secured by OAuth 2.0 tokens</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td><strong>IAM-04: Policy Authoring and Management</strong> (policy syntax, conditions)</td>
+</tr>
+<tr>
+<td><strong>Optional</strong></td>
+<td>Monaco CLI installed (for policy-as-code section)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="why-policy-templates"></a></p>
+<h2>1. Why Policy Templates?</h2>
+<h3>The Problem: Policy Sprawl</h3>
+<p>Without templates, every team that needs scoped data access requires its own dedicated policy. For an organization with 15 teams, that means:</p>
+<ul>
+<li><strong>15 nearly-identical policies</strong> to create</li>
+<li><strong>15 policies to maintain</strong> when permissions change</li>
+<li><strong>15 policies to audit</strong> during compliance reviews</li>
+</ul>
+<h3>The Solution: Parameterized Policies</h3>
+<p>With templates, you create <strong>one policy</strong> with <code>${bindParam:...}</code> placeholders and create <strong>15 bindings</strong> with different parameter values:</p>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Policies</th>
+<th>Bindings</th>
+<th>Maintenance Points</th>
+<th>Audit Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Without Templates</strong></td>
+<td>15</td>
+<td>15</td>
+<td>15 policies to update</td>
+<td>15 policies to review</td>
+</tr>
+<tr>
+<td><strong>With Templates</strong></td>
+<td>1</td>
+<td>15</td>
+<td>1 policy to update</td>
+<td>1 template + bindings</td>
+</tr>
+</tbody>
+</table>
+<h3>When to Use Templates vs Static Policies</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Multiple teams need identical permissions with different scopes</td>
+<td><strong>Use template</strong></td>
+</tr>
+<tr>
+<td>Single team with unique requirements</td>
+<td>Static policy</td>
+</tr>
+<tr>
+<td>Environment-based access (prod/staging/dev)</td>
+<td><strong>Use template</strong></td>
+</tr>
+<tr>
+<td>One-off admin or auditor policy</td>
+<td>Static policy</td>
+</tr>
+<tr>
+<td>Large-scale MZ migration (many MZs)</td>
+<td><strong>Use template</strong> (see <strong>MZ2POL-08</strong>)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="template-syntax"></a></p>
+<h2>2. Template Syntax Deep Dive</h2>
+<h3>The <code>${bindParam:...}</code> Placeholder</h3>
+<p>Bind parameters are placeholders in the <strong>WHERE condition</strong> of a policy statement. They are replaced with actual values when the policy is bound to a group.</p>
+<p><strong>Syntax:</strong> <code>${bindParam:parameter-name}</code></p>
+<p><strong>Rules:</strong></p>
+<ul>
+<li>Parameters appear <strong>only</strong> in WHERE condition values — <em>&quot;Parameters can be used in a policy similarly to how regular condition values are used.&quot;</em></li>
+<li>In community practice, teams treat parameter names as case-sensitive and keep them to alphanumeric characters and hyphens — the templating page states no naming rules, so verify a new name with a test binding</li>
+</ul>
+<h3>Single Parameter Example</h3>
+<pre><code>ALLOW storage:logs:read WHERE storage:dt.security_context = &quot;${bindParam:team}&quot;;
+</code></pre>
+<p>When bound with <code>{&quot;parameters&quot;: {&quot;team&quot;: &quot;checkout&quot;}}</code>, this resolves to:</p>
+<pre><code>ALLOW storage:logs:read WHERE storage:dt.security_context = &quot;checkout&quot;;
+</code></pre>
+<h3>Multiple Parameters Example</h3>
+<pre><code>ALLOW storage:logs:read
+  WHERE storage:dt.security_context = &quot;${bindParam:team}&quot;
+  AND storage:bucket-name = &quot;${bindParam:bucket}&quot;;
+</code></pre>
+<p>Binding: <code>{&quot;parameters&quot;: {&quot;team&quot;: &quot;checkout&quot;, &quot;bucket&quot;: &quot;checkout_logs&quot;}}</code></p>
+<h3>Multi-Statement Template</h3>
+<p>A single template can grant access across multiple data types using the same parameter:</p>
+<pre><code>ALLOW storage:buckets:read;
+ALLOW storage:logs:read WHERE storage:dt.security_context = &quot;${bindParam:team}&quot;;
+ALLOW storage:spans:read WHERE storage:dt.security_context = &quot;${bindParam:team}&quot;;
+ALLOW storage:metrics:read WHERE storage:dt.security_context = &quot;${bindParam:team}&quot;;
+ALLOW settings:objects:read WHERE settings:dt.security_context = &quot;${bindParam:team}&quot;;
+</code></pre>
+<p>All four scoped statements resolve using the <strong>same</strong> <code>team</code> parameter value from the binding.</p>
+<blockquote>
+<p><strong>Every Grail read also needs <code>storage:buckets:read</code>.</strong> It is <em>&quot;Required additionally to a table permission&quot;</em> — a policy that grants <code>storage:logs:read</code> alone returns no records. It is shown unconditional here because it does not take <code>dt.security_context</code>; it accepts only <code>storage:bucket-name</code>, <code>storage:table-name</code> and <code>storage:query-consumption</code>, so the record-level scope still comes from the table permissions below it. The templates in this notebook all include it.</p>
+</blockquote>
+<h3>Where Parameters Can Be Used</h3>
+<p>The templating page does not publish a per-field support list. It says a parameter goes wherever a regular condition value goes, so the conditions each permission accepts — and the operators each condition supports — are the ones in the IAM policy statement reference. The fields this notebook parameterizes:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Domain</th>
+<th>Operators to watch</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>storage:dt.security_context</code></td>
+<td>Storage (logs, spans, metrics, events)</td>
+<td>Use <code>MATCH</code> where the field can hold an array — <code>=</code>, <code>STARTSWITH</code> and <code>IN</code> on an array always return false</td>
+</tr>
+<tr>
+<td><code>storage:bucket-name</code></td>
+<td>Storage (bucket-level)</td>
+<td>The only storage condition that supports negation</td>
+</tr>
+<tr>
+<td><code>settings:dt.security_context</code></td>
+<td>Settings objects</td>
+<td><code>=</code>, <code>IN</code>, <code>startsWith</code></td>
+</tr>
+<tr>
+<td><code>settings:schemaId</code></td>
+<td>Settings schema</td>
+<td></td>
+</tr>
+<tr>
+<td><code>environment:management-zone</code></td>
+<td>Classic entity access</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating">Policy templating (DT docs)</a> — <em>&quot;Parameters can be used in a policy similarly to how regular condition values are used.&quot;</em>, <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements (DT docs)</a> — <code>storage:buckets:read</code>: <em>&quot;Required additionally to a table permission.&quot;</em>, <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a> — <em>&quot;Using <code>=</code>, <code>STARTSWITH</code> or <code>IN</code> when the field holds an array will always return <code>false</code>.&quot;</em></sub></p>
+</blockquote>
+<p><a id="creating-via-ui"></a></p>
+<h2>3. Creating a Parameterized Policy via UI</h2>
+<h3>Step-by-Step</h3>
+<ol>
+<li>Navigate to <strong>Account Management</strong> → <strong>Identity &amp; Access Management</strong> → <strong>Policies</strong></li>
+<li>Click <strong>Create policy</strong></li>
+<li>Enter the policy name using the naming convention: <code>tpl-&lt;scope&gt;-&lt;permission&gt;</code></li>
+<li>Enter a description that mentions it is parameterized (e.g., &quot;Parameterized: read access scoped to team security context&quot;)</li>
+<li>Paste the parameterized policy statement with <code>${bindParam:...}</code> placeholders</li>
+<li>Click <strong>Save</strong></li>
+</ol>
+<p>Dynatrace recognizes the bind parameters in the saved policy, but parameter <strong>values</strong> cannot be supplied from the group screens: <em>&quot;Currently, group management does not support binding policies with parameters.&quot;</em> Create the binding through the Account Management API (Section 4) or Terraform (<strong>IAM-95</strong>).</p>
+<h3>Naming Convention for Template Policies</h3>
+<table>
+<thead>
+<tr>
+<th>Convention</th>
+<th>Example</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tpl-team-data-reader</code></td>
+<td>Team-scoped read access</td>
+<td>Read logs, spans, metrics by security context</td>
+</tr>
+<tr>
+<td><code>tpl-team-data-editor</code></td>
+<td>Team-scoped read+write</td>
+<td>Full data access by security context</td>
+</tr>
+<tr>
+<td><code>tpl-env-data-reader</code></td>
+<td>Environment-scoped read</td>
+<td>Read access by environment</td>
+</tr>
+<tr>
+<td><code>tpl-bucket-reader</code></td>
+<td>Bucket-scoped read</td>
+<td>Read access by bucket name</td>
+</tr>
+<tr>
+<td><code>tpl-full-three-domain</code></td>
+<td>Full MZ replacement</td>
+<td>All three domains scoped by parameter</td>
+</tr>
+</tbody>
+</table>
+<h3>Verification</h3>
+<p>After saving, the policy should appear in the policy list. Bind it with the API calls in Section 4 — group management in the UI cannot bind a parameterized policy.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating">Policy templating (DT docs)</a> — <em>&quot;Currently, group management does not support binding policies with parameters.&quot;</em></sub></p>
+</blockquote>
+<p><a id="binding-via-api"></a></p>
+<h2>4. Binding with Parameters via IAM API</h2>
+<p>Binding a parameterized policy is an <strong>API</strong> operation — <em>&quot;Currently, group management does not support binding policies with parameters&quot;</em> — so the IAM API (or Terraform, <strong>IAM-95</strong>) is the only path, at any scale.</p>
+<h3>API Endpoints</h3>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Method</th>
+<th>Endpoint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>List policies</td>
+<td>GET</td>
+<td><code>/iam/v1/repo/{levelType}/{levelId}/policies</code></td>
+</tr>
+<tr>
+<td>List bindings</td>
+<td>GET</td>
+<td><code>/iam/v1/repo/{levelType}/{levelId}/bindings/{policyUuid}</code></td>
+</tr>
+<tr>
+<td>Create binding</td>
+<td>POST</td>
+<td><code>/iam/v1/repo/{levelType}/{levelId}/bindings/{policyUuid}/{groupUuid}</code></td>
+</tr>
+<tr>
+<td>Delete binding</td>
+<td>DELETE</td>
+<td><code>/iam/v1/repo/{levelType}/{levelId}/bindings/{policyUuid}/{groupUuid}</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Authentication:</strong> OAuth 2.0 bearer token issued to an OAuth client with IAM management scopes. The Account Management API documents OAuth tokens only — classic API tokens are not an option.</p>
+<h3>Step 1: Find Policy UUID</h3>
+<pre><code class="language-bash">curl -X GET \
+  'https://api.dynatrace.com/iam/v1/repo/account/&lt;ACCOUNT_UUID&gt;/policies' \
+  -H 'Authorization: Bearer &lt;TOKEN&gt;'
+</code></pre>
+<p>Look for your template policy name (e.g., <code>tpl-team-data-reader</code>) in the response and note its <code>uuid</code>.</p>
+<h3>Step 2: Find Group UUID</h3>
+<pre><code class="language-bash">curl -X GET \
+  'https://api.dynatrace.com/iam/v1/accounts/&lt;ACCOUNT_UUID&gt;/groups' \
+  -H 'Authorization: Bearer &lt;TOKEN&gt;'
+</code></pre>
+<h3>Step 3: Create Binding with Parameters</h3>
+<pre><code class="language-bash">curl -X POST \
+  'https://api.dynatrace.com/iam/v1/repo/account/&lt;ACCOUNT_UUID&gt;/bindings/&lt;POLICY_UUID&gt;/&lt;GROUP_UUID&gt;' \
+  -H 'Authorization: Bearer &lt;TOKEN&gt;' \
+  -H 'Content-Type: application/json' \
+  -d '{&quot;parameters&quot;: {&quot;team&quot;: &quot;checkout&quot;}}'
+</code></pre>
+<h3>Step 4: Verify Binding</h3>
+<pre><code class="language-bash">curl -X GET \
+  'https://api.dynatrace.com/iam/v1/repo/account/&lt;ACCOUNT_UUID&gt;/bindings/&lt;POLICY_UUID&gt;' \
+  -H 'Authorization: Bearer &lt;TOKEN&gt;'
+</code></pre>
+<h3>Bulk Binding: Multiple Teams</h3>
+<p>Bind the same template to multiple groups with different parameter values:</p>
+<pre><code class="language-bash">#!/bin/bash
+ACCOUNT_UUID=&quot;&lt;your-account-uuid&gt;&quot;
+POLICY_UUID=&quot;&lt;team-reader-template-uuid&gt;&quot;
+TOKEN=&quot;&lt;bearer-token&gt;&quot;
+API_BASE=&quot;https://api.dynatrace.com/iam/v1/repo/account/${ACCOUNT_UUID}&quot;
+
+declare -A TEAM_GROUPS=(
+  [&quot;checkout&quot;]=&quot;&lt;group-uuid-checkout&gt;&quot;
+  [&quot;payments&quot;]=&quot;&lt;group-uuid-payments&gt;&quot;
+  [&quot;catalog&quot;]=&quot;&lt;group-uuid-catalog&gt;&quot;
+  [&quot;search&quot;]=&quot;&lt;group-uuid-search&gt;&quot;
+  [&quot;frontend&quot;]=&quot;&lt;group-uuid-frontend&gt;&quot;
+)
+
+for team in &quot;${!TEAM_GROUPS[@]}&quot;; do
+  GROUP_UUID=&quot;${TEAM_GROUPS[$team]}&quot;
+  echo &quot;Binding template to ${team} (${GROUP_UUID})...&quot;
+  curl -s -X POST \
+    &quot;${API_BASE}/bindings/${POLICY_UUID}/${GROUP_UUID}&quot; \
+    -H &quot;Authorization: Bearer ${TOKEN}&quot; \
+    -H 'Content-Type: application/json' \
+    -d &quot;{\&quot;parameters\&quot;: {\&quot;team\&quot;: \&quot;${team}\&quot;}}&quot; \
+    -o /dev/null -w &quot;  HTTP %{http_code}  (204 = bound; 400 'already exists' = already converged)\n&quot;
+done
+</code></pre>
+<blockquote>
+<p><strong>Tip:</strong> Success is <strong>HTTP 204</strong> with an empty body. Re-posting an identical binding returns <strong>400</strong> &quot;such binding already exists&quot; — treat it as converged, not as a failure (<strong>IAM-96</strong> Step 7, live-verified).</p>
+</blockquote>
+<blockquote>
+<p><strong>Full working example:</strong> For a complete script that creates groups, policies across all three domains (UI + Data + Config), and binds everything together for a four-persona model, see the <strong>End-to-End Provisioning Script</strong> in <strong>IAM-11: Policy Persona Workshop</strong>.</p>
+</blockquote>
+<p><a id="monaco-policy-as-code"></a></p>
+<h2>5. Monaco YAML for Policy-as-Code</h2>
+<p>Version-controlled, peer-reviewed, CI/CD-deployed IAM configuration.</p>
+<h3>What Monaco Can and Cannot Express</h3>
+<p>Monaco manages IAM as <strong>account resources</strong> — <code>policies:</code>, <code>groups:</code> and <code>boundaries:</code> are dedicated top-level YAML types (not Settings schemas), deployed with Monaco's dedicated account commands rather than <code>monaco deploy</code>. Its documented account format covers policies, groups, boundaries and the policy-to-group binding with boundaries — but <strong>not binding <code>parameters</code></strong>. Bind templated (<code>${bindParam:…}</code>) policies with their parameter values through the IAM API (Section 4) or Terraform (<strong>IAM-95</strong>); use Monaco for the policy text itself and for unparameterized bindings.</p>
+<h3>Project Structure</h3>
+<pre><code>iam-config/
+├── manifest.yaml          # includes an accounts: section with the OAuth client
+└── account/
+    └── iam.yaml           # policies:, boundaries:, groups:
+</code></pre>
+<h3>Policy Template YAML</h3>
+<pre><code class="language-yaml"># account/iam.yaml
+policies:
+  - name: tpl-team-data-reader
+    id: tpl-team-data-reader
+    level:
+      type: account
+    description: &quot;Parameterized: read access scoped to ${bindParam:team}&quot;
+    policy: |-
+      ALLOW storage:buckets:read;
+      ALLOW storage:logs:read WHERE storage:dt.security_context = &quot;${bindParam:team}&quot;;
+      ALLOW storage:spans:read WHERE storage:dt.security_context = &quot;${bindParam:team}&quot;;
+      ALLOW storage:metrics:read WHERE storage:dt.security_context = &quot;${bindParam:team}&quot;;
+</code></pre>
+<p>The bindings that give <code>team</code> its value — <code>checkout</code> for one group, <code>payments</code> for another — are then created with the IAM API calls in Section 4 or the <code>dynatrace_iam_policy_bindings_v2</code> resource in <strong>IAM-95</strong>, both of which accept <code>parameters</code>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/account-configuration">Monaco account configuration (DT docs)</a> — <em>&quot;Using Monaco, you can define users, service users, groups, policies, and boundaries as dedicated types in YAML configuration files.&quot;</em> and <em>&quot;existing commands like <code>monaco deploy</code> ignore any account configuration that may be defined in a manifest file.&quot;</em>, <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas">Monaco commands (DT docs)</a> — <code>account</code> with <code>deploy</code>: <em>&quot;Deploy Account Management resources.&quot;</em></sub></p>
+</blockquote>
+<h3>GitOps Workflow</h3>
+<ol>
+<li><strong>Branch</strong> — Create feature branch for IAM change</li>
+<li><strong>Edit</strong> — Modify policy or binding YAML</li>
+<li><strong>Review</strong> — Submit PR, get peer review from IAM admin</li>
+<li><strong>Test</strong> — Deploy to a test account with <code>monaco account deploy</code> — <em>&quot;existing commands like <code>monaco deploy</code> ignore any account configuration&quot;</em></li>
+<li><strong>Approve</strong> — Merge after validation</li>
+<li><strong>Deploy</strong> — CI/CD applies to production</li>
+</ol>
+<p>See <strong>AUTOM-03: Monaco</strong> for the full automation workflow.</p>
+<p><a id="common-template-patterns"></a></p>
+<h2>6. Common Template Patterns</h2>
+<h3>Pattern 1: Team-Scoped Data Access</h3>
+<p>The most common pattern — scope all data access by team security context.</p>
+<pre><code>ALLOW storage:buckets:read;
+ALLOW storage:logs:read WHERE storage:dt.security_context = &quot;${bindParam:team}&quot;;
+ALLOW storage:spans:read WHERE storage:dt.security_context = &quot;${bindParam:team}&quot;;
+ALLOW storage:metrics:read WHERE storage:dt.security_context = &quot;${bindParam:team}&quot;;
+</code></pre>
+<p><strong>Binding:</strong> <code>{&quot;parameters&quot;: {&quot;team&quot;: &quot;checkout&quot;}}</code> or <code>{&quot;parameters&quot;: {&quot;team&quot;: &quot;payments&quot;}}</code></p>
+<h3>Pattern 2: Environment-Scoped Access</h3>
+<p>Scope access by environment (prod, staging, dev).</p>
+<pre><code>ALLOW storage:buckets:read;
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
+      storage:events:read, storage:bizevents:read
+  WHERE storage:dt.security_context = &quot;${bindParam:environment}&quot;;
+ALLOW settings:objects:read WHERE settings:dt.security_context = &quot;${bindParam:environment}&quot;;
+</code></pre>
+<p><strong>Binding:</strong> <code>{&quot;parameters&quot;: {&quot;environment&quot;: &quot;prod&quot;}}</code> or <code>{&quot;parameters&quot;: {&quot;environment&quot;: &quot;staging&quot;}}</code></p>
+<h3>Pattern 3: Bucket-Scoped Team Isolation</h3>
+<p>Hard data isolation using dedicated buckets per team.</p>
+<pre><code>ALLOW storage:buckets:read WHERE storage:bucket-name = &quot;${bindParam:log-bucket}&quot;;
+ALLOW storage:buckets:read WHERE storage:bucket-name = &quot;${bindParam:span-bucket}&quot;;
+ALLOW storage:buckets:read WHERE storage:bucket-name = &quot;${bindParam:metric-bucket}&quot;;
+ALLOW storage:logs:read WHERE storage:bucket-name = &quot;${bindParam:log-bucket}&quot;;
+ALLOW storage:spans:read WHERE storage:bucket-name = &quot;${bindParam:span-bucket}&quot;;
+ALLOW storage:metrics:read WHERE storage:bucket-name = &quot;${bindParam:metric-bucket}&quot;;
+</code></pre>
+<p><strong>Binding:</strong> <code>{&quot;parameters&quot;: {&quot;log-bucket&quot;: &quot;checkout_logs&quot;, &quot;span-bucket&quot;: &quot;checkout_spans&quot;, &quot;metric-bucket&quot;: &quot;checkout_metrics&quot;}}</code></p>
+<h3>Pattern 4: Combined Team + Environment</h3>
+<p>Defense-in-depth: require both team and bucket match.</p>
+<pre><code>ALLOW storage:buckets:read WHERE storage:bucket-name = &quot;${bindParam:bucket}&quot;;
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
+      storage:events:read, storage:bizevents:read
+  WHERE storage:dt.security_context = &quot;${bindParam:team}&quot;
+  AND storage:bucket-name = &quot;${bindParam:bucket}&quot;;
+</code></pre>
+<p><strong>Binding:</strong> <code>{&quot;parameters&quot;: {&quot;team&quot;: &quot;checkout&quot;, &quot;bucket&quot;: &quot;prod_checkout_logs&quot;}}</code></p>
+<h3>Pattern 5: Settings Schema Scoped</h3>
+<p>Grant access to specific settings categories.</p>
+<pre><code>ALLOW settings:objects:read, settings:objects:write
+  WHERE settings:schemaId startsWith &quot;${bindParam:schema-prefix}&quot;;
+</code></pre>
+<p><strong>Binding:</strong> <code>{&quot;parameters&quot;: {&quot;schema-prefix&quot;: &quot;builtin:openpipeline.logs.&quot;}}</code> for a log-processing team</p>
+<p><code>{&quot;parameters&quot;: {&quot;schema-prefix&quot;: &quot;builtin:alerting&quot;}}</code> works only on <strong>Dynatrace Classic</strong>: alerting profiles, maintenance windows and problem notifications are not visible in Latest Dynatrace. There, an alerting team needs <code>automation:workflows:*</code> for notifications and <code>builtin:davis.anomaly-detectors</code> for custom alerts (IAM-04 Pattern 6).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas">Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)</a> — <em>&quot;None of the schemas on this page are visible in Latest Dynatrace.&quot;</em></sub></p>
+</blockquote>
+<h3>Pattern 6: Full Three-Domain (MZ Replacement)</h3>
+<p>Complete replacement of a Management Zone — covers entity, data, and settings access.</p>
+<pre><code>ALLOW storage:buckets:read;
+ALLOW storage:entities:read WHERE storage:dt.security_context = &quot;${bindParam:scope}&quot;;
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
+      storage:events:read, storage:bizevents:read
+  WHERE storage:dt.security_context = &quot;${bindParam:scope}&quot;;
+ALLOW settings:objects:read, settings:objects:write
+  WHERE settings:dt.security_context = &quot;${bindParam:scope}&quot;;
+</code></pre>
+<blockquote>
+<p><strong>Storage writes cannot be condition-scoped (live-verified 07/2026)</strong> — <code>storage:*</code> wildcards are rejected, and <code>storage:logs:write WHERE ...</code> fails with <code>Invalid condition name</code>. Grant <code>storage:logs:write, storage:metrics:write, storage:events:write</code> unscoped in a separate policy only where genuinely needed.</p>
+</blockquote>
+<blockquote>
+<p><strong><code>storage:entities:read</code> takes no <code>MATCH</code>.</strong> Its conditions are <code>storage:entity.type</code> and <code>storage:dt.security_context</code>, each with <code>=</code>, <code>IN</code> and <code>startsWith</code> only — and <em>&quot;entity permissions only allow filtering for the <code>dt.security_context</code> field.&quot;</em> Because <code>=</code> on an array-valued field always returns false, confirm the entities you need carry a single-valued security context (the coverage queries in Section 7) before relying on this line.</p>
+</blockquote>
+<p>For classic entity-level restriction through management zones, combine it with a <strong>boundary</strong> using the same scope.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a> — <em>&quot;In contrast to monitoring data, entity permissions only allow filtering for the <code>dt.security_context</code> field.&quot;</em> and <em>&quot;Using <code>=</code>, <code>STARTSWITH</code> or <code>IN</code> when the field holds an array will always return <code>false</code>.&quot;</em></sub></p>
+</blockquote>
+<p><strong>Binding:</strong> <code>{&quot;parameters&quot;: {&quot;scope&quot;: &quot;LOB5&quot;}}</code> or <code>{&quot;parameters&quot;: {&quot;scope&quot;: &quot;team-frontend&quot;}}</code></p>
+<blockquote>
+<p><strong>For MZ migration at scale</strong>, see <strong>MZ2POL-08: Templated Policies for MZ Migration</strong> which covers converting MZ patterns to these templates.</p>
+</blockquote>
+<h3>Pattern Summary</h3>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Parameters</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Team-Scoped</td>
+<td><code>team</code></td>
+<td>Team data isolation via security context</td>
+</tr>
+<tr>
+<td>Environment-Scoped</td>
+<td><code>environment</code></td>
+<td>Environment-based access control</td>
+</tr>
+<tr>
+<td>Bucket-Scoped</td>
+<td><code>log-bucket</code>, <code>span-bucket</code>, <code>metric-bucket</code></td>
+<td>Bucket-level isolation for retention, cost or compliance — buckets are <em>&quot;not intended as the primary mechanism for securing or segmenting data access&quot;</em></td>
+</tr>
+<tr>
+<td>Combined</td>
+<td><code>team</code>, <code>bucket</code></td>
+<td>Defense-in-depth (team + bucket)</td>
+</tr>
+<tr>
+<td>Settings Schema</td>
+<td><code>schema-prefix</code></td>
+<td>Capability-based settings access</td>
+</tr>
+<tr>
+<td>Three-Domain</td>
+<td><code>scope</code></td>
+<td>Full MZ replacement</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data">Partition data (DT docs)</a> — <em>&quot;They are not intended as the primary mechanism for securing or segmenting data access.&quot;</em></sub></p>
+</blockquote>
+<p><a id="dql-audit-queries"></a></p>
+<h2>7. DQL Audit Queries</h2>
+<p>Use these queries to verify that templated policy bindings are working correctly and to audit policy-related API activity.</p>
+<blockquote>
+<p><strong>Group, policy, boundary and binding changes are account-level, and this environment's audit events are not their change log.</strong> <em>&quot;Dynatrace provides audit logs of changes to your account-level identity and access (IAM) management settings&quot;</em> — <em>&quot;Administrators can view these logs in Account Management &gt; Settings &gt; Audit log&quot;</em>, where they are kept for up to ten years (also queryable through the Account Audits API). The same page says <em>&quot;The Account Management audit log doesn't yet cover every account-level change. Some IAM configuration and login events aren't recorded.&quot;</em> The query below shows IAM API calls made <strong>through this environment</strong> — useful for spotting automation, not a change log. These events show IAM API calls made through this environment, including environment-level policy-binding changes; scheduled <code>/lookups/iam_*</code> file uploads are excluded by the query. Account-level group and policy changes are recorded in the account audit log.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/account-management/audit-logs">Account Management audit logs (DT docs)</a>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// IAM API activity in this environment (binding changes made in Account Management: account audit log)
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter in(event.type, {&quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;CREATE&quot;, &quot;UPDATE&quot;}) and contains(resource, &quot;iam&quot;)
+| filter not startsWith(resource, &quot;/lookups/&quot;)
+| fields timestamp, user.id, event.type, resource, event.outcome
+| sort timestamp desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// Find access denied events that may indicate parameter misconfiguration
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter event.outcome == &quot;403&quot;
+| summarize denials = count(), by:{resource, user.id}
+| sort denials desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Verify security context coverage — entities need context for template binding to work
+fetch dt.entity.service
+| summarize
+    total = count(),
+    withContext = countIf(isNotNull(dt.security_context)),
+    missingContext = countIf(isNull(dt.security_context))
+| fields total, withContext, missingContext,
+         coveragePercent = round(100.0 * withContext / total, decimals: 2)
+
+// Smartscape note (dt.entity.* is deprecated but still functional): dt.security_context exists
+// on Smartscape nodes but as an ARRAY (empty [] when unset, not null), so isNull / isNotNull
+// and by:{dt.security_context} do not carry over — a Smartscape rewrite would miscount coverage.
+// Keep the classic query above.
+</code></pre>
+<pre><code class="language-dql">// Verify security context values match expected team parameters
+fetch dt.entity.service
+| filter isNotNull(dt.security_context)
+| summarize count = count(), by:{dt.security_context}
+| sort count desc
+
+// Smartscape note (dt.entity.* is deprecated but still functional): dt.security_context exists
+// on Smartscape nodes but as an ARRAY (empty [] when unset, not null), so isNull / isNotNull
+// and by:{dt.security_context} do not carry over — a Smartscape rewrite would miscount coverage.
+// Keep the classic query above.
+</code></pre>
+<p><a id="troubleshooting-templated-policies"></a></p>
+<h2>8. Troubleshooting Templated Policies</h2>
+<h3>Common Issues</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Symptom</th>
+<th>Cause</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Parameter not resolved</td>
+<td>Access denied despite binding</td>
+<td>Parameter name mismatch (case-sensitive)</td>
+<td>Verify parameter name matches exactly between policy and binding</td>
+</tr>
+<tr>
+<td>Binding not applied</td>
+<td>No access at all</td>
+<td>Missing binding POST call</td>
+<td>Verify binding exists via GET bindings endpoint</td>
+</tr>
+<tr>
+<td>Wrong scope</td>
+<td>User sees too much or too little</td>
+<td>Parameter value incorrect</td>
+<td>Check binding parameter values via API</td>
+</tr>
+<tr>
+<td>Template edit rejected</td>
+<td>Saving a bound policy fails</td>
+<td>The edit adds, removes or renames a parameter</td>
+<td><em>&quot;Modification of bound policies is allowed only if the parameter set doesn't change.&quot;</em> Keep the parameter names, or create a new template and re-bind</td>
+</tr>
+<tr>
+<td>One group needs several scopes</td>
+<td>Separate bindings per scope pile up</td>
+<td>Each binding carries one value per parameter</td>
+<td>Use a <strong>list parameter</strong>: write the condition with <code>IN (&quot;${bindParam:teams}&quot;)</code> and bind <em>&quot;a comma-separated list within a single string value&quot;</em> — e.g. <code>{&quot;parameters&quot;: {&quot;teams&quot;: &quot;checkout,payments&quot;}}</code></td>
+</tr>
+<tr>
+<td>Multiple parameters misaligned</td>
+<td>Partial access</td>
+<td>One parameter correct, another wrong</td>
+<td>Check all parameter values in binding response</td>
+</tr>
+</tbody>
+</table>
+<h3>Debugging Checklist</h3>
+<ol>
+<li><strong>Verify policy exists</strong> and contains <code>${bindParam:...}</code> syntax</li>
+<li><strong>Verify group UUID</strong> is correct (list groups via API)</li>
+<li><strong>Verify binding exists</strong> (GET bindings endpoint — check response includes your group)</li>
+<li><strong>Verify parameter values</strong> in the binding response match expected values</li>
+<li><strong>Verify security context</strong> on target entities matches the parameter value</li>
+<li><strong>Test with admin account</strong> to confirm the data exists</li>
+<li><strong>Check audit logs</strong> for denied events (use DQL queries above)</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating">Policy templating (DT docs)</a> — <em>&quot;Modification of bound policies is allowed only if the parameter set doesn't change&quot;</em>; list values are assigned by <em>&quot;providing a comma-separated list within a single string value.&quot;</em></sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Tip:</strong> Use the GET bindings endpoint to dump all bindings for a policy and programmatically compare parameter values against expected values. This catches typos and mismatches quickly.</p>
+</blockquote>
+<p>For comprehensive IAM troubleshooting, see <strong>IAM-09: Troubleshooting Access Issues</strong>.</p>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Why policy templates reduce policy sprawl and simplify management</li>
+<li>The <code>${bindParam:parameter-name}</code> syntax and where it can be used</li>
+<li>How to create parameterized policies via the Dynatrace UI</li>
+<li>How to bind policies with parameters using the IAM API (including bulk operations)</li>
+<li>Monaco YAML patterns for policy-as-code with templates</li>
+<li>Six common template patterns for team, environment, and bucket scoping</li>
+<li>DQL audit queries to verify bindings are working</li>
+<li>Troubleshooting methodology for parameterized policies</li>
+</ul>
+<h2>Next Steps</h2>
+<ul>
+<li><strong>IAM-05: Boundary Design Patterns</strong> — Combine templated policies with boundaries for defense in depth</li>
+<li><strong>IAM-07: Audit Logging and Compliance</strong> — Set up ongoing audit monitoring for policy bindings</li>
+<li><strong>AUTOM-03: Monaco</strong> — Full Monaco configuration automation workflow</li>
+<li><strong>MZ2POL-08: Templated Policies for MZ Migration</strong> — Apply templates to MZ migration at scale</li>
+<li><strong>IAM-11: Policy Persona Workshop</strong> — Map organizational personas to policy templates using a structured design methodology. Design your persona model, then use <strong>IAM-12</strong> for the provisioning scripts that creates groups, policies (UI + Data + Config), and templated bindings for a four-persona model via the IAM API.</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating">Policy Templating</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/policy-management-api">Policy Management API</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies">Working with Policies</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM Policy Statement Syntax</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

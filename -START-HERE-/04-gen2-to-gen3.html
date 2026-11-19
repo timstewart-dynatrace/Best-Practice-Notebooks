@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doorway 4 — Classic → Gen3 Platform</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../">Best Practice Notebooks</a><span class="sep">/</span><a href="./">Start here</a><span class="sep">/</span><span aria-current="page">Doorway 4 — Classic → Gen3 Platform</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1 id="doorway-4--classic--gen3-platform">Doorway 4 — Classic → Gen3 Platform</h1>
+<blockquote>
+<p><strong>Purpose:</strong> Reading order for existing Dynatrace SaaS customers moving off classic surfaces onto platform equivalents — management zones used as permissions, metric events, alerting profiles, classic dashboards, Classic Logs, USQL. Same tenant, same deployment model; what changes is which surface you operate.
+<strong>Last Updated:</strong> 09/29/2026</p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImRuIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPkRvb3J3YXkgNCDigJQgQ2xhc3NpYyB0byBHZW4zIFBsYXRmb3JtPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPlNhbWUgdGVuYW50LCBzYW1lIGRlcGxveW1lbnQg4oCUIHdoYXQgY2hhbmdlcyBpcyB0aGUgc3VyZmFjZSB5b3Ugb3BlcmF0ZTwvdGV4dD4KICA8dGV4dCB4PSI1MiIgeT0iMTY4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIiB0cmFuc2Zvcm09InJvdGF0ZSgtOTAgNTIgMTY4KSI+Q0xBU1NJQzwvdGV4dD4KICA8dGV4dCB4PSI1MiIgeT0iMzE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIiB0cmFuc2Zvcm09InJvdGF0ZSgtOTAgNTIgMzE0KSI+R0VOMzwvdGV4dD4KICA8cmVjdCB4PSI5MCIgeT0iNzgiIHdpZHRoPSIxMjAiIGhlaWdodD0iMjQiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMTUiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjE1MCIgeT0iOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPjAgwrcgVW5kZXJzdGFuZDwvdGV4dD4KICA8cmVjdCB4PSI5MCIgeT0iMTE4IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIxNTAiIHk9IjE1OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMCI+Q2xhc3NpYyBVSTwvdGV4dD4KICA8dGV4dCB4PSIxNTAiIHk9IjE3NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMCI+RW50aXR5IG1vZGVsPC90ZXh0PgogIDxsaW5lIHgxPSIxNTAiIHkxPSIyMjQiIHgyPSIxNTAiIHkyPSIyNTIiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZG4pIi8+CiAgPHJlY3QgeD0iOTAiIHk9IjI1OCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxMTIiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTUwIiB5PSIzMDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiPkdyYWlsIHN0b3JhZ2U8L3RleHQ+CiAgPHRleHQgeD0iMTUwIiB5PSIzMjMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiPlNtYXJ0c2NhcGU8L3RleHQ+CiAgPHJlY3QgeD0iMjI4IiB5PSI3OCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIyNCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4xNSIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMjg4IiB5PSI5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+MSDCtyBBY2Nlc3M8L3RleHQ+CiAgPHJlY3QgeD0iMjI4IiB5PSIxMTgiIHdpZHRoPSIxMjAiIGhlaWdodD0iMTAwIiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjI4OCIgeT0iMTU5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEwIj5NYW5hZ2VtZW50PC90ZXh0PgogIDx0ZXh0IHg9IjI4OCIgeT0iMTc3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEwIj56b25lczwvdGV4dD4KICA8bGluZSB4MT0iMjg4IiB5MT0iMjI0IiB4Mj0iMjg4IiB5Mj0iMjUyIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2RuKSIvPgogIDxyZWN0IHg9IjIyOCIgeT0iMjU4IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjExMiIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIyODgiIHk9IjI4NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCI+UG9saWNpZXMgKzwvdGV4dD4KICA8dGV4dCB4PSIyODgiIHk9IjMwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCI+Ym91bmRhcmllczwvdGV4dD4KICA8dGV4dCB4PSIyODgiIHk9IjMyMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCI+U2VnbWVudHM8L3RleHQ+CiAgPHRleHQgeD0iMjg4IiB5PSIzNDEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiPkJ1Y2tldHM8L3RleHQ+CiAgPHJlY3QgeD0iMzY2IiB5PSI3OCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIyNCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4xNSIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDI2IiB5PSI5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+MiDCtyBRdWVyeTwvdGV4dD4KICA8cmVjdCB4PSIzNjYiIHk9IjExOCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNERTM1MEIiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDI2IiB5PSIxNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTAiPlNlbGVjdG9yczwvdGV4dD4KICA8dGV4dCB4PSI0MjYiIHk9IjE2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMCI+VVNRTDwvdGV4dD4KICA8dGV4dCB4PSI0MjYiIHk9IjE4NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMCI+TG9nIFZpZXdlcjwvdGV4dD4KICA8bGluZSB4MT0iNDI2IiB5MT0iMjI0IiB4Mj0iNDI2IiB5Mj0iMjUyIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2RuKSIvPgogIDxyZWN0IHg9IjM2NiIgeT0iMjU4IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjExMiIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0MjYiIHk9IjI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCI+RFFMPC90ZXh0PgogIDx0ZXh0IHg9IjQyNiIgeT0iMzE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIj5zbWFydHNjYXBlTm9kZXM8L3RleHQ+CiAgPHRleHQgeD0iNDI2IiB5PSIzMzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiPk9wZW5QaXBlbGluZTwvdGV4dD4KICA8cmVjdCB4PSI1MDQiIHk9Ijc4IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjI0IiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjE1IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8dGV4dCB4PSI1NjQiIHk9Ijk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj4zIMK3IERhc2hib2FyZHM8L3RleHQ+CiAgPHJlY3QgeD0iNTA0IiB5PSIxMTgiIHdpZHRoPSIxMjAiIGhlaWdodD0iMTAwIiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjU2NCIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEwIj5DbGFzc2ljPC90ZXh0PgogIDx0ZXh0IHg9IjU2NCIgeT0iMTY4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEwIj5kYXNoYm9hcmRzPC90ZXh0PgogIDx0ZXh0IHg9IjU2NCIgeT0iMTg2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEwIj5NWiBmaWx0ZXJzPC90ZXh0PgogIDxsaW5lIHgxPSI1NjQiIHkxPSIyMjQiIHgyPSI1NjQiIHkyPSIyNTIiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZG4pIi8+CiAgPHJlY3QgeD0iNTA0IiB5PSIyNTgiIHdpZHRoPSIxMjAiIGhlaWdodD0iMTEyIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjU2NCIgeT0iMjk2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIj5HZW4zIGRhc2hib2FyZHM8L3RleHQ+CiAgPHRleHQgeD0iNTY0IiB5PSIzMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiPlZhcmlhYmxlczwvdGV4dD4KICA8dGV4dCB4PSI1NjQiIHk9IjMzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCI+Tm90ZWJvb2tzPC90ZXh0PgogIDxyZWN0IHg9IjY0MiIgeT0iNzgiIHdpZHRoPSIxMjAiIGhlaWdodD0iMjQiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMTUiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjcwMiIgeT0iOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPjQgwrcgQWxlcnRpbmc8L3RleHQ+CiAgPHJlY3QgeD0iNjQyIiB5PSIxMTgiIHdpZHRoPSIxMjAiIGhlaWdodD0iMTAwIiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjcwMiIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEwIj5NZXRyaWMgZXZlbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjcwMiIgeT0iMTY4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEwIj5BbGVydGluZyBwcm9maWxlczwvdGV4dD4KICA8dGV4dCB4PSI3MDIiIHk9IjE4NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMCI+U0xPIENsYXNzaWM8L3RleHQ+CiAgPGxpbmUgeDE9IjcwMiIgeTE9IjIyNCIgeDI9IjcwMiIgeTI9IjI1MiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNkbikiLz4KICA8cmVjdCB4PSI2NDIiIHk9IjI1OCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxMTIiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNzAyIiB5PSIyOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiPkFub21hbHkgZGV0ZWN0b3JzPC90ZXh0PgogIDx0ZXh0IHg9IjcwMiIgeT0iMzE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIj5Xb3JrZmxvd3M8L3RleHQ+CiAgPHRleHQgeD0iNzAyIiB5PSIzMzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiPlBsYXRmb3JtIFNMT3M8L3RleHQ+CiAgPHJlY3QgeD0iNzgwIiB5PSI3OCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIyNCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4xNSIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iODQwIiB5PSI5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+NSDCtyBDb25maWc8L3RleHQ+CiAgPHJlY3QgeD0iNzgwIiB5PSIxMTgiIHdpZHRoPSIxMjAiIGhlaWdodD0iMTAwIiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9Ijg0MCIgeT0iMTU5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEwIj5TZXR0aW5ncyB2MTwvdGV4dD4KICA8dGV4dCB4PSI4NDAiIHk9IjE3NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMCI+TWFudWFsIGNvbmZpZzwvdGV4dD4KICA8bGluZSB4MT0iODQwIiB5MT0iMjI0IiB4Mj0iODQwIiB5Mj0iMjUyIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2RuKSIvPgogIDxyZWN0IHg9Ijc4MCIgeT0iMjU4IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjExMiIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI4NDAiIHk9IjI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCI+U2V0dGluZ3MgMi4wPC90ZXh0PgogIDx0ZXh0IHg9Ijg0MCIgeT0iMzE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIj5Nb25hY288L3RleHQ+CiAgPHRleHQgeD0iODQwIiB5PSIzMzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiPlRlcnJhZm9ybTwvdGV4dD4KICA8bGluZSB4MT0iNTIiIHkxPSIzOTgiIHgyPSI4NzgiIHkyPSIzOTgiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNTIiIHk9IjQyNCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+U2VxdWVuY2luZyBydWxlczwvdGV4dD4KICA8dGV4dCB4PSI1MiIgeT0iNDQ2IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5QaGFzZSAxIGJlZm9yZSBQaGFzZSAyIOKAlCBidWNrZXQgYW5kIHNlY3VyaXR5X2NvbnRleHQgZGVjaXNpb25zIGRldGVybWluZSB3aGF0IGFueSBEUUwgcXVlcnkgY2FuIHNlZS48L3RleHQ+CiAgPHRleHQgeD0iNTIiIHk9IjQ2MyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UGhhc2UgMiBiZWZvcmUgUGhhc2VzIDMgYW5kIDQg4oCUIGRhc2hib2FyZHMgYW5kIGRldGVjdGlvbiBhcmUgYm90aCBidWlsdCBvbiBxdWVyaWVzLjwvdGV4dD4KICA8dGV4dCB4PSI1MiIgeT0iNDgwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5QaGFzZSA1IGxhc3QsIGJ1dCBzdGFydGVkIGVhcmx5IOKAlCB2ZXJzaW9uLWNvbnRyb2wgZWFjaCBwaGFzZSBhcyBpdCBjb21wbGV0ZXMsIG5vdCBhdCB0aGUgZW5kLjwvdGV4dD4KPC9zdmc+Cg==" alt="Classic to Gen3 Migration Phases" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Phase | Classic surface | Gen3 surface |
+|-------|-----------------|--------------|
+| 0 | Classic UI, entity model | Grail, Smartscape, new navigation |
+| 1 | Management zones as permissions | Policies, boundaries, security_context, buckets |
+| 2 | Metric/entity selectors, USQL, Log Viewer | DQL, Smartscape queries, OpenPipeline |
+| 3 | Classic dashboards, MZ filters | Gen3 dashboards, variables, segments |
+| 4 | Metric events, alerting profiles, SLO Classic | Anomaly detectors, workflows, platform SLOs |
+| 5 | Settings v1, manual config | Settings 2.0, Monaco, Terraform |
+For environments where SVG doesn't render
+-->
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#you-are-here-if">You Are Here If…</a></li>
+<li><a href="#why-this-is-its-own-doorway">Why This Is Its Own Doorway</a></li>
+<li><a href="#phase-overview">Phase Overview</a></li>
+<li><a href="#the-readiness-scan">The Readiness Scan</a></li>
+<li><a href="#phase-0--understand-the-shift">Phase 0 — Understand the Shift</a></li>
+<li><a href="#phase-1--access-and-data-architecture">Phase 1 — Access and Data Architecture</a></li>
+<li><a href="#phase-2--query-surfaces">Phase 2 — Query Surfaces</a></li>
+<li><a href="#phase-3--dashboards-and-app-surfaces">Phase 3 — Dashboards and App Surfaces</a></li>
+<li><a href="#phase-4--alerting-and-slos">Phase 4 — Alerting and SLOs</a></li>
+<li><a href="#phase-5--config-as-code-and-go-live">Phase 5 — Config-as-Code and Go-Live</a></li>
+<li><a href="#sequencing-rules">Sequencing Rules</a></li>
+<li><a href="#where-to-next">Where to Next</a></li>
+</ol>
+<hr />
+<p><a id="you-are-here-if"></a></p>
+<h2 id="you-are-here-if">You Are Here If…</h2>
+<ul>
+<li>You already have a working Dynatrace SaaS tenant, and you are <strong>not</strong> changing where it runs</li>
+<li>Your tenant still operates one or more classic constructs:
+<ul>
+<li>Management zones used for <strong>access control</strong> rather than filtering</li>
+<li><strong>Metric events</strong> and <strong>alerting profiles</strong> rather than anomaly detectors and workflows</li>
+<li><strong>Classic dashboards</strong> rather than Gen3 dashboards or notebooks</li>
+<li><strong>Classic Logs</strong> rather than OpenPipeline</li>
+<li><strong>USQL</strong> for session analysis, or classic <strong>metric/entity selectors</strong> rather than DQL</li>
+</ul>
+</li>
+<li>You want the platform capabilities that only exist on the Gen3 side — Grail retention economics, Davis CoPilot, Workflows, segments, bucket-level access control</li>
+</ul>
+<p>If you have no tenant yet, see <a href="01-net-new.html">Doorway 1 — Net New</a>. If you are adding scope to a tenant that is already Gen3-native, see <a href="02-expand-consolidate.html">Doorway 2 — Expanding or Consolidating</a>. If you are changing deployment model — Managed → SaaS or SaaS → SaaS — see <a href="03-deployment-migration.html">Doorway 3 — Deployment Migration</a> first; it lands you on a Gen3 tenant, after which this doorway covers the surface-by-surface work.</p>
+<hr />
+<p><a id="why-this-is-its-own-doorway"></a></p>
+<h2 id="why-this-is-its-own-doorway">Why This Is Its Own Doorway</h2>
+<p>Doorways 1–3 are each keyed to a <strong>change in circumstance</strong> — a new tenant, new scope, a new deployment model. This one is keyed to a change in <strong>surface</strong>: your environment stays where it is, but the constructs you operate it with are replaced.</p>
+<p>That distinction matters for sequencing. A deployment migration has a natural cutover date that forces the work into a schedule. A surface migration has none, so it tends to stall halfway — a tenant ends up with policies <em>and</em> management zones, workflows <em>and</em> alerting profiles, running in parallel indefinitely. Partial migration is more expensive than either end state, because every construct has to be maintained twice and every troubleshooting session starts by asking which surface owns the answer.</p>
+<p><strong>One thing does move, though: your component fleet.</strong> Several platform capabilities carry minimum OneAgent, ActiveGate, and Dynatrace Operator versions, and a deployment mode or image source that is merely legacy today can be a blocker tomorrow. These are not a phase — they gate every phase, and a tenant can work through all six and still not be upgradeable because its agents are below the floor. Phase 0 therefore opens with the fleet, not with the surfaces.</p>
+<p><a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a> — entry 12 (coverage gaps from partial enablement) describes the same failure shape from the enablement angle and is worth reading before you plan the phases.</p>
+<hr />
+<p><a id="phase-overview"></a></p>
+<h2 id="phase-overview">Phase Overview</h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>What changes</th>
+<th>Time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#phase-0--understand-the-shift">0 — Understand the Shift</a></td>
+<td>Readiness scan; component version floors; Grail, Smartscape, navigation</td>
+<td>1 week to assess; fleet upgrades run longer, in parallel</td>
+</tr>
+<tr>
+<td><a href="#phase-1--access-and-data-architecture">1 — Access and Data Architecture</a></td>
+<td>MZs → policies, boundaries, segments; tags; security_context; buckets</td>
+<td>4–8 weeks</td>
+</tr>
+<tr>
+<td><a href="#phase-2--query-surfaces">2 — Query Surfaces</a></td>
+<td>Selectors and USQL → DQL; Classic Logs → OpenPipeline</td>
+<td>3–6 weeks</td>
+</tr>
+<tr>
+<td><a href="#phase-3--dashboards-and-app-surfaces">3 — Dashboards and App Surfaces</a></td>
+<td>Classic dashboards → Gen3; MZ filters → variables and segments; classic domain apps → their Gen3 equivalents</td>
+<td>2–4 weeks</td>
+</tr>
+<tr>
+<td><a href="#phase-4--alerting-and-slos">4 — Alerting and SLOs</a></td>
+<td>Metric events → anomaly detectors; alerting profiles → workflows; SLO Classic → platform SLOs</td>
+<td>3–6 weeks</td>
+</tr>
+<tr>
+<td><a href="#phase-5--config-as-code-and-go-live">5 — Config-as-Code and Go-Live</a></td>
+<td>Settings 2.0, Monaco, Terraform, cutover</td>
+<td>2–4 weeks</td>
+</tr>
+</tbody>
+</table>
+<p>Estimates are calendar weeks for a small to mid-sized team, assuming the migration runs alongside normal operations rather than as a dedicated project. Phases 2–4 can overlap once Phase 1 is settled; Phase 1 cannot be parallelized with the rest — see <a href="#sequencing-rules">Sequencing Rules</a>.</p>
+<hr />
+<p><a id="the-readiness-scan"></a></p>
+<h2 id="the-readiness-scan">The Readiness Scan</h2>
+<p>Dynatrace ships a ready-made dashboard, <strong>Check your upgrade readiness</strong>, to tenants on the latest SaaS. It is read-only, curated and auto-distributed by Dynatrace, and it scores your tenant across twenty-one classic-surface domains plus a licensing gate. Open it from the ready-made documents in the Dashboards app.</p>
+<p>Dynatrace revises the dashboard in place, so the section list drifts. The table below reflects the revision read on 09/29/2026, which split alerting into separate baselining and metric-event sections and added OpenTelemetry metrics, RUM agent versions and security notifications.</p>
+<p>Run it before you plan the phases. It replaces the guesswork in the inventory this doorway used to ask you to assemble by hand — but it answers <em>what</em> is outstanding, not <em>in what order</em> or <em>whether it is worth fixing at all</em>. That is what the rest of this page is for.</p>
+<h3 id="two-different-questions-about-a-classic-construct">Two different questions about a classic construct</h3>
+<p>The scan and most public documentation answer different questions, and a construct can fail one while passing the other:</p>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>What it means</th>
+<th>Where it is answered</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Is it <strong>deprecated</strong>?</td>
+<td>Dynatrace has named a successor. An end-of-life date may or may not be published, and the construct keeps working meanwhile.</td>
+<td>Product documentation, release notes</td>
+</tr>
+<tr>
+<td>Is it <strong>blocked at upgrade</strong>?</td>
+<td>The schema or endpoint stops answering once the tenant moves to the latest Dynatrace.</td>
+<td>The readiness scan</td>
+</tr>
+</tbody>
+</table>
+<p>Several constructs are the second without being the first. Public documentation still describes some of them as classic-but-working, and that is accurate on the deprecation axis — so a tenant reading only the docs can conclude there is no deadline, while the scan flags the same construct as removed at upgrade.</p>
+<p><strong>Plan against the stricter signal.</strong> Where the two disagree, treat the scan as the constraint and the documentation as the explanation. Blocking is triggered by <em>your</em> tenant's upgrade rather than a published calendar date, so the timing is yours to choose — the scope is not.</p>
+<h3 id="where-the-scan-and-the-documentation-disagree-today">Where the scan and the documentation disagree today</h3>
+<p>Four of the scan's checks go further than any public documentation page we could find on 09/29/2026. Plan against them anyway, but know which statements come only from the scan, because that is where a question to Dynatrace is worth asking before you commit effort:</p>
+<table>
+<thead>
+<tr>
+<th>The scan says</th>
+<th>What public documentation says</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Baselining and baseline alerts are retired for web, mobile and custom applications and for database and external services; internal services keep theirs</td>
+<td>The metric-alerting upgrade guide still describes an automated multi-dimensional baselining detector for applications, services and database services. No page describes the retirement</td>
+</tr>
+<tr>
+<td>Network zones become permanently enabled after the upgrade and can no longer be switched off</td>
+<td>The network-zones pages still describe <em>Enable network zones in this environment</em> as a toggle</td>
+</tr>
+<tr>
+<td>Web frontends need RUM JavaScript agent 347 and mobile frontends need agent 349; data from agents below 329 cannot be used</td>
+<td>No version floor is published on the RUM upgrade or RUM JavaScript version pages</td>
+</tr>
+<tr>
+<td>Every ActiveGate needs 1.225+ with a valid auth token</td>
+<td>The ActiveGate security page ties token-based security to 1.225+, but describes tenant-token-only connections as a temporary transitional state rather than a hard upgrade gate</td>
+</tr>
+</tbody>
+</table>
+<p>Neither side is wrong about its own question. The docs describe how a construct behaves today, and the scan describes what your upgrade will test for.</p>
+<h3 id="read-it-in-this-order-not-the-order-it-renders">Read it in this order, not the order it renders</h3>
+<p>The scan leads with its cheapest signals — deprecated REST calls and classic-entity DQL — because those are the easiest to compute and the most visible. That is not the order to fix them in.</p>
+<p>Working the scan top-to-bottom means rewriting your queries twice: once against today's field names, and again after bucket assignment and <code>security_context</code> land and change what those queries can see. The phase order on this page already encodes the dependency. Use the scan to populate the phases, not to sequence them.</p>
+<h3 id="re-running-the-scans-checks-yourself">Re-running the scan's checks yourself</h3>
+<p>The scan is read-only and cannot be exported, filtered or scheduled. Several of its checks are plain DQL over self-monitoring data, and the series below carry verified versions that you can put in your own dashboard or workflow and track after the scan's 30-day window has moved on:</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Where the query lives</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Which dashboards, notebooks and workflows still run classic-entity DQL</td>
+<td><a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a> — entry 16, section 8</td>
+</tr>
+<tr>
+<td>How much log and business-event volume still takes the classic pipeline</td>
+<td><a href="../OPMIG%20-%20OpenPipeline%20Migration/">OPMIG</a> — notebook 09</td>
+</tr>
+<tr>
+<td>Which classic metric events actually raised anything, as opposed to merely being enabled</td>
+<td><a href="../ALERT%20-%20Alerting%20Strategy%20and%20Design/">ALERT</a> — notebook 02, section 4</td>
+</tr>
+</tbody>
+</table>
+<h3 id="where-each-finding-goes">Where each finding goes</h3>
+<table>
+<thead>
+<tr>
+<th>Scan section</th>
+<th>What a red light means</th>
+<th>Phase</th>
+<th>Start reading</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DPS license</td>
+<td>Not on the subscription the latest Dynatrace requires — everything else is moot until this is resolved</td>
+<td>—</td>
+<td><a href="../FINOPS%20-%20Cost%20Management%20&amp;%20FinOps/">FINOPS</a></td>
+</tr>
+<tr>
+<td>Deprecated REST API &amp; settings</td>
+<td>A token, workflow, dashboard or detector calls something that stops answering</td>
+<td>5</td>
+<td><a href="../AUTOM%20-%20Dynatrace%20Automation/">AUTOM</a>, <a href="../IAM%20-%20IAM%20Administration/">IAM</a></td>
+</tr>
+<tr>
+<td>Classic entity model in DQL</td>
+<td>A named document runs classic-entity DQL</td>
+<td>2</td>
+<td><a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a> — entry 16 (section 8 reproduces the check)</td>
+</tr>
+<tr>
+<td>Management zone usage</td>
+<td>The zone is actively queried, so it is real work rather than a stale object</td>
+<td>1</td>
+<td><a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a></td>
+</tr>
+<tr>
+<td>Classic RBAC roles</td>
+<td>Groups still receive permissions through classic roles</td>
+<td>1</td>
+<td><a href="../IAM%20-%20IAM%20Administration/">IAM</a>, <a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a></td>
+</tr>
+<tr>
+<td>Classic app usage</td>
+<td>Named users depend on an app that is being removed</td>
+<td>3</td>
+<td><a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a></td>
+</tr>
+<tr>
+<td>OpenPipeline adoption</td>
+<td>Log or business-event volume still on the classic pipeline</td>
+<td>2</td>
+<td><a href="../OPMIG%20-%20OpenPipeline%20Migration/">OPMIG</a> (notebook 09 reproduces the check), <a href="../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/">OPIPE</a></td>
+</tr>
+<tr>
+<td>Log Classic</td>
+<td>Ingest still landing in the classic store</td>
+<td>2</td>
+<td><a href="../OPMIG%20-%20OpenPipeline%20Migration/">OPMIG</a>, <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a></td>
+</tr>
+<tr>
+<td>OpenTelemetry metrics</td>
+<td>The <em>Advanced OTLP metric dimensions</em> opt-in is off. Turning it on changes which OTLP attributes become metric dimensions and stops key normalization, so charts and alerts built on today's dimension set can change. Turn it on and review them before the upgrade forces the question</td>
+<td>2</td>
+<td><a href="../OTEL%20-%20OpenTelemetry%20Integration/">OTEL</a> — notebook 05</td>
+</tr>
+<tr>
+<td>Auto-baselining &amp; baseline alerts</td>
+<td>An application, database service or external service still alerts on a classic baseline, or overrides one. Treat this as scan-only (see the disagreement table above)</td>
+<td>4</td>
+<td><a href="../ALERT%20-%20Alerting%20Strategy%20and%20Design/">ALERT</a>, <a href="../AIOPS%20-%20Dynatrace%20Intelligence/">AIOPS</a></td>
+</tr>
+<tr>
+<td>Classic metric events</td>
+<td>An enabled metric event, ranked by how many alerts it raised in the last 7 days, plus classic disk detection settings</td>
+<td>4</td>
+<td><a href="../ALERT%20-%20Alerting%20Strategy%20and%20Design/">ALERT</a> — notebook 02 section 4, <a href="../AIOPS%20-%20Dynatrace%20Intelligence/">AIOPS</a></td>
+</tr>
+<tr>
+<td>Calculated service metrics</td>
+<td>Most convert to Grail automatically, gated on cardinality; the rest need a manual toggle or a DQL / OpenPipeline rebuild — inventory which is which before planning</td>
+<td>2</td>
+<td><a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a> (entry 11 § 5.3), <a href="../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/">OPIPE</a>, <a href="../BIZEV%20-%20Business%20Events%20&amp;%20Funnel%20Analysis/">BIZEV</a></td>
+</tr>
+<tr>
+<td>Service detection &amp; rule settings</td>
+<td>A rule scoped by management zone, service tag or non-primary process-group tag</td>
+<td>4</td>
+<td><a href="../SPANS%20-%20Distributed%20Tracing%20and%20Spans/">SPANS</a></td>
+</tr>
+<tr>
+<td>Classic cloud integrations</td>
+<td>Classic AWS/Azure connections and the automation driving them</td>
+<td>1</td>
+<td><a href="../CLOUD%20-%20Cloud%20Provider%20Integrations/">CLOUD</a></td>
+</tr>
+<tr>
+<td>Cloud telemetry enrichment</td>
+<td>Enrichment embedded in a connection rather than configured centrally</td>
+<td>1</td>
+<td><a href="../CLOUD%20-%20Cloud%20Provider%20Integrations/">CLOUD</a></td>
+</tr>
+<tr>
+<td>Infrastructure readiness</td>
+<td>Operator, DynaKube mode, image source or agent version below the floor, or Kubernetes enrichment rules not yet moved to the central configuration</td>
+<td>0</td>
+<td><a href="../K8S%20-%20Kubernetes%20Monitoring/">K8S</a> (notebook 10 section 9 for the enrichment move and its version floors), <a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a></td>
+</tr>
+<tr>
+<td>ActiveGate &amp; network readiness</td>
+<td>ActiveGate below 1.225 or with an absent, invalid or unsupported auth token; or network zones that are defined, or have ActiveGates pinned to them, while zones are still switched off. The scan treats zones as permanently on after the upgrade</td>
+<td>0</td>
+<td><a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a>, <a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a> — entry 10</td>
+</tr>
+<tr>
+<td>Cloud automations</td>
+<td>A guardian objective pointing at a classic SLO, or a classic issue-tracking integration</td>
+<td>4</td>
+<td><a href="../SLO%20-%20Service%20Level%20Objectives/">SLO</a>, <a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a></td>
+</tr>
+<tr>
+<td>Digital experience</td>
+<td>A frontend not yet on the Grail RUM experience, cookies not upgraded, or RUM overload prevention off; separately, a web frontend below RUM JavaScript agent 347 or a mobile frontend below agent 349. Mobile agents ship inside your app, so a mobile red light means an app release, not a setting</td>
+<td>3</td>
+<td><a href="../WEBRUM%20-%20Web%20Real%20User%20Monitoring/">WEBRUM</a>, <a href="../MOBL%20-%20Mobile%20Monitoring/">MOBL</a></td>
+</tr>
+<tr>
+<td>Synthetic monitoring</td>
+<td>Private locations to redeploy, third-party monitors, maintenance windows (Settings-app maintenance windows reach Synthetic only with SaaS 1.348 — staged rollout; until then they are unsupported)</td>
+<td>3</td>
+<td><a href="../SYNTH%20-%20Synthetic%20Monitoring/">SYNTH</a></td>
+</tr>
+<tr>
+<td>Application Security</td>
+<td>The new monitoring rules are off, so the current Vulnerabilities experience is unavailable; or legacy security notifications are still active and need rebuilding as workflows</td>
+<td>4</td>
+<td><a href="../APPSEC%20%E2%80%94%20Application%20Security/">APPSEC</a> — notebook 08 for the notifications</td>
+</tr>
+<tr>
+<td>Problem &amp; event processing</td>
+<td>Events that will not correlate, plus classic alerting objects still in place</td>
+<td>4</td>
+<td><a href="../ALERT%20-%20Alerting%20Strategy%20and%20Design/">ALERT</a>, <a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="three-findings-that-mean-retire-not-migrate">Three findings that mean &quot;retire&quot;, not &quot;migrate&quot;</h3>
+<p>Three of the scan's signals are usage counts rather than configuration checks, and they are the most valuable numbers on the page:</p>
+<ul>
+<li><strong>Management zone usage</strong> counts how often each zone is actually queried. A zone nobody queries does not need a policy, a boundary, or a segment — it needs deleting.</li>
+<li><strong>Classic app usage</strong> counts views <em>per user</em>. A classic dashboard with two viewers is a conversation; one with two hundred is a rebuild.</li>
+<li><strong>Classic metric events</strong> are ranked by the alerts each one raised recently. An enabled metric event that has not raised anything in weeks may still guard a rare condition, so each one needs a decision. It is not an automatic port. On the tenant used to validate this playbook, 19 of 125 classic metric events were enabled and none had raised an alert in 30 days (09/29/2026).</li>
+</ul>
+<p>The scan reports all three and draws no conclusion from any of them. Deciding retire-versus-migrate before you start is the single largest cost lever in this doorway, and Phase 0's deliverable is where it belongs.</p>
+<h3 id="what-the-scan-does-not-check">What the scan does not check</h3>
+<p>It reads configuration and usage, so it cannot see intent, ownership, or whether a construct is still needed. It is also read-only, which means you cannot diff its findings against your own configuration-as-code repository — for that, export your Monaco or Terraform inventory and compare by hand.</p>
+<p>It does not cover the tagging and naming rationalization in Phase 1, the query-translation work in Phase 2 beyond flagging classic-entity DQL, or anything about whether your rebuilt dashboards and detectors are <em>good</em>. A clean scan means nothing is blocked. It does not mean the migration is finished.</p>
+<hr />
+<p><a id="phase-0--understand-the-shift"></a></p>
+<h2 id="phase-0--understand-the-shift">Phase 0 — Understand the Shift</h2>
+<p>Before changing anything, find out where your fleet and your tenant actually stand, then understand what Grail changes about storage, retention, and access, and what Smartscape changes about the entity model.</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Reading</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. Run the readiness scan</td>
+<td><a href="#the-readiness-scan">The Readiness Scan</a></td>
+<td>Produces the inventory the rest of this phase interprets</td>
+</tr>
+<tr>
+<td>2. Component fleet floor</td>
+<td><a href="../K8S%20-%20Kubernetes%20Monitoring/">K8S</a>, <a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a>; <a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a> — entries 04 and 05 (managing OneAgent and ActiveGate updates)</td>
+<td>Agent, ActiveGate and Operator versions, DynaKube deployment mode, and image source. A blocker here outranks every surface below</td>
+</tr>
+<tr>
+<td>3. Storage and retention model</td>
+<td><a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> — notebook 02 (understanding Grail buckets)</td>
+<td>Buckets, retention, and what they cost</td>
+</tr>
+<tr>
+<td>4. Metrics mechanics</td>
+<td><a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a> — entry 11 (how metrics work)</td>
+<td>Covers the Classic ↔ Grail dual-write, the <code>builtin:</code> ↔ <code>dt.*</code> split, and selector → DQL conversion</td>
+</tr>
+<tr>
+<td>5. Partial-enablement risk</td>
+<td><a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a> — entry 12 (coverage gaps from partial enablement)</td>
+<td>Why a half-migrated tenant costs more than either end state</td>
+</tr>
+<tr>
+<td>6. Navigation and launchers</td>
+<td><a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a> — entry 07 (launcher page setup)</td>
+<td>The Gen3 app model and how users find things</td>
+</tr>
+<tr>
+<td>7. Where you are today</td>
+<td><a href="../ADOPT%20-%20Observability%20Adoption%20&amp;%20Maturity/">ADOPT</a> — notebook 02 (platform health assessment)</td>
+<td>Baseline before you start moving surfaces</td>
+</tr>
+</tbody>
+</table>
+<p>Deliverable: the scan output, annotated. For every finding, record a decision — <strong>migrate</strong>, <strong>retire</strong>, or <strong>not applicable</strong> — and for anything you intend to migrate, the phase it belongs to. The scan tells you what is outstanding; this annotation is what turns it into a plan.</p>
+<p>Most tenants over-estimate the work at this point. Many management zones turn out to be filtering conveniences rather than permission boundaries, which changes the Phase 1 path substantially, and a meaningful share of flagged classic dashboards and zones have no active users at all. Resolve those against the usage counts before you scope anything.</p>
+<hr />
+<p><a id="phase-1--access-and-data-architecture"></a></p>
+<h2 id="phase-1--access-and-data-architecture">Phase 1 — Access and Data Architecture</h2>
+<p>The largest phase, and the one everything else depends on. Management zones split into three separate Gen3 concepts depending on the job they were doing.</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Reading</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. Understand the split</td>
+<td><a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a> — notebooks 01 (why migrate), 02 (access control model)</td>
+<td>Management zones did three jobs; Gen3 separates them</td>
+</tr>
+<tr>
+<td>2. Assess your MZs</td>
+<td><a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a> — notebooks 03 (assessment and planning), 14 (disposition workshop), 95 (end-to-end LAB)</td>
+<td>Classify each MZ by job: access, filtering, or alerting scope</td>
+</tr>
+<tr>
+<td>2b. Tag at source, then translate rules</td>
+<td><a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a> — notebooks 10 (tagging at source), 11 (translating MZ rules into source attributes)</td>
+<td>Every replacement in 3a–3c reads a field on the data; pass the readiness gate in notebook 10 before building on the tags</td>
+</tr>
+<tr>
+<td>3a. MZs used for <strong>access</strong></td>
+<td><a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a> — notebooks 12 (IAM reference architecture), 04 (policies and boundaries), 08 (templated policies); <a href="../IAM%20-%20IAM%20Administration/">IAM</a> — notebooks 04 (policy authoring), 05 (boundary design), 10 (templated policy assignments)</td>
+<td>The bulk of the work for most tenants</td>
+</tr>
+<tr>
+<td>3b. MZs used for <strong>filtering</strong></td>
+<td><a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a> — notebook 05 (segments); <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> — notebooks 08 (Grail segments), 10 (advanced segment definitions)</td>
+<td>If this is all your MZs do, notebook 05 alone may be the whole migration</td>
+</tr>
+<tr>
+<td>3c. MZs used for <strong>alerting scope</strong></td>
+<td><a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a> — notebook 09 (alerting and notification migration)</td>
+<td>Hands off to Phase 4</td>
+</tr>
+<tr>
+<td>4. Tagging rationalization</td>
+<td><a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a> — notebook 10 (tagging at source); <a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a> — entries 02 (tagging sources, standards, strategy), 26 (metadata by producer); <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> — notebook 01</td>
+<td>Gen3 access control leans on tags far more than Gen2 did</td>
+</tr>
+<tr>
+<td>5. security_context</td>
+<td><a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> — notebook 06</td>
+<td>The universal scope field; without it, IAM boundaries are limited</td>
+</tr>
+<tr>
+<td>6. Bucket strategy</td>
+<td><a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> — notebooks 03 (bucket strategy and design), 05 (bucket-level access control)</td>
+<td>Determines retention, cost, and what any given policy can see</td>
+</tr>
+<tr>
+<td>7. Cloud connections and enrichment</td>
+<td><a href="../CLOUD%20-%20Cloud%20Provider%20Integrations/">CLOUD</a> — notebooks 01 (fundamentals), 02 (AWS), 03 (Azure)</td>
+<td>Classic AWS/Azure connections are recreated rather than converted, and enrichment embedded in a connection moves to the central ingest-time configuration</td>
+</tr>
+<tr>
+<td>8. Execute and validate</td>
+<td><a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a> — notebooks 06 (migration execution), 07 (validation and troubleshooting)</td>
+<td>Run policies and MZs in parallel, then retire the MZs</td>
+</tr>
+<tr>
+<td>Reference</td>
+<td><a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a> — notebook 99; <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> — notebook 99</td>
+<td>One-page syntheses</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="phase-2--query-surfaces"></a></p>
+<h2 id="phase-2--query-surfaces">Phase 2 — Query Surfaces</h2>
+<p>Every classic query language and selector has a DQL equivalent. This phase is mostly mechanical translation, with one structural workstream (Classic Logs).</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Reading</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. DQL grounding</td>
+<td><a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> — notebook 99 (DQL reference); <a href="../SPANS%20-%20Distributed%20Tracing%20and%20Spans/">SPANS</a> — query reference</td>
+<td>Official Dynatrace DQL documentation is authoritative</td>
+</tr>
+<tr>
+<td>2. Metric selectors → <code>timeseries</code></td>
+<td><a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a> — entry 11 (how metrics work)</td>
+<td>Covers selector → DQL conversion and the <code>builtin:</code> ↔ <code>dt.*</code> mapping</td>
+</tr>
+<tr>
+<td>3. Entity selectors → Smartscape</td>
+<td><a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a> — entry 16 (migrating classic entity selectors to Smartscape)</td>
+<td><code>dt.entity.*</code> is deprecated in favour of <code>dt.smartscape.*</code> and <code>smartscapeNodes</code>; legacy form still runs</td>
+</tr>
+<tr>
+<td>4. USQL → DQL for RUM</td>
+<td><a href="../WEBRUM%20-%20Web%20Real%20User%20Monitoring/">WEBRUM</a> — notebook 09 (migrating USQL to DQL)</td>
+<td>Grammar and field mapping, plus the classic-RUM-on-Grail vs New RUM split that decides which field names apply</td>
+</tr>
+<tr>
+<td>5. Classic Logs → OpenPipeline</td>
+<td><a href="../OPMIG%20-%20OpenPipeline%20Migration/">OPMIG</a> — full series; <a href="../OPLOGS%20-%20OpenPipeline%20Logs/">OPLOGS</a> — full series</td>
+<td>The one genuinely structural workstream here; treat as its own project. OPMIG notebook 09 measures what is still on the classic pipeline, which is how you know it is finished</td>
+</tr>
+<tr>
+<td>6. Log metric extraction</td>
+<td><a href="../OPMIG%20-%20OpenPipeline%20Migration/">OPMIG</a> — notebook 07 (metric event extraction)</td>
+<td>Classic log metrics map onto OpenPipeline extraction</td>
+</tr>
+<tr>
+<td>7. Pipelines beyond logs</td>
+<td><a href="../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/">OPIPE</a> — full series; <a href="../BIZEV%20-%20Business%20Events%20&amp;%20Funnel%20Analysis/">BIZEV</a> — notebook 07 (Gen2 vs Gen3 adoption paths)</td>
+<td>Business events, spans, metrics and events have their own classic processing surfaces, on the same removal path as the log ones</td>
+</tr>
+<tr>
+<td>8. Calculated service metrics</td>
+<td><a href="../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/">OPIPE</a> — notebook 01 (multi-scope platform)</td>
+<td>Most existing calculated service metrics are upgraded to Grail automatically; switch on manual conversion where cardinality is above the automatic threshold, and rebuild with DQL or OpenPipeline extraction only those that cannot convert — see <a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a> entry 11 § 5.3</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="phase-3--dashboards-and-app-surfaces"></a></p>
+<h2 id="phase-3--dashboards-and-app-surfaces">Phase 3 — Dashboards and App Surfaces</h2>
+<p>Classic dashboards convert only partly. Dynatrace's built-in dashboard converter handles standard tiles automatically; complex tiles, USQL, and management-zone filters must be recreated by hand. Run the converter on each prioritized dashboard, then repair what it skipped — convert-then-repair against a rationalized list, not a wholesale port — most tenants find a large fraction of classic dashboards are unused. The same phase covers the classic domain apps, which fold into their Gen3 equivalents rather than being rebuilt.</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Reading</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. Inventory and prune</td>
+<td><a href="#the-readiness-scan">The Readiness Scan</a> — classic app usage, reported per dashboard and per user</td>
+<td>The scan supplies the usage counts; retire anything with no active viewers rather than porting it</td>
+</tr>
+<tr>
+<td>2. Rebuild</td>
+<td><a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a> — notebooks 01 (fundamentals), 02 (dashboard hierarchy), 03–05 (executive, operations, engineering)</td>
+<td>Built on the Phase 2 DQL. Notebook 02 is the target structure to rebuild <em>into</em>, not an inventory method</td>
+</tr>
+<tr>
+<td>3. MZ filters → variables and segments</td>
+<td><a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a> — notebook 06 (variables and filters); <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> — notebook 08 (Grail segments)</td>
+<td>The dashboard-side half of Phase 1 step 3b</td>
+</tr>
+<tr>
+<td>4. Notebooks for investigation</td>
+<td><a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a> — notebook 01; <a href="../AIOPS%20-%20Dynatrace%20Intelligence/">AIOPS</a> — notebook 04 (Davis CoPilot and Dynatrace Assist)</td>
+<td>Notebooks replace much of what classic ad-hoc dashboards were used for</td>
+</tr>
+<tr>
+<td>5. Distribution</td>
+<td><a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a> — notebook 07 (sharing and reporting)</td>
+<td></td>
+</tr>
+<tr>
+<td>6. Frontend surfaces</td>
+<td><a href="../WEBRUM%20-%20Web%20Real%20User%20Monitoring/">WEBRUM</a> — notebook 09 (migrating USQL to DQL); <a href="../MOBL%20-%20Mobile%20Monitoring/">MOBL</a> — notebook 01</td>
+<td>Web and mobile frontends move onto the Grail RUM experience; the classic session apps fold into Users &amp; Sessions. Custom application frontends have no Grail path yet — leave them where they are</td>
+</tr>
+<tr>
+<td>7. Synthetic surfaces</td>
+<td><a href="../SYNTH%20-%20Synthetic%20Monitoring/">SYNTH</a> — notebooks 01 (fundamentals), 04 (private locations)</td>
+<td>Private locations on Kubernetes are redeployed rather than upgraded in place; third-party monitors and alerting-suppression maintenance windows need checking separately</td>
+</tr>
+<tr>
+<td>8. Database surfaces</td>
+<td><a href="../DBMON%20-%20Database%20Monitoring/">DBMON</a> — full series</td>
+<td>Database Services Classic folds into the Databases app</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="phase-4--alerting-and-slos"></a></p>
+<h2 id="phase-4--alerting-and-slos">Phase 4 — Alerting and SLOs</h2>
+<p>Metric events and alerting profiles map onto anomaly detectors and workflows, but rarely one-to-one — this is the phase where a lift-and-shift produces the worst results.</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Reading</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. Target architecture</td>
+<td><a href="../ALERT%20-%20Alerting%20Strategy%20and%20Design/">ALERT</a> — notebook 01 (end-to-end architecture)</td>
+<td>Read before migrating any individual alert</td>
+</tr>
+<tr>
+<td>2. Metric events → detection</td>
+<td><a href="../ALERT%20-%20Alerting%20Strategy%20and%20Design/">ALERT</a> — notebook 02 (choosing and building detection); <a href="../AIOPS%20-%20Dynatrace%20Intelligence/">AIOPS</a> — notebook 02 (anomaly detection)</td>
+<td>Measure which metric events still raise anything before rebuilding them (ALERT-02 section 4). Static thresholds ported as-is are the main source of Gen3 alert noise; many should become baselines</td>
+</tr>
+<tr>
+<td>3. Alerting profiles → workflows</td>
+<td><a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a> — notebook 09; <a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a> — notebooks 04 (notification routing), 05 (incident management)</td>
+<td>MZ-scoped alerting profiles become problem-triggered workflows</td>
+</tr>
+<tr>
+<td>4. Routing and cost</td>
+<td><a href="../ALERT%20-%20Alerting%20Strategy%20and%20Design/">ALERT</a> — notebook 03 (routing, destinations, cost)</td>
+<td>Simple vs multi-step workflow billing differs — check before fanning out</td>
+</tr>
+<tr>
+<td>5. ITSM integration</td>
+<td><a href="../ALERT%20-%20Alerting%20Strategy%20and%20Design/">ALERT</a> — notebook 04 (ServiceNow integration)</td>
+<td>If alerting profiles fed ServiceNow, rebuild the payload rather than translating it</td>
+</tr>
+<tr>
+<td>6. SLO Classic → platform SLOs</td>
+<td><a href="../SLO%20-%20Service%20Level%20Objectives/">SLO</a> — notebooks 07 (upgrading Classic SLOs), 01 (fundamentals), 05 (SLOs as code); <a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a> — notebook 16 (zone-scoped SLOs)</td>
+<td>No automated upgrade: each SLO is rebuilt with a DQL SLI and run alongside the Classic one for an evaluation period. Prove the new query selects the same services before trusting its numbers</td>
+</tr>
+<tr>
+<td>7. Application Security rules</td>
+<td><a href="../APPSEC%20%E2%80%94%20Application%20Security/">APPSEC</a> — notebooks 01 (fundamentals), 02 (runtime vulnerability analytics)</td>
+<td>The current Vulnerabilities experience depends on the newer monitoring rules being enabled. Enabling them turns the classic rules off, so treat it as a cutover with a rollback rather than an additive setting</td>
+</tr>
+<tr>
+<td>8. Auto-remediation</td>
+<td><a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a> — full series; <a href="../AIOPS%20-%20Dynatrace%20Intelligence/">AIOPS</a> — notebook 06 (integrations and agentic workflows)</td>
+<td>Only available on the Gen3 side; a reason to finish the phase rather than stall in parallel</td>
+</tr>
+<tr>
+<td>Reference</td>
+<td><a href="../ALERT%20-%20Alerting%20Strategy%20and%20Design/">ALERT</a> — notebook 99 (checklist and cross-series map)</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="phase-5--config-as-code-and-go-live"></a></p>
+<h2 id="phase-5--config-as-code-and-go-live">Phase 5 — Config-as-Code and Go-Live</h2>
+<p>Put the new configuration under version control before you retire the old surfaces, so the migration end state is reproducible.</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Reading</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. Automation landscape</td>
+<td><a href="../AUTOM%20-%20Dynatrace%20Automation/">AUTOM</a> — notebook 01</td>
+<td>Which tool for which config surface</td>
+</tr>
+<tr>
+<td>2. Settings v1 → Settings 2.0</td>
+<td><a href="../AUTOM%20-%20Dynatrace%20Automation/">AUTOM</a> — notebook 02 (Settings API)</td>
+<td></td>
+</tr>
+<tr>
+<td>3. Monaco or Terraform</td>
+<td><a href="../AUTOM%20-%20Dynatrace%20Automation/">AUTOM</a> — notebooks 03 (Monaco), 04 (Terraform), 09 (Terraform GitOps setup recipe)</td>
+<td></td>
+</tr>
+<tr>
+<td>4. IAM as code</td>
+<td><a href="../IAM%20-%20IAM%20Administration/">IAM</a> — appendix LABs 95 (Terraform provisioning), 96 (Python provisioning)</td>
+<td>Locks in the Phase 1 policy model</td>
+</tr>
+<tr>
+<td>5. Retire classic surfaces</td>
+<td><em>No cross-journey checklist yet</em></td>
+<td>Per-journey checklists exist in <a href="../M2S%20-%20Managed%20to%20SaaS%20Migration/">M2S</a> — notebook 99 and <a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a> — notebook 06</td>
+</tr>
+<tr>
+<td>6. Optimize</td>
+<td><a href="../FINOPS%20-%20Cost%20Management%20&amp;%20FinOps/">FINOPS</a> — full series; <a href="../ADOPT%20-%20Observability%20Adoption%20&amp;%20Maturity/">ADOPT</a> — notebook 06 (staged enablement)</td>
+<td>Grail retention and bucket choices are the main cost levers post-migration</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="sequencing-rules"></a></p>
+<h2 id="sequencing-rules">Sequencing Rules</h2>
+<p>Four ordering constraints are worth respecting; the rest of the phases are flexible.</p>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Component versions before everything</strong></td>
+<td>Agent, ActiveGate and Operator floors are a prerequisite rather than a phase. Fleet upgrades run on their own change-management calendar and are the longest-lead item here, so start them in Phase 0 and let the surface work proceed in parallel.</td>
+</tr>
+<tr>
+<td><strong>Phase 1 before Phase 2</strong></td>
+<td>Bucket assignment and <code>security_context</code> determine what any DQL query can see. Writing queries first means rewriting them after the boundaries land.</td>
+</tr>
+<tr>
+<td><strong>Phase 2 before Phases 3 and 4</strong></td>
+<td>Dashboards and detection are both built on queries. A dashboard rebuilt against pre-migration field names is rework.</td>
+</tr>
+<tr>
+<td><strong>Phase 5 last, but started early</strong></td>
+<td>Put configuration under version control as each phase completes rather than at the end — otherwise the migration end state exists only as manual tenant state.</td>
+</tr>
+</tbody>
+</table>
+<p>Phases 3 and 4 are independent of each other and can run in parallel by different teams.</p>
+<p><strong>On running both surfaces in parallel:</strong> a parallel window is correct and expected during each phase — it is the validation mechanism. What causes trouble is a parallel window with no end date. Set a retirement date for the classic construct when you start each phase, and treat the phase as incomplete until the old surface is switched off.</p>
+<hr />
+<p><a id="where-to-next"></a></p>
+<h2 id="where-to-next">Where to Next</h2>
+<ul>
+<li><a href="07-operationalize.html">Operationalize Module</a> — once the surfaces are migrated, for the ongoing operations sequence</li>
+<li><a href="08-maturity.html">Maturity Module</a> — continuous improvement framing via <a href="../ADOPT%20-%20Observability%20Adoption%20&amp;%20Maturity/">ADOPT</a></li>
+<li><a href="06-domain-enablement.html">Domain Enablement Module</a> — to add domains that were deferred during the migration</li>
+<li><a href="09-overlap-map.html">Overlap Map</a> — when the same topic appears in multiple series</li>
+<li><a href="05-foundation.html">Foundation Module</a> — if the assessment in Phase 0 turns up Foundation gaps rather than migration work</li>
+</ul>
+<hr />
+<blockquote>
+<p><em>This playbook was AI-generated from community-submitted and publicly available sources. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></p>
+</blockquote>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

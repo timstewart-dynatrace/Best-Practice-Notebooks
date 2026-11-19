@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WEBRUM-01: Web RUM Fundamentals</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">WEBRUM — Web Real User Monitoring</a><span class="sep">/</span><span aria-current="page">WEBRUM-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>WEBRUM-01: Web RUM Fundamentals</h1>
+<blockquote>
+<p><strong>Series:</strong> WEBRUM — Web Real User Monitoring | <strong>Notebook:</strong> 1 of 10 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Real User Monitoring (RUM) captures the actual experience of users interacting with your web applications. Unlike synthetic monitoring, which simulates user interactions from controlled locations, RUM measures real browser performance, user behavior, and errors as they happen. Dynatrace RUM uses a lightweight JavaScript agent (OneAgent RUM injection) to automatically capture page loads, user actions, XHR/fetch calls, JavaScript errors, and Core Web Vitals — all flowing into Grail for DQL analysis.</p>
+<h3>Sprint 1.337 (April 2026): <code>frontend.name</code> Now Permission-Relevant</h3>
+<p>Sprint 1.337 added <code>frontend.name</code> as a <strong>permission-relevant field</strong> on RUM metrics, sessions, and Smartscape entities in Grail. This means IAM policies can now scope record-level and field-level access by frontend application, eliminating the need to split RUM data into separate buckets purely for access control.</p>
+<p>Practical impact for WEBRUM authors:</p>
+<ul>
+<li>When you instrument a new application, choose <code>frontend.name</code> deliberately — it now drives <strong>both observability</strong> (queries, dashboards, segments) <strong>and access control</strong> (which teams can see the data).</li>
+<li>Stable, hyphenated identifiers work best: <code>checkout-web</code>, <code>account-web</code>, <code>public-marketing</code>. Avoid spaces, version numbers in the name, or environment suffixes (those belong on <code>dt.security_context</code> or environment fields).</li>
+<li>Existing tenants automatically gain the field — no re-instrumentation required. Update IAM policies (see <strong>IAM-04 § Sprint 1.337</strong>) to take advantage.</li>
+</ul>
+<hr />
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#how-dynatrace-rum-works">How Dynatrace RUM Works</a></li>
+<li><a href="#rum-vs-synthetic">RUM vs Synthetic Monitoring</a></li>
+<li><a href="#rum-data-model">RUM Data Model</a></li>
+<li><a href="#exploring-user-sessions">Exploring User Sessions</a></li>
+<li><a href="#exploring-user-actions">Exploring User Actions</a></li>
+<li><a href="#session-and-action-counts">Session and Action Counts</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>RUM Enabled</strong></td>
+<td>At least one web application with RUM injection active</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:user.events:read</code>, <code>storage:user.sessions:read</code>, <code>storage:smartscape:read</code>, <code>storage:entities:read</code></td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>At least 24 hours of RUM session data</td>
+</tr>
+</tbody>
+</table>
+<p><a id="how-dynatrace-rum-works"></a></p>
+<h2>1. How Dynatrace RUM Works</h2>
+<p>Dynatrace captures real user experience through a <strong>JavaScript agent</strong> that is automatically injected into web pages by OneAgent. The injection process works as follows:</p>
+<ol>
+<li><strong>OneAgent instruments the web server</strong> — When a browser requests a page, OneAgent on the server-side injects a small JavaScript snippet into the HTML response.</li>
+<li><strong>The JavaScript agent loads</strong> — The injected snippet bootstraps the full RUM JavaScript agent from the Dynatrace CDN or your ActiveGate.</li>
+<li><strong>Browser events are captured</strong> — The agent hooks into browser APIs (Performance API, Navigation Timing, Resource Timing, PerformanceObserver) to capture timing data, user interactions, and errors.</li>
+<li><strong>Data is sent to Dynatrace</strong> — Captured data is batched and sent as beacons to the Dynatrace cluster via the beacon endpoint.</li>
+<li><strong>Data lands in Grail</strong> — Sessions, actions, and errors are stored as structured records queryable via DQL.</li>
+</ol>
+<h3>Injection Methods</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>How It Works</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Automatic injection</strong></td>
+<td>OneAgent modifies HTML responses at the web server</td>
+<td>Traditional server-rendered apps</td>
+</tr>
+<tr>
+<td><strong>Manual injection</strong></td>
+<td>Developer adds the RUM script tag manually</td>
+<td>CDN-hosted content, SPAs with no server-side agent</td>
+</tr>
+<tr>
+<td><strong>Agentless RUM</strong></td>
+<td>JavaScript tag added without full OneAgent</td>
+<td>Environments where OneAgent cannot be deployed</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Where the web server runs OneAgent, automatic injection is the default path — OneAgent in full-stack monitoring mode <em>&quot;by default automatically injects the RUM JavaScript&quot;</em> into the pages it serves, with no code change. In community practice it is the preferred method for that reason; manual injection and agentless RUM are for serving tiers where OneAgent cannot run.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/initial-setup/rum-injection">Configure automatic injection in RUM Classic (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="rum-vs-synthetic"></a></p>
+<h2>2. RUM vs Synthetic Monitoring</h2>
+<p>RUM and synthetic monitoring are complementary approaches — each answers different questions:</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>RUM</th>
+<th>Synthetic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Data source</strong></td>
+<td>Real user browsers</td>
+<td>Simulated browsers from controlled locations</td>
+</tr>
+<tr>
+<td><strong>Coverage</strong></td>
+<td>Only when real users visit</td>
+<td>Runs on schedule, even at 3 AM</td>
+</tr>
+<tr>
+<td><strong>Variability</strong></td>
+<td>High — reflects real network conditions, devices, geographies</td>
+<td>Low — consistent execution environment</td>
+</tr>
+<tr>
+<td><strong>Baseline</strong></td>
+<td>Organic — based on actual usage patterns</td>
+<td>Fixed — ideal for SLA monitoring</td>
+</tr>
+<tr>
+<td><strong>Error detection</strong></td>
+<td>Catches errors users actually encounter</td>
+<td>Catches errors in scripted flows</td>
+</tr>
+<tr>
+<td><strong>Performance data</strong></td>
+<td>Real-world load times with real content</td>
+<td>Clean-room load times (no cache, extensions)</td>
+</tr>
+<tr>
+<td><strong>Geographic insight</strong></td>
+<td>Wherever real users are located</td>
+<td>Only from configured locations</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> Use synthetic for availability SLAs and baseline benchmarks. Use RUM for understanding the actual user experience and identifying issues affecting real users.</p>
+</blockquote>
+<p><a id="rum-data-model"></a></p>
+<h2>3. RUM Data Model</h2>
+<p>Dynatrace RUM data is organized into a hierarchical model:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgMzgwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYXBwR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNDk2ZmY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBhNjRiYztzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InNlc3Npb25HcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIyYzU1ZTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTZhMzRhO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYWN0aW9uR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmOTczMTY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2VhNTgwYztzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InByb3BHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2E4NTVmNztzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojOTMzM2VhO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9InNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjQiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI3MDAiIGhlaWdodD0iMzgwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSIzNTAiIHk9IjMyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5SVU0gRGF0YSBNb2RlbCBIaWVyYXJjaHk8L3RleHQ+CgogIDwhLS0gQXBwbGljYXRpb24gYm94IC0tPgogIDxyZWN0IHg9IjIzMCIgeT0iNTAiIHdpZHRoPSIyNDAiIGhlaWdodD0iNTIiIHJ4PSI4IiBmaWxsPSJ1cmwoI2FwcEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iNzIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFwcGxpY2F0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iOTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iI2RiZWFmZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+V2ViIGFwcCBtb25pdG9yZWQgYnkgUlVNIEpTIGFnZW50PC90ZXh0PgoKICA8IS0tIENvbm5lY3RvciAxIC0tPgogIDxsaW5lIHgxPSIzNTAiIHkxPSIxMDIiIHgyPSIzNTAiIHkyPSIxMjUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHBvbHlnb24gcG9pbnRzPSIzNDUsMTIyIDM1NSwxMjIgMzUwLDEzMCIgZmlsbD0iIzk0YTNiOCIvPgogIDx0ZXh0IHg9IjM2NSIgeT0iMTE4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiPjEgOiBOPC90ZXh0PgoKICA8IS0tIFVzZXIgU2Vzc2lvbiBib3ggLS0+CiAgPHJlY3QgeD0iMTgwIiB5PSIxMzAiIHdpZHRoPSIzNDAiIGhlaWdodD0iNTIiIHJ4PSI4IiBmaWxsPSJ1cmwoI3Nlc3Npb25HcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIzNTAiIHk9IjE1MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VXNlciBTZXNzaW9uPC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iMTcwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiNkY2ZjZTciIHRleHQtYW5jaG9yPSJtaWRkbGUiPnVzZXIuc2Vzc2lvbnMg4oCUIG9uZSBjb21wbGV0ZSB2aXNpdDwvdGV4dD4KCiAgPCEtLSBDb25uZWN0b3IgMiAtLT4KICA8bGluZSB4MT0iMzUwIiB5MT0iMTgyIiB4Mj0iMzUwIiB5Mj0iMjA1IiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxwb2x5Z29uIHBvaW50cz0iMzQ1LDIwMiAzNTUsMjAyIDM1MCwyMTAiIGZpbGw9IiM5NGEzYjgiLz4KICA8dGV4dCB4PSIzNjUiIHk9IjE5OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj4xIDogTjwvdGV4dD4KCiAgPCEtLSBVc2VyIEFjdGlvbiBib3ggLS0+CiAgPHJlY3QgeD0iMTMwIiB5PSIyMTAiIHdpZHRoPSI0NDAiIGhlaWdodD0iNTIiIHJ4PSI4IiBmaWxsPSJ1cmwoI2FjdGlvbkdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iMjMyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Vc2VyIEV2ZW50PC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iMjUwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiNmZmYzZTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnVzZXIuZXZlbnRzIOKAlCBuYXZpZ2F0aW9uLCBwYWdlIHN1bW1hcnksIHVzZXIgYWN0aW9uLCByZXF1ZXN0LCBlcnJvcjwvdGV4dD4KCiAgPCEtLSBDb25uZWN0b3IgMyAtLT4KICA8bGluZSB4MT0iMzUwIiB5MT0iMjYyIiB4Mj0iMzUwIiB5Mj0iMjg1IiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxwb2x5Z29uIHBvaW50cz0iMzQ1LDI4MiAzNTUsMjgyIDM1MCwyOTAiIGZpbGw9IiM5NGEzYjgiLz4KICA8dGV4dCB4PSIzNjUiIHk9IjI3OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj4xIDogTjwvdGV4dD4KCiAgPCEtLSBBY3Rpb24gUHJvcGVydGllcyBib3ggLS0+CiAgPHJlY3QgeD0iODAiIHk9IjI5MCIgd2lkdGg9IjU0MCIgaGVpZ2h0PSI1MiIgcng9IjgiIGZpbGw9InVybCgjcHJvcEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iMzEyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FdmVudCBGaWVsZHM8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSIzMzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iI2YzZThmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VGltaW5nIChwZXJmb3JtYW5jZS4qLCBsY3AuKikgfCBFcnJvcnMgKGVycm9yLnR5cGUsIGVycm9yLnJlYXNvbikgfCBSZXF1ZXN0czwvdGV4dD4KCiAgPCEtLSBTaWRlIGFubm90YXRpb25zIC0tPgogIDx0ZXh0IHg9IjIwIiB5PSI3NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMTQ5NmZmIiBmb250LXdlaWdodD0iYm9sZCI+TGV2ZWwgMTwvdGV4dD4KICA8dGV4dCB4PSIyMCIgeT0iMTU2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMyMmM1NWUiIGZvbnQtd2VpZ2h0PSJib2xkIj5MZXZlbCAyPC90ZXh0PgogIDx0ZXh0IHg9IjIwIiB5PSIyMzYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2Y5NzMxNiIgZm9udC13ZWlnaHQ9ImJvbGQiPkxldmVsIDM8L3RleHQ+CiAgPHRleHQgeD0iMjAiIHk9IjMxNiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjYTg1NWY3IiBmb250LXdlaWdodD0iYm9sZCI+TGV2ZWwgNDwvdGV4dD4KCiAgPCEtLSBMZWdlbmQgLS0+CiAgPHRleHQgeD0iMzUwIiB5PSIzNzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk0YTNiOCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2Vzc2lvbnMgYW5kIGV2ZW50cyBhcmUgRFFMIGRhdGEgb2JqZWN0czogZmV0Y2ggdXNlci5zZXNzaW9ucyAvIGZldGNoIHVzZXIuZXZlbnRzPC90ZXh0Pgo8L3N2Zz4K" alt="RUM Data Model Hierarchy" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Level | Data Object | Description |
+|-------|-------------|-------------|
+| 1 | Application | Web app monitored by RUM JS agent |
+| 2 | User Session (user.sessions) | One complete visit |
+| 3 | User Event (user.events) | Navigation, page summary, user action, request, or error |
+| 4 | Event Fields | Timing (performance.*, lcp.*), errors (error.type, error.reason), requests |
+For environments where SVG doesn't render
+-->
+<h3>Key Data Objects</h3>
+<table>
+<thead>
+<tr>
+<th>DQL Data Object</th>
+<th>Description</th>
+<th>Key Fields</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>user.sessions</code></td>
+<td>A complete user visit from first page to last</td>
+<td><code>dt.rum.session.id</code>, <code>dt.rum.user_type</code>, <code>duration</code>, <code>user_action_count</code>, <code>error.count</code></td>
+</tr>
+<tr>
+<td><code>user.events</code></td>
+<td>A single event — navigation, page summary, user action, request, interaction — told apart by <code>characteristics.has_*</code> flags</td>
+<td><code>page.detected_name</code>, <code>user_action.type</code>, <code>performance.load_event_end</code> (navigations), <code>lcp.start_time</code> (page summaries)</td>
+</tr>
+<tr>
+<td><code>user.events</code> (<code>characteristics.has_error == true</code>)</td>
+<td>JavaScript exception, failed request or CSP violation</td>
+<td><code>error.reason</code>, <code>error.type</code> (<code>exception</code> / <code>request</code> / <code>csp</code>), <code>error.source</code></td>
+</tr>
+<tr>
+<td><code>smartscapeNodes &quot;FRONTEND&quot;</code></td>
+<td>The monitored application <strong>entity</strong> — one node per configured web or mobile app</td>
+<td><code>name</code>, <code>frontend.name</code>, <code>frontend.type</code>, <code>id_classic</code></td>
+</tr>
+</tbody>
+</table>
+<h3>The Application Entity: <code>FRONTEND</code></h3>
+<p>Everything else in the table above is <em>session and action data</em>. The last row is the <strong>entity</strong> — the configured application those sessions belong to. On the classic surface that was <code>dt.entity.application</code>; on Smartscape it is the <code>FRONTEND</code> node type (model <code>dt.smartscape.frontend</code>, titled <em>Digital Experience Frontend</em>), which holds web <strong>and</strong> mobile applications, discriminated by <code>frontend.type</code>.</p>
+<pre><code class="language-dql">smartscapeNodes &quot;FRONTEND&quot;
+| filter frontend.type == &quot;web&quot;
+| fields name, frontend.name, id, id_classic, tags
+| sort name asc
+</code></pre>
+<p>SaaS 1.344 (released 07/27/2026, with a <strong>staged tenant rollout from 07/29/2026</strong>) is what makes this the primary entity surface: the Digital Experience apps — Experience Vitals, Users &amp; Sessions, Error Inspector, Synthetic — moved so that their queries and filters &quot;primarily use <code>dt.smartscape.*</code> entities, instead of <code>dt.entity.*</code> and <code>dt.rum.application.*</code>&quot;. Verify 1.344 has reached your tenant before depending on the app-side change. The node type is queryable via DQL either way, and classic <code>fetch dt.entity.application</code> still works — keep it as a genuine fallback during the rollout.</p>
+<p>Three details worth knowing before you use the node:</p>
+<ul>
+<li><strong><code>name</code> vs <code>frontend.name</code>.</strong> <code>name</code> is the display name (<code>Beta - Elevate</code>); <code>frontend.name</code> is the normalized form determined at ingest (<code>Beta_-_Elevate</code>). Use <code>name</code> for reporting, <code>frontend.name</code> when matching against ingest-side configuration.</li>
+<li><strong><code>id_classic</code> is the join key.</strong> It holds the <code>APPLICATION-*</code> id (or <code>MOBILE_APPLICATION-*</code> for a mobile app), so dashboards and saved queries still written against <code>dt.entity.application</code> can be reconciled with migrated ones.</li>
+<li><strong><code>frontend.type</code> filters correctly but is absent from the model's own <code>fields</code> array.</strong> The Semantic Dictionary's field list is an index, not a completeness guarantee — do not conclude the field is missing because it is not enumerated.</li>
+</ul>
+<blockquote>
+<p><strong>This is orthogonal to the vocabulary question in WEBRUM-09 — read them as answering different questions.</strong> WEBRUM-09 asks which <strong>session-field</strong> vocabulary your tenant serves: classic RUM on Grail (<code>userActionCount</code>, <code>totalErrorCount</code>, <code>browserFamily</code>) or New RUM (<code>user_action_count</code>, <code>error.count</code>, <code>browser.name</code>). That answer governs every session and action query in the rest of this series. <code>FRONTEND</code> is a change to the <strong>entity</strong> vocabulary and is independent of it — it is how you enumerate and identify applications whichever session model your tenant serves. Answer WEBRUM-09's question for your session queries; use <code>FRONTEND</code> for your entity queries. Neither decision constrains the other.</p>
+</blockquote>
+<h3>Frontend-to-Backend Topology (SaaS 1.344)</h3>
+<p>Two 1.344 changes connect this RUM data to the backend side of the platform:</p>
+<ul>
+<li><strong>The Smartscape service dependency graph now displays <code>FRONTEND</code> nodes</strong>, letting you &quot;drill down the call path from user-facing applications to the services they depend on, all in one view&quot; — frontend and service topology were previously separate pictures.</li>
+<li><strong>Distributed tracing can explore frontend events and sessions without switching apps.</strong></li>
+</ul>
+<p>The Semantic Dictionary exposes the linkage itself as <strong><code>frontend.link</code></strong> — <em>&quot;a frontend-backend tracing link that connects a span to a frontend user event and/or user session&quot;</em>, explicitly distinct from a span link, which references other spans. Two cautions before building on it: the field is <code>frontend.link</code> (dotted), and its declared stability is <strong><code>experimental</code></strong> — not yet a foundation for a production dashboard or alert.</p>
+<p><strong>Until 1.344 reaches your tenant</strong>, the working correlation path is unchanged — and it keeps working afterwards. For <strong>same-origin</strong> web requests, linking a user action to its distributed trace works out of the box: the browser sends the RUM cookies, which OneAgent on a supported first tier evaluates. <strong>Cross-origin</strong> XHR actions are not linked automatically; the fix is either cookies on cross-origin calls or the optional <code>x-dtc</code> header, which the RUM JavaScript adds only once you enable it, because the receiving endpoints must first be configured to accept it (WEBRUM-02 covers the SPA instrumentation side). Session-level joins on the application and session identifiers supplement both.</p>
+<blockquote>
+<p><strong>The topology side belongs to the tracing series.</strong> SPANS-04 is the better home for the service-dependency-graph and trace-exploration mechanics; this note exists so a reader arriving from RUM knows the linkage exists and what it is called.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-344">Dynatrace SaaS release notes 1.344 (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/initial-setup/link-cross-origin-xhrs">Link cross-origin XHR user actions and their distributed traces (DT docs)</a> — <em>&quot;Its addition needs to be explicitly enabled because the endpoints that handle the cross-origin requests need to be configured to accept the header.&quot;</em> <strong>Dictionary:</strong> <code>frontend.link</code> (<code>experimental</code>, type <code>record</code>), read 09/28/2026.</sub></p>
+</blockquote>
+<h3>Session Types</h3>
+<p>Every session and user event carries <code>dt.rum.user_type</code>. Its documented values are lowercase:</p>
+<table>
+<thead>
+<tr>
+<th><code>dt.rum.user_type</code></th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>real_user</code></td>
+<td><em>&quot;The user event was produced by a real user.&quot;</em></td>
+</tr>
+<tr>
+<td><code>robot</code></td>
+<td><em>&quot;The user event was produced by a bot user.&quot;</em></td>
+</tr>
+<tr>
+<td><code>synthetic</code></td>
+<td><em>&quot;The user event was produced by a synthetic test.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Always filter for <code>dt.rum.user_type == &quot;real_user&quot;</code> when analyzing genuine user experience to exclude bots and synthetic executions. The classic <code>userType == &quot;REAL_USER&quot;</code> form reads null on New RUM data and filters out every session without an error.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events">User events — semantic dictionary (DT docs)</a> — <em>&quot;The user event was produced by a real user.&quot;</em> <strong>Dictionary:</strong> <code>dt.rum.user_type</code> (<code>experimental</code>, example <code>real_user</code>), read 10/05/2026.</sub></p>
+</blockquote>
+<h3>Tagging this producer — primary Grail tags on RUM data</h3>
+<p>RUM data <em>&quot;enters Dynatrace through the rumagent ingest source, which offers no at-source tag configuration.&quot;</em> Ingest enrichment rules don't reach it either, so team, app and security-context values are set with an OpenPipeline <strong>DQL processor</strong> keyed on <code>frontend.name</code>:</p>
+<ul>
+<li><strong>Add it in every RUM scope.</strong> User events, Smartscape events, Events, Davis events, Business events and Timeseries — <em>&quot;Each scope is independent.&quot;</em> Put the processor in a base pipeline (pipeline groups) so the tag exists before any team pipeline runs.</li>
+<li><strong>Guard it.</strong> Match on <code>isNotNull(frontend.name) and isNull(primary_tags.team)</code>, so a value set earlier is not overwritten.</li>
+<li><strong>User sessions are different.</strong> <code>frontend.name</code> is an array there, <em>&quot;because a web session can span multiple web frontends&quot;</em>. Match with <code>arrayContains(frontend.name, &quot;&lt;frontend&gt;&quot;)</code>; a session that crossed two teams' frontends carries both team values, so query it with <code>matchesValue(primary_tags.team, &quot;&lt;team&gt;&quot;)</code>, not <code>==</code>.</li>
+</ul>
+<p>The same path applies to mobile apps (OneAgent for Mobile). FAQ-26 § 5.7 has the full pattern.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-rum">Enrich RUM telemetry with primary Grail fields and tags (DT docs)</a> — <em>&quot;RUM data from web frontends (RUM JavaScript) and mobile apps (OneAgent for Mobile) enters Dynatrace through the rumagent ingest source, which offers no at-source tag configuration.&quot;</em> and <em>&quot;Each scope is independent.&quot;</em>; <a href="https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws">Apply primary Grail tags across an example AWS estate (DT docs)</a> — RUM step, User sessions matching condition.</sub></p>
+</blockquote>
+<p><a id="exploring-user-sessions"></a></p>
+<h2>4. Exploring User Sessions</h2>
+<p>Let's start by examining what a user session looks like in Grail. A session represents a single visit — from the first page load to when the user closes the tab or the session times out (30 minutes of inactivity by default).</p>
+<pre><code class="language-dql">// Session/performance field vocabulary corrected 08/12/2026 (New RUM). Classic camelCase RUM
+// names are null on New RUM data and fail silently. Verified against 3,261 user.sessions:
+//   userType -&gt; dt.rum.user_type      userActionCount -&gt; user_action_count
+//   totalErrorCount -&gt; error.count    sessionId -&gt; dt.rum.session.id
+//   hasSessionReplay -&gt; characteristics.has_replay
+//   browserFamily -&gt; browser.name     osFamily -&gt; os.name
+//   application -&gt; frontend.name (stable; an array on user.sessions, so expand it before grouping)
+//                  primary_tags.application exists only if your OpenPipeline adds it (corrected 10/14/2026)
+//   country/city/continent -&gt; geo.country.name / geo.city.name / geo.continent.name
+//   screen.width|height -&gt; browser.window.width|height
+//   dom.interactive.time -&gt; performance.dom_interactive
+//   load.event.time -&gt; performance.load_event_end
+//   server.time -&gt; ttfb.value (page summaries; web_vitals.time_to_first_byte where populated) —
+//                  NOT ttfb.waiting_duration, which is the pre-request wait/redirect phase
+// TWO TENANT CAVEATS on the validation tenant, both of which leave a CORRECT query empty:
+//   * every session is dt.rum.user_type == &quot;synthetic&quot;, so a real-user filter matches nothing —
+//     the documented values are &quot;real_user&quot; / &quot;robot&quot; / &quot;synthetic&quot; (lowercase);
+//   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
+// Explore recent user sessions — sample 10 sessions to see available fields
+fetch user.sessions, from:-1h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| fieldsKeep dt.rum.session.id, frontend.name, dt.rum.user_type, duration, user_action_count, error.count, geo.city.name, geo.country.name, os.name, browser.name
+| sort duration desc
+| limit 10
+</code></pre>
+<p>The query above returns the 10 longest sessions from the last hour. Each record includes the session ID, application name, duration, action count (number of interactions), error count, and geographic/device information.</p>
+<h3>Session Duration Distribution</h3>
+<p>Understanding how long sessions last helps identify engagement patterns:</p>
+<pre><code class="language-dql">// Session duration distribution — bucket sessions by duration range
+fetch user.sessions, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| fieldsAdd duration_sec = duration / 1s
+| fieldsAdd duration_bucket = if(duration_sec &lt; 10, &quot;&lt; 10s&quot;,
+    else: if(duration_sec &lt; 30, &quot;10-30s&quot;,
+    else: if(duration_sec &lt; 60, &quot;30-60s&quot;,
+    else: if(duration_sec &lt; 300, &quot;1-5 min&quot;,
+    else: &quot;&gt; 5 min&quot;))))
+| summarize session_count = count(), by:{duration_bucket}
+| sort session_count desc
+</code></pre>
+<p><a id="exploring-user-actions"></a></p>
+<h2>5. Exploring User Actions</h2>
+<p>User actions represent individual interactions within a session. In New RUM each one is a <code>user.events</code> record with <code>characteristics.has_user_action == true</code>, and <code>user_action.type</code> says what triggered it. The web values are:</p>
+<table>
+<thead>
+<tr>
+<th><code>user_action.type</code></th>
+<th>Classic RUM equivalent</th>
+<th>Documented meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hard_navigation</code></td>
+<td>Load</td>
+<td><em>&quot;The user action was triggered by a hard navigation (full page load).&quot;</em></td>
+</tr>
+<tr>
+<td><code>soft_navigation</code></td>
+<td>Route change</td>
+<td><em>&quot;The user action was triggered by a soft navigation that led to a view change.&quot;</em></td>
+</tr>
+<tr>
+<td><code>same_view</code></td>
+<td>XHR</td>
+<td><em>&quot;The user action was triggered by a user interaction, followed by an XHR or fetch request.&quot;</em></td>
+</tr>
+<tr>
+<td><code>api</code></td>
+<td>Custom</td>
+<td><em>&quot;The user action was reported via the Dynatrace API.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events/user-actions">User actions — semantic dictionary (DT docs)</a> — <em>&quot;The user action was triggered by a soft navigation that led to a view change.&quot;</em></sub></p>
+</blockquote>
+<blockquote>
+<p><strong>How user actions changed in OneAgent 1.347 and 1.349 (RUM JavaScript, updated 11/11/2026).</strong> OneAgent 1.347 (rollout from 09/30/2026) lists <em>Improved user actions</em> as a <strong>breaking change</strong>: user actions now always start from an interaction, and any soft navigations that follow are folded into that same action. The same release adds triggers beyond clicks (drop, input change, Enter) and records on a <code>hard_navigation</code> action the interaction, element and view that caused it. The <code>user_action.type</code> values in the table above are unchanged. What shifts is how many actions a session produces and the mix between types, on pages whose RUM JavaScript has picked up 1.347. Compare a period before the update with one after it before you read a change in action counts as a regression.</p>
+<p>OneAgent 1.349 (published 11/05/2026, <strong>staged rollout from 11/09/2026</strong>) adds <code>interaction.is_user_action_trigger</code> to the interaction event that created the action. On the validation tenant the semantic dictionary has no row for that field yet (11/11/2026), so check your own tenant before you filter on it.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-347">What's new in OneAgent 1.347 (DT docs)</a> — <em>&quot;User actions are always triggered by a user via an interaction, and if (soft) navigations occur, they are now part of the same user action, even when multiple navigations happen in quick succession.&quot;</em>, <em>&quot;RUM JavaScript now creates user actions for drop events, input changes, and Enter keypresses, expanding user action generation beyond click interactions.&quot;</em>; <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349">What's new in OneAgent 1.349 (DT docs)</a> — <em>&quot;RUM JavaScript now sets a new field interaction.is_user_action_trigger on the interaction event that caused the user action to be created.&quot;</em>; re-read 11/11/2026. <strong>Dictionary:</strong> no row for <code>interaction.is_user_action_trigger</code>, read 11/11/2026 (control: <code>characteristics.has_user_action</code> returned <code>stable</code>). <strong>Derived:</strong> the shift in action counts and type mix follows from the 1.347 change to what one action contains.</sub></p>
+</blockquote>
+<p>Let's explore the most common user actions:</p>
+<blockquote>
+<p><strong><code>dt.rum.application.id</code> is being deprecated (Semantic Dictionary 1.348, released 08/25/2026).</strong> It moves from <code>stable</code> to <code>deprecated</code>. This series used to group by it; the per-application queries now group and filter by <code>frontend.name</code>, the stable primary field <em>&quot;present on every user event and user session&quot;</em> (corrected 10/14/2026). The change is still worth knowing if your own queries use the ID.</p>
+<p><strong>Deprecated is not removed.</strong> Every query in this series keeps working; a deprecated field is a signal about where to point <em>new</em> work, not a break. Read 10/31/2026 on the validation tenant: its dictionary still returns <code>stable</code> for this field and has no row for the successor, so nothing has changed there yet.</p>
+<p>The User events page names the successor, <code>dt.rum.instrumentation.id</code>. Check the dictionary on your own tenant:
+<code>fetch dt.semantic_dictionary.fields | filter name == &quot;dt.rum.application.id&quot; | fields name, stability, description</code></p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-rum">Enrich RUM telemetry with primary Grail fields and tags (DT docs)</a> — <em>&quot;This primary field is present on every user event and user session; its value comes from the frontend nodes defined in Dynatrace.&quot;</em> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events">User events — semantic dictionary (DT docs)</a> — <code>dt.rum.application.id</code> <em>&quot;deprecated Replaced with dt.rum.instrumentation.id&quot;</em>. <strong>Dictionary:</strong> <code>frontend.name</code> (<code>stable</code>), <code>dt.rum.application.id</code> (<code>stable</code>), no row for <code>dt.rum.instrumentation.id</code>, read 10/31/2026.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Field vocabulary corrected 08/12/2026 — this series targets **New RUM**, but was written
+// against names that are null on New RUM data, so these cells returned nothing while erroring
+// nowhere. Verified against 5,556,127 user.events records (schema 0.24.0, javascript agent):
+//   action.type == &quot;Load&quot;              -&gt; characteristics.has_page_summary == true
+//                                        (was characteristics.classifier — &quot;not intended for query usage&quot;, SD 1.349)
+//   action.type                        -&gt; user_action.type      (hard_navigation | soft_navigation | same_view | api)
+//   action.name                        -&gt; page.detected_name
+//   LCP / CLS                          -&gt; web_vitals.largest_contentful_paint / web_vitals.cumulative_layout_shift
+//                                        (stable — the fields Dynatrace's own DQL examples use), falling back to
+//                                        the experimental lcp.start_time / cls.value (corrected 10/14/2026)
+//   app.name                           -&gt; frontend.name (stable; an array on user.sessions)
+// UNITS DIFFER BETWEEN THE TWO FAMILIES. web_vitals.largest_contentful_paint is a DURATION, so
+// `/ 1ms` turns it into milliseconds; lcp.start_time is a PLAIN NUMBER already in milliseconds,
+// and dividing it by 1ms yields null. The CWV cells therefore read
+// coalesce(web_vitals.largest_contentful_paint / 1ms, lcp.start_time) and
+// coalesce(web_vitals.cumulative_layout_shift, cls.value), against the 2500/4000 ms and 0.1/0.25 thresholds.
+// Why both: on the validation tenant every user event comes from the synthetic engine, which fills
+// lcp.* / cls.* but not web_vitals.* (0 of 243,494 page summaries in 30 days, 10/14/2026). That
+// is a property of synthetic-monitor data, not a sign that web_vitals.* is rarely populated.
+// Top 20 user actions by count in the last hour (user-action events only — most user.events
+// records are requests, which carry no user_action.type)
+fetch user.events, from:-1h
+| filter characteristics.has_user_action == true
+| summarize {action_count = count(), avg_duration = avg(duration)}, by:{page.detected_name, user_action.type}
+| sort action_count desc
+| limit 20
+</code></pre>
+<h3>Page Load Actions with Timing Breakdown</h3>
+<p>For load-type actions, Dynatrace captures detailed timing milestones:</p>
+<blockquote>
+<p><strong>Select <code>user.events</code> with the <code>characteristics.has_*</code> flags, not <code>characteristics.classifier</code>.</strong> The User events semantic-dictionary page describes <code>characteristics.classifier</code> as the single characteristic picked by priority when an event has several, and says it is <em>&quot;Used for internal optimization when storing the data and not intended for query usage.&quot;</em> <strong>Semantic Dictionary 1.349</strong> (published 09/04/2026) removes it from the user-event models, with a <strong>staged tenant rollout</strong> — a tenant that has not reached 1.349 still returns the field, so a classifier filter keeps working until the change arrives and then silently matches nothing. The stable flags (<code>has_page_summary</code>, <code>has_navigation</code>, <code>has_error</code>, <code>has_request</code>, …) are the documented selectors and work on both sides of the change. <strong>Semantic Dictionary 1.350</strong> (published 09/21/2026) re-lists <code>characteristics.classifier</code> under the Basic user-event model, still <code>experimental</code>, and the User events page still calls it <em>&quot;not intended for query usage&quot;</em> — so the flags above remain the selectors.</p>
+<p>The flags can <strong>overlap</strong> where the classifier picked one winner. A navigation that also carried an error was classified <code>error</code>, so <code>classifier == &quot;navigation&quot;</code> silently dropped it; <code>characteristics.has_navigation == true</code> keeps it. On the validation tenant (24 h, 09/28/2026) that is <strong>7,387</strong> navigations against <strong>6,235</strong> — the 1,152 recovered page loads have full navigation timing. For page summaries the two filters select the same 7,268 events.</p>
+</blockquote>
+<pre><code class="language-dql">// Error / navigation vocabulary corrected 08/12/2026 (New RUM):
+//   filter type == &quot;Error&quot;  -&gt; filter characteristics.has_error == true  (11,909 events; identical
+//                              population to isNotNull(error.type), whose values are request/csp/exception)
+//   error.message           -&gt; error.reason
+//   user_action.type: &quot;Load&quot; -&gt; &quot;hard_navigation&quot;, &quot;RouteChange&quot; -&gt; &quot;soft_navigation&quot;,
+//                     &quot;Xhr&quot; -&gt; &quot;same_view&quot;, &quot;Custom&quot; -&gt; &quot;api&quot; (documented values, corrected 10/05/2026)
+//   connection.type         -&gt; no web RUM equivalent (network.connection.type is OneAgent for Mobile
+//                              only; network.protocol.name is the OSI protocol, e.g. &quot;http&quot;)
+// THE EVENT CHARACTERISTIC MATTERS AS MUCH AS THE FIELD: navigation-timing fields
+// (performance.dom_interactive, performance.load_event_end) live on navigation events
+// (characteristics.has_navigation) and are unpopulated on page summaries
+// (characteristics.has_page_summary), so a page-summary filter silently empties them.
+// ttfb.* is the opposite — it lives on page summaries. Select with the stable has_* flags, not
+// characteristics.classifier (corrected 09/28/2026): the docs call classifier &quot;not intended for
+// query usage&quot; and Semantic Dictionary 1.349 removes it from the user-event models (re-listed in SD 1.350, still not for query use).
+// Page load timing breakdown — average timings for the top 10 pages
+fetch user.events, from:-1h
+| filter characteristics.has_navigation == true
+| summarize {action_count = count(),
+    avg_duration = avg(duration),
+    avg_dom_interactive = avg(performance.dom_interactive),
+    avg_load_event = avg(performance.load_event_end)},
+    by:{page.detected_name}
+| sort action_count desc
+| limit 10
+</code></pre>
+<p><a id="session-and-action-counts"></a></p>
+<h2>6. Session and Action Counts</h2>
+<p>Tracking session and action volume over time reveals traffic patterns, peak hours, and trend changes.</p>
+<pre><code class="language-dql">// Session count over the last 24 hours, bucketed by hour
+fetch user.sessions, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| makeTimeseries session_count = count(), interval:1h
+</code></pre>
+<pre><code class="language-dql">// Action volume by type over the last 24 hours — user actions only; without the filter,
+// requests and other events dominate as a null user_action.type series
+fetch user.events, from:-24h
+| filter characteristics.has_user_action == true
+| makeTimeseries action_count = count(), interval:1h, by:{user_action.type}
+</code></pre>
+<pre><code class="language-dql">// Sessions and actions per application — high-level overview
+fetch user.sessions, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| expand frontend.name   // array on sessions: a multi-frontend session counts once per frontend
+| summarize {session_count = count(),
+    total_actions = sum(user_action_count),
+    total_errors = sum(error.count),
+    avg_duration = avg(duration)},
+    by:{frontend.name}
+| sort session_count desc
+</code></pre>
+<p><a id="summary"></a></p>
+<h2>7. Summary and Next Steps</h2>
+<p>In this notebook, we covered:</p>
+<ul>
+<li><strong>How RUM works</strong> — JavaScript agent injection, browser event capture, beacon delivery to Grail</li>
+<li><strong>RUM vs synthetic</strong> — Complementary approaches for full UX visibility</li>
+<li><strong>RUM data model</strong> — Sessions, actions, and errors as hierarchical records in Grail</li>
+<li><strong>Basic DQL queries</strong> — Exploring sessions, actions, timing breakdowns, and volume trends</li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li><strong>WEBRUM-02: SPA Instrumentation</strong> — Deep dive into Single-Page Application monitoring with Angular, React, and Vue.js</li>
+<li><strong>WEBRUM-03: Core Web Vitals</strong> — Track LCP, INP, and CLS with DQL</li>
+</ul>
+<h3>References</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications">Dynatrace RUM Overview</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience/rum/web-frontends/additional-configuration/rum-javascript-version">RUM JavaScript version (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience/rum/analyze-and-alert/rum-dql-web-performance">Monitor web performance with DQL (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events">User events — semantic dictionary (DT docs)</a> — <em>&quot;Used for internal optimization when storing the data and not intended for query usage.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-349">Semantic Dictionary changelog 1.349 (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-350">Semantic Dictionary changelog 1.350 (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

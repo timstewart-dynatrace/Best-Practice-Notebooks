@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPMIG-09: Troubleshooting &amp; Validation</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPMIG — OpenPipeline Migration</a><span class="sep">/</span><span aria-current="page">OPMIG-09</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPMIG-09: Troubleshooting &amp; Validation</h1>
+<blockquote>
+<p><strong>Series:</strong> OPMIG — OpenPipeline Migration | <strong>Notebook:</strong> 9 of 10 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 10/30/2026
+<strong>Level:</strong> Intermediate<br />
+<strong>Prerequisites:</strong> OPMIG-01 through OPMIG-08<br />
+<strong>Estimated Time:</strong> 45 minutes</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#migration-validation-checklist">Migration Validation Checklist</a></li>
+<li><a href="#troubleshooting-decision-trees">Troubleshooting Decision Trees</a></li>
+<li><a href="#pipeline-health-monitoring">Pipeline Health Monitoring</a></li>
+<li><a href="#emergency-rollback-procedures-expanded">Emergency Rollback Procedures ⭐ EXPANDED</a></li>
+<li><a href="#performance-troubleshooting-new">Performance Troubleshooting ⭐ NEW</a></li>
+<li><a href="#common-issues-solutions">Common Issues &amp; Solutions</a></li>
+<li><a href="#parsing-validation">Parsing Validation</a></li>
+<li><a href="#volume-cost-validation">Volume &amp; Cost Validation</a></li>
+<li><a href="#performance-optimization">Performance Optimization</a></li>
+<li><a href="#rollback-procedures">Rollback Procedures</a></li>
+<li><a href="#ongoing-maintenance">Ongoing Maintenance</a></li>
+<li><a href="#migration-complete-checklist">Migration Complete Checklist</a></li>
+<li><a href="#congratulations">🎉 Congratulations!</a></li>
+</ol>
+<hr />
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will be able to:</p>
+<ul>
+<li>⭐ <strong>Navigate decision trees</strong> to diagnose common OpenPipeline issues</li>
+<li><strong>Validate pipeline processing</strong> using DQL verification queries</li>
+<li><strong>Troubleshoot parsing failures</strong> and identify root causes</li>
+<li><strong>Debug masking and security processing</strong> to ensure PII/PHI protection</li>
+<li>⭐ <strong>Execute emergency rollback procedures</strong> when issues occur</li>
+<li>⭐ <strong>Resolve performance problems</strong> in high-volume environments</li>
+<li><strong>Identify bucket and routing issues</strong> with systematic diagnosis</li>
+<li><strong>Test end-to-end pipeline flows</strong> before production deployment</li>
+</ul>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS with Grail and active OpenPipeline pipelines — Managed is not covered by this series</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>settings:read</code> (OpenPipeline configuration), <code>storage:logs:read</code></td>
+</tr>
+<tr>
+<td><strong>API Access</strong></td>
+<td><code>logs.read</code> token scope</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>OPMIG-01 through OPMIG-08; at least one active pipeline configured</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="migration-validation-checklist"></a></p>
+<h2>Migration Validation Checklist</h2>
+<p>Use this checklist to validate your migration:</p>
+<h3>Data Flow Validation</h3>
+<ul>
+<li>[ ] All log sources are flowing to OpenPipeline</li>
+<li>[ ] Data volumes match expectations</li>
+<li>[ ] No data loss detected</li>
+<li>[ ] Timestamps are correct</li>
+</ul>
+<h3>Parsing Validation</h3>
+<ul>
+<li>[ ] Log levels extracted correctly</li>
+<li>[ ] Custom fields parsed as expected</li>
+<li>[ ] JSON payloads properly flattened</li>
+<li>[ ] No parsing errors in logs</li>
+</ul>
+<h3>Routing Validation</h3>
+<ul>
+<li>[ ] Logs routed to correct pipelines</li>
+<li>[ ] Bucket assignments are correct</li>
+<li>[ ] No unrouted data accumulating</li>
+<li>[ ] Nothing still processed by the classic pipeline — see <em>Verify nothing still takes the classic pipeline</em> below</li>
+</ul>
+<h3>Security Validation</h3>
+<ul>
+<li>[ ] Sensitive data masked properly</li>
+<li>[ ] No PII visible in stored logs</li>
+<li>[ ] Compliance requirements met</li>
+</ul>
+<h3>Extraction Validation</h3>
+<ul>
+<li>[ ] Metrics being generated</li>
+<li>[ ] Events appearing correctly</li>
+<li>[ ] Business events available</li>
+</ul>
+<h3>Verify source-level coverage</h3>
+<blockquote>
+<p><strong>Coverage vs. volume — the log-module self-monitoring events.</strong> For the <em>All log sources are flowing</em> check above, verify coverage at the source level — a source OneAgent detects but does not ingest won't appear as volume at all, so a volume query alone can't distinguish it from a source that was never discovered. The log module emits a <code>log_source.status</code> event per discovered source into <code>dt.system.events</code>, carrying <code>log.source.file_status</code> and <code>log.source.ingest_status</code> — so it reveals sources OneAgent <strong>detected but is not ingesting</strong>, which a <code>fetch logs</code> count cannot show (no stored records means nothing to count). It scans events, not raw logs, and needs only event-read.</p>
+<p>This event stream is <strong>Early Access</strong> and requires <strong>opt-in</strong> (the OneAgent log module must be enabled to send self-monitoring events; its content folds into the built-in <em>Log ingest Overview</em> dashboard for Dynatrace <strong>1.339+</strong> — verify it is flowing in your tenant before relying on it). See <strong>FAQ-08</strong> (Recommended Approach) for the full file-status × ingest-status coverage matrix and the <code>fetch logs</code> fallback for tenants without the opt-in.</p>
+</blockquote>
+<pre><code class="language-dql">// Log-source coverage from the OneAgent log-module self-monitoring events.
+// Unlike `fetch logs` (which sees only sources that produced records), this
+// surfaces sources OneAgent DETECTED but is NOT ingesting. Scans events, not raw logs.
+fetch dt.system.events, from: now() - 24h
+| filter event.provider == &quot;Log Module&quot; and event.type == &quot;log_source.status&quot;
+| dedup event.id, sort:{ timestamp desc }
+| filter event.status == &quot;Active&quot;
+| fieldsAdd coverage =
+    if(log.source.file_status == &quot;FILE_STATUS_OK&quot; and log.source.ingest_status == &quot;Ingested&quot;, &quot;Available | Ingesting&quot;, else:
+    if(log.source.file_status == &quot;FILE_STATUS_OK&quot; and log.source.ingest_status == &quot;Not ingested&quot;, &quot;Available | NOT ingesting&quot;, else:
+    if(log.source.ingest_status == &quot;Partially ingested&quot;, &quot;Partial ingestion&quot;,
+    else: &quot;Unsupported or issue&quot;)))
+| summarize sources = count(), by:{coverage}
+| sort sources desc
+</code></pre>
+<h3>Verify nothing still takes the classic pipeline</h3>
+<p>The classic pipeline does not go away when you create your first OpenPipeline route. It stays as the <strong>default route</strong>, and every record that no route matches keeps going through it:</p>
+<blockquote>
+<p><em>&quot;Data that doesn't match is processed by the default route and continues to be processed by the classic pipeline until you turn off the rules.&quot;</em></p>
+</blockquote>
+<p>That makes &quot;how much still takes the classic pipeline&quot; the most direct measure of whether this migration is finished. The classic pipeline is also what the ready-made <strong>Check your upgrade readiness</strong> dashboard reports under <em>OpenPipeline adoption</em>. Records it processed carry the pipeline id <code>logs:default</code> (or <code>bizevents:default</code>) in <code>dt.openpipeline.pipelines</code>. That field is populated for classic records too, which is why the <em>Final migration validation summary</em> at the end of this notebook counts them separately. A plain <code>isNotNull(dt.openpipeline.pipelines)</code> check reads as fully routed even when nothing has been migrated.</p>
+<p><strong>Record-level check, the method the migration guide documents.</strong> This scans raw records, so keep the window short:</p>
+<pre><code class="language-dql">// Records still processed by the classic pipeline, last 24 hours.
+// For business events: fetch bizevents and &quot;bizevents:default&quot;.
+fetch logs, from: now() - 24h
+| summarize total = count(), classic = countIf(in(dt.openpipeline.pipelines, &quot;logs:default&quot;))
+| fieldsAdd classic_pct = round(100.0 * classic / total, decimals: 2)
+</code></pre>
+<p><strong>Trend across both data types, from self-monitoring.</strong> OpenPipeline records how many records each pipeline received in the <code>dt.sfm.openpipeline.routing.records</code> metric, so you can follow the classic share over weeks without scanning a single log line. <code>pipeline_id == &quot;default&quot;</code> is the classic pipeline, the same identifier as <code>logs:default</code> above:</p>
+<pre><code class="language-dql">// Classic vs OpenPipeline record volume over 30 days, logs and business events.
+// Reads a self-monitoring metric: no raw records are scanned.
+timeseries records = sum(dt.sfm.openpipeline.routing.records, default: 0), from: now() - 30d,
+  filter: { in(configuration, {&quot;logs&quot;, &quot;bizevents&quot;}) },
+  by: { configuration, pipeline_id }
+| fieldsAdd path = if(pipeline_id == &quot;default&quot;, &quot;classic pipeline&quot;, else: &quot;OpenPipeline&quot;)
+| fieldsAdd total = arraySum(records)
+| summarize records = sum(total), by:{ configuration, path }
+| sort configuration asc, records desc
+</code></pre>
+<p>On the validation tenant (09/29/2026) the two methods agreed. Logs showed <strong>0</strong> classic records in 24 hours out of 24.7 million, and the metric showed no classic log volume over 30 days. Business events, which had never been migrated, showed <strong>993,927</strong> classic records over 30 days in the metric and <strong>993,375</strong> by record count. The small gap is the difference between metric and record-scan timing at the window edges. <strong>Check business events explicitly.</strong> They migrate separately from logs, so a tenant that has finished logs can still be sending all its business events through the classic pipeline.</p>
+<p><strong>Zero is necessary, not sufficient.</strong> The migration guide is explicit about what the number does not prove:</p>
+<blockquote>
+<p><em>&quot;Zero classic pipeline usage does not guarantee that all data is fully converted, only that it was not routed via the Classic route.&quot;</em></p>
+</blockquote>
+<p>Data that arrives rarely, such as a monthly batch job or an audit source that only logs on failure, may simply not have arrived in your window. Before you turn off a classic processing rule, account for every source the rule handled, not just the ones that showed up this week.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/upgrade-your-data-pipeline/migration-classic-pipeline">Upgrade from classic pipeline to OpenPipeline (DT docs)</a> — the <code>in(dt.openpipeline.pipelines, &quot;logs:default&quot;)</code> filter and both quotes above. <strong>Dictionary:</strong> <code>dt.openpipeline.pipelines</code> (<code>experimental</code>), read 09/29/2026. The metric's <code>pipeline_id</code> / <code>configuration</code> dimensions were read from the <code>metrics</code> command, and both queries were executed against a Dynatrace tenant on 09/29/2026 with the counts shown. <strong>Derived:</strong> reading <code>pipeline_id == &quot;default&quot;</code> as the classic pipeline rests on the two methods agreeing on that tenant, not on a docs statement about the metric.</sub></p>
+</blockquote>
+<hr />
+<p><a id="troubleshooting-decision-trees"></a></p>
+<h2>Troubleshooting Decision Trees</h2>
+<p>Visual decision trees for diagnosing and resolving common OpenPipeline issues.</p>
+<h3>Decision Tree 1: Logs Not Appearing</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzgwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3RhcnRHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2VmNDQ0NDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZGMyNjI2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icXVlc3Rpb25HcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjU2M2ViO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZml4R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyMmM1NWU7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE2YTM0YTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJkdFNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjEiIGR5PSIxIiBzdGREZXZpYXRpb249IjIiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0iZHRBcnJvdyIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjNjQ3NDhiIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9Im5vQXJyb3ciIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iI2RjMjYyNiIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJ5ZXNBcnJvdyIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjMTZhMzRhIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjM4MCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDAwIiB5PSIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VHJvdWJsZXNob290aW5nIERlY2lzaW9uIFRyZWU6IExvZ3MgTm90IEFwcGVhcmluZzwvdGV4dD4KCiAgPCEtLSBTdGFydCAtLT4KICA8cmVjdCB4PSIzNDAiIHk9IjUwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjQwIiByeD0iMjAiIGZpbGw9InVybCgjc3RhcnRHcmFkKSIgZmlsdGVyPSJ1cmwoI2R0U2hhZG93KSIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Mb2dzIE1pc3Npbmc/PC90ZXh0PgoKICA8cGF0aCBkPSJNNDAwLDkwIEw0MDAsMTE1IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNkdEFycm93KSIvPgoKICA8IS0tIFF1ZXN0aW9uIDE6IEluZ2VzdGlvbiAtLT4KICA8cmVjdCB4PSIzMDUiIHk9IjEyMCIgd2lkdGg9IjE5MCIgaGVpZ2h0PSI0NSIgcng9IjQiIGZpbGw9InVybCgjcXVlc3Rpb25HcmFkKSIgZmlsdGVyPSJ1cmwoI2R0U2hhZG93KSIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iMTQyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MS4gQXJlIGxvZ3MgYmVpbmcgaW5nZXN0ZWQ/PC90ZXh0PgogIDx0ZXh0IHg9IjQwMCIgeT0iMTU4IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmZldGNoIGxvZ3MgfCBzdW1tYXJpemUgY291bnQoKTwvdGV4dD4KCiAgPCEtLSBObyBicmFuY2ggdG8gZml4IC0tPgogIDxwYXRoIGQ9Ik0zMDUsMTQyIEwyMjAsMTQyIiBzdHJva2U9IiNkYzI2MjYiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNub0Fycm93KSIvPgogIDx0ZXh0IHg9IjI2MiIgeT0iMTM1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNkYzI2MjYiPk5vPC90ZXh0PgoKICA8cmVjdCB4PSI1MCIgeT0iMTIwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjQ1IiByeD0iNCIgZmlsbD0iI2ZlY2FjYSIgc3Ryb2tlPSIjZGMyNjI2IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIxMzAiIHk9IjEzOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2RjMjYyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q2hlY2sgSW5nZXN0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjEzMCIgeT0iMTUyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM3ZjFkMWQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk9uZUFnZW50LCBBUEkgdG9rZW4sIGVuZHBvaW50PC90ZXh0PgoKICA8IS0tIFllcyB0byBuZXh0IC0tPgogIDxwYXRoIGQ9Ik00MDAsMTY1IEw0MDAsMTk1IiBzdHJva2U9IiMxNmEzNGEiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCN5ZXNBcnJvdykiLz4KICA8dGV4dCB4PSI0MTAiIHk9IjE4MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMTZhMzRhIj5ZZXM8L3RleHQ+CgogIDwhLS0gUXVlc3Rpb24gMjogRHJvcCAtLT4KICA8cmVjdCB4PSIzMDUiIHk9IjIwMCIgd2lkdGg9IjE5MCIgaGVpZ2h0PSI0NSIgcng9IjQiIGZpbGw9InVybCgjcXVlc3Rpb25HcmFkKSIgZmlsdGVyPSJ1cmwoI2R0U2hhZG93KSIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iMjIyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Mi4gQmVpbmcgZHJvcHBlZD88L3RleHQ+CiAgPHRleHQgeD0iNDAwIiB5PSIyMzgiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q2hlY2sgZHJvcCBwcm9jZXNzb3IgY29uZGl0aW9uczwvdGV4dD4KCiAgPCEtLSBZZXMgYnJhbmNoIHRvIGZpeCAtLT4KICA8cGF0aCBkPSJNMzA1LDIyMiBMMjIwLDIyMiIgc3Ryb2tlPSIjZGMyNjI2IiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjbm9BcnJvdykiLz4KICA8dGV4dCB4PSIyNjIiIHk9IjIxNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZGMyNjI2Ij5ZZXM8L3RleHQ+CgogIDxyZWN0IHg9IjUwIiB5PSIyMDAiIHdpZHRoPSIxNjAiIGhlaWdodD0iNDUiIHJ4PSI0IiBmaWxsPSIjZmVmM2M3IiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjEzMCIgeT0iMjE4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BZGp1c3QgRHJvcCBSdWxlczwvdGV4dD4KICA8dGV4dCB4PSIxMzAiIHk9IjIzMiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNzgzNTBmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5NYWtlIGNvbmRpdGlvbnMgbW9yZSBzcGVjaWZpYzwvdGV4dD4KCiAgPCEtLSBObyB0byBuZXh0IC0tPgogIDxwYXRoIGQ9Ik00MDAsMjQ1IEw0MDAsMjc1IiBzdHJva2U9IiMxNmEzNGEiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCN5ZXNBcnJvdykiLz4KICA8dGV4dCB4PSI0MTAiIHk9IjI2MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMTZhMzRhIj5ObzwvdGV4dD4KCiAgPCEtLSBRdWVzdGlvbiAzOiBSb3V0aW5nIC0tPgogIDxyZWN0IHg9IjMwNSIgeT0iMjgwIiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjQ1IiByeD0iNCIgZmlsbD0idXJsKCNxdWVzdGlvbkdyYWQpIiBmaWx0ZXI9InVybCgjZHRTaGFkb3cpIi8+CiAgPHRleHQgeD0iNDAwIiB5PSIzMDIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4zLiBSb3V0ZWQgdG8gcmlnaHQgcGlwZWxpbmU/PC90ZXh0PgogIDx0ZXh0IHg9IjQwMCIgeT0iMzE4IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNoZWNrIGR0Lm9wZW5waXBlbGluZS5waXBlbGluZXM8L3RleHQ+CgogIDwhLS0gTm8gYnJhbmNoIHRvIGZpeCAtLT4KICA8cGF0aCBkPSJNMzA1LDMwMiBMMjIwLDMwMiIgc3Ryb2tlPSIjZGMyNjI2IiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjbm9BcnJvdykiLz4KICA8dGV4dCB4PSIyNjIiIHk9IjI5NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZGMyNjI2Ij5ObzwvdGV4dD4KCiAgPHJlY3QgeD0iNTAiIHk9IjI4MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI0NSIgcng9IjQiIGZpbGw9IiNmZWYzYzciIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMTMwIiB5PSIyOTgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM5MjQwMGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkZpeCBSb3V0ZSBDb25kaXRpb25zPC90ZXh0PgogIDx0ZXh0IHg9IjEzMCIgeT0iMzEyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM3ODM1MGYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlVwZGF0ZSBtYXRjaGluZyBjb25kaXRpb248L3RleHQ+CgogIDwhLS0gWWVzIHRvIG5leHQgcXVlc3Rpb24gLS0+CiAgPHBhdGggZD0iTTQ5NSwzMDIgTDU1MCwzMDIiIHN0cm9rZT0iIzE2YTM0YSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI3llc0Fycm93KSIvPgogIDx0ZXh0IHg9IjUyMiIgeT0iMjk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxNmEzNGEiPlllczwvdGV4dD4KCiAgPCEtLSBRdWVzdGlvbiA0OiBCdWNrZXQgLS0+CiAgPHJlY3QgeD0iNTYwIiB5PSIyODAiIHdpZHRoPSIxOTAiIGhlaWdodD0iNDUiIHJ4PSI0IiBmaWxsPSJ1cmwoI3F1ZXN0aW9uR3JhZCkiIGZpbHRlcj0idXJsKCNkdFNoYWRvdykiLz4KICA8dGV4dCB4PSI2NTUiIHk9IjMwMiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjQuIEluIGNvcnJlY3QgYnVja2V0PzwvdGV4dD4KICA8dGV4dCB4PSI2NTUiIHk9IjMxOCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5DaGVjayBkdC5zeXN0ZW0uYnVja2V0PC90ZXh0PgoKICA8IS0tIE5vIGJyYW5jaCB0byBmaXggLS0+CiAgPHBhdGggZD0iTTY1NSwzMjUgTDY1NSwzNTAiIHN0cm9rZT0iI2RjMjYyNiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI25vQXJyb3cpIi8+CiAgPHRleHQgeD0iNjY1IiB5PSIzNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2RjMjYyNiI+Tm88L3RleHQ+CgogIDxyZWN0IHg9IjU2MCIgeT0iMzUwIiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjI1IiByeD0iNCIgZmlsbD0iI2ZlZjNjNyIgc3Ryb2tlPSIjZjU5ZTBiIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI2NTUiIHk9IjM2NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5GaXggcGlwZWxpbmUgc3RvcmFnZSBzZXR0aW5nczwvdGV4dD4KCiAgPCEtLSBZZXMgdG8gc3VjY2VzcyAtLT4KICA8cGF0aCBkPSJNNzUwLDMwMiBMNzcwLDMwMiBMNzcwLDIzMCBMNzU1LDIzMCIgc3Ryb2tlPSIjMTZhMzRhIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjeWVzQXJyb3cpIi8+CiAgPHRleHQgeD0iNzYwIiB5PSIyNjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzE2YTM0YSIgdHJhbnNmb3JtPSJyb3RhdGUoLTkwLCA3NjAsIDI2MCkiPlllczwvdGV4dD4KCiAgPCEtLSBTdWNjZXNzIC0tPgogIDxyZWN0IHg9IjYxMCIgeT0iMjAwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjQ1IiByeD0iNCIgZmlsbD0idXJsKCNmaXhHcmFkKSIgZmlsdGVyPSJ1cmwoI2R0U2hhZG93KSIvPgogIDx0ZXh0IHg9IjY4MCIgeT0iMjIyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4pyFIFN1Y2Nlc3MhPC90ZXh0PgogIDx0ZXh0IHg9IjY4MCIgeT0iMjM4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TG9ncyB2aXNpYmxlIGluIHF1ZXJpZXM8L3RleHQ+CgogIDwhLS0gQWRkaXRpb25hbCBwYXRocyBmcm9tIGZpeGVzIHRvIGluZ2VzdGlvbi9zdWNjZXNzIC0tPgogIDxwYXRoIGQ9Ik0xMzAsMTY1IEwxMzAsMTkwIiBzdHJva2U9IiMxNmEzNGEiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLWRhc2hhcnJheT0iNCwyIiBmaWxsPSJub25lIi8+CiAgPHRleHQgeD0iMTQwIiB5PSIxNzgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzE2YTM0YSI+Zml4ZWQ/PC90ZXh0Pgo8L3N2Zz4K" alt="Troubleshooting Decision Tree" /></p>
+<!--MARKDOWN_TABLE_ALTERNATIVE
+| Step | Question | If No | If Yes |
+|------|----------|-------|--------|
+| 1 | Are logs being ingested? | Check OneAgent, API token, endpoint | Go to step 2 |
+| 2 | Being dropped by pipeline? | Go to step 3 | Adjust drop rules |
+| 3 | Routed to right pipeline? | Fix route conditions | Go to step 4 |
+| 4 | In correct bucket? | Fix storage settings | Success! |
+-->
+<hr />
+<h3>Decision Tree 2: Parsing Failures</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MDAgNDYwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icHJvYmxlbUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWY0NDQ0O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkYzI2MjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJzdGVwR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMzYjgyZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzI1NjNlYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9Inllc0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2Njk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJub0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZjU5ZTBiO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkOTc3MDY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJmaXhHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhiNWNmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojN2MzYWVkO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9ImR0U2hhZG93Ij4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMiIgZHk9IjIiIHN0ZERldmlhdGlvbj0iMyIgZmxvb2Qtb3BhY2l0eT0iMC4xNSIvPgogICAgPC9maWx0ZXI+CiAgICA8bWFya2VyIGlkPSJkdEFycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0ieWVzQXJyb3ciIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzEwYjk4MSIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJub0Fycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiNmNTllMGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI5MDAiIGhlaWdodD0iNDYwIiBmaWxsPSIjMGYxNzJhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NTAiIHk9IjI4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2YxZjVmOSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGVjaXNpb24gVHJlZSAyOiBQYXJzaW5nIEZhaWx1cmVzPC90ZXh0PgoKICA8IS0tIFByb2JsZW0gQm94IC0tPgogIDxyZWN0IHg9IjMwMCIgeT0iNDAiIHdpZHRoPSIzMDAiIGhlaWdodD0iMzYiIHJ4PSI4IiBmaWxsPSJ1cmwoI3Byb2JsZW1HcmFkKSIgZmlsdGVyPSJ1cmwoI2R0U2hhZG93KSIvPgogIDx0ZXh0IHg9IjQ1MCIgeT0iNjMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5GaWVsZHMgbm90IGV4dHJhY3RlZCBmcm9tIGxvZyBjb250ZW50PC90ZXh0PgoKICA8IS0tIEFycm93IHRvIFN0ZXAgMSAtLT4KICA8bGluZSB4MT0iNDUwIiB5MT0iNzYiIHgyPSI0NTAiIHkyPSI5MiIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjZHRBcnJvdykiLz4KCiAgPCEtLSBTdGVwIDEgLS0+CiAgPHJlY3QgeD0iMjI1IiB5PSI5NiIgd2lkdGg9IjQ1MCIgaGVpZ2h0PSI0NCIgcng9IjgiIGZpbGw9InVybCgjc3RlcEdyYWQpIiBmaWx0ZXI9InVybCgjZHRTaGFkb3cpIi8+CiAgPGNpcmNsZSBjeD0iMjU1IiBjeT0iMTE4IiByPSIxMyIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjIpIi8+CiAgPHRleHQgeD0iMjU1IiB5PSIxMjMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4xPC90ZXh0PgogIDx0ZXh0IHg9IjQ3MCIgeT0iMTEzIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SXMgdGhlIHBhcnNlIHByb2Nlc3NvciBydW5uaW5nPzwvdGV4dD4KICA8dGV4dCB4PSI0NzAiIHk9IjEzMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjgpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5RdWVyeTogZmV0Y2ggbG9ncyB8IGZpZWxkcyBjb250ZW50LCBzdGF0dXNfY29kZTwvdGV4dD4KCiAgPCEtLSBTdGVwIDEgQnJhbmNoIGxhYmVscyBhbmQgbGluZXMgLS0+CiAgPCEtLSBFWElTVFMgYnJhbmNoIChsZWZ0LWRvd24pIC0tPgogIDxsaW5lIHgxPSIzNDAiIHkxPSIxNDAiIHgyPSIzNDAiIHkyPSIxNTUiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjM0MCIgeTE9IjE1NSIgeDI9IjIyNSIgeTI9IjE1NSIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iMjI1IiB5MT0iMTU1IiB4Mj0iMjI1IiB5Mj0iMTcwIiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCN5ZXNBcnJvdykiLz4KICA8dGV4dCB4PSIyODMiIHk9IjE1MiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxMGI5ODEiPuKckyBFWElTVFM8L3RleHQ+CgogIDwhLS0gTUlTU0lORyBicmFuY2ggKHJpZ2h0KSAtLT4KICA8bGluZSB4MT0iNTYwIiB5MT0iMTQwIiB4Mj0iNTYwIiB5Mj0iMTU1IiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSI1NjAiIHkxPSIxNTUiIHgyPSI3MDAiIHkyPSIxNTUiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI25vQXJyb3cpIi8+CiAgPHRleHQgeD0iNjMwIiB5PSIxNTIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZjU5ZTBiIj7inJcgTUlTU0lORzwvdGV4dD4KCiAgPCEtLSBObyBQYXRoIC0gRml4IEJveCAoUGFyc2VyIE5vdCBSdW5uaW5nKSAtLT4KICA8cmVjdCB4PSI3MDUiIHk9IjE0MCIgd2lkdGg9IjE3NSIgaGVpZ2h0PSI4MCIgcng9IjYiIGZpbGw9InVybCgjZml4R3JhZCkiIGZpbHRlcj0idXJsKCNkdFNoYWRvdykiLz4KICA8dGV4dCB4PSI3OTIiIHk9IjE1OCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBhcnNlciBOb3QgUnVubmluZzwvdGV4dD4KICA8dGV4dCB4PSI3MTUiIHk9IjE3NSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIj7igKIgUGlwZWxpbmUgb3JkZXIgY29ycmVjdD88L3RleHQ+CiAgPHRleHQgeD0iNzE1IiB5PSIxOTAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSI+4oCiIFByb2Nlc3NvciBlbmFibGVkPzwvdGV4dD4KICA8dGV4dCB4PSI3MTUiIHk9IjIwNSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIj7igKIgQ29uZGl0aW9uIG1hdGNoaW5nPzwvdGV4dD4KICA8dGV4dCB4PSI3MTUiIHk9IjIxOCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2ZjZDM0ZCI+4oaSIEVuYWJsZSAmYW1wOyByZW9yZGVyPC90ZXh0PgoKICA8IS0tIFN0ZXAgMiAtLT4KICA8cmVjdCB4PSI2MCIgeT0iMTc0IiB3aWR0aD0iNDIwIiBoZWlnaHQ9IjQ0IiByeD0iOCIgZmlsbD0idXJsKCNzdGVwR3JhZCkiIGZpbHRlcj0idXJsKCNkdFNoYWRvdykiLz4KICA8Y2lyY2xlIGN4PSI5MCIgY3k9IjE5NiIgcj0iMTMiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4yKSIvPgogIDx0ZXh0IHg9IjkwIiB5PSIyMDEiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4yPC90ZXh0PgogIDx0ZXh0IHg9IjI5MCIgeT0iMTkxIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RG9lcyBEUEwgcGF0dGVybiBtYXRjaCBsb2cgZm9ybWF0PzwvdGV4dD4KICA8dGV4dCB4PSIyOTAiIHk9IjIwOCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjgpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5UZXN0IHBhdHRlcm4gd2l0aCBzYW1wbGUgbG9nIGluIERRTDwvdGV4dD4KCiAgPCEtLSBTdGVwIDIgQnJhbmNoIC0gWWVzIChsZWZ0LWRvd24pIC0tPgogIDxsaW5lIHgxPSIxNzUiIHkxPSIyMTgiIHgyPSIxNzUiIHkyPSIyMzMiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjE3NSIgeTE9IjIzMyIgeDI9IjExNSIgeTI9IjIzMyIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iMTE1IiB5MT0iMjMzIiB4Mj0iMTE1IiB5Mj0iMjQ4IiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCN5ZXNBcnJvdykiLz4KICA8dGV4dCB4PSIxNDgiIHk9IjIzMCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxMGI5ODEiPuKckzwvdGV4dD4KCiAgPCEtLSBTdGVwIDIgQnJhbmNoIC0gTm8gKHJpZ2h0KSAtLT4KICA8bGluZSB4MT0iMzcwIiB5MT0iMjE4IiB4Mj0iMzcwIiB5Mj0iMjMzIiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSIzNzAiIHkxPSIyMzMiIHgyPSI1MTAiIHkyPSIyMzMiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI25vQXJyb3cpIi8+CiAgPHRleHQgeD0iNDQwIiB5PSIyMzAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZjU5ZTBiIj7inJc8L3RleHQ+CgogIDwhLS0gTm8gLSBQYXR0ZXJuIElzc3VlIC0tPgogIDxyZWN0IHg9IjUxNSIgeT0iMjIyIiB3aWR0aD0iMTcwIiBoZWlnaHQ9Ijc4IiByeD0iNiIgZmlsbD0idXJsKCNmaXhHcmFkKSIgZmlsdGVyPSJ1cmwoI2R0U2hhZG93KSIvPgogIDx0ZXh0IHg9IjYwMCIgeT0iMjQwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UGF0dGVybiBJc3N1ZTwvdGV4dD4KICA8dGV4dCB4PSI1MjUiIHk9IjI1NyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIj7igKIgTG9nIGZvcm1hdCBjaGFuZ2VkPzwvdGV4dD4KICA8dGV4dCB4PSI1MjUiIHk9IjI3MiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIj7igKIgRXh0cmEgd2hpdGVzcGFjZT88L3RleHQ+CiAgPHRleHQgeD0iNTI1IiB5PSIyODciIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSI+4oCiIE9wdGlvbmFsIGZpZWxkcz88L3RleHQ+CiAgPHRleHQgeD0iNTI1IiB5PSIyOTgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNmY2QzNGQiPuKGkiBVcGRhdGUgRFBMIHBhdHRlcm48L3RleHQ+CgogIDwhLS0gU3RlcCAzIC0tPgogIDxyZWN0IHg9IjYwIiB5PSIyNTIiIHdpZHRoPSIzODAiIGhlaWdodD0iNDQiIHJ4PSI4IiBmaWxsPSJ1cmwoI3N0ZXBHcmFkKSIgZmlsdGVyPSJ1cmwoI2R0U2hhZG93KSIvPgogIDxjaXJjbGUgY3g9IjkwIiBjeT0iMjc0IiByPSIxMyIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjIpIi8+CiAgPHRleHQgeD0iOTAiIHk9IjI3OSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjM8L3RleHQ+CiAgPHRleHQgeD0iMjcwIiB5PSIyNjkiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BcmUgZmllbGQgbmFtZXMgdmFsaWQ/PC90ZXh0PgogIDx0ZXh0IHg9IjI3MCIgeT0iMjg2IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOCkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNoZWNrIHJlc2VydmVkIHdvcmRzLCBzcGVjaWFsIGNoYXJzPC90ZXh0PgoKICA8IS0tIFN0ZXAgMyBCcmFuY2ggLSBZZXMgKGxlZnQtZG93bikgLS0+CiAgPGxpbmUgeDE9IjE3NSIgeTE9IjI5NiIgeDI9IjE3NSIgeTI9IjMxMSIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iMTc1IiB5MT0iMzExIiB4Mj0iMTE1IiB5Mj0iMzExIiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSIxMTUiIHkxPSIzMTEiIHgyPSIxMTUiIHkyPSIzMjYiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI3llc0Fycm93KSIvPgogIDx0ZXh0IHg9IjE0OCIgeT0iMzA4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzEwYjk4MSI+4pyTPC90ZXh0PgoKICA8IS0tIFN0ZXAgMyBCcmFuY2ggLSBObyAocmlnaHQpIC0tPgogIDxsaW5lIHgxPSIzNDAiIHkxPSIyOTYiIHgyPSIzNDAiIHkyPSIzMTEiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjM0MCIgeTE9IjMxMSIgeDI9IjUxMCIgeTI9IjMxMSIgc3Ryb2tlPSIjZjU5ZTBiIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjbm9BcnJvdykiLz4KICA8dGV4dCB4PSI0MjUiIHk9IjMwOCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmNTllMGIiPuKclzwvdGV4dD4KCiAgPCEtLSBObyAtIE5hbWluZyBJc3N1ZSAtLT4KICA8cmVjdCB4PSI1MTUiIHk9IjMwMCIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI2MiIgcng9IjYiIGZpbGw9InVybCgjZml4R3JhZCkiIGZpbHRlcj0idXJsKCNkdFNoYWRvdykiLz4KICA8dGV4dCB4PSI2MDAiIHk9IjMxOCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5hbWluZyBJc3N1ZTwvdGV4dD4KICA8dGV4dCB4PSI1MjUiIHk9IjMzNSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIj7igKIgVXNlIHVuZGVyc2NvcmVzPC90ZXh0PgogIDx0ZXh0IHg9IjUyNSIgeT0iMzUwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiPuKAoiBBdm9pZCByZXNlcnZlZCB3b3JkczwvdGV4dD4KICA8dGV4dCB4PSI1MjUiIHk9IjM2MSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2ZjZDM0ZCI+4oaSIFJlbmFtZSBmaWVsZHM8L3RleHQ+CgogIDwhLS0gU3RlcCA0IC0tPgogIDxyZWN0IHg9IjYwIiB5PSIzMzAiIHdpZHRoPSIzODAiIGhlaWdodD0iMzYiIHJ4PSI4IiBmaWxsPSJ1cmwoI3N0ZXBHcmFkKSIgZmlsdGVyPSJ1cmwoI2R0U2hhZG93KSIvPgogIDxjaXJjbGUgY3g9IjkwIiBjeT0iMzQ4IiByPSIxMyIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjIpIi8+CiAgPHRleHQgeD0iOTAiIHk9IjM1MyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjQ8L3RleHQ+CiAgPHRleHQgeD0iMjcwIiB5PSIzNTMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BcmUgdmFsdWVzIGluIGV4cGVjdGVkIGZvcm1hdD88L3RleHQ+CgogIDwhLS0gU3RlcCA0IG91dGNvbWVzIC0tPgogIDwhLS0gU3VjY2VzcyBhcnJvdyAtLT4KICA8bGluZSB4MT0iNDQwIiB5MT0iMzQ4IiB4Mj0iNTA4IiB5Mj0iMzQ4IiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCN5ZXNBcnJvdykiLz4KICA8cmVjdCB4PSI1MTMiIHk9IjMzNCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSIzMCIgcng9IjYiIGZpbGw9InVybCgjeWVzR3JhZCkiLz4KICA8dGV4dCB4PSI1NzgiIHk9IjM1NCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuKckyBTdWNjZXNzITwvdGV4dD4KCiAgPCEtLSBUeXBlIGNvbnZlcnNpb24gYXJyb3cgLS0+CiAgPGxpbmUgeDE9IjY0MyIgeTE9IjM0OCIgeDI9IjY5OCIgeTI9IjM0OCIgc3Ryb2tlPSIjZjU5ZTBiIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjbm9BcnJvdykiLz4KICA8cmVjdCB4PSI3MDMiIHk9IjMzNCIgd2lkdGg9IjE3NSIgaGVpZ2h0PSIzMCIgcng9IjYiIGZpbGw9InVybCgjZml4R3JhZCkiLz4KICA8dGV4dCB4PSI3OTAiIHk9IjM1NCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4pyXIEFkZCB0eXBlIGNvbnZlcnNpb248L3RleHQ+CgogIDwhLS0gRmxvdyBzdW1tYXJ5IGF0IGJvdHRvbSAtLT4KICA8cmVjdCB4PSI2MCIgeT0iMzkwIiB3aWR0aD0iNzgwIiBoZWlnaHQ9IjU1IiByeD0iOCIgZmlsbD0iIzFlMjkzYiIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0NTAiIHk9IjQxMCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmMWY1ZjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRlYnVnZ2luZyBQYXRoOiBQcm9jZXNzb3IgRW5hYmxlZD8g4oaSIFBhdHRlcm4gTWF0Y2hlcz8g4oaSIEZpZWxkIE5hbWVzIFZhbGlkPyDihpIgVmFsdWUgVHlwZXMgQ29ycmVjdD88L3RleHQ+CiAgPHRleHQgeD0iNDUwIiB5PSI0MzIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkVhY2ggc3RlcCBuYXJyb3dzIHRoZSByb290IGNhdXNlLiBGaXggdGhlIGZpcnN0IGZhaWx1cmUgcG9pbnQgZm91bmQsIHRoZW4gcmUtdGVzdCBmcm9tIFN0ZXAgMS48L3RleHQ+Cjwvc3ZnPgo=" alt="Parsing Failures Decision Tree" /></p>
+<!--MARKDOWN_TABLE_ALTERNATIVE
+| Step | Question | If Yes (✓) | If No (✗) |
+|------|----------|------------|-----------|
+| 1 | Is parse processor running? | Go to Step 2 | Enable processor, fix condition, reorder |
+| 2 | Does DPL pattern match format? | Go to Step 3 | Update DPL pattern to match format |
+| 3 | Are field names valid? | Go to Step 4 | Rename fields (use underscores, avoid reserved) |
+| 4 | Values in expected format? | Success! | Add type conversion (toLong, etc.) |
+-->
+<hr />
+<h3>Decision Tree 3: Masking Not Working</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MDAgNDcwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibVByb2JsZW1HcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2VmNDQ0NDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZGMyNjI2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibVN0ZXBHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjU2M2ViO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibVllc0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2Njk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJtTm9HcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y1OWUwYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZDk3NzA2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibUZpeEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojOGI1Y2Y2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3YzNhZWQ7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJjcml0aWNhbEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZGMyNjI2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM5OTFiMWI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0ibVNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0ibUFycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0ibVllc0Fycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiMxMGI5ODEiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0ibU5vQXJyb3ciIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iI2Y1OWUwYiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjkwMCIgaGVpZ2h0PSI0NzAiIGZpbGw9IiMwZjE3MmEiIHJ4PSIxMCIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjQ1MCIgeT0iMjgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZjFmNWY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EZWNpc2lvbiBUcmVlIDM6IE1hc2tpbmcgTm90IFdvcmtpbmc8L3RleHQ+CgogIDwhLS0gUHJvYmxlbSBCb3ggLSBDcml0aWNhbCAtLT4KICA8cmVjdCB4PSIyMjUiIHk9IjQwIiB3aWR0aD0iNDUwIiBoZWlnaHQ9IjQyIiByeD0iOCIgZmlsbD0idXJsKCNjcml0aWNhbEdyYWQpIiBmaWx0ZXI9InVybCgjbVNoYWRvdykiLz4KICA8dGV4dCB4PSIyNTAiIHk9IjU3IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZlY2FjYSI+4pqg77iPIENSSVRJQ0FMPC90ZXh0PgogIDx0ZXh0IHg9IjQ1MCIgeT0iNzQiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TZW5zaXRpdmUgZGF0YSAoUElJL1BISS9DSEQpIHZpc2libGUgaW4gc3RvcmVkIGxvZ3M8L3RleHQ+CgogIDwhLS0gQXJyb3cgdG8gU3RlcCAxIC0tPgogIDxsaW5lIHgxPSI0NTAiIHkxPSI4MiIgeDI9IjQ1MCIgeTI9Ijk4IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNtQXJyb3cpIi8+CgogIDwhLS0gU3RlcCAxIC0tPgogIDxyZWN0IHg9IjIwMCIgeT0iMTAyIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjQ0IiByeD0iOCIgZmlsbD0idXJsKCNtU3RlcEdyYWQpIiBmaWx0ZXI9InVybCgjbVNoYWRvdykiLz4KICA8Y2lyY2xlIGN4PSIyMzAiIGN5PSIxMjQiIHI9IjEzIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMikiLz4KICA8dGV4dCB4PSIyMzAiIHk9IjEyOSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjE8L3RleHQ+CiAgPHRleHQgeD0iNDcwIiB5PSIxMTYiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5JcyB0aGUgbWFza2luZyBwcm9jZXNzb3IgcnVubmluZz88L3RleHQ+CiAgPHRleHQgeD0iNDcwIiB5PSIxMjkiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UXVlcnk6IGZldGNoIGxvZ3MgfCBmaWx0ZXIgcmVwbGFjZVBhdHRlcm4oY29udGVudCw8L3RleHQ+CiAgPHRleHQgeD0iNDcwIiB5PSIxNDEiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+IiEmbHQ7Jmx0O1swLTlBLVphLXotXSBDUkVESVRDQVJEICEmZ3Q7Jmd0O1swLTlBLVphLXotXSIsIHJlcGxhY2VtZW50OiAiIikgIT0gY29udGVudDwvdGV4dD4KCiAgPCEtLSBTdGVwIDEgQnJhbmNoIC0gRk9VTkQgKGxlZnQtZG93biwgbWFza2luZyBicm9rZW4pIC0tPgogIDxsaW5lIHgxPSIzMzAiIHkxPSIxNDYiIHgyPSIzMzAiIHkyPSIxNjAiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjMzMCIgeTE9IjE2MCIgeDI9IjIwMCIgeTI9IjE2MCIgc3Ryb2tlPSIjZjU5ZTBiIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iMjAwIiB5MT0iMTYwIiB4Mj0iMjAwIiB5Mj0iMTc2IiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNtTm9BcnJvdykiLz4KICA8dGV4dCB4PSIyNjUiIHk9IjE1NyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmNTllMGIiPkZPVU5EIOKclzwvdGV4dD4KCiAgPCEtLSBTdGVwIDEgQnJhbmNoIC0gTk9UIEZPVU5EIChyaWdodCwgbWF5IGJlIHdvcmtpbmcpIC0tPgogIDxsaW5lIHgxPSI1NzAiIHkxPSIxNDYiIHgyPSI1NzAiIHkyPSIxNjAiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjU3MCIgeTE9IjE2MCIgeDI9IjczMCIgeTI9IjE2MCIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjbVllc0Fycm93KSIvPgogIDx0ZXh0IHg9IjY1MCIgeT0iMTU3IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzEwYjk4MSI+Tk9UIEZPVU5EIOKckzwvdGV4dD4KCiAgPCEtLSBOb3QgRm91bmQgPSBNYXkgYmUgd29ya2luZyAtLT4KICA8cmVjdCB4PSI3MzUiIHk9IjE0NyIgd2lkdGg9IjE0NSIgaGVpZ2h0PSI0MiIgcng9IjYiIGZpbGw9InVybCgjbVllc0dyYWQpIi8+CiAgPHRleHQgeD0iODA3IiB5PSIxNjUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5NYXkgYmUgd29ya2luZzwvdGV4dD4KICA8dGV4dCB4PSI4MDciIHk9IjE4MSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5WZXJpZnkgd2l0aCBrbm93biB0ZXN0IGRhdGE8L3RleHQ+CgogIDwhLS0gU3RlcCAyIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIxODAiIHdpZHRoPSI0NTAiIGhlaWdodD0iNDQiIHJ4PSI4IiBmaWxsPSJ1cmwoI21TdGVwR3JhZCkiIGZpbHRlcj0idXJsKCNtU2hhZG93KSIvPgogIDxjaXJjbGUgY3g9IjcwIiBjeT0iMjAyIiByPSIxMyIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjIpIi8+CiAgPHRleHQgeD0iNzAiIHk9IjIwNyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjI8L3RleHQ+CiAgPHRleHQgeD0iMjg1IiB5PSIxOTciIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5JcyB0aGUgcHJvY2Vzc29yIG9yZGVyIGNvcnJlY3Q/PC90ZXh0PgogIDx0ZXh0IHg9IjI4NSIgeT0iMjE0IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOCkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk1hc2tpbmcgQkVGT1JFIHBhcnNpbmc/IEZpZWxkIG1hc2tpbmcgQUZURVIgcGFyc2luZz88L3RleHQ+CgogIDwhLS0gU3RlcCAyIEJyYW5jaCAtIFllcyAobGVmdC1kb3duKSAtLT4KICA8bGluZSB4MT0iMTU1IiB5MT0iMjI0IiB4Mj0iMTU1IiB5Mj0iMjM4IiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSIxNTUiIHkxPSIyMzgiIHgyPSIxMDAiIHkyPSIyMzgiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjEwMCIgeTE9IjIzOCIgeDI9IjEwMCIgeTI9IjI1NCIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjbVllc0Fycm93KSIvPgogIDx0ZXh0IHg9IjEzMCIgeT0iMjM1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzEwYjk4MSI+4pyTPC90ZXh0PgoKICA8IS0tIFN0ZXAgMiBCcmFuY2ggLSBObyAocmlnaHQpIC0tPgogIDxsaW5lIHgxPSIzODAiIHkxPSIyMjQiIHgyPSIzODAiIHkyPSIyMzgiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjM4MCIgeTE9IjIzOCIgeDI9IjUzMCIgeTI9IjIzOCIgc3Ryb2tlPSIjZjU5ZTBiIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjbU5vQXJyb3cpIi8+CiAgPHRleHQgeD0iNDU1IiB5PSIyMzUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZjU5ZTBiIj7inJc8L3RleHQ+CgogIDwhLS0gTm8gLSBPcmRlciBJc3N1ZSAtLT4KICA8cmVjdCB4PSI1MzUiIHk9IjIyMiIgd2lkdGg9IjE4NSIgaGVpZ2h0PSI3MiIgcng9IjYiIGZpbGw9InVybCgjbUZpeEdyYWQpIiBmaWx0ZXI9InVybCgjbVNoYWRvdykiLz4KICA8dGV4dCB4PSI2MjciIHk9IjI0MCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlByb2Nlc3NvciBPcmRlciBJc3N1ZTwvdGV4dD4KICA8dGV4dCB4PSI1NDUiIHk9IjI1NyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIj7igKIgTW92ZSBtYXNraW5nIGVhcmxpZXI8L3RleHQ+CiAgPHRleHQgeD0iNTQ1IiB5PSIyNzIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSI+4oCiIENvbnRlbnQgbWFza2luZyBGSVJTVDwvdGV4dD4KICA8dGV4dCB4PSI1NDUiIHk9IjI4NyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2ZjZDM0ZCI+4oaSIFJlb3JkZXIgJmFtcDsgdGVzdDwvdGV4dD4KCiAgPCEtLSBTdGVwIDMgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjI1OCIgd2lkdGg9IjQ1MCIgaGVpZ2h0PSI0NCIgcng9IjgiIGZpbGw9InVybCgjbVN0ZXBHcmFkKSIgZmlsdGVyPSJ1cmwoI21TaGFkb3cpIi8+CiAgPGNpcmNsZSBjeD0iNzAiIGN5PSIyODAiIHI9IjEzIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMikiLz4KICA8dGV4dCB4PSI3MCIgeT0iMjg1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MzwvdGV4dD4KICA8dGV4dCB4PSIyODUiIHk9IjI3MSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRvZXMgdGhlIERQTCBwYXR0ZXJuIG1hdGNoPzwvdGV4dD4KICA8dGV4dCB4PSIyODUiIHk9IjI4NCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjgpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5UZXN0OiByZXBsYWNlUGF0dGVybihjb250ZW50LCAiISZsdDsmbHQ7WzAtOUEtWmEtei1dIENSRURJVENBUkQ8L3RleHQ+CiAgPHRleHQgeD0iMjg1IiB5PSIyOTYiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ISZndDsmZ3Q7WzAtOUEtWmEtei1dIiwgcmVwbGFjZW1lbnQ6ICJbUkVEQUNURURdIik8L3RleHQ+CgogIDwhLS0gU3RlcCAzIEJyYW5jaCAtIFllcyAobGVmdC1kb3duKSAtLT4KICA8bGluZSB4MT0iMTU1IiB5MT0iMzAyIiB4Mj0iMTU1IiB5Mj0iMzE2IiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSIxNTUiIHkxPSIzMTYiIHgyPSIxMDAiIHkyPSIzMTYiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjEwMCIgeTE9IjMxNiIgeDI9IjEwMCIgeTI9IjMzMiIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjbVllc0Fycm93KSIvPgogIDx0ZXh0IHg9IjEzMCIgeT0iMzEzIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzEwYjk4MSI+4pyTPC90ZXh0PgoKICA8IS0tIFN0ZXAgMyBCcmFuY2ggLSBObyAocmlnaHQpIC0tPgogIDxsaW5lIHgxPSIzODAiIHkxPSIzMDIiIHgyPSIzODAiIHkyPSIzMTYiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjM4MCIgeTE9IjMxNiIgeDI9IjUzMCIgeTI9IjMxNiIgc3Ryb2tlPSIjZjU5ZTBiIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjbU5vQXJyb3cpIi8+CiAgPHRleHQgeD0iNDU1IiB5PSIzMTMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZjU5ZTBiIj7inJc8L3RleHQ+CgogIDwhLS0gTm8gLSBQYXR0ZXJuIElzc3VlIC0tPgogIDxyZWN0IHg9IjUzNSIgeT0iMzAyIiB3aWR0aD0iMTg1IiBoZWlnaHQ9IjU4IiByeD0iNiIgZmlsbD0idXJsKCNtRml4R3JhZCkiIGZpbHRlcj0idXJsKCNtU2hhZG93KSIvPgogIDx0ZXh0IHg9IjYyNyIgeT0iMzIwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UGF0dGVybiBJc3N1ZTwvdGV4dD4KICA8dGV4dCB4PSI1NDUiIHk9IjMzNyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIj7igKIgRFBMLCBub3QgcmVnZXggKG5vIFxcZCk8L3RleHQ+CiAgPHRleHQgeD0iNTQ1IiB5PSIzNTIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNmY2QzNGQiPuKGkiBVcGRhdGUgRFBMIHBhdHRlcm48L3RleHQ+CgogIDwhLS0gU3RlcCA0IC0gRmluYWwgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjMzNiIgd2lkdGg9IjQwMCIgaGVpZ2h0PSIzNiIgcng9IjgiIGZpbGw9InVybCgjbVN0ZXBHcmFkKSIgZmlsdGVyPSJ1cmwoI21TaGFkb3cpIi8+CiAgPGNpcmNsZSBjeD0iNzAiIGN5PSIzNTQiIHI9IjEzIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMikiLz4KICA8dGV4dCB4PSI3MCIgeT0iMzU5IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+NDwvdGV4dD4KICA8dGV4dCB4PSIyNjAiIHk9IjM1MCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFsbCBmaWVsZHMgbWFza2VkPzwvdGV4dD4KICA8dGV4dCB4PSIyNjAiIHk9IjM2NSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjgpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5DaGVjayBBTEwgZmllbGRzIGZvciBsZWFrczwvdGV4dD4KCiAgPCEtLSBGaW5hbCBvdXRjb21lcyAtIHNpZGUgYnkgc2lkZSB0byB0aGUgcmlnaHQgb2YgU3RlcCA0IC0tPgogIDwhLS0gQWxsIE1hc2tlZCAoc3VjY2VzcykgLS0+CiAgPGxpbmUgeDE9IjQ0MCIgeTE9IjM0NCIgeDI9IjUwOCIgeTI9IjM0NCIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjbVllc0Fycm93KSIvPgogIDxyZWN0IHg9IjUxMyIgeT0iMzMwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0idXJsKCNtWWVzR3JhZCkiIGZpbHRlcj0idXJsKCNtU2hhZG93KSIvPgogIDx0ZXh0IHg9IjU5MyIgeT0iMzQ4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4pyTIEFsbCBNYXNrZWQ8L3RleHQ+CiAgPHRleHQgeD0iNTkzIiB5PSIzNjMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TWFza2luZyBjb21wbGV0ZSE8L3RleHQ+CgogIDwhLS0gRGF0YSBMZWFrZWQgKGZhaWx1cmUpIC0tPgogIDxsaW5lIHgxPSI0NDAiIHkxPSIzNjIiIHgyPSI1MDgiIHkyPSIzOTIiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI21Ob0Fycm93KSIvPgogIDxyZWN0IHg9IjUxMyIgeT0iMzc4IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjUyIiByeD0iNiIgZmlsbD0idXJsKCNjcml0aWNhbEdyYWQpIiBmaWx0ZXI9InVybCgjbVNoYWRvdykiLz4KICA8dGV4dCB4PSI1OTMiIHk9IjM5NiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuKclyBEYXRhIExlYWtlZDwvdGV4dD4KICA8dGV4dCB4PSI1MjMiIHk9IjQxMyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIj7igKIgQWRkIGZpZWxkIG1hc2tpbmc8L3RleHQ+CiAgPHRleHQgeD0iNTIzIiB5PSI0MjYiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNmY2QzNGQiPuKGkiBVc2UgZmllbGRzUmVtb3ZlPC90ZXh0PgoKICA8IS0tIFN1bW1hcnkgYmFyIC0tPgogIDxyZWN0IHg9IjQwIiB5PSI0NDAiIHdpZHRoPSI4MjAiIGhlaWdodD0iMjIiIHJ4PSI2IiBmaWxsPSIjMWUyOTNiIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQ1MCIgeT0iNDU1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOTRhM2I4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5QYXRoOiBNYXNraW5nIFJ1bm5pbmc/IOKGkiBQcm9jZXNzb3IgT3JkZXI/IOKGkiBEUEwgUGF0dGVybj8g4oaSIEFsbCBGaWVsZHMgQ292ZXJlZD8gRml4IGZpcnN0IGZhaWx1cmUsIHJlLXRlc3QgZnJvbSBTdGVwIDEuPC90ZXh0Pgo8L3N2Zz4K" alt="Masking Decision Tree" /></p>
+<!--MARKDOWN_TABLE_ALTERNATIVE
+| Step | Question | If Found/No | If Not Found/Yes |
+|------|----------|-------------|------------------|
+| 1 | Query for unmasked data: `filter replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]", replacement: "") != content` | Masking broken → Step 2 | May be working, verify |
+| 2 | Processor order correct? | Move masking earlier | Go to Step 3 |
+| 3 | DPL pattern matches? Test: `replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]", replacement: "[REDACTED]")` | Update DPL pattern | Go to Step 4 |
+| 4 | All fields masked? | Add field masking, fieldsRemove | Complete! |
+-->
+<hr />
+<h3>Decision Tree 4: Performance Problems</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MDAgNDkwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icFByb2JsZW1HcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y1OWUwYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZDk3NzA2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icFN0ZXBHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjU2M2ViO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icFNvbHV0aW9uR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxMGI5ODE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzA1OTY2OTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InBDYXRlZ29yeUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojOGI1Y2Y2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3YzNhZWQ7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJwV2FybmluZ0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWY0NDQ0O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkYzI2MjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0icFNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0icEFycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI5MDAiIGhlaWdodD0iNDkwIiBmaWxsPSIjMGYxNzJhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NTAiIHk9IjI4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2YxZjVmOSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGVjaXNpb24gVHJlZSA0OiBQZXJmb3JtYW5jZSBQcm9ibGVtczwvdGV4dD4KCiAgPCEtLSBQcm9ibGVtIEJveCAtLT4KICA8cmVjdCB4PSIyNTAiIHk9IjQwIiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQyIiByeD0iOCIgZmlsbD0idXJsKCNwUHJvYmxlbUdyYWQpIiBmaWx0ZXI9InVybCgjcFNoYWRvdykiLz4KICA8dGV4dCB4PSI0NTAiIHk9IjU4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2xvdyBwcm9jZXNzaW5nLCBkZWxheWVkIGxvZ3MsIG9yIGhpZ2ggY29zdHM8L3RleHQ+CiAgPHRleHQgeD0iNDUwIiB5PSI3NCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjgpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EZWxheWVkIGxvZ3MgfCBVbmV4cGVjdGVkIHZvbHVtZSB8IFJpc2luZyBjb3N0PC90ZXh0PgoKICA8IS0tIEFycm93IHRvIFN0ZXAgMSAtLT4KICA8bGluZSB4MT0iNDUwIiB5MT0iODIiIHgyPSI0NTAiIHkyPSI5OCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjcEFycm93KSIvPgoKICA8IS0tIFN0ZXAgMTogSWRlbnRpZnkgQm90dGxlbmVjayAtLT4KICA8cmVjdCB4PSIyNTAiIHk9IjEwMiIgd2lkdGg9IjQwMCIgaGVpZ2h0PSI0MCIgcng9IjgiIGZpbGw9InVybCgjcFN0ZXBHcmFkKSIgZmlsdGVyPSJ1cmwoI3BTaGFkb3cpIi8+CiAgPGNpcmNsZSBjeD0iMjc4IiBjeT0iMTIyIiByPSIxMyIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjIpIi8+CiAgPHRleHQgeD0iMjc4IiB5PSIxMjciIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4xPC90ZXh0PgogIDx0ZXh0IHg9IjQ3MCIgeT0iMTE3IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SWRlbnRpZnkgdGhlIGJvdHRsZW5lY2s8L3RleHQ+CiAgPHRleHQgeD0iNDcwIiB5PSIxMzMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+V2hpY2ggcGlwZWxpbmUgY2FycmllcyB0aGUgdm9sdW1lPyBXaGF0IGlzIGl0PzwvdGV4dD4KCiAgPCEtLSBXYXJuaW5nIGFib3V0IE5VTEwgZmllbGRzIC0tPgogIDxyZWN0IHg9IjY3MCIgeT0iMTAyIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0idXJsKCNwV2FybmluZ0dyYWQpIiBvcGFjaXR5PSIwLjkiLz4KICA8dGV4dCB4PSI3NzAiIHk9IjExOCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuKEue+4jyBOT1RFPC90ZXh0PgogIDx0ZXh0IHg9Ijc3MCIgeT0iMTMzIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5vIHBlci1yZWNvcmQgdGltaW5nIGZpZWxkPC90ZXh0PgoKICA8IS0tIEFycm93IHRvIFN0ZXAgMiAtLT4KICA8bGluZSB4MT0iNDUwIiB5MT0iMTQyIiB4Mj0iNDUwIiB5Mj0iMTU4IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNwQXJyb3cpIi8+CgogIDwhLS0gU3RlcCAyOiBPcHRpbWl6ZSBQcm9jZXNzaW5nIC0tPgogIDxyZWN0IHg9IjMwMCIgeT0iMTYyIiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMyIiByeD0iOCIgZmlsbD0idXJsKCNwU3RlcEdyYWQpIiBmaWx0ZXI9InVybCgjcFNoYWRvdykiLz4KICA8Y2lyY2xlIGN4PSIzMjgiIGN5PSIxNzgiIHI9IjEzIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMikiLz4KICA8dGV4dCB4PSIzMjgiIHk9IjE4MyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjI8L3RleHQ+CiAgPHRleHQgeD0iNDcwIiB5PSIxODMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PcHRpbWl6ZSBiYXNlZCBvbiBpc3N1ZSB0eXBlPC90ZXh0PgoKICA8IS0tIFRocmVlIGJyYW5jaGVzIGZyb20gU3RlcCAyIC0tPgogIDxsaW5lIHgxPSIzNzAiIHkxPSIxOTQiIHgyPSIzNzAiIHkyPSIyMDYiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjM3MCIgeTE9IjIwNiIgeDI9IjE1MCIgeTI9IjIwNiIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iMTUwIiB5MT0iMjA2IiB4Mj0iMTUwIiB5Mj0iMjEyIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNwQXJyb3cpIi8+CgogIDxsaW5lIHgxPSI0NTAiIHkxPSIxOTQiIHgyPSI0NTAiIHkyPSIyMTIiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI3BBcnJvdykiLz4KCiAgPGxpbmUgeDE9IjUzMCIgeTE9IjE5NCIgeDI9IjUzMCIgeTI9IjIwNiIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iNTMwIiB5MT0iMjA2IiB4Mj0iNzUwIiB5Mj0iMjA2IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSI3NTAiIHkxPSIyMDYiIHgyPSI3NTAiIHkyPSIyMTIiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI3BBcnJvdykiLz4KCiAgPCEtLSBDYXRlZ29yeSAxOiBIaWdoIFZvbHVtZSBJc3N1ZXMgLS0+CiAgPHJlY3QgeD0iMjAiIHk9IjIxNiIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIxNTAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3BDYXRlZ29yeUdyYWQpIiBmaWx0ZXI9InVybCgjcFNoYWRvdykiLz4KICA8dGV4dCB4PSIxNTUiIHk9IjIzNiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkhpZ2ggVm9sdW1lIElzc3VlczwvdGV4dD4KICA8cmVjdCB4PSIzMiIgeT0iMjQ0IiB3aWR0aD0iMjQ2IiBoZWlnaHQ9IjExMiIgcng9IjYiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPgogIDx0ZXh0IHg9IjQ0IiB5PSIyNjEiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjYTVmM2ZjIj5Tb2x1dGlvbnM6PC90ZXh0PgogIDx0ZXh0IHg9IjQ0IiB5PSIyNzgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNlMmU4ZjAiPuKAoiBEcm9wIERFQlVHL2hlYWx0aCBjaGVja3MgZWFybHk8L3RleHQ+CiAgPHRleHQgeD0iNDQiIHk9IjI5MyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2UyZThmMCI+4oCiIFJlZHVjZSBwYXJzaW5nIGNvbXBsZXhpdHk8L3RleHQ+CiAgPHRleHQgeD0iNDQiIHk9IjMwOCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2UyZThmMCI+4oCiIEZld2VyIHJlcGxhY2VQYXR0ZXJuIHBhc3NlczwvdGV4dD4KICA8dGV4dCB4PSI0NCIgeT0iMzIzIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZTJlOGYwIj7igKIgTmFycm93IHdpdGggbWF0Y2hpbmcgY29uZGl0aW9uczwvdGV4dD4KICA8dGV4dCB4PSI0NCIgeT0iMzQ2IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjODZlZmFjIj5NZWFzdXJlIHRoZSByZWR1Y3Rpb24gZmlyc3Q8L3RleHQ+CgogIDwhLS0gQ2F0ZWdvcnkgMjogQ2FyZGluYWxpdHkgRXhwbG9zaW9uIC0tPgogIDxyZWN0IHg9IjMxMCIgeT0iMjE2IiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjE1MCIgcng9IjgiIGZpbGw9InVybCgjcENhdGVnb3J5R3JhZCkiIGZpbHRlcj0idXJsKCNwU2hhZG93KSIvPgogIDx0ZXh0IHg9IjQ0NSIgeT0iMjM2IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q2FyZGluYWxpdHkgRXhwbG9zaW9uPC90ZXh0PgogIDxyZWN0IHg9IjMyMiIgeT0iMjQ0IiB3aWR0aD0iMjQ2IiBoZWlnaHQ9IjExMiIgcng9IjYiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPgogIDx0ZXh0IHg9IjMzNCIgeT0iMjYxIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZjZDM0ZCI+U3ltcHRvbXM6PC90ZXh0PgogIDx0ZXh0IHg9IjMzNCIgeT0iMjc4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZTJlOGYwIj7igKIgTWlsbGlvbnMgb2YgdGltZSBzZXJpZXM8L3RleHQ+CiAgPHRleHQgeD0iMzM0IiB5PSIyOTMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNlMmU4ZjAiPuKAoiBIaWdoIG1ldHJpYyBjb3N0czwvdGV4dD4KICA8dGV4dCB4PSIzMzQiIHk9IjMxMSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNhNWYzZmMiPlNvbHV0aW9uczo8L3RleHQ+CiAgPHRleHQgeD0iMzM0IiB5PSIzMjYiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNlMmU4ZjAiPuKAoiBCdWNrZXQgaGlnaC1jYXJkaW5hbGl0eSBmaWVsZHM8L3RleHQ+CiAgPHRleHQgeD0iMzM0IiB5PSIzMzkiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNlMmU4ZjAiPuKAoiBSZW1vdmUgdXNlcl9pZCBkaW1lbnNpb25zPC90ZXh0PgogIDx0ZXh0IHg9IjMzNCIgeT0iMzUzIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjODZlZmFjIj5UYXJnZXQ6ICZsdDsxMEsgc2VyaWVzL21ldHJpYzwvdGV4dD4KCiAgPCEtLSBDYXRlZ29yeSAzOiBDb3N0IE9wdGltaXphdGlvbiAtLT4KICA8cmVjdCB4PSI2MDAiIHk9IjIxNiIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxNTAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3BDYXRlZ29yeUdyYWQpIiBmaWx0ZXI9InVybCgjcFNoYWRvdykiLz4KICA8dGV4dCB4PSI3NDAiIHk9IjIzNiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNvc3QgT3B0aW1pemF0aW9uPC90ZXh0PgogIDxyZWN0IHg9IjYxMiIgeT0iMjQ0IiB3aWR0aD0iMjU2IiBoZWlnaHQ9IjExMiIgcng9IjYiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPgogIDx0ZXh0IHg9IjYyNCIgeT0iMjYxIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2E1ZjNmYyI+U3RyYXRlZ2llczo8L3RleHQ+CiAgPHRleHQgeD0iNjI0IiB5PSIyNzgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNlMmU4ZjAiPuKAoiBEcm9wIERFQlVHL1RSQUNFIGxvZ3M8L3RleHQ+CiAgPHRleHQgeD0iNjI0IiB5PSIyOTMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNlMmU4ZjAiPuKAoiBSZWR1Y2UgZGV2IHJldGVudGlvbjwvdGV4dD4KICA8dGV4dCB4PSI2MjQiIHk9IjMwOCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2UyZThmMCI+4oCiIEV4dHJhY3QgbWV0cmljcyBpbnN0ZWFkPC90ZXh0PgogIDx0ZXh0IHg9IjYyNCIgeT0iMzI4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZjZDM0ZCI+UGF0dGVybjo8L3RleHQ+CiAgPHRleHQgeD0iNjI0IiB5PSIzNDMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNlMmU4ZjAiPk1ldHJpY3MgKyBObyBzdG9yYWdlIGFzc2lnbm1lbnQ8L3RleHQ+CgogIDwhLS0gT3B0aW1pemF0aW9uIEV4YW1wbGVzIFNlY3Rpb24gLS0+CiAgPHJlY3QgeD0iMjAiIHk9IjM3NiIgd2lkdGg9Ijg2MCIgaGVpZ2h0PSIxMDUiIHJ4PSIxMCIgZmlsbD0iIzFlMjkzYiIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0NTAiIHk9IjM5NiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmMWY1ZjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk9wdGltaXphdGlvbiBQYXR0ZXJuczwvdGV4dD4KCiAgPCEtLSBQYXR0ZXJuIDE6IEZpbHRlciBGaXJzdCAtLT4KICA8cmVjdCB4PSIzNSIgeT0iNDA0IiB3aWR0aD0iMjY1IiBoZWlnaHQ9IjY4IiByeD0iNiIgZmlsbD0iIzMzNDE1NSIvPgogIDx0ZXh0IHg9IjE2NyIgeT0iNDIwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzEwYjk4MSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4pyTIE1hdGNoIEZpcnN0LCBUaGVuIFBhcnNlPC90ZXh0PgogIDx0ZXh0IHg9IjQ4IiB5PSI0MzciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5NGEzYjgiPuKdjCBTTE9XOiA8L3RleHQ+PHRleHQgeD0iMTA4IiB5PSI0MzciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNmY2E1YTUiPmNvbmRpdGlvbjogdHJ1ZTwvdGV4dD4KICA8dGV4dCB4PSI0OCIgeT0iNDUzIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOTRhM2I4Ij7inJMgRkFTVDogPC90ZXh0Pjx0ZXh0IHg9IjEwMiIgeT0iNDUzIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjODZlZmFjIj5jb25kaXRpb246IEVSUk9SIG9ubHk8L3RleHQ+CiAgPHRleHQgeD0iNDgiIHk9IjQ2NyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+UGFyc2VzIG9ubHkgbWF0Y2hpbmcgcmVjb3JkczwvdGV4dD4KCiAgPCEtLSBQYXR0ZXJuIDI6IENvbWJpbmUgUmVnZXggLS0+CiAgPHJlY3QgeD0iMzE4IiB5PSI0MDQiIHdpZHRoPSIyNjUiIGhlaWdodD0iNjgiIHJ4PSI2IiBmaWxsPSIjMzM0MTU1Ii8+CiAgPHRleHQgeD0iNDUwIiB5PSI0MjAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMTBiOTgxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7inJMgQ29tYmluZSBEUEwgQWx0ZXJuYXRpdmVzPC90ZXh0PgogIDx0ZXh0IHg9IjMzMSIgeT0iNDM3IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOTRhM2I4Ij7inYwgPC90ZXh0Pjx0ZXh0IHg9IjM0OCIgeT0iNDM3IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZmNhNWE1Ij5yZXBsYWNlUGF0dGVybiDDlzIgcGFzc2VzPC90ZXh0PgogIDx0ZXh0IHg9IjMzMSIgeT0iNDUzIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOTRhM2I4Ij7inJMgIDwvdGV4dD48dGV4dCB4PSIzNDgiIHk9IjQ1MyIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzg2ZWZhYyI+cmVwbGFjZVBhdHRlcm4oIigncDEnfCdwMicpIik8L3RleHQ+CiAgPHRleHQgeD0iMzMxIiB5PSI0NjciIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiPk9uZSBwYXNzLCBvbmUgcmVwbGFjZW1lbnQgdGV4dDwvdGV4dD4KCiAgPCEtLSBQYXR0ZXJuIDM6IEJ1Y2tldGluZyAtLT4KICA8cmVjdCB4PSI2MDEiIHk9IjQwNCIgd2lkdGg9IjI2NSIgaGVpZ2h0PSI2OCIgcng9IjYiIGZpbGw9IiMzMzQxNTUiLz4KICA8dGV4dCB4PSI3MzMiIHk9IjQyMCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxMGI5ODEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuKckyBCdWNrZXQgSGlnaCBDYXJkaW5hbGl0eTwvdGV4dD4KICA8dGV4dCB4PSI2MTQiIHk9IjQzNyIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk0YTNiOCI+4p2MIEJBRDogIDwvdGV4dD48dGV4dCB4PSI2NzAiIHk9IjQzNyIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2ZjYTVhNSI+ZHVyYXRpb25fbXMgKGluZmluaXRlKTwvdGV4dD4KICA8dGV4dCB4PSI2MTQiIHk9IjQ1MyIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk0YTNiOCI+4pyTIEdPT0Q6IDwvdGV4dD48dGV4dCB4PSI2NzAiIHk9IjQ1MyIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzg2ZWZhYyI+ZHVyYXRpb25fYnVja2V0ICg0IHZhbHVlcyk8L3RleHQ+CiAgPHRleHQgeD0iNjE0IiB5PSI0NjciIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiPkJvdW5kZWQgc2VyaWVzIGNvdW50PC90ZXh0Pgo8L3N2Zz4K" alt="Performance Decision Tree" /></p>
+<!--MARKDOWN_TABLE_ALTERNATIVE
+| Issue Type | Symptoms | Solutions | Expected Improvement |
+|------------|----------|-----------|---------------------|
+| High Volume | Delayed logs, unexpected volume | Drop DEBUG early, narrow processors with matching conditions | Measure first — depends on your volume mix |
+| Cardinality | Millions of time series, high metric cost | Bucket fields, remove user_id dimensions | Bounded series count (<10K per metric as a working target) |
+| Cost | High storage costs | Drop low-value logs, reduce retention, extract metrics + No storage assignment | Measure first |
+| Pattern efficiency | — | Match first, then parse; one `replacePattern` with DPL alternatives | Fewer passes per record |
+
+Note: OpenPipeline exposes no per-record processing-time field — diagnose by volume, not by timing.
+-->
+<hr />
+<hr />
+<p><a id="pipeline-health-monitoring"></a></p>
+<h2>Pipeline Health Monitoring</h2>
+<p>Monitor the overall health of your OpenPipeline configuration.</p>
+<pre><code class="language-dql">// Overview: Log volume by pipeline (last 24 hours)
+fetch logs, from: now() - 24h
+| summarize {log_count = count()}, by: {dt.openpipeline.pipelines}
+| sort log_count desc
+</code></pre>
+<pre><code class="language-dql">// Pipeline volume trend over time
+fetch logs, from: now() - 24h
+| makeTimeseries {log_count = count()}, by: {dt.openpipeline.pipelines}, interval: 1h
+</code></pre>
+<pre><code class="language-dql">// Check for logs still on the classic pipeline (potential routing issues).
+// isNull() never fires: classic records carry dt.openpipeline.pipelines too
+fetch logs, from: now() - 1h
+| filter in(dt.openpipeline.pipelines, &quot;logs:default&quot;)
+| summarize {unrouted_count = count()}, by: {log.source}
+| sort unrouted_count desc
+</code></pre>
+<pre><code class="language-dql">// Bucket distribution check
+fetch logs, from: now() - 24h
+| summarize {
+    log_count = count()
+  }, by: {dt.system.bucket, dt.openpipeline.pipelines}
+| sort log_count desc
+</code></pre>
+<pre><code class="language-dql">// Log source health - are all expected sources sending data?
+fetch logs, from: now() - 1h
+| summarize {
+    log_count = count(),
+    last_seen = max(timestamp)
+  }, by: {log.source}
+| fieldsAdd minutes_since_last = (now() - last_seen) / 1m
+| sort minutes_since_last desc
+</code></pre>
+<hr />
+<p><a id="emergency-rollback-procedures-expanded"></a></p>
+<h2>Emergency Rollback Procedures ⭐ EXPANDED</h2>
+<p>When OpenPipeline issues occur in production, follow these emergency procedures.</p>
+<h3>Scenario 1: Critical Logs Being Dropped</h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li>Production error logs missing</li>
+<li>Security events not visible</li>
+<li>Business-critical logs vanished</li>
+</ul>
+<p><strong>Immediate Actions:</strong></p>
+<ol>
+<li><strong>Disable Drop Processor (UI)</strong></li>
+</ol>
+<pre><code>   Settings → Process and contextualize → OpenPipeline → Logs
+   → Pipelines → select pipeline → Processing stage
+   → Find drop processor → Toggle OFF
+   → Save pipeline
+   
+   Effect: Immediate (within 1-2 minutes)
+</code></pre>
+<ol start="2">
+<li>
+<p><strong>Disable Drop Processor (Settings API)</strong></p>
+<p>Pipelines, routes and ingest sources are <strong>Settings objects</strong> (schemas <code>builtin:openpipeline.logs.pipelines</code>, <code>builtin:openpipeline.logs.routing</code>, <code>builtin:openpipeline.logs.ingest-sources</code>); there is no separate <code>/api/v2/openpipeline/...</code> endpoint. Each processor in a pipeline object carries an <code>enabled</code> flag.</p>
+</li>
+</ol>
+<pre><code class="language-bash">   # Get the pipeline objects (token scope settings.read) — keep this file as your backup
+   curl -X GET &quot;https://{tenant}.live.dynatrace.com/api/v2/settings/objects?schemaIds=builtin:openpipeline.logs.pipelines&quot; \
+     -H &quot;Authorization: Api-Token {token}&quot; &gt; pipelines-backup-YYYYMMDD.json
+   
+   # Edit the pipeline's value: set the drop processor's &quot;enabled&quot; to false
+   # (Processing-stage processors are under value.processing.processors[])
+   
+   # Write the whole object back (token scope settings.write); body = {&quot;value&quot;: { ...edited value... }}
+   # Add ?validateOnly=true first to check the object without saving it
+   curl -X PUT &quot;https://{tenant}.live.dynatrace.com/api/v2/settings/objects/{objectId}&quot; \
+     -H &quot;Authorization: Api-Token {token}&quot; \
+     -H &quot;Content-Type: application/json&quot; \
+     -d @updated-pipeline.json
+</code></pre>
+<ol start="3">
+<li><strong>Verify Logs Reappear</strong></li>
+</ol>
+<pre><code class="language-dql">   fetch logs, from: now() - 5m
+   | filter log.source == &quot;critical-service&quot;
+   | summarize count()
+</code></pre>
+<p><strong>Post-Incident:</strong></p>
+<ul>
+<li>Review drop condition logic</li>
+<li>Add safeguards (never drop ERROR/FATAL)</li>
+<li>Test in staging before re-enabling</li>
+</ul>
+<hr />
+<h3>Scenario 2: Parsing Breaking Log Ingestion</h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li>Logs delayed or not appearing</li>
+<li>Pipeline processing time spiking</li>
+<li>Parse errors in pipeline metrics</li>
+</ul>
+<p><strong>Immediate Actions:</strong></p>
+<ol>
+<li><strong>Disable Parse Processor</strong></li>
+</ol>
+<pre><code>   Settings → OpenPipeline → Select pipeline
+   → Disable DQL parse processor
+   → Save
+   
+   Result: Logs stored unparsed (content field only)
+   Impact: Fields not extracted, but logs visible
+</code></pre>
+<ol start="2">
+<li><strong>Check Processing Metrics</strong></li>
+</ol>
+<pre><code>   OpenPipeline records no per-record processing time or status:
+   dt.openpipeline.processing_time_ms and dt.openpipeline.status are not
+   Grail fields (no row in dt.semantic_dictionary.fields, 10/02/2026).
+   Use the volume query below and the dt.sfm.openpipeline.* metrics in
+   Performance Troubleshooting instead.
+</code></pre>
+<p><strong>Alternative Query:</strong></p>
+<pre><code class="language-dql">// Monitor pipeline log volume and sources instead
+// dt.openpipeline.pipelines is an array of &quot;&lt;scope&gt;:&lt;pipeline id&gt;&quot; strings, so == never matches
+fetch logs, from: now() - 1h
+| filter matchesValue(dt.openpipeline.pipelines, &quot;*my-pipeline*&quot;)
+| summarize
+    log_count = count(),
+    sources = collectDistinct(dt.openpipeline.source)
+</code></pre>
+<ol start="3">
+<li><strong>Test Parse Pattern Offline</strong></li>
+</ol>
+<pre><code class="language-dql">   // Use makeTimeseries or static data to test pattern
+   data record(
+     content = &quot;192.168.1.1 - GET /api/users HTTP/1.1 200 1024&quot;
+   )
+   | parse content, &quot;&quot;&quot;
+       IPADDR:client_ip SPACE '-' SPACE
+       LD:method SPACE LD:path SPACE LD:protocol SPACE
+       INT:status_code SPACE INT:bytes
+     &quot;&quot;&quot;
+   | fields client_ip, method, status_code
+</code></pre>
+<p><strong>Post-Incident:</strong></p>
+<ul>
+<li>Fix parse pattern</li>
+<li>Test with production log samples</li>
+<li>Re-enable processor</li>
+</ul>
+<hr />
+<h3>Scenario 3: Masking Failure (PII/PHI Exposed)</h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li>Credit card numbers visible in queries</li>
+<li>SSNs, patient IDs, or emails not redacted</li>
+<li>Compliance violation alerts</li>
+</ul>
+<p><strong>CRITICAL - Immediate Actions:</strong></p>
+<ol>
+<li><strong>STOP STORING THE EXPOSED RECORDS (if actively leaking)</strong></li>
+</ol>
+<pre><code class="language-text">   A pipeline object has no single on/off switch. Fastest options, in the UI or via the
+   Settings API PUT shown in Scenario 1:
+   - Fix the masking processor (see step 5), or
+   - Add a Drop record processor at the top of the pipeline's Processing stage whose
+     matching condition selects the affected records, until masking is fixed.
+   
+   Do NOT just disable the route: the records then leave through the Default route
+   without this pipeline's masking.
+</code></pre>
+<ol start="2">
+<li><strong>Identify Exposure Window</strong></li>
+</ol>
+<pre><code class="language-dql">   // Widen from: until first_exposure stops moving. replacePattern finds a card number
+   // anywhere in the line; matchesPhrase on a fixed number would miss every other card.
+   // The !&lt;&lt; / !&gt;&gt; bounds stop digit runs inside UUIDs being counted as exposed cards.
+   fetch logs, from: now() - 7d
+   | filter log.source == &quot;payment-service&quot;
+   | filter replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z-] CREDITCARD !&gt;&gt;[0-9A-Za-z-]&quot;, replacement: &quot;&quot;) != content
+   | summarize 
+       first_exposure = min(timestamp),
+       last_exposure = max(timestamp),
+       affected_count = count()
+</code></pre>
+<ol start="3">
+<li><strong>Delete the Exposed Records</strong></li>
+</ol>
+<pre><code class="language-text">   Use the Grail record deletion API (POST /delete:execute, &quot;Grail - Storage Record Deletion&quot;
+   in the Dynatrace API definitions) — or Sensitive Data Center, which is built on it — with a
+   DQL filter scoped to the exposure window from step 2.
+   
+   Deletion is final and can't be undone: export the evidence the incident record needs first.
+   Requires a custom policy with storage:records:delete plus the matching storage:*:read and
+   storage:buckets:read permissions.
+</code></pre>
+<ol start="4">
+<li><strong>Restrict Read Access While Investigating</strong></li>
+</ol>
+<pre><code class="language-text">   Bucket read access is granted through IAM policies (storage:buckets:read plus table
+   permissions such as storage:logs:read), and record-level access through dt.security_context —
+   there is no per-bucket &quot;Access Control&quot; screen. Tighten the policies bound to the groups that
+   can read the affected bucket until the exposed records are deleted.
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/record-deletion-in-grail">Record deletion in Grail via API (DT docs)</a> — <em>&quot;The record deletion API is primarily designed to help users remove selected records containing sensitive data.&quot;</em>; <em>&quot;Record deletion is final and can't be undone.&quot;</em></sub></p>
+</blockquote>
+<ol start="5">
+<li><strong>Fix Masking and Re-Enable</strong></li>
+</ol>
+<pre><code class="language-dql">   // Test masking pattern before deploying
+   data record(
+     content = &quot;Payment processed: card=4111-1111-1111-1111, cvv=123&quot;
+   )
+   | fieldsAdd content = replacePattern(content, &quot;DIGIT{4} '-' DIGIT{4} '-' DIGIT{4} '-' DIGIT{4}&quot;, &quot;[PAN_REDACTED]&quot;)
+   | fieldsAdd content = replacePattern(content, &quot;'cvv=' DIGIT{3,4}&quot;, &quot;cvv=[REDACTED]&quot;)
+   | fields content
+   
+   // Expected: &quot;Payment processed: card=[PAN_REDACTED], cvv=[REDACTED]&quot;
+</code></pre>
+<p><strong>Post-Incident (MANDATORY):</strong></p>
+<ul>
+<li>[ ] Document exposure timeline</li>
+<li>[ ] Notify compliance/security team</li>
+<li>[ ] File incident report (PCI-DSS, HIPAA, GDPR)</li>
+<li>[ ] Review all masking patterns</li>
+<li>[ ] Implement automated compliance checks</li>
+<li>[ ] Add pre-production masking tests</li>
+</ul>
+<hr />
+<h3>Scenario 4: Routing to Wrong Bucket</h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li>Production logs in dev bucket (7-day retention)</li>
+<li>Audit logs in default bucket (missing compliance)</li>
+<li>High-value logs being dropped prematurely</li>
+</ul>
+<p><strong>Immediate Actions:</strong></p>
+<ol>
+<li><strong>Verify Current Routing</strong></li>
+</ol>
+<pre><code class="language-dql">   fetch logs, from: now() - 1h
+   | filter log.source == &quot;production-api&quot;
+   | summarize {count = count()}, by: {dt.system.bucket}
+| sort count desc
+</code></pre>
+<ol start="2">
+<li><strong>Create Temporary High-Retention Bucket</strong></li>
+</ol>
+<pre><code>   Settings → Storage management → Bucket storage management → Bucket
+   Name: emergency_recovery_logs
+   Table: logs
+   Retention: 90 days
+   (Access is granted by IAM policy, not on the bucket — restrict it there)
+</code></pre>
+<ol start="3">
+<li><strong>Point the Pipeline's Bucket Assignment at the Safe Bucket</strong></li>
+</ol>
+<pre><code class="language-text">   Pipeline → Bucket assignment stage
+   Add a Bucket assignment processor as the FIRST processor in the stage:
+     Matching condition: true
+     Bucket: emergency_recovery_logs
+   Save
+   
+   Effect: new records from this pipeline land in the safe bucket
+   (the stage is first-match-only, so the first matching processor wins)
+</code></pre>
+<ol start="4">
+<li><strong>Fix Routing and Bucket Assignment</strong></li>
+</ol>
+<pre><code class="language-text">   A route selects a PIPELINE; the bucket is chosen by the pipeline's Bucket assignment
+   processors. Fix each in its own place:
+   
+   Dynamic routing:
+     Route: log.source == &quot;production-api&quot;  →  pipeline: production-api
+   
+   Pipeline production-api → Bucket assignment stage (first match only):
+     Processor 1: status == &quot;ERROR&quot;    →  bucket prod_error_logs (90 days)
+     Processor 2: true                 →  bucket prod_logs (35 days)
+   
+   Then remove the temporary emergency_recovery_logs processor.
+</code></pre>
+<p><strong>Post-Incident:</strong></p>
+<ul>
+<li>Review all routing rules for correctness</li>
+<li>Document expected bucket for each log source</li>
+<li>Add monitoring alerts for unexpected bucket usage</li>
+</ul>
+<hr />
+<h3>Scenario 5: Complete Pipeline Rollback</h3>
+<p><strong>When to Use:</strong></p>
+<ul>
+<li>Multiple critical issues</li>
+<li>Unknown root cause</li>
+<li>Need time to investigate safely</li>
+</ul>
+<p><strong>Full Rollback Procedure:</strong></p>
+<ol>
+<li><strong>Stop Routing to the Pipeline</strong></li>
+</ol>
+<pre><code class="language-bash">   # Routes live in one settings object per scope (schema builtin:openpipeline.logs.routing);
+   # each entry in value.routingEntries[] has its own &quot;enabled&quot; flag
+   curl -X GET &quot;https://{tenant}.live.dynatrace.com/api/v2/settings/objects?schemaIds=builtin:openpipeline.logs.routing&quot; \
+     -H &quot;Authorization: Api-Token {token}&quot; &gt; routing-backup-YYYYMMDD.json
+   
+   # Set &quot;enabled&quot;: false on the route(s) whose pipelineId is the problem pipeline,
+   # then PUT the object back ({&quot;value&quot;: { ... }})
+   curl -X PUT &quot;https://{tenant}.live.dynatrace.com/api/v2/settings/objects/{routingObjectId}&quot; \
+     -H &quot;Authorization: Api-Token {token}&quot; \
+     -H &quot;Content-Type: application/json&quot; \
+     -d @routing-updated.json
+   
+   # Records that no longer match a route leave through the Default route
+</code></pre>
+<ol start="2">
+<li><strong>Restore Previous Version (if available)</strong></li>
+</ol>
+<pre><code class="language-bash">   # Restore the pipeline from the settings-object backup taken before the change:
+   # PUT its saved &quot;value&quot; back to the same objectId
+   curl -X PUT &quot;https://{tenant}.live.dynatrace.com/api/v2/settings/objects/{objectId}&quot; \
+     -H &quot;Authorization: Api-Token {token}&quot; \
+     -H &quot;Content-Type: application/json&quot; \
+     -d @pipeline-backup-YYYYMMDD.json
+</code></pre>
+<ol start="3">
+<li><strong>Verify Rollback Success</strong></li>
+</ol>
+<pre><code class="language-dql">   fetch logs, from: now() - 5m
+   | summarize 
+       count(),
+       pipelines = collectDistinct(dt.openpipeline.pipelines),
+       buckets = collectDistinct(dt.system.bucket)
+</code></pre>
+<ol start="4">
+<li><strong>Communicate Status</strong></li>
+</ol>
+<pre><code>   Template:
+   
+   Subject: OpenPipeline Rollback - [Pipeline Name]
+   
+   Timeline:
+   - [HH:MM] Issue detected: [description]
+   - [HH:MM] Rollback initiated
+   - [HH:MM] Rollback complete
+   
+   Impact:
+   - Logs affected: [time window]
+   - Data loss: [yes/no]
+   - Service affected: [list]
+   
+   Next Steps:
+   - Root cause analysis in progress
+   - Fix ETA: [estimate]
+   - Testing in staging before re-deploy
+</code></pre>
+<hr />
+<h3>Emergency Rollback Checklist</h3>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/objects/get-objects">Settings API - GET objects (DT docs)</a> — <em>&quot;To execute this request, you need an access token with settings.read scope.&quot;</em>; <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/objects/put-object">Settings API - PUT an object (DT docs)</a> — <em>&quot;If true, the request runs only validation of the submitted settings object, without saving it.&quot;</em>; <a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits">OpenPipeline limits (DT docs)</a> — <em>&quot;We recommend to migrate your legacy configurations to the Settings API.&quot;</em>; <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/data-flow">Data flow (DT docs)</a> — <em>&quot;If no route matches the record, the record is routed via the Default route.&quot;</em></sub></p>
+</blockquote>
+<p>The schema IDs (<code>builtin:openpipeline.logs.pipelines</code>, <code>builtin:openpipeline.logs.routing</code>, <code>builtin:openpipeline.logs.ingest-sources</code>) and the per-processor and per-route <code>enabled</code> flags used above were read from a validation tenant's settings objects on 09/28/2026 — confirm them in your own tenant with the GET before you edit anything.</p>
+<p><strong>Before ANY pipeline changes:</strong></p>
+<ul>
+<li>[ ] Backup current pipeline configuration (Settings API GET of the pipeline and routing objects)</li>
+<li>[ ] Test in staging environment first</li>
+<li>[ ] Document expected behavior</li>
+<li>[ ] Have rollback plan ready</li>
+<li>[ ] Notify team of change window</li>
+</ul>
+<p><strong>During incident:</strong></p>
+<ul>
+<li>[ ] Identify affected time window</li>
+<li>[ ] Disable problematic processor/pipeline</li>
+<li>[ ] Verify logs flowing again</li>
+<li>[ ] Document all actions taken</li>
+<li>[ ] Communicate to stakeholders</li>
+</ul>
+<p><strong>After rollback:</strong></p>
+<ul>
+<li>[ ] Root cause analysis</li>
+<li>[ ] Fix and test in staging</li>
+<li>[ ] Peer review changes</li>
+<li>[ ] Document lessons learned</li>
+<li>[ ] Update runbooks</li>
+</ul>
+<hr />
+<hr />
+<p><a id="performance-troubleshooting-new"></a></p>
+<h2>Performance Troubleshooting ⭐ NEW</h2>
+<p>Diagnose and resolve performance issues in high-volume OpenPipeline environments.</p>
+<h3>Performance Issue 1: Slow Processing / High Latency</h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li>Logs arriving later than expected</li>
+<li>One pipeline carrying far more volume than planned</li>
+<li>Queries timing out or slow to return</li>
+</ul>
+<p><strong>Diagnosis Queries:</strong></p>
+<p>OpenPipeline does not record processing time per record or per processor — there is no <code>dt.openpipeline.processing_time_ms</code>, <code>dt.openpipeline.processor_*</code> or <code>dt.system.ingestion_time</code> field (none has a row in <code>dt.semantic_dictionary.fields</code>, while <code>dt.openpipeline.source</code> and <code>dt.openpipeline.pipelines</code> do; checked 10/02/2026). Diagnose by <strong>volume</strong> and by <strong>ingest warnings</strong>.</p>
+<pre><code class="language-dql">// 1. Records out of each pipeline, from OpenPipeline self-monitoring — no log scan
+timeseries records_out = sum(dt.sfm.openpipeline.pipelines_out.records, default: 0),
+  from: now() - 6h, interval: 15m, by: { configuration, pipeline_id }
+| fieldsAdd total = arraySum(records_out)
+| sort total desc
+</code></pre>
+<pre><code class="language-dql">// 2. Records Dynatrace changed or truncated on ingest, by source
+fetch logs, from: now() - 1h
+| filter isNotNull(dt.ingest.warnings)
+| summarize n = count(), by: {dt.ingest.warnings, dt.openpipeline.source}
+| sort n desc
+</code></pre>
+<p>To find an expensive processor, there is no timing to read: narrow its matching condition, or disable processors one at a time in a staging copy of the pipeline and compare.</p>
+<blockquote>
+<p><sub><strong>Dictionary:</strong> <code>dt.openpipeline.pipelines</code> (<code>experimental</code>), <code>dt.openpipeline.source</code> (<code>experimental</code>), <code>dt.ingest.warnings</code> (<code>experimental</code>); no row for <code>dt.openpipeline.processing_time_ms</code>, <code>dt.openpipeline.status</code> or <code>dt.system.ingestion_time</code> under <code>filter startsWith(name, &quot;dt.openpipeline&quot;) OR startsWith(name, &quot;dt.ingest&quot;)</code>, read 10/02/2026 (control: the same filter returned 10 rows). Metric keys <code>dt.sfm.openpipeline.pipelines_out.records</code> and <code>dt.sfm.openpipeline.not_stored.records</code> read from the <code>metrics</code> command the same day.</sub></p>
+</blockquote>
+<p><strong>Common Causes &amp; Solutions:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Cause</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Complex DPL patterns in parse/mask</td>
+<td>Simplify patterns; narrow the processor's matching condition</td>
+</tr>
+<tr>
+<td>Too many processors</td>
+<td>Consolidate logic, remove unused</td>
+</tr>
+<tr>
+<td>High-volume debug logs</td>
+<td>Add a drop processor early</td>
+</tr>
+<tr>
+<td>Expensive fieldsAdd logic</td>
+<td>Pre-compute values, use Inline lookup</td>
+</tr>
+<tr>
+<td>Large log messages</td>
+<td>Remove or truncate fields you do not need</td>
+</tr>
+</tbody>
+</table>
+<p>In community practice these are the usual levers; the gain from each depends on your data — measure before and after with query 1.</p>
+<p><strong>Optimization Example:</strong></p>
+<pre><code class="language-dql">// ❌ SLOW: Multiple replacePattern in sequence
+| fieldsAdd content = replacePattern(content, &quot;'pattern1'&quot;, replacement: &quot;X&quot;)
+| fieldsAdd content = replacePattern(content, &quot;'pattern2'&quot;, replacement: &quot;Y&quot;)
+| fieldsAdd content = replacePattern(content, &quot;'pattern3'&quot;, replacement: &quot;Z&quot;)
+
+// ✅ FAST: Single DPL pattern with alternatives (replacePattern takes DPL, not regex)
+| fieldsAdd content = replacePattern(content, &quot;('pattern1'|'pattern2'|'pattern3')&quot;, replacement: &quot;[REDACTED]&quot;)
+</code></pre>
+<pre><code class="language-dql">// ❌ SLOW: one processor that parses every record
+// Matching condition: true
+parse content, &quot;&quot;&quot;complex pattern&quot;&quot;&quot;
+
+// ✅ FAST: narrow with the processor's MATCHING CONDITION, not a filter command
+// (`filter` is not enabled in a DQL processor definition)
+// Matching condition: matchesPhrase(content, &quot;ERROR&quot;)
+parse content, &quot;&quot;&quot;complex pattern&quot;&quot;&quot;
+</code></pre>
+<hr />
+<h3>Performance Issue 2: High Volume / Rate Limiting</h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li>HTTP 429 (Too Many Requests) errors</li>
+<li>Logs missing during peak traffic</li>
+<li>OneAgent warnings about rate limits</li>
+</ul>
+<p><strong>Diagnosis Queries:</strong></p>
+<pre><code class="language-dql">// 1. Identify high-volume sources (by record count — dt.system.log_size_bytes is not a Grail field)
+fetch logs, from: now() - 1h
+| summarize {
+    log_count = count(),
+    logs_per_second = count() / 3600
+}, by: {log.source}
+| sort log_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// 2. Check for volume spikes (record counts)
+fetch logs, from: now() - 6h
+| makeTimeseries
+    log_count = count(),
+    by: {log.source},
+    interval: 5m
+</code></pre>
+<pre><code class="language-dql">// 3. Analyze droppable logs
+// toDouble() matters: long / long is integer division in DQL, so without it the percentage is 0
+fetch logs, from: now() - 1h
+| summarize {
+    total = count(),
+    debug = countIf(loglevel == &quot;DEBUG&quot;),
+    trace = countIf(loglevel == &quot;TRACE&quot;),
+    health = countIf(contains(content, &quot;/health&quot;)),
+    // one countIf, so a record matching two conditions is counted once
+    droppable = countIf(loglevel == &quot;DEBUG&quot; OR loglevel == &quot;TRACE&quot; OR contains(content, &quot;/health&quot;))
+}, by: {log.source}
+| fieldsAdd droppable_pct = toDouble(droppable) / toDouble(total) * 100
+| filter droppable_pct &gt; 30
+| sort droppable_pct desc
+</code></pre>
+<p><strong>Volume Reduction Strategies:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Use Case</th>
+<th>Expected Reduction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Drop DEBUG/TRACE</td>
+<td>Development, verbose apps</td>
+<td>40-70%</td>
+</tr>
+<tr>
+<td>Drop health checks</td>
+<td>Microservices, K8s</td>
+<td>20-40%</td>
+</tr>
+<tr>
+<td>Sampling</td>
+<td>High-volume, low-value</td>
+<td>80-95% (with 10-20% sample)</td>
+</tr>
+<tr>
+<td>Metric extraction</td>
+<td>SLI metrics, counts</td>
+<td>99%+ (logs → metrics)</td>
+</tr>
+<tr>
+<td>Aggregation</td>
+<td>Repeated messages</td>
+<td>50-80%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example: Aggressive Volume Reduction</strong></p>
+<pre><code class="language-dql">// Drop low-value logs (matching condition of a Drop record processor)
+loglevel == &quot;DEBUG&quot; OR
+loglevel == &quot;TRACE&quot; OR
+matchesValue(content, &quot;*/health*&quot;) OR
+matchesValue(content, &quot;*/metrics*&quot;) OR
+matchesPhrase(content, &quot;/ping&quot;) OR
+(loglevel == &quot;INFO&quot; AND matchesPhrase(log.source, &quot;chatty-service&quot;))
+
+// Expected: 60-80% volume reduction
+</code></pre>
+<p><strong>Sampling Strategy:</strong></p>
+<pre><code class="language-dql">// Sample 10% of INFO logs, keep all ERROR/WARN
+// status == &quot;ERROR&quot; also keeps SEVERE, CRITICAL, FATAL and the rest of the error group
+| filter 
+    status == &quot;ERROR&quot; OR
+    status == &quot;WARN&quot; OR
+    (loglevel == &quot;INFO&quot; AND random() &lt; 0.1)
+
+// Result: ~70% reduction (if 80% are INFO)
+</code></pre>
+<hr />
+<h3>Performance Issue 3: Cardinality Explosion</h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li>Metric extraction creating millions of time series</li>
+<li>High DPS/DDU costs for metric storage</li>
+<li>Queries slow due to high cardinality</li>
+</ul>
+<p><strong>Diagnosis Queries:</strong></p>
+<pre><code class="language-dql">// 1. Count unique dimension combinations
+fetch logs, from: now() - 1h
+| filter isNotNull(user_id)  // Example high-cardinality field
+| summarize 
+    unique_users = countDistinct(user_id),
+    unique_services = countDistinct(service.name),
+    potential_series = countDistinct(concat(user_id, &quot;_&quot;, service.name))
+</code></pre>
+<pre><code class="language-dql">// 2. Estimate metric cardinality
+fetch logs, from: now() - 24h
+| summarize 
+    dim1_count = countDistinct(dimension1),
+    dim2_count = countDistinct(dimension2),
+    dim3_count = countDistinct(dimension3)
+| fieldsAdd estimated_series = dim1_count * dim2_count * dim3_count
+
+// ⚠️ WARNING: If estimated_series &gt; 100,000 → cardinality problem!
+</code></pre>
+<pre><code class="language-dql">// 3. Find high-cardinality fields
+// user_id, request_id, session_id and request_path are example names: replace them with
+// attributes your logs actually carry, or every count reads 0
+fetch logs, from: now() - 1h
+| summarize {
+    user_ids = countDistinct(user_id),
+    request_ids = countDistinct(request_id),
+    session_ids = countDistinct(session_id),
+    paths = countDistinct(request_path)
+}, by: {service.name}
+| sort user_ids desc
+</code></pre>
+<p><strong>Cardinality Reduction Techniques:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>❌ High Cardinality</th>
+<th>✅ Low Cardinality</th>
+<th>Reduction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>User tracking</td>
+<td><code>user_id</code> (1M unique)</td>
+<td><code>user_segment</code> (5 values)</td>
+<td>99.9995%</td>
+</tr>
+<tr>
+<td>API paths</td>
+<td><code>/api/users/12345</code></td>
+<td><code>/api/users/{id}</code></td>
+<td>99%</td>
+</tr>
+<tr>
+<td>Durations</td>
+<td><code>duration_ms</code> (infinite)</td>
+<td><code>duration_bucket</code> (10 buckets)</td>
+<td>99.9%+</td>
+</tr>
+<tr>
+<td>Timestamps</td>
+<td><code>timestamp</code> (infinite)</td>
+<td><code>hour_of_day</code> (24 values)</td>
+<td>99.9%+</td>
+</tr>
+<tr>
+<td>IP addresses</td>
+<td><code>client_ip</code> (100K unique)</td>
+<td><code>client_country</code> (200 values)</td>
+<td>99.8%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example: Bucketing Strategy</strong></p>
+<pre><code class="language-dql">// ❌ BAD: Infinite cardinality
+| fieldsAdd duration_ms = response_time
+// Metric extraction: log.api.response_time (dimensions: service, path, duration_ms)
+// Result: 5 services × 100 paths × 10,000 durations = 5,000,000 time series ❌
+
+// ✅ GOOD: Bucketed cardinality
+| fieldsAdd duration_bucket = 
+    if(response_time &lt; 100, &quot;fast&quot;,
+    else: if(response_time &lt; 500, &quot;normal&quot;,
+    else: if(response_time &lt; 2000, &quot;slow&quot;,
+    else: &quot;very_slow&quot;)))
+// Metric extraction: log.api.response_time (dimensions: service, path, duration_bucket)
+// Result: 5 services × 100 paths × 4 buckets = 2,000 time series ✅
+// Reduction: 99.96%
+</code></pre>
+<p><strong>Example: Path Normalization</strong></p>
+<pre><code class="language-dql">// ❌ BAD: /api/users/12345, /api/users/67890, ... (infinite paths)
+| fieldsAdd api_path = request_path
+
+// ✅ GOOD: Normalize to /api/users/{id}
+// replacePattern takes a DPL pattern: literals in single quotes, INT for the numeric ID
+| fieldsAdd api_path = replacePattern(request_path, &quot;'/api/users/' INT&quot;, replacement: &quot;/api/users/{id}&quot;)
+| fieldsAdd api_path = replacePattern(api_path, &quot;'/api/orders/' INT&quot;, replacement: &quot;/api/orders/{id}&quot;)
+| fieldsAdd api_path = replacePattern(api_path, &quot;'/api/products/' [a-f0-9-]+&quot;, replacement: &quot;/api/products/{uuid}&quot;)
+// Result: 20 normalized paths instead of 100,000+ unique paths
+</code></pre>
+<p><strong>Cardinality Budget:</strong></p>
+<pre><code>Target: &lt; 10,000 time series per metric
+
+Good Examples:
+- 5 services × 20 endpoints × 3 status_categories = 300 series ✅
+- 10 services × 5 environments × 4 duration_buckets = 200 series ✅
+
+Bad Examples:
+- 5 services × 100K user_ids = 500,000 series ❌
+- 10 services × 10K request_ids × 5 methods = 500,000 series ❌
+
+Rule of Thumb:
+If dimension has &gt; 1,000 unique values → BUCKET IT or REMOVE IT
+</code></pre>
+<hr />
+<hr />
+<p><a id="common-issues-solutions"></a></p>
+<h2>Common Issues &amp; Solutions</h2>
+<h3>Issue 1: Logs Not Appearing</h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li>Expected logs missing from queries</li>
+<li>Volume lower than expected</li>
+</ul>
+<p><strong>Diagnosis:</strong></p>
+<pre><code class="language-dql">// Check if logs are being dropped
+// Compare volume before and after drop processors
+fetch logs, from: now() - 1h
+| summarize {
+    total = count(),
+    debug = countIf(loglevel == &quot;DEBUG&quot;),
+    trace = countIf(loglevel == &quot;TRACE&quot;)
+  }, by: {log.source}
+</code></pre>
+<p><strong>Solution:</strong></p>
+<ol>
+<li>Check drop processor conditions in pipeline configuration</li>
+<li>Verify routing conditions aren't too restrictive</li>
+<li>Confirm log source is sending data to Dynatrace</li>
+<li>Check for OneAgent or log forwarder issues</li>
+</ol>
+<h3>Issue 2: Parsing Not Working</h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li><code>loglevel</code> is <code>NONE</code></li>
+<li>Expected parsed fields missing</li>
+</ul>
+<p><strong>Diagnosis:</strong></p>
+<pre><code class="language-dql">// Find logs with parsing failures
+fetch logs, from: now() - 1h
+| filter loglevel == &quot;NONE&quot;
+| fields timestamp, log.source, dt.openpipeline.pipelines, content
+| limit 20
+</code></pre>
+<p><strong>Solution:</strong></p>
+<ol>
+<li>Test DPL pattern in DPL Architect with failing log samples</li>
+<li>Check for variations in log format</li>
+<li>Verify processor matching condition includes these logs</li>
+<li>Order processors correctly (parse before fieldsAdd that uses parsed fields)</li>
+</ol>
+<h3>Issue 3: Wrong Pipeline Assignment</h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li>Logs in unexpected pipelines</li>
+<li>Routing not working as expected</li>
+</ul>
+<p><strong>Diagnosis:</strong></p>
+<pre><code class="language-dql">// Check routing - are logs going to expected pipelines?
+fetch logs, from: now() - 1h
+| summarize {log_count = count()}, by: {log.source, dt.openpipeline.pipelines}
+| sort log.source asc
+</code></pre>
+<p><strong>Solution:</strong></p>
+<ol>
+<li>Review dynamic routing table configuration</li>
+<li>Check routing condition order (first match wins)</li>
+<li>Verify matching conditions use correct fields</li>
+<li>Test conditions with sample logs</li>
+</ol>
+<h3>Issue 4: Masking Not Applied</h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li>Sensitive data visible in logs</li>
+<li>Redaction placeholders missing</li>
+</ul>
+<p><strong>Diagnosis:</strong></p>
+<pre><code class="language-dql">// Check if masking is working
+fetch logs, from: now() - 1h
+| filter contains(content, &quot;@&quot;)  // Potential email
+| filter NOT contains(content, &quot;[EMAIL_REDACTED]&quot;)
+| fields content
+| limit 20
+</code></pre>
+<p><strong>Solution:</strong></p>
+<ol>
+<li>Verify the masking DQL processor (<code>replacePattern</code>) is in the pipeline</li>
+<li>Check masking processor order (first within the Processing stage)</li>
+<li>Test DPL pattern matches the sensitive data format</li>
+<li>Ensure masking applies to correct fields</li>
+</ol>
+<h3>Issue 5: Metrics Not Generated</h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li>Expected metrics missing</li>
+<li>Metric queries return no data</li>
+</ul>
+<p><strong>Diagnosis:</strong></p>
+<p><strong>List log-extracted metrics:</strong> browse them in the Dynatrace UI (<strong>Observe &gt; Metrics</strong>), or query a specific metric with <code>timeseries avg_value = avg(log.your_metric_name), from: now() - 24h</code>.</p>
+<p><strong>Solution:</strong></p>
+<ol>
+<li>Verify extraction processor configuration</li>
+<li>Check matching condition selects correct logs</li>
+<li>Ensure value field exists and is numeric (for value metrics)</li>
+<li>Check for dimension cardinality issues</li>
+</ol>
+<hr />
+<p><a id="parsing-validation"></a></p>
+<h2>Parsing Validation</h2>
+<blockquote>
+<p>🔍 <strong>Reference queries moved to OPMIG-99.</strong> See <strong>OPMIG-99 § 11.1 Parsing Validation</strong> for diagnostic queries that check parsing success rates, log-level distribution, and unparsed-source identification. Run them after configuring or modifying parse processors.</p>
+</blockquote>
+<hr />
+<p><a id="volume-cost-validation"></a></p>
+<h2>Volume &amp; Cost Validation</h2>
+<blockquote>
+<p>📊 <strong>Reference queries moved to OPMIG-99.</strong> See <strong>OPMIG-99 § 11.2 Volume &amp; Cost Validation</strong> for queries that check daily log volume by bucket, drop-processor effectiveness, log-level distribution, and top-volume sources. Useful in the first week after cutover.</p>
+</blockquote>
+<hr />
+<p><a id="performance-optimization"></a></p>
+<h2>Performance Optimization</h2>
+<p>Tips for optimizing OpenPipeline performance.</p>
+<h3>Processor Ordering</h3>
+<ol>
+<li><strong>Masking</strong> - Always first within the Processing stage (security)</li>
+<li><strong>Drop</strong> - Second (reduce volume early)</li>
+<li><strong>Technology Parsers</strong> - Before custom parsing</li>
+<li><strong>Custom Parse</strong> - Before fieldsAdd that uses parsed fields</li>
+<li><strong>fieldsAdd</strong> - After parsing, for computed fields</li>
+<li><strong>fieldsRemove</strong> - Last, to clean up temporary fields</li>
+</ol>
+<p>Bucket assignment and metric/event extraction are not part of this list — they are later stages whose order is fixed.</p>
+<h3>Matching Condition Optimization</h3>
+<table>
+<thead>
+<tr>
+<th>Do</th>
+<th>Don't</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Use indexed fields</td>
+<td>Complex regex on content</td>
+</tr>
+<tr>
+<td>Check field existence first</td>
+<td>Expensive operations always</td>
+</tr>
+<tr>
+<td>Simple equality checks</td>
+<td>Multiple OR conditions</td>
+</tr>
+</tbody>
+</table>
+<h3>Pattern Efficiency</h3>
+<table>
+<thead>
+<tr>
+<th>Efficient</th>
+<th>Less Efficient</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LD? 'prefix=' NSPACE:val</code> — finds the key anywhere, stops at the next space</td>
+<td><code>'prefix=' LD:val</code> — matches only lines that <em>start</em> with <code>prefix=</code>, then runs to end of line</td>
+</tr>
+<tr>
+<td>Specific literals</td>
+<td>Greedy matchers</td>
+</tr>
+<tr>
+<td>Short patterns</td>
+<td>Long complex patterns</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Identify pipelines with high volume (candidates for optimization)
+fetch logs, from: now() - 1h
+| summarize {hourly_volume = count()}, by: {dt.openpipeline.pipelines}
+| sort hourly_volume desc
+</code></pre>
+<hr />
+<p><a id="rollback-procedures"></a></p>
+<h2>Rollback Procedures</h2>
+<p>If issues are detected, here's how to rollback.</p>
+<h3>Rollback Options</h3>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Pipeline</strong></td>
+<td>Disable the route to it; records then take the Default route</td>
+</tr>
+<tr>
+<td><strong>Processor</strong></td>
+<td>Disable individual processor</td>
+</tr>
+<tr>
+<td><strong>Routing</strong></td>
+<td>Reset dynamic routing to defaults</td>
+</tr>
+<tr>
+<td><strong>Full</strong></td>
+<td>Disable the routes to your custom pipelines so records leave through the Default route. Whether a Classic pipeline still exists behind it depends on the environment — it is not available for accounts created from September 2026</td>
+</tr>
+</tbody>
+</table>
+<h3>Quick Disable Steps</h3>
+<ol>
+<li>Navigate to <strong>Settings → OpenPipeline → Logs</strong></li>
+<li>Open the dynamic routing table</li>
+<li>Disable the route that targets the pipeline (a pipeline object has no single on/off switch)</li>
+<li>Records take the Default route, without this pipeline's masking or parsing</li>
+</ol>
+<h3>Version History</h3>
+<p>If your tenant's OpenPipeline UI offers a version history for the pipeline, you can restore a previous version from there — this series has not verified that such a view exists. The dependable path is the Settings API backup described in <em>Scenario 5</em> above: take a <code>GET</code> of the pipeline and routing objects before every change and <code>PUT</code> the saved value back to roll back.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — <em>&quot;For new accounts created from September 2026, classic pipeline is not available.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<p><a id="ongoing-maintenance"></a></p>
+<h2>Ongoing Maintenance</h2>
+<p>After migration, establish these maintenance practices.</p>
+<h3>Daily Checks</h3>
+<ul>
+<li>[ ] Log volume within expected range</li>
+<li>[ ] No spike in unparsed logs</li>
+<li>[ ] Error log levels visible</li>
+</ul>
+<h3>Weekly Checks</h3>
+<ul>
+<li>[ ] Parsing success rates stable</li>
+<li>[ ] Bucket distribution as expected</li>
+<li>[ ] New log sources properly routed</li>
+</ul>
+<h3>Monthly Checks</h3>
+<ul>
+<li>[ ] Review masking effectiveness</li>
+<li>[ ] Optimize high-volume pipelines</li>
+<li>[ ] Clean up unused pipelines</li>
+<li>[ ] Document any changes</li>
+</ul>
+<pre><code class="language-dql">// Weekly health report query
+// error_logs uses the normalized `status` field: status == &quot;ERROR&quot; also covers SEVERE, CRITICAL,
+// ALERT, FATAL and EMERGENCY, which loglevel == &quot;ERROR&quot; alone misses
+fetch logs, from: now() - 7d
+| summarize {
+    total_logs = count(),
+    parsed_logs = countIf(loglevel != &quot;NONE&quot;),
+    error_logs = countIf(status == &quot;ERROR&quot;),
+    pipelines_used = countDistinct(dt.openpipeline.pipelines),
+    sources_active = countDistinct(log.source)
+  }
+| fieldsAdd parse_rate = round((toDouble(parsed_logs) / toDouble(total_logs)) * 100, decimals: 1)
+| fieldsAdd error_rate = round((toDouble(error_logs) / toDouble(total_logs)) * 100, decimals: 2)
+</code></pre>
+<pre><code class="language-dql">// Find new log sources that may need pipeline configuration
+// (records on the default route: the classic pipeline, id &quot;logs:default&quot;).
+// dt.openpipeline.pipelines is an array, so compare with in(), never ==.
+fetch logs, from: now() - 24h
+| filter in(dt.openpipeline.pipelines, &quot;logs:default&quot;)
+| summarize {
+    log_count = count(),
+    first_seen = min(timestamp)
+  }, by: {log.source}
+| filter log_count &gt; 100
+| sort log_count desc
+</code></pre>
+<hr />
+<p><a id="migration-complete-checklist"></a></p>
+<h2>Migration Complete Checklist</h2>
+<p>Final validation before declaring migration complete.</p>
+<h3>Data Quality ✅</h3>
+<ul>
+<li>[ ] All log sources flowing</li>
+<li>[ ] Parsing rates &gt; 95%</li>
+<li>[ ] Log levels correctly extracted</li>
+<li>[ ] Custom fields available</li>
+<li>[ ] Timestamps accurate</li>
+</ul>
+<h3>Routing ✅</h3>
+<ul>
+<li>[ ] All sources routed to correct pipelines</li>
+<li>[ ] Bucket assignments verified</li>
+<li>[ ] Dynamic routing working</li>
+<li>[ ] No orphaned data</li>
+<li>[ ] Classic pipeline share at zero for logs <strong>and</strong> business events, sustained over a full business cycle</li>
+</ul>
+<h3>Security ✅</h3>
+<ul>
+<li>[ ] All PII masked</li>
+<li>[ ] Compliance requirements met</li>
+<li>[ ] No sensitive data in stored logs</li>
+<li>[ ] Masking verified with queries</li>
+</ul>
+<h3>Cost ✅</h3>
+<ul>
+<li>[ ] Debug/trace logs dropped</li>
+<li>[ ] Volumes as expected</li>
+<li>[ ] Bucket retention configured</li>
+<li>[ ] Cost projections met</li>
+</ul>
+<h3>Extraction ✅</h3>
+<ul>
+<li>[ ] Metrics generating</li>
+<li>[ ] Events appearing</li>
+<li>[ ] Business events available</li>
+<li>[ ] Dynatrace Intelligence integration working</li>
+</ul>
+<h3>Documentation ✅</h3>
+<ul>
+<li>[ ] Pipeline configuration documented</li>
+<li>[ ] Routing rules documented</li>
+<li>[ ] Masking patterns documented</li>
+<li>[ ] Runbooks updated</li>
+</ul>
+<h3>Team ✅</h3>
+<ul>
+<li>[ ] Team trained on OpenPipeline</li>
+<li>[ ] Support procedures updated</li>
+<li>[ ] Escalation paths defined</li>
+<li>[ ] Monitoring dashboards created</li>
+</ul>
+<pre><code class="language-dql">// Final migration validation summary
+fetch logs, from: now() - 24h
+| summarize {
+    total_logs = count(),
+    with_pipeline = countIf(isNotNull(dt.openpipeline.pipelines)),
+    // The classic pipeline also sets dt.openpipeline.pipelines (&quot;logs:default&quot;),
+    // so with_pipeline alone cannot tell migrated from unmigrated records.
+    classic_pipeline = countIf(in(dt.openpipeline.pipelines, &quot;logs:default&quot;)),
+    with_loglevel = countIf(loglevel != &quot;NONE&quot;),
+    with_masking = countIf(contains(content, &quot;REDACTED&quot;)),
+    unique_sources = countDistinct(log.source),
+    unique_pipelines = countDistinct(dt.openpipeline.pipelines)
+  }
+| fieldsAdd 
+    routing_health = if(with_pipeline &gt; total_logs * 0.95, &quot;✅ Good&quot;, else: &quot;⚠️ Check routing&quot;),
+    classic_health = if(classic_pipeline == 0, &quot;✅ None on classic&quot;, else: &quot;⚠️ Still on classic pipeline&quot;),
+    parsing_health = if(with_loglevel &gt; total_logs * 0.90, &quot;✅ Good&quot;, else: &quot;⚠️ Check parsing&quot;)
+</code></pre>
+<hr />
+<p><a id="congratulations"></a></p>
+<h2>🎉 Congratulations!</h2>
+<p>You've completed the OpenPipeline migration notebook series!</p>
+<h3>What You've Learned</h3>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Topic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OPMIG-01</strong></td>
+<td>Introduction &amp; Why Migrate</td>
+</tr>
+<tr>
+<td><strong>OPMIG-02</strong></td>
+<td>Architecture &amp; Key Concepts</td>
+</tr>
+<tr>
+<td><strong>OPMIG-03</strong></td>
+<td>Migration Assessment &amp; Planning</td>
+</tr>
+<tr>
+<td><strong>OPMIG-04</strong></td>
+<td>Pipeline Configuration</td>
+</tr>
+<tr>
+<td><strong>OPMIG-05</strong></td>
+<td>Routing &amp; Buckets</td>
+</tr>
+<tr>
+<td><strong>OPMIG-06</strong></td>
+<td>Processing &amp; Parsing</td>
+</tr>
+<tr>
+<td><strong>OPMIG-07</strong></td>
+<td>Metric &amp; Event Extraction</td>
+</tr>
+<tr>
+<td><strong>OPMIG-08</strong></td>
+<td>Security &amp; Masking</td>
+</tr>
+<tr>
+<td><strong>OPMIG-09</strong></td>
+<td>Troubleshooting &amp; Validation</td>
+</tr>
+</tbody>
+</table>
+<h3>Next Steps</h3>
+<ol>
+<li><strong>Share knowledge</strong> - Train your team</li>
+<li><strong>Create dashboards</strong> - Monitor pipeline health</li>
+<li><strong>Iterate</strong> - Add pipelines for new use cases</li>
+<li><strong>Optimize</strong> - Continuously improve performance</li>
+</ol>
+<p>🆕 <strong>New Addition (March 2026):</strong> Migration complete? Move to <strong>OPLOGS-01: OpenPipeline Fundamentals</strong> for day-to-day log operations, or <strong>OPIPE-01: OpenPipeline as a Multi-Scope Platform</strong> for spans and metrics.</p>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline">OpenPipeline Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases">OpenPipeline Best Practices</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">DQL Reference</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits">OpenPipeline Limits</a> — Concrete numeric limits</li>
+<li><a href="https://community.dynatrace.com/">Dynatrace Community</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

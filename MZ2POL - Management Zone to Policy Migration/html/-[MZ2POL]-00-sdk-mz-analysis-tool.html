@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MZ2POL-00: SDK Management Zone Analysis Tool</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MZ2POL — Management Zone Migration: Segments, Policies, Workflows</a><span class="sep">/</span><span aria-current="page">MZ2POL-00</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MZ2POL-00: SDK Management Zone Analysis Tool</h1>
+<blockquote>
+<p><strong>Series:</strong> MZ2POL — Management Zone Migration: Segments, Policies, Workflows | <strong>Notebook:</strong> 1 of 17 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 10/13/2026</p>
+</blockquote>
+<blockquote>
+<p><strong>Purpose:</strong> Export every management-zone rule, measure how each zone is used, and check whether the <strong>data</strong> — not just the entities — carries the context the replacements need. The output feeds MZ2POL-03 (classification), MZ2POL-11 (rule translation) and the MZ2POL-14 workshop.</p>
+</blockquote>
+<h2>What This Notebook Does</h2>
+<ol>
+<li><strong>Export all zone rules</strong> — every <code>ME</code>, <code>DIMENSION</code> and <code>SELECTOR</code> rule, one row per condition, with all eight propagation flags</li>
+<li><strong>Analyze rule patterns</strong> — rule types, entity types, condition keys, and which conditions need special translation</li>
+<li><strong>Measure zone usage</strong> — query activity per zone over 90 days, the evidence for deleting unused zones</li>
+<li><strong>Count entities per zone</strong> — how much each zone covers</li>
+<li><strong>Check security context on the data</strong> — per table, type (string or array), and whether entity contexts are only copied from zone names</li>
+<li><strong>Find tag patterns</strong> — the classic tag vocabulary the zones were built from</li>
+<li><strong>List Kubernetes namespaces and host groups</strong> — the built-in fields many zones translate to</li>
+<li><strong>Summarize readiness</strong> — one table combining the above</li>
+</ol>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#export-all-management-zone-configurations">Export All Management Zone Rules</a></li>
+<li><a href="#mz-rule-pattern-analysis">MZ Rule Pattern Analysis</a></li>
+<li><a href="#zone-usage">Zone Usage</a></li>
+<li><a href="#entity-counts-by-management-zone">Entity Counts by Management Zone</a></li>
+<li><a href="#security-context-on-the-data">Security Context on the Data</a></li>
+<li><a href="#tag-pattern-analysis">Tag Pattern Analysis</a></li>
+<li><a href="#kubernetes-namespace-analysis">Kubernetes Namespace Analysis</a></li>
+<li><a href="#host-group-analysis">Host Group Analysis</a></li>
+<li><a href="#migration-readiness-summary">Migration Readiness Summary</a></li>
+<li><a href="#related-notebooks">Related Notebooks</a></li>
+<li><a href="#documentation">Documentation</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with management zones still configured</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>settings:objects:read</code> to read <code>builtin:management-zones</code> (TypeScript cells); <code>storage:entities:read</code>, <code>storage:logs:read</code>, <code>storage:spans:read</code>, <code>storage:events:read</code>, <code>storage:metrics:read</code> for the DQL cells</td>
+</tr>
+<tr>
+<td><strong>Runtime</strong></td>
+<td>A Dynatrace notebook — the TypeScript cells use <code>@dynatrace-sdk/client-classic-environment-v2</code> and <code>@dynatrace-sdk/client-query</code></td>
+</tr>
+<tr>
+<td><strong>Next</strong></td>
+<td>Classify the output with MZ2POL-03, then translate each rule with MZ2POL-11</td>
+</tr>
+</tbody>
+</table>
+<p><a id="export-all-management-zone-configurations"></a></p>
+<h2>1. Export All Management Zone Rules</h2>
+<p>This function reads <code>builtin:management-zones</code> through the Settings API and returns one row per rule condition. The schema defines three rule types — <code>ME</code> (monitored entity), <code>DIMENSION</code> (dimensional data: logs and metrics) and <code>SELECTOR</code> (entity selector) — and each stores its logic in a different property, so each is flattened separately:</p>
+<table>
+<thead>
+<tr>
+<th>Rule type</th>
+<th>Where the logic lives</th>
+<th>Row per</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ME</code></td>
+<td><code>attributeRule</code>: entity type, conditions, eight propagation flags</td>
+<td>Condition</td>
+</tr>
+<tr>
+<td><code>DIMENSION</code></td>
+<td><code>dimensionRule</code>: <code>appliesTo</code> (<code>ANY</code>, <code>LOG</code>, <code>METRIC</code>) and conditions of type <code>DIMENSION</code>, <code>LOG_FILE_NAME</code> or <code>METRIC_KEY</code></td>
+<td>Condition</td>
+</tr>
+<tr>
+<td><code>SELECTOR</code></td>
+<td><code>entitySelector</code> string</td>
+<td>Rule</td>
+</tr>
+</tbody>
+</table>
+<p>Condition values can be text, an enum, an integer, an entity ID or a tag; the export takes whichever is set. The <code>propagation</code> column lists every propagation flag that is switched on — MZ2POL-10 §7 explains what replaces each one.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-management-zones">Management zones settings schema (DT docs)</a> — rule <code>type</code> enum <code>ME</code>, <code>DIMENSION</code>, <code>SELECTOR</code>; the <code>ManagementZoneAttributeRule</code>, <code>DimensionRule</code>, <code>AttributeCondition</code> and <code>DimensionCondition</code> objects.</sub></p>
+</blockquote>
+<pre><code class="language-python">import { settingsObjectsClient } from &quot;@dynatrace-sdk/client-classic-environment-v2&quot;;
+
+// Shape of builtin:management-zones objects, per the Settings schema table.
+interface AttributeCondition {
+  key: string;
+  operator: string;
+  dynamicKey?: string;
+  stringValue?: string;
+  enumValue?: string;
+  integerValue?: number;
+  entityId?: string;
+  tag?: string;
+  caseSensitive?: boolean;
+}
+
+interface AttributeRule {
+  entityType: string;
+  conditions?: AttributeCondition[];
+  serviceToHostPropagation?: boolean;
+  serviceToPGPropagation?: boolean;
+  pgToHostPropagation?: boolean;
+  pgToServicePropagation?: boolean;
+  hostToPGPropagation?: boolean;
+  customDeviceGroupToCustomDevicePropagation?: boolean;
+  azureToServicePropagation?: boolean;
+  azureToPGPropagation?: boolean;
+}
+
+interface DimensionCondition {
+  conditionType: string; // DIMENSION | LOG_FILE_NAME | METRIC_KEY
+  key?: string;
+  ruleMatcher: string;   // BEGINS_WITH | EQUALS
+  value: string;
+}
+
+interface MzRule {
+  enabled: boolean;
+  type: &quot;ME&quot; | &quot;DIMENSION&quot; | &quot;SELECTOR&quot;;
+  attributeRule?: AttributeRule;
+  dimensionRule?: { appliesTo: string; conditions?: DimensionCondition[] };
+  entitySelector?: string;
+}
+
+interface MzDefinition {
+  name: string;
+  description?: string;
+  rules?: MzRule[];
+}
+
+const PROPAGATION_FLAGS = [
+  &quot;serviceToHostPropagation&quot;, &quot;serviceToPGPropagation&quot;, &quot;pgToHostPropagation&quot;, &quot;pgToServicePropagation&quot;,
+  &quot;hostToPGPropagation&quot;, &quot;customDeviceGroupToCustomDevicePropagation&quot;, &quot;azureToServicePropagation&quot;, &quot;azureToPGPropagation&quot;,
+] as const;
+
+// Fetch every zone, following nextPageKey (other parameters must be omitted on later pages).
+async function getAllZones(): Promise&lt;MzDefinition[]&gt; {
+  const zones: MzDefinition[] = [];
+  let resp = await settingsObjectsClient.getSettingsObjects({
+    schemaIds: &quot;builtin:management-zones&quot;, pageSize: 100, fields: &quot;objectId,value&quot;,
+  });
+  zones.push(...resp.items.map((o) =&gt; o.value as MzDefinition));
+  while (resp.nextPageKey) {
+    resp = await settingsObjectsClient.getSettingsObjects({ nextPageKey: resp.nextPageKey });
+    zones.push(...resp.items.map((o) =&gt; o.value as MzDefinition));
+  }
+  return zones;
+}
+
+function conditionValue(c: AttributeCondition): string {
+  if (c.tag !== undefined) return c.tag;
+  if (c.stringValue !== undefined) return c.stringValue;
+  if (c.enumValue !== undefined) return c.enumValue;
+  if (c.integerValue !== undefined) return String(c.integerValue);
+  if (c.entityId !== undefined) return c.entityId;
+  return &quot;&quot;;
+}
+
+// One record per condition (ME and DIMENSION) or per selector (SELECTOR).
+function flatten(zones: MzDefinition[]) {
+  const records: Record&lt;string, string | number | boolean&gt;[] = [];
+  zones.forEach((zone) =&gt; {
+    (zone.rules ?? []).forEach((rule, ruleIndex) =&gt; {
+      const base = { zone: zone.name, rule: ruleIndex + 1, ruleType: rule.type, enabled: rule.enabled };
+      if (rule.type === &quot;ME&quot; &amp;&amp; rule.attributeRule) {
+        const attr = rule.attributeRule;
+        const propagation = PROPAGATION_FLAGS.filter((f) =&gt; attr[f] === true).join(&quot;,&quot;);
+        const conditions = attr.conditions ?? [];
+        if (conditions.length === 0) {
+          records.push({ ...base, appliesTo: attr.entityType, key: &quot;&quot;, operator: &quot;&quot;, value: &quot;&quot;, caseSensitive: false, propagation });
+        }
+        conditions.forEach((c) =&gt; records.push({
+          ...base, appliesTo: attr.entityType,
+          key: c.dynamicKey ? `${c.key}:${c.dynamicKey}` : c.key,
+          operator: c.operator, value: conditionValue(c),
+          caseSensitive: c.caseSensitive ?? false, propagation,
+        }));
+      } else if (rule.type === &quot;DIMENSION&quot; &amp;&amp; rule.dimensionRule) {
+        const dim = rule.dimensionRule;
+        (dim.conditions ?? []).forEach((c) =&gt; records.push({
+          ...base, appliesTo: dim.appliesTo,
+          key: c.key ? `${c.conditionType}:${c.key}` : c.conditionType,
+          operator: c.ruleMatcher, value: c.value, caseSensitive: false, propagation: &quot;&quot;,
+        }));
+      } else if (rule.type === &quot;SELECTOR&quot;) {
+        records.push({
+          ...base, appliesTo: &quot;&quot;, key: &quot;entitySelector&quot;, operator: &quot;SELECTOR&quot;,
+          value: rule.entitySelector ?? &quot;&quot;, caseSensitive: false, propagation: &quot;&quot;,
+        });
+      }
+    });
+  });
+  return records;
+}
+
+export default async function () {
+  return flatten(await getAllZones());
+}
+</code></pre>
+<hr />
+<p><a id="mz-rule-pattern-analysis"></a></p>
+<h2>2. MZ Rule Pattern Analysis</h2>
+<p>The same export, counted. The <code>Translation</code> rows flag the conditions that need more than a field lookup — read them with MZ2POL-11:</p>
+<table>
+<thead>
+<tr>
+<th>Row</th>
+<th>What it means</th>
+<th>MZ2POL-11</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>exclusion (NOT_*)</code></td>
+<td>Segments and record-level IAM conditions cannot exclude; push the <code>NOT</code> into an enrichment rule</td>
+<td>§5</td>
+</tr>
+<tr>
+<td><code>regex / numeric / IP range</code></td>
+<td>No Grail surface evaluates these; compute the value at the source</td>
+<td>§4</td>
+</tr>
+<tr>
+<td><code>tag-based condition</code></td>
+<td>Promote the tag to <code>primary_tags.*</code> or <code>dt.security_context</code></td>
+<td>§3</td>
+</tr>
+<tr>
+<td><code>host group → built-in field</code></td>
+<td><code>dt.host_group.id</code> already holds the value</td>
+<td>§2, step 1</td>
+</tr>
+<tr>
+<td><code>Propagation flag</code> rows</td>
+<td>Decide where the value is really true instead of copying the flag</td>
+<td>MZ2POL-10 §7</td>
+</tr>
+<tr>
+<td><code>Dimension condition</code> rows</td>
+<td>Dimensional rules are nearly 1:1 — the field is on the record</td>
+<td>§6</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python">import { settingsObjectsClient } from &quot;@dynatrace-sdk/client-classic-environment-v2&quot;;
+
+interface MzRule {
+  enabled: boolean;
+  type: &quot;ME&quot; | &quot;DIMENSION&quot; | &quot;SELECTOR&quot;;
+  attributeRule?: { entityType: string; conditions?: { key: string; operator: string }[] } &amp; Record&lt;string, unknown&gt;;
+  dimensionRule?: { appliesTo: string; conditions?: { conditionType: string }[] };
+  entitySelector?: string;
+}
+interface MzDefinition { name: string; rules?: MzRule[] }
+
+const PROPAGATION_FLAGS = [
+  &quot;serviceToHostPropagation&quot;, &quot;serviceToPGPropagation&quot;, &quot;pgToHostPropagation&quot;, &quot;pgToServicePropagation&quot;,
+  &quot;hostToPGPropagation&quot;, &quot;customDeviceGroupToCustomDevicePropagation&quot;, &quot;azureToServicePropagation&quot;, &quot;azureToPGPropagation&quot;,
+];
+// Operators no Grail surface evaluates directly (MZ2POL-11 §4): compute these at the source.
+const HARD_OPERATORS = [&quot;REGEX_MATCHES&quot;, &quot;NOT_REGEX_MATCHES&quot;, &quot;IS_IP_IN_RANGE&quot;, &quot;NOT_IS_IP_IN_RANGE&quot;,
+  &quot;GREATER_THAN&quot;, &quot;NOT_GREATER_THAN&quot;, &quot;GREATER_THAN_OR_EQUAL&quot;, &quot;NOT_GREATER_THAN_OR_EQUAL&quot;,
+  &quot;LOWER_THAN&quot;, &quot;NOT_LOWER_THAN&quot;, &quot;LOWER_THAN_OR_EQUAL&quot;, &quot;NOT_LOWER_THAN_OR_EQUAL&quot;];
+
+async function getAllZones(): Promise&lt;MzDefinition[]&gt; {
+  const zones: MzDefinition[] = [];
+  let resp = await settingsObjectsClient.getSettingsObjects({
+    schemaIds: &quot;builtin:management-zones&quot;, pageSize: 100, fields: &quot;objectId,value&quot;,
+  });
+  zones.push(...resp.items.map((o) =&gt; o.value as MzDefinition));
+  while (resp.nextPageKey) {
+    resp = await settingsObjectsClient.getSettingsObjects({ nextPageKey: resp.nextPageKey });
+    zones.push(...resp.items.map((o) =&gt; o.value as MzDefinition));
+  }
+  return zones;
+}
+
+export default async function () {
+  const zones = await getAllZones();
+  const count: Record&lt;string, number&gt; = {};
+  const add = (k: string, n = 1) =&gt; { count[k] = (count[k] ?? 0) + n; };
+
+  zones.forEach((zone) =&gt; {
+    (zone.rules ?? []).forEach((rule) =&gt; {
+      add(`Rule type · ${rule.type}`);
+      if (rule.type === &quot;ME&quot; &amp;&amp; rule.attributeRule) {
+        const attr = rule.attributeRule;
+        add(`ME entity type · ${attr.entityType}`);
+        PROPAGATION_FLAGS.forEach((f) =&gt; { if (attr[f] === true) add(`Propagation flag · ${f}`); });
+        (attr.conditions ?? []).forEach((c) =&gt; {
+          add(`Condition key · ${c.key}`);
+          if (c.operator.startsWith(&quot;NOT_&quot;)) add(&quot;Translation · exclusion (NOT_*) → push into enrichment&quot;);
+          if (HARD_OPERATORS.includes(c.operator)) add(&quot;Translation · regex / numeric / IP range → compute at source&quot;);
+          if (c.key.endsWith(&quot;_TAGS&quot;)) add(&quot;Translation · tag-based condition&quot;);
+          if (c.key === &quot;HOST_GROUP_NAME&quot; || c.key === &quot;HOST_GROUP_ID&quot;) add(&quot;Translation · host group → built-in field&quot;);
+        });
+      } else if (rule.type === &quot;DIMENSION&quot; &amp;&amp; rule.dimensionRule) {
+        (rule.dimensionRule.conditions ?? []).forEach((c) =&gt; add(`Dimension condition · ${c.conditionType}`));
+      }
+    });
+  });
+
+  const rows = [
+    { category: &quot;Summary&quot;, metric: &quot;Management zones&quot;, count: zones.length },
+    { category: &quot;Summary&quot;, metric: &quot;Rules&quot;, count: zones.reduce((n, z) =&gt; n + (z.rules?.length ?? 0), 0) },
+    ...Object.entries(count).map(([k, n]) =&gt; {
+      const [category, metric] = k.split(&quot; · &quot;);
+      return { category, metric, count: n };
+    }),
+  ];
+  return rows.sort((a, b) =&gt; a.category.localeCompare(b.category) || b.count - a.count);
+}
+</code></pre>
+<hr />
+<p><a id="zone-usage"></a></p>
+<h2>3. Zone Usage</h2>
+<p>Dynatrace self-monitoring records how often each zone is used in queries. A zone with no activity over 90 days — the same window the MZ2POL-14 workshop uses in Session 1 — is a delete candidate, not a translation job. Combine this with role assignments, alerting profiles and dashboards before deciding — a zone can be unqueried and still scope a role or a profile.</p>
+<pre><code class="language-dql">// Query activity per management zone over 90 days. Zones absent from the result had none.
+timeseries q = sum(dt.sfm.server.management_zones.queries_counter), from:-90d, by:{dt.management_zone.name}
+| fieldsAdd queries_90d = arraySum(q)
+| fieldsRemove q, timeframe, interval
+| sort queries_90d desc
+| limit 200
+</code></pre>
+<p>On the validation tenant (10/13/2026) this returned per-zone counts ranging from about 504,000 queries down to 3 in 90 days.</p>
+<p><strong>A non-zero count does not prove that people need the zone.</strong> The counter records queries, not who sent them — dashboards on auto-refresh, API scripts and scheduled reports count too. On the validation tenant three zones showed almost identical 90-day counts (about 297,700 each), the pattern of one automated caller rather than of people. Find the caller before treating a zone as in use.</p>
+<p>The metric is a self-monitoring metric observed on that tenant rather than a documented API; if it returns nothing on yours, check it exists with <code>metrics | filter metric.key == &quot;dt.sfm.server.management_zones.queries_counter&quot;</code> before treating the result as &quot;no usage&quot;.</p>
+<hr />
+<p><a id="entity-counts-by-management-zone"></a></p>
+<h2>4. Entity Counts by Management Zone</h2>
+<p>How much each zone covers — useful for sizing, not for prioritizing. Priority follows risk (MZ2POL-03): a small zone guarding regulated data comes before a large filtering zone.</p>
+<h3>Services per Management Zone</h3>
+<pre><code class="language-dql">// Services per management zone — sizing, not priority.
+fetch dt.entity.service
+| expand mz = managementZones
+| filter isNotNull(mz)
+| summarize entityCount = count(), by: {managementZone = mz}
+| sort entityCount desc
+| limit 30
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
+</code></pre>
+<hr />
+<p><a id="security-context-on-the-data"></a></p>
+<h2>5. Security Context on the Data</h2>
+<p>Earlier versions of this notebook measured <code>dt.security_context</code> on service and host <strong>entities</strong>. That number is misleading for a migration: the classic <em>Grail Security Context</em> mapping can copy zone names onto entities, and Dynatrace states that data records <em>&quot;do not inherit the management zones of that entity.&quot;</em> On the validation tenant, entity coverage read 100% (27 of 27 services, 23 of 23 hosts) while about 44% of logs and 67% of events carried no security context. IAM record conditions test the <strong>record</strong>, so measure the records.</p>
+<p><strong>Check A — which tables hold the field as an array?</strong> An <code>array</code> row means <code>=</code>, <code>IN</code> and <code>startsWith</code> policy conditions never match those records; use <code>MATCH</code> (MZ2POL-12 §6).</p>
+<pre><code class="language-dql">// Type of dt.security_context per table.
+fetch logs, from:-1h
+| filter isNotNull(dt.security_context)
+| fieldsAdd sc_type = type(dt.security_context)
+| summarize {records = count()}, by:{sc_type}
+| fieldsAdd table = &quot;logs&quot;
+| append [fetch spans, from:-1h | filter isNotNull(dt.security_context) | fieldsAdd sc_type = type(dt.security_context) | summarize {records = count()}, by:{sc_type} | fieldsAdd table = &quot;spans&quot;]
+| append [fetch events, from:-24h | filter isNotNull(dt.security_context) | fieldsAdd sc_type = type(dt.security_context) | summarize {records = count()}, by:{sc_type} | fieldsAdd table = &quot;events&quot;]
+| fields table, sc_type, records
+</code></pre>
+<p><strong>Check B — what share of each table has no security context?</strong> These records are invisible to any user scoped only by <code>dt.security_context</code>.</p>
+<pre><code class="language-dql">// Records without a security context, per table.
+fetch logs, from:-1h
+| summarize {records = count(), without_sc = countIf(isNull(dt.security_context))}
+| fieldsAdd table = &quot;logs&quot;
+| append [fetch spans, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context))} | fieldsAdd table = &quot;spans&quot;]
+| append [fetch events, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context) or arraySize(dt.security_context) == 0)} | fieldsAdd table = &quot;events&quot;]
+| fieldsAdd without_pct = round(100.0 * without_sc / records, decimals: 1)
+| fields table, records, without_sc, without_pct
+</code></pre>
+<p><strong>Check C — are entity security contexts just copies of zone names?</strong> If yes, they scope classic entity queries today but stop matching scoped settings as the Smartscape transition arrives (MZ2POL-12 §5), and they say nothing about the data.</p>
+<pre><code class="language-dql">// Classic host entities whose security context equals one of their zone names. Zero bytes scanned.
+fetch dt.entity.host
+| fields entity.name, managementZones, dt.security_context
+| fieldsAdd sc_from_mz = arraySize(arrayRemoveNulls(iCollectArray(if(in(dt.security_context[], managementZones), dt.security_context[])))) &gt; 0
+| summarize {hosts = count(),
+    with_sc = countIf(arraySize(dt.security_context) &gt; 0),
+    sc_matches_an_mz = countIf(sc_from_mz)}
+</code></pre>
+<p>On the validation tenant (10/13/2026): logs and spans held a string and events an array (Check A); about 44% of logs and 67% of events had no security context (Check B); all 23 hosts had an entity security context matching a zone name (Check C). The fix for Checks A–C is tagging at source — MZ2POL-10.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context">Grant access to entities with security context (DT docs)</a> — <em>&quot;Logs, spans, metrics, and events powered by Grail that are sent from an entity do not inherit the management zones of that entity.&quot;</em>, <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a> — <em>&quot;Using = , STARTSWITH or IN when the field holds an array will always return false .&quot;</em></sub></p>
+</blockquote>
+<hr />
+<p><a id="tag-pattern-analysis"></a></p>
+<h2>6. Tag Pattern Analysis</h2>
+<p>The classic tag vocabulary the zones were built from. Each key is a candidate for a built-in field, a primary tag, a special field or retirement (MZ2POL-10 §2, MZ2POL-11 §3). Classic auto-tags appear only here — they never reach Grail data.</p>
+<h3>Most Common Host Tags</h3>
+<pre><code class="language-dql">// Most common classic host tags (key:value).
+fetch dt.entity.host
+| expand tag = tags
+| filter isNotNull(tag)
+| summarize count = count(), by: {tag}
+| sort count desc
+| limit 50
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - entity tags are not a flat &quot;tags&quot; field on Smartscape (resolve via getNodeField).
+</code></pre>
+<h3>Tag Key Frequency</h3>
+<p>Extract the key from the <code>key:value</code> format to see which tag keys are most common. Classic tags can also be value-less (<code>Purpose</code>); those are kept as keys with no value.</p>
+<pre><code class="language-dql">// Classic tag keys and how many distinct values each has.
+// Value-less tags (no &quot;:&quot;) are kept: the whole tag is the key, withValue counts the ones that have a value.
+fetch dt.entity.host
+| expand tag = tags
+| filter isNotNull(tag)
+| fieldsAdd sep = indexOf(tag, &quot;:&quot;)
+| fieldsAdd tagKey = if(sep &gt;= 0, substring(tag, to: sep), else: tag),
+            tagValue = if(sep &gt;= 0, substring(tag, from: sep + 1))
+| summarize {count = count(), withValue = countIf(isNotNull(tagValue)), uniqueValues = countDistinct(tagValue)}, by: {tagKey}
+| sort count desc
+| limit 30
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - entity tags are not a flat &quot;tags&quot; field on Smartscape (resolve via getNodeField).
+</code></pre>
+<hr />
+<p><a id="kubernetes-namespace-analysis"></a></p>
+<h2>7. Kubernetes Namespace Analysis</h2>
+<p>Namespace zones translate to the built-in <code>k8s.namespace.name</code> field — no tagging work (MZ2POL-11 §3).</p>
+<pre><code class="language-dql">// Kubernetes namespaces — candidates for the built-in k8s.namespace.name field.
+fetch dt.entity.cloud_application_namespace
+| fields namespace = entity.name, id
+| sort namespace asc
+| limit 30
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;K8S_NAMESPACE&quot;
+//   | fields namespace = name, id
+//   | sort namespace asc
+//   | limit 30
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
+</code></pre>
+<hr />
+<p><a id="host-group-analysis"></a></p>
+<h2>8. Host Group Analysis</h2>
+<p>Host-group zones translate to the built-in <code>dt.host_group.id</code> field. To see which zones are really host-group zones — and which contain hosts with no host group at all — run MZ2POL-11 §9, Check 1.</p>
+<pre><code class="language-dql">// Host groups — candidates for the built-in dt.host_group.id field.
+fetch dt.entity.host_group
+| fields hostGroup = entity.name, id
+
+// Note: dt.entity.* is deprecated. There is no Smartscape &quot;HOST_GROUP&quot; node type
+// (smartscapeNodes &quot;HOST_GROUP&quot; returns nothing); host-group membership is exposed as the
+// dt.host_group.id field on HOST nodes (e.g. smartscapeNodes &quot;HOST&quot; | summarize by:{dt.host_group.id}).
+// Keep the classic query above to list host-group entities.
+</code></pre>
+<hr />
+<p><a id="migration-readiness-summary"></a></p>
+<h2>9. Migration Readiness Summary</h2>
+<p>One table: how many zones exist, how many were queried in the last 90 days, and how much of each table lacks a security context. It reads the zone count from the response's <code>totalCount</code> — the <code>fields</code> parameter selects object fields (<code>objectId</code>, <code>value</code>, …) and does not accept <code>totalCount</code>.</p>
+<pre><code class="language-python">import { settingsObjectsClient } from &quot;@dynatrace-sdk/client-classic-environment-v2&quot;;
+import { queryExecutionClient, type ResultRecord } from &quot;@dynatrace-sdk/client-query&quot;;
+
+async function zoneCount(): Promise&lt;number&gt; {
+  // totalCount is part of every response; &quot;fields&quot; only selects object fields.
+  const resp = await settingsObjectsClient.getSettingsObjects({
+    schemaIds: &quot;builtin:management-zones&quot;, pageSize: 1, fields: &quot;objectId&quot;,
+  });
+  return resp.totalCount;
+}
+
+async function runDQL(query: string): Promise&lt;ResultRecord[]&gt; {
+  // queryExecute returns a requestToken instead of the result when the query outlasts
+  // requestTimeoutMilliseconds. Poll to a final state, and fail loudly rather than
+  // returning [] — an empty result here would read as &quot;nothing to fix&quot;.
+  const started = await queryExecutionClient.queryExecute({
+    body: { query, requestTimeoutMilliseconds: 60000, maxResultRecords: 50 },
+  });
+  let resp = started;
+  while (resp.state === &quot;NOT_STARTED&quot; || resp.state === &quot;RUNNING&quot;) {
+    resp = await queryExecutionClient.queryPoll({ requestToken: started.requestToken!, requestTimeoutMilliseconds: 30000 });
+  }
+  if (resp.state !== &quot;SUCCEEDED&quot; || !resp.result) {
+    throw new Error(`DQL query did not succeed: ${resp.state}`);
+  }
+  return resp.result.records.filter((r): r is ResultRecord =&gt; r !== null);
+}
+
+export default async function () {
+  const zones = await zoneCount();
+
+  // Security context on the DATA, per table (MZ2POL-12 §10, Check 2).
+  const coverage = await runDQL(`
+    fetch logs, from:-1h
+    | summarize {records = count(), without_sc = countIf(isNull(dt.security_context))}
+    | fieldsAdd table = &quot;logs&quot;
+    | append [fetch spans, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context))} | fieldsAdd table = &quot;spans&quot;]
+    | append [fetch events, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context) or arraySize(dt.security_context) == 0)} | fieldsAdd table = &quot;events&quot;]
+  `);
+
+  // Zones with no query activity in 90 days — delete candidates (MZ2POL-14, Session 1).
+  const usage = await runDQL(`
+    timeseries q = sum(dt.sfm.server.management_zones.queries_counter), from:-90d, by:{dt.management_zone.name}
+    | fieldsAdd queries_90d = arraySum(q)
+    | summarize {zones_with_queries = countIf(queries_90d &gt; 0)}
+  `);
+
+  const rows: { category: string; metric: string; value: number | string; status: string }[] = [
+    { category: &quot;Zones&quot;, metric: &quot;Management zones configured&quot;, value: zones, status: &quot;INFO&quot; },
+    {
+      category: &quot;Zones&quot;, metric: &quot;Zones queried in the last 90 days&quot;,
+      value: Number(usage[0]?.zones_with_queries ?? 0),
+      status: Number(usage[0]?.zones_with_queries ?? 0) &lt; zones ? &quot;DELETE CANDIDATES EXIST&quot; : &quot;OK&quot;,
+    },
+  ];
+  coverage.forEach((r) =&gt; {
+    const records = Number(r.records ?? 0);
+    const without = Number(r.without_sc ?? 0);
+    const pct = records &gt; 0 ? Math.round((1000 * without) / records) / 10 : 0;
+    rows.push({
+      category: `Data · ${String(r.table)}`, metric: &quot;Records without dt.security_context (1 h)&quot;,
+      value: `${without} of ${records} (${pct}%)`, status: records === 0 ? &quot;NO DATA&quot; : pct &gt; 0 ? &quot;NEEDS_WORK&quot; : &quot;GOOD&quot;,
+    });
+  });
+  return rows;
+}
+</code></pre>
+<hr />
+<h2>Next Steps</h2>
+<blockquote>
+<p><strong>This tool is an inventory aid, not a converter.</strong> There is <strong>no automatic Management Zone to Segment conversion</strong> in Dynatrace — no button, no API, no wizard. Metric events have an assisted path — the Anomaly Detection app converts metric selectors with a <strong>Transform</strong> action, after which you check by hand that the data and tags are present. Management zones have no such path: every zone must be re-expressed by hand as a segment, an IAM policy or a workflow. The analysis tells you <em>how much work each zone is</em>; it does not perform the migration.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/metric-alerting">Upgrade metric alerting (DT docs)</a> — <em>&quot;the check can't detect whether the data from the metric is available or the necessary tags are present.&quot;</em></sub></p>
+</blockquote>
+<h3>Based on the analysis above</h3>
+<ol>
+<li><strong>Zones with no usage (§3)?</strong> → Delete candidates, after checking role assignments and alerting profiles (MZ2POL-14, Session 1).</li>
+<li><strong>Records without a security context (§5, Check B)?</strong> → Tagging at source before anything else (MZ2POL-10); the readiness gate in MZ2POL-10 §10.</li>
+<li><strong>Entity contexts copied from zone names (§5, Check C)?</strong> → Do not count them as coverage; plan edge-set contexts (MZ2POL-12 §5).</li>
+<li><strong>Array-typed security context (§5, Check A)?</strong> → <code>MATCH</code> in every policy and boundary (MZ2POL-12 §6).</li>
+<li><strong><code>Translation</code> rows in §2?</strong> → Work them through the MZ2POL-11 decision path; the export in §1 is the input to the MZ2POL-11 worksheet (MZ2POL-11 §10).</li>
+<li><strong>Host-group or namespace zones (§7, §8)?</strong> → Built-in fields — the cheapest translations (MZ2POL-11 §2, step 1).</li>
+</ol>
+<h3>Prioritization</h3>
+<p>Priority follows risk, not size — use the P1–P4 scheme in <strong>MZ2POL-03 §4</strong>: security and compliance access first, then team access and alerting scope, then filtering-only zones; unused zones are deleted.</p>
+<hr />
+<p><a id="related-notebooks"></a></p>
+<h2>Related Notebooks</h2>
+<ul>
+<li><strong>MZ2POL-01</strong>: Introduction — Why Migrate (with reading paths)</li>
+<li><strong>MZ2POL-03</strong>: Assessment and Planning</li>
+<li><strong>MZ2POL-10</strong>: Tagging at Source</li>
+<li><strong>MZ2POL-11</strong>: Translating MZ Rules into Source Attributes</li>
+<li><strong>MZ2POL-12</strong>: IAM Reference Architecture</li>
+<li><strong>MZ2POL-14</strong>: Zone Disposition Workshop</li>
+<li><strong>MZ2POL-95</strong>: End-to-End Migration LAB</li>
+</ul>
+<p><a id="documentation"></a></p>
+<h2>Documentation</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-management-zones">Management zones settings schema (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management-classic/permission-management/management-zones/management-zone-rules">Management-zone rules (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles">Upgrade role-based permissions to Dynatrace IAM policies (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context">Grant access to entities with security context (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

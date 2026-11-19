@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S2D-99: Best Practice Summary</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">S2D — Splunk to Dynatrace Migration</a><span class="sep">/</span><span aria-current="page">S2D-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>S2D-99: Best Practice Summary</h1>
+<blockquote>
+<p><strong>Series:</strong> S2D — Splunk to Dynatrace Migration | <strong>Notebook:</strong> 99 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/06/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook consolidates every actionable best practice from the S2D (Splunk to Dynatrace) migration series into a single definitive reference. Each practice specifies the exact setting, value, or action to apply.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#migration-planning">Migration Planning</a></li>
+<li><a href="#log-discovery-and-validation">Log Discovery and Validation</a></li>
+<li><a href="#query-translation-spl-to-dql">Query Translation (SPL to DQL)</a></li>
+<li><a href="#alert-migration-davis-anomaly-detectors">Alert Migration - Anomaly Detectors</a></li>
+<li><a href="#alert-migration-workflows">Alert Migration - Workflows</a></li>
+<li><a href="#extended-timeframes-arraymovingsum">Extended Timeframes (ArrayMovingSum)</a></li>
+<li><a href="#metric-creation-from-logs">Metric Creation from Logs</a></li>
+<li><a href="#dashboard-migration">Dashboard Migration</a></li>
+<li><a href="#naming-standards">Naming Standards</a></li>
+<li><a href="#dql-performance-and-syntax">DQL Performance and Syntax</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:logs:read</code>, <code>storage:buckets:read</code>, <code>settings:objects:write</code>, <code>document:documents:write</code>, <code>automation:workflows:write</code></td>
+</tr>
+<tr>
+<td><strong>Splunk Access</strong></td>
+<td>Ability to view existing queries, alerts, dashboards</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>Familiarity with both Splunk SPL and Dynatrace DQL</td>
+</tr>
+</tbody>
+</table>
+<p><a id="migration-planning"></a></p>
+<h2>1. Migration Planning</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Follow the 5-phase migration sequence</td>
+<td>Phase 1: Discovery, Phase 2: Data Validation, Phase 3: Query Translation, Phase 4: Alert Migration, Phase 5: Dashboard Migration</td>
+<td>Critical</td>
+<td>Process</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Inventory all Splunk assets before starting</td>
+<td>Document every dashboard, alert, report, and saved search with their SPL queries</td>
+<td>Critical</td>
+<td>Process</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Prioritize by criticality</td>
+<td>Migrate production monitoring first, then staging, then dev</td>
+<td>Recommended</td>
+<td>Process</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Map Splunk indexes to Dynatrace buckets</td>
+<td>Each Splunk index maps to a Grail bucket; document the mapping before translation</td>
+<td>Critical</td>
+<td>Process</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Validate log availability before query translation</td>
+<td>Run DQL validation queries (S2D-02) before attempting SPL-to-DQL conversion</td>
+<td>Critical</td>
+<td>Process</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Compare log volumes between platforms</td>
+<td>Run equivalent time-bounded queries in both Splunk and Dynatrace to confirm counts match</td>
+<td>Recommended</td>
+<td>Validation</td>
+</tr>
+<tr>
+<td>91</td>
+<td>Do not plan to migrate historical Splunk data</td>
+<td>Log ingest drops records older than the log age limit — 72 hours for environments created after SaaS 1.348, 24 hours for older ones unless raised on request. Keep Splunk or an archive readable for the required retention period, and run both platforms until Dynatrace holds the look-back your dashboards and alerts need (S2D-01)</td>
+<td>Critical</td>
+<td>Process</td>
+</tr>
+</tbody>
+</table>
+<p><a id="log-discovery-and-validation"></a></p>
+<h2>2. Log Discovery and Validation</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>7</td>
+<td>Set log ingest rules at the host-group level</td>
+<td>Use host-group scope, not per-host</td>
+<td>Recommended</td>
+<td>Configuration</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Enable OneAgent log content access</td>
+<td><code>oneagentctl --set-app-log-content-access=true</code> on every monitored host</td>
+<td>Critical</td>
+<td>Configuration</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Configure custom log sources for non-standard paths</td>
+<td>Settings &gt; Log Monitoring &gt; Custom log sources; specify the exact file path pattern</td>
+<td>Recommended</td>
+<td>Configuration</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Configure timestamp and splitting rules for multi-line logs</td>
+<td>Settings &gt; Log Monitoring &gt; Timestamp and splitting; set the timestamp pattern and line separator</td>
+<td>Recommended</td>
+<td>Configuration</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Validate by host name first, then by log source path</td>
+<td>Use <code>matchesPhrase(host.name, &quot;...&quot;)</code> then <code>matchesPhrase(log.source, &quot;...&quot;)</code></td>
+<td>Recommended</td>
+<td>Validation</td>
+</tr>
+<tr>
+<td>12</td>
+<td>For Kubernetes, validate by cluster then namespace then deployment</td>
+<td>Filter chain: <code>k8s.cluster.name</code> -&gt; <code>k8s.namespace.name</code> -&gt; <code>k8s.deployment.name</code></td>
+<td>Recommended</td>
+<td>Validation</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Remember: host-level OneAgent settings override environment settings</td>
+<td>If log monitoring is disabled on the OneAgent, environment-level ingest rules will not apply</td>
+<td>Critical</td>
+<td>Configuration</td>
+</tr>
+</tbody>
+</table>
+<p><a id="query-translation-spl-to-dql"></a></p>
+<h2>3. Query Translation (SPL to DQL)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>14</td>
+<td>Use <code>==</code> for equality, not <code>=</code></td>
+<td><code>filter field == &quot;value&quot;</code></td>
+<td>Critical</td>
+<td>Syntax</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Use double quotes only, not single quotes</td>
+<td><code>&quot;value&quot;</code> not <code>'value'</code></td>
+<td>Critical</td>
+<td>Syntax</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Use curly-brace arrays, not parentheses</td>
+<td><code>in(field, {&quot;a&quot;, &quot;b&quot;})</code> not <code>field IN ('a', 'b')</code></td>
+<td>Critical</td>
+<td>Syntax</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Translate <code>search index=...</code> to <code>fetch logs</code></td>
+<td><code>fetch logs, from:-1h</code> with explicit time range</td>
+<td>Critical</td>
+<td>Syntax</td>
+</tr>
+<tr>
+<td>18</td>
+<td>Translate <code>where</code> to <code>filter</code></td>
+<td><code>filter field == &quot;value&quot;</code></td>
+<td>Critical</td>
+<td>Syntax</td>
+</tr>
+<tr>
+<td>19</td>
+<td>Translate <code>stats</code> to <code>summarize</code></td>
+<td><code>summarize count = count(), by:{field}</code></td>
+<td>Critical</td>
+<td>Syntax</td>
+</tr>
+<tr>
+<td>20</td>
+<td>Translate <code>eval</code> to <code>fieldsAdd</code></td>
+<td><code>fieldsAdd new_field = expression</code></td>
+<td>Critical</td>
+<td>Syntax</td>
+</tr>
+<tr>
+<td>21</td>
+<td>Translate <code>table</code> to <code>fields</code></td>
+<td><code>fields field1, field2</code></td>
+<td>Recommended</td>
+<td>Syntax</td>
+</tr>
+<tr>
+<td>22</td>
+<td>Translate <code>sort -field</code> to <code>sort field desc</code></td>
+<td>Explicit <code>asc</code>/<code>desc</code> keyword</td>
+<td>Recommended</td>
+<td>Syntax</td>
+</tr>
+<tr>
+<td>23</td>
+<td>Translate <code>head N</code> to <code>limit N</code></td>
+<td><code>limit 100</code></td>
+<td>Recommended</td>
+<td>Syntax</td>
+</tr>
+<tr>
+<td>24</td>
+<td>Translate <code>rename old AS new</code> to <code>fieldsRename</code></td>
+<td><code>fieldsRename old, alias:new</code></td>
+<td>Recommended</td>
+<td>Syntax</td>
+</tr>
+<tr>
+<td>25</td>
+<td>Translate <code>timechart span=5m count by level</code> to <code>makeTimeseries</code></td>
+<td><code>makeTimeseries count = count(), by:{loglevel}, interval:5m</code></td>
+<td>Critical</td>
+<td>Syntax</td>
+</tr>
+<tr>
+<td>26</td>
+<td>Translate <code>rex</code> field extraction to <code>parse</code> with DPL</td>
+<td><code>parse content, &quot;DATA? 'user=' WORD:username&quot;</code> (lead with <code>DATA?</code>: <code>parse</code> anchors at the field start)</td>
+<td>Recommended</td>
+<td>Syntax</td>
+</tr>
+<tr>
+<td>27</td>
+<td>Translate <code>*value*</code> wildcard to <code>contains()</code></td>
+<td><code>contains(field, &quot;value&quot;, caseSensitive:false)</code>; <code>matchesPhrase()</code> matches whole words only</td>
+<td>Critical</td>
+<td>Syntax</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Translate <code>field IN (&quot;a&quot;,&quot;b&quot;)</code> to <code>in()</code> function</td>
+<td><code>in(field, {&quot;a&quot;, &quot;b&quot;})</code></td>
+<td>Critical</td>
+<td>Syntax</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Translate <code>NOT field=&quot;value&quot;</code> to <code>filterOut</code> and <code>field!=&quot;value&quot;</code> to <code>filter</code></td>
+<td><code>filterOut matchesValue(field, &quot;value&quot;)</code> keeps records without the field, like Splunk <code>NOT</code>; <code>filter not(matchesValue(field, &quot;value&quot;))</code> drops them, like Splunk <code>!=</code>. <code>matchesValue</code> is case-insensitive, like Splunk search</td>
+<td>Recommended</td>
+<td>Syntax</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Always alias aggregation results</td>
+<td><code>summarize count = count()</code> not <code>summarize count()</code></td>
+<td>Critical</td>
+<td>Syntax</td>
+</tr>
+</tbody>
+</table>
+<p><a id="alert-migration-davis-anomaly-detectors"></a></p>
+<h2>4. Alert Migration - Anomaly Detectors</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>31</td>
+<td>Apply the threshold translation formula</td>
+<td><code>Splunk Threshold = DT Threshold x DT Violating Samples</code></td>
+<td>Critical</td>
+<td>Alerting</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Use the &quot;Alert Reimagined&quot; strategy as default</td>
+<td>Threshold: calculated, Sliding Window: match Splunk timeframe, Violating Samples: 2-3, Dealerting Samples: how many back-to-normal samples close the event</td>
+<td>Recommended</td>
+<td>Alerting</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Set Anomaly Detector query interval to 1 minute</td>
+<td><code>interval:1m</code> in <code>makeTimeseries</code></td>
+<td>Critical</td>
+<td>Alerting</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Set the sliding window to match Splunk query timeframe</td>
+<td>Max: 60 minutes. If Splunk timeframe is 15m, set sliding window to 15</td>
+<td>Critical</td>
+<td>Alerting</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Do not map Splunk suppression onto dealerting samples</td>
+<td>Dealerting controls when an open event closes; Splunk suppress controls re-notification. Handle re-notification in the routing workflow</td>
+<td>Recommended</td>
+<td>Alerting</td>
+</tr>
+<tr>
+<td>36</td>
+<td>Use <code>by:{dt.entity.cloud_application}</code> for entity association on logs</td>
+<td>Ties alerts to the workload entity. The field is <code>deprecated</code> in the semantic dictionary, but its Smartscape successors (<code>dt.smartscape.k8s_deployment</code> and siblings) are not on log records yet (10/14/2026); switch once they are</td>
+<td>Recommended</td>
+<td>Alerting</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Prefer Anomaly Detectors over Workflows when timeframe is 60 min or less</td>
+<td>Per-minute evaluation and Davis correlation; queries are billed, so use Delay to reduce executions</td>
+<td>Critical</td>
+<td>Alerting</td>
+</tr>
+<tr>
+<td>38</td>
+<td>If alert timeframe exceeds 60 minutes, use Workflows or ArrayMovingSum</td>
+<td>Anomaly Detectors max sliding window = 60 minutes</td>
+<td>Critical</td>
+<td>Alerting</td>
+</tr>
+<tr>
+<td>39</td>
+<td>Use the data-driven strategy when historical data is available</td>
+<td>Analyze per-minute samples (24 h or less per query at 1-minute resolution; repeat for several days)</td>
+<td>Recommended</td>
+<td>Alerting</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Validate the alert query returns timeseries data before configuring</td>
+<td>Run the query in a notebook first; confirm <code>makeTimeseries</code> output</td>
+<td>Critical</td>
+<td>Validation</td>
+</tr>
+</tbody>
+</table>
+<p><a id="alert-migration-workflows"></a></p>
+<h2>5. Alert Migration - Workflows</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>41</td>
+<td>Use Workflows only when: timeframe &gt; 60 min, alert runs few times/day, business-hours only, or is actually a report</td>
+<td>Otherwise use Anomaly Detectors</td>
+<td>Critical</td>
+<td>Alerting</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Specify timeframe explicitly in the DQL query, not from dashboard</td>
+<td><code>fetch logs, from:now()-7d</code> in the workflow query itself</td>
+<td>Critical</td>
+<td>Alerting</td>
+</tr>
+<tr>
+<td>43</td>
+<td>Workflow queries do NOT require <code>makeTimeseries</code> output</td>
+<td>Use <code>summarize</code> to return a single aggregated value</td>
+<td>Recommended</td>
+<td>Alerting</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Set event timeout in the JavaScript event creation step</td>
+<td><code>timeout: 15</code> (minutes) to auto-expire events</td>
+<td>Recommended</td>
+<td>Alerting</td>
+</tr>
+<tr>
+<td>45</td>
+<td>Workflow-posted events: refresh by resending; timeout defaults to 15 minutes, capped at 360</td>
+<td><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event">Ingest an event (DT docs)</a>: <em>&quot;Problem-opening events can be refreshed and therefore kept open by sending the same payload again.&quot;</em> <em>&quot;If not set, 15 is used.&quot;</em> <em>&quot;capped to a maximum of 360 minutes (6 hours)&quot;</em></td>
+<td>Critical</td>
+<td>Alerting</td>
+</tr>
+<tr>
+<td>46</td>
+<td>Workflow events are NOT correlated by Dynatrace Intelligence</td>
+<td>No root-cause analysis or problem grouping</td>
+<td>Recommended</td>
+<td>Alerting</td>
+</tr>
+<tr>
+<td>47</td>
+<td>Account for workflow license consumption</td>
+<td>Every standard workflow is billed per hour it exists, regardless of how often it runs; the DQL it executes is billed separately as query consumption</td>
+<td>Recommended</td>
+<td>Licensing</td>
+</tr>
+<tr>
+<td>48</td>
+<td>For business-hours-only alerting, filter by hour in the Dynatrace Intelligence query instead of using a Workflow</td>
+<td><code>fieldsAdd hour = getHour(timestamp, timezone:&quot;America/New_York&quot;)</code> then <code>filter hour &gt;= 8 and hour &lt; 18</code> (queries run in UTC; set your time zone)</td>
+<td>Recommended</td>
+<td>Alerting</td>
+</tr>
+</tbody>
+</table>
+<p><a id="extended-timeframes-arraymovingsum"></a></p>
+<h2>6. Extended Timeframes (ArrayMovingSum)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>49</td>
+<td>Use <code>arrayMovingSum(array, 60)</code> with <code>interval:1m</code> for 60-minute rolling sum</td>
+<td>Each data point = sum of preceding 60 minutes</td>
+<td>Critical</td>
+<td>DQL</td>
+</tr>
+<tr>
+<td>50</td>
+<td>Max <code>arrayMovingSum</code> window = 60</td>
+<td>Cannot exceed 60 data points regardless of interval</td>
+<td>Critical</td>
+<td>DQL</td>
+</tr>
+<tr>
+<td>51</td>
+<td>With Anomaly Detectors + ArrayMovingSum, set sliding window = 60 and violating samples = 1</td>
+<td>The query only sees its sliding window: with a 1-minute window each &quot;60-minute&quot; sample is a 1-minute count. The first 59 points of any window are partial sums. Derived, not tested on a live custom alert</td>
+<td>Recommended</td>
+<td>Alerting</td>
+</tr>
+<tr>
+<td>52</td>
+<td>Set threshold to total count expected in the rolling window</td>
+<td>If Splunk threshold = 500 errors in 60 min, set DT threshold = 500</td>
+<td>Critical</td>
+<td>Alerting</td>
+</tr>
+<tr>
+<td>53</td>
+<td>Remove the original timeseries field after adding the rolling sum</td>
+<td><code>fieldsRemove error_count</code> after <code>fieldsAdd error_count_1h = arrayMovingSum(error_count, 60)</code></td>
+<td>Recommended</td>
+<td>DQL</td>
+</tr>
+<tr>
+<td>54</td>
+<td>For dashboard visualizations &gt; 60 min, increase the interval</td>
+<td><code>interval:5m</code> with <code>window:48</code> = 4-hour rolling sum (intervals snap to supported values; check the returned <code>interval</code>)</td>
+<td>Recommended</td>
+<td>DQL</td>
+</tr>
+<tr>
+<td>55</td>
+<td>For alerts &gt; 60 minutes that cannot use proportional reduction, use Workflows</td>
+<td>If error distribution is uneven, proportional threshold reduction will produce false positives</td>
+<td>Recommended</td>
+<td>Alerting</td>
+</tr>
+</tbody>
+</table>
+<p><a id="metric-creation-from-logs"></a></p>
+<h2>7. Metric Creation from Logs</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>56</td>
+<td>Create log-based metrics for frequently executed dashboard and alert queries</td>
+<td>Reduces query cost, improves speed, increases retention</td>
+<td>Recommended</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>57</td>
+<td>Metric filter must use only supported functions</td>
+<td><code>matchesPhrase</code>, <code>matchesValue</code>, <code>isNull</code>, <code>isNotNull</code>, basic operators only. No <code>parse</code> or <code>fieldsAdd</code></td>
+<td>Critical</td>
+<td>Configuration</td>
+</tr>
+<tr>
+<td>58</td>
+<td>Avoid high-cardinality dimensions</td>
+<td>Never use transaction IDs, session IDs, request IDs, or timestamps as metric dimensions</td>
+<td>Critical</td>
+<td>Configuration</td>
+</tr>
+<tr>
+<td>59</td>
+<td>Consolidate similar metrics using dimensions instead of separate metrics</td>
+<td>One <code>service_errors</code> metric with <code>k8s.deployment.name</code> dimension, not per-service metrics</td>
+<td>Recommended</td>
+<td>Design</td>
+</tr>
+<tr>
+<td>60</td>
+<td>Name metrics as <code>log.[app_name].[metric_description]</code></td>
+<td>Example: <code>log.easytravel.error_count</code></td>
+<td>Recommended</td>
+<td>Naming</td>
+</tr>
+<tr>
+<td>61</td>
+<td>Complete all SPL-to-DQL translation before requesting metric extraction</td>
+<td>Metric filters must match the final DQL query filters</td>
+<td>Critical</td>
+<td>Process</td>
+</tr>
+<tr>
+<td>62</td>
+<td>Query extracted metrics with <code>timeseries</code> not <code>fetch logs</code></td>
+<td><code>timeseries sum(log.easytravel.error_count), from:-1h</code> (counter: use <code>sum()</code>, not <code>avg()</code>)</td>
+<td>Critical</td>
+<td>Syntax</td>
+</tr>
+</tbody>
+</table>
+<p><a id="dashboard-migration"></a></p>
+<h2>8. Dashboard Migration</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>63</td>
+<td>Layout: top row = single-value KPIs, middle = time-series trends, bottom = detail tables</td>
+<td>Standard 3-tier dashboard layout</td>
+<td>Recommended</td>
+<td>Design</td>
+</tr>
+<tr>
+<td>64</td>
+<td>Use dashboard variables for interactive filtering</td>
+<td>Define <code>$cluster</code>, <code>$namespace</code>, <code>$deployment</code> variables with query-backed dropdowns</td>
+<td>Recommended</td>
+<td>Design</td>
+</tr>
+<tr>
+<td>65</td>
+<td>Populate dropdown variables with DQL</td>
+<td><code>fetch logs, from:-1h | summarize count(), by:{field} | fields field | sort field asc</code></td>
+<td>Recommended</td>
+<td>Design</td>
+</tr>
+<tr>
+<td>66</td>
+<td>Use consistent time intervals across related charts on the same dashboard</td>
+<td>All trend charts should use the same <code>interval:</code> value</td>
+<td>Recommended</td>
+<td>Design</td>
+</tr>
+<tr>
+<td>67</td>
+<td>Map Splunk gauges to the Gauge or Meter bar visualization</td>
+<td>Radial gauge → Gauge; filler/marker gauge → Meter bar or Gauge</td>
+<td>Recommended</td>
+<td>Design</td>
+</tr>
+<tr>
+<td>68</td>
+<td>Create Log Searcher dashboards for investigation</td>
+<td>VM version: variables for <code>host_name</code> and <code>log_source</code>. K8s version: variables for <code>cluster</code>, <code>namespace</code>, <code>deployment</code></td>
+<td>Recommended</td>
+<td>Design</td>
+</tr>
+<tr>
+<td>69</td>
+<td>Validate migrated dashboard data against Splunk</td>
+<td>Compare identical time ranges side-by-side before decommissioning Splunk dashboards</td>
+<td>Critical</td>
+<td>Validation</td>
+</tr>
+</tbody>
+</table>
+<p><a id="naming-standards"></a></p>
+<h2>9. Naming Standards</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>70</td>
+<td>Dashboard names</td>
+<td><code>[app_name] Dashboard Title</code></td>
+<td>Critical</td>
+<td>Naming</td>
+</tr>
+<tr>
+<td>71</td>
+<td>Alert configuration names</td>
+<td><code>[app_name] alert name from splunk</code></td>
+<td>Critical</td>
+<td>Naming</td>
+</tr>
+<tr>
+<td>72</td>
+<td>Alert event names (triggered title)</td>
+<td><code>[app_name] [priority] - {dimension} - alert name</code> e.g. <code>[EasyTravel] P2 - {dims:host.name} - High Error Count</code></td>
+<td>Critical</td>
+<td>Naming</td>
+</tr>
+<tr>
+<td>73</td>
+<td>Report names</td>
+<td><code>[Report] [app_name] Report Title</code></td>
+<td>Recommended</td>
+<td>Naming</td>
+</tr>
+<tr>
+<td>74</td>
+<td>Lookup table paths</td>
+<td><code>/lookups/[app_name]/[table_name]</code></td>
+<td>Recommended</td>
+<td>Naming</td>
+</tr>
+<tr>
+<td>75</td>
+<td>Log-based metric names</td>
+<td><code>log.[app_name].[metric_description]</code> (lowercase, underscores)</td>
+<td>Recommended</td>
+<td>Naming</td>
+</tr>
+<tr>
+<td>76</td>
+<td>Alerting workflow names</td>
+<td><code>[Alert] [app_name] Alert Description</code></td>
+<td>Recommended</td>
+<td>Naming</td>
+</tr>
+<tr>
+<td>77</td>
+<td>Automation workflow names</td>
+<td><code>[Auto] [app_name] Automation Description</code></td>
+<td>Recommended</td>
+<td>Naming</td>
+</tr>
+<tr>
+<td>78</td>
+<td>Remediation workflow names</td>
+<td><code>[Remediate] [app_name] Remediation Description</code></td>
+<td>Optional</td>
+<td>Naming</td>
+</tr>
+<tr>
+<td>79</td>
+<td>Enforce naming during migration, not after</td>
+<td>Review every asset name at creation time</td>
+<td>Critical</td>
+<td>Process</td>
+</tr>
+<tr>
+<td>80</td>
+<td>Use infrastructure-as-code to enforce naming</td>
+<td>Monaco or Terraform templates with naming prefixes built in</td>
+<td>Recommended</td>
+<td>Process</td>
+</tr>
+</tbody>
+</table>
+<p><a id="dql-performance-and-syntax"></a></p>
+<h2>10. DQL Performance and Syntax</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>81</td>
+<td>Always specify a time range on <code>fetch</code>, except in a custom-alert query</td>
+<td><code>fetch logs, from:-1h</code>; for a custom alert, <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/anomaly-detection-dql-best-practice">DQL writing guide (DT docs)</a>: <em>&quot;Don't use from: and to: when creating a DQL query for the custom alert.&quot;</em></td>
+<td>Critical</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>82</td>
+<td>Filter immediately after <code>fetch</code></td>
+<td>Place <code>filter</code> commands before any <code>fieldsAdd</code>, <code>parse</code>, or <code>summarize</code></td>
+<td>Critical</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>83</td>
+<td>Use <code>==</code> for exact matches, <code>matchesPhrase</code> for token search</td>
+<td><code>==</code> is faster than <code>~</code> or <code>matchesPhrase</code> when the full value is known</td>
+<td>Recommended</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>84</td>
+<td>Target specific Grail buckets</td>
+<td><code>fetch logs, bucket:{&quot;app_logs_*&quot;}</code> to avoid scanning all buckets</td>
+<td>Recommended</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>85</td>
+<td>Use named parameters for DQL functions</td>
+<td><code>round(value, decimals: 2)</code> not <code>round(value, 2)</code></td>
+<td>Critical</td>
+<td>Syntax</td>
+</tr>
+<tr>
+<td>86</td>
+<td>Use <code>countIf()</code> instead of nested filter + count</td>
+<td><code>summarize errors = countIf(status == &quot;ERROR&quot;)</code> in a single pass</td>
+<td>Recommended</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>87</td>
+<td>Check <code>isNotNull()</code> before aggregating optional fields</td>
+<td><code>filter isNotNull(db.system)</code> before <code>summarize avg(duration), by:{db.system}</code></td>
+<td>Recommended</td>
+<td>Correctness</td>
+</tr>
+<tr>
+<td>88</td>
+<td>Sort and limit must come last in the pipeline</td>
+<td><code>sort field desc | limit 10</code> as final commands</td>
+<td>Critical</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>89</td>
+<td>Use <code>fieldsKeep</code> or <code>fieldsRemove</code> early to drop unneeded columns</td>
+<td>Reduces data volume through the pipeline</td>
+<td>Recommended</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>90</td>
+<td>Use <code>samplingRatio:</code> for exploratory queries on large datasets</td>
+<td><code>fetch logs, samplingRatio:100</code> then multiply results back</td>
+<td>Optional</td>
+<td>Performance</td>
+</tr>
+</tbody>
+</table>
+<h2>Summary</h2>
+<p>This notebook contains <strong>91 best practices</strong> across 10 categories for Splunk to Dynatrace migration:</p>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Count</th>
+<th>Priority Breakdown</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Migration Planning</td>
+<td>7</td>
+<td>5 Critical, 2 Recommended</td>
+</tr>
+<tr>
+<td>Log Discovery and Validation</td>
+<td>7</td>
+<td>2 Critical, 5 Recommended</td>
+</tr>
+<tr>
+<td>Query Translation (SPL to DQL)</td>
+<td>17</td>
+<td>11 Critical, 6 Recommended</td>
+</tr>
+<tr>
+<td>Alert Migration - Anomaly Detectors</td>
+<td>10</td>
+<td>6 Critical, 4 Recommended</td>
+</tr>
+<tr>
+<td>Alert Migration - Workflows</td>
+<td>8</td>
+<td>3 Critical, 5 Recommended</td>
+</tr>
+<tr>
+<td>Extended Timeframes (ArrayMovingSum)</td>
+<td>7</td>
+<td>3 Critical, 4 Recommended</td>
+</tr>
+<tr>
+<td>Metric Creation from Logs</td>
+<td>7</td>
+<td>4 Critical, 3 Recommended</td>
+</tr>
+<tr>
+<td>Dashboard Migration</td>
+<td>7</td>
+<td>1 Critical, 6 Recommended</td>
+</tr>
+<tr>
+<td>Naming Standards</td>
+<td>11</td>
+<td>4 Critical, 6 Recommended, 1 Optional</td>
+</tr>
+<tr>
+<td>DQL Performance and Syntax</td>
+<td>10</td>
+<td>4 Critical, 5 Recommended, 1 Optional</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>91</strong></td>
+<td><strong>43 Critical, 46 Recommended, 2 Optional</strong></td>
+</tr>
+</tbody>
+</table>
+<h2>References</h2>
+<ul>
+<li><strong>S2D-01</strong> - Getting Started: Migration overview and planning</li>
+<li><strong>S2D-02</strong> - Locating Logs: Data validation and ingest configuration</li>
+<li><strong>S2D-03</strong> - SPL to DQL: Query translation fundamentals</li>
+<li><strong>S2D-04</strong> - Anomaly Detectors: Continuous alert migration</li>
+<li><strong>S2D-05</strong> - Workflow Alerts: Scheduled and extended alerting</li>
+<li><strong>S2D-06</strong> - ArrayMovingSum: Extended timeframe handling</li>
+<li><strong>S2D-07</strong> - Metric Creation: OpenPipeline log-based metrics</li>
+<li><strong>S2D-08</strong> - Dashboard Migration: Visualization conversion</li>
+<li><strong>S2D-09</strong> - Naming Standards: Asset organization conventions</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Domain Enablement Module</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../">Best Practice Notebooks</a><span class="sep">/</span><a href="./">Start here</a><span class="sep">/</span><span aria-current="page">Domain Enablement Module</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1 id="domain-enablement-module">Domain Enablement Module</h1>
+<blockquote>
+<p><strong>Purpose:</strong> Pick-list of observability domain series with prerequisites, recommended sequencing if doing multiple, and cross-cutting ingestion mechanisms (OTel, OpenPipeline) that touch multiple domains.
+<strong>Last Updated:</strong> 07/15/2026</p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj5Eb21haW4gRW5hYmxlbWVudDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj44IGRvbWFpbnMgKyAzIGNyb3NzLWN1dHRpbmcgaW5nZXN0aW9uIG1lY2hhbmlzbXM8L3RleHQ+CiAgPHJlY3QgeD0iNDAiIHk9IjEwMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSIxNDAiIHk9IjEyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+SzhTPC90ZXh0PgogIDx0ZXh0IHg9IjE0MCIgeT0iMTQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5LdWJlcm5ldGVzIE1vbml0b3Jpbmc8L3RleHQ+CiAgPHRleHQgeD0iMTQwIiB5PSIxNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPjE1IG5vdGVib29rczwvdGV4dD4KICA8cmVjdCB4PSIyNTAiIHk9IjEwMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSIzNTAiIHk9IjEyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+Q0xPVUQ8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSIxNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkFXUyAvIEF6dXJlIC8gR0NQPC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj45IG5vdGVib29rczwvdGV4dD4KICA8cmVjdCB4PSI0NjAiIHk9IjEwMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI1NjAiIHk9IjEyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+U1BBTlM8L3RleHQ+CiAgPHRleHQgeD0iNTYwIiB5PSIxNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkRpc3RyaWJ1dGVkIFRyYWNpbmc8L3RleHQ+CiAgPHRleHQgeD0iNTYwIiB5PSIxNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPjkgbm90ZWJvb2tzPC90ZXh0PgogIDxyZWN0IHg9IjY3MCIgeT0iMTAwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc3MCIgeT0iMTI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5EQk1PTjwvdGV4dD4KICA8dGV4dCB4PSI3NzAiIHk9IjE0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+RGF0YWJhc2VzPC90ZXh0PgogIDx0ZXh0IHg9Ijc3MCIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj43IG5vdGVib29rczwvdGV4dD4KICA8cmVjdCB4PSI0MCIgeT0iMTk1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjE0MCIgeT0iMjIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5XRUJSVU08L3RleHQ+CiAgPHRleHQgeD0iMTQwIiB5PSIyNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPldlYiBSVU08L3RleHQ+CiAgPHRleHQgeD0iMTQwIiB5PSIyNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPjkgbm90ZWJvb2tzPC90ZXh0PgogIDxyZWN0IHg9IjI1MCIgeT0iMTk1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iMjIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5NT0JMPC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iMjQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5Nb2JpbGUgKGlPUy9BbmRyb2lkKTwvdGV4dD4KICA8dGV4dCB4PSIzNTAiIHk9IjI1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+MTMgbm90ZWJvb2tzPC90ZXh0PgogIDxyZWN0IHg9IjQ2MCIgeT0iMTk1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjU2MCIgeT0iMjIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5TWU5USDwvdGV4dD4KICA8dGV4dCB4PSI1NjAiIHk9IjI0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+U3ludGhldGljIE1vbml0b3Jpbmc8L3RleHQ+CiAgPHRleHQgeD0iNTYwIiB5PSIyNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPjcgbm90ZWJvb2tzPC90ZXh0PgogIDxyZWN0IHg9IjY3MCIgeT0iMTk1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc3MCIgeT0iMjIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5CSVpFVjwvdGV4dD4KICA8dGV4dCB4PSI3NzAiIHk9IjI0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+QnVzaW5lc3MgRXZlbnRzPC90ZXh0PgogIDx0ZXh0IHg9Ijc3MCIgeT0iMjU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj43IG5vdGVib29rczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjMxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzIyRDNFRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+Q3Jvc3MtQ3V0dGluZyBJbmdlc3Rpb24gTWVjaGFuaXNtczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjMyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+VG91Y2ggbXVsdGlwbGUgZG9tYWluczsgcmVhZCB3aGVuIGluZ2VzdGlvbiBkZXNpZ24gYmVjb21lcyB0aGUgZm9jdXM8L3RleHQ+CiAgPHJlY3QgeD0iMTA1IiB5PSIzNDUiIHdpZHRoPSIyMjAiIGhlaWdodD0iODAiIGZpbGw9IiMyMkQzRUUiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMjE1IiB5PSIzNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPk9URUw8L3RleHQ+CiAgPHRleHQgeD0iMjE1IiB5PSIzOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPk9wZW5UZWxlbWV0cnkgY29sbGVjdG9yczwvdGV4dD4KICA8dGV4dCB4PSIyMTUiIHk9IjQwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+OSBub3RlYm9va3M8L3RleHQ+CiAgPHJlY3QgeD0iMzU1IiB5PSIzNDUiIHdpZHRoPSIyMjAiIGhlaWdodD0iODAiIGZpbGw9IiMyMkQzRUUiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPk9QTE9HUzwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjM5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+T3BlblBpcGVsaW5lIGZvciBsb2dzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDA1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj45IG5vdGVib29rczwvdGV4dD4KICA8cmVjdCB4PSI2MDUiIHk9IjM0NSIgd2lkdGg9IjIyMCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzIyRDNFRSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI3MTUiIHk9IjM3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+T1BJUEU8L3RleHQ+CiAgPHRleHQgeD0iNzE1IiB5PSIzOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlNwYW5zLCBtZXRyaWNzLCBldmVudHM8L3RleHQ+CiAgPHRleHQgeD0iNzE1IiB5PSI0MDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPjcgbm90ZWJvb2tzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5SZWNvbW1lbmRlZCBzZXF1ZW5jZSBpZiBkb2luZyBtdWx0aXBsZTo8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0NzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTEiPkluZnJhc3RydWN0dXJlIChLOFMvQ0xPVUQpIOKGkiBTUEFOUyDihpIgRnJvbnRlbmQgKFdFQlJVTS9NT0JMKSDihpIgREJNT04g4oaSIFNZTlRIIOKGkiBCSVpFVjwvdGV4dD4KPC9zdmc+Cg==" alt="Domain Enablement Pick-List" /></p>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#how-to-use-this-module">How to Use This Module</a></li>
+<li><a href="#recommended-order-if-doing-multiple-domains">Recommended Order If Doing Multiple Domains</a></li>
+<li><a href="#domain-pick-list">Domain Pick-List</a></li>
+<li><a href="#cross-cutting-ingestion-mechanisms">Cross-Cutting Ingestion Mechanisms</a></li>
+<li><a href="#where-to-next">Where to Next</a></li>
+</ol>
+<hr />
+<h2 id="how-to-use-this-module">How to Use This Module</h2>
+<p>There are nine observability domains and three cross-cutting ingestion series. You don't need all of them — pick based on what you monitor. Each entry below lists prerequisites (what Foundation pieces must be in place first) and recommended starting points.</p>
+<p>This module is referenced from each of the four doorways. Read it after <a href="05-foundation.html">Foundation Module</a> is in progress.</p>
+<hr />
+<h2 id="recommended-order-if-doing-multiple-domains">Recommended Order If Doing Multiple Domains</h2>
+<p>If you plan to enable several domains over a few months, this is a sensible order:</p>
+<ol>
+<li><strong>Infrastructure baseline</strong> — <a href="../K8S%20-%20Kubernetes%20Monitoring/">K8S</a> (if Kubernetes is in scope) or <a href="../CLOUD%20-%20Cloud%20Provider%20Integrations/">CLOUD</a> (AWS / Azure / GCP). One of these is almost always first.</li>
+<li><strong>Security observability</strong> — <a href="../APPSEC%20%E2%80%94%20Application%20Security/">APPSEC</a>. If security compliance / risk is a mandate, this runs in parallel with wave 1. Otherwise, wave 2 or later.</li>
+<li><strong>Distributed tracing</strong> — <a href="../SPANS%20-%20Distributed%20Tracing%20and%20Spans/">SPANS</a>. Most modern apps need this next.</li>
+<li><strong>Frontend experience</strong> — <a href="../WEBRUM%20-%20Web%20Real%20User%20Monitoring/">WEBRUM</a> (web) and/or <a href="../MOBL%20-%20Mobile%20Monitoring/">MOBL</a> (mobile).</li>
+<li><strong>Database</strong> — <a href="../DBMON%20-%20Database%20Monitoring/">DBMON</a>. Often depends on <a href="../SPANS%20-%20Distributed%20Tracing%20and%20Spans/">SPANS</a> for context.</li>
+<li><strong>Synthetic</strong> — <a href="../SYNTH%20-%20Synthetic%20Monitoring/">SYNTH</a>. Proactive monitoring.</li>
+<li><strong>Business events</strong> — <a href="../BIZEV%20-%20Business%20Events%20&amp;%20Funnel%20Analysis/">BIZEV</a>. Revenue and conversion analytics.</li>
+</ol>
+<p>The order is a guideline, not a rule. Skip what doesn't apply; reorder based on business priority.</p>
+<hr />
+<h2 id="domain-pick-list">Domain Pick-List</h2>
+<h3 id="k8s--kubernetes-monitoring"><a href="../K8S%20-%20Kubernetes%20Monitoring/">K8S — Kubernetes Monitoring</a></h3>
+<p>15 notebooks. Largest of the domain series.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prerequisites</td>
+<td>Foundation in progress; ActiveGate deployed</td>
+</tr>
+<tr>
+<td>Time</td>
+<td>2–4 weeks for a small fleet; longer for multi-cluster environments</td>
+</tr>
+<tr>
+<td>Mandatory entry</td>
+<td>Notebooks 01 (fundamentals), 02 (DynaKube deployment)</td>
+</tr>
+<tr>
+<td>Recommended next</td>
+<td>04 (cluster monitoring), 05 (workload monitoring), 06 (namespace organization)</td>
+</tr>
+<tr>
+<td>Optional / advanced</td>
+<td>03 (GitOps), 07 (events and logs), 09 (troubleshooting), 11 (multi-tool coexistence), 13 (Kafka monitoring)</td>
+</tr>
+<tr>
+<td>Hands-on</td>
+<td>Notebook 14 ([LAB] deployment guide)</td>
+</tr>
+<tr>
+<td>Cross-references</td>
+<td><a href="../OTEL%20-%20OpenTelemetry%20Integration/">OTEL</a> for collector deployment; <a href="../CLOUD%20-%20Cloud%20Provider%20Integrations/">CLOUD</a> for managed K8s; <a href="../AUTOM%20-%20Dynatrace%20Automation/">AUTOM</a> for GitOps</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cloud--cloud-provider-integrations"><a href="../CLOUD%20-%20Cloud%20Provider%20Integrations/">CLOUD — Cloud Provider Integrations</a></h3>
+<p>9 notebooks covering AWS, Azure, and GCP.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prerequisites</td>
+<td>Foundation in progress; ActiveGate deployed if using AG-based connectors</td>
+</tr>
+<tr>
+<td>Time</td>
+<td>1–3 weeks per cloud provider</td>
+</tr>
+<tr>
+<td>Mandatory entry</td>
+<td>Notebook 01 (cloud integration fundamentals)</td>
+</tr>
+<tr>
+<td>Recommended next</td>
+<td>The provider-specific notebooks for what you have: 02 (AWS), 05 (Azure), 06 (GCP)</td>
+</tr>
+<tr>
+<td>Specific use cases</td>
+<td>03 (AWS EKS), 04 (AWS Lambda serverless), 07 (CloudWatch log ingestion), 08 (multi-cloud patterns)</td>
+</tr>
+<tr>
+<td>Cross-references</td>
+<td><a href="../OTEL%20-%20OpenTelemetry%20Integration/">OTEL</a> for collectors; <a href="../K8S%20-%20Kubernetes%20Monitoring/">K8S</a> for managed K8s; <a href="../OPLOGS%20-%20OpenPipeline%20Logs/">OPLOGS</a> for cloud log ingestion</td>
+</tr>
+</tbody>
+</table>
+<h3 id="appsec--application-security"><a href="../APPSEC%20%E2%80%94%20Application%20Security/">APPSEC — Application Security</a></h3>
+<p>10 notebooks covering RVA, RAP, SPM, and security observability.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prerequisites</td>
+<td>Foundation in progress; OneAgent and/or OTel on applications</td>
+</tr>
+<tr>
+<td>Time</td>
+<td>1–3 weeks (varies by maturity of security program)</td>
+</tr>
+<tr>
+<td>Mandatory entry</td>
+<td>Notebooks 01 (fundamentals), 09 (IAM and permissions)</td>
+</tr>
+<tr>
+<td>Recommended next</td>
+<td>02 (RVA — runtime vulnerability analytics), 04 (RAP — runtime application protection), 05 (SPM — security posture management)</td>
+</tr>
+<tr>
+<td>Optional</td>
+<td>03 (code-level vulnerabilities), 06 (Kubernetes and containers), 07 (Investigations and Dynatrace Assist), 08 (workflow remediation), 10 (governance dashboards)</td>
+</tr>
+<tr>
+<td>Cross-references</td>
+<td><a href="../AIOPS%20-%20Dynatrace%20Intelligence/">AIOPS</a> for Davis intelligence; <a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a> for security dashboards; <a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a> for remediation</td>
+</tr>
+</tbody>
+</table>
+<h3 id="spans--distributed-tracing-and-spans"><a href="../SPANS%20-%20Distributed%20Tracing%20and%20Spans/">SPANS — Distributed Tracing and Spans</a></h3>
+<p>9 notebooks.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prerequisites</td>
+<td>OneAgent and/or OTel instrumentation on at least one service</td>
+</tr>
+<tr>
+<td>Time</td>
+<td>1–2 weeks</td>
+</tr>
+<tr>
+<td>Mandatory entry</td>
+<td>Notebooks 01 (fundamentals), 02 (querying)</td>
+</tr>
+<tr>
+<td>Recommended next</td>
+<td>03 (troubleshooting), 04 (topology), 05 (analytics)</td>
+</tr>
+<tr>
+<td>Cost-aware</td>
+<td>07 (buckets and pipeline), 08 (cost optimization) — read once you have meaningful span volume</td>
+</tr>
+<tr>
+<td>Cross-references</td>
+<td><a href="../OTEL%20-%20OpenTelemetry%20Integration/">OTEL</a>, <a href="../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/">OPIPE</a> for span pipelines, <a href="../DBMON%20-%20Database%20Monitoring/">DBMON</a> for database call tracing</td>
+</tr>
+</tbody>
+</table>
+<h3 id="webrum--web-real-user-monitoring"><a href="../WEBRUM%20-%20Web%20Real%20User%20Monitoring/">WEBRUM — Web Real User Monitoring</a></h3>
+<p>9 notebooks.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prerequisites</td>
+<td>Foundation in progress; access to web app HTML/JS for instrumentation</td>
+</tr>
+<tr>
+<td>Time</td>
+<td>1–2 weeks</td>
+</tr>
+<tr>
+<td>Mandatory entry</td>
+<td>Notebooks 01 (RUM fundamentals), 02 (SPA instrumentation if applicable)</td>
+</tr>
+<tr>
+<td>Recommended next</td>
+<td>03 (Core Web Vitals), 04 (session analysis), 06 (performance analysis)</td>
+</tr>
+<tr>
+<td>Optional</td>
+<td>05 (error analysis), 07 (session replay), 08 (dashboards and alerting)</td>
+</tr>
+<tr>
+<td>Cross-references</td>
+<td><a href="../SPANS%20-%20Distributed%20Tracing%20and%20Spans/">SPANS</a> for frontend-to-backend tracing; <a href="../BIZEV%20-%20Business%20Events%20&amp;%20Funnel%20Analysis/">BIZEV</a>; <a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="mobl--mobile-monitoring"><a href="../MOBL%20-%20Mobile%20Monitoring/">MOBL — Mobile Monitoring</a></h3>
+<p>13 notebooks.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prerequisites</td>
+<td>App development team available; SDK rollout coordination</td>
+</tr>
+<tr>
+<td>Time</td>
+<td>2–6 weeks (SDK rollout is the long pole, not the technical work)</td>
+</tr>
+<tr>
+<td>Mandatory entry</td>
+<td>Notebook 01 (fundamentals); platform-specific 02 (iOS) or 03 (Android) or 04 (cross-platform)</td>
+</tr>
+<tr>
+<td>Recommended next</td>
+<td>05 (user action tracking), 06 (crash reporting), 07 (network requests)</td>
+</tr>
+<tr>
+<td>Optional</td>
+<td>08 (session replay), 09 (privacy), 10 (DQL for mobile), 12 (advanced instrumentation)</td>
+</tr>
+<tr>
+<td>Cross-references</td>
+<td><a href="../SPANS%20-%20Distributed%20Tracing%20and%20Spans/">SPANS</a> for mobile-to-backend tracing</td>
+</tr>
+</tbody>
+</table>
+<h3 id="dbmon--database-monitoring"><a href="../DBMON%20-%20Database%20Monitoring/">DBMON — Database Monitoring</a></h3>
+<p>7 notebooks.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prerequisites</td>
+<td>OneAgent on database hosts; <a href="../SPANS%20-%20Distributed%20Tracing%20and%20Spans/">SPANS</a> helpful for context</td>
+</tr>
+<tr>
+<td>Time</td>
+<td>1–2 weeks</td>
+</tr>
+<tr>
+<td>Mandatory entry</td>
+<td>Notebook 01 (database monitoring fundamentals)</td>
+</tr>
+<tr>
+<td>Recommended next</td>
+<td>02 (SQL databases) or 03 (NoSQL) based on your stack; 05 (query analysis)</td>
+</tr>
+<tr>
+<td>Optional</td>
+<td>04 (cache and messaging), 06 (dashboards and alerting)</td>
+</tr>
+<tr>
+<td>Cross-references</td>
+<td><a href="../SPANS%20-%20Distributed%20Tracing%20and%20Spans/">SPANS</a> for database call tracing</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bizev--business-events-and-funnel-analysis"><a href="../BIZEV%20-%20Business%20Events%20&amp;%20Funnel%20Analysis/">BIZEV — Business Events and Funnel Analysis</a></h3>
+<p>8 notebooks.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prerequisites</td>
+<td>SaaS tenant with Grail; at least one ingestion method active (OTel, RUM, or backend instrumentation). On Dynatrace Managed or a classic-operated tenant, start with notebook 07 instead</td>
+</tr>
+<tr>
+<td>Time</td>
+<td>1–3 weeks (often gated by business stakeholder availability, not technical work)</td>
+</tr>
+<tr>
+<td>Mandatory entry</td>
+<td>Notebooks 01 (business events fundamentals), 02 (instrumentation)</td>
+</tr>
+<tr>
+<td>Recommended next</td>
+<td>03 (funnel analysis), 04 (revenue impact), 05 (KPIs and metrics)</td>
+</tr>
+<tr>
+<td>Optional</td>
+<td>06 (executive reporting); 07 (Gen2 vs Gen3 adoption paths — mandatory first read for Managed or classic-operated tenants)</td>
+</tr>
+<tr>
+<td>Cross-references</td>
+<td><a href="../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/">OPIPE</a> for event pipelines; <a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a> for executive reporting; <a href="../WEBRUM%20-%20Web%20Real%20User%20Monitoring/">WEBRUM</a> for frontend events; <a href="../M2S%20-%20Managed%20to%20SaaS%20Migration/">M2S</a> for the Managed → SaaS migration notebook 07 points at</td>
+</tr>
+</tbody>
+</table>
+<h3 id="synth--synthetic-monitoring"><a href="../SYNTH%20-%20Synthetic%20Monitoring/">SYNTH — Synthetic Monitoring</a></h3>
+<p>7 notebooks.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prerequisites</td>
+<td>Foundation in progress</td>
+</tr>
+<tr>
+<td>Time</td>
+<td>1–2 weeks</td>
+</tr>
+<tr>
+<td>Mandatory entry</td>
+<td>Notebook 01 (synthetic fundamentals)</td>
+</tr>
+<tr>
+<td>Recommended next</td>
+<td>02 (browser monitors) and/or 03 (HTTP monitors) based on what you check</td>
+</tr>
+<tr>
+<td>Optional</td>
+<td>04 (private locations), 05 (network monitoring), 06 (analytics)</td>
+</tr>
+<tr>
+<td>Cross-references</td>
+<td><a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a> for synthetic dashboards; <a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a> for alerting on synthetic failures</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="cross-cutting-ingestion-mechanisms">Cross-Cutting Ingestion Mechanisms</h2>
+<p>These three series aren't domains themselves — they're ingestion mechanisms that touch multiple domains. Read them when ingestion design becomes the focus.</p>
+<h3 id="otel--opentelemetry-integration"><a href="../OTEL%20-%20OpenTelemetry%20Integration/">OTEL — OpenTelemetry Integration</a></h3>
+<p>9 notebooks. Read first if any domain will use OTel collectors (which is most: K8S, CLOUD, custom apps, NR migration).</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mandatory entry</td>
+<td>Notebooks 01 (fundamentals), 02 (collector architecture), 03 (collector deployment)</td>
+</tr>
+<tr>
+<td>Recommended next</td>
+<td>04 (trace instrumentation) and/or 05 (metrics) and/or 06 (logs) based on signal type</td>
+</tr>
+<tr>
+<td>Reference</td>
+<td>07 (Dynatrace integration), 08 (troubleshooting)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="oplogs--openpipeline-logs"><a href="../OPLOGS%20-%20OpenPipeline%20Logs/">OPLOGS — OpenPipeline Logs</a></h3>
+<p>9 notebooks. Read when designing log ingestion at scale.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mandatory entry</td>
+<td>Notebooks 01 (fundamentals), 03 (pipeline processing), 04 (buckets governance)</td>
+</tr>
+<tr>
+<td>Recommended next</td>
+<td>05 (querying and parsing), 06 (topology)</td>
+</tr>
+<tr>
+<td>Migration</td>
+<td>Notebook 02 — if migrating from Classic Logs, also see <a href="../OPMIG%20-%20OpenPipeline%20Migration/">OPMIG</a> full series</td>
+</tr>
+<tr>
+<td>Optional</td>
+<td>07 (analytics), 08 (security)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="opipe--openpipeline-beyond-logs"><a href="../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/">OPIPE — OpenPipeline Beyond Logs</a></h3>
+<p>7 notebooks. Read after OPLOGS when you need to process spans, metrics, or business/security events through OpenPipeline.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mandatory entry</td>
+<td>Notebook 01 (multi-scope platform)</td>
+</tr>
+<tr>
+<td>Recommended next</td>
+<td>02 (span processing) if doing tracing; 05 (business and security event pipelines) if doing BizEv</td>
+</tr>
+<tr>
+<td>Specialized</td>
+<td>03 (sampling-aware metrics), 04 (cardinality management), 06 (cross-scope design patterns)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="where-to-next">Where to Next</h2>
+<p>Once a domain is producing useful data:</p>
+<ul>
+<li><a href="07-operationalize.html">Operationalize Module</a> — dashboards, alerts, automation, and AI for the new domain</li>
+<li><a href="08-maturity.html">Maturity Module</a> — ongoing improvement</li>
+<li><a href="09-overlap-map.html">Overlap Map</a> — when you find the same topic covered in multiple series (OTel chapter in K8S vs OTEL series, etc.)</li>
+</ul>
+<hr />
+<h2 id="maintenance-note">Maintenance Note</h2>
+<p><strong>When new domain series are added to <code>topics/</code>, this module MUST be updated:</strong></p>
+<ul>
+<li>Add the domain to the pick-list with notebook count, prerequisites, and entry points</li>
+<li>Determine the recommended wave position (1–7 above) based on typical dependencies</li>
+<li>Update &quot;Recommended Order If Doing Multiple Domains&quot; if the new series changes typical sequencing</li>
+<li>Add cross-references to <code>09-overlap-map.md</code> if the new series overlaps with existing domains</li>
+<li>Update series count references if the overall domain count changes (currently 9 as of July 15, 2026)</li>
+<li>Update Last Updated date to current date</li>
+</ul>
+<hr />
+<blockquote>
+<p><em>This playbook was AI-generated from community-submitted and publicly available sources. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></p>
+</blockquote>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

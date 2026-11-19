@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ORGNZ-04: Permissions in Grail Overview</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ORGNZ — Organize Data: Buckets, Segments, Security</a><span class="sep">/</span><span aria-current="page">ORGNZ-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ORGNZ-04: Permissions in Grail Overview</h1>
+<blockquote>
+<p><strong>Series:</strong> ORGNZ — Organize Data: Buckets, Segments, Security | <strong>Notebook:</strong> 4 of 10 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/07/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Dynatrace provides a comprehensive permission model for Grail that applies to all telemetry data including metrics, logs, spans, and events. Permissions can be assigned at the <strong>bucket</strong>, <strong>table</strong>, <strong>record</strong>, and <strong>field</strong> level. Without permissions, users cannot query data from Grail.</p>
+<blockquote>
+<p><strong>Canonical pattern (for production guidance):</strong> This notebook is a conceptual overview — the policy examples below illustrate how permissions work, not what to ship in production. For the canonical production pattern (parameterized policies on <code>dt.security_context</code> as the boundary spine, with bucket-match as a scenario-driven overlay), see <strong>IAM-10: Templated Policy-Group Assignments</strong> (parameterized policies and binding parameters) and <strong>IAM-05: Boundary Design Patterns</strong>. The default for general team-scoped data access is <code>dt.security_context</code> parameterization; bucket boundaries layer in only when there's a specific reason (compliance separation, retention isolation, retention-cost allocation).</p>
+</blockquote>
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS environment with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>Account admin or IAM policy management access</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>Completed ORGNZ-03 (Bucket Strategy)</td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>None required (conceptual overview)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#permission-levels">Permission Levels</a></li>
+<li><a href="#iam-policy-structure">IAM Policy Structure</a></li>
+<li><a href="#supported-conditions-for-storage-policies">Supported Conditions for Storage Policies</a></li>
+<li><a href="#policy-operators">Policy Operators</a></li>
+<li><a href="#basic-policy-examples">Basic Policy Examples</a></li>
+<li><a href="#how-permissions-work-at-query-time">How Permissions Work at Query Time</a></li>
+<li><a href="#policy-management-location">Policy Management Location</a></li>
+<li><a href="#permission-scalability">Permission Scalability</a></li>
+<li><a href="#choosing-your-permission-strategy">Choosing Your Permission Strategy</a></li>
+</ol>
+<hr />
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ul>
+<li>Understand the four permission levels in Grail</li>
+<li>Know how IAM policies control data access</li>
+<li>Recognize supported conditions for access control</li>
+<li>Navigate policy management in Dynatrace</li>
+</ul>
+<p><a id="permission-levels"></a></p>
+<h2>Permission Levels</h2>
+<p>Grail supports permissions at multiple granularity levels:</p>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Granularity</th>
+<th>Example Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Bucket</strong></td>
+<td>All records in a bucket</td>
+<td>Team owns entire bucket</td>
+</tr>
+<tr>
+<td><strong>Table</strong></td>
+<td>All records of a data type</td>
+<td>Access to all logs across buckets</td>
+</tr>
+<tr>
+<td><strong>Record</strong></td>
+<td>Individual records by attribute</td>
+<td>Filter by host group, namespace, security context</td>
+</tr>
+<tr>
+<td><strong>Field</strong></td>
+<td>Specific fields on records</td>
+<td>Hide sensitive fields (fieldsets)</td>
+</tr>
+</tbody>
+</table>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgMzYwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmdHcmFkMyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZjE3MmEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWUyOTNiIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJidWNrZXRMZXZlbEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y1OWUwYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkOTc3MDYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InRhYmxlTGV2ZWxHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNGI4YTYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMGQ5NDg4Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJyZWNvcmRMZXZlbEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhiNWNmNiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3YzNhZWQiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImZpZWxkTGV2ZWxHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlYzQ4OTkiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZGIyNzc3Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0ic2hhZG93MyIgeD0iLTIwJSIgeT0iLTIwJSIgd2lkdGg9IjE0MCUiIGhlaWdodD0iMTQwJSI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMyIvPgogICAgPC9maWx0ZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd0Rvd24iIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSIxMCIgcmVmWD0iNSIgcmVmWT0iNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCBaIiBmaWxsPSIjNDc1NTY5Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2JnR3JhZDMpIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iMzUwIiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2Y4ZmFmYyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9IjYwMCI+UGVybWlzc2lvbiBIaWVyYXJjaHk8L3RleHQ+CgogIDwhLS0gR3JhbnVsYXJpdHkgbGFiZWxzIC0tPgogIDx0ZXh0IHg9IjM1IiB5PSIxNTIiIGZpbGw9IiM2NDc0OGIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJyb2FkZXI8L3RleHQ+CiAgPHRleHQgeD0iMzUiIHk9IjE2NyIgZmlsbD0iIzY0NzQ4YiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+c2NvcGU8L3RleHQ+CiAgPHRleHQgeD0iMzUiIHk9IjEyNSIgZmlsbD0iIzY0NzQ4YiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+JiN4MjE5MDs8L3RleHQ+CgogIDx0ZXh0IHg9IjY2NSIgeT0iMTUyIiBmaWxsPSIjNjQ3NDhiIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Nb3JlPC90ZXh0PgogIDx0ZXh0IHg9IjY2NSIgeT0iMTY3IiBmaWxsPSIjNjQ3NDhiIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ncmFudWxhcjwvdGV4dD4KICA8dGV4dCB4PSI2NjUiIHk9IjEyNSIgZmlsbD0iIzY0NzQ4YiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+JiN4MjE5Mjs8L3RleHQ+CgogIDwhLS0gQnVja2V0IExldmVsIC0tPgogIDxyZWN0IHg9IjYwIiB5PSI2MCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIxOTUiIHJ4PSI4IiBmaWxsPSJ1cmwoI2J1Y2tldExldmVsR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3czKSIvPgogIDx0ZXh0IHg9IjEzMCIgeT0iMTA1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjYwMCI+QnVja2V0PC90ZXh0PgogIDx0ZXh0IHg9IjEzMCIgeT0iMTIyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjYwMCI+TGV2ZWw8L3RleHQ+CiAgPHRleHQgeD0iMTMwIiB5PSIxNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZWYzYzciIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPihicm9hZGVzdDwvdGV4dD4KICA8dGV4dCB4PSIxMzAiIHk9IjE2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZlZjNjNyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSI+c2NvcGUpPC90ZXh0PgoKICA8IS0tIEFycm93IEJ1Y2tldCAtPiBUYWJsZSAtLT4KICA8bGluZSB4MT0iMjAwIiB5MT0iMTU3IiB4Mj0iMjIwIiB5Mj0iMTU3IiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnJvd0Rvd24pIi8+CgogIDwhLS0gVGFibGUgTGV2ZWwgLS0+CiAgPHJlY3QgeD0iMjI1IiB5PSI3NSIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIxNjUiIHJ4PSI4IiBmaWxsPSJ1cmwoI3RhYmxlTGV2ZWxHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdzMpIi8+CiAgPHRleHQgeD0iMjk1IiB5PSIxMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNjAwIj5UYWJsZTwvdGV4dD4KICA8dGV4dCB4PSIyOTUiIHk9IjEyOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI2MDAiPkxldmVsPC90ZXh0PgogIDx0ZXh0IHg9IjI5NSIgeT0iMTUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjY2NmYmYxIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIj4obG9ncywgbWV0cmljcyw8L3RleHQ+CiAgPHRleHQgeD0iMjk1IiB5PSIxNjciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNjY2ZiZjEiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPnNwYW5zLi4uKTwvdGV4dD4KCiAgPCEtLSBBcnJvdyBUYWJsZSAtPiBSZWNvcmQgLS0+CiAgPGxpbmUgeDE9IjM2NSIgeTE9IjE1NyIgeDI9IjM4NSIgeTI9IjE1NyIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dEb3duKSIvPgoKICA8IS0tIFJlY29yZCBMZXZlbCAtLT4KICA8cmVjdCB4PSIzOTAiIHk9IjkwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjEzNSIgcng9IjgiIGZpbGw9InVybCgjcmVjb3JkTGV2ZWxHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdzMpIi8+CiAgPHRleHQgeD0iNDYwIiB5PSIxMjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNjAwIj5SZWNvcmQ8L3RleHQ+CiAgPHRleHQgeD0iNDYwIiB5PSIxMzkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNjAwIj5MZXZlbDwvdGV4dD4KICA8dGV4dCB4PSI0NjAiIHk9IjE2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U5ZDVmZiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSI+KGJ5IGF0dHJpYnV0ZXMsPC90ZXh0PgogIDx0ZXh0IHg9IjQ2MCIgeT0iMTc3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZTlkNWZmIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIj5zZWN1cml0eSBjb250ZXh0KTwvdGV4dD4KCiAgPCEtLSBBcnJvdyBSZWNvcmQgLT4gRmllbGQgLS0+CiAgPGxpbmUgeDE9IjUzMCIgeTE9IjE1NyIgeDI9IjU1MCIgeTI9IjE1NyIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dEb3duKSIvPgoKICA8IS0tIEZpZWxkIExldmVsIC0tPgogIDxyZWN0IHg9IjU1NSIgeT0iMTA1IiB3aWR0aD0iOTAiIGhlaWdodD0iMTA1IiByeD0iOCIgZmlsbD0idXJsKCNmaWVsZExldmVsR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3czKSIvPgogIDx0ZXh0IHg9IjYwMCIgeT0iMTQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjYwMCI+RmllbGQ8L3RleHQ+CiAgPHRleHQgeD0iNjAwIiB5PSIxNTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNjAwIj5MZXZlbDwvdGV4dD4KICA8dGV4dCB4PSI2MDAiIHk9IjE4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZjZTdmMyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSI+KG1vc3Q8L3RleHQ+CiAgPHRleHQgeD0iNjAwIiB5PSIxOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmY2U3ZjMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPmdyYW51bGFyKTwvdGV4dD4KCiAgPCEtLSBCb3R0b20gZGVzY3JpcHRvcnMgLS0+CiAgPHJlY3QgeD0iNjAiIHk9IjI3NSIgd2lkdGg9IjE0MCIgaGVpZ2h0PSI1MiIgcng9IjYiIGZpbGw9IiMxZTI5M2IiIHN0cm9rZT0iI2Q5NzcwNiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMTMwIiB5PSIyOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmNTllMGIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiPldobyBjYW4gYWNjZXNzPC90ZXh0PgogIDx0ZXh0IHg9IjEzMCIgeT0iMzEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj53aGljaCBidWNrZXRzPzwvdGV4dD4KCiAgPHJlY3QgeD0iMjI1IiB5PSIyNzUiIHdpZHRoPSIxNDAiIGhlaWdodD0iNTIiIHJ4PSI2IiBmaWxsPSIjMWUyOTNiIiBzdHJva2U9IiMwZDk0ODgiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjI5NSIgeT0iMjk2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMTRiOGE2IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIj5XaGljaCBkYXRhIHR5cGVzPC90ZXh0PgogIDx0ZXh0IHg9IjI5NSIgeT0iMzEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5jYW4gdGhleSBxdWVyeT88L3RleHQ+CgogIDxyZWN0IHg9IjM5MCIgeT0iMjc1IiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjUyIiByeD0iNiIgZmlsbD0iIzFlMjkzYiIgc3Ryb2tlPSIjN2MzYWVkIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0NjAiIHk9IjI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzhiNWNmNiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjYwMCI+V2hpY2ggcmVjb3JkczwvdGV4dD4KICA8dGV4dCB4PSI0NjAiIHk9IjMxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+YXJlIHZpc2libGU/PC90ZXh0PgoKICA8cmVjdCB4PSI1NTUiIHk9IjI3NSIgd2lkdGg9IjkwIiBoZWlnaHQ9IjUyIiByeD0iNiIgZmlsbD0iIzFlMjkzYiIgc3Ryb2tlPSIjZGIyNzc3IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI2MDAiIHk9IjI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2VjNDg5OSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjYwMCI+V2hpY2ggZmllbGRzPC90ZXh0PgogIDx0ZXh0IHg9IjYwMCIgeT0iMzEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5hcmUgc2hvd24/PC90ZXh0Pgo8L3N2Zz4K" alt="Permission Hierarchy" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Level | Scope |
+|-------|-------|
+| Bucket Level | broadest |
+| Table Level | data type |
+| Record Level | by attributes |
+| Field Level | most granular |
+For environments where SVG doesn't render
+-->
+<p><a id="iam-policy-structure"></a></p>
+<h2>IAM Policy Structure</h2>
+<p>Permissions are defined through IAM policies using statement queries:</p>
+<pre><code>ALLOW &lt;service&gt;:&lt;resource&gt;:&lt;action&gt; WHERE &lt;conditions&gt;
+</code></pre>
+<h3>Policy Components</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Description</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Service</strong></td>
+<td>The Dynatrace service</td>
+<td><code>storage</code></td>
+</tr>
+<tr>
+<td><strong>Resource</strong></td>
+<td>What is being accessed</td>
+<td><code>buckets</code>, <code>logs</code>, <code>metrics</code>, <code>spans</code></td>
+</tr>
+<tr>
+<td><strong>Action</strong></td>
+<td>What operation is allowed</td>
+<td><code>read</code>, <code>write</code>, <code>delete</code></td>
+</tr>
+<tr>
+<td><strong>Conditions</strong></td>
+<td>Contextual requirements</td>
+<td><code>bucket-name</code>, <code>security-context</code></td>
+</tr>
+</tbody>
+</table>
+<p><a id="supported-conditions-for-storage-policies"></a></p>
+<h2>Supported Conditions for Storage Policies</h2>
+<h3>Deployment-Level Attributes</h3>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>storage:bucket-name</code></td>
+<td>Filter by bucket name</td>
+<td><code>WHERE storage:bucket-name = 'team_logs'</code></td>
+</tr>
+<tr>
+<td><code>storage:k8s.namespace.name</code></td>
+<td>Kubernetes namespace</td>
+<td><code>WHERE storage:k8s.namespace.name = 'production'</code></td>
+</tr>
+<tr>
+<td><code>storage:k8s.cluster.name</code></td>
+<td>Kubernetes cluster</td>
+<td><code>WHERE storage:k8s.cluster.name = 'main-cluster'</code></td>
+</tr>
+<tr>
+<td><code>storage:host.name</code></td>
+<td>Host name</td>
+<td><code>WHERE storage:host.name = 'web-server-01'</code></td>
+</tr>
+<tr>
+<td><code>storage:dt.host_group.id</code></td>
+<td>Host group identifier</td>
+<td><code>WHERE storage:dt.host_group.id STARTSWITH 'prod-'</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Cloud Provider Attributes</h3>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>storage:aws.account.id</code></td>
+<td>AWS account ID</td>
+</tr>
+<tr>
+<td><code>storage:gcp.project.id</code></td>
+<td>GCP project ID</td>
+</tr>
+<tr>
+<td><code>storage:azure.subscription</code></td>
+<td>Azure subscription</td>
+</tr>
+<tr>
+<td><code>storage:azure.resource.group</code></td>
+<td>Azure resource group</td>
+</tr>
+</tbody>
+</table>
+<h3>Custom Security Context</h3>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>storage:dt.security_context</code></td>
+<td>Custom security context field</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>These are the most-used conditions, not the full list. Grail also supports <code>storage:log.source</code>, <code>storage:metric.key</code>, <code>storage:event.kind</code> / <code>storage:event.type</code> / <code>storage:event.provider</code> and <code>storage:frontend.name</code>, and each condition applies only to certain tables — see the table in <strong>ORGNZ-07 § Supported Record-Level Conditions</strong>.</p>
+</blockquote>
+<p><a id="policy-operators"></a></p>
+<h2>Policy Operators</h2>
+<p>IAM policies support several operators for conditions:</p>
+<table>
+<thead>
+<tr>
+<th>Operator</th>
+<th>Usage</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>=</code></td>
+<td>Exact equality</td>
+<td><code>storage:bucket-name = 'team_logs'</code></td>
+</tr>
+<tr>
+<td><code>STARTSWITH</code></td>
+<td>Prefix matching</td>
+<td><code>storage:bucket-name STARTSWITH 'prod_'</code></td>
+</tr>
+<tr>
+<td><code>IN</code></td>
+<td>List equality</td>
+<td><code>storage:bucket-name IN ('bucket_a', 'bucket_b')</code></td>
+</tr>
+<tr>
+<td><code>MATCH</code></td>
+<td>Pattern matching</td>
+<td><code>storage:bucket-name MATCH ('*-database-*')</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important</strong>: When the field holds an array (like <code>dt.security_context</code>), use <code>MATCH</code> instead of <code>=</code>, <code>STARTSWITH</code>, or <code>IN</code>. The latter operators will always return false for array fields.</p>
+</blockquote>
+<p><a id="basic-policy-examples"></a></p>
+<h2>Basic Policy Examples</h2>
+<h3>Example 1: Default Bucket Access</h3>
+<p>Grant read access to all default buckets:</p>
+<pre><code>ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH &quot;default_&quot;;
+ALLOW storage:events:read, storage:logs:read, storage:metrics:read, 
+      storage:entities:read, storage:bizevents:read, storage:spans:read;
+</code></pre>
+<h3>Example 2: Team-Specific Bucket Access</h3>
+<p>Restrict access to team buckets:</p>
+<pre><code>ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH &quot;team_platform_&quot;;
+ALLOW storage:logs:read;
+</code></pre>
+<h3>Example 3: Namespace-Based Access</h3>
+<p>Grant access based on Kubernetes namespace:</p>
+<pre><code>ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH &quot;default_&quot;;
+ALLOW storage:logs:read WHERE storage:k8s.namespace.name = &quot;production&quot;;
+</code></pre>
+<p><a id="how-permissions-work-at-query-time"></a></p>
+<h2>How Permissions Work at Query Time</h2>
+<p>When a user runs a DQL query, Grail evaluates permissions at each level:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgMzYwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmdHcmFkNCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZjE3MmEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWUyOTNiIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJzdGVwR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM2I4MmY2Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzI1NjNlYiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icHJvY2Vzc0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhiNWNmNiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3YzNhZWQiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InJlc3VsdEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzEwYjk4MSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2NjkiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJzaGFkb3c0IiB4PSItMjAlIiB5PSItMjAlIiB3aWR0aD0iMTQwJSIgaGVpZ2h0PSIxNDAlIj4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMiIgZHk9IjIiIHN0ZERldmlhdGlvbj0iMyIgZmxvb2Qtb3BhY2l0eT0iMC4zIi8+CiAgICA8L2ZpbHRlcj4KICAgIDxtYXJrZXIgaWQ9ImFycm93Qmx1ZSIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjEwIiByZWZYPSI1IiByZWZZPSI1IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIFoiIGZpbGw9IiMzYjgyZjYiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyb3dHcmVlbiIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjEwIiByZWZYPSI1IiByZWZZPSI1IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIFoiIGZpbGw9IiMxMGI5ODEiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjYmdHcmFkNCkiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSIzNTAiIHk9IjMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZjhmYWZjIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iNjAwIj5Ib3cgUGVybWlzc2lvbnMgV29yayBhdCBRdWVyeSBUaW1lPC90ZXh0PgoKICA8IS0tIExlZnQgY29sdW1uOiBTdGVwcyAxLTMgLS0+CgogIDwhLS0gU3RlcCAxOiBVc2VyIFF1ZXJ5IC0tPgogIDxyZWN0IHg9IjMwIiB5PSI1NSIgd2lkdGg9IjI5NSIgaGVpZ2h0PSI0MiIgcng9IjgiIGZpbGw9InVybCgjc3RlcEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93NCkiLz4KICA8dGV4dCB4PSI1NSIgeT0iODAiIGZpbGw9IiNmZWYzYzciIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIj4xPC90ZXh0PgogIDx0ZXh0IHg9Ijc1IiB5PSI4MCIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiPlVzZXIgc3VibWl0cyBEUUwgcXVlcnk8L3RleHQ+CgogIDwhLS0gQXJyb3cgMS0+MiAtLT4KICA8bGluZSB4MT0iMTc3IiB5MT0iOTciIHgyPSIxNzciIHkyPSIxMTciIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93Qmx1ZSkiLz4KCiAgPCEtLSBTdGVwIDI6IElBTSBFdmFsdWF0aW9uIC0tPgogIDxyZWN0IHg9IjMwIiB5PSIxMjIiIHdpZHRoPSIyOTUiIGhlaWdodD0iNDIiIHJ4PSI4IiBmaWxsPSJ1cmwoI3Byb2Nlc3NHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdzQpIi8+CiAgPHRleHQgeD0iNTUiIHk9IjE0NyIgZmlsbD0iI2ZlZjNjNyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiPjI8L3RleHQ+CiAgPHRleHQgeD0iNzUiIHk9IjE0NyIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiPkdyYWlsIGV2YWx1YXRlcyB1c2VyJ3MgSUFNIHBvbGljaWVzPC90ZXh0PgoKICA8IS0tIEFycm93IDItPjMgLS0+CiAgPGxpbmUgeDE9IjE3NyIgeTE9IjE2NCIgeDI9IjE3NyIgeTI9IjE4NCIgc3Ryb2tlPSIjM2I4MmY2IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dCbHVlKSIvPgoKICA8IS0tIFN0ZXAgMzogQnVja2V0IFNjb3BlIC0tPgogIDxyZWN0IHg9IjMwIiB5PSIxODkiIHdpZHRoPSIyOTUiIGhlaWdodD0iNDIiIHJ4PSI4IiBmaWxsPSJ1cmwoI3Byb2Nlc3NHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdzQpIi8+CiAgPHRleHQgeD0iNTUiIHk9IjIxNCIgZmlsbD0iI2ZlZjNjNyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiPjM8L3RleHQ+CiAgPHRleHQgeD0iNzUiIHk9IjIxNCIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiPlF1ZXJ5IHNjb3BlcyB0byBhbGxvd2VkIGJ1Y2tldHM8L3RleHQ+CgogIDwhLS0gQ29ubmVjdG9yOiBTdGVwIDMgLT4gU3RlcCA0IChhY3Jvc3MgY29sdW1ucykgLS0+CiAgPGxpbmUgeDE9IjMyNSIgeTE9IjIxMCIgeDI9IjM3NSIgeTI9IjIxMCIgc3Ryb2tlPSIjM2I4MmY2IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dCbHVlKSIvPgogIDwhLS0gQ29ubmVjdGluZyBwYXRoOiByaWdodCBmcm9tIHN0ZXAgMywgdGhlbiBkb3duLXJpZ2h0IGN1cnZlIHRvIHN0ZXAgNCAtLT4KICA8cGF0aCBkPSJNMzI1LDIxMCBMMzQ1LDIxMCBRMzU1LDIxMCAzNTUsMjIwIEwzNTUsMjcwIFEzNTUsMjgwIDM2NSwyODAgTDM3NSwyODAiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+CiAgPCEtLSBBcnJvdyB0aXAgYXQgc3RlcCA0IC0tPgogIDxwb2x5Z29uIHBvaW50cz0iMzc1LDI3NSAzNzUsMjg1IDM4NSwyODAiIGZpbGw9IiMzYjgyZjYiLz4KCiAgPCEtLSBSaWdodCBjb2x1bW46IFN0ZXBzIDQtNiAtLT4KCiAgPCEtLSBTdGVwIDQ6IFJlY29yZCBGaWx0ZXIgLS0+CiAgPHJlY3QgeD0iMzg1IiB5PSI1NSIgd2lkdGg9IjI4NSIgaGVpZ2h0PSI0MiIgcng9IjgiIGZpbGw9InVybCgjcHJvY2Vzc0dyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93NCkiLz4KICA8dGV4dCB4PSI0MTAiIHk9IjgwIiBmaWxsPSIjZmVmM2M3IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCI+NDwvdGV4dD4KICA8dGV4dCB4PSI0MzAiIHk9IjgwIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyI+UmVjb3JkLWxldmVsIGZpbHRlcnMgYXBwbGllZDwvdGV4dD4KCiAgPCEtLSBTaWRlIG5vdGU6IFVuYXV0aG9yaXplZCAtLT4KICA8cmVjdCB4PSI1NTUiIHk9IjEwMiIgd2lkdGg9IjExMCIgaGVpZ2h0PSI1MiIgcng9IjYiIGZpbGw9IiM3ZjFkMWQiIHN0cm9rZT0iI2RjMjYyNiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNjEwIiB5PSIxMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmY2E1YTUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPlVuYXV0aG9yaXplZDwvdGV4dD4KICA8dGV4dCB4PSI2MTAiIHk9IjEzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZjYTVhNSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+cmVjb3JkcyBhcmU8L3RleHQ+CiAgPHRleHQgeD0iNjEwIiB5PSIxNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmY2E1YTUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIj5maWx0ZXJlZCBvdXQ8L3RleHQ+CiAgPGxpbmUgeDE9IjYwMCIgeTE9Ijk3IiB4Mj0iNjAwIiB5Mj0iMTAyIiBzdHJva2U9IiNkYzI2MjYiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLWRhc2hhcnJheT0iNCIvPgoKICA8IS0tIEFycm93IDQtPjUgLS0+CiAgPGxpbmUgeDE9IjUyNyIgeTE9Ijk3IiB4Mj0iNTI3IiB5Mj0iMTY0IiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd0JsdWUpIi8+CgogIDwhLS0gU3RlcCA1OiBGaWVsZHNldC1wcm90ZWN0ZWQgZmllbGRzIG9taXR0ZWQgLS0+CiAgPHJlY3QgeD0iMzg1IiB5PSIxNjkiIHdpZHRoPSIyODUiIGhlaWdodD0iNDIiIHJ4PSI4IiBmaWxsPSJ1cmwoI3Byb2Nlc3NHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdzQpIi8+CiAgPHRleHQgeD0iNDEwIiB5PSIxOTQiIGZpbGw9IiNmZWYzYzciIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIj41PC90ZXh0PgogIDx0ZXh0IHg9IjQzMCIgeT0iMTk0IiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyI+RmllbGRzZXQtcHJvdGVjdGVkIGZpZWxkcyBvbWl0dGVkPC90ZXh0PgoKICA8IS0tIEFycm93IDUtPjYgLS0+CiAgPGxpbmUgeDE9IjUyNyIgeTE9IjIxMSIgeDI9IjUyNyIgeTI9IjI2OCIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dHcmVlbikiLz4KCiAgPCEtLSBTdGVwIDY6IFJlc3VsdHMgLS0+CiAgPHJlY3QgeD0iNDEwIiB5PSIyNzMiIHdpZHRoPSIyMzUiIGhlaWdodD0iNDAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3Jlc3VsdEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93NCkiLz4KICA8dGV4dCB4PSI0MzUiIHk9IjI5NyIgZmlsbD0iI2ZlZjNjNyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiPjY8L3RleHQ+CiAgPHRleHQgeD0iNDU1IiB5PSIyOTciIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIj5SZXN1bHRzIHJldHVybmVkIHRvIHVzZXI8L3RleHQ+CgogIDwhLS0gRmxvdyBsYWJlbCBvbiBsZWZ0IGNvbHVtbiAtLT4KICA8dGV4dCB4PSIxNSIgeT0iMTQ1IiBmaWxsPSIjNDc1NTY5IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiB3cml0aW5nLW1vZGU9InRiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FVkFMVUFURTwvdGV4dD4KCiAgPCEtLSBGbG93IGxhYmVsIG9uIHJpZ2h0IGNvbHVtbiAtLT4KICA8dGV4dCB4PSIzNzUiIHk9IjE0NSIgZmlsbD0iIzQ3NTU2OSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgd3JpdGluZy1tb2RlPSJ0YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RklMVEVSPC90ZXh0Pgo8L3N2Zz4K" alt="Query Time Flow" /></p>
+<p>Records without defined access are automatically filtered out.</p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Action |
+|------|--------|
+| 1 | User submits DQL query |
+| 2 | Grail evaluates user's IAM policies |
+| 3 | Query scopes to allowed buckets |
+| 4 | Record-level filters applied |
+| 5 | Fieldset-protected fields omitted (without `storage:fieldsets:read`) |
+| 6 | Results returned to user |
+For environments where SVG doesn't render
+-->
+<p><a id="policy-management-location"></a></p>
+<h2>Policy Management Location</h2>
+<p>To configure permissions:</p>
+<ol>
+<li>Go to <strong>Account Management</strong></li>
+<li>If you have multiple accounts, select the appropriate account</li>
+<li>Navigate to <strong>Identity &amp; access management</strong> &gt; <strong>Policy management</strong></li>
+</ol>
+<h3>Policy Assignment</h3>
+<table>
+<thead>
+<tr>
+<th>Target</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Groups</td>
+<td>Assign policies to user groups (recommended)</td>
+</tr>
+<tr>
+<td>Users</td>
+<td>Assign policies to individual users</td>
+</tr>
+<tr>
+<td>Service accounts</td>
+<td>Assign policies for API access</td>
+</tr>
+</tbody>
+</table>
+<p><a id="permission-scalability"></a></p>
+<h2>Permission Scalability</h2>
+<h3>Challenge</h3>
+<p>Creating access policies solely on the bucket and table level is not scalable in enterprise environments:</p>
+<ul>
+<li>One Dynatrace tenant has a limited number of custom buckets (250 by default from SaaS 1.346; 80 on earlier versions)</li>
+<li>Creating a bucket per team/application doesn't scale</li>
+</ul>
+<h3>Solution</h3>
+<p>Use record-level permissions based on:</p>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Deployment attributes</td>
+<td>Host groups, namespaces, clusters</td>
+</tr>
+<tr>
+<td>Cloud attributes</td>
+<td>AWS account, GCP project, Azure subscription</td>
+</tr>
+<tr>
+<td>Custom security context</td>
+<td><code>dt.security_context</code> field</td>
+</tr>
+</tbody>
+</table>
+<p>This allows multiple teams to share buckets while seeing only authorized data.</p>
+<p><a id="choosing-your-permission-strategy"></a></p>
+<h2>Choosing Your Permission Strategy</h2>
+<blockquote>
+<p><strong>Default for general team-scoped data access:</strong> <code>dt.security_context</code> + record-level permissions (the second row below). Bucket-level boundaries fit in specific scenarios (compliance separation, retention isolation, retention-cost allocation) but aren't a general substitute for <code>dt.security_context</code>. See <strong>IAM-04: Policy Authoring and Management</strong> § 5 <em>Choosing Between Patterns</em> (Patterns 3 and 9 cover the bucket-based scenarios) for the scenario gating.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Recommended Approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Compliance / retention / hard-cost separation</strong></td>
+<td>Bucket-level policies (the bucket IS the boundary)</td>
+</tr>
+<tr>
+<td>General team-scoped access (any org size)</td>
+<td>Security context + record-level</td>
+</tr>
+<tr>
+<td>Kubernetes-centric</td>
+<td>Namespace-based policies (or <code>dt.security_context</code> derived from namespace)</td>
+</tr>
+<tr>
+<td>Multi-cloud</td>
+<td>Cloud account-based policies (or <code>dt.security_context</code> derived from account)</td>
+</tr>
+<tr>
+<td>Complex hierarchy</td>
+<td>Hierarchical <code>dt.security_context</code> (e.g., <code>comp:db/bu:digital/app:easytrade</code>)</td>
+</tr>
+</tbody>
+</table>
+<h2>Next Steps</h2>
+<p>Continue with the ORGNZ series:</p>
+<ul>
+<li><strong>ORGNZ-05</strong>: Bucket-Level Access Control</li>
+<li><strong>ORGNZ-06</strong>: Security Context</li>
+<li><strong>ORGNZ-07</strong>: Advanced Permission Patterns</li>
+</ul>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies">Working with policies</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from Dynatrace documentation and enterprise best practices. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

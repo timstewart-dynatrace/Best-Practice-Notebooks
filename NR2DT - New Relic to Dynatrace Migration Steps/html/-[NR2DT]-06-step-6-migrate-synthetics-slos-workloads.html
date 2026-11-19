@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NR2DT-06: Step 6 — Migrate Synthetics, SLOs &amp; Workloads</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">NR2DT — New Relic to Dynatrace Migration Steps</a><span class="sep">/</span><span aria-current="page">NR2DT-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>NR2DT-06: Step 6 — Migrate Synthetics, SLOs &amp; Workloads</h1>
+<blockquote>
+<p><strong>Series:</strong> NR2DT — New Relic to Dynatrace Migration Steps | <strong>Notebook:</strong> 6 of 10 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 11/03/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Goal of this step:</strong> complete Wave 2 (synthetics) and Wave 4 (SLOs + workloads). Synthetics are external-facing and visible quickly; SLOs need a 7-day delta-validation window before the math is trusted.</p>
+<p>Procedural — see <strong>NRLC-05</strong> (Synthetic Migration) and <strong>NRLC-06</strong> (SLO &amp; Workload Migration) for component depth.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#wave2">Wave 2 — Synthetics</a></li>
+<li><a href="#wave4">Wave 4 — SLOs &amp; Workloads</a></li>
+<li><a href="#gate">Step Exit Criteria</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Migration lead + assigned engineer for this step</td>
+</tr>
+<tr>
+<td><strong>Completed</strong></td>
+<td>NR2DT-05 — Migrate Dashboards &amp; Alerts</td>
+</tr>
+<tr>
+<td><strong>Format</strong></td>
+<td>Procedural step — use as a runbook; defer to NRLC for depth</td>
+</tr>
+<tr>
+<td><strong>NRLC deep dives</strong></td>
+<td>NRLC-05, NRLC-06</td>
+</tr>
+</tbody>
+</table>
+<p><a id="wave2"></a></p>
+<h2>1. Wave 2 — Synthetics</h2>
+<p>Order: HTTP first (lowest risk), then Browser, then API multi-step. Scripted browsers are out of band — they get rebuilt manually.</p>
+<pre><code class="language-bash"># Preview: export + transform + diff — imports NOTHING (see NR2DT-05 Wave 1)
+python3 migrate.py migrate --dry-run --diff --components synthetics --output ./run-synthetics
+
+# Import: the same command without --dry-run
+python3 migrate.py migrate --components synthetics --output ./run-synthetics
+</code></pre>
+<blockquote>
+<p><strong>Check what the import actually created.</strong> At tool v3.0.0 (commit <code>78cbfce</code>) the default (Gen3) import phase marks synthetic tests <strong>SKIPPED</strong> with the reason <em>Gen3 synthetic emission requires per-facet settings objects</em>; the transformed monitors are still written to <code>./run-synthetics/transformed/dynatrace_config.json</code>. Read the run's summary table and skip reasons, and create any skipped monitors from that file until your tool version imports them.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py">migrate.py @ 78cbfce (tool repo, GitHub)</a>, read 10/05/2026.</sub></p>
+</blockquote>
+<p><strong>Re-enter secrets</strong> in the DT credentials vault for any monitor that uses bearer tokens, basic auth, or OAuth.</p>
+<p><strong>Scripted browser monitors:</strong></p>
+<ol>
+<li>The transformer emits a stub Browser Monitor with the target URL</li>
+<li>The original NR script is <strong>not</strong> copied: the stub carries a <code>migrated-from: newrelic</code> tag and a placeholder JavaScript step (<code>// TODO: Add custom validation from New Relic script</code>), and the run prints a warning naming the monitor's URL</li>
+<li>An engineer rebuilds the user journey using DT's clickpath recorder or DSL</li>
+<li>Validation: confirm the new clickpath catches the same regressions during a 1-week dual-run</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/transformers/synthetic_transformer.py">transformers/synthetic_transformer.py @ 78cbfce (tool repo, GitHub)</a>, read 11/03/2026.</sub></p>
+</blockquote>
+<p><strong>W2 — Synthetics SLA:</strong> dual-run for ≥ 1 week. DT availability % matches NR within ±0.5%. If delta exceeds, investigate location coverage and credential validity first.</p>
+<p><a id="wave4"></a></p>
+<h2>2. Wave 4 — SLOs &amp; Workloads</h2>
+<p>SLOs depend on metric expressions being mathematically equivalent. Workloads become OpenPipeline enrichments + IAM bucket conditions (Gen3 pattern).</p>
+<pre><code class="language-bash"># Preview (imports nothing), then import only SLOs + workloads from the previewed file
+python3 migrate.py migrate --dry-run --diff --components slos,workloads --output ./run-slos-workloads
+python3 migrate.py migrate --import-only --input ./run-slos-workloads --components slos,workloads
+</code></pre>
+<p><code>slos</code> depends on <code>alerts</code>, and a full <code>migrate</code> run adds dependencies automatically — <code>--components slos,workloads</code> without <code>--dry-run</code> would export, transform and import alerts and notification channels again. <code>--import-only</code> imports only the components named, but writes <strong>no</strong> rollback manifest; record what it created from its summary. At tool v3.0.0 the default (Gen3) import marks workload segments and IAM policies <strong>SKIPPED</strong> (the Platform segment API and the Account Management IAM API are not wired into the tool), so plan to create workload scoping yourself per NR2DT-03.</p>
+<p><strong>Run the SLO auditor</strong> — a metric-validity check, not an SLI comparison:</p>
+<pre><code class="language-bash">export DYNATRACE_OAUTH_TOKEN=&quot;&lt;OAuth bearer token&gt;&quot;   # audit-slos exits without it
+python3 migrate.py audit-slos
+</code></pre>
+<p><code>audit-slos</code> reads every SLO in the tenant through the Platform SLO API and reports <code>OK</code> / <code>FAIL</code> with issues per SLO (missing metrics, invalid aggregations, NRQL that was not converted), then a <code>valid / total</code> count. It needs <code>DYNATRACE_ENVIRONMENT_URL</code> and <code>DYNATRACE_OAUTH_TOKEN</code>. It computes no NR or DT SLI and takes no window or tolerance.</p>
+<p><strong>The 7-day SLI delta is computed by hand.</strong> For each SLO, take NR's SLI for <code>SINCE 7 days ago</code> and the DT SLO's evaluated value over the same 7 days, and record the delta. Any SLO with delta &gt; 0.5% needs investigation:</p>
+<ol>
+<li>Check unit conversion (ms vs. s vs. ns)</li>
+<li>Check entity scope — does the bucket / OpenPipeline enrichment filter capture the same entities as NR's workload?</li>
+<li>Check time alignment — NR's <code>SINCE 7 days ago</code> may bin differently than DT's <code>from:-7d</code></li>
+</ol>
+<p><strong>W4 — SLO delta:</strong> all SLOs within tolerance for ≥ 7 days (measured as above), and <code>audit-slos</code> reports every SLO valid.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py">migrate.py @ 78cbfce (tool repo, GitHub)</a>, <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/config/settings.py">config/settings.py @ 78cbfce (tool repo, GitHub)</a>, read 10/05/2026.</sub></p>
+</blockquote>
+<p><a id="gate"></a></p>
+<h2>3. Step Exit Criteria</h2>
+<p><strong>S6 — Synthetics + SLOs Migrated</strong></p>
+<ul>
+<li>[ ] All synthetics migrated; W2 dual-run availability ±0.5%</li>
+<li>[ ] Scripted browsers rebuilt and validated</li>
+<li>[ ] All synthetic credentials re-entered in DT vault</li>
+<li>[ ] All SLOs migrated; W4 7-day delta ≤ 0.5%; <code>audit-slos</code> clean</li>
+<li>[ ] Workload identifiers visible as OpenPipeline-enriched attributes in DQL queries</li>
+</ul>
+<p><strong>Next step:</strong> <strong>NR2DT-07 — Migrate Logs, Tags &amp; Drop Rules</strong>.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources, including the open-source <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities">NewRelic-to-Dynatrace-Migration-Utilities</a>, <a href="https://github.com/timstewart-dynatrace/nrql-engine">nrql-engine</a>, and <a href="https://github.com/timstewart-dynatrace/nrql-translator">nrql-translator</a> projects. This notebook series is not officially supported by Dynatrace or New Relic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://docs.newrelic.com">New Relic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

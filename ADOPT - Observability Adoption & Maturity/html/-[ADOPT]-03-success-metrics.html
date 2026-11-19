@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ADOPT-03: Success Metrics</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ADOPT — Observability Adoption &amp; Maturity</a><span class="sep">/</span><span aria-current="page">ADOPT-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ADOPT-03: Success Metrics</h1>
+<blockquote>
+<p><strong>Series:</strong> ADOPT — Observability Adoption &amp; Maturity | <strong>Notebook:</strong> 3 of 6 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/18/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>What gets measured gets improved. This notebook defines the key success metrics for an observability practice: Mean Time to Detect (MTTD), Mean Time to Resolve (MTTR), change failure rate, problem count trends, and alert noise ratio. For each metric, we provide a baseline DQL query, explain how to interpret results, and describe how to track improvement over time. These metrics translate observability investment into language that leadership understands.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#why-metrics-matter">Why Success Metrics Matter</a></li>
+<li><a href="#mttd">Mean Time to Detect (MTTD)</a></li>
+<li><a href="#mttr">Problem Duration (MTTR)</a></li>
+<li><a href="#problem-trends">Problem Count Trends</a></li>
+<li><a href="#alert-noise">Alert Quality</a></li>
+<li><a href="#change-failure-rate">Deployment Frequency and Change Failure Rate</a></li>
+<li><a href="#establishing-baselines">Establishing Baselines</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS (Grail). The DQL does not apply to Dynatrace Managed, which has no Grail.</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:events:read</code></td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>At least 7 days of detected problem data for meaningful baselines; deployment events for § 6</td>
+</tr>
+<tr>
+<td><strong>Audience</strong></td>
+<td>SREs, engineering managers, VP of Engineering, CTO</td>
+</tr>
+</tbody>
+</table>
+<p><a id="why-metrics-matter"></a></p>
+<h2>1. Why Success Metrics Matter</h2>
+<p>Observability platforms generate enormous volumes of data. Without defined success metrics, it is impossible to answer the fundamental question: <strong>&quot;Is our observability practice making us better?&quot;</strong></p>
+<p>Success metrics serve three purposes:</p>
+<table>
+<thead>
+<tr>
+<th>Purpose</th>
+<th>Audience</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Operational improvement</strong></td>
+<td>SRE / Platform teams</td>
+<td>MTTR reduced from 45 min to 12 min</td>
+</tr>
+<tr>
+<td><strong>Business justification</strong></td>
+<td>Leadership / Finance</td>
+<td>60% fewer customer-impacting incidents</td>
+</tr>
+<tr>
+<td><strong>Continuous improvement</strong></td>
+<td>All teams</td>
+<td>Alert noise ratio decreased from 65% to 15%</td>
+</tr>
+</tbody>
+</table>
+<p>The DORA (DevOps Research and Assessment) metrics are the most widely used delivery benchmarks, and leadership will often ask for them. Use them carefully: DORA's stability metrics measure <strong>deployments</strong> — <em>change fail rate</em> is &quot;the ratio of deployments that require immediate intervention following a deployment&quot;, and the metric once called MTTR &quot;was renamed and redefined as failed deployment recovery time&quot;, which counts only recovery from a failed change. Dynatrace problem data covers every anomaly, whatever caused it. § 3 and § 6 say where the two line up and where they do not.</p>
+<p><a id="mttd"></a></p>
+<h2>2. Mean Time to Detect (MTTD)</h2>
+<p>MTTD measures how long it takes from when a problem begins to when it is detected. In Dynatrace, Dynatrace Intelligence continuously analyzes telemetry and opens problems automatically. MTTD is the difference between problem start time and the timestamp when Dynatrace Intelligence created the problem event.</p>
+<h3>Why It Matters</h3>
+<ul>
+<li>Lower MTTD means faster awareness of issues</li>
+<li>Automatic detection removes the wait for a user report or a person noticing a chart</li>
+<li>Tracking MTTD validates that your instrumentation and alerting are working</li>
+</ul>
+<h3>2.1 MTTD Over the Last 7 Days</h3>
+<p>Dynatrace Intelligence problems have an <code>event.start</code> timestamp — the beginning of the analysed anomaly window — and each problem emits a record per <strong>status transition</strong>. Detection lag is the gap between <code>event.start</code> and the timestamp of the <strong><code>CREATED</code></strong> transition specifically.</p>
+<blockquote>
+<p><strong>The trap this query exists to avoid.</strong> Every transition record carries the same <code>event.start</code>, so <code>timestamp - event.start</code> means something different on each one. On a <code>CLOSED</code> record it is the problem's <strong>total duration</strong>; only on the <code>CREATED</code> record is it detection lag. Filtering by <code>event.status == &quot;CLOSED&quot;</code> and subtracting therefore reports duration while looking exactly like an MTTD query — it returns plausible numbers, just for the wrong quantity. Measured on a live tenant 08/25/2026, the two differ by roughly <strong>35×</strong> (152 min vs 4.3 min average over the same 7 days).</p>
+<p>This also dictates the data object. <strong><code>dt.davis.problems</code> keeps one record per problem — its latest state</strong> — so a problem's <code>CREATED</code> record is there only when nothing has happened to the problem since (573 of 3,749 problems over 7 days on the validation tenant, 10/23/2026). MTTD computed on it would cover that subset only. Use <code>fetch events</code> with <code>event.kind == &quot;DAVIS_PROBLEM&quot;</code>, which keeps every transition.</p>
+</blockquote>
+<pre><code class="language-dql">// MTTD: gap between the start of the analysed window and problem CREATION.
+// The CREATED transition is what makes this detection lag rather than duration.
+fetch events, from:-7d
+| filter event.kind == &quot;DAVIS_PROBLEM&quot;
+| filter event.status_transition == &quot;CREATED&quot;
+| filter dt.davis.is_duplicate == false
+| fieldsAdd detection_lag_minutes = (timestamp - event.start) / 1m
+| summarize {
+    avg_mttd_minutes = avg(detection_lag_minutes),
+    median_mttd_minutes = median(detection_lag_minutes),
+    p95_mttd_minutes = percentile(detection_lag_minutes, 95),
+    problem_count = count()
+  }
+
+</code></pre>
+<blockquote>
+<p><strong>Interpreting MTTD results.</strong> Dynatrace publishes no target for this number, so the bands below are community practice — calibrate them against your own baseline:</p>
+<ul>
+<li><strong>Median under 5 minutes</strong> — detection is keeping pace with the telemetry.</li>
+<li><strong>Median 5-15 minutes</strong> — usually fine; check whether slow detection clusters in one problem type.</li>
+<li><strong>Median over 15 minutes</strong> — review detector configuration and instrumentation coverage.</li>
+</ul>
+<p>Prefer the median to the average: a handful of slow detections pull the average up. On the validation tenant (10/01/2026, 4,586 problems over 7 days) the query returned a median of <strong>3.2 min</strong>, an average of <strong>9.3 min</strong>, and a p95 of <strong>18.6 min</strong>. If your result lands in the hundreds of minutes, suspect the query before the environment: that is the signature of measuring duration instead of detection lag.</p>
+</blockquote>
+<p><a id="mttr"></a></p>
+<h2>3. Problem Duration (MTTR)</h2>
+<p>Problem duration — reported here as MTTR — is the time from a problem's start to its close, read from <code>resolved_problem_duration</code> on closed problems.</p>
+<h3>What It Measures, and What It Does Not</h3>
+<ul>
+<li><strong>A problem closes when its events close.</strong> In Dynatrace, &quot;a problem is closed when all Davis events in the problem are closed, or when you close the problem manually.&quot; Duration therefore measures how long the anomaly lasted — including issues that recovered on their own — not how long a team took to resolve an incident.</li>
+<li><strong>It is not DORA's recovery metric.</strong> DORA's failed deployment recovery time covers only failures caused by a change. Problem duration covers every problem. Comparing the two against the same benchmark misleads both ways.</li>
+<li><strong>It is still the right trend line.</strong> A falling median duration on the services you own is evidence that detection, routing and remediation are improving. Pair it with your incident tool's time-to-resolve if leadership needs a human-response number.</li>
+</ul>
+<h3>3.1 MTTR Trend Over 7 Days</h3>
+<pre><code class="language-dql">// MTTR trend: average problem duration in hours, by the hour the problem closed
+fetch dt.davis.problems, from:-7d
+| filter event.status == &quot;CLOSED&quot;
+| filter dt.davis.is_duplicate == false
+| filter maintenance.is_under_maintenance == false
+| makeTimeseries avg_mttr_hours = avg(resolved_problem_duration / 1h), time:event.end
+</code></pre>
+<h3>3.2 MTTR Summary Statistics</h3>
+<pre><code class="language-dql">// MTTR summary: average, median, and p95 resolution time in hours
+fetch dt.davis.problems, from:-7d
+| filter event.status == &quot;CLOSED&quot;
+| filter dt.davis.is_duplicate == false
+| filter maintenance.is_under_maintenance == false
+| fieldsAdd duration_hours = resolved_problem_duration / 1h
+| summarize {
+    avg_mttr = avg(duration_hours),
+    median_mttr = median(duration_hours),
+    p95_mttr = percentile(duration_hours, 95),
+    total_problems = count()
+  }
+</code></pre>
+<h3>3.3 MTTR by Problem Category</h3>
+<p>Different problem categories often have very different resolution times. Breaking MTTR down by category helps identify which problem types need process improvement.</p>
+<pre><code class="language-dql">// MTTR breakdown by problem category
+fetch dt.davis.problems, from:-7d
+| filter event.status == &quot;CLOSED&quot;
+| filter dt.davis.is_duplicate == false
+| fieldsAdd duration_hours = resolved_problem_duration / 1h
+| summarize {
+    avg_mttr = avg(duration_hours),
+    median_mttr = median(duration_hours),
+    problem_count = count()
+  }, by:{event.category}
+| sort median_mttr desc
+</code></pre>
+<blockquote>
+<p><strong>Benchmarks.</strong> Resist putting a DORA band next to this number. DORA's recovery benchmarks apply to failed deployment recovery time — recovery from a change that needed immediate intervention — and DORA publishes its benchmarks in its State of DevOps research. Set targets against your own 30-day baseline (§ 7), and if you need a DORA figure, compute it from deployment-correlated problems as in § 6.2.</p>
+</blockquote>
+<p><a id="problem-trends"></a></p>
+<h2>4. Problem Count Trends</h2>
+<p>Tracking the total number of problems over time reveals whether your environment is becoming more stable or more volatile. A decreasing trend indicates that root causes are being addressed, not just symptoms.</p>
+<h3>4.1 Weekly Problem Trend</h3>
+<pre><code class="language-dql">// Weekly problem trend over the last 30 days, bucketed by problem start
+fetch dt.davis.problems, from:-30d
+| filter dt.davis.is_duplicate == false
+| summarize {problem_count = count()}, by:{week_start = bin(event.start, 168h)}
+| sort week_start asc
+</code></pre>
+<h3>4.2 Problems by Category Over Time</h3>
+<pre><code class="language-dql">// Problem trend by category over the last 7 days, by problem start
+fetch dt.davis.problems, from:-7d
+| filter dt.davis.is_duplicate == false
+| makeTimeseries problem_count = count(), time:event.start, interval:24h, by:{event.category}
+</code></pre>
+<h3>4.3 Top Recurring Problem Types</h3>
+<p>Identifying the most frequent problem types helps prioritize remediation efforts.</p>
+<pre><code class="language-dql">// Top 10 recurring problem types in the last 30 days
+fetch dt.davis.problems, from:-30d
+| filter dt.davis.is_duplicate == false
+| summarize {occurrences = count()}, by:{event.name}
+| sort occurrences desc
+| limit 10
+</code></pre>
+<p><a id="alert-noise"></a></p>
+<h2>5. Alert Quality</h2>
+<p>Alert fatigue is one of the greatest threats to operational effectiveness. When teams are overwhelmed by noisy, duplicate, or non-actionable alerts, they stop responding — and real problems get missed.</p>
+<p><strong>Do not measure noise with <code>dt.davis.is_frequent_event</code>.</strong> Frequent issue detection is being phased out on the latest Dynatrace platform, which is improving &quot;the individual alert sources so that frequent, false-positive alerts are not generated in the first place.&quot; On the validation tenant the flag was true on <strong>0 of 15,227 problems</strong> over 30 days, so a ratio built on it reports a healthy number regardless of how noisy alerting is. Measure what a responder experiences instead: problems that close before anyone could act, problems raised inside maintenance windows, and the same problem recurring on the same component.</p>
+<h3>5.1 Short-Lived and Maintenance-Window Problems</h3>
+<pre><code class="language-dql">// Alert-quality signals over 7 days: short-lived problems and problems raised during maintenance
+fetch dt.davis.problems, from:-7d
+| filter dt.davis.is_duplicate == false
+| fieldsAdd duration_min = resolved_problem_duration / 1m
+| summarize {
+    problems = count(),
+    closed_within_5min = countIf(duration_min &lt; 5),
+    during_maintenance = countIf(maintenance.is_under_maintenance == true)
+  }
+| fieldsAdd short_lived_pct = round(toDouble(closed_within_5min) / toDouble(problems) * 100, decimals: 1)
+| fieldsAdd maintenance_pct = round(toDouble(during_maintenance) / toDouble(problems) * 100, decimals: 1)
+</code></pre>
+<h3>5.2 Which Problem Types Are Short-Lived</h3>
+<p>The aggregate tells you there is noise; the breakdown tells you where. A problem type that closes within five minutes almost every time is a tuning candidate, not an incident.</p>
+<pre><code class="language-dql">// Top problem types by volume, with the share that closed within 5 minutes, 30 days
+fetch dt.davis.problems, from:-30d
+| filter dt.davis.is_duplicate == false
+| summarize {
+    total = count(),
+    closed_within_5min = countIf(resolved_problem_duration &lt; 5m)
+  }, by:{event.name}
+| fieldsAdd short_lived_pct = round(toDouble(closed_within_5min) / toDouble(total) * 100, decimals: 1)
+| sort total desc
+| limit 10
+</code></pre>
+<h3>5.3 The Same Problem on the Same Component</h3>
+<p>A problem that keeps recurring on one component is a known issue being re-reported, not new information.</p>
+<pre><code class="language-dql">// Recurring problems: the same problem type on the same component, 30 days.
+// The component is the root-cause entity when Dynatrace identified one, otherwise the first
+// affected entity — many problems have no root cause, and grouping on the root cause alone
+// would lump every occurrence of a type together.
+// root_cause.smartscape_entity and smartscape.affected_entities replace the deprecated
+// root_cause_entity_name and affected_entity_ids. Read the Smartscape fields first; the classic
+// fields still work and fill problems the Smartscape fields leave empty.
+fetch dt.davis.problems, from:-30d
+| filter dt.davis.is_duplicate == false
+| fieldsAdd component = coalesce(root_cause.smartscape_entity[name], root_cause_entity_name, smartscape.affected_entities[0][name], affected_entity_ids[0])
+| summarize {occurrences = count()}, by:{event.name, component}
+| filter occurrences &gt;= 5
+| sort occurrences desc
+| limit 15
+</code></pre>
+<blockquote>
+<p><strong>What to do with the results.</strong> Dynatrace publishes no target ratio, so track these as trends: the short-lived share and the recurrence counts should fall as tuning lands. The levers, in the order to try them:</p>
+<ul>
+<li><strong>Delay notification, not detection.</strong> Problem-triggered workflows have a <strong>Minimum duration</strong> option, so a problem that resolves inside the window never notifies anyone (FAQ-21).</li>
+<li><strong>Tune the detector</strong> that raises the short-lived type — sensitivity, thresholds, or the anomaly detector itself (ALERT-02).</li>
+<li><strong>Fix the recurring cause</strong> for problems that repeat on one component; suppression only hides it.</li>
+<li><strong>Use maintenance windows for planned work</strong>, and treat a high maintenance share as a prompt to check whether detection is too eager outside those windows.</li>
+</ul>
+</blockquote>
+<p><a id="change-failure-rate"></a></p>
+<h2>6. Deployment Frequency and Change Failure Rate</h2>
+<p>Deployment frequency and change failure rate (CFR) are DORA delivery metrics. DORA defines change fail rate as &quot;the ratio of deployments that require immediate intervention following a deployment.&quot; Dynatrace cannot see your intervention decisions, but it can see whether a problem opened on the same component shortly after a deployment — a reasonable, explicitly defined proxy.</p>
+<h3>Measuring CFR with Dynatrace</h3>
+<ol>
+<li>Count deployment events in a time window (this is also your deployment frequency)</li>
+<li>For each deployment, check whether a problem started on one of its affected entities within a window after it (one hour below)</li>
+<li>Divide deployments followed by a problem by all deployments</li>
+</ol>
+<p>Both steps need deployment events. Send them from your pipeline through the Events API v2 with <code>eventType</code> <code>CUSTOM_DEPLOYMENT</code>, attached to the entities you deployed.</p>
+<h3>6.1 Deployment Event Count</h3>
+<pre><code class="language-dql">// Count deployment events in the last 7 days
+// CUSTOM_DEPLOYMENT is an event.type (the Events API v2 eventType), not an event.kind.
+// API-ingested events carry event.kind == &quot;DAVIS_EVENT&quot;. Over 30 days on the validation tenant
+// (11/18/2026) the kinds on the events object were DAVIS_EVENT, SYNTHETIC_EVENT, DAVIS_PROBLEM,
+// FLEET_EVENT and MAINTENANCE_WINDOW — never CUSTOM_DEPLOYMENT — so a filter on
+// event.kind == &quot;CUSTOM_DEPLOYMENT&quot; matches nothing, whether or not you send deployments.
+fetch events, from:-7d
+| filter event.type == &quot;CUSTOM_DEPLOYMENT&quot;
+| summarize deployment_count = count()
+</code></pre>
+<h3>6.2 Deployments Followed by a Problem</h3>
+<p>This query joins each deployment to problems on the same affected entity and counts the deployments that were followed by a problem within one hour.</p>
+<pre><code class="language-dql">// Change failure rate proxy: deployments followed within 1 hour by a problem on the same entity
+fetch events, from:-7d
+| filter event.type == &quot;CUSTOM_DEPLOYMENT&quot;
+| fields deploy_id = event.id, deploy_time = timestamp, entity = smartscape.affected_entities[][id]
+| expand entity
+| join [
+    fetch dt.davis.problems, from:-7d
+    | filter dt.davis.is_duplicate == false
+    | fields problem_id = event.id, problem_start = event.start, entity = smartscape.affected_entities[][id]
+    | expand entity
+  ], kind:leftOuter, on:{entity}, fields:{problem_id, problem_start}
+| fieldsAdd followed = isNotNull(problem_start) and problem_start &gt;= deploy_time and problem_start &lt;= deploy_time + 1h
+| summarize {followed = max(followed)}, by:{deploy_id}
+| summarize {deployments = count(), followed_by_problem = countIf(followed)}
+| fieldsAdd change_failure_rate_pct = round(toDouble(followed_by_problem) / toDouble(deployments) * 100, decimals: 1)
+
+// Validated 10/01/2026. The validation tenant had no CUSTOM_DEPLOYMENT events, so the join was
+// exercised with event.type == &quot;CUSTOM_INFO&quot; in their place (11,606 events, 24 h) to prove the
+// mechanics; with no deployment events it returns deployments = 0. The window (1h) and the entity match
+// are choices — widen the window for slow-burning failures, and expect a problem that merely
+// coincides with a deployment to count as a failure.
+//
+// Both sides join on Smartscape node IDs (smartscape.affected_entities replaces the deprecated
+// affected_entity_ids). The classic field still works but names ENVIRONMENT-0000000000000001 for
+// entities that exist only in Smartscape and for environment-level events, so a classic join
+// matches unrelated events through the environment: re-run 11/11/2026 with CUSTOM_INFO over 24 h,
+// the classic form matched 8 of 1,786 events to a problem, 7 of them only through the environment;
+// this form matched 1. Keep both sides on the same field — the ID spaces differ.
+
+</code></pre>
+<blockquote>
+<p><strong>Benchmarks.</strong> DORA publishes change-fail-rate benchmarks in its State of DevOps research — take the current figures from <a href="https://dora.dev/research/">dora.dev</a> rather than from a table copied into a notebook. The proxy above counts any problem on a deployed entity within the window, so it will read higher than a rate based on deliberate rollback or hotfix decisions.</p>
+</blockquote>
+<p><a id="establishing-baselines"></a></p>
+<h2>7. Establishing Baselines</h2>
+<p>A baseline is a snapshot of your current metrics that serves as the starting point for improvement tracking. Without baselines, you cannot measure progress.</p>
+<h3>Baseline Template</h3>
+<p>Record your current values and set improvement targets:</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Current Baseline</th>
+<th>3-Month Target</th>
+<th>6-Month Target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MTTD</strong></td>
+<td>___ minutes</td>
+<td>___ minutes</td>
+<td>___ minutes</td>
+</tr>
+<tr>
+<td><strong>MTTR</strong></td>
+<td>___ hours</td>
+<td>___ hours</td>
+<td>___ hours</td>
+</tr>
+<tr>
+<td><strong>Weekly Problem Count</strong></td>
+<td>___ problems</td>
+<td>___ problems</td>
+<td>___ problems</td>
+</tr>
+<tr>
+<td><strong>Short-Lived Problem Share</strong></td>
+<td>___%</td>
+<td>___%</td>
+<td>___%</td>
+</tr>
+<tr>
+<td><strong>Change Failure Rate</strong></td>
+<td>___%</td>
+<td>___%</td>
+<td>___%</td>
+</tr>
+</tbody>
+</table>
+<h3>Best Practices for Baseline Setting</h3>
+<ul>
+<li>Use a <strong>30-day window</strong> for the initial baseline to smooth out anomalies</li>
+<li>Exclude maintenance windows and known outage periods</li>
+<li>Filter out duplicate problems (<code>dt.davis.is_duplicate</code>) for cleaner metrics</li>
+<li>Record baselines per team or service if organizational structure allows</li>
+<li><strong>Re-baseline quarterly</strong> to account for growth and environmental changes</li>
+</ul>
+<p><a id="summary"></a></p>
+<h2>8. Summary and Next Steps</h2>
+<h3>Key Takeaways</h3>
+<ul>
+<li>MTTD and problem duration (MTTR) are the two operational metrics to track first — and problem duration is not DORA's recovery metric</li>
+<li>Measure alert quality by short-lived and recurring problems, not by the frequent-issue flag</li>
+<li>Problem count trends reveal whether your environment is stabilizing or degrading</li>
+<li>Deployment frequency and a deployment-correlated CFR proxy bridge observability and DORA, provided deployments are sent as events</li>
+<li>Baselines must be established before improvement can be measured</li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li>Proceed to <strong>ADOPT-04: Team Enablement</strong> to build role-based learning paths for your organization</li>
+<li>Create a recurring notebook or dashboard that runs these queries weekly</li>
+<li>Share baseline metrics with leadership to establish accountability</li>
+</ul>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/root-cause-analysis/concepts">Root cause analysis concepts (DT docs)</a> — <em>&quot;A problem is closed when all Davis events in the problem are closed, or when you close the problem manually.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/frequent-issue-detection">Transition from frequent issue detection (DT docs)</a> — <em>&quot;Frequent issue detection is being phased out on the latest Dynatrace platform.&quot;</em></li>
+<li><a href="https://dora.dev/guides/dora-metrics/">DORA's software delivery performance metrics (dora.dev)</a> — <em>&quot;The ratio of deployments that require immediate intervention following a deployment.&quot;</em></li>
+<li><a href="https://dora.dev/insights/dora-metrics-history/">A history of DORA's software delivery metrics (dora.dev)</a> — <em>&quot;was renamed and redefined as failed deployment recovery time&quot;</em></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

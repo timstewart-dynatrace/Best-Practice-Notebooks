@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S2S-03: Step 3 — Design: Target Tenant Architecture</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">S2S — SaaS to SaaS Migration</a><span class="sep">/</span><span aria-current="page">S2S-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>S2S-03: Step 3 — Design: Target Tenant Architecture</h1>
+<blockquote>
+<p><strong>Series:</strong> S2S — SaaS to SaaS Migration | <strong>Notebook:</strong> 3 of 9 | <strong>Phase:</strong> Plan | <strong>Step:</strong> Design | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/24/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>With discovery complete (Step 1) and a migration strategy selected (Step 2), this step designs the target tenant architecture. Good design prevents the most painful migration failures — naming collisions, broken data pipelines, overprivileged access, and orphaned integrations. Every design decision made here becomes a deployment instruction in Step 4 (Prepare).</p>
+<p>This notebook produces five deliverables: an IAM architecture, a Grail bucket and OpenPipeline layout, a cloud integration mapping, a configuration deployment order, and an entity ID remapping strategy.</p>
+<h3>S2S Migration Framework</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Steps</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Plan</strong></td>
+<td>1. Discover → 2. Strategize → <strong>3. Design</strong></td>
+<td>Understand what exists, choose approach, design target</td>
+</tr>
+<tr>
+<td>Upgrade</td>
+<td>4. Prepare → 5. Execute → 6. Integrate</td>
+<td>Build target, move config, connect integrations</td>
+</tr>
+<tr>
+<td>Run</td>
+<td>7. Expand → 8. Enable → 9. Optimize</td>
+<td>Roll out agents, enable teams, tune and decommission</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>You are here: Step 3 — Design.</strong> You have inventoried the source tenant (Step 1) and selected a migration strategy (Step 2). Now you design the target tenant architecture before building anything.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#iam-architecture-design">IAM Architecture Design</a></li>
+<li><a href="#grail-bucket-and-retention-design">Grail Bucket and Retention Design</a></li>
+<li><a href="#openpipeline-layout">OpenPipeline Layout</a></li>
+<li><a href="#cloud-integration-mapping">Cloud Integration Mapping</a></li>
+<li><a href="#configuration-deployment-order">Configuration Deployment Order</a></li>
+<li><a href="#entity-id-remapping-strategy">Entity ID Remapping Strategy</a></li>
+<li><a href="#step-completion-checklist">Step Completion Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Step 1 Complete</strong></td>
+<td>Source tenant discovery finished — entity inventory, configuration export, audit log analysis</td>
+</tr>
+<tr>
+<td><strong>Step 2 Complete</strong></td>
+<td>Migration strategy selected (consolidation, relocation, split, hosting-cloud change, or workload cloud change)</td>
+</tr>
+<tr>
+<td><strong>Source Tenant Access</strong></td>
+<td>Admin access with <code>settings.read</code>, <code>ReadConfig</code> scopes</td>
+</tr>
+<tr>
+<td><strong>Target Tenant</strong></td>
+<td>Provisioned Dynatrace SaaS environment</td>
+</tr>
+<tr>
+<td><strong>OAuth Client</strong></td>
+<td><code>account-idm-read</code>, <code>account-idm-write</code>, <code>iam-policies-management</code> scopes (for IAM design validation)</td>
+</tr>
+<tr>
+<td><strong>Stakeholder Alignment</strong></td>
+<td>IAM owners, platform team, and security team available for design review</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>The Terraform resources used below (<code>dynatrace_iam_group</code>, <code>dynatrace_iam_policy</code>, and for SLOs <code>dynatrace_platform_slo</code> — the classic <code>dynatrace_slo_v2</code> only where a tenant is still on classic SLOs) are documented with full worked examples in <strong>AUTOM-04</strong>'s consolidated resource catalog — this notebook shows the migration-specific design pattern, not the general resource shape.</p>
+</blockquote>
+<p><a id="iam-architecture-design"></a></p>
+<h2>1. IAM Architecture Design</h2>
+<p>IAM is the most politically complex part of a SaaS-to-SaaS migration. Groups, policies, and bindings must be rebuilt in the target. They are account-level objects, managed with Terraform (<code>dynatrace_iam_*</code>) or Monaco's dedicated <code>monaco account</code> commands — this series uses Terraform, for its state and drift detection.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/account-configuration">Monaco account configuration (DT docs)</a> — <em>&quot;Using Monaco, you can define users, service users, groups, policies, and boundaries as dedicated types in YAML configuration files.&quot;</em>; <em>&quot;Account management requires OAuth credentials.&quot;</em></sub></p>
+</blockquote>
+<h3>Decision: Lift-and-Shift vs Redesign</h3>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>When to Use</th>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Lift-and-Shift</strong></td>
+<td>Simple relocation, no org changes</td>
+<td>Fast, minimal disruption</td>
+<td>Carries forward existing IAM debt</td>
+</tr>
+<tr>
+<td><strong>Redesign</strong></td>
+<td>Consolidation, M&amp;A, compliance changes</td>
+<td>Clean architecture, right-sized access</td>
+<td>More planning, requires stakeholder alignment</td>
+</tr>
+<tr>
+<td><strong>Hybrid</strong></td>
+<td>Migrate critical access first, redesign later</td>
+<td>Quick initial migration</td>
+<td>Requires follow-up project</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Recommendation:</strong> For <strong>consolidation</strong>, always redesign. You are merging multiple IAM structures — lifting and shifting all of them creates overlapping, conflicting policies. Use the migration as the forcing function to rationalize group sprawl.</p>
+<p>For <strong>relocation</strong>, lift-and-shift is acceptable. The org structure is not changing, so the existing IAM model is still valid.</p>
+</blockquote>
+<h3>IAM Components</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Description</th>
+<th>Scope</th>
+<th>Tool</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Groups</strong></td>
+<td>Collections of users with shared access needs</td>
+<td>Account-level</td>
+<td>Terraform or <code>monaco account</code></td>
+</tr>
+<tr>
+<td><strong>Policies</strong></td>
+<td>Permission statements with <code>ALLOW</code> / <code>DENY</code> and <code>WHERE</code> clauses</td>
+<td>Account, environment, or management zone</td>
+<td>Terraform or <code>monaco account</code></td>
+</tr>
+<tr>
+<td><strong>Bindings</strong></td>
+<td>Link policies to groups at a specific scope</td>
+<td>Account, environment, or management zone</td>
+<td>Terraform or <code>monaco account</code></td>
+</tr>
+</tbody>
+</table>
+<h3>IAM Design Template</h3>
+<p>Use this template to map source IAM to target IAM:</p>
+<table>
+<thead>
+<tr>
+<th>Source Group(s)</th>
+<th>Target Group</th>
+<th>Policy Scope</th>
+<th>Key Permissions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>us-east-admins</code> + <code>eu-west-admins</code></td>
+<td><code>platform-admins</code></td>
+<td>Account</td>
+<td>Full admin</td>
+</tr>
+<tr>
+<td><code>us-east-sre</code> + <code>eu-west-sre</code></td>
+<td><code>sre-team</code></td>
+<td>Environment</td>
+<td>Settings read/write, logs read</td>
+</tr>
+<tr>
+<td><code>us-east-devs</code> + <code>eu-west-devs</code></td>
+<td><code>app-developers</code></td>
+<td>Management zone</td>
+<td>Logs read, metrics read, dashboards</td>
+</tr>
+<tr>
+<td><code>us-east-readonly</code> + <code>eu-west-readonly</code></td>
+<td><code>observers</code></td>
+<td>Environment</td>
+<td>Read-only across all data</td>
+</tr>
+</tbody>
+</table>
+<h3>Policy Design Pattern</h3>
+<pre><code class="language-hcl">resource &quot;dynatrace_iam_policy&quot; &quot;sre_settings&quot; {
+  name            = &quot;SRE Team - Settings Access&quot;
+  environment     = var.dynatrace_environment_id
+  statement_query = &lt;&lt;-EOT
+    ALLOW settings:objects:read, settings:objects:write
+      WHERE settings:schemaId startsWith &quot;builtin:alerting&quot;;
+    ALLOW settings:objects:read, settings:objects:write
+      WHERE settings:schemaId startsWith &quot;builtin:anomaly-detection&quot;;
+    ALLOW storage:logs:read, storage:spans:read, storage:metrics:read;
+    ALLOW storage:buckets:read WHERE storage:table-name IN (&quot;logs&quot;, &quot;spans&quot;, &quot;metrics&quot;);
+  EOT
+}
+</code></pre>
+<blockquote>
+<p><strong>Warning:</strong> IAM policies use <code>WHERE</code> clauses that reference schemas, buckets, and security contexts (e.g., <code>WHERE storage:bucket-name = &quot;app_logs&quot;</code>). Every table read also needs <code>storage:buckets:read</code>, which the <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a> describes as <em>&quot;Required additionally to a table permission&quot;</em> — without it the table permissions read nothing. Design buckets and segments <strong>before</strong> writing policies — the <code>WHERE</code> clauses must reference resources that will exist in the target tenant.</p>
+</blockquote>
+<h3>Audit Source IAM Structure</h3>
+<p>Before designing target IAM, understand the current access model. Groups, policies, boundaries and bindings are <strong>account-level</strong> objects: <em>&quot;Dynatrace provides audit logs of changes to your account-level identity and access (IAM) management settings&quot;</em>, which administrators view in Account Management &gt; Settings &gt; Audit log (<a href="https://docs.dynatrace.com/docs/manage/account-management/audit-logs">Account Management audit logs (DT docs)</a>). The same page says <em>&quot;The Account Management audit log doesn't yet cover every account-level change. Some IAM configuration and login events aren't recorded.&quot;</em> They are not in the source environment's audit events. What the environment can tell you is who actually uses it:</p>
+<pre><code class="language-dql">// Who uses the source environment: successful sign-ins per user (last 30 days)
+// Data object corrected 09/24/2026. The Dynatrace audit trail is NOT in `logs`: the former
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)` matched nothing, or matched an
+// unrelated file-based audit log (a database .aud file on the validation tenant). Environment
+// audit records are structured events in `dt.system.events` with event.kind == &quot;AUDIT_EVENT&quot;.
+// Group, policy, boundary and binding changes are ACCOUNT-level. They are not in an
+// environment's audit events; review them in Account Management &gt; Settings &gt; Audit log.
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter event.type == &quot;LOGIN&quot; and event.outcome == &quot;success&quot;
+| summarize {logins = count(), last_login = takeMax(timestamp)}, by:{user.id}
+| sort logins desc
+| limit 20
+</code></pre>
+<p><a id="grail-bucket-and-retention-design"></a></p>
+<h2>2. Grail Bucket and Retention Design</h2>
+<p>Grail buckets control where data is stored and how long it is retained. For consolidation scenarios, bucket naming is critical — multiple source tenants may have identically named buckets.</p>
+<h3>Bucket Naming Strategy</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Naming Pattern</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Consolidation</strong></td>
+<td>Prefix by source tenant or business unit</td>
+<td><code>us-east_app_logs</code>, <code>eu-west_app_logs</code></td>
+</tr>
+<tr>
+<td><strong>Relocation</strong></td>
+<td>Keep original names (no collision risk)</td>
+<td><code>app_logs</code>, <code>infra_metrics</code></td>
+</tr>
+<tr>
+<td><strong>Workload cloud change</strong></td>
+<td>Prefix by cloud provider or region (keeps the dual-cloud window separable)</td>
+<td><code>aws_app_logs</code>, <code>azure_app_logs</code></td>
+</tr>
+<tr>
+<td><strong>Unified (consolidation)</strong></td>
+<td>Merge into single bucket with enrichment tags</td>
+<td><code>app_logs</code> with <code>source_tenant</code> tag</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Design Decision:</strong> Prefixed buckets are safer for initial migration. You can consolidate into unified buckets later once data flows are validated. Starting with separate buckets preserves the ability to roll back.</p>
+</blockquote>
+<h3>Bucket Design Template</h3>
+<table>
+<thead>
+<tr>
+<th>Source Tenant</th>
+<th>Source Bucket</th>
+<th>Target Bucket</th>
+<th>Retention</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>US-East</td>
+<td><code>default_logs</code></td>
+<td><code>default_logs</code></td>
+<td>35 days</td>
+<td>Default bucket — keep as-is</td>
+</tr>
+<tr>
+<td>US-East</td>
+<td><code>app_logs</code></td>
+<td><code>us-east_app_logs</code></td>
+<td>90 days</td>
+<td>Custom bucket — prefix to avoid collision</td>
+</tr>
+<tr>
+<td>EU-West</td>
+<td><code>app_logs</code></td>
+<td><code>eu-west_app_logs</code></td>
+<td>360 days</td>
+<td>PCI requirement — longer retention</td>
+</tr>
+<tr>
+<td>US-East</td>
+<td><code>security_logs</code></td>
+<td><code>security_logs</code></td>
+<td>365 days</td>
+<td>Merge — same compliance requirement</td>
+</tr>
+</tbody>
+</table>
+<h3>Retention Policy Alignment</h3>
+<table>
+<thead>
+<tr>
+<th>Environment</th>
+<th>Typical Retention</th>
+<th>Compliance Driver</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Production</td>
+<td>90–365 days</td>
+<td>PCI-DSS, SOX, HIPAA</td>
+</tr>
+<tr>
+<td>Staging</td>
+<td>35 days</td>
+<td>Cost optimization</td>
+</tr>
+<tr>
+<td>Development</td>
+<td>7–14 days</td>
+<td>Cost optimization</td>
+</tr>
+<tr>
+<td>Security/Audit</td>
+<td>365+ days</td>
+<td>Regulatory requirement</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Compliance Note:</strong> For regulated industries, verify that retention policies in the target tenant meet all compliance requirements <strong>before</strong> cutover. Reducing retention below the source tenant's policy may violate audit requirements.</p>
+</blockquote>
+<h3>Inventory Source Buckets</h3>
+<p>Query the source tenant to catalog all custom buckets and their retention settings:</p>
+<pre><code class="language-dql">// List all Grail buckets with retention and estimated size
+fetch dt.system.buckets
+| fields display_name, dt.system.table, retention_days, estimated_uncompressed_bytes
+| fieldsAdd size_gb = estimated_uncompressed_bytes / 1073741824.0
+| sort size_gb desc
+</code></pre>
+<p><a id="openpipeline-layout"></a></p>
+<h2>3. OpenPipeline Layout</h2>
+<p>OpenPipeline processing rules control how data is enriched, extracted, routed, and masked. These rules reference Grail buckets as routing targets, so bucket design must be finalized before designing the OpenPipeline layout.</p>
+<h3>Processing Rule Types</h3>
+<table>
+<thead>
+<tr>
+<th>Rule Type</th>
+<th>What It Does</th>
+<th>Migration Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Enrichment</strong></td>
+<td>Add fields from lookup tables or entity properties</td>
+<td>Port as-is if field names match</td>
+</tr>
+<tr>
+<td><strong>Extraction</strong></td>
+<td>Parse structured data from unstructured content</td>
+<td>Port as-is</td>
+</tr>
+<tr>
+<td><strong>Routing</strong></td>
+<td>Direct data to specific Grail buckets</td>
+<td><strong>Update bucket references</strong> to target names</td>
+</tr>
+<tr>
+<td><strong>Masking</strong></td>
+<td>Redact sensitive data (PII, credentials)</td>
+<td>Port as-is — verify compliance requirements match</td>
+</tr>
+</tbody>
+</table>
+<h3>OpenPipeline Design Template</h3>
+<table>
+<thead>
+<tr>
+<th>Source Pipeline</th>
+<th>Rule Count</th>
+<th>Target Pipeline</th>
+<th>Bucket Target</th>
+<th>Changes Required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>logs.default</code></td>
+<td>12</td>
+<td><code>logs.default</code></td>
+<td><code>default_logs</code></td>
+<td>Update bucket references</td>
+</tr>
+<tr>
+<td><code>logs.security</code></td>
+<td>8</td>
+<td><code>logs.security</code></td>
+<td><code>security_logs</code></td>
+<td>Port as-is (bucket name unchanged)</td>
+</tr>
+<tr>
+<td><code>spans.default</code></td>
+<td>5</td>
+<td><code>spans.default</code></td>
+<td><code>default_spans</code></td>
+<td>Port as-is</td>
+</tr>
+<tr>
+<td><code>events.custom</code></td>
+<td>3</td>
+<td><code>events.custom</code></td>
+<td><code>us-east_events</code></td>
+<td>Rename bucket reference</td>
+</tr>
+</tbody>
+</table>
+<h3>Coordinated Deployment Order</h3>
+<p>OpenPipeline and related resources must be deployed in strict dependency order:</p>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Resource</th>
+<th>Why This Order</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Grail buckets</td>
+<td>Routing rules reference buckets — they must exist first</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Enrichment rules (K8s labels → Grail tags)</td>
+<td>Tags feed OpenPipeline conditions and downstream queries</td>
+</tr>
+<tr>
+<td>3</td>
+<td>OpenPipeline processing rules</td>
+<td>Now routing targets and enrichment sources exist</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Segments</td>
+<td>Segment definitions may reference buckets and tags</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Monaco note:</strong> <code>monaco deploy</code> resolves these dependencies automatically within a single run. The order above is for teams using Terraform or manual deployment.</p>
+</blockquote>
+<h3>Audit Source OpenPipeline Rules</h3>
+<p>Query the source tenant's audit log to understand which OpenPipeline configurations are actively managed:</p>
+<pre><code class="language-dql">// Audit log: OpenPipeline configuration changes (last 30 days)
+// Data object corrected 09/24/2026. The Dynatrace audit trail is NOT in `logs`: the former
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)` matched nothing, or matched an
+// unrelated file-based audit log (a database .aud file on the validation tenant). Environment
+// audit records are structured events in `dt.system.events` with event.kind == &quot;AUDIT_EVENT&quot;.
+// OpenPipeline configuration is stored as builtin:openpipeline.* settings schemas.
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot; and event.provider == &quot;SETTINGS&quot;
+| filter startsWith(details.dt.settings.schema_id, &quot;builtin:openpipeline.&quot;)
+| filter in(event.type, {&quot;CREATE&quot;, &quot;UPDATE&quot;, &quot;DELETE&quot;})
+| summarize changes = count(), by:{details.dt.settings.schema_id, user.id}
+| sort changes desc
+| limit 10
+</code></pre>
+<p><a id="cloud-integration-mapping"></a></p>
+<h2>4. Cloud Integration Mapping</h2>
+<p>Cloud connections are environment-scoped — credentials, IAM roles and monitoring scopes are recreated in the target, never moved. Two generations exist, and the design should pick one per provider explicitly:</p>
+<ul>
+<li><strong>Latest Dynatrace — Cloud Platform Monitoring</strong> (AWS and Azure connections, Clouds app). Polling runs inside Dynatrace SaaS: <em>&quot;no need to deploy ActiveGate compute resources for metric polling&quot;</em>.</li>
+<li><strong>Dynatrace Classic integrations</strong> (classic AWS/Azure integrations, the classic Azure log forwarder). Use these only as the fallback where the target cannot use the Latest connection yet.</li>
+</ul>
+<blockquote>
+<p><strong>Monaco download limitation:</strong> Cloud provider credentials <strong>cannot be exported</strong> via <code>monaco download</code>. Monaco can deploy credential configurations but not extract existing ones. You must document and recreate credentials manually.</p>
+</blockquote>
+<h3>Integration Inventory Template</h3>
+<p>Document all active cloud integrations from the source tenant, and the target action for each:</p>
+<table>
+<thead>
+<tr>
+<th>Provider</th>
+<th>Integration</th>
+<th>Scope</th>
+<th>Credential</th>
+<th>Target action (Latest first)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AWS</td>
+<td>Metrics + topology</td>
+<td>Accounts, regions</td>
+<td>Role created by the connection</td>
+<td>Create an AWS connection <strong>from the target</strong>; it is created through CloudFormation</td>
+</tr>
+<tr>
+<td>AWS</td>
+<td>Logs</td>
+<td>CloudWatch log groups</td>
+<td>Firehose stream</td>
+<td>Subscribe log groups to the Firehose streams the target's connection generates</td>
+</tr>
+<tr>
+<td>Azure</td>
+<td>Metrics + topology</td>
+<td>Subscriptions</td>
+<td>Service principal</td>
+<td>Create an Azure connection <strong>from the target</strong> with a <strong>new, dedicated</strong> service principal</td>
+</tr>
+<tr>
+<td>Azure</td>
+<td>Logs / events</td>
+<td>Resource logs, activity logs / resource events</td>
+<td>Event Hubs / Event Grid</td>
+<td>SaaS-based ingest via Event Hubs (logs) and Event Grid (events)</td>
+</tr>
+<tr>
+<td>GCP</td>
+<td>Cloud Monitoring</td>
+<td>Projects</td>
+<td>Service account</td>
+<td>New key or service account for the target (not re-verified in this update — see the CLOUD series)</td>
+</tr>
+</tbody>
+</table>
+<h3>Credential Recreation Checklist</h3>
+<table>
+<thead>
+<tr>
+<th>Provider</th>
+<th>Credential</th>
+<th>Source value</th>
+<th>Target action</th>
+<th>Owner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AWS</td>
+<td>Connection stack</td>
+<td>Document account IDs and regions</td>
+<td>Create the target's AWS connection; deploy the CloudFormation template it produces in each account</td>
+<td>Cloud team</td>
+</tr>
+<tr>
+<td>AWS (classic fallback)</td>
+<td>IAM role + external ID</td>
+<td>Document role ARN</td>
+<td>New role, or updated trust policy, carrying the <strong>target's</strong> external ID</td>
+<td>Cloud team</td>
+</tr>
+<tr>
+<td>Azure</td>
+<td>Service principal</td>
+<td>Document subscriptions and the principal in use</td>
+<td>Create a <strong>new</strong> principal for the target — the docs say not to share one across environments, even inside the same Entra ID tenant</td>
+<td>Cloud team</td>
+</tr>
+<tr>
+<td>GCP</td>
+<td>Service account key</td>
+<td>Document project and SA</td>
+<td>Generate a new key for the target</td>
+<td>Cloud team</td>
+</tr>
+<tr>
+<td>K8s</td>
+<td>ActiveGate / DynaKube tokens</td>
+<td>Not exportable</td>
+<td>Generate new tokens in the target</td>
+<td>Platform team</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/aws-onboarding">AWS Cloud Platform Monitoring (DT docs)</a> — <em>&quot;All AWS connection creation methods are powered by CloudFormation&quot;</em>; <em>&quot;Subscribe CloudWatch log groups to auto-generated Firehose streams for immediate ingestion and analysis.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/azure-onboarding">Azure Cloud Platform Monitoring (DT docs)</a> — <em>&quot;no need to deploy ActiveGate compute resources for metric polling within your Azure environment.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/create-an-azure-connection">Create your first Azure connection (DT docs)</a> — <em>&quot;Use a dedicated service principal exclusively for Dynatrace. Do not share it across Dynatrace environments or use it for other non-Dynatrace workloads.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<h3>Workload Cloud Change Scenarios</h3>
+<p>When the workloads themselves change cloud, the monitoring stack changes with them, not only the credentials. For the AWS ↔ Azure case on Latest Dynatrace:</p>
+<table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>AWS</th>
+<th>Azure</th>
+<th>Design note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Connection</td>
+<td>AWS connection (CloudFormation)</td>
+<td>Azure connection (dedicated service principal)</td>
+<td>Different auth models — plan both for the dual-cloud window</td>
+</tr>
+<tr>
+<td>Metrics namespace</td>
+<td><code>cloud.aws.*</code> (e.g. <code>cloud.aws.ec2.CPUUtilization.By.InstanceId</code>)</td>
+<td><code>cloud.azure.*</code> (e.g. <code>cloud.azure.microsoft_compute.virtualmachines.PercentageCPU</code>)</td>
+<td>Cloud-metric dashboard tiles and detectors are <strong>rewritten</strong>, not remapped</td>
+</tr>
+<tr>
+<td>Log ingest</td>
+<td>Firehose</td>
+<td>Event Hubs</td>
+<td>New ingest path per cloud; OpenPipeline rules keyed on source may need both</td>
+</tr>
+<tr>
+<td>Container platform</td>
+<td>EKS</td>
+<td>AKS</td>
+<td>DynaKube is applied per cluster; the Operator model is the same</td>
+</tr>
+<tr>
+<td>Hosts</td>
+<td><code>cloud.provider == &quot;aws&quot;</code></td>
+<td><code>cloud.provider == &quot;azure&quot;</code></td>
+<td>The Smartscape <code>HOST</code> node carries <code>cloud.provider</code>, which makes dual-cloud progress queryable</td>
+</tr>
+</tbody>
+</table>
+<p>The metric keys above were read with the <code>metrics</code> command on the validation tenant (09/28/2026). For the full &quot;retire AWS, move to Azure&quot; sequence, see the appendix LAB <strong>S2S-94</strong>. GCP scenarios follow the same shape but were not re-verified in this update.</p>
+<p><a id="configuration-deployment-order"></a></p>
+<h2>5. Configuration Deployment Order</h2>
+<p>This is the single most important reference for Step 4 (Prepare) and Step 5 (Execute). Configuration must be deployed in dependency order — resources that other resources reference must exist first. IAM is deployed <strong>last</strong> because policies use <code>WHERE</code> clauses that reference resources.</p>
+<blockquote>
+<p><strong>Monaco note:</strong> <code>monaco deploy</code> resolves dependencies automatically. The order below is the reference model for understanding dependencies and for teams using Terraform.</p>
+</blockquote>
+<h3>Phase 1: Data Foundation — Deploy First</h3>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Category</th>
+<th>Dependencies</th>
+<th>Monaco Type</th>
+<th>Terraform Resource</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Grail buckets</td>
+<td>None — routing needs these first</td>
+<td><code>bucket</code></td>
+<td><code>dynatrace_platform_bucket</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>Enrichment rules (K8s labels → tags)</td>
+<td>None — tags feed everything downstream</td>
+<td><code>settings</code></td>
+<td><code>dynatrace_kubernetes_enrichment</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>OpenPipeline processing rules</td>
+<td>Buckets must exist as routing targets</td>
+<td><code>settings</code> (<code>builtin:openpipeline.*</code>; Monaco 2.31.0 removed the <code>openpipeline</code> type)</td>
+<td><code>dynatrace_openpipeline_v2_*</code> (e.g. <code>dynatrace_openpipeline_v2_logs_pipelines</code>)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Segments</td>
+<td>None</td>
+<td><code>segment</code></td>
+<td><code>dynatrace_segment</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Phase 2: Gen2 (Classic) Configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Category</th>
+<th>Dependencies</th>
+<th>Monaco Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5</td>
+<td>Management zones</td>
+<td>None</td>
+<td><code>api</code> / <code>settings</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td>Auto-tags</td>
+<td>None</td>
+<td><code>api</code> / <code>settings</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td>Request attributes</td>
+<td>None</td>
+<td><code>api</code> / <code>settings</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td>Calculated service metrics</td>
+<td>None</td>
+<td><code>api</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td>Custom services and detection rules</td>
+<td>None</td>
+<td><code>api</code> / <code>settings</code></td>
+</tr>
+<tr>
+<td>10</td>
+<td>Application detection rules</td>
+<td>None</td>
+<td><code>api</code> / <code>settings</code></td>
+</tr>
+<tr>
+<td>11</td>
+<td>Conditional naming rules</td>
+<td>None</td>
+<td><code>api</code></td>
+</tr>
+<tr>
+<td>12</td>
+<td>Anomaly detection settings</td>
+<td>None</td>
+<td><code>settings</code></td>
+</tr>
+<tr>
+<td>13</td>
+<td>Credential vault entries</td>
+<td>None</td>
+<td><code>api</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Phase 3: Monitoring and Alerting</h3>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Category</th>
+<th>Dependencies</th>
+<th>Monaco Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>14</td>
+<td>Alerting profiles</td>
+<td>None</td>
+<td><code>api</code> / <code>settings</code></td>
+</tr>
+<tr>
+<td>15</td>
+<td>Notification rules + integrations</td>
+<td>Alerting profiles</td>
+<td><code>api</code> / <code>settings</code></td>
+</tr>
+<tr>
+<td>16</td>
+<td>Maintenance windows</td>
+<td>Management zones (for scope)</td>
+<td><code>api</code> / <code>settings</code></td>
+</tr>
+<tr>
+<td>17</td>
+<td>SLO definitions (modern SLO app; <code>slo-v2</code> is the Grail-based type, Monaco v2.22+)</td>
+<td>Tags, segments (management zones only for classic SLOs)</td>
+<td><code>slo-v2</code></td>
+</tr>
+<tr>
+<td>18</td>
+<td>Synthetic monitors</td>
+<td>Notification rules, credential vault</td>
+<td><code>api</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Phase 4: User-Facing Configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Category</th>
+<th>Dependencies</th>
+<th>Monaco Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>19</td>
+<td>Classic dashboards</td>
+<td>Management zones, auto-tags</td>
+<td><code>api</code></td>
+</tr>
+<tr>
+<td>20</td>
+<td>Gen3 dashboards and notebooks</td>
+<td>SLOs, tags, segments</td>
+<td><code>document</code></td>
+</tr>
+<tr>
+<td>21</td>
+<td>Workflows and automations</td>
+<td>Notification rules, SLOs</td>
+<td><code>automation</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Phase 5: Governance — Deploy Last</h3>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Category</th>
+<th>Dependencies</th>
+<th>Tool</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>22</td>
+<td>IAM policies</td>
+<td>All resources above exist</td>
+<td>Terraform or <code>monaco account</code></td>
+</tr>
+<tr>
+<td>23</td>
+<td>IAM groups</td>
+<td>Policies defined</td>
+<td>Terraform or <code>monaco account</code></td>
+</tr>
+<tr>
+<td>24</td>
+<td>IAM policy bindings</td>
+<td>Groups + policies</td>
+<td>Terraform or <code>monaco account</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Why IAM last?</strong> IAM policies use <code>WHERE</code> clauses that reference schemas, buckets, and security contexts (e.g., <code>WHERE storage:bucket-name = &quot;app_logs&quot;</code>). If those resources do not exist yet, you cannot validate that the policies are correct. Deploy the resources first, then lock them down with IAM.</p>
+</blockquote>
+<h3>Validate Deployment Prerequisites</h3>
+<p>Before starting deployment, verify that the target tenant has the necessary foundation:</p>
+<pre><code class="language-dql">// Target tenant: verify buckets exist before deploying OpenPipeline rules
+fetch dt.system.buckets
+| fields display_name, dt.system.table, retention_days
+| sort display_name asc
+</code></pre>
+<pre><code class="language-dql">// Target tenant: verify enrichment rules are populating tags
+fetch logs, from:-1h
+| filter isNotNull(dt.security_context)
+| summarize tagged_records = count()
+| fieldsAdd status = if(tagged_records &gt; 0, then: &quot;Enrichment rules active&quot;, else: &quot;No tagged records — check enrichment config&quot;)
+</code></pre>
+<p><a id="entity-id-remapping-strategy"></a></p>
+<h2>6. Entity ID Remapping Strategy</h2>
+<p>Entity IDs (e.g., <code>HOST-1A2B3C4D</code>, <code>SERVICE-5E6F7A8B</code>) are <strong>not portable</strong> between tenants. They are auto-generated and unique per tenant. Any configuration that references entity IDs must be updated before or after import.</p>
+<h3>Where Entity IDs Appear</h3>
+<table>
+<thead>
+<tr>
+<th>Configuration</th>
+<th>Example Reference</th>
+<th>Impact If Not Remapped</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dashboard tile filters</td>
+<td><code>entityId(&quot;HOST-1A2B3C4D&quot;)</code></td>
+<td>Dashboard shows no data</td>
+</tr>
+<tr>
+<td>SLO metric expressions</td>
+<td><code>type(SERVICE),entityId(SERVICE-5E6F7A8B)</code></td>
+<td>SLO evaluates to 0%</td>
+</tr>
+<tr>
+<td>Notification rule filters</td>
+<td>Entity-specific tag filters</td>
+<td>Alerts never fire</td>
+</tr>
+<tr>
+<td>Management zone rules</td>
+<td>Entity-specific rules</td>
+<td>Zone contains no entities</td>
+</tr>
+<tr>
+<td>Workflow triggers</td>
+<td>Entity ID in detected problem filter</td>
+<td>Workflow never triggers</td>
+</tr>
+</tbody>
+</table>
+<h3>Remapping Strategy: Replace with Tags</h3>
+<p>The best strategy is to eliminate hardcoded entity IDs <strong>before</strong> migration by replacing them with tag-based selectors:</p>
+<pre><code class="language-text"># BEFORE (entity ID — breaks on migration)
+filter = &quot;type(SERVICE),entityId(SERVICE-5E6F7A8B)&quot;
+
+# AFTER (tag-based — survives migration)
+filter = &quot;type(SERVICE),tag(app:checkout),tag(env:production)&quot;
+</code></pre>
+<blockquote>
+<p><strong>Recommendation:</strong> Audit all dashboards and SLOs for hardcoded entity IDs in the source tenant <strong>before</strong> migration. Convert to tag-based filters. This makes configuration portable across tenants and resilient to future migrations.</p>
+</blockquote>
+<h3>Entity ID Lookup Pattern</h3>
+<p>For entity IDs that cannot be replaced with tags (rare), use entity name + type for lookup in the target tenant after agents are reporting:</p>
+<pre><code class="language-dql">// Look up a service by name in the target tenant to find its new entity ID (Smartscape)
+smartscapeNodes &quot;SERVICE&quot;, from:-7d
+| filter contains(name, &quot;checkout&quot;)
+| fields name, id, id_classic
+| limit 10
+
+// id_classic carries the classic SERVICE-… identifier used by classic dashboards, SLOs and
+// selectors. It prints the same value as id, but the two have different types: compare with
+// toString(id) == id_classic, never id == id_classic (always false — see FAQ-25 §4).
+// Classic fallback: fetch dt.entity.service | filter contains(entity.name, &quot;checkout&quot;)
+</code></pre>
+<pre><code class="language-dql">// Audit source tenant: Settings 2.0 objects written with hardcoded entity IDs (last 30 days)
+// Data object corrected 09/24/2026. The Dynatrace audit trail is NOT in `logs`: the former
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)` matched nothing, or matched an
+// unrelated file-based audit log (a database .aud file on the validation tenant). Environment
+// audit records are structured events in `dt.system.events` with event.kind == &quot;AUDIT_EVENT&quot;.
+// Scope: audit events carry the object payload (details.json_after) only for Settings 2.0
+// objects, and only for objects changed inside the timeframe. Classic dashboards are not
+// covered - search your configuration export for HOST-/SERVICE- IDs for a complete inventory.
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot; and event.provider == &quot;SETTINGS&quot;
+| filter in(event.type, {&quot;CREATE&quot;, &quot;UPDATE&quot;})
+| filter contains(details.json_after, &quot;HOST-&quot;) or contains(details.json_after, &quot;SERVICE-&quot;)
+| summarize references = count(), by:{details.dt.settings.schema_id, user.id}
+| sort references desc
+| limit 20
+</code></pre>
+<h3>Entity ID Remapping Checklist</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Action</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dashboard tile filters</td>
+<td>Replace <code>entityId()</code> with tag selectors</td>
+<td>High — most visible to users</td>
+</tr>
+<tr>
+<td>SLO metric expressions</td>
+<td>Replace entity selectors with tag-based selectors</td>
+<td>High — affects SLO evaluation</td>
+</tr>
+<tr>
+<td>Management zone rules</td>
+<td>Replace entity-specific rules with property/tag rules</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>Notification rule scope</td>
+<td>Replace entity filters with tag filters</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>Workflow triggers</td>
+<td>Update detected problem entity filters</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>Synthetic monitor entity scope</td>
+<td>Update location and entity references</td>
+<td>Low — locations are global</td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-completion-checklist"></a></p>
+<h2>7. Step Completion Checklist</h2>
+<p>Before proceeding to Step 4 (Prepare), verify all design deliverables are complete:</p>
+<table>
+<thead>
+<tr>
+<th>Deliverable</th>
+<th>Status</th>
+<th>Owner</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>IAM architecture designed</strong></td>
+<td>☐</td>
+<td>Security / Platform</td>
+<td>Groups, policies, bindings documented</td>
+</tr>
+<tr>
+<td><strong>IAM approach selected</strong></td>
+<td>☐</td>
+<td>Security / Platform</td>
+<td>Lift-and-shift vs redesign decision made</td>
+</tr>
+<tr>
+<td><strong>Grail bucket layout designed</strong></td>
+<td>☐</td>
+<td>Platform</td>
+<td>Naming, retention, collision strategy documented</td>
+</tr>
+<tr>
+<td><strong>OpenPipeline layout designed</strong></td>
+<td>☐</td>
+<td>Platform</td>
+<td>Rule inventory, bucket references updated</td>
+</tr>
+<tr>
+<td><strong>Cloud integration mapping documented</strong></td>
+<td>☐</td>
+<td>Cloud / Platform</td>
+<td>All integrations inventoried, credential plan ready</td>
+</tr>
+<tr>
+<td><strong>Configuration deployment order planned</strong></td>
+<td>☐</td>
+<td>Platform</td>
+<td>24-step order reviewed and agreed</td>
+</tr>
+<tr>
+<td><strong>Entity ID remapping strategy defined</strong></td>
+<td>☐</td>
+<td>Platform / App teams</td>
+<td>Hardcoded IDs inventoried, tag replacement plan ready</td>
+</tr>
+<tr>
+<td><strong>Stakeholder sign-off</strong></td>
+<td>☐</td>
+<td>All</td>
+<td>Design review completed, no open blockers</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Gate check:</strong> Do not proceed to Step 4 until all deliverables are documented and reviewed. Design gaps discovered during execution are 10x more expensive to fix.</p>
+</blockquote>
+<hr />
+<h2>Next Step</h2>
+<p>Continue to <strong>S2S-04: Step 4 — Prepare: Build the Target Tenant</strong> to begin deploying the designed architecture into the target tenant.</p>
+<table>
+<thead>
+<tr>
+<th>Completed</th>
+<th>Next</th>
+<th>Remaining</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><s>1. Discover</s> → <s>2. Strategize</s> → <s>3. Design</s></td>
+<td><strong>4. Prepare</strong></td>
+<td>5. Execute → 6. Integrate → 7. Expand → 8. Enable → 9. Optimize</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MOBL-99: Best Practice Summary</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MOBL — Mobile Monitoring</a><span class="sep">/</span><span aria-current="page">MOBL-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MOBL-99: Best Practice Summary</h1>
+<blockquote>
+<p><strong>Series:</strong> MOBL — Mobile Monitoring | <strong>Notebook:</strong> 99 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook consolidates every actionable best practice from the MOBL series (notebooks 01 through 12) into a single, definitive reference. Each best practice specifies the exact setting or value to use, its priority level, and which category it belongs to. Use this as a checklist when instrumenting, configuring, and operating Dynatrace native mobile monitoring.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#sdk-setup-configuration">SDK Setup &amp; Configuration</a></li>
+<li><a href="#crash-reporting-symbolication">Crash Reporting &amp; Symbolication</a></li>
+<li><a href="#user-action-instrumentation">User Action Instrumentation</a></li>
+<li><a href="#network-request-monitoring">Network Request Monitoring</a></li>
+<li><a href="#session-replay-privacy">Session Replay &amp; Privacy</a></li>
+<li><a href="#session-properties-user-tagging">Session Properties &amp; User Tagging</a></li>
+<li><a href="#privacy-compliance">Privacy &amp; Compliance</a></li>
+<li><a href="#dashboards-alerting">Dashboards &amp; Alerting</a></li>
+<li><a href="#sdk-performance-optimization">SDK Performance Optimization</a></li>
+<li><a href="#advanced-instrumentation">Advanced Instrumentation</a></li>
+<li><a href="#dql-query-patterns">DQL Query Patterns</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:user.events:read</code>, <code>storage:user.sessions:read</code>, <code>storage:smartscape:read</code>; <code>storage:bizevents:read</code> for custom business events</td>
+</tr>
+<tr>
+<td><strong>Mobile App</strong></td>
+<td>At least one mobile application with Dynatrace SDK integrated</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td>Familiarity with MOBL-01 through MOBL-12 recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="sdk-setup-configuration"></a></p>
+<h2>1. SDK Setup &amp; Configuration</h2>
+<p>Best practices for installing and configuring the Dynatrace mobile SDK across iOS, Android, and cross-platform frameworks.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Turn on the New Real User Monitoring Experience</td>
+<td>Environment: Settings &gt; Collect and capture &gt; Real User Monitoring &gt; Enablement and cost control &gt; Mobile &gt; <strong>Enable RUM</strong>; frontend: Settings &gt; Enablement and cost control &gt; <strong>New Real User Monitoring Experience</strong>. Without it the <code>user.events</code> / <code>user.sessions</code> queries return nothing</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-02, MOBL-03</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Enable auto-start for production apps</td>
+<td>iOS: <code>DTXAutoStart = true</code> in Info.plist; Android: <code>autoStart { applicationId(...); beaconUrl(...) }</code> inside a named configuration in the top-level Gradle build file</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-02, MOBL-03</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Keep crash reporting on</td>
+<td>iOS: <code>DTXCrashReportingEnabled = true</code>; Android: on by default -- do not set <code>crashReporting(false)</code></td>
+<td><strong>Critical</strong></td>
+<td>MOBL-02, MOBL-03</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Use Swift Package Manager over CocoaPods for iOS</td>
+<td>Add via Xcode: File &gt; Add Package Dependencies</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-02</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Control the Gradle plugin version deliberately</td>
+<td>Docs recommend <code>version &quot;8.+&quot;</code> in the top-level <code>plugins {}</code> block (minor updates automatic, majors by hand); pin an exact <code>8.x.y</code> if you need reproducible builds</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-03</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Fill in both platform sections of a cross-platform config</td>
+<td>Use the Android and iOS values the instrumentation wizard gives you for each section</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-04</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Use separate Application IDs for prod vs staging</td>
+<td>Android: variant-specific configurations matched with <code>variantFilter</code>; iOS: different Info.plist per scheme</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-03</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Never commit Application IDs or Beacon URLs to public repos</td>
+<td>Store in environment variables or <code>local.properties</code> excluded from version control</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-03</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Enable hybrid monitoring for WebView apps</td>
+<td>iOS: <code>DTXHybridApplication = true</code>; Android: <code>hybridWebView { enabled(true) }</code></td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-02, MOBL-03</td>
+</tr>
+<tr>
+<td>9</td>
+<td>For Flutter: use the downloaded <code>dynatrace.config.yaml</code> at project root</td>
+<td>Apply it with <code>dart run dynatrace_flutter_plugin</code>, and start with <code>Dynatrace().start(MyApp())</code></td>
+<td><strong>Critical</strong></td>
+<td>MOBL-04</td>
+</tr>
+<tr>
+<td>10</td>
+<td>For React Native: re-run <code>npx instrumentDynatrace</code> after config changes</td>
+<td>Changing <code>dynatrace.config.js</code> does not auto-apply; the instrument command must re-run</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-04</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Verify both platforms report for cross-platform apps</td>
+<td>Group <code>user.sessions</code> by <code>os.name</code> and confirm both Android and iOS sessions appear; list frontends with <code>smartscapeNodes &quot;FRONTEND&quot; | filter frontend.type == &quot;mobile&quot;</code>. Classic equivalent: <code>fetch dt.entity.mobile_application</code> -- <strong>not</strong> <code>dt.entity.device_application</code>, which does not exist and returns zero rows</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-04</td>
+</tr>
+</tbody>
+</table>
+<p><a id="crash-reporting-symbolication"></a></p>
+<h2>2. Crash Reporting &amp; Symbolication</h2>
+<p>Best practices for ensuring crash data is complete, readable, and actionable.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Upload dSYM files for every iOS release build</td>
+<td>Preprocess with <code>DTXDssClient -decode</code>, then upload (<code>DTXDssClient -upload</code>, Mobile Symbolication API, Fastlane plugin, or web UI)</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-06</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Upload ProGuard/R8 mapping files for every Android release build</td>
+<td>Not automatic in the Gradle build: use the DSSClient, the Mobile Symbolication API (<code>DssFileManagement</code> token), the Fastlane plugin, or the web UI — from CI</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-03, MOBL-06</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Upload React Native source maps</td>
+<td>Settings &gt; Web and mobile monitoring &gt; Source maps and symbol files &gt; React Native &gt; Upload files (bundle file, name, version)</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-04</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Verify symbolication status after upload</td>
+<td>Settings &gt; Web and mobile monitoring &gt; Source maps and symbol files; pin files you must keep (1 GiB quota); stack traces must show method names, not hex addresses</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-06</td>
+</tr>
+<tr>
+<td>5</td>
+<td>For Bitcode iOS builds: download dSYMs from App Store Connect</td>
+<td>Local dSYMs do not match Apple-recompiled binaries; download from Xcode Organizer</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-06</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Leave OneAgent's R8 keep rules intact</td>
+<td>They ship with the agent and R8 applies them; configure a third-party obfuscator to honor them, and do not filter them out (<code>ignoreFrom</code>)</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-03</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Report handled exceptions via SDK API</td>
+<td>iOS: <code>DTXAction.reportError(withName:error:)</code>; Android: <code>Dynatrace.reportError(name, exception)</code></td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-06</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Use descriptive error names for reported errors</td>
+<td><code>&quot;Payment Failed&quot;</code> not <code>&quot;Error&quot;</code> -- enables meaningful DQL grouping</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-06</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Report errors at catch boundaries, not in utility methods</td>
+<td>Attach full context (user action, screen name) where the error is handled</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-06</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Do not report transient/expected conditions as errors</td>
+<td>Network retries, expected timeouts, and recoverable conditions create noise</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-12</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Set a crash-free target from your baseline</td>
+<td>Community starting bands: &gt; 99.5% healthy, 98-99.5% review, &lt; 98% act; Google Play's user-perceived crash threshold is 1.09% (per user, not per session)</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-10, MOBL-11</td>
+</tr>
+</tbody>
+</table>
+<p><a id="user-action-instrumentation"></a></p>
+<h2>3. User Action Instrumentation</h2>
+<p>Best practices for tracking user interactions accurately and meaningfully.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Instrument SwiftUI with the SwiftUI instrumentor</td>
+<td><code>brew install DTSwiftInstrumentor</code>, then <code>DTSwiftInstrumentor install</code>; add it to CI builds</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-02, MOBL-05</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Rely on Jetpack Compose auto-instrumentation</td>
+<td>On by default from Android Gradle plugin 8.271; add <code>enterAction</code> / <code>leaveAction</code> only for business-level flows</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-03, MOBL-05</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Always call <code>leaveAction()</code> in a finally block</td>
+<td>Forgetting to close an action inflates duration metrics and orphans child events</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-03, MOBL-05</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Use descriptive, stable action names</td>
+<td><code>&quot;Cart: Add Item&quot;</code> not <code>&quot;btn_click&quot;</code> or <code>&quot;button_42&quot;</code></td>
+<td><strong>Critical</strong></td>
+<td>MOBL-05</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Never put dynamic values in action names</td>
+<td><code>&quot;View Product Details&quot;</code> not <code>&quot;View Product #48291&quot;</code> -- dynamic values cause cardinality explosion</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-05</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Never put user IDs or timestamps in action names</td>
+<td>Creates infinite unique names, defeats grouping, and is a privacy risk</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-05</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Use feature-area prefixes in naming convention</td>
+<td><code>&quot;Cart: Add Item&quot;</code>, <code>&quot;Search: Apply Filter&quot;</code>, <code>&quot;Checkout: Submit Order&quot;</code></td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-05</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Use consistent casing across platforms</td>
+<td><code>&quot;Search Products&quot;</code> on both iOS and Android, not mixed case variants</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-05</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Exclude SwiftUI controls that add noise</td>
+<td>The SwiftUI instrumentor supports global and local exclusion of controls</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-02</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Configure user action naming rules in Dynatrace UI</td>
+<td>Mobile app settings &gt; Naming rules (naming or extraction rules on the generated name); test against recent data before deploying</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-05</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Keep action hierarchies shallow</td>
+<td>Parent + one level of child actions (the Flutter plugin allows no deeper)</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-05, MOBL-12</td>
+</tr>
+</tbody>
+</table>
+<p><a id="network-request-monitoring"></a></p>
+<h2>4. Network Request Monitoring</h2>
+<p>Best practices for HTTP monitoring, backend correlation, and network performance optimization.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Instrument backend services with OneAgent, OpenTelemetry, or both</td>
+<td>Required for <code>x-dynatrace</code> / W3C trace-context correlation (W3C from OneAgent for Mobile 8.333); enables end-to-end distributed tracing from device to database</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-07</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Use manual web request tagging for non-standard transports</td>
+<td>Add the header named by <code>Dynatrace.getRequestTagHeader()</code> (<code>x-dynatrace</code>) with a tag from <code>action?.getTagFor(url)</code> (iOS) or <code>action.getRequestTag()</code> / <code>Dynatrace.getRequestTag()</code> (Android) for WebSocket, gRPC, or custom HTTP clients</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-12</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Enable gzip/brotli compression on API responses</td>
+<td>Substantially smaller text payloads</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-07</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Implement response pagination</td>
+<td>Avoid loading entire datasets in a single request</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-07</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Use HTTP/2 or HTTP/3 for multiplexing</td>
+<td>Reduces connection overhead and round trips</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-07</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Implement client-side caching with ETags and Cache-Control</td>
+<td>Prevents redundant network requests for unchanged resources</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-07</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Serve static assets from a CDN</td>
+<td>Reduces DNS, TCP, and TLS times for geographically distributed users</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-07</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Adapt app behavior to connection type</td>
+<td>Reduce image quality, defer non-critical requests, enable offline queueing on slow connections</td>
+<td><strong>Optional</strong></td>
+<td>MOBL-07</td>
+</tr>
+<tr>
+<td>9</td>
+<td>When the backend span dominates a request's <code>duration</code>, investigate the backend</td>
+<td>Use frontend-to-backend correlation to trace into server-side services and database calls; mobile request events carry no DNS/TCP/TLS breakdown</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-07</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Exclude analytics/CDN URLs from SDK monitoring</td>
+<td>iOS <code>DTXURLFilters</code> in Info.plist; Android <code>urlFilters</code> in the plugin's <code>webRequests</code> block (8.339+)</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-12</td>
+</tr>
+</tbody>
+</table>
+<p><a id="session-replay-privacy"></a></p>
+<h2>5. Session Replay &amp; Privacy</h2>
+<p>Best practices for configuring mobile session replay with appropriate privacy controls.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Enable session replay on crash</td>
+<td>App settings &gt; General &gt; Enablement and cost control &gt; <strong>Enable Session Replay on crashes</strong> (no client-side key)</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-08</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Choose the masking level deliberately</td>
+<td>Safest is the default; to use Safe, set <code>MaskingConfiguration(maskingLevelType: .safe)</code> (iOS) or <code>MaskingConfiguration.Safe()</code> (Android) in code</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-08</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Set the production Full Session Replay percentage to 5-10%</td>
+<td>App settings &gt; General &gt; Enablement and cost control; there is no SDK sample rate</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-08</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Set staging/QA sample rate to 100%</td>
+<td>Full coverage for pre-release testing and bug verification</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-08</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Use Safest masking for financial/healthcare apps</td>
+<td>Replays show layout and navigation but no readable content</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-08</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Only use Custom masking when you need to unmask specific elements</td>
+<td>Start with Safest or Safe, move to Custom only for targeted debugging; mask views via <code>MaskingConfiguration</code> (<code>addMaskedView</code> / <code>addMaskedIds</code>), <code>Modifier.dtMask()</code> in Compose, or the <code>data-dtrum-mask</code> tag</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-08</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Temporarily increase sample rate during incidents</td>
+<td>Raise to 50-100% when actively investigating a reported issue; lower again after resolution</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-08</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Monitor Session Replay consumption</td>
+<td>Track it in the license overview (DEM units on classic licensing; your DPS rate card otherwise)</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-08</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Limit what session replay captures (masking, sampling)</td>
+<td>Replay retention is fixed at 35 days in a built-in bucket that cannot currently be modified</td>
+<td><strong>Optional</strong></td>
+<td>MOBL-09</td>
+</tr>
+</tbody>
+</table>
+<p><a id="session-properties-user-tagging"></a></p>
+<h2>6. Session Properties &amp; User Tagging</h2>
+<p>Best practices for enriching sessions with business context and identifying users.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Tag users with opaque IDs, never PII</td>
+<td><code>Dynatrace.identifyUser(&quot;usr_a1b2c3d4&quot;)</code> -- never email addresses, phone numbers, or full names</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-09</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Clear user tag on logout</td>
+<td>iOS: <code>Dynatrace.identifyUser(nil)</code>; Android: <code>Dynatrace.identifyUser(null)</code></td>
+<td><strong>Critical</strong></td>
+<td>MOBL-09</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Report session-property values early in the session</td>
+<td>Call <code>action.reportValue()</code> on an early user action (values must be part of a user action)</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-09</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Keep the property set small and deliberate</td>
+<td>Every property is data you send, store and must justify under data minimization</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-09</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Use enum-like string values for properties</td>
+<td><code>&quot;tier&quot; = &quot;free&quot;</code> not <code>&quot;tier&quot; = &quot;Free Trial Account&quot;</code> -- enables clean aggregation</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-09</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Use consistent property key names across iOS and Android</td>
+<td>Same keys on both platforms so a single DQL query covers both</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-09</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Never store PII in session property values</td>
+<td>A property is stored as sent — treat it like any field you would have to delete on request</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-09</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Report A/B test variants as session properties</td>
+<td><code>action.reportValue(&quot;ab_test_checkout_v2&quot;, &quot;variant_b&quot;)</code> on an open action -- enables correlation with performance/crash data</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-12</td>
+</tr>
+</tbody>
+</table>
+<p><a id="privacy-compliance"></a></p>
+<h2>7. Privacy &amp; Compliance</h2>
+<p>Best practices for GDPR, CCPA, and general data privacy compliance.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Implement opt-in mode for GDPR compliance</td>
+<td><code>DTXUserOptIn = true</code> (iOS) or <code>userOptIn(true)</code> (Android); call <code>applyUserPrivacyOptions</code> after user consent</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-09</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Collect nothing until the user chooses</td>
+<td>In opt-in mode OneAgent sends only a single &quot;Loading <App>&quot; event (device metadata) until <code>applyUserPrivacyOptions</code> is called -- turn off auto-start and start manually after consent if nothing may be sent; <code>PERFORMANCE</code> is the anonymous level a user can choose, <code>USER_BEHAVIOR</code> the full one</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-09</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Rely on OneAgent to persist the applied preferences</td>
+<td>OneAgent persists privacy preferences and re-applies them on restart; the app only needs to ask when no choice exists yet</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-09</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Provide a way to withdraw consent in app settings</td>
+<td>Set data collection level to <code>Off</code> when user revokes consent</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-09</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Handle right-to-erasure requests with the documented deletion routes</td>
+<td>Sensitive Data Center deletion request (UI) or Grail record deletion (API, covers <code>user.events</code>, <code>user.sessions</code>, <code>user.replays</code>)</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-09</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Minimize retained personal data</td>
+<td>RUM data sits in built-in 35-day buckets that cannot currently be modified; set short retention only on data you route yourself (business events) and minimize what the SDK captures</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-09</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Separate crash reporting opt-in from general monitoring</td>
+<td>Crash reporting has its own <code>crashReportingOptedIn</code> flag independent of data collection level</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-09</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Display clear, plain-language consent dialog</td>
+<td>Explain what data is collected, why, and how; provide granular options for Performance vs User Behavior levels</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-09</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Do not plan per-region RUM buckets</td>
+<td>Custom RUM buckets cannot currently be created, so RUM data cannot be split into EU and non-EU buckets with OpenPipeline</td>
+<td><strong>Optional</strong></td>
+<td>MOBL-09</td>
+</tr>
+</tbody>
+</table>
+<p><a id="dashboards-alerting"></a></p>
+<h2>8. Dashboards &amp; Alerting</h2>
+<p>Best practices for operationalizing mobile monitoring with dashboards and alerts.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Include a crash-free rate single-value tile with color thresholds</td>
+<td>Community starting bands: green &gt; 99.5%, yellow 98-99.5%, red &lt; 98% — tune to your baseline</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-11</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Organize dashboard: health at top, trends in middle, drill-down at bottom</td>
+<td>Top: single-value tiles (crash rate, sessions); Middle: timeseries (trends); Bottom: tables (top crashes, slowest actions)</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-11</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Add a dashboard variable for <code>frontend.name</code></td>
+<td>Lets stakeholders filter to their specific app</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-11</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Set default time range to 24 hours with presets for 1h, 6h, 24h, 7d</td>
+<td>Covers most operational use cases without excessive data scanning</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-11</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Alert on high crash rate</td>
+<td>Davis anomaly detector on a DQL crash query (<code>characteristics.has_crash</code>), static threshold such as &gt; 10 crashes per hour</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-11</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Alert on session volume drop</td>
+<td>&lt; 50% of rolling 7-day baseline, severity Warning</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-11</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Alert on slow app launch</td>
+<td>Average app start &gt; 5 seconds over a 15-minute window, severity Warning</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-11</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Alert on high HTTP error rate</td>
+<td>&gt; 5% of mobile requests returning 5xx, severity Critical</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-11</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Use Dynatrace Intelligence for adaptive baselines on performance metrics</td>
+<td>Dynatrace Intelligence automatically learns patterns; add static thresholds only for hard SLA limits</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-11</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Tag mobile app entities with <code>app-type: mobile</code></td>
+<td>Enables the Problem trigger's affected-entity tag filter for mobile-specific problems (or use the custom filter <code>matchesValue(affected_entity_ids, &quot;MOBILE_APPLICATION-*&quot;)</code>)</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-11</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Create audience-specific dashboards</td>
+<td>Developers: 5-min refresh, crash detail; QA: 15-min, crash-free rate by version; Executives: daily KPI snapshot</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-11</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Break down crash rate by <code>app.short_version</code> after every release</td>
+<td>Identifies if a specific release introduced a regression</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-10, MOBL-11</td>
+</tr>
+</tbody>
+</table>
+<p><a id="sdk-performance-optimization"></a></p>
+<h2>9. SDK Performance Optimization</h2>
+<p>Best practices for minimizing SDK overhead on battery, network, and CPU.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Exclude third-party analytics and CDN URLs from monitoring</td>
+<td>iOS <code>DTXURLFilters</code> (Info.plist array, wildcards); Android <code>urlFilters</code> in <code>webRequests</code> (8.339+)</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-12</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Use cost and traffic control for high-traffic production apps</td>
+<td>App settings &gt; General &gt; Enablement and cost control; a lower monitored-session share reduces DEM consumption</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-08, MOBL-12</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Start with full monitoring, reduce only if needed</td>
+<td>Do not prematurely optimize; measure SDK overhead first</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-12</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Set an app-launch target from your baseline</td>
+<td>Community rule-of-thumb bands: &lt; 1s excellent, 1-2s acceptable, 2-5s needs work, &gt; 5s investigate; re-baseline after OneAgent for Mobile 8.347 caps inflated cold starts</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-10, MOBL-11</td>
+</tr>
+</tbody>
+</table>
+<p><a id="advanced-instrumentation"></a></p>
+<h2>10. Advanced Instrumentation</h2>
+<p>Best practices for custom business events, A/B testing, multi-app strategies, and advanced SDK usage.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Use reverse-domain naming for custom business event types</td>
+<td><code>&quot;com.myapp.purchase&quot;</code> not <code>&quot;purchase&quot;</code> -- avoids collisions across apps and services</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-12</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Send business events for conversion-critical interactions</td>
+<td>Purchases, sign-ups, feature usage via <code>sendBizEvent()</code> with structured attributes</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-12</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Report feature flag evaluations as business events</td>
+<td><code>event.type = &quot;com.myapp.feature_flag&quot;</code> with <code>feature.name</code> and <code>feature.variant</code> attributes</td>
+<td><strong>Optional</strong></td>
+<td>MOBL-12</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Use nested actions for multi-step flows</td>
+<td>Parent action wraps the full flow; child actions measure individual steps (validate, submit, confirm)</td>
+<td><strong>Optional</strong></td>
+<td>MOBL-12</td>
+</tr>
+<tr>
+<td>5</td>
+<td>For long-running actions, manage lifecycle explicitly</td>
+<td>Call <code>leaveAction()</code> in completion handler or <code>finally</code> block; do not rely on auto-close timeout</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-12</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Use consistent attribute names across iOS and Android business events</td>
+<td>Same keys on both platforms enable unified DQL queries</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-12</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Never include PII in business event attributes</td>
+<td>No email addresses, phone numbers, or personal data in custom event payloads</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-12</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Use consistent naming prefixes for multi-app organizations</td>
+<td><code>&quot;MyBrand Customer&quot;</code>, <code>&quot;MyBrand Driver&quot;</code>, <code>&quot;MyBrand Admin&quot;</code> for easy DQL filtering</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-12</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Budget DEM units per app based on criticality</td>
+<td>100% monitoring for critical apps; use cost and traffic control for high-traffic secondary apps</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-12</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Attach <code>reportValue()</code> properties to actions for business context</td>
+<td><code>action?.reportValue(withName: &quot;total_price&quot;, doubleValue: 49.99)</code> -- convert to action/session properties in the app settings</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-12</td>
+</tr>
+</tbody>
+</table>
+<p><a id="dql-query-patterns"></a></p>
+<h2>11. DQL Query Patterns</h2>
+<p>Mandatory patterns and filters for querying mobile data in Grail.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Query mobile RUM from <code>user.events</code> / <code>user.sessions</code></td>
+<td>On <code>user.events</code>, <code>filter in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;})</code> separates mobile from web (<code>user.sessions</code>: <code>dt.rum.application.type == &quot;mobile&quot;</code>, after checking it is populated); <code>characteristics.has_*</code> selects the event type. Mobile RUM is <strong>not</strong> in <code>bizevents</code></td>
+<td><strong>Critical</strong></td>
+<td>MOBL-10</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Count sessions on <code>user.sessions</code></td>
+<td>One record per session, so <code>count()</code> is a session count there; on <code>user.events</code> use <code>countDistinct(dt.rum.session.id)</code></td>
+<td><strong>Critical</strong></td>
+<td>MOBL-10</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Compute crash rate at session grain</td>
+<td><code>fetch user.sessions</code> then <code>countIf(error.has_crash == true)</code> over <code>count()</code></td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-10</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Add <code>isNotNull()</code> filters before grouping on optional fields</td>
+<td>Fields like <code>app.short_version</code>, <code>device.model.identifier</code>, <code>device.manufacturer</code> may be null; filter first to avoid noise</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-10</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Query mobile app entities for inventory</td>
+<td>Preferred: <code>smartscapeNodes &quot;FRONTEND&quot; | filter frontend.type == &quot;mobile&quot;</code>. Classic fallback (still functional): <code>fetch dt.entity.mobile_application</code>. No time range needed; returns current state. <code>dt.entity.device_application</code> does not exist -- it returns zero rows, not an error</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-10</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Filter crashes with <code>characteristics.has_crash</code></td>
+<td>Reported errors are <code>characteristics.has_error</code> with <code>characteristics.is_api_reported</code> -- distinguish between the two</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-06, MOBL-10</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Always specify explicit time ranges</td>
+<td><code>fetch user.events, from:-1h</code> or <code>from:-24h</code> -- never rely on the default 2-hour window</td>
+<td><strong>Critical</strong></td>
+<td>MOBL-10</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Segment by <code>app.short_version</code> for release monitoring</td>
+<td>Enables crash rate and performance comparison across releases</td>
+<td><strong>Recommended</strong></td>
+<td>MOBL-10</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Priority Summary</h2>
+<table>
+<thead>
+<tr>
+<th>Priority</th>
+<th>Count</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Critical</strong></td>
+<td>47</td>
+<td>Must implement -- failure to do so causes data loss, security risk, broken monitoring, or compliance violation</td>
+</tr>
+<tr>
+<td><strong>Recommended</strong></td>
+<td>52</td>
+<td>Should implement -- significantly improves data quality, operational efficiency, or user experience</td>
+</tr>
+<tr>
+<td><strong>Optional</strong></td>
+<td>5</td>
+<td>Nice to have -- advanced capabilities for mature mobile monitoring programs</td>
+</tr>
+</tbody>
+</table>
+<h3>Implementation Order</h3>
+<ol>
+<li><strong>First</strong>: All Critical items in SDK Setup, Crash Reporting, and Privacy sections</li>
+<li><strong>Second</strong>: Critical items in User Action Instrumentation and Dashboards/Alerting</li>
+<li><strong>Third</strong>: All Recommended items</li>
+<li><strong>Last</strong>: Optional items for advanced use cases</li>
+</ol>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications">Dynatrace Mobile Monitoring Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/instrumentation/get-started-with-ios-monitoring">iOS SDK Integration Guide</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app">Instrument Android apps (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic">Session Replay for Mobile</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/additional-configuration/configure-rum-privacy-mobile">Mobile SDK Privacy Settings</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

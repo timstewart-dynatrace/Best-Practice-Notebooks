@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AUTOM-99: Best Practice Summary</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">AUTOM — Dynatrace Automation</a><span class="sep">/</span><span aria-current="page">AUTOM-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>AUTOM-99: Best Practice Summary</h1>
+<blockquote>
+<p><strong>Series:</strong> AUTOM — Dynatrace Automation | <strong>Notebook:</strong> 99 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/02/2026</p>
+</blockquote>
+<p>This notebook consolidates every actionable best practice from the AUTOM series (notebooks 01-09) into a single reference. Each practice is definitive: it tells you exactly what to set, not what to consider.</p>
+<p>Use this as a checklist when designing, implementing, or auditing Dynatrace configuration automation.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#authentication">Authentication &amp; Token Management</a></li>
+<li><a href="#settings-api">Settings API</a></li>
+<li><a href="#monaco">Monaco Configuration-as-Code</a></li>
+<li><a href="#terraform">Terraform Infrastructure-as-Code</a></li>
+<li><a href="#workflows">Dynatrace Workflows</a></li>
+<li><a href="#sdks">SDKs &amp; Programmatic Access</a></li>
+<li><a href="#cicd-gitops">CI/CD &amp; GitOps</a></li>
+<li><a href="#governance">Governance Architecture</a></li>
+<li><a href="#migration">Migration Automation</a></li>
+<li><a href="#tool-selection">Tool Selection</a></li>
+<li><a href="#community-resources">Community Resources</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AUTOM Series</strong></td>
+<td>Familiarity with AUTOM-01 through AUTOM-09</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS tenant with admin access</td>
+</tr>
+<tr>
+<td><strong>Automation Tooling</strong></td>
+<td>Monaco CLI, Terraform CLI, or both installed</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="authentication"></a></p>
+<h2>1. Authentication &amp; Token Management</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Use least-privilege scopes</td>
+<td>Grant only <code>settings.read</code>, <code>settings.write</code>, <code>ReadConfig</code>, <code>WriteConfig</code> for config tools. Add <code>ExternalSyntheticIntegration</code> only when managing synthetics.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Configure a platform credential <strong>and</strong> a classic API token</td>
+<td>A Platform Token <strong>or</strong> an OAuth client covers Settings 2.0 and platform resources (Workflows, Documents, Segments); with the Terraform provider set <code>DYNATRACE_HTTP_OAUTH_PREFERENCE=true</code> when using a Platform Token for those. A classic API Token (<code>dt0c01.*</code>) is still required for Synthetics and <code>dynatrace_slo_v2</code>. Account IAM resources need an OAuth client (<code>client_id</code>, <code>client_secret</code>, <code>account_id</code>). In Monaco, reference them as <code>auth.token</code> plus <code>auth.platformToken</code> or <code>auth.oAuth</code> — access and platform tokens are not interchangeable.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Never hardcode tokens</td>
+<td>Store tokens in environment variables, HashiCorp Vault, AWS Secrets Manager, or equivalent secret store.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Separate tokens per environment</td>
+<td>Create distinct tokens for dev, staging, and production tenants. Never share tokens across environments.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Rotate tokens on a schedule</td>
+<td>Set a rotation cadence (e.g., 90 days). For short-lived tokens, retrieve from Vault at pipeline runtime.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Prefer Platform Tokens over classic Access Tokens</td>
+<td>Platform Tokens scope to the user's existing permissions and simplify token management.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Authenticate pipelines as a service user</td>
+<td>Issue a platform token for a service user (AUTOM-96), or create an OAuth client whose subject user is that service user — never a person's own credentials. Account IAM resources need an OAuth client: platform tokens can't be used for IAM (Account Management).</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients">OAuth clients (DT docs)</a> — <em>&quot;This needs to be an active user, and either a service user or any user with account-user-management permission.&quot;</em>; <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens">Platform tokens (DT docs)</a> — <em>&quot;They can be assigned to the user creating them or to a service user that the creating user has access to.&quot;</em>; <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md">Provider configuration (Dynatrace GitHub)</a> — <em>&quot;Platform tokens can't be used for IAM (Account Management) or classic resources.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<p><a id="settings-api"></a></p>
+<h2>2. Settings API</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Use Settings 2.0 API for all new configuration</td>
+<td>Endpoint: <code>/api/v2/settings/objects</code>. Do not use Classic Config API for new configs.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Discover schemas before creating objects</td>
+<td>Call <code>GET /api/v2/settings/schemas</code> to find the correct <code>schemaId</code>, then <code>GET /api/v2/settings/schemas/{schemaId}</code> for field requirements.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use bulk POST for multiple objects</td>
+<td>Send an array of objects in a single <code>POST /api/v2/settings/objects</code> call instead of individual requests.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Check before create (idempotency)</td>
+<td>Query for existing objects by <code>schemaIds</code> and <code>scopes</code> before creating. Use <code>PUT</code> for updates (idempotent), not <code>POST</code>.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Implement exponential backoff on 429</td>
+<td>Retry with increasing delay when rate-limited, and throttle bulk operations client-side. Dynatrace documents no fixed request rate: <code>429</code> means the environment's request thread pool and its queue are full, so the limit depends on load.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Track object IDs for lifecycle management</td>
+<td>Store returned <code>objectId</code> values for subsequent update and delete operations.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Review existing objects as examples</td>
+<td>Before writing new config, <code>GET /api/v2/settings/objects?schemaIds=&lt;schema&gt;</code> to see the structure of existing objects in your tenant.</td>
+<td>Optional</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/basics/access-limit">Access limit (DT docs)</a> — <em>&quot;You reach the limit when both thread pool and its queue are full or the request times out in the queue (timeout is 10 seconds).&quot;</em></sub></p>
+</blockquote>
+<hr />
+<p><a id="monaco"></a></p>
+<h2>3. Monaco Configuration-as-Code</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Always run <code>monaco deploy --dry-run</code> before deploy</td>
+<td>Monaco has no <code>validate</code> command. <code>monaco deploy manifest.yaml --dry-run</code> parses YAML, checks template JSON and resolves references <strong>without contacting the tenant</strong> — it cannot catch payload errors, so a deploy can still fail with HTTP 400 after a clean dry-run.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use environment variables for auth</td>
+<td>Set <code>DT_TENANT_URL</code> and <code>DT_API_TOKEN</code> as env vars. In <code>manifest.yaml</code>, <code>auth.token.name</code> holds the <strong>variable name</strong>, never the token.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use meaningful config IDs</td>
+<td>IDs should describe the config purpose (e.g., <code>production-segment</code>, <code>web-app-problem-routing</code>). These IDs are how Monaco tracks objects.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use <code>manifest.yaml</code> for multi-environment setup</td>
+<td>Define all environments in <code>environmentGroups</code> with separate URL/token env vars per environment.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use environment-specific overrides</td>
+<td>Add <code>environmentOverrides</code> (or <code>groupOverrides</code>) at the config level, sibling of <code>config:</code>, to vary values (e.g., <code>delay_minutes: 1</code> for prod, <code>5</code> for staging).</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use <code>skip</code> with overrides for env-specific configs</td>
+<td><code>skip</code> is a boolean on <code>config:</code>; set a default and flip it per environment or environment group in <code>environmentOverrides</code> / <code>groupOverrides</code>.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use projects to group related configs</td>
+<td>Put related configs in one project and deploy it with <code>--project</code>. <code>--group</code> selects manifest <strong>environment groups</strong>, not configs; there is no per-config <code>group:</code> key.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use reference parameters for ordering</td>
+<td>Reference other configs with <code>[&quot;&lt;project&gt;&quot;, &quot;&lt;configType&gt;&quot;, &quot;&lt;configId&gt;&quot;, &quot;id&quot;]</code> (for settings, <code>configType</code> is the schema ID) so Monaco deploys the dependency first.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Modular directory structure</td>
+<td>Separate configs by domain: <code>segments/</code>, <code>workflows/</code>, <code>slo-v2/</code> (classic estates: <code>management-zones/</code>, <code>alerting-profiles/</code> until the upgrade).</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Download before creating from scratch</td>
+<td>Run <code>monaco download</code> to get the current state, then modify the exported YAML.</td>
+<td>Optional</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="terraform"></a></p>
+<h2>4. Terraform Infrastructure-as-Code</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pin the provider version</td>
+<td><code>version = &quot;~&gt; 1.105&quot;</code> in <code>required_providers</code> block (AUTOM-04), and commit <code>.terraform.lock.hcl</code> so every run uses the same provider build (AUTOM-96). Never use unpinned versions.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use remote state storage</td>
+<td>Configure <code>backend &quot;s3&quot;</code> or <code>terraform.cloud</code> block. Never use local state for teams.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Enable state locking</td>
+<td>Use the S3 backend with <code>use_lockfile = true</code> (Terraform 1.11+; DynamoDB-based locking is deprecated), HCP Terraform, or an equivalent locking backend to prevent concurrent applies.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Always run <code>terraform plan</code> before <code>terraform apply</code></td>
+<td>Review the plan output for every change. Automate plan-as-PR-comment in CI.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use dual auth for full resource coverage</td>
+<td>Configure both <code>dt_api_token</code> (for Synthetics and the classic <code>dynatrace_slo_v2</code>) and a platform token or OAuth client (for Gen3 resources, including <code>dynatrace_platform_slo</code>; OAuth <code>client_id</code>/<code>client_secret</code>/<code>account_id</code> for IAM). The provider routes each resource to the correct auth method.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use modules for reusable patterns</td>
+<td>Create modules for standard patterns (e.g., <code>modules/slo/</code>, <code>modules/problem-routing/</code> — see AUTOM-09 §5; classic <code>modules/alerting-profile/</code>-style modules only while the tenant is unupgraded).</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use variable validation in modules</td>
+<td>Add <code>validation</code> blocks to enforce naming, environment values, and delay constraints at module input.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use a directory per environment</td>
+<td><code>envs/dev/</code>, <code>envs/staging/</code>, <code>envs/prod/</code>, each with its own backend and credentials (AUTOM-09 §6). CLI workspaces are not appropriate when environments need separate credentials and access controls.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Import existing resources into state</td>
+<td>Write the HCL block first, then <code>terraform import &lt;resource&gt; &quot;&lt;object-id&gt;&quot;</code>. Never recreate what already exists.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use <code>terraform state rm</code> to detach without deleting</td>
+<td>When you need to stop managing a resource without destroying it.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Format code with <code>terraform fmt</code></td>
+<td>Run before every commit for consistent HCL formatting.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use the export utility for brownfield adoption</td>
+<td>Run <code>DYNATRACE_TARGET_FOLDER=./exported ./terraform-provider-dynatrace -export -ref -id</code> to generate HCL from existing configs (the output folder comes from <code>DYNATRACE_TARGET_FOLDER</code>; there is no <code>-target-folder</code> flag).</td>
+<td>Optional</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://developer.hashicorp.com/terraform/language/backend/s3">S3 backend (Terraform docs)</a> — <em>&quot;DynamoDB-based locking is deprecated and will be removed in a future minor version.&quot;</em>; <a href="https://github.com/hashicorp/terraform/releases/tag/v1.11.0">Terraform v1.11.0 release notes (HashiCorp GitHub)</a> — <em>&quot;S3 native state locking is now generally available.&quot;</em>; <a href="https://developer.hashicorp.com/terraform/language/state/workspaces">Workspaces (Terraform docs)</a> — <em>&quot;Workspaces are not appropriate for system decomposition or deployments requiring separate credentials and access controls.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<p><a id="workflows"></a></p>
+<h2>5. Dynatrace Workflows</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>One workflow, one purpose</td>
+<td>Each workflow handles a single responsibility (e.g., &quot;problem email notification&quot; not &quot;do everything on problem&quot;).</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Make tasks idempotent</td>
+<td>Tasks must be safe to run multiple times without side effects (e.g., check if ticket exists before creating).</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Store secrets in Credential Vault</td>
+<td>Use Dynatrace Credential Vault for API keys, webhook URLs, and integration tokens. Never hardcode secrets in workflow YAML or JavaScript.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Scope triggers narrowly</td>
+<td>Filter triggers by entity tag (ownership), problem category, severity, and a custom DQL filter — management-zone scoping is classic. Do not trigger on all problems.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Add retries on external calls</td>
+<td>Set the task retry <code>count</code> (1–99) and <code>delay</code> in <strong>seconds</strong> (1–3600) on HTTP tasks and external integrations — e.g., count 3, delay 30.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Route errors to a handler task</td>
+<td>Add a handler task whose condition is the upstream task's state (<code>states: {api_call: ERROR}</code> / Terraform <code>conditions { states = { api_call = &quot;ERROR&quot; } }</code>). Workflows have no <code>on_error</code> construct.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Validate entity type before remediation</td>
+<td>Check <code>entity.type</code> in a JavaScript task before executing remediation (e.g., only restart <code>PROCESS_GROUP_INSTANCE</code>, not hosts).</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Debounce flapping alerts</td>
+<td>Add delays or deduplication checks for alerts that open/close rapidly.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use manual triggers for testing</td>
+<td>Test workflow logic with manual triggers before enabling detected-problem triggers.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Log all remediation actions</td>
+<td>Ensure every auto-remediation action writes to the Dynatrace audit trail and comments on the originating problem.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use sub-workflows for reusable logic</td>
+<td>Extract common patterns (e.g., &quot;create ITSM ticket&quot;) into sub-workflows callable from multiple parent workflows.</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>Use approval gates for risky remediations</td>
+<td>Enable built-in Approval Requests for actions like scaling, restarts, or config changes.</td>
+<td>Optional</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="sdks"></a></p>
+<h2>6. SDKs &amp; Programmatic Access</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Use environment variables for credentials</td>
+<td>Set <code>DT_URL</code> and <code>DT_API_TOKEN</code> as environment variables. Never pass tokens as function arguments or config literals.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Handle paginated responses</td>
+<td>Always iterate through all pages. Check for <code>nextPageKey</code> in responses and loop until exhausted.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Implement rate limiting</td>
+<td>Throttle client-side with a rate-limiting decorator/wrapper (AUTOM-06) and back off exponentially on <code>429</code>. Dynatrace documents no fixed request rate — the limit depends on load (§2).</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use type-safe SDK clients</td>
+<td>Use the TypeScript <code>@dynatrace-sdk/*</code> clients (e.g., <code>@dynatrace-sdk/client-query</code>) in Dynatrace apps and functions. Dynatrace publishes no Python SDK package — Python automation calls the REST APIs directly.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Wrap API calls in error handlers</td>
+<td>Catch errors around every call; log the HTTP status and message (<code>requests</code>: <code>raise_for_status()</code>). Re-raise what you cannot handle.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Add structured logging</td>
+<td>Log request method, endpoint, status code, and duration for every API call.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use MCP Server for AI-assisted access</td>
+<td>Connect Dynatrace MCP Server to Claude Code, GitHub Copilot, or Amazon Q for natural-language queries against your tenant.</td>
+<td>Optional</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="cicd-gitops"></a></p>
+<h2>7. CI/CD &amp; GitOps</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Store all config in Git</td>
+<td>Every Dynatrace configuration (Monaco YAML, Terraform HCL) lives in version control. No exceptions.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Require PR reviews for production changes</td>
+<td>Enable branch protection on <code>main</code>. Require at least 1 approval. Use CODEOWNERS for Dynatrace config paths.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Mask all tokens in CI/CD</td>
+<td>Store tokens as masked secrets in GitHub Actions, GitLab CI, or equivalent. Never echo tokens in logs.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Validate on every PR</td>
+<td>Run <code>monaco deploy --dry-run</code> or <code>terraform validate</code> + <code>terraform plan</code> on every pull request. Post plan output as PR comment.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Deploy only from main branch</td>
+<td>Gate <code>terraform apply</code> and <code>monaco deploy</code> to run only on push to <code>main</code> (not on PR branches).</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use staged rollout: dev, staging, production</td>
+<td>Deploy to dev first, then staging, then production. Require manual approval gate before production.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Schedule drift detection</td>
+<td>Run <code>terraform plan -detailed-exitcode</code> on a cron schedule (e.g., weekdays 6am UTC). Exit code <code>2</code> means drift. Auto-create GitHub Issue on drift.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use Vault for runtime credentials</td>
+<td>Retrieve tokens at pipeline runtime from HashiCorp Vault using OIDC/JWT auth instead of static CI/CD secrets.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use reusable workflows for multi-repo orgs</td>
+<td>Define a shared <code>workflow_call</code> workflow that all team repos invoke. Standardizes plan/apply across the organization.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Send deployment events to Dynatrace</td>
+<td><code>POST /api/v2/events/ingest</code> with <code>eventType: CUSTOM_DEPLOYMENT</code>, commit SHA, and branch name after every deploy.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use Kustomize overlays for Operator GitOps</td>
+<td>Base DynaKube config + per-cluster patches via <code>patches:</code> (<code>patchesStrategicMerge</code> is deprecated in Kustomize). Use <code>apiVersion: dynatrace.com/v1beta6</code>.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Encrypt K8s secrets in Git</td>
+<td>Use Sealed Secrets, SOPS, or External Secrets Operator. Never commit plaintext Dynatrace tokens to Git.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use a PR template for config changes</td>
+<td>Include sections: Description, Type of Change, Environments Affected, Validation Checklist, Rollback Plan.</td>
+<td>Optional</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="governance"></a></p>
+<h2>8. Governance Architecture</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Separate IAM pipeline from config pipeline</td>
+<td>Pipeline A (central team) manages <code>dynatrace_iam_*</code> resources. Pipeline B (LOB teams) manages configs under grants from Pipeline A.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Single service account writer in production</td>
+<td>Only one SA writes to prod. All humans get read-only. Teams develop in dev/test tenant with UI write access.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Never mix Monaco and Terraform for the same config type</td>
+<td>Choose one tool per configuration domain. Mixing causes state conflicts and unpredictable drift.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Eliminate manual changes alongside automation</td>
+<td>If a config is managed by automation, all changes go through the pipeline. No ClickOps in production.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Always use version control for configs</td>
+<td>Every automation artifact (YAML, HCL, JSON) lives in Git with meaningful commit messages.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use OPA/Conftest for resource type allowlists</td>
+<td>Define a Rego policy that restricts which <code>dynatrace_*</code> resource types each team repo can create.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Enforce mandatory team tagging via policy</td>
+<td>OPA/Sentinel policy requires every resource to include team ownership metadata (e.g., an <code>owner</code> tag, naming prefix; MZ binding on classic tenants).</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Lock down Terraform state file access</td>
+<td>Restrict HCP Terraform workspace permissions. State files can contain OAuth credentials and IAM binding details.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use brokered self-service for Synthetic monitors</td>
+<td>Teams submit declarative requests; a central pipeline owns the environment-wide API token and applies on their behalf. Teams never hold direct API credentials.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use IAM policies for schema-level access</td>
+<td>Manage <code>dynatrace_iam_policy</code> resources with <code>statement_query</code> restricting teams to specific <code>settings:objects:*</code> schemas.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Document v1 API limitations for auditors</td>
+<td>Frame Synthetic v1 API scoping gap as an accepted platform constraint with compensating controls (brokered access, MZ fencing, Sentinel).</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>Use module allowlists in Sentinel</td>
+<td>Restrict Terraform plans to only approved modules, preventing teams from using unapproved resource patterns.</td>
+<td>Optional</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="migration"></a></p>
+<h2>9. Migration Automation</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Export before migrating</td>
+<td>Run <code>monaco download</code> (with an access token <strong>and</strong> a platform token, or platform types are skipped with only a log warning) or <code>terraform-provider-dynatrace -export</code> (naming workflows, segments, documents and platform SLOs explicitly — they are excluded by default) on the source tenant. Keep the full backup.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Re-map hardcoded entity IDs</td>
+<td>Entity IDs do not carry over. Use an entity selector only where the target schema has an <code>entitySelector</code> field; otherwise map source IDs to target IDs or parameterise them per environment (AUTOM-08 §3).</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Validate counts after each migration step</td>
+<td>Compare per-type config counts between two <code>monaco download</code>s — source and target, same credentials including a platform token (AUTOM-08 §6). Settings API counts cover classic schemas only, and only while both tenants are on the same generation. Note: <code>fetch dt.settings</code> is not valid DQL.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Test migration in a non-production tenant first</td>
+<td>Deploy exported config to a dev/test tenant before touching production.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Re-enter credentials manually</td>
+<td>Credential Vault entries, API tokens, SSL certificates, and cloud integration secrets do not migrate. Re-create them in the target.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use Monaco for SaaS-to-SaaS migration</td>
+<td>Download from source; write a target manifest with <code>auth.token</code> plus <code>auth.platformToken</code> (or <code>auth.oAuth</code>) whose project path is the downloaded <code>project/</code> folder; <code>monaco deploy --dry-run</code>; deploy (AUTOM-08 §3).</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use SaaS Upgrade Assistant for Managed-to-SaaS</td>
+<td>Install it from Dynatrace Hub in the target SaaS environment, then upload the environment export from the Managed Cluster Management Console (Environments → Export configuration). It tracks progress, flags failed configurations, and supports bulk edit and partial deployment (AUTOM-08 §5).</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Document non-portable configurations</td>
+<td>Keep a checklist of configs that need manual re-creation: credentials, historic data, private locations, cloud integrations.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use Terraform export for brownfield imports</td>
+<td>Export existing configs to HCL, then manage via Terraform going forward.</td>
+<td>Optional</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant">SaaS Upgrade Assistant (DT docs)</a> — <em>&quot;Choose which configurations you want to migrate and run partial deployment.&quot;</em>; <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources">Manage resources — auth section (DT docs)</a> — <em>&quot;Access tokens and platform tokens are not interchangeable.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<p><a id="tool-selection"></a></p>
+<h2>10. Tool Selection</h2>
+<table>
+<thead>
+<tr>
+<th>Use Case</th>
+<th>Use This Tool</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>One-off configuration change</td>
+<td>Settings API (direct REST)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Repeatable config deployments with GitOps</td>
+<td>Monaco</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Full IaC with state management and drift detection</td>
+<td>Terraform</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Event-driven automation and auto-remediation</td>
+<td>Dynatrace Workflows</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Custom reporting, complex logic, or integrations</td>
+<td>TypeScript <code>@dynatrace-sdk/*</code> (apps, functions) or the REST APIs (Python <code>requests</code>) — there is no official Python SDK</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Tenant-to-tenant migration</td>
+<td>Monaco (download/deploy pattern)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Managed-to-SaaS migration</td>
+<td>SaaS Upgrade Assistant</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>AI-assisted querying and triage</td>
+<td>Dynatrace MCP Server</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>Team already uses Terraform for infrastructure</td>
+<td>Terraform (extend existing IaC)</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Team needs lowest barrier to entry</td>
+<td>Monaco (YAML, simple CLI)</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<h3>Anti-Patterns</h3>
+<table>
+<thead>
+<tr>
+<th>Anti-Pattern</th>
+<th>Consequence</th>
+<th>Correct Approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mixing Monaco and Terraform for the same config type</td>
+<td>State conflicts, unpredictable drift</td>
+<td>Choose one tool per config domain</td>
+</tr>
+<tr>
+<td>Manual UI changes alongside automation</td>
+<td>Configuration drift, lost changes</td>
+<td>All changes go through the pipeline</td>
+</tr>
+<tr>
+<td>No version control for configs</td>
+<td>No rollback, no audit trail</td>
+<td>Store everything in Git</td>
+</tr>
+<tr>
+<td>Hardcoded secrets in config files</td>
+<td>Security breach risk</td>
+<td>Use env vars, Vault, or secret managers</td>
+</tr>
+<tr>
+<td>Distributing environment-wide write tokens to teams</td>
+<td>No access isolation</td>
+<td>Use brokered self-service or scoped OAuth</td>
+</tr>
+<tr>
+<td>Using <code>fetch dt.metrics</code> in DQL</td>
+<td>Invalid command</td>
+<td>Use <code>timeseries</code> for metrics</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="community-resources"></a></p>
+<h2>11. Community Resources</h2>
+<p>Key GitHub repositories organized by tool, providing starter templates, working examples, and hands-on exercises.</p>
+<h3>Monaco Repositories</h3>
+<table>
+<thead>
+<tr>
+<th>Repository</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/Dynatrace/dynatrace-configuration-as-code">dynatrace-configuration-as-code</a></td>
+<td>Official Monaco CLI (v2.30.0, released 09/23/2026, at time of writing)</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code">community-examples — configuration-as-code</a></td>
+<td>Monaco samples, e.g. <code>basic-templates-monaco</code>, pipeline-observability and access-control configs. Replaces the archived <code>dynatrace-configuration-as-code-samples</code> repo</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/easytrade">easytrade</a></td>
+<td>Real-world Monaco project structure (manifest.yaml, detection rules, workflows)</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/Dynatrace-Config-Manager">Dynatrace-Config-Manager</a></td>
+<td><strong>Archived, no longer maintained</strong> — former GUI tool for tenant-to-tenant config migration; historical reference only</td>
+</tr>
+<tr>
+<td><a href="https://github.com/dynatrace-ace/monaco-self-paced-exercises">monaco-self-paced-exercises</a></td>
+<td>6 structured hands-on exercises</td>
+</tr>
+</tbody>
+</table>
+<h3>Terraform Repositories</h3>
+<table>
+<thead>
+<tr>
+<th>Repository</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace">terraform-provider-dynatrace</a></td>
+<td>Official provider (v1.105.0 released 09/23/2026 at time of writing — check the registry for newer) with export capability</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code">community-examples — configuration-as-code</a></td>
+<td>Terraform samples, e.g. <code>basic-templates-terraform</code>, <code>terraform_modules</code>, <code>terraform_dql_example</code>, <code>terraform_team_onboarding</code>, <code>iam_tf_sample</code></td>
+</tr>
+</tbody>
+</table>
+<h3>CI/CD &amp; Platform Engineering</h3>
+<table>
+<thead>
+<tr>
+<th>Repository</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/Dynatrace/dynatrace-automation-tools">dynatrace-automation-tools</a></td>
+<td><strong>Archived, no longer maintained</strong> — former SRG + Events CLI for CI/CD pipelines; its README points to <a href="https://github.com/dynatrace-oss/dtctl">dtctl</a> for similar use cases</td>
+</tr>
+<tr>
+<td><a href="https://github.com/dynatrace-perfclinics/platform-engineering-demo">platform-engineering-demo</a></td>
+<td>Full IDP reference: ArgoCD + Backstage + Keptn + Dynatrace</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/demo-crossplane">demo-crossplane</a></td>
+<td>Crossplane + Terraform GitOps pattern</td>
+</tr>
+<tr>
+<td><a href="https://github.com/dt-demos/monaco-demo">monaco-demo</a></td>
+<td>Working GitHub Actions workflow for Monaco deploy</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/obslab-release-validation">obslab-release-validation</a></td>
+<td>Release validation with k6, business events, and SRG</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Archive status checked 10/02/2026.</strong> <code>dynatrace-configuration-as-code-samples</code>, <code>Dynatrace-Config-Manager</code> and <code>dynatrace-automation-tools</code> are archived. The <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code-samples">samples repo's README (Dynatrace GitHub)</a> says <em>&quot;They now live in Dynatrace Community Examples&quot;</em>, under its <code>configuration-as-code/</code> folder — use that folder instead.</p>
+</blockquote>
+<hr />
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

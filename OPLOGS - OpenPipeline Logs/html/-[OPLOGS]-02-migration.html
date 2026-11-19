@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPLOGS-02: Migration to OpenPipeline</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPLOGS — OpenPipeline Logs</a><span class="sep">/</span><span aria-current="page">OPLOGS-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPLOGS-02: Migration to OpenPipeline</h1>
+<blockquote>
+<p><strong>Series:</strong> OPLOGS — OpenPipeline Logs | <strong>Notebook:</strong> 2 of 8 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 11/06/2026</p>
+</blockquote>
+<h2>Planning and Executing Your Log Migration</h2>
+<p>This notebook guides you through assessing your current log environment and planning migration to OpenPipeline v2.0.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#migration-assessment">Migration Assessment</a></li>
+<li><a href="#migration-paths">Migration Paths</a></li>
+<li><a href="#planning-your-openpipeline-configuration">Planning Your OpenPipeline Configuration</a></li>
+<li><a href="#migration-validation">Migration Validation</a></li>
+<li><a href="#common-migration-patterns">Common Migration Patterns</a></li>
+<li><a href="#migration-checklist">Migration Checklist</a></li>
+<li><a href="#summary">📝 Summary</a></li>
+<li><a href="#next-steps">➡️ Next Steps</a></li>
+<li><a href="#references">📚 References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>✅ Access to a Dynatrace environment with log data</li>
+<li>✅ Completed OPLOGS-01 fundamentals</li>
+<li>✅ Knowledge of your current log sources and volumes</li>
+</ul>
+<p><a id="migration-assessment"></a></p>
+<h2>1. Migration Assessment</h2>
+<p>Before migrating, you need to understand your current log landscape.</p>
+<h3>Key Questions to Answer:</h3>
+<ol>
+<li><strong>What log sources do I have?</strong> (OneAgent, API, OTLP)</li>
+<li><strong>What is my log volume?</strong> (records/hour, GB/day)</li>
+<li><strong>Which logs need parsing?</strong> (unstructured content)</li>
+<li><strong>What sensitive data exists?</strong> (PII, credentials)</li>
+<li><strong>What can be dropped?</strong> (debug, health checks)</li>
+</ol>
+<pre><code class="language-dql">// Assessment Query 1: Log sources inventory
+fetch logs, from: now() - 24h
+| summarize {
+    log_count = count(),
+    unique_hosts = countDistinct(dt.entity.host)
+  }, by: {dt.openpipeline.source, log.source}
+| sort log_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Assessment Query 2: Log volume by hour (capacity planning)
+fetch logs, from: now() - 24h
+| makeTimeseries {log_count = count()}, interval: 1h
+</code></pre>
+<pre><code class="language-dql">// Assessment Query 3: Log level distribution
+// status groups levels (SEVERE/CRITICAL/FATAL… → ERROR; DEBUG/TRACE/NOTICE → INFO),
+// so DEBUG/TRACE are split out of info to keep each record in exactly one bucket
+fetch logs, from: now() - 24h
+| summarize {
+    total = count(),
+    errors = countIf(status == &quot;ERROR&quot;),
+    warnings = countIf(status == &quot;WARN&quot;),
+    info = countIf(status == &quot;INFO&quot; AND NOT in(loglevel, {&quot;DEBUG&quot;, &quot;TRACE&quot;})),
+    debug = countIf(in(loglevel, {&quot;DEBUG&quot;, &quot;TRACE&quot;})),
+    none = countIf(status == &quot;NONE&quot;)
+  }
+| fieldsAdd debug_pct = round((toDouble(debug) / toDouble(total)) * 100, decimals: 1)
+| fieldsAdd none_pct = round((toDouble(none) / toDouble(total)) * 100, decimals: 1)
+</code></pre>
+<pre><code class="language-dql">// Assessment Query 4: Identify logs that need parsing (loglevel = NONE)
+fetch logs, from: now() - 1h
+| filter loglevel == &quot;NONE&quot; OR status == &quot;NONE&quot;
+| fieldsAdd content_preview = substring(content, from: 0, to: 80)
+| summarize {count = count()}, by: {content_preview, dt.openpipeline.source}
+| sort count desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Assessment Query 5: Potential drop candidates (health checks, heartbeats)
+fetch logs, from: now() - 24h
+| summarize {
+    total = count(),
+    health_checks = countIf(matchesPhrase(content, &quot;health&quot;) OR matchesPhrase(content, &quot;healthcheck&quot;)),
+    heartbeats = countIf(matchesPhrase(content, &quot;heartbeat&quot;)),
+    debug_logs = countIf(loglevel == &quot;DEBUG&quot;),
+    // one countIf, so a record matching two conditions is counted once
+    droppable = countIf(matchesPhrase(content, &quot;health&quot;) OR matchesPhrase(content, &quot;healthcheck&quot;) OR matchesPhrase(content, &quot;heartbeat&quot;) OR loglevel == &quot;DEBUG&quot;)
+  }
+| fieldsAdd savings_pct = round((toDouble(droppable) / toDouble(total)) * 100, decimals: 1)
+</code></pre>
+<p><a id="migration-paths"></a></p>
+<h2>2. Migration Paths</h2>
+<h3>The one thing every path has in common</h3>
+<p>Log records keep arriving through the same ingest sources (OneAgent, <code>/api/v2/logs/ingest</code>, OTLP) whichever path you take. What changes is <strong>where they are processed</strong>. Until a dynamic route sends a record to one of your pipelines, it falls through to the default route — and on a tenant where the classic pipeline exists, that means the classic processing rules:</p>
+<blockquote>
+<p><em>&quot;Data that doesn't match is processed by the default route and continues to be processed by the classic pipeline until you turn off the rules.&quot;</em></p>
+</blockquote>
+<p>So the migration is: build pipelines, add routes for each data set, compare the output with the classic rules, then turn the classic rules off. Records the classic pipeline processed carry the pipeline id <code>logs:default</code> — the query below measures how much is still on it. <code>dt.openpipeline.source</code> and <code>dt.openpipeline.pipelines</code> are populated for classic records too, so an <code>isNotNull()</code> check on them proves nothing.</p>
+<h3>Path A: OneAgent</h3>
+<ol>
+<li>Add dynamic routes for the OneAgent data sets (for example by <code>k8s.namespace.name</code> or <code>log.source</code>) to your pipelines</li>
+<li>Move each data set's classic processing rules into its pipeline</li>
+<li>Watch the <code>logs:default</code> share fall to zero for those sources</li>
+</ol>
+<h3>Path B: Log Ingest API</h3>
+<ol>
+<li>Keep using the <code>/api/v2/logs/ingest</code> endpoint — no client change</li>
+<li>Route the API data sets (<code>dt.openpipeline.source == &quot;/api/v2/logs/ingest&quot;</code>) to your pipelines</li>
+<li>Move their processing rules</li>
+</ol>
+<h3>Path C: OTLP</h3>
+<ol>
+<li>Point OTLP exporters at <code>/api/v2/otlp/v1/logs</code></li>
+<li>Route by <code>dt.openpipeline.source == &quot;/api/v2/otlp/v1/logs&quot;</code> (or resource attributes) to your pipelines</li>
+<li>Configure OTLP-specific processing there</li>
+</ol>
+<p>OPMIG-09 covers the full classic-pipeline cut-over, including the business-events scope.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/upgrade-your-data-pipeline/migration-classic-pipeline">Upgrade from classic pipeline to OpenPipeline (DT docs)</a> — the quote above, and the <code>in(dt.openpipeline.pipelines, &quot;logs:default&quot;)</code> filter for records the classic pipeline processed.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// How much log volume is still processed by the classic pipeline, by ingest source.
+// Classic records carry the pipeline id &quot;logs:default&quot;; dt.openpipeline.* is populated
+// for them too, so isNotNull(dt.openpipeline.pipelines) cannot tell the paths apart.
+fetch logs, from: now() - 1h
+| summarize {total = count(), classic = countIf(in(dt.openpipeline.pipelines, &quot;logs:default&quot;))}, by: {dt.openpipeline.source}
+| fieldsAdd classic_pct = round(100.0 * toDouble(classic) / toDouble(total), decimals: 1)
+| sort total desc
+</code></pre>
+<p><a id="planning-your-openpipeline-configuration"></a></p>
+<h2>3. Planning Your OpenPipeline Configuration</h2>
+<h3>Pipeline Strategy</h3>
+<table>
+<thead>
+<tr>
+<th>Use Case</th>
+<th>Pipeline Configuration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Unmatched data</strong></td>
+<td>Falls to the default route — the classic pipeline (<code>logs:default</code>) where it exists; watch its share</td>
+</tr>
+<tr>
+<td><strong>Custom Parsing</strong></td>
+<td>Create pipeline with DPL parse rules</td>
+</tr>
+<tr>
+<td><strong>PII Masking</strong></td>
+<td>Masking processors first in the Processing stage (there is no separate masking stage)</td>
+</tr>
+<tr>
+<td><strong>Cost Reduction</strong></td>
+<td>Add drop rules for noise</td>
+</tr>
+<tr>
+<td><strong>Custom Routing</strong></td>
+<td>Route to specific buckets</td>
+</tr>
+</tbody>
+</table>
+<h3>Bucket Strategy</h3>
+<table>
+<thead>
+<tr>
+<th>Log Type</th>
+<th>Bucket</th>
+<th>Retention</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Production Errors</td>
+<td><code>prod_errors</code></td>
+<td>90 days</td>
+</tr>
+<tr>
+<td>Application Logs</td>
+<td><code>default_logs</code></td>
+<td>35 days</td>
+</tr>
+<tr>
+<td>Debug/Verbose</td>
+<td>Drop or 7 days</td>
+<td>Minimal</td>
+</tr>
+<tr>
+<td>Audit/Compliance</td>
+<td><code>audit_logs</code></td>
+<td>365+ days</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Analyze current bucket usage
+fetch logs, from: now() - 24h
+| summarize {
+    log_count = count(),
+    error_count = countIf(loglevel == &quot;ERROR&quot; OR status == &quot;ERROR&quot;)
+  }, by: {dt.system.bucket}
+| fieldsAdd error_rate = round((toDouble(error_count) / toDouble(log_count)) * 100, decimals: 2)
+| sort log_count desc
+</code></pre>
+<p><a id="migration-validation"></a></p>
+<h2>4. Migration Validation</h2>
+<p>After configuring OpenPipeline, validate that:</p>
+<ol>
+<li>✅ All expected log sources are present</li>
+<li>✅ Log counts are consistent</li>
+<li>✅ Parsing rules extract expected fields</li>
+<li>✅ Masking rules are applied correctly</li>
+<li>✅ Routing sends logs to correct buckets</li>
+</ol>
+<pre><code class="language-dql">// Validation Query 1: Confirm all sources are flowing, and none is left on the classic pipeline
+fetch logs, from: now() - 1h
+| summarize {
+    total = count(),
+    classic = countIf(in(dt.openpipeline.pipelines, &quot;logs:default&quot;)),
+    has_bucket = countIf(isNotNull(dt.system.bucket))
+  }
+| fieldsAdd openpipeline_pct = round((toDouble(total - classic) / toDouble(total)) * 100, decimals: 1)
+</code></pre>
+<pre><code class="language-dql">// Validation Query 2: Check log volume consistency (compare hours)
+fetch logs, from: now() - 4h
+| makeTimeseries {log_count = count()}, by: {dt.openpipeline.source}, interval: 1h
+</code></pre>
+<pre><code class="language-dql">// Validation Query 3: Verify entity context is preserved
+fetch logs, from: now() - 1h
+| summarize {
+    total = count(),
+    with_host = countIf(isNotNull(dt.entity.host)),
+    with_process = countIf(isNotNull(dt.entity.process_group)),
+    with_k8s_cluster = countIf(isNotNull(dt.entity.kubernetes_cluster)),
+    with_k8s_namespace = countIf(isNotNull(k8s.namespace.name))
+  }
+</code></pre>
+<p><a id="common-migration-patterns"></a></p>
+<h2>5. Common Migration Patterns</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icGF0dGVyblBhcnNlR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMzYjgyZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzI1NjNlYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InBhdHRlcm5Ecm9wR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlZjQ0NDQ7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2RjMjYyNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InBhdHRlcm5Sb3V0ZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2Njk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0icGF0dGVyblNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjEiIGR5PSIxIiBzdGREZXZpYXRpb249IjIiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0icGF0dGVybkFycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0MDAiIHk9IjI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Db21tb24gTWlncmF0aW9uIFBhdHRlcm5zPC90ZXh0PgogIDx0ZXh0IHg9IjQwMCIgeT0iNDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VGhyZWUgZXNzZW50aWFsIE9wZW5QaXBlbGluZSBwcm9jZXNzb3IgcGF0dGVybnM8L3RleHQ+CgogIDwhLS0gUGF0dGVybiAxOiBQYXJzZSAtLT4KICA8cmVjdCB4PSIzMCIgeT0iNzAiIHdpZHRoPSIyMzAiIGhlaWdodD0iMjEwIiByeD0iMTAiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHJlY3QgeD0iMzAiIHk9IjcwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjM1IiByeD0iMTAiIGZpbGw9InVybCgjcGF0dGVyblBhcnNlR3JhZCkiLz4KICA8dGV4dCB4PSIxNDUiIHk9Ijk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UGFyc2UgTG9nIExldmVsczwvdGV4dD4KCiAgPHJlY3QgeD0iNTAiIHk9IjExNSIgd2lkdGg9IjE5MCIgaGVpZ2h0PSIzNSIgcng9IjYiIGZpbGw9IiNlMmU4ZjAiLz4KICA8dGV4dCB4PSIxNDUiIHk9IjEzOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5SYXcgTG9nIElucHV0PC90ZXh0PgoKICA8cGF0aCBkPSJNMTQ1LDE1MCBMMTQ1LDE2NSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjcGF0dGVybkFycm93KSIvPgoKICA8cmVjdCB4PSI1MCIgeT0iMTc1IiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjUwIiByeD0iNiIgZmlsbD0idXJsKCNwYXR0ZXJuUGFyc2VHcmFkKSIgZmlsdGVyPSJ1cmwoI3BhdHRlcm5TaGFkb3cpIi8+CiAgPHRleHQgeD0iMTQ1IiB5PSIxOTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EUUwgcHJvY2Vzc29yPC90ZXh0PgogIDx0ZXh0IHg9IjE0NSIgeT0iMjE1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnBhcnNlQWxsKCdbJyBMRDpsZXZlbCAnXScpPC90ZXh0PgoKICA8cGF0aCBkPSJNMTQ1LDIyNSBMMTQ1LDI0MCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjcGF0dGVybkFycm93KSIvPgoKICA8cmVjdCB4PSI1MCIgeT0iMjUwIiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjI1IiByeD0iNiIgZmlsbD0iI2QxZmFlNSIvPgogIDx0ZXh0IHg9IjE0NSIgeT0iMjY3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMwNDc4NTciIHRleHQtYW5jaG9yPSJtaWRkbGUiPmxvZ2xldmVsIGZpZWxkIGV4dHJhY3RlZDwvdGV4dD4KCiAgPCEtLSBQYXR0ZXJuIDI6IERyb3AgLS0+CiAgPHJlY3QgeD0iMjg1IiB5PSI3MCIgd2lkdGg9IjIzMCIgaGVpZ2h0PSIyMTAiIHJ4PSIxMCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZWY0NDQ0IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cmVjdCB4PSIyODUiIHk9IjcwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjM1IiByeD0iMTAiIGZpbGw9InVybCgjcGF0dGVybkRyb3BHcmFkKSIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iOTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Ecm9wIERlYnVnIExvZ3M8L3RleHQ+CgogIDxyZWN0IHg9IjMwNSIgeT0iMTE1IiB3aWR0aD0iODUiIGhlaWdodD0iMzUiIHJ4PSI2IiBmaWxsPSIjZTJlOGYwIi8+CiAgPHRleHQgeD0iMzQ3IiB5PSIxMzgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QWxsIExvZ3M8L3RleHQ+CgogIDxyZWN0IHg9IjQxMCIgeT0iMTE1IiB3aWR0aD0iODUiIGhlaWdodD0iMzUiIHJ4PSI2IiBmaWxsPSIjZDFmYWU1Ii8+CiAgPHRleHQgeD0iNDUyIiB5PSIxMzgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzA0Nzg1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+S2VlcDwvdGV4dD4KCiAgPHBhdGggZD0iTTM0NywxNTAgTDQwMCwxOTAiIHN0cm9rZT0iI2VmNDQ0NCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI3BhdHRlcm5BcnJvdykiLz4KICA8cGF0aCBkPSJNNDUyLDE1MCBMNDAwLDE5MCIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjcGF0dGVybkFycm93KSIvPgoKICA8cmVjdCB4PSIzMDUiIHk9IjE3NSIgd2lkdGg9IjE5MCIgaGVpZ2h0PSI1MCIgcng9IjYiIGZpbGw9InVybCgjcGF0dGVybkRyb3BHcmFkKSIgZmlsdGVyPSJ1cmwoI3BhdHRlcm5TaGFkb3cpIi8+CiAgPHRleHQgeD0iNDAwIiB5PSIxOTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Ecm9wIHJlY29yZDwvdGV4dD4KICA8dGV4dCB4PSI0MDAiIHk9IjIxNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5sb2dsZXZlbCA9PSAiREVCVUciPC90ZXh0PgoKICA8cGF0aCBkPSJNNDAwLDIyNSBMNDAwLDI0MCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjcGF0dGVybkFycm93KSIvPgoKICA8cmVjdCB4PSIzMDUiIHk9IjI1MCIgd2lkdGg9IjE5MCIgaGVpZ2h0PSIyNSIgcng9IjYiIGZpbGw9IiNmZWYyZjIiLz4KICA8dGV4dCB4PSI0MDAiIHk9IjI2NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZGMyNjI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ERUJVRyBkcm9wcGVkIGJlZm9yZSBzdG9yYWdlPC90ZXh0PgoKICA8IS0tIFBhdHRlcm4gMzogUm91dGUgLS0+CiAgPHJlY3QgeD0iNTQwIiB5PSI3MCIgd2lkdGg9IjIzMCIgaGVpZ2h0PSIyMTAiIHJ4PSIxMCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cmVjdCB4PSI1NDAiIHk9IjcwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjM1IiByeD0iMTAiIGZpbGw9InVybCgjcGF0dGVyblJvdXRlR3JhZCkiLz4KICA8dGV4dCB4PSI2NTUiIHk9Ijk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Um91dGUgdG8gQnVja2V0PC90ZXh0PgoKICA8cmVjdCB4PSI1NjAiIHk9IjExNSIgd2lkdGg9IjE5MCIgaGVpZ2h0PSIzNSIgcng9IjYiIGZpbGw9IiNlMmU4ZjAiLz4KICA8dGV4dCB4PSI2NTUiIHk9IjEzOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FcnJvciBMb2dzPC90ZXh0PgoKICA8cGF0aCBkPSJNNjU1LDE1MCBMNjU1LDE2NSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjcGF0dGVybkFycm93KSIvPgoKICA8cmVjdCB4PSI1NjAiIHk9IjE3NSIgd2lkdGg9IjE5MCIgaGVpZ2h0PSI1MCIgcng9IjYiIGZpbGw9InVybCgjcGF0dGVyblJvdXRlR3JhZCkiIGZpbHRlcj0idXJsKCNwYXR0ZXJuU2hhZG93KSIvPgogIDx0ZXh0IHg9IjY1NSIgeT0iMTk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QnVja2V0IGFzc2lnbm1lbnQ8L3RleHQ+CiAgPHRleHQgeD0iNjU1IiB5PSIyMTUiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4oaSIGVycm9yX2xvZ3MgYnVja2V0PC90ZXh0PgoKICA8cGF0aCBkPSJNNjAwLDIyNSBMNTYwLDI1MCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjcGF0dGVybkFycm93KSIvPgogIDxwYXRoIGQ9Ik03MTAsMjI1IEw3NTAsMjUwIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNwYXR0ZXJuQXJyb3cpIi8+CgogIDxyZWN0IHg9IjU2MCIgeT0iMjUwIiB3aWR0aD0iODUiIGhlaWdodD0iMjUiIHJ4PSI2IiBmaWxsPSIjZDFmYWU1Ii8+CiAgPHRleHQgeD0iNjAyIiB5PSIyNjciIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzA0Nzg1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZXJyb3JfbG9nczwvdGV4dD4KCiAgPHJlY3QgeD0iNjY1IiB5PSIyNTAiIHdpZHRoPSI4NSIgaGVpZ2h0PSIyNSIgcng9IjYiIGZpbGw9IiNkYmVhZmUiLz4KICA8dGV4dCB4PSI3MDciIHk9IjI2NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMWU0MGFmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5kZWZhdWx0PC90ZXh0Pgo8L3N2Zz4K" alt="Migration Patterns" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Pattern | Processor | Matcher | Action |
+|---------|-----------|---------|--------|
+| **Parse Log Levels** | DQL | `loglevel == "NONE"` | First supported level among all bracketed tokens (`parseAll(content, "'[' LD:level ']'")`) |
+| **Drop Debug Logs** | Drop record | `loglevel == "DEBUG"` | Remove debug logs before storage |
+| **Route Errors** | Bucket assignment | `status == "ERROR"` | Send to `error_logs` bucket (90d retention) |
+-->
+<h3>Pattern 1: Parse Log Levels from Content</h3>
+<p>When logs have <code>loglevel = NONE</code>, configure a DQL processor to extract the level from content patterns like <code>[INFO]</code> or <code>[ERROR]</code>.</p>
+<p><strong>Processor Configuration:</strong></p>
+<ul>
+<li><strong>Type:</strong> DQL</li>
+<li><strong>Matcher:</strong> <code>loglevel == &quot;NONE&quot;</code></li>
+<li><strong>Statement:</strong></li>
+</ul>
+<pre><code class="language-dql">// parseAll collects every bracketed token: &quot;[2026-10-12 13:20:22][worker:4][INFO]: ...&quot; as well as &quot;2026-10-02 12:00:01 [ERROR] ...&quot;
+fieldsAdd parsed_levels = parseAll(content, &quot;'[' LD:l ']'&quot;)
+| fieldsAdd parsed_level = arrayRemoveNulls(iCollectArray(if(in(upper(parsed_levels[]), {&quot;EMERGENCY&quot;, &quot;ALERT&quot;, &quot;CRITICAL&quot;, &quot;SEVERE&quot;, &quot;ERROR&quot;, &quot;FATAL&quot;, &quot;WARN&quot;, &quot;NOTICE&quot;, &quot;INFO&quot;, &quot;DEBUG&quot;, &quot;TRACE&quot;}), upper(parsed_levels[]))))[0]
+| fieldsAdd loglevel = coalesce(parsed_level, loglevel)
+| fieldsRemove parsed_levels, parsed_level
+</code></pre>
+<blockquote>
+<p><code>parseAll</code> collects every bracketed token; the first one that is a supported level wins, so a leading timestamp or thread name (<code>[2026-…][worker:4][INFO]</code>) does not hide the level. Anything else leaves the record unchanged. Do not use a single <code>parse content, &quot;DATA? '[' LD:level ']'&quot;</code> for this: <code>DATA?</code> consumes ahead and the capture lands on a later bracket (<code>[main] [ERROR] x</code> → <code>x</code>), so on the validation tenant it recovered <strong>0 of 2,171</strong> bracketed NONE-level lines in 30 minutes (10/12/2026). Measure the parse rate at query time (the next cell) before deploying: ingest-time parsing is forward-only.</p>
+<p><code>parseAll</code>, <code>arrayRemoveNulls</code>, <code>coalesce</code>, <code>in</code> and <code>upper</code> are listed among the OpenPipeline DQL processor functions, and <code>iCollectArray</code> among its iterative operators. The statement above was executed at query time (10/12/2026); verify it saves in your pipeline before relying on it.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/openpipeline-dql-functions">DQL functions in OpenPipeline (DT docs)</a> — <em>&quot;These functions apply exclusively to the DQL processor.&quot;</em>, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/openpipeline-dql-operators">DQL operators in OpenPipeline DQL processor (DT docs)</a> — <em>&quot;Collects the results of an iterative expression into an array.&quot;</em></sub></p>
+</blockquote>
+<h3>Pattern 2: Drop Debug Logs</h3>
+<p>Reduce storage costs by dropping DEBUG-level logs before storage.</p>
+<p><strong>Processor Configuration:</strong></p>
+<ul>
+<li><strong>Type:</strong> Drop record</li>
+<li><strong>Matcher:</strong> <code>loglevel == &quot;DEBUG&quot;</code></li>
+</ul>
+<h3>Pattern 3: Route Errors to Dedicated Bucket</h3>
+<p>Send error logs to a dedicated bucket with longer retention for compliance.</p>
+<p><strong>Bucket Routing Configuration:</strong></p>
+<ul>
+<li><strong>Matcher:</strong> <code>status == &quot;ERROR&quot;</code> — <code>status</code> groups SEVERE, CRITICAL, FATAL… with ERROR; <code>loglevel == &quot;ERROR&quot;</code> would miss them</li>
+<li><strong>Bucket:</strong> <code>error_logs</code></li>
+<li><strong>Retention:</strong> 90 days</li>
+</ul>
+<pre><code class="language-dql">// Simulate parsing log levels from content
+fetch logs, from: now() - 1h
+| filter loglevel == &quot;NONE&quot; OR status == &quot;NONE&quot;
+| fieldsAdd parsed_levels = parseAll(content, &quot;'[' LD:l ']'&quot;)
+| fieldsAdd parsed_level = arrayRemoveNulls(iCollectArray(if(in(upper(parsed_levels[]), {&quot;EMERGENCY&quot;, &quot;ALERT&quot;, &quot;CRITICAL&quot;, &quot;SEVERE&quot;, &quot;ERROR&quot;, &quot;FATAL&quot;, &quot;WARN&quot;, &quot;NOTICE&quot;, &quot;INFO&quot;, &quot;DEBUG&quot;, &quot;TRACE&quot;}), upper(parsed_levels[]))))[0]
+| filter isNotNull(parsed_level)
+| fields timestamp, content, parsed_level
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Identify logs that would be dropped (DEBUG + health checks)
+fetch logs, from: now() - 24h
+| filter loglevel == &quot;DEBUG&quot; 
+     OR matchesPhrase(content, &quot;healthcheck&quot;) 
+     OR matchesPhrase(content, &quot;health check&quot;)
+| summarize {would_drop = count()}, by: {dt.openpipeline.source}
+| sort would_drop desc
+</code></pre>
+<p><a id="migration-checklist"></a></p>
+<h2>6. Migration Checklist</h2>
+<h3>Pre-Migration</h3>
+<ul>
+<li>[ ] Document current log sources and volumes</li>
+<li>[ ] Identify logs requiring custom parsing</li>
+<li>[ ] List sensitive data patterns to mask</li>
+<li>[ ] Define drop rules for noise reduction</li>
+<li>[ ] Plan bucket strategy and retention</li>
+</ul>
+<h3>During Migration</h3>
+<ul>
+<li>[ ] Configure OpenPipeline settings</li>
+<li>[ ] Create custom pipelines as needed</li>
+<li>[ ] Set up masking rules</li>
+<li>[ ] Configure bucket routing</li>
+<li>[ ] Test with sample data</li>
+</ul>
+<h3>Post-Migration</h3>
+<ul>
+<li>[ ] Validate all log sources flowing</li>
+<li>[ ] Verify volume consistency</li>
+<li>[ ] Confirm parsing rules working</li>
+<li>[ ] Test masking is applied</li>
+<li>[ ] Update dashboards and alerts</li>
+<li>[ ] Update saved queries to use new fields</li>
+</ul>
+<hr />
+<p><a id="summary"></a></p>
+<h2>📝 Summary</h2>
+<p>In this notebook, you learned:</p>
+<p>✅ <strong>Assessment queries</strong> to understand your current log environment<br />
+✅ <strong>Migration paths</strong> for OneAgent, API, and OTLP sources<br />
+✅ <strong>Pipeline planning</strong> strategies for processing and routing<br />
+✅ <strong>Validation queries</strong> to confirm successful migration<br />
+✅ <strong>Common patterns</strong> for parsing, dropping, and routing</p>
+<hr />
+<p><a id="next-steps"></a></p>
+<h2>➡️ Next Steps</h2>
+<p>Continue to <strong>OPLOGS-03: OpenPipeline Processing</strong> to configure parsing, enrichment, extraction and bucket routing.</p>
+<hr />
+<p><a id="references"></a></p>
+<h2>📚 References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline">OpenPipeline (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/log-monitoring-v2/post-ingest-logs">Log Monitoring API v2 - POST ingest logs (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-logs">Ingest OTLP logs (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

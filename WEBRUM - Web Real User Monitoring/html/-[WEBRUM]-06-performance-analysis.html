@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WEBRUM-06: Performance Analysis</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">WEBRUM — Web Real User Monitoring</a><span class="sep">/</span><span aria-current="page">WEBRUM-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>WEBRUM-06: Performance Analysis</h1>
+<blockquote>
+<p><strong>Series:</strong> WEBRUM — Web Real User Monitoring | <strong>Notebook:</strong> 6 of 10 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/31/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Web performance directly impacts user experience, conversion rates, and SEO rankings. While Core Web Vitals (covered in WEBRUM-03) provide high-level scoring, a deeper performance analysis requires understanding the full page load waterfall — from DNS lookup to load complete — and how performance varies across geographies, network conditions, and device types.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#page-load-waterfall">Page Load Waterfall</a></li>
+<li><a href="#ttfb">Time to First Byte (TTFB)</a></li>
+<li><a href="#dom-timing">DOM Interactive and Load Event</a></li>
+<li><a href="#perf-by-geo">Performance by Geography</a></li>
+<li><a href="#perf-by-device">Performance by Network and Device</a></li>
+<li><a href="#slow-pages">Identifying Slow Pages</a></li>
+<li><a href="#performance-trends">Performance Trends</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>RUM Enabled</strong></td>
+<td>Web applications with detailed timing capture</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:user.events:read</code>, <code>storage:user.sessions:read</code></td>
+</tr>
+<tr>
+<td><strong>Previous Notebooks</strong></td>
+<td>WEBRUM-01: RUM Fundamentals, WEBRUM-03: Core Web Vitals</td>
+</tr>
+</tbody>
+</table>
+<p><a id="page-load-waterfall"></a></p>
+<h2>1. Page Load Waterfall</h2>
+<p>Every page load follows a sequence of phases captured by the browser's Navigation Timing API. Dynatrace records these milestones for each load action:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgNDIwIj4KICA8ZGVmcz4KICAgIDxmaWx0ZXIgaWQ9InNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjEiIGR5PSIxIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMTIiLz4KICAgIDwvZmlsdGVyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI3MDAiIGhlaWdodD0iNDIwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSIzNTAiIHk9IjMwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5QYWdlIExvYWQgV2F0ZXJmYWxsPC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iNDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VzNDIE5hdmlnYXRpb24gVGltaW5nIGZpZWxkcyAocGVyZm9ybWFuY2UuKikgb24gbmF2aWdhdGlvbiBldmVudHM8L3RleHQ+CgogIDwhLS0gVGltZWxpbmUgYmFyIGJhY2tncm91bmQgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjY1IiB3aWR0aD0iNjIwIiBoZWlnaHQ9IjMwIiByeD0iNiIgZmlsbD0iI2UyZThmMCIvPgogIDx0ZXh0IHg9IjUwIiB5PSI4NCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzQ3NTU2OSI+TmF2aWdhdGlvbiBTdGFydDwvdGV4dD4KICA8dGV4dCB4PSI2MDAiIHk9Ijg0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjNDc1NTY5IiB0ZXh0LWFuY2hvcj0iZW5kIj5Mb2FkIEV2ZW50PC90ZXh0PgoKICA8IS0tIFBoYXNlIGJhcnMgLS0+CiAgPCEtLSBETlMgTG9va3VwIC0tPgogIDxyZWN0IHg9IjYwIiB5PSIxMDgiIHdpZHRoPSI4MCIgaGVpZ2h0PSIyOCIgcng9IjUiIGZpbGw9IiMzYjgyZjYiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMTAwIiB5PSIxMjYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkROUzwvdGV4dD4KICA8dGV4dCB4PSIxNTUiIHk9IjEyNiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj5kb21haW5fbG9va3VwX2VuZCDiiJIgZG9tYWluX2xvb2t1cF9zdGFydDwvdGV4dD4KCiAgPCEtLSBUQ1AgQ29ubmVjdCAtLT4KICA8cmVjdCB4PSIxNDUiIHk9IjE0OCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjI4IiByeD0iNSIgZmlsbD0iIzYzNjZmMSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIxOTAiIHk9IjE2NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VENQPC90ZXh0PgogIDx0ZXh0IHg9IjI1MCIgeT0iMTY2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiPmNvbm5lY3RfZW5kIOKIkiBjb25uZWN0X3N0YXJ0PC90ZXh0PgoKICA8IS0tIFNTTCBIYW5kc2hha2UgLS0+CiAgPHJlY3QgeD0iMjQwIiB5PSIxODgiIHdpZHRoPSI4MCIgaGVpZ2h0PSIyOCIgcng9IjUiIGZpbGw9IiM4YjVjZjYiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMjgwIiB5PSIyMDYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNTTDwvdGV4dD4KICA8dGV4dCB4PSIzMzUiIHk9IjIwNiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj5jb25uZWN0X2VuZCDiiJIgc2VjdXJlX2Nvbm5lY3Rpb25fc3RhcnQ8L3RleHQ+CgogIDwhLS0gVFRGQiAoU2VydmVyKSAtLT4KICA8cmVjdCB4PSIzMjUiIHk9IjIyOCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIyOCIgcng9IjUiIGZpbGw9IiNmOTczMTYiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMzg1IiB5PSIyNDYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlRURkI8L3RleHQ+CiAgPHRleHQgeD0iNDYwIiB5PSIyNDYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+cmVzcG9uc2Vfc3RhcnQ8L3RleHQ+CgogIDwhLS0gUmVzcG9uc2UgRG93bmxvYWQgLS0+CiAgPHJlY3QgeD0iNDUwIiB5PSIyNjgiIHdpZHRoPSI4MCIgaGVpZ2h0PSIyOCIgcng9IjUiIGZpbGw9IiNlYWIzMDgiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iNDkwIiB5PSIyODYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJlc3BvbnNlPC90ZXh0PgogIDx0ZXh0IHg9IjQ0NSIgeT0iMjg2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJlbmQiPnJlc3BvbnNlX2VuZCDiiJIgcmVzcG9uc2Vfc3RhcnQ8L3RleHQ+CgogIDwhLS0gRE9NIEludGVyYWN0aXZlIC0tPgogIDxyZWN0IHg9IjUzNSIgeT0iMzA4IiB3aWR0aD0iOTAiIGhlaWdodD0iMjgiIHJ4PSI1IiBmaWxsPSIjMjJjNTVlIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjU4MCIgeT0iMzI2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ET00gSW50LjwvdGV4dD4KICA8dGV4dCB4PSIzOTUiIHk9IjMyNiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0iZW5kIj5kb21faW50ZXJhY3RpdmU8L3RleHQ+CgogIDwhLS0gRE9NIENvbXBsZXRlIC0tPgogIDxyZWN0IHg9IjUzNSIgeT0iMzQ4IiB3aWR0aD0iMTA1IiBoZWlnaHQ9IjI4IiByeD0iNSIgZmlsbD0iIzE0YjhhNiIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSI1ODciIHk9IjM2NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RE9NIENvbXAuPC90ZXh0PgogIDx0ZXh0IHg9IjM5NSIgeT0iMzY2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJlbmQiPmRvbV9jb21wbGV0ZTwvdGV4dD4KCiAgPCEtLSBMb2FkIEV2ZW50IC0tPgogIDxyZWN0IHg9IjUzNSIgeT0iMzg4IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjI4IiByeD0iNSIgZmlsbD0iI2VmNDQ0NCIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSI1OTUiIHk9IjQwNiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TG9hZCBFdmVudDwvdGV4dD4KICA8dGV4dCB4PSIzOTUiIHk9IjQwNiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0iZW5kIj5sb2FkX2V2ZW50X2VuZDwvdGV4dD4KCiAgPCEtLSBDb25uZWN0aW5nIGxpbmVzIChzdGFpcmNhc2UpIC0tPgogIDxsaW5lIHgxPSIxNDAiIHkxPSIxMjIiIHgyPSIxNDUiIHkyPSIxNjIiIHN0cm9rZT0iI2NiZDVlMSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1kYXNoYXJyYXk9IjQsMyIvPgogIDxsaW5lIHgxPSIyMzUiIHkxPSIxNjIiIHgyPSIyNDAiIHkyPSIyMDIiIHN0cm9rZT0iI2NiZDVlMSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1kYXNoYXJyYXk9IjQsMyIvPgogIDxsaW5lIHgxPSIzMjAiIHkxPSIyMDIiIHgyPSIzMjUiIHkyPSIyNDIiIHN0cm9rZT0iI2NiZDVlMSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1kYXNoYXJyYXk9IjQsMyIvPgogIDxsaW5lIHgxPSI0NDUiIHkxPSIyNDIiIHgyPSI0NTAiIHkyPSIyODIiIHN0cm9rZT0iI2NiZDVlMSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1kYXNoYXJyYXk9IjQsMyIvPgogIDxsaW5lIHgxPSI1MzAiIHkxPSIyODIiIHgyPSI1MzUiIHkyPSIzMjIiIHN0cm9rZT0iI2NiZDVlMSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1kYXNoYXJyYXk9IjQsMyIvPgoKICA8IS0tIENhdGVnb3J5IGxhYmVscyAtLT4KICA8dGV4dCB4PSIxMDAiIHk9IjEwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiMzYjgyZjYiIGZvbnQtd2VpZ2h0PSJib2xkIj5OZXR3b3JrPC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSIxMDMiIHdpZHRoPSIxNzAiIGhlaWdodD0iMTIwIiByeD0iNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2I4MmY2IiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1kYXNoYXJyYXk9IjQsMyIgb3BhY2l0eT0iMC4zIi8+CgogIDx0ZXh0IHg9IjM4NSIgeT0iMjIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iI2Y5NzMxNiIgZm9udC13ZWlnaHQ9ImJvbGQiPlNlcnZlcjwvdGV4dD4KCiAgPHRleHQgeD0iNTgwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjMjJjNTVlIiBmb250LXdlaWdodD0iYm9sZCI+QnJvd3NlcjwvdGV4dD4KPC9zdmc+Cg==" alt="Page Load Waterfall" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Phase | DQL Field (navigation events) | Category |
+|-------|-----------|----------|
+| DNS Lookup | performance.domain_lookup_end − performance.domain_lookup_start | Network |
+| TCP Connect | performance.connect_end − performance.connect_start | Network |
+| SSL Handshake | performance.connect_end − performance.secure_connection_start | Network |
+| Time to First Byte | performance.response_start | Server |
+| Response Download | performance.response_end − performance.response_start | Server |
+| DOM Interactive | performance.dom_interactive | Browser |
+| DOM Complete | performance.dom_complete | Browser |
+| Load Event | performance.load_event_end | Browser |
+For environments where SVG doesn't render
+-->
+<h3>Timing Milestones Explained</h3>
+<table>
+<thead>
+<tr>
+<th>Milestone</th>
+<th>Description</th>
+<th>Optimization Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>DNS time</strong></td>
+<td>Domain name resolution</td>
+<td>Use DNS prefetching, reduce DNS lookups</td>
+</tr>
+<tr>
+<td><strong>TCP connect</strong></td>
+<td>Establishing TCP connection</td>
+<td>Enable HTTP/2, use CDN edge servers</td>
+</tr>
+<tr>
+<td><strong>SSL time</strong></td>
+<td>TLS handshake</td>
+<td>Enable TLS 1.3, OCSP stapling</td>
+</tr>
+<tr>
+<td><strong>TTFB</strong></td>
+<td>Server processing + first byte transit</td>
+<td>Optimize server response time</td>
+</tr>
+<tr>
+<td><strong>Response time</strong></td>
+<td>Full HTML download</td>
+<td>Compress, minimize HTML size</td>
+</tr>
+<tr>
+<td><strong>DOM interactive</strong></td>
+<td>HTML parsed, DOM ready for interaction</td>
+<td>Defer non-critical JS, reduce blocking resources</td>
+</tr>
+<tr>
+<td><strong>DOM complete</strong></td>
+<td>All sub-resources loaded</td>
+<td>Lazy load images, async load scripts</td>
+</tr>
+<tr>
+<td><strong>Load event</strong></td>
+<td><code>window.onload</code> fires</td>
+<td>Final milestone; all resources ready</td>
+</tr>
+</tbody>
+</table>
+<h3>Where the Timings Live</h3>
+<p>All of these milestones are fields on <strong>navigation events</strong> — select them with <code>characteristics.has_w3c_navigation_timings == true</code>. Each <code>performance.*</code> value is a duration measured from the start of the navigation, so <code>performance.load_event_end</code> is the page-load time. Dynatrace's own page-load query uses exactly this field and filter.</p>
+<p>Do <strong>not</strong> measure page load with <code>duration</code> on a page summary. A page summary covers the page's whole life — <em>&quot;A page instance begins with each hard navigation and ends when the next document request starts or when the tab is closed&quot;</em> — so its <code>duration</code> is how long the page stayed open, not how long it took to load. On the synthetic-only validation tenant (24 h, 10/05/2026) the median page-summary <code>duration</code> was 4.7 s against a median load time of 0.36 s; on real-user traffic, where tabs stay open for minutes, the gap is far larger.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/rum/analyze-and-alert/rum-dql-web-performance">Monitor web performance with DQL (DT docs)</a> — <em>&quot;RUM captures page load timings from the W3C Navigation Timing API as built-in metrics and as fields on navigation events.&quot;</em>; <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events/navigation-related">Navigation-related events — semantic dictionary (DT docs)</a> — <em>&quot;A page instance begins with each hard navigation and ends when the next document request starts or when the tab is closed.&quot;</em>; <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events/requests">Requests — semantic dictionary (DT docs)</a> — <em>&quot;The end time of the load event handler phase.&quot;</em> <strong>Dictionary:</strong> model <code>rum_page_summary</code> — <em>&quot;A page instance begins with each hard navigation and ends when the next document request starts or when the tab is closed.&quot;</em>, read 10/05/2026.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Page load waterfall — average phase timings for the top 10 pages, all from navigation events.
+// The server phase is performance.response_start (TTFB); the previous `avg(ttfb.waiting_duration)`
+// column read the pre-request wait/redirect phase, and is empty on navigation events anyway.
+fetch user.events, from:-24h
+| filter characteristics.has_w3c_navigation_timings == true
+| summarize {page_views = count(),
+    avg_dns_ms = avg(performance.domain_lookup_end - performance.domain_lookup_start) / 1ms,
+    avg_connect_ms = avg(performance.connect_end - performance.connect_start) / 1ms,
+    avg_ttfb_ms = avg(performance.response_start) / 1ms,
+    avg_download_ms = avg(performance.response_end - performance.response_start) / 1ms,
+    avg_dom_interactive_ms = avg(performance.dom_interactive) / 1ms,
+    avg_load_event_ms = avg(performance.load_event_end) / 1ms},
+    by:{page.detected_name}
+| sort page_views desc
+| limit 10
+</code></pre>
+<p><a id="ttfb"></a></p>
+<h2>2. Time to First Byte (TTFB)</h2>
+<p>TTFB measures the time from the browser sending the request to receiving the first byte of the response. It reflects:</p>
+<ul>
+<li><strong>Server processing time</strong> — How long the backend takes to generate the response</li>
+<li><strong>Network latency</strong> — Round-trip time between client and server</li>
+<li><strong>CDN performance</strong> — Cache hit/miss at the edge</li>
+</ul>
+<p>Google recommends a TTFB of <strong>≤ 800ms</strong> for a good user experience.</p>
+<p>In New RUM the TTFB value is <code>web_vitals.time_to_first_byte</code> (stable, a duration). Where it is not populated, <code>ttfb.value</code> (experimental, in milliseconds) carries <em>&quot;The responseStart value of the navigation timing&quot;</em> — the same measurement. The queries below read the stable field and fall back to the experimental one. They do <strong>not</strong> use <code>ttfb.waiting_duration</code>: that field is <em>&quot;The total time from when the user initiates loading to when the navigation request is handled&quot;</em> — the wait before the request, usually redirects — and reading it as TTFB under-reports by an order of magnitude.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events/navigation-related">Navigation-related events — semantic dictionary (DT docs)</a> — <em>&quot;The responseStart value of the navigation timing.&quot;</em>, <em>&quot;Long waiting durations are usually caused by HTTP redirects.&quot;</em>; <a href="https://docs.dynatrace.com/docs/observe/digital-experience/rum/analyze-and-alert/rum-dql-web-performance">Monitor web performance with DQL (DT docs)</a> (computes TTFB from <code>web_vitals.time_to_first_byte</code>).</sub></p>
+</blockquote>
+<pre><code class="language-dql">// TTFB corrected 10/05/2026: coalesce(web_vitals.time_to_first_byte / 1ms, ttfb.value) — the
+// stable duration field where populated, else the experimental responseStart value (already ms).
+// ttfb.waiting_duration is the pre-request wait/redirect phase, not TTFB.
+// TTFB analysis by page — identify pages with slow server response
+fetch user.events, from:-24h
+| filter characteristics.has_page_summary == true
+| fieldsAdd ttfb_ms = coalesce(web_vitals.time_to_first_byte / 1ms, ttfb.value)
+| filter isNotNull(ttfb_ms)
+| summarize {page_views = count(), avg_ttfb = avg(ttfb_ms),
+    p75_ttfb = percentile(ttfb_ms, 75), p95_ttfb = percentile(ttfb_ms, 95)},
+    by:{page.detected_name}
+| filter page_views &gt; 10
+| sort p75_ttfb desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// TTFB corrected 10/05/2026: coalesce(web_vitals.time_to_first_byte / 1ms, ttfb.value) — the
+// stable duration field where populated, else the experimental responseStart value (already ms).
+// ttfb.waiting_duration is the pre-request wait/redirect phase, not TTFB.
+// TTFB distribution — classify into Good / Needs Improvement / Poor
+fetch user.events, from:-24h
+| filter characteristics.has_page_summary == true
+| fieldsAdd ttfb_ms = coalesce(web_vitals.time_to_first_byte / 1ms, ttfb.value)
+| filter isNotNull(ttfb_ms)
+| fieldsAdd ttfb_category = if(ttfb_ms &lt;= 800, &quot;Good&quot;,
+    else: if(ttfb_ms &lt;= 1800, &quot;Needs Improvement&quot;,
+    else: &quot;Poor&quot;))
+| summarize action_count = count(), by:{ttfb_category}
+| sort action_count desc
+</code></pre>
+<p><a id="dom-timing"></a></p>
+<h2>3. DOM Interactive and Load Event</h2>
+<p><strong>DOM Interactive</strong> is when the HTML has been fully parsed and the DOM tree is ready — but images, stylesheets, and sub-frames may still be loading. This is when users can first interact with the page.</p>
+<p><strong>Load Event</strong> fires when all resources (images, scripts, stylesheets, iframes) have finished loading. The gap between DOM Interactive and Load Event reveals how much time is spent on sub-resource loading.</p>
+<pre><code class="language-dql">// DOM Interactive vs Load Event — identify resource-heavy pages
+fetch user.events, from:-24h
+| filter characteristics.has_w3c_navigation_timings == true
+| filter isNotNull(performance.dom_interactive) and isNotNull(performance.load_event_end)
+| summarize {page_views = count(),
+    avg_dom_interactive = avg(performance.dom_interactive),
+    avg_load_event = avg(performance.load_event_end)},
+    by:{page.detected_name}
+| fieldsAdd resource_load_gap = avg_load_event - avg_dom_interactive
+| filter page_views &gt; 10
+| sort resource_load_gap desc
+| limit 10
+</code></pre>
+<p>A large gap between DOM Interactive and Load Event suggests the page has many sub-resources (large images, heavy scripts, third-party tags) that delay full load completion. Consider lazy loading and async script loading to reduce this gap.</p>
+<p><a id="perf-by-geo"></a></p>
+<h2>4. Performance by Geography</h2>
+<p>Performance varies significantly by user location due to network latency, CDN coverage, and server proximity.</p>
+<pre><code class="language-dql">// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
+// Page load performance by country — identify slow regions (TTFB by region: next query)
+fetch user.events, from:-24h
+| filter characteristics.has_w3c_navigation_timings == true
+| filter isNotNull(geo.country.name)
+| summarize {page_views = count(),
+    avg_load_ms = avg(performance.load_event_end) / 1ms,
+    p75_load_ms = percentile(performance.load_event_end, 75) / 1ms},
+    by:{geo.country.name}
+| filter page_views &gt; 20
+| sort p75_load_ms desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// TTFB corrected 10/05/2026: coalesce(web_vitals.time_to_first_byte / 1ms, ttfb.value) — the
+// stable duration field where populated, else the experimental responseStart value (already ms).
+// ttfb.waiting_duration is the pre-request wait/redirect phase, not TTFB.
+// Compare TTFB across regions — CDN effectiveness indicator
+fetch user.events, from:-24h
+| filter characteristics.has_page_summary == true
+| filter isNotNull(geo.continent.name)
+| fieldsAdd ttfb_ms = coalesce(web_vitals.time_to_first_byte / 1ms, ttfb.value)
+| summarize {page_views = count(),
+    avg_ttfb_ms = avg(ttfb_ms),
+    p75_ttfb_ms = percentile(ttfb_ms, 75)},
+    by:{geo.continent.name}
+| sort p75_ttfb_ms desc
+</code></pre>
+<blockquote>
+<p><strong>Tip:</strong> If TTFB is consistently high for specific regions, consider deploying CDN edge servers or regional server instances closer to those users.</p>
+</blockquote>
+<p><a id="perf-by-device"></a></p>
+<h2>5. Performance by Network and Device</h2>
+<p>Network connection type and device capability significantly impact perceived performance.</p>
+<p>Web RUM has no connection-type field to split by: <code>network.connection.type</code> is documented as <em>&quot;Only supported by OneAgent for Mobile&quot;</em>, and <code>network.protocol.name</code> is the OSI application protocol (<code>http</code>), not wifi versus cellular. The queries below break page-load time down by browser and operating system instead.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events">User events — semantic dictionary (DT docs)</a> — <em>&quot;The internet connection type. Only supported by OneAgent for Mobile.&quot;</em> <strong>Dictionary:</strong> <code>network.protocol.name</code> (<code>stable</code>) — <em>&quot;OSI Application Layer or non-OSI equivalent.&quot;</em>, read 10/05/2026.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
+// Performance by browser — which browsers are slowest?
+fetch user.events, from:-24h
+| filter characteristics.has_w3c_navigation_timings == true
+| filter isNotNull(browser.name)
+| summarize {page_views = count(),
+    avg_load_ms = avg(performance.load_event_end) / 1ms,
+    p75_load_ms = percentile(performance.load_event_end, 75) / 1ms},
+    by:{browser.name}
+| filter page_views &gt; 20
+| sort p75_load_ms desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
+// Performance by OS — desktop vs mobile operating systems (os.name; there is no os.family field)
+fetch user.events, from:-24h
+| filter characteristics.has_w3c_navigation_timings == true
+| filter isNotNull(os.name)
+| summarize {page_views = count(),
+    avg_load_ms = avg(performance.load_event_end) / 1ms,
+    p75_load_ms = percentile(performance.load_event_end, 75) / 1ms},
+    by:{os.name}
+| filter page_views &gt; 20
+| sort p75_load_ms desc
+</code></pre>
+<p><a id="slow-pages"></a></p>
+<h2>6. Identifying Slow Pages</h2>
+<p>Find the pages that need optimization attention — ranked by the impact of their slowness (volume x load time).</p>
+<pre><code class="language-dql">// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
+// Slowest pages by p95 load time — worst-case performance
+fetch user.events, from:-24h
+| filter characteristics.has_w3c_navigation_timings == true
+| summarize {page_views = count(),
+    avg_load_ms = avg(performance.load_event_end) / 1ms,
+    p75_load_ms = percentile(performance.load_event_end, 75) / 1ms,
+    p95_load_ms = percentile(performance.load_event_end, 95) / 1ms},
+    by:{page.detected_name}
+| filter page_views &gt; 20
+| sort p95_load_ms desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
+// Weighted impact score — pages with high traffic AND slow loads
+fetch user.events, from:-24h
+| filter characteristics.has_w3c_navigation_timings == true
+| summarize {page_views = count(),
+    avg_load_ms = avg(performance.load_event_end) / 1ms},
+    by:{page.detected_name}
+| fieldsAdd impact_score = page_views * avg_load_ms
+| sort impact_score desc
+| limit 10
+</code></pre>
+<blockquote>
+<p><strong>Tip:</strong> The impact score (page views x average load time) helps prioritize optimization efforts. A moderately slow page with high traffic may be more impactful than a very slow page with few visitors.</p>
+</blockquote>
+<p><a id="performance-trends"></a></p>
+<h2>7. Performance Trends</h2>
+<p>Track performance over time to detect regressions and measure the impact of optimizations.</p>
+<pre><code class="language-dql">// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
+// Page load time trend — daily p75 over the last 7 days
+fetch user.events, from:-7d
+| filter characteristics.has_w3c_navigation_timings == true
+| fieldsAdd load_ms = performance.load_event_end / 1ms
+| makeTimeseries p75_load_ms = percentile(load_ms, 75), interval:24h
+</code></pre>
+<pre><code class="language-dql">// TTFB corrected 10/05/2026: coalesce(web_vitals.time_to_first_byte / 1ms, ttfb.value) — the
+// stable duration field where populated, else the experimental responseStart value (already ms).
+// ttfb.waiting_duration is the pre-request wait/redirect phase, not TTFB.
+// TTFB trend — hourly p75 over the last 24 hours
+fetch user.events, from:-24h
+| filter characteristics.has_page_summary == true
+| fieldsAdd ttfb_ms = coalesce(web_vitals.time_to_first_byte / 1ms, ttfb.value)
+| filter isNotNull(ttfb_ms)
+| makeTimeseries p75_ttfb = percentile(ttfb_ms, 75), interval:1h
+</code></pre>
+<p><a id="summary"></a></p>
+<h2>8. Summary and Next Steps</h2>
+<p>In this notebook, we covered:</p>
+<ul>
+<li><strong>Page load waterfall</strong> — Full timing breakdown from DNS to load complete, all on navigation events</li>
+<li><strong>TTFB analysis</strong> — Server response time measurement and classification</li>
+<li><strong>DOM timing</strong> — Interactive vs complete timing for resource load gap analysis</li>
+<li><strong>Geographic performance</strong> — Regional and continental performance differences</li>
+<li><strong>Device performance</strong> — Impact of browser and OS (web RUM has no connection-type field)</li>
+<li><strong>Slow page identification</strong> — Ranking pages by p95 load time and impact score</li>
+<li><strong>Performance trends</strong> — Time-series tracking for regression detection</li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li><strong>WEBRUM-07: Session Replay</strong> — Visually investigate slow page experiences</li>
+<li><strong>WEBRUM-08: Dashboards and Alerting</strong> — Build operational RUM dashboards with Apdex</li>
+</ul>
+<h3>References</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/analyze-and-use/waterfall-analysis">Dynatrace Performance Analysis</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/API/Performance_API/Navigation_timing">Navigation Timing API</a></li>
+<li><a href="https://web.dev/articles/ttfb">TTFB Best Practices</a></li>
+<li><a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events">User events — semantic dictionary (DT docs)</a> — <em>&quot;Used for internal optimization when storing the data and not intended for query usage.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-349">Semantic Dictionary changelog 1.349 (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

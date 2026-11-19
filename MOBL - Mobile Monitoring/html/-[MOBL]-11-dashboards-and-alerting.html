@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MOBL-11: Dashboards &amp; Alerting</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MOBL — Mobile Monitoring</a><span class="sep">/</span><span aria-current="page">MOBL-11</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MOBL-11: Dashboards &amp; Alerting</h1>
+<blockquote>
+<p><strong>Series:</strong> MOBL — Mobile Monitoring | <strong>Notebook:</strong> 11 of 12 | <strong>Created:</strong> February 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Effective mobile monitoring requires more than raw telemetry -- you need dashboards that surface the right KPIs at a glance and alerts that notify the right people when something goes wrong. This notebook covers designing mobile KPI dashboards with tiles for crash-free rate, session volume, and performance trends; setting up crash rate monitoring with timeseries visualizations; tracking app performance metrics across user actions; and configuring alerts using Dynatrace Intelligence anomaly detection and metric events. The goal is to move from reactive troubleshooting to proactive mobile observability.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#kpi-dashboard-design">Mobile KPI Dashboard Design</a></li>
+<li><a href="#crash-rate-monitoring">Crash Rate Monitoring</a></li>
+<li><a href="#app-performance-metrics">App Performance Metrics</a></li>
+<li><a href="#session-volume-trends">Session Volume Trends</a></li>
+<li><a href="#metric-alerts">Metric Alerts for Mobile</a></li>
+<li><a href="#davis-problem-correlation">Detected Problem Correlation</a></li>
+<li><a href="#executive-summary">Executive Summary Tiles</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:user.events:read</code>, <code>storage:user.sessions:read</code>, <code>storage:events:read</code> (problems)</td>
+</tr>
+<tr>
+<td><strong>Dashboard Permissions</strong></td>
+<td><code>document:documents:write</code> for creating and editing dashboards</td>
+</tr>
+<tr>
+<td><strong>Workflow Permissions</strong></td>
+<td><code>automation:workflows:write</code> for configuring alert-triggered workflows</td>
+</tr>
+<tr>
+<td><strong>Mobile App</strong></td>
+<td>At least one mobile application with active sessions and crash data</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td>Familiarity with MOBL-01 through MOBL-10 recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="kpi-dashboard-design"></a></p>
+<h2>1. Mobile KPI Dashboard Design</h2>
+<p>A well-designed mobile dashboard answers the question &quot;Is our mobile app healthy right now?&quot; at a glance. Rather than cramming every metric onto a single screen, organize tiles by purpose: health indicators at the top, trends in the middle, and drill-down tables at the bottom.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgNDAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiPgogIDxkZWZzPgogICAgPGZpbHRlciBpZD0ic2hhZG93IiB4PSItNSUiIHk9Ii01JSIgd2lkdGg9IjExNSUiIGhlaWdodD0iMTE1JSI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJibHVlR3JhZCIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMTQ5NmZmIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzBhNjRiYyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icHVycGxlR3JhZCIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjNjM2NmYxIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzRmNDZlNSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZ3JlZW5HcmFkIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMyMmM1NWUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMTZhMzRhIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJvcmFuZ2VHcmFkIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNmOTczMTYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjZWE1ODBjIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJyZWRHcmFkIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNlZjQ0NDQiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjZGMyNjI2Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJtdWx0aUdyYWQiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIwIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzE0OTZmZiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjMzJSIgc3RvcC1jb2xvcj0iIzYzNjZmMSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjY2JSIgc3RvcC1jb2xvcj0iIzIyYzU1ZSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNmOTczMTYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI0MDAiIHJ4PSIxMiIgcnk9IjEyIiBmaWxsPSIjZjhmOWZhIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDAwIiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxZTI5M2IiPk1vYmlsZSBLUEkgRGFzaGJvYXJkIExheW91dDwvdGV4dD4KCiAgPCEtLSBSb3cgMTogVGhyZWUgS1BJIHRpbGVzIC0tPgogIDwhLS0gVGlsZSAxOiBDcmFzaC1GcmVlIFJhdGUgKGdyZWVuKSAtLT4KICA8ZyBmaWx0ZXI9InVybCgjc2hhZG93KSI+CiAgICA8cmVjdCB4PSIzMCIgeT0iNTAiIHdpZHRoPSIyMzUiIGhlaWdodD0iODAiIHJ4PSI4IiBmaWxsPSJ1cmwoI2dyZWVuR3JhZCkiLz4KICAgIDx0ZXh0IHg9IjE0NyIgeT0iNzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZGNmY2U3Ij5DcmFzaC1GcmVlIFJhdGU8L3RleHQ+CiAgICA8dGV4dCB4PSIxNDciIHk9IjExMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiPjk5LjIlPC90ZXh0PgogIDwvZz4KCiAgPCEtLSBUaWxlIDI6IEFjdGl2ZSBTZXNzaW9ucyAoYmx1ZSkgLS0+CiAgPGcgZmlsdGVyPSJ1cmwoI3NoYWRvdykiPgogICAgPHJlY3QgeD0iMjgyIiB5PSI1MCIgd2lkdGg9IjIzNSIgaGVpZ2h0PSI4MCIgcng9IjgiIGZpbGw9InVybCgjYmx1ZUdyYWQpIi8+CiAgICA8dGV4dCB4PSIzOTkiIHk9Ijc0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2RiZWFmZSI+QWN0aXZlIFNlc3Npb25zPC90ZXh0PgogICAgPHRleHQgeD0iMzk5IiB5PSIxMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMzIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIj4xMi40SzwvdGV4dD4KICA8L2c+CgogIDwhLS0gVGlsZSAzOiBBdmcgTGF1bmNoIFRpbWUgKG9yYW5nZSkgLS0+CiAgPGcgZmlsdGVyPSJ1cmwoI3NoYWRvdykiPgogICAgPHJlY3QgeD0iNTM0IiB5PSI1MCIgd2lkdGg9IjIzNSIgaGVpZ2h0PSI4MCIgcng9IjgiIGZpbGw9InVybCgjb3JhbmdlR3JhZCkiLz4KICAgIDx0ZXh0IHg9IjY1MSIgeT0iNzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmVkN2FhIj5BdmcgTGF1bmNoIFRpbWU8L3RleHQ+CiAgICA8dGV4dCB4PSI2NTEiIHk9IjExMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiPjEuOHM8L3RleHQ+CiAgPC9nPgoKICA8IS0tIFJvdyAyOiBUd28gY2hhcnQgdGlsZXMgLS0+CiAgPCEtLSBUaWxlIDQ6IENyYXNoIFRyZW5kICh0aW1lc2VyaWVzLCBibHVlKSAtLT4KICA8ZyBmaWx0ZXI9InVybCgjc2hhZG93KSI+CiAgICA8cmVjdCB4PSIzMCIgeT0iMTQ4IiB3aWR0aD0iMzY1IiBoZWlnaHQ9IjEwMCIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgICA8cmVjdCB4PSIzMCIgeT0iMTQ4IiB3aWR0aD0iMzY1IiBoZWlnaHQ9IjI0IiByeD0iOCIgZmlsbD0idXJsKCNibHVlR3JhZCkiLz4KICAgIDxyZWN0IHg9IjMwIiB5PSIxNjAiIHdpZHRoPSIzNjUiIGhlaWdodD0iMTIiIGZpbGw9InVybCgjYmx1ZUdyYWQpIi8+CiAgICA8dGV4dCB4PSIyMTIiIHk9IjE2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiPkNyYXNoIFRyZW5kPC90ZXh0PgogICAgPCEtLSBNaW5pIHRpbWVzZXJpZXMgY2hhcnQgLS0+CiAgICA8cG9seWxpbmUgcG9pbnRzPSI1NSwyMzAgMTAwLDIyNSAxNDUsMjIwIDE5MCwyMjYgMjM1LDIxMCAyODAsMjE1IDMyNSwyMDggMzcwLDIxMiIKICAgICAgICAgICAgICBmaWxsPSJub25lIiBzdHJva2U9IiMwYTY0YmMiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPGxpbmUgeDE9IjU1IiB5MT0iMjM1IiB4Mj0iMzcwIiB5Mj0iMjM1IiBzdHJva2U9IiNjYmQ1ZTEiIHN0cm9rZS13aWR0aD0iMSIvPgogICAgPHRleHQgeD0iNTUiIHk9IjI0NCIgZm9udC1zaXplPSI5IiBmaWxsPSIjOTRhM2I4Ij5Nb248L3RleHQ+CiAgICA8dGV4dCB4PSIxNDUiIHk9IjI0NCIgZm9udC1zaXplPSI5IiBmaWxsPSIjOTRhM2I4Ij5XZWQ8L3RleHQ+CiAgICA8dGV4dCB4PSIyMzUiIHk9IjI0NCIgZm9udC1zaXplPSI5IiBmaWxsPSIjOTRhM2I4Ij5Gcmk8L3RleHQ+CiAgICA8dGV4dCB4PSIzMjUiIHk9IjI0NCIgZm9udC1zaXplPSI5IiBmaWxsPSIjOTRhM2I4Ij5TdW48L3RleHQ+CiAgPC9nPgoKICA8IS0tIFRpbGUgNTogU2Vzc2lvbiBWb2x1bWUgKHRpbWVzZXJpZXMsIHB1cnBsZSkgLS0+CiAgPGcgZmlsdGVyPSJ1cmwoI3NoYWRvdykiPgogICAgPHJlY3QgeD0iNDEyIiB5PSIxNDgiIHdpZHRoPSIzNTciIGhlaWdodD0iMTAwIiByeD0iOCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjEiLz4KICAgIDxyZWN0IHg9IjQxMiIgeT0iMTQ4IiB3aWR0aD0iMzU3IiBoZWlnaHQ9IjI0IiByeD0iOCIgZmlsbD0idXJsKCNwdXJwbGVHcmFkKSIvPgogICAgPHJlY3QgeD0iNDEyIiB5PSIxNjAiIHdpZHRoPSIzNTciIGhlaWdodD0iMTIiIGZpbGw9InVybCgjcHVycGxlR3JhZCkiLz4KICAgIDx0ZXh0IHg9IjU5MCIgeT0iMTY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiI+U2Vzc2lvbiBWb2x1bWU8L3RleHQ+CiAgICA8IS0tIE1pbmkgYmFyIGNoYXJ0IC0tPgogICAgPHJlY3QgeD0iNDQwIiB5PSIyMDAiIHdpZHRoPSIyOCIgaGVpZ2h0PSIzOCIgcng9IjIiIGZpbGw9IiM2MzY2ZjEiIG9wYWNpdHk9IjAuNyIvPgogICAgPHJlY3QgeD0iNDc4IiB5PSIxOTAiIHdpZHRoPSIyOCIgaGVpZ2h0PSI0OCIgcng9IjIiIGZpbGw9IiM2MzY2ZjEiIG9wYWNpdHk9IjAuOCIvPgogICAgPHJlY3QgeD0iNTE2IiB5PSIxOTUiIHdpZHRoPSIyOCIgaGVpZ2h0PSI0MyIgcng9IjIiIGZpbGw9IiM2MzY2ZjEiIG9wYWNpdHk9IjAuNzUiLz4KICAgIDxyZWN0IHg9IjU1NCIgeT0iMTg1IiB3aWR0aD0iMjgiIGhlaWdodD0iNTMiIHJ4PSIyIiBmaWxsPSIjNjM2NmYxIiBvcGFjaXR5PSIwLjg1Ii8+CiAgICA8cmVjdCB4PSI1OTIiIHk9IjE5MiIgd2lkdGg9IjI4IiBoZWlnaHQ9IjQ2IiByeD0iMiIgZmlsbD0iIzYzNjZmMSIgb3BhY2l0eT0iMC43OCIvPgogICAgPHJlY3QgeD0iNjMwIiB5PSIxOTgiIHdpZHRoPSIyOCIgaGVpZ2h0PSI0MCIgcng9IjIiIGZpbGw9IiM2MzY2ZjEiIG9wYWNpdHk9IjAuNzIiLz4KICAgIDxyZWN0IHg9IjY2OCIgeT0iMTgyIiB3aWR0aD0iMjgiIGhlaWdodD0iNTYiIHJ4PSIyIiBmaWxsPSIjNjM2NmYxIiBvcGFjaXR5PSIwLjkiLz4KICAgIDxyZWN0IHg9IjcwNiIgeT0iMTg4IiB3aWR0aD0iMjgiIGhlaWdodD0iNTAiIHJ4PSIyIiBmaWxsPSIjNjM2NmYxIiBvcGFjaXR5PSIwLjgyIi8+CiAgICA8bGluZSB4MT0iNDQwIiB5MT0iMjM4IiB4Mj0iNzM0IiB5Mj0iMjM4IiBzdHJva2U9IiNjYmQ1ZTEiIHN0cm9rZS13aWR0aD0iMSIvPgogIDwvZz4KCiAgPCEtLSBSb3cgMzogVHdvIGRldGFpbCB0aWxlcyAtLT4KICA8IS0tIFRpbGUgNjogVG9wIENyYXNoZXMgKHRhYmxlLCByZWQgaGVhZGVyKSAtLT4KICA8ZyBmaWx0ZXI9InVybCgjc2hhZG93KSI+CiAgICA8cmVjdCB4PSIzMCIgeT0iMjY2IiB3aWR0aD0iMzY1IiBoZWlnaHQ9Ijk2IiByeD0iOCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjEiLz4KICAgIDxyZWN0IHg9IjMwIiB5PSIyNjYiIHdpZHRoPSIzNjUiIGhlaWdodD0iMjQiIHJ4PSI4IiBmaWxsPSJ1cmwoI3JlZEdyYWQpIi8+CiAgICA8cmVjdCB4PSIzMCIgeT0iMjc4IiB3aWR0aD0iMzY1IiBoZWlnaHQ9IjEyIiBmaWxsPSJ1cmwoI3JlZEdyYWQpIi8+CiAgICA8dGV4dCB4PSIyMTIiIHk9IjI4MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiPlRvcCBDcmFzaGVzPC90ZXh0PgogICAgPCEtLSBUYWJsZSByb3dzIC0tPgogICAgPGxpbmUgeDE9IjQyIiB5MT0iMzA1IiB4Mj0iMzgzIiB5Mj0iMzA1IiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMSIvPgogICAgPHRleHQgeD0iNDgiIHk9IjMwMiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM2NDc0OGIiPkNyYXNoIEdyb3VwPC90ZXh0PgogICAgPHRleHQgeD0iMjgwIiB5PSIzMDIiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjNjQ3NDhiIj5Db3VudDwvdGV4dD4KICAgIDx0ZXh0IHg9IjM0NSIgeT0iMzAyIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzY0NzQ4YiI+VXNlcnM8L3RleHQ+CiAgICA8dGV4dCB4PSI0OCIgeT0iMzIwIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzM0MTU1Ij5OdWxsUG9pbnRlckV4Y2VwdGlvbjwvdGV4dD4KICAgIDx0ZXh0IHg9IjI5MCIgeT0iMzIwIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzM0MTU1Ij4zNDI8L3RleHQ+CiAgICA8dGV4dCB4PSIzNTIiIHk9IjMyMCIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzNDE1NSI+MTI4PC90ZXh0PgogICAgPGxpbmUgeDE9IjQyIiB5MT0iMzI2IiB4Mj0iMzgzIiB5Mj0iMzI2IiBzdHJva2U9IiNmMWY1ZjkiIHN0cm9rZS13aWR0aD0iMSIvPgogICAgPHRleHQgeD0iNDgiIHk9IjM0MCIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzNDE1NSI+T3V0T2ZNZW1vcnlFcnJvcjwvdGV4dD4KICAgIDx0ZXh0IHg9IjI5MCIgeT0iMzQwIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzM0MTU1Ij4xODc8L3RleHQ+CiAgICA8dGV4dCB4PSIzNTIiIHk9IjM0MCIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzNDE1NSI+OTU8L3RleHQ+CiAgICA8bGluZSB4MT0iNDIiIHkxPSIzNDYiIHgyPSIzODMiIHkyPSIzNDYiIHN0cm9rZT0iI2YxZjVmOSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgICA8dGV4dCB4PSI0OCIgeT0iMzU4IiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzM0MTU1Ij5BTlI6IG1haW4gdGhyZWFkPC90ZXh0PgogICAgPHRleHQgeD0iMjkwIiB5PSIzNTgiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzQxNTUiPjc2PC90ZXh0PgogICAgPHRleHQgeD0iMzUyIiB5PSIzNTgiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzQxNTUiPjU0PC90ZXh0PgogIDwvZz4KCiAgPCEtLSBUaWxlIDc6IE9TIERpc3RyaWJ1dGlvbiAocGllIGNoYXJ0LCBtdWx0aS1jb2xvcikgLS0+CiAgPGcgZmlsdGVyPSJ1cmwoI3NoYWRvdykiPgogICAgPHJlY3QgeD0iNDEyIiB5PSIyNjYiIHdpZHRoPSIzNTciIGhlaWdodD0iOTYiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMSIvPgogICAgPHJlY3QgeD0iNDEyIiB5PSIyNjYiIHdpZHRoPSIzNTciIGhlaWdodD0iMjQiIHJ4PSI4IiBmaWxsPSIjNDc1NTY5Ii8+CiAgICA8cmVjdCB4PSI0MTIiIHk9IjI3OCIgd2lkdGg9IjM1NyIgaGVpZ2h0PSIxMiIgZmlsbD0iIzQ3NTU2OSIvPgogICAgPHRleHQgeD0iNTkwIiB5PSIyODMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIj5PUyBEaXN0cmlidXRpb248L3RleHQ+CiAgICA8IS0tIFBpZSBjaGFydCBhcHByb3hpbWF0aW9uIC0tPgogICAgPGNpcmNsZSBjeD0iNTEwIiBjeT0iMzMwIiByPSIyOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTQ5NmZmIiBzdHJva2Utd2lkdGg9IjE2IiBzdHJva2UtZGFzaGFycmF5PSIxMTAgNjYiIHN0cm9rZS1kYXNob2Zmc2V0PSIwIi8+CiAgICA8Y2lyY2xlIGN4PSI1MTAiIGN5PSIzMzAiIHI9IjI4IiBmaWxsPSJub25lIiBzdHJva2U9IiMyMmM1NWUiIHN0cm9rZS13aWR0aD0iMTYiIHN0cm9rZS1kYXNoYXJyYXk9IjQ0IDEzMiIgc3Ryb2tlLWRhc2hvZmZzZXQ9Ii0xMTAiLz4KICAgIDxjaXJjbGUgY3g9IjUxMCIgY3k9IjMzMCIgcj0iMjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Y5NzMxNiIgc3Ryb2tlLXdpZHRoPSIxNiIgc3Ryb2tlLWRhc2hhcnJheT0iMjIgMTU0IiBzdHJva2UtZGFzaG9mZnNldD0iLTE1NCIvPgogICAgPCEtLSBMZWdlbmQgaXRlbXMgLS0+CiAgICA8cmVjdCB4PSI1NzAiIHk9IjMwNiIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiByeD0iMiIgZmlsbD0iIzE0OTZmZiIvPgogICAgPHRleHQgeD0iNTg2IiB5PSIzMTUiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzQxNTUiPmlPUyAoNjIlKTwvdGV4dD4KICAgIDxyZWN0IHg9IjU3MCIgeT0iMzI0IiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHJ4PSIyIiBmaWxsPSIjMjJjNTVlIi8+CiAgICA8dGV4dCB4PSI1ODYiIHk9IjMzMyIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzNDE1NSI+QW5kcm9pZCAoMjUlKTwvdGV4dD4KICAgIDxyZWN0IHg9IjU3MCIgeT0iMzQyIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHJ4PSIyIiBmaWxsPSIjZjk3MzE2Ii8+CiAgICA8dGV4dCB4PSI1ODYiIHk9IjM1MSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzNDE1NSI+T3RoZXIgKDEzJSk8L3RleHQ+CiAgPC9nPgoKICA8IS0tIExlZ2VuZCBiYXIgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjM3NCIgd2lkdGg9Ijc0MCIgaGVpZ2h0PSIyMiIgcng9IjYiIGZpbGw9IiNlMmU4ZjAiLz4KICA8dGV4dCB4PSI0MDAiIHk9IjM4OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzQ3NTU2OSI+QSB3ZWxsLWRlc2lnbmVkIG1vYmlsZSBkYXNoYm9hcmQgcHJvdmlkZXMgYXQtYS1nbGFuY2UgaGVhbHRoLCB0cmVuZHMsIGFuZCBkcmlsbC1kb3duIGNhcGFiaWxpdHkuPC90ZXh0Pgo8L3N2Zz4=" alt="Mobile Dashboard Layout" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Row | Tile | Type | Purpose |
+|-----|------|------|----------|
+| Top | Crash-Free Rate | Single value | Overall app health indicator -- percentage of sessions without crashes |
+| Top | Active Sessions | Single value | Current user engagement level |
+| Middle | Session Volume | Timeseries | Usage trends over time to spot adoption changes |
+| Middle | Action Duration | Timeseries | Performance monitoring for key user actions |
+| Middle | Error Rate | Timeseries | Error monitoring to detect regressions early |
+| Bottom | Top Crashes | Table | Prioritize fixes by crash frequency |
+| Bottom | OS Distribution | Pie/Donut | Platform breakdown for resource allocation |
+For environments where SVG doesn't render
+-->
+<h3>Recommended Dashboard Layout</h3>
+<table>
+<thead>
+<tr>
+<th>Tile</th>
+<th>Type</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Crash-Free Rate</strong></td>
+<td>Single value</td>
+<td>Overall app health indicator -- percentage of sessions without crashes</td>
+</tr>
+<tr>
+<td><strong>Session Volume</strong></td>
+<td>Timeseries</td>
+<td>Usage trends over time to spot adoption changes or drops</td>
+</tr>
+<tr>
+<td><strong>Top Crashes</strong></td>
+<td>Table</td>
+<td>Prioritize fixes by crash frequency and affected user count</td>
+</tr>
+<tr>
+<td><strong>Action Duration</strong></td>
+<td>Timeseries</td>
+<td>Performance monitoring for key user actions (load, tap, swipe)</td>
+</tr>
+<tr>
+<td><strong>OS Distribution</strong></td>
+<td>Pie/Donut</td>
+<td>Platform breakdown to allocate testing and development resources</td>
+</tr>
+<tr>
+<td><strong>Error Rate</strong></td>
+<td>Timeseries</td>
+<td>Error monitoring to catch regressions before they become crashes</td>
+</tr>
+</tbody>
+</table>
+<h3>Design Principles</h3>
+<ul>
+<li><strong>Top row: health at a glance</strong> -- Use single-value tiles with color thresholds (green/yellow/red) for crash-free rate, active sessions, and error rate</li>
+<li><strong>Middle row: trends</strong> -- Timeseries charts for session volume, action duration, and error trends over the last 7 days</li>
+<li><strong>Bottom row: drill-down</strong> -- Tables for top crashes, slowest user actions, and most affected app versions</li>
+<li><strong>Use variables</strong> -- Add a dashboard variable for <code>frontend.name</code> so stakeholders can filter to their specific app</li>
+<li><strong>Time range selector</strong> -- Always include a time range control defaulting to the last 24 hours, with presets for 1h, 6h, 24h, 7d</li>
+</ul>
+<p><a id="crash-rate-monitoring"></a></p>
+<h2>2. Crash Rate Monitoring</h2>
+<p>Crash rate is the most critical mobile KPI. Google Play states that its Android vitals thresholds affect visibility — <em>&quot;To maximize your title's visibility on Google Play, please keep it under these thresholds&quot;</em> (user-perceived crash rate 1.09%, ANR rate 0.47%; MOBL-10 §8 explains why those are per-user, not per-session, rates).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://developer.android.com/google/play/vitals">Android vitals (Android Developers)</a>.</sub></p>
+</blockquote>
+<p>The following query builds a daily timeseries of mobile sessions and of sessions that contained a crash, read from <code>user.sessions</code> (one record per session, with <code>error.has_crash</code>). Dividing the two gives a session crash rate.</p>
+<pre><code class="language-dql">// Crash rate timeseries (session grain): sessions vs. sessions with a crash
+fetch user.sessions, from:-7d
+| filter dt.rum.application.type == &quot;mobile&quot;
+| makeTimeseries {total_sessions = count(), crash_sessions = countIf(error.has_crash == true)}, time:start_time, interval:24h
+</code></pre>
+<h3>Interpreting the Results</h3>
+<p>This query produces two timeseries arrays: <code>total_sessions</code> (all mobile sessions) and <code>crash_sessions</code> (sessions with <code>error.has_crash</code>). To calculate the crash rate percentage on a dashboard tile, divide crash sessions by total sessions and multiply by 100; the crash-free rate is 100 minus that. The bands below are a community rule of thumb — set your own targets from your app's baseline:</p>
+<table>
+<thead>
+<tr>
+<th>Crash-Free Rate</th>
+<th>Health Status</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>&gt; 99.5%</strong></td>
+<td>Excellent</td>
+<td>Monitor normally</td>
+</tr>
+<tr>
+<td><strong>99.0% - 99.5%</strong></td>
+<td>Acceptable</td>
+<td>Review top crash groups</td>
+</tr>
+<tr>
+<td><strong>98.0% - 99.0%</strong></td>
+<td>Degraded</td>
+<td>Investigate and prioritize fixes</td>
+</tr>
+<tr>
+<td><strong>&lt; 98.0%</strong></td>
+<td>Critical</td>
+<td>Immediate action required</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> Break crash rate down by app version using <code>by:{app.short_version}</code> to identify whether a specific release introduced a regression (MOBL-10 §8 has the per-version query).</p>
+</blockquote>
+<p><a id="app-performance-metrics"></a></p>
+<h2>3. App Performance Metrics</h2>
+<p>Beyond crashes, performance directly impacts user engagement. Slow app launches, sluggish screen transitions, and unresponsive taps all contribute to poor user experience and eventual churn. Track these metrics alongside crash data to get a complete picture of mobile app health.</p>
+<p>The alerting flow for mobile performance follows a standard pattern from metric detection through notification:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiPgogIDxkZWZzPgogICAgPGZpbHRlciBpZD0ic2hhZG93IiB4PSItNSUiIHk9Ii01JSIgd2lkdGg9IjExNSUiIGhlaWdodD0iMTE1JSI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJyZWRHcmFkIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNlZjQ0NDQiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjZGMyNjI2Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJwdXJwbGVHcmFkIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM2MzY2ZjEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjNGY0NmU1Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJibHVlR3JhZCIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMTQ5NmZmIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzBhNjRiYyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZ3JlZW5HcmFkIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMyMmM1NWUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMTZhMzRhIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYXJyb3dXaGl0ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iMzAwIiByeD0iMTIiIHJ5PSIxMiIgZmlsbD0iI2Y4ZjlmYSIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjQwMCIgeT0iMzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMWUyOTNiIj5Nb2JpbGUgQWxlcnRpbmcgRmxvdzwvdGV4dD4KCiAgPCEtLSBTdGVwIG51bWJlcnMgLS0+CiAgPGNpcmNsZSBjeD0iNzUiIGN5PSI1OCIgcj0iMTIiIGZpbGw9IiM5NGEzYjgiLz4KICA8dGV4dCB4PSI3NSIgeT0iNjMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIj4xPC90ZXh0PgoKICA8Y2lyY2xlIGN4PSIyNjUiIGN5PSI1OCIgcj0iMTIiIGZpbGw9IiM5NGEzYjgiLz4KICA8dGV4dCB4PSIyNjUiIHk9IjYzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiI+MjwvdGV4dD4KCiAgPGNpcmNsZSBjeD0iNDYwIiBjeT0iNTgiIHI9IjEyIiBmaWxsPSIjOTRhM2I4Ii8+CiAgPHRleHQgeD0iNDYwIiB5PSI2MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiPjM8L3RleHQ+CgogIDxjaXJjbGUgY3g9IjY2OCIgY3k9IjU4IiByPSIxMiIgZmlsbD0iIzk0YTNiOCIvPgogIDx0ZXh0IHg9IjY2OCIgeT0iNjMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIj40PC90ZXh0PgoKICA8IS0tIFN0ZXAgMTogTWV0cmljIFRocmVzaG9sZCAocmVkKSAtLT4KICA8ZyBmaWx0ZXI9InVybCgjc2hhZG93KSI+CiAgICA8cmVjdCB4PSIyMCIgeT0iNzgiIHdpZHRoPSIxNjAiIGhlaWdodD0iMTAwIiByeD0iMTAiIGZpbGw9InVybCgjcmVkR3JhZCkiLz4KICAgIDx0ZXh0IHg9IjEwMCIgeT0iMTA4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiI+TWV0cmljPC90ZXh0PgogICAgPHRleHQgeD0iMTAwIiB5PSIxMjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIj5UaHJlc2hvbGQ8L3RleHQ+CiAgICA8cmVjdCB4PSI0MCIgeT0iMTQwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjI0IiByeD0iNCIgZmlsbD0icmdiYSgwLDAsMCwwLjIpIi8+CiAgICA8dGV4dCB4PSIxMDAiIHk9IjE1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxMSIgZmlsbD0iI2ZlY2FjYSI+Q3Jhc2ggcmF0ZSA+IDIlPC90ZXh0PgogIDwvZz4KCiAgPCEtLSBBcnJvdyAxLT4yIC0tPgogIDxsaW5lIHgxPSIxODAiIHkxPSIxMjgiIHgyPSIyMDUiIHkyPSIxMjgiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dXaGl0ZSkiLz4KCiAgPCEtLSBTdGVwIDI6IER5bmF0cmFjZSBJbnRlbGxpZ2VuY2UgRGV0ZWN0cyAocHVycGxlKSAtLT4KICA8ZyBmaWx0ZXI9InVybCgjc2hhZG93KSI+CiAgICA8cmVjdCB4PSIyMTUiIHk9Ijc4IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjEwMCIgcng9IjEwIiBmaWxsPSJ1cmwoI3B1cnBsZUdyYWQpIi8+CiAgICA8dGV4dCB4PSIyOTUiIHk9IjEwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiPkR5bmF0cmFjZSBJbnRlbGxpZ2VuY2U8L3RleHQ+CiAgICA8dGV4dCB4PSIyOTUiIHk9IjEyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiPkRldGVjdHM8L3RleHQ+CiAgICA8cmVjdCB4PSIyMzUiIHk9IjE0MCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIyNCIgcng9IjQiIGZpbGw9InJnYmEoMCwwLDAsMC4yKSIvPgogICAgPHRleHQgeD0iMjk1IiB5PSIxNTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiNlMGU3ZmYiPkFub21hbHkgaWRlbnRpZmllZDwvdGV4dD4KICA8L2c+CgogIDwhLS0gQXJyb3cgMi0+MyAtLT4KICA8bGluZSB4MT0iMzc1IiB5MT0iMTI4IiB4Mj0iNDAwIiB5Mj0iMTI4IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMi41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93V2hpdGUpIi8+CgogIDwhLS0gU3RlcCAzOiBXb3JrZmxvdyBUcmlnZ2VyZWQgKGJsdWUpIC0tPgogIDxnIGZpbHRlcj0idXJsKCNzaGFkb3cpIj4KICAgIDxyZWN0IHg9IjQxMCIgeT0iNzgiIHdpZHRoPSIxNjAiIGhlaWdodD0iMTAwIiByeD0iMTAiIGZpbGw9InVybCgjYmx1ZUdyYWQpIi8+CiAgICA8dGV4dCB4PSI0OTAiIHk9IjEwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiPldvcmtmbG93PC90ZXh0PgogICAgPHRleHQgeD0iNDkwIiB5PSIxMjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIj5UcmlnZ2VyZWQ8L3RleHQ+CiAgICA8cmVjdCB4PSI0MzAiIHk9IjE0MCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIyNCIgcng9IjQiIGZpbGw9InJnYmEoMCwwLDAsMC4yKSIvPgogICAgPHRleHQgeD0iNDkwIiB5PSIxNTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiNkYmVhZmUiPkF1dG9tYXRpb24gcnVuczwvdGV4dD4KICA8L2c+CgogIDwhLS0gQXJyb3cgMy0+NCAtLT4KICA8bGluZSB4MT0iNTcwIiB5MT0iMTI4IiB4Mj0iNTk1IiB5Mj0iMTI4IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMi41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93V2hpdGUpIi8+CgogIDwhLS0gU3RlcCA0OiBOb3RpZmljYXRpb24gU2VudCAoZ3JlZW4pIC0tPgogIDxnIGZpbHRlcj0idXJsKCNzaGFkb3cpIj4KICAgIDxyZWN0IHg9IjYwNSIgeT0iNzgiIHdpZHRoPSIxNzUiIGhlaWdodD0iMTMwIiByeD0iMTAiIGZpbGw9InVybCgjZ3JlZW5HcmFkKSIvPgogICAgPHRleHQgeD0iNjkyIiB5PSIxMDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIj5Ob3RpZmljYXRpb248L3RleHQ+CiAgICA8dGV4dCB4PSI2OTIiIHk9IjEyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiPlNlbnQ8L3RleHQ+CiAgICA8IS0tIENoYW5uZWwgbGFiZWxzIC0tPgogICAgPHJlY3QgeD0iNjIwIiB5PSIxNDAiIHdpZHRoPSI3MCIgaGVpZ2h0PSIyMiIgcng9IjQiIGZpbGw9InJnYmEoMCwwLDAsMC4yKSIvPgogICAgPHRleHQgeD0iNjU1IiB5PSIxNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiNkY2ZjZTciPlNsYWNrPC90ZXh0PgogICAgPHJlY3QgeD0iNjk4IiB5PSIxNDAiIHdpZHRoPSI3MCIgaGVpZ2h0PSIyMiIgcng9IjQiIGZpbGw9InJnYmEoMCwwLDAsMC4yKSIvPgogICAgPHRleHQgeD0iNzMzIiB5PSIxNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiNkY2ZjZTciPkVtYWlsPC90ZXh0PgogICAgPHJlY3QgeD0iNjUyIiB5PSIxNzAiIHdpZHRoPSI4NiIgaGVpZ2h0PSIyMiIgcng9IjQiIGZpbGw9InJnYmEoMCwwLDAsMC4yKSIvPgogICAgPHRleHQgeD0iNjk1IiB5PSIxODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiNkY2ZjZTciPlBhZ2VyRHV0eTwvdGV4dD4KICA8L2c+CgogIDwhLS0gRmxvdyBkZXNjcmlwdGlvbiBsYWJlbHMgdW5kZXIgYXJyb3dzIC0tPgogIDx0ZXh0IHg9IjE5MiIgeT0iMjIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj50aHJlc2hvbGQ8L3RleHQ+CiAgPHRleHQgeD0iMTkyIiB5PSIyMzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiPmJyZWFjaGVkPC90ZXh0PgogIDx0ZXh0IHg9IjM4OCIgeT0iMjIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj5wcm9ibGVtPC90ZXh0PgogIDx0ZXh0IHg9IjM4OCIgeT0iMjMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj5vcGVuZWQ8L3RleHQ+CiAgPHRleHQgeD0iNTgyIiB5PSIyMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiPmFjdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI1ODIiIHk9IjIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+ZXhlY3V0ZWQ8L3RleHQ+CgogIDwhLS0gTGVnZW5kIGJhciAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMjU4IiB3aWR0aD0iNzIwIiBoZWlnaHQ9IjMwIiByeD0iNiIgZmlsbD0iI2UyZThmMCIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iMjc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjExIiBmaWxsPSIjNDc1NTY5Ij5NZXRyaWMgZXZlbnRzIHRyaWdnZXIgZGV0ZWN0ZWQgcHJvYmxlbXMsIHdoaWNoIGNhbiBhY3RpdmF0ZSB3b3JrZmxvd3MgZm9yIGF1dG9tYXRlZCBub3RpZmljYXRpb24uPC90ZXh0Pgo8L3N2Zz4=" alt="Mobile Alerting Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Stage | Description |
+|------|-------|-------------|
+| 1 | Metric Threshold Breached | A mobile KPI (crash rate, action duration, error count) crosses a configured threshold |
+| 2 | Dynatrace Intelligence Detects Anomaly | Dynatrace Intelligence identifies the anomaly as a significant deviation from baseline behavior |
+| 3 | Workflow Triggered | A Dynatrace workflow fires in response to the detected problem event |
+| 4 | Notification Sent | The workflow delivers a notification via Slack, Email, PagerDuty, or other configured channel |
+For environments where SVG doesn't render
+-->
+<h3>Key Performance Indicators</h3>
+<p>Starting bands from community practice — tune them to your app and audience:</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Good</th>
+<th>Warning</th>
+<th>Critical</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>App Launch Time</strong></td>
+<td>&lt; 2 seconds</td>
+<td>2-5 seconds</td>
+<td>&gt; 5 seconds</td>
+</tr>
+<tr>
+<td><strong>Action Duration</strong></td>
+<td>&lt; 1 second</td>
+<td>1-3 seconds</td>
+<td>&gt; 3 seconds</td>
+</tr>
+<tr>
+<td><strong>HTTP Error Rate</strong></td>
+<td>&lt; 1%</td>
+<td>1-5%</td>
+<td>&gt; 5%</td>
+</tr>
+<tr>
+<td><strong>Crash-Free Rate</strong></td>
+<td>&gt; 99.5%</td>
+<td>98-99.5%</td>
+<td>&lt; 98%</td>
+</tr>
+</tbody>
+</table>
+<h3>User Action Duration</h3>
+<p>User action duration measures how long it takes for specific interactions to complete -- tapping a button, loading a screen, or submitting a form. Tracking these durations over time reveals performance regressions introduced by new releases or backend changes.</p>
+<pre><code class="language-dql">// User action duration trend by interaction type
+fetch user.events, from:-24h
+| filter in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;}) and characteristics.has_user_action
+| makeTimeseries avg_duration = avg(duration), by:{interaction.type}, interval:1h
+</code></pre>
+<h3>Reading the Duration Chart</h3>
+<p>The timeseries above breaks down average action duration by <code>interaction.type</code>. Look for:</p>
+<ul>
+<li><strong>Gradual increases</strong> -- May indicate backend degradation or growing payload sizes</li>
+<li><strong>Sudden spikes</strong> -- Often correlated with a new app release or backend deployment</li>
+<li><strong>Platform differences</strong> -- Compare iOS vs Android by adding <code>os.name</code> to the <code>by:</code> list to identify platform-specific bottlenecks</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> <code>duration</code> is a duration value, not a number of milliseconds. Compare it with a duration literal (<code>duration &gt; 2s</code>), and convert explicitly (<code>duration / 1ms</code>) only when a tile needs a plain number.</p>
+</blockquote>
+<p><a id="session-volume-trends"></a></p>
+<h2>4. Session Volume Trends</h2>
+<p>Session volume is the simplest usage signal: how many people are using the app, and when. Sudden drops often point to an outage, a broken release, or a failed store rollout rather than to changing user behaviour.</p>
+<pre><code class="language-dql">// Session volume timeseries (hourly)
+fetch user.sessions, from:-7d
+| filter dt.rum.application.type == &quot;mobile&quot;
+| makeTimeseries session_count = count(), time:start_time, interval:1h
+</code></pre>
+<p>This query counts mobile sessions per hour (one <code>user.sessions</code> record per session) over the past 7 days. Use it as a dashboard tile to spot usage patterns (peak hours, weekday vs weekend) and detect sudden drops that may indicate an outage or broken update.</p>
+<p><a id="metric-alerts"></a></p>
+<h2>5. Metric Alerts for Mobile</h2>
+<p>Dashboards are for humans looking at screens. Alerts are for ensuring problems are noticed even when nobody is watching. Dynatrace supports two complementary alerting mechanisms for mobile KPIs:</p>
+<ol>
+<li><strong>Dynatrace Intelligence Anomaly Detection</strong> -- Automatically detects deviations from baseline behavior without manual threshold configuration. Best for metrics with natural variance (session volume, action duration).</li>
+<li><strong>Metric Events (Custom Alerts)</strong> -- Manually defined thresholds that fire when a metric crosses a specific boundary. Best for hard limits (crash rate &gt; X, error rate &gt; Y).</li>
+</ol>
+<h3>Recommended Alert Configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Alert</th>
+<th>Metric/Query</th>
+<th>Threshold</th>
+<th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>High Crash Rate</strong></td>
+<td>Crash count per hour</td>
+<td>&gt; 10 crashes in a sliding 1-hour window</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td><strong>Session Drop</strong></td>
+<td>Session count drop</td>
+<td>&lt; 50% of the rolling 7-day baseline</td>
+<td>Warning</td>
+</tr>
+<tr>
+<td><strong>Slow App Launch</strong></td>
+<td>App start duration</td>
+<td>&gt; 5 seconds average over 15 minutes</td>
+<td>Warning</td>
+</tr>
+<tr>
+<td><strong>High Error Rate</strong></td>
+<td>HTTP 5xx from mobile</td>
+<td>&gt; 5% of requests returning server errors</td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<h3>Creating a Crash-Rate Detector (Davis anomaly detector)</h3>
+<p>Build new mobile alerting as a <strong>Davis anomaly detector</strong> in the Anomaly Detection app, with a DQL query as its source and a static-threshold analyzer. A source query for crash volume per app:</p>
+<pre><code class="language-dql">fetch user.events, from:-2h
+| filter characteristics.has_crash
+| makeTimeseries crashes = count(), by:{frontend.name}, interval:5m
+</code></pre>
+<p>Set the static threshold (for example, above 10 crashes per hour, expressed at the 5-minute interval you choose) and the event template in the detector. Confirm in the detector preview that the query is accepted as a source before relying on it. AIOPS-02 §4 walks through the analyzer, tuning and event-template settings, and ALERT-02 covers choosing between mechanisms.</p>
+<blockquote>
+<p><strong>Where the detector is created (SaaS 1.344).</strong> <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones.&quot;</em> SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the <strong>Anomaly Detection</strong> app is where custom alerts are created, and the steps above describe that path.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app">Anomaly Detection (DT docs)</a> — <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings.&quot;</em></sub></p>
+</blockquote>
+<h3>Classic path: metric events</h3>
+<p>The classic surface is <strong>Settings</strong> &gt; <strong>Anomaly Detection</strong> &gt; <strong>Metric Events</strong>. <code>builtin:anomaly-detection.metric-events</code> is flagged <strong>Blocked at upgrade</strong>, so metric events built there have to be recreated as DQL-based detectors (<code>builtin:davis.anomaly-detectors</code>) when the tenant moves to the latest Dynatrace; existing metric events keep working until then. Use it only while your tenant is still on the classic surface.</p>
+<blockquote>
+<p><strong>Correction (09/28/2026).</strong> Earlier revisions showed a metric-event example on a metric key <code>dt.rum.mobile.crash.count</code>. No such key is documented, and none appears in the metric catalog of the validation tenant (<code>metrics | filter startsWith(metric.key, &quot;dt.rum.mobile&quot;)</code> returns nothing, 09/28/2026), so the example could not be built. It has been replaced by the detector above.</p>
+</blockquote>
+<h3>Dynatrace Intelligence vs Static Thresholds</h3>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Best For</th>
+<th>Limitations</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Intelligence</strong></td>
+<td>Metrics with seasonal patterns, automatically adapts to baselines</td>
+<td>May miss gradual degradation; requires learning period</td>
+</tr>
+<tr>
+<td><strong>Static Threshold</strong></td>
+<td>Hard business limits (SLAs, crash budgets)</td>
+<td>Must be manually tuned; doesn't adapt to growth</td>
+</tr>
+<tr>
+<td><strong>Both Combined</strong></td>
+<td>Maximum coverage -- Dynatrace Intelligence catches anomalies, static thresholds enforce SLAs</td>
+<td>More alerts to manage</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> Start with Dynatrace Intelligence for performance metrics (it adapts to your app's normal patterns) and add static thresholds only for KPIs with hard business requirements like crash-free rate SLAs.</p>
+</blockquote>
+<p><a id="davis-problem-correlation"></a></p>
+<h2>6. Detected Problem Correlation</h2>
+<p>When Dynatrace Intelligence detects an anomaly affecting a mobile application, it creates a problem that can be correlated with the mobile telemetry you see on dashboards. The following query retrieves recent detected problems that impact mobile device applications, helping you bridge the gap between infrastructure-level detection and user-facing impact.</p>
+<pre><code class="language-dql">// detected problems affecting mobile applications
+// smartscape.affected_entities replaces the deprecated affected_entity_ids; it holds FRONTEND
+// nodes for web and mobile alike, so the lookup keeps only frontends with frontend.type == &quot;mobile&quot;
+fetch dt.davis.problems, from:-7d
+| expand affected = smartscape.affected_entities
+| filter affected[type] == &quot;FRONTEND&quot;
+| fieldsAdd frontend_id = affected[id]
+| lookup [smartscapeNodes &quot;FRONTEND&quot; | filter frontend.type == &quot;mobile&quot; | fields id, name], sourceField:frontend_id, lookupField:id, prefix:&quot;app.&quot;
+| filter isNotNull(app.id)
+| fields timestamp, display_id, event.name, event.status, mobile_app = app.name
+| sort timestamp desc
+| limit 20
+</code></pre>
+<h3>Correlating Problems with Mobile Metrics</h3>
+<p>When you identify a detected problem affecting a mobile application, overlay the problem time range on your dashboard timeseries to see:</p>
+<ul>
+<li><strong>Did crash rate spike during the problem window?</strong> -- If yes, the root cause likely caused crashes, not just slowdowns</li>
+<li><strong>Did session volume drop?</strong> -- A sudden drop in sessions during a problem may indicate users are unable to launch the app</li>
+<li><strong>Did action duration increase?</strong> -- Performance degradation detected by Dynatrace Intelligence should correlate with user-facing slowness</li>
+</ul>
+<h3>Problem Workflow Integration</h3>
+<p>Connect detected problems to your notification channels so the mobile team is alerted immediately. Create a workflow in the workflow editor with the <strong>Problem trigger</strong> and these settings:</p>
+<table>
+<thead>
+<tr>
+<th>Trigger setting</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Trigger</td>
+<td>Problem trigger</td>
+</tr>
+<tr>
+<td>Problem state</td>
+<td><code>active</code> (starts when the problem opens)</td>
+</tr>
+<tr>
+<td>Affected entities</td>
+<td><strong>Include entities with any defined tag below</strong>: <code>app-type:mobile</code> (requires that tag on your mobile app entities, MOBL-99 §8 #10)</td>
+</tr>
+<tr>
+<td><em>or</em> Additional custom filter query</td>
+<td><code>matchesValue(affected_entity_ids, &quot;MOBILE_APPLICATION-*&quot;)</code> (deprecated field — see the note below)</td>
+</tr>
+<tr>
+<td>Advanced options</td>
+<td>Enable <strong>Wait for root cause analysis</strong> to avoid triggering on incomplete problem data</td>
+</tr>
+</tbody>
+</table>
+<p>Then add a Slack <strong>Send message</strong> task. The message template below uses only fields of the problem record. The action ID is the one Dynatrace's workflow samples use; in an exported workflow, <code>connection</code> holds the Slack connection's ID rather than a name (see WFLOW-03 §1).</p>
+<pre><code class="language-yaml">tasks:
+  - name: notify_mobile_team
+    action: dynatrace.slack:slack-send-message
+    input:
+      connection: slack-mobile-alerts
+      channel: &quot;#mobile-incidents&quot;
+      message: |
+        :rotating_light: Mobile Problem Detected
+        Problem: {{ event()['display_id'] }} — {{ event()['event.name'] }}
+        Category: {{ event()['event.category'] }}
+        Affected: {{ (event().get('smartscape.affected_entities') or []) | map(attribute='name') | join(', ') }}
+        Link: {{ problem_link() }}
+</code></pre>
+<blockquote>
+<p><strong>Deprecated problem fields (updated 11/11/2026).</strong> The alert-notification upgrade guide states: <em>&quot;root_cause_entity_id and root_cause_entity_name are deprecated in favor of root_cause.smartscape_entity, and affected_entity_ids in favor of smartscape.affected_entities. Build new payloads against the Smartscape fields.&quot;</em> The query above and the template's <em>Affected</em> line read <code>smartscape.affected_entities</code>, a record array whose elements carry <code>id</code>, <code>type</code> and <code>name</code>. The custom-filter row still shows the classic <code>affected_entity_ids</code> matcher, which works while the deprecated field exists, but it has no one-line Smartscape equivalent: mobile and web apps are both <code>FRONTEND</code> nodes, and the problem record does not say which kind an affected frontend is. Prefer the tag filter for new triggers.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide — alerting and notifications (DT docs)</a> — the quote above, and <em>&quot;Record array; each element has id, type, name&quot;</em>, re-read 11/11/2026. Query executed 11/11/2026: no problem on the validation tenant affected a <code>FRONTEND</code> node; the same shape on <code>SERVICE</code> nodes returned rows.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Correction (09/28/2026).</strong> Earlier revisions showed the trigger as a <code>trigger: type: davis-problem / entityTagsMatch</code> YAML block. No editor, export or API accepts that shape. The Problem trigger is configured through the settings above.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event triggers for workflows (DT docs)</a> — <em>&quot;Additional custom filter query : Add a DQL matcher expression to further refine which problems start the trigger.&quot;</em>; <a href="https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/security/threat%20detection/threat-detection-notification-sender.yaml">threat-detection-notification-sender.yaml (Dynatrace GitHub)</a> — <em>&quot;action: dynatrace.slack:slack-send-message&quot;</em>.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Template fields come from the problem record.</strong> The Problem trigger's <code>event()</code> is the <code>dt.davis.problems</code> record — run <code>fetch dt.davis.problems, from:-24h | limit 1</code> to see every field a template can read. It has no <code>title</code> field, and its <code>severity</code> field is not a CRITICAL/HIGH label (0 of 3,209 problem records on a validation tenant, 09/24/2026): the title is <code>event.name</code>, the kind of problem is <code>event.category</code>, and the link is <code>{{ problem_link() }}</code>, which <em>&quot;evaluates correctly in workflows with Davis problem event triggers only.&quot;</em> (<a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference">Jinja expressions for Workflows (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event triggers for workflows (DT docs)</a>)</p>
+</blockquote>
+<p><a id="executive-summary"></a></p>
+<h2>7. Executive Summary Tiles</h2>
+<p>Executive stakeholders need a single table that answers: &quot;How are our mobile apps doing?&quot; The following query produces a summary row per application with the key metrics that matter most -- total actions, unique sessions, crash count, and actions per session (an engagement indicator).</p>
+<pre><code class="language-dql">// Executive summary -- key metrics per mobile app
+fetch user.events, from:-24h
+| filter in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;})
+| summarize {total_actions = countIf(characteristics.has_user_action == true), unique_sessions = countDistinct(dt.rum.session.id), crash_count = countIf(characteristics.has_crash == true)}, by:{frontend.name}
+| fieldsAdd actions_per_session = toDouble(total_actions) / toDouble(unique_sessions)
+| sort total_actions desc
+| limit 10
+</code></pre>
+<h3>Building the Executive Dashboard</h3>
+<p>Use the query above as a table tile on your dashboard. Add conditional formatting to highlight:</p>
+<ul>
+<li><strong>Crash count &gt; 0</strong> in red to draw attention to apps with active stability issues</li>
+<li><strong>Actions per session &lt; 3</strong> in yellow to flag apps with low user engagement</li>
+<li><strong>Unique sessions</strong> trending down week-over-week as a leading indicator of user attrition</li>
+</ul>
+<h3>Dashboard Sharing</h3>
+<table>
+<thead>
+<tr>
+<th>Audience</th>
+<th>Dashboard Focus</th>
+<th>Refresh Interval</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Mobile Developers</strong></td>
+<td>Crash details, stack traces, action performance</td>
+<td>5 minutes</td>
+</tr>
+<tr>
+<td><strong>QA Team</strong></td>
+<td>Crash-free rate by version, error trends</td>
+<td>15 minutes</td>
+</tr>
+<tr>
+<td><strong>Product Managers</strong></td>
+<td>Session volume, engagement, feature adoption</td>
+<td>1 hour</td>
+</tr>
+<tr>
+<td><strong>Executives</strong></td>
+<td>Summary KPIs, crash-free rate, active users</td>
+<td>Daily snapshot</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> Use Dynatrace dashboard sharing to send scheduled PDF snapshots to stakeholders who do not log into Dynatrace directly.</p>
+</blockquote>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li><strong>Dashboard design principles</strong> -- Organize tiles by purpose (health indicators at top, trends in middle, drill-down tables at bottom) with application-level filtering</li>
+<li><strong>Crash rate monitoring</strong> -- Build a session-grain timeseries comparing all sessions to crashed sessions (<code>user.sessions</code>, <code>error.has_crash</code>), and interpret crash-free rate thresholds</li>
+<li><strong>App performance metrics</strong> -- Track user action duration to detect regressions and correlate with backend changes</li>
+<li><strong>Session volume trends</strong> -- Identify usage patterns, peak hours, and sudden drops that may indicate outages</li>
+<li><strong>Alerts</strong> -- Build a Davis anomaly detector on a DQL crash query for hard limits, with metric events only as the classic path</li>
+<li><strong>detected problem correlation</strong> -- Query problems affecting mobile applications and overlay them with dashboard timeseries</li>
+<li><strong>Executive summary tiles</strong> -- Build single-table summaries with total actions, unique sessions, crash count, and engagement metrics</li>
+</ul>
+<hr />
+<h2>Next Steps</h2>
+<p>Continue to <strong>MOBL-12: Advanced Instrumentation &amp; Optimization</strong> to explore:</p>
+<ul>
+<li>Business events from mobile apps with <code>sendBizEvent</code></li>
+<li>Custom errors, events and request tagging with the OneAgent SDK</li>
+<li>Feature-flag tracking and data-volume optimization</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks">Dashboards and notebooks (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection-classic/metric-events">Anomaly detection metric events (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications">Mobile App Monitoring</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app">Davis Problems app (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows">Workflows (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event triggers for workflows (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLOUD-04: AWS Lambda &amp; Serverless Monitoring</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">CLOUD — Cloud Provider Integrations</a><span class="sep">/</span><span aria-current="page">CLOUD-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>CLOUD-04: AWS Lambda &amp; Serverless Monitoring</h1>
+<blockquote>
+<p><strong>Series:</strong> CLOUD — Cloud Provider Integrations | <strong>Notebook:</strong> 4 of 8 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook covers serverless monitoring with Dynatrace, focusing on AWS Lambda. You will learn how to monitor Lambda function performance (cold starts, duration, errors, throttles), integrate API Gateway tracing, analyze Step Functions workflows, assess DynamoDB performance, and build end-to-end serverless application tracing.</p>
+<h3>Service Detection v2 for Lambda (Early Access in SaaS 1.337; GA per current docs)</h3>
+<p>Sprint 1.337 SaaS introduced <strong>Service Detection v2 (SDv2) for AWS Lambda</strong> in Early Access; the SDv2 configuration docs now describe it as generally available. It is a major upgrade for serverless monitoring:</p>
+<ol>
+<li>
+<p><strong>Unified rules for OTel and OneAgent.</strong> SDv2 detects Lambda functions whether they emit traces via OneAgent (Lambda layer) or via the OpenTelemetry Lambda extension. The same service entity is enriched from both paths — no more parallel services for the same function.</p>
+</li>
+<li>
+<p><strong>FaaS-specific metrics.</strong> Sprint 1.337 names them by function only:</p>
+<ul>
+<li><strong>Invocation count and failure count</strong></li>
+<li><strong>Invocation duration</strong></li>
+<li><strong>Trigger type breakdown</strong></li>
+</ul>
+<p>They surface in Grail as <code>dt.service.faas_invoke.count</code>, split by <code>faas.trigger</code> and a boolean <code>failed</code> dimension (see the DQL below).</p>
+</li>
+<li>
+<p><strong>OTel <code>service.name</code> enrichment</strong> — when Lambda functions emit OTel spans with <code>service.name</code>, Dynatrace uses that value to enrich the SDv2-detected service rather than creating a parallel one.</p>
+</li>
+</ol>
+<p><strong>Sample DQL — Lambda failure rate by trigger type:</strong></p>
+<pre><code class="language-dql">// dt.faas.failures / dt.faas.invocations / dt.faas.trigger.type do not exist (corrected
+// 08/12/2026). The OneAgent FaaS series is dt.service.faas_invoke.count, split by faas.trigger
+// with a boolean `failed` dimension — so the failure/total split is a dimension filter, not two
+// separate metrics.
+timeseries invocations = sum(dt.service.faas_invoke.count), from:-1h, by:{faas.trigger, failed}
+| fieldsAdd total = arraySum(invocations)
+| summarize {
+    failures = sum(if(failed == true, total, else: 0)),
+    invocations = sum(total)
+  }, by:{faas.trigger}
+| fieldsAdd failure_rate_pct = round(failures * 100.0 / invocations, decimals: 2)
+| sort failure_rate_pct desc
+</code></pre>
+<p><strong>Status:</strong> <em>&quot;SDv2 is generally available for AWS Lambda services monitored by OneAgent. This feature is deactivated by default.&quot;</em> It has a prerequisite: <em>&quot;SDv2 for AWS Lambda services only works when the [Built-in] FaaS name service detection rule is enabled.&quot;</em> Existing Lambda monitoring via OneAgent layer or OTel extension keeps working.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-337">SaaS 1.337 (DT docs)</a> — the Early Access introduction and the three metric functions, <a href="https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v2/configure-sdv2-for-oneagent">Configure SDv2 for OneAgent (DT docs)</a> — the GA status and the FaaS-name-rule prerequisite.</sub></p>
+</blockquote>
+<hr />
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#lambda-fundamentals">Lambda Monitoring Fundamentals</a></li>
+<li><a href="#cold-starts">Cold Start Detection</a></li>
+<li><a href="#lambda-errors">Lambda Error Analysis</a></li>
+<li><a href="#throttle-analysis">Throttle Analysis</a></li>
+<li><a href="#api-gateway">API Gateway Integration</a></li>
+<li><a href="#step-functions">Step Functions Tracing</a></li>
+<li><a href="#dynamodb">DynamoDB Performance</a></li>
+<li><a href="#e2e-tracing">End-to-End Serverless Tracing</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:metrics:read</code>, <code>storage:entities:read</code> + <code>storage:smartscape:read</code>, <code>storage:spans:read</code>, <code>storage:buckets:read</code> (Grail IAM permissions)</td>
+</tr>
+<tr>
+<td><strong>AWS Integration</strong></td>
+<td>AWS cloud integration configured (CLOUD-02)</td>
+</tr>
+<tr>
+<td><strong>Lambda Functions</strong></td>
+<td>At least one Lambda function with Dynatrace layer or OneAgent extension</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td>CLOUD-01 fundamentals, CLOUD-02 AWS integration</td>
+</tr>
+</tbody>
+</table>
+<p><a id="lambda-fundamentals"></a></p>
+<h2>1. Lambda Monitoring Fundamentals</h2>
+<p>Dynatrace monitors Lambda functions through two complementary approaches:</p>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Data Source</th>
+<th>What It Provides</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cloud Integration</strong></td>
+<td>CloudWatch metrics via the Clouds app connection (or a classic ActiveGate on Managed)</td>
+<td>Invocations, duration, errors, throttles, concurrent executions</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Lambda Layer</strong></td>
+<td>OneAgent in Lambda runtime</td>
+<td>Distributed traces, code-level visibility, custom metrics</td>
+</tr>
+</tbody>
+</table>
+<h3>Key Lambda Metrics — the key name depends on how the metrics arrive</h3>
+<p><strong>Check which AWS connection your environment uses before copying any key from this section.</strong> A classic
+AWS connection and a new AWS connection (Clouds app) write <em>different key schemes</em>. A key from the wrong scheme
+returns an empty result, not an error, so it reads as &quot;this function has no traffic&quot;.</p>
+<table>
+<thead>
+<tr>
+<th>Connection</th>
+<th>Key scheme</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Classic AWS connection (built-in service)</strong></td>
+<td>lowercase, <code>dt.</code>-prefixed on Grail (<code>builtin:cloud.aws.*</code> in Metrics Classic)</td>
+<td><code>dt.cloud.aws.lambda.invocations</code></td>
+</tr>
+<tr>
+<td><strong>New AWS connection (Clouds app)</strong></td>
+<td><code>cloud.aws.&lt;Service&gt;.&lt;Metric&gt;.By.&lt;Dimension&gt;</code>, with dimension <code>dt.da.source == &quot;aws-metric-poller&quot;</code></td>
+<td><code>cloud.aws.lambda.Invocations.By.FunctionName</code></td>
+</tr>
+</tbody>
+</table>
+<p>Classic CloudWatch Metric Streams is a third, classic path with its own <code>cloud.aws.&lt;service&gt;</code> prefix. Filter on
+<code>dt.da.source == &quot;aws-metric-poller&quot;</code> when you need only the new connection's series.</p>
+<table>
+<thead>
+<tr>
+<th>Measure</th>
+<th>Classic connection key</th>
+<th>New AWS connection key</th>
+<th>Healthy range</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Invocations</td>
+<td><code>dt.cloud.aws.lambda.invocations</code></td>
+<td><code>cloud.aws.lambda.Invocations.By.FunctionName</code></td>
+<td>Application-dependent</td>
+</tr>
+<tr>
+<td>Duration (ms)</td>
+<td><code>dt.cloud.aws.lambda.duration</code></td>
+<td><code>cloud.aws.lambda.Duration.By.FunctionName</code></td>
+<td>&lt; function timeout</td>
+</tr>
+<tr>
+<td>Errors</td>
+<td><code>dt.cloud.aws.lambda.errors</code></td>
+<td><code>cloud.aws.lambda.Errors.By.FunctionName</code></td>
+<td>0 (ideally)</td>
+</tr>
+<tr>
+<td>Throttles</td>
+<td><code>dt.cloud.aws.lambda.throttlers</code></td>
+<td><code>cloud.aws.lambda.Throttles.By.FunctionName</code></td>
+<td>0</td>
+</tr>
+<tr>
+<td>Concurrent executions</td>
+<td><code>dt.cloud.aws.lambda.conc_executions</code></td>
+<td><code>cloud.aws.lambda.ConcurrentExecutions.By.FunctionName</code></td>
+<td>&lt; reserved concurrency</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The DQL cells in this notebook use the new AWS connection scheme</strong>, which is what the validation tenant ingests
+(09/24/2026: 5 distinct <code>cloud.aws.lambda.*</code> keys, <strong>0</strong> <code>dt.cloud.aws.lambda.*</code>; 11/11/2026: every
+<code>cloud.aws.lambda.Invocations.By.FunctionName</code> series carries <code>dt.da.source == &quot;aws-metric-poller&quot;</code>). If your
+environment still uses a classic AWS connection, substitute the left-hand column throughout. Settle it in one query rather than guessing:</p>
+<pre><code class="language-dql">metrics from:now()-9d
+| filter startsWith(metric.key, &quot;cloud.aws.lambda&quot;) or startsWith(metric.key, &quot;dt.cloud.aws.lambda&quot;)
+| summarize n = count(), by:{metric.key}
+| sort metric.key asc
+</code></pre>
+<p>Group by <code>metric.key</code> rather than listing it: bare <code>metrics</code> output repeats a key once per series, so a row count is not a key count.</p>
+<p>An empty result from <em>both</em> prefixes means no Lambda metrics are arriving at all — a different problem from
+picking the wrong scheme, and worth separating before you debug either.</p>
+<h3>List Monitored Lambda Functions</h3>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail">Built-in metrics on Grail (DT docs)</a> — the <code>builtin:</code> → <code>dt.</code> transformation behind the classic key scheme, <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections">Upgrade from classic to new cloud connections (DT docs)</a> — <em>&quot;Metric keys are unified to cloud.aws.<Service>.<Metric>.By.<Dimension> with a metric dimension dt.da.source == &quot;aws-metric-poller&quot; when using the new AWS connection.&quot;</em>, <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections/metric-and-entity-mapping-aws">AWS metric and entity mapping (DT docs)</a> — classic <code>builtin:cloud.aws.lambda.invocations</code> → new <code>cloud.aws.lambda.Invocations.By.FunctionName</code>, <a href="https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/aws-metrics-ingest/cloudwatch-metric-streams">CloudWatch Metric Streams (DT docs)</a> — the classic streaming path's <code>cloud.aws.&lt;service&gt;</code> prefix. Key presence measured on the validation tenant 09/24/2026: 5 distinct new-connection keys, 0 classic keys; <code>dt.da.source</code> re-checked 11/11/2026.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// List all monitored Lambda functions with runtime and code size
+//
+// Corrected 08/12/2026: the runtime attribute is awsRuntime, not awsLambdaFunctionRuntime — the
+// latter does not exist and failed the whole cell with FIELD_DOES_NOT_EXIST. Time range added
+// because dt.entity.* returns only entities seen in the query window, not the standing inventory.
+fetch dt.entity.aws_lambda_function, from:-7d
+| fields id, entity.name, awsRuntime, awsCodeSize, awsMemorySize, awsTimeout, tags
+| sort entity.name asc
+| limit 25
+
+// Smartscape note (dt.entity.* is deprecated but still functional): AWS Lambda functions ARE
+// modeled on Smartscape as smartscapeNodes &quot;AWS_LAMBDA_FUNCTION&quot;, but the classic aws* attribute
+// fields differ there — inspect smartscapeNodes &quot;AWS_LAMBDA_FUNCTION&quot; | limit 1 for the node
+// field names. Keep the classic query above until the fields are mapped.
+</code></pre>
+<h3>Lambda Execution Time Over Time</h3>
+<pre><code class="language-dql">// Lambda average execution duration over the last 6 hours
+//
+// Metric keys: these are the new AWS connection (Clouds app) keys, named
+// cloud.aws.lambda.&lt;CloudWatchName&gt;.By.FunctionName — Invocations / Errors / Duration /
+// Throttles / ConcurrentExecutions / IteratorAge — carrying dt.da.source == &quot;aws-metric-poller&quot;.
+// A classic AWS connection produces dt.cloud.aws.lambda.* instead (see §1's table); a key from
+// the other scheme returns an empty result, not an error. The split dimension is FunctionName — dt.entity.aws_lambda_function is
+// null on these metrics. Enumerate what your tenant has, one row per key, with:
+//   metrics from:now()-9d | filter startsWith(metric.key, &quot;cloud.aws.lambda&quot;) or startsWith(metric.key, &quot;dt.cloud.aws.lambda&quot;) | summarize n = count(), by:{metric.key} | sort metric.key asc
+timeseries avgDuration = avg(cloud.aws.lambda.Duration.By.FunctionName), from:-6h, by:{FunctionName}
+| fieldsAdd avgDurationValue = arrayAvg(avgDuration)
+| sort avgDurationValue desc
+| limit 10
+</code></pre>
+<h3>Tagging this producer — primary Grail tags on Lambda</h3>
+<p><em>&quot;A Lambda function doesn't load the ingest enrichment configuration, so its tags come from the DT_TAGS environment variable that you set in the function configuration&quot;</em>. Set the keys, space-separated, with their <code>primary_tags.</code> prefix:</p>
+<pre><code class="language-text">DT_TAGS = &quot;primary_tags.team=checkout primary_tags.app=shop primary_tags.stage=prod&quot;
+</code></pre>
+<p>The variable tags the spans, metrics and logs OneAgent emits from the function. Two more things:</p>
+<ul>
+<li><strong>Account and region are not detected.</strong> <em>&quot;On serverless platforms, OneAgent can't auto-detect certain primary fields.&quot;</em> Pass <code>aws.account.id</code> and <code>aws.region</code> in <code>DT_TAGS</code> too.</li>
+<li><strong>The function's Smartscape node is tagged elsewhere.</strong> It comes from the AWS connection, so the CLOUD-02 AWS-tag rule and OpenPipeline promotion tag it — and the <code>isNull(primary_tags.&lt;key&gt;)</code> condition there is what keeps that rule from overwriting the <code>DT_TAGS</code> value on the function's own telemetry.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws">Apply primary Grail tags across an example AWS estate (DT docs)</a> — <em>&quot;A Lambda function doesn't load the ingest enrichment configuration, so its tags come from the DT_TAGS environment variable that you set in the function configuration&quot;</em>, <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent">Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)</a> — <em>&quot;On serverless platforms, OneAgent can't auto-detect certain primary fields.&quot;</em></sub></p>
+</blockquote>
+<p><a id="cold-starts"></a></p>
+<h2>2. Cold Start Detection</h2>
+<p>Cold starts occur when Lambda creates a new execution environment. They add latency (100ms to several seconds depending on runtime and package size).</p>
+<h3>Understanding Cold Starts</h3>
+<table>
+<thead>
+<tr>
+<th>Factor</th>
+<th>Impact on Cold Start</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Runtime</strong></td>
+<td>Java/C# &gt; Python/Node.js</td>
+</tr>
+<tr>
+<td><strong>Package size</strong></td>
+<td>Larger = slower initialization</td>
+</tr>
+<tr>
+<td><strong>VPC attachment</strong></td>
+<td>Adds ENI creation time (~1-2s)</td>
+</tr>
+<tr>
+<td><strong>Provisioned concurrency</strong></td>
+<td>Eliminates cold starts (at cost)</td>
+</tr>
+<tr>
+<td><strong>SnapStart</strong></td>
+<td>Reduces Java cold starts to ~200ms</td>
+</tr>
+</tbody>
+</table>
+<h3>Detecting Cold Starts via Init Duration</h3>
+<p>CloudWatch provides an <code>InitDuration</code> metric for cold starts. With Dynatrace Lambda Layer, you can detect cold starts from spans.</p>
+<pre><code class="language-dql">// Detect Lambda cold starts from spans (init phase)
+//
+// Corrected 08/12/2026. The old cell filtered `contains(span.name, &quot;lambda&quot;)`, but a Lambda span
+// is named for the FUNCTION, not the word &quot;lambda&quot; — so the filter discarded every matching span
+// and the cell reported cold_start_count = 0 while 14 real cold starts (avg 2.45 s) sat in the
+// window. A zero inside a summarize row is the easiest kind of wrong answer to miss: the cell
+// returns a row, it just returns a false one. faas.coldstart alone is the correct discriminator.
+// Also dropped faas.invocation_id, which is not a field (faas.* has no invocation_id).
+fetch spans, from:-6h
+| filter faas.coldstart == true
+| summarize {cold_start_count = count(), avg_duration_ms = avg(duration) / 1ms}, by:{faas.name}
+| sort cold_start_count desc
+| limit 20
+</code></pre>
+<h3>Lambda Invocations with Duration Percentiles</h3>
+<pre><code class="language-dql">// Lambda duration percentiles over the last 6 hours — computed from spans, not the metric.
+//
+// Corrected 08/12/2026 (two defects). The old cell called
+// percentile(dt.cloud.aws.lambda.duration, 50): the key does not exist, AND percentile() does not
+// work on the real CloudWatch Duration metric either — cloud.aws.lambda.Duration.By.FunctionName
+// is a pre-aggregated gauge, so percentile() over it returns an empty result even when the key is
+// spelled correctly. Only avg/min/max/sum are meaningful there. Real percentiles need the
+// underlying distribution, which lives on the spans.
+//
+// Corrected 10/02/2026: filter to the invocation span (span.kind == &quot;server&quot;). faas.name is also
+// carried by the function's outbound and internal child spans, so counting every span with
+// faas.name over-counted invocations ~8x on the validation tenant (2,872 spans vs 359 server
+// spans in 6 h, against 351 CloudWatch invocations) and mixed child-span durations into the
+// percentiles.
+fetch spans, from:-6h
+| filter isNotNull(faas.name) and span.kind == &quot;server&quot;
+| summarize {
+    p50 = percentile(duration, 50) / 1ms,
+    p90 = percentile(duration, 90) / 1ms,
+    p99 = percentile(duration, 99) / 1ms,
+    invocations = count()
+  }, by:{faas.name}
+| sort p99 desc
+| limit 10
+</code></pre>
+<p><a id="lambda-errors"></a></p>
+<h2>3. Lambda Error Analysis</h2>
+<p>Lambda errors fall into two categories:</p>
+<table>
+<thead>
+<tr>
+<th>Error Type</th>
+<th>Description</th>
+<th>Metric</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Function errors</strong></td>
+<td>Unhandled exceptions, timeout, OOM</td>
+<td><code>dt.cloud.aws.lambda.errors</code></td>
+</tr>
+<tr>
+<td><strong>Invocation errors</strong></td>
+<td>Permission issues, throttling, invalid payload</td>
+<td><code>dt.cloud.aws.lambda.throttlers</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Breaking (SaaS 1.346 — staged rollout from 08/25/2026): expect your Lambda failure rate to rise.</strong> Verbatim: <em>&quot;HTTP failure detection now applies to FaaS services (AWS Lambda, Azure Functions, and GCP Cloud Functions) with HTTP data. After this update, you may see a higher failure rate in your environment. This is expected—issues with these services are now detected and reported for the first time.&quot;</em></p>
+<p>The rise is <strong>new detection, not new breakage</strong> — HTTP-level failures your functions were already returning are now reported as failures. Three practical consequences:</p>
+<ul>
+<li><strong>Re-baseline before you alert.</strong> Any static failure-rate threshold, SLO, or anomaly baseline covering FaaS services was tuned against the pre-1.346 numbers. Let the new rate settle before treating a step change as an incident — and expect Davis baselines to re-learn.</li>
+<li><strong>Do not chase the step change as a regression.</strong> The first post-rollout spike is the most likely moment for a false escalation. Confirm the tenant version before opening an investigation into a failure-rate jump.</li>
+<li><strong>The step is a one-time level shift, not a trend.</strong> Compare like-for-like windows on the same side of the rollout.</li>
+</ul>
+<p>This applies to the metric-based error analysis below and to trace-based failure analysis alike, and it is a cross-cloud change — Azure Functions and GCP Cloud Functions are named alongside Lambda, so the same re-baselining applies in CLOUD-05 and CLOUD-06.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-346">SaaS 1.346 (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Error Rate by Function</h3>
+<pre><code class="language-dql">// Lambda error count by function over the last 24 hours
+//
+// Metric keys: these are the new AWS connection (Clouds app) keys, named
+// cloud.aws.lambda.&lt;CloudWatchName&gt;.By.FunctionName — Invocations / Errors / Duration /
+// Throttles / ConcurrentExecutions / IteratorAge — carrying dt.da.source == &quot;aws-metric-poller&quot;.
+// A classic AWS connection produces dt.cloud.aws.lambda.* instead (see §1's table); a key from
+// the other scheme returns an empty result, not an error. The split dimension is FunctionName — dt.entity.aws_lambda_function is
+// null on these metrics. Enumerate what your tenant has, one row per key, with:
+//   metrics from:now()-9d | filter startsWith(metric.key, &quot;cloud.aws.lambda&quot;) or startsWith(metric.key, &quot;dt.cloud.aws.lambda&quot;) | summarize n = count(), by:{metric.key} | sort metric.key asc
+timeseries errors = sum(cloud.aws.lambda.Errors.By.FunctionName), from:-24h, by:{FunctionName}
+| fieldsAdd totalErrors = arraySum(errors)
+| filter totalErrors &gt; 0
+| sort totalErrors desc
+| limit 10
+</code></pre>
+<h3>Error-to-Invocation Ratio</h3>
+<pre><code class="language-dql">// Error rate percentage by function over the last 24 hours
+//
+// Corrected 08/12/2026 (two defects). Besides the non-existent metric keys, the old cell used
+// `append [ ... ]` to bring invocations alongside errors. append STACKS ROWS — it does not join
+// columns — so totalErrors and totalInvocations never landed on the same row and error_pct was
+// null for every row even with valid keys. Request both series inside ONE timeseries block, which
+// is what actually aligns them on a shared timeline and grouping.
+//
+// Metric keys: these are the new AWS connection (Clouds app) keys, named
+// cloud.aws.lambda.&lt;CloudWatchName&gt;.By.FunctionName — Invocations / Errors / Duration /
+// Throttles / ConcurrentExecutions / IteratorAge — carrying dt.da.source == &quot;aws-metric-poller&quot;.
+// A classic AWS connection produces dt.cloud.aws.lambda.* instead (see §1's table); a key from
+// the other scheme returns an empty result, not an error. The split dimension is FunctionName — dt.entity.aws_lambda_function is
+// null on these metrics. Enumerate what your tenant has, one row per key, with:
+//   metrics from:now()-9d | filter startsWith(metric.key, &quot;cloud.aws.lambda&quot;) or startsWith(metric.key, &quot;dt.cloud.aws.lambda&quot;) | summarize n = count(), by:{metric.key} | sort metric.key asc
+timeseries {
+  invocations = sum(cloud.aws.lambda.Invocations.By.FunctionName),
+  errors = sum(cloud.aws.lambda.Errors.By.FunctionName)
+}, from:-24h, by:{FunctionName}
+| fieldsAdd totalInvocations = arraySum(invocations), totalErrors = arraySum(errors)
+| filter totalInvocations &gt; 0
+| fieldsAdd error_pct = round((totalErrors / totalInvocations) * 100, decimals: 2)
+| sort error_pct desc
+| limit 10
+</code></pre>
+<p><a id="throttle-analysis"></a></p>
+<h2>4. Throttle Analysis</h2>
+<p>Throttling occurs when Lambda cannot allocate an execution environment, typically due to:</p>
+<ul>
+<li><strong>Account-level concurrency limit</strong> (default 1,000 per region)</li>
+<li><strong>Reserved concurrency</strong> on the function being exhausted</li>
+<li><strong>Burst limit</strong> exceeded (3,000 in US regions, varies by region)</li>
+</ul>
+<h3>Throttled Invocations Over Time</h3>
+<pre><code class="language-dql">// Lambda throttles over the last 24 hours by function
+//
+// The `filter totalThrottles &gt; 0` guard was dropped (08/12/2026) — on a healthy estate every function
+// throttles zero times, so the guard emptied the table and made a correct result look like a
+// broken query. Seeing the zeros is the point.
+//
+// Metric keys: these are the new AWS connection (Clouds app) keys, named
+// cloud.aws.lambda.&lt;CloudWatchName&gt;.By.FunctionName — Invocations / Errors / Duration /
+// Throttles / ConcurrentExecutions / IteratorAge — carrying dt.da.source == &quot;aws-metric-poller&quot;.
+// A classic AWS connection produces dt.cloud.aws.lambda.* instead (see §1's table); a key from
+// the other scheme returns an empty result, not an error. The split dimension is FunctionName — dt.entity.aws_lambda_function is
+// null on these metrics. Enumerate what your tenant has, one row per key, with:
+//   metrics from:now()-9d | filter startsWith(metric.key, &quot;cloud.aws.lambda&quot;) or startsWith(metric.key, &quot;dt.cloud.aws.lambda&quot;) | summarize n = count(), by:{metric.key} | sort metric.key asc
+timeseries throttles = sum(cloud.aws.lambda.Throttles.By.FunctionName), from:-24h, by:{FunctionName}
+| fieldsAdd totalThrottles = arraySum(throttles)
+| fields FunctionName, totalThrottles
+| sort totalThrottles desc
+| limit 20
+</code></pre>
+<h3>Concurrent Executions Trend</h3>
+<pre><code class="language-dql">// Concurrent Lambda executions over the last 6 hours
+//
+// Metric keys: these are the new AWS connection (Clouds app) keys, named
+// cloud.aws.lambda.&lt;CloudWatchName&gt;.By.FunctionName — Invocations / Errors / Duration /
+// Throttles / ConcurrentExecutions / IteratorAge — carrying dt.da.source == &quot;aws-metric-poller&quot;.
+// A classic AWS connection produces dt.cloud.aws.lambda.* instead (see §1's table); a key from
+// the other scheme returns an empty result, not an error. The split dimension is FunctionName — dt.entity.aws_lambda_function is
+// null on these metrics. Enumerate what your tenant has, one row per key, with:
+//   metrics from:now()-9d | filter startsWith(metric.key, &quot;cloud.aws.lambda&quot;) or startsWith(metric.key, &quot;dt.cloud.aws.lambda&quot;) | summarize n = count(), by:{metric.key} | sort metric.key asc
+timeseries concurrency = max(cloud.aws.lambda.ConcurrentExecutions.By.FunctionName), from:-6h, by:{FunctionName}
+| fieldsAdd peakConcurrency = arrayMax(concurrency)
+| sort peakConcurrency desc
+| limit 10
+</code></pre>
+<p><a id="api-gateway"></a></p>
+<h2>5. API Gateway Integration</h2>
+<p>AWS API Gateway is a common front-end for Lambda functions. Dynatrace monitors the API Gateway-to-Lambda path for end-to-end latency.</p>
+<h3>API Gateway Monitoring Points</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>What It Measures</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Count</strong></td>
+<td>Total API requests</td>
+</tr>
+<tr>
+<td><strong>Latency</strong></td>
+<td>End-to-end latency (API GW → Lambda → response)</td>
+</tr>
+<tr>
+<td><strong>IntegrationLatency</strong></td>
+<td>Lambda execution time only</td>
+</tr>
+<tr>
+<td><strong>4XXError</strong></td>
+<td>Client-side errors</td>
+</tr>
+<tr>
+<td><strong>5XXError</strong></td>
+<td>Server-side errors (Lambda failures)</td>
+</tr>
+</tbody>
+</table>
+<h3>Tracing API Gateway Requests</h3>
+<p>With the Dynatrace Lambda Layer, traces propagate through API Gateway into Lambda:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImMwNGEtYXJyb3ciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iMTAiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHRleHQgeD0iNDY1IiB5PSIzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+VHJhY2luZyBhIFJlcXVlc3QgVGhyb3VnaCBBUEkgR2F0ZXdheSBpbnRvIExhbWJkYTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5UcmFjZSBjb250ZXh0IHJpZGVzIGluIEhUVFAgaGVhZGVyczsgdGhlIExhbWJkYSBMYXllciBsaW5rcyB0aGUgZnVuY3Rpb24gdG8gaXRzIGNhbGxlcjwvdGV4dD4KICA8cmVjdCB4PSIzMCIgeT0iMTIwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9Ijk2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjEyMC4wIiB5PSIxNDYuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+Q2xpZW50PC90ZXh0PgogIDx0ZXh0IHg9IjEyMC4wIiB5PSIxNjMuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Y2FsbGluZyBzZXJ2aWNlIG9yIGJyb3dzZXI8L3RleHQ+CiAgPHRleHQgeD0iMTIwLjAiIHk9IjE4MC41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5saW5rZWQgYXMgcGFyZW50IHdoZW48L3RleHQ+CiAgPHRleHQgeD0iMTIwLjAiIHk9IjE5Ny41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5pdCBpcyBtb25pdG9yZWQ8L3RleHQ+CiAgPGxpbmUgeDE9IjIxMCIgeTE9IjE2OC4wIiB4Mj0iMjUwIiB5Mj0iMTY4LjAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYzA0YS1hcnJvdykiLz4KICA8cmVjdCB4PSIyNTAiIHk9IjEyMCIgd2lkdGg9IjE5MCIgaGVpZ2h0PSI5NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSIzNDUuMCIgeT0iMTQ2LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkFQSSBHYXRld2F5PC90ZXh0PgogIDx0ZXh0IHg9IjM0NS4wIiB5PSIxNjMuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Zm9yd2FyZHMgeC1keW5hdHJhY2UsPC90ZXh0PgogIDx0ZXh0IHg9IjM0NS4wIiB5PSIxODAuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dHJhY2VwYXJlbnQsIHRyYWNlc3RhdGU8L3RleHQ+CiAgPHRleHQgeD0iMzQ1LjAiIHk9IjE5Ny41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4oTGFtYmRhIHByb3h5IGludGVncmF0aW9uKTwvdGV4dD4KICA8bGluZSB4MT0iNDQwIiB5MT0iMTY4LjAiIHgyPSI0ODAiIHkyPSIxNjguMCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNjMDRhLWFycm93KSIvPgogIDxyZWN0IHg9IjQ4MCIgeT0iMTIwIiB3aWR0aD0iMTkwIiBoZWlnaHQ9Ijk2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjU3NS4wIiB5PSIxNDYuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+TGFtYmRhIGZ1bmN0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjU3NS4wIiB5PSIxNjMuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RHluYXRyYWNlIExhbWJkYSBMYXllcjwvdGV4dD4KICA8dGV4dCB4PSI1NzUuMCIgeT0iMTgwLjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmNyZWF0ZXMgdGhlIGZ1bmN0aW9uIHNwYW48L3RleHQ+CiAgPHRleHQgeD0iNTc1LjAiIHk9IjE5Ny41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5hbmQgbGlua3MgdGhlIHBhcmVudDwvdGV4dD4KICA8bGluZSB4MT0iNjcwIiB5MT0iMTY4LjAiIHgyPSI3MTAiIHkyPSIxNjguMCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNjMDRhLWFycm93KSIvPgogIDxyZWN0IHg9IjcxMCIgeT0iMTIwIiB3aWR0aD0iMTkwIiBoZWlnaHQ9Ijk2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjgwNS4wIiB5PSIxNDYuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+RHluYW1vREIgLyBTUVMgLyDigKY8L3RleHQ+CiAgPHRleHQgeD0iODA1LjAiIHk9IjE2My41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5vdXRnb2luZyBjYWxscyB0cmFjZWQ8L3RleHQ+CiAgPHRleHQgeD0iODA1LjAiIHk9IjE4MC41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj53aGVyZSB0aGUgcnVudGltZSdzPC90ZXh0PgogIDx0ZXh0IHg9IjgwNS4wIiB5PSIxOTcuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+c2Vuc29yIHN1cHBvcnRzIHRoZW08L3RleHQ+CiAgPHBhdGggZD0iTSAxMjAgMjM2IEwgMTIwIDI1NiBMIDgwNSAyNTYgTCA4MDUgMjM2IiBmaWxsPSJub25lIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIyODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPk9uZSBkaXN0cmlidXRlZCB0cmFjZSB3aGVuIGV2ZXJ5IGhvcCBmb3J3YXJkcyB0aGUgdHJhY2UgY29udGV4dDwvdGV4dD4KICA8cmVjdCB4PSIxMTAiIHk9IjMyMCIgd2lkdGg9IjcxMCIgaGVpZ2h0PSIxMjAiIGZpbGw9IiNGRkI4MDAiIGZpbGwtb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIxMjQiIHk9IjM0MiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5Ob24tcHJveHkgaW50ZWdyYXRpb248L3RleHQ+CiAgPHRleHQgeD0iMTMwIiB5PSIzNjgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+Tm9uLXByb3h5IGludGVncmF0aW9uIHByZXZlbnRzIHRyYWNpbmcgY2FsbHMgZnJvbSBvdGhlciBtb25pdG9yZWQgYXBwbGljYXRpb25zIGFuZDwvdGV4dD4KICA8dGV4dCB4PSIxMzAiIHk9IjM4OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5SVU0gZGV0ZWN0aW9uIHVubGVzcyB5b3UgYWRkIGEgY3VzdG9tIG1hcHBpbmc8L3RleHQ+CiAgPHRleHQgeD0iMTMwIiB5PSI0MDgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+dGVtcGxhdGUgdGhhdCBmb3J3YXJkcyB4LWR5bmF0cmFjZSwgdHJhY2VwYXJlbnQsIHRyYWNlc3RhdGUsIHgtZHRjIGFuZCB4LWZvcndhcmRlZC1mb3IuPC90ZXh0Pgo8L3N2Zz4K" alt="Tracing a request through API Gateway into Lambda" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Hop | Role in the trace |
+|-----|-------------------|
+| Client (calling service or browser) | Linked as the parent when it is monitored |
+| API Gateway | Forwards `x-dynatrace`, `traceparent`, `tracestate` to Lambda (Lambda proxy integration) |
+| Lambda function | The Dynatrace Lambda Layer creates the function span and links the parent |
+| DynamoDB / SQS / … | Outgoing calls traced where the runtime's sensor supports them |
+| Non-proxy integration | Prevents tracing calls from other monitored applications and RUM detection unless a custom mapping template forwards `x-dynatrace`, `traceparent`, `tracestate`, `x-dtc` and `x-forwarded-for` |
+For environments where SVG doesn't render
+-->
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/aws-lambda-integration/trace-lambda-functions">Trace Lambda functions (DT docs)</a>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Trace spans from API Gateway and Lambda in the last hour
+//
+// Corrected 08/12/2026: the old `contains(span.name, &quot;lambda&quot;) or contains(span.name,
+// &quot;api-gateway&quot;)` name-guessing filter matched nothing, because spans are named for the function
+// or route. Select on the semantic field instead — faas.name is present on every FaaS span.
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot; and isNotNull(faas.name)
+| fieldsKeep start_time, trace.id, span.name, duration, span.status_code, faas.name
+| sort start_time desc
+| limit 20
+</code></pre>
+<p><a id="step-functions"></a></p>
+<h2>6. Step Functions Tracing</h2>
+<p>AWS Step Functions orchestrate Lambda functions into workflows. Dynatrace can trace the entire state machine execution.</p>
+<h3>Step Functions Monitoring</h3>
+<table>
+<thead>
+<tr>
+<th>What to Monitor</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Execution duration</strong></td>
+<td>Detect slow workflows</td>
+</tr>
+<tr>
+<td><strong>Failed executions</strong></td>
+<td>Identify error patterns</td>
+</tr>
+<tr>
+<td><strong>State transitions</strong></td>
+<td>Find bottleneck states</td>
+</tr>
+<tr>
+<td><strong>Lambda cold starts within workflows</strong></td>
+<td>Impact on workflow latency</td>
+</tr>
+</tbody>
+</table>
+<h3>Step Function Execution Tracking via Logs</h3>
+<pre><code class="language-dql">// Step Function execution logs (if forwarded to Dynatrace)
+fetch logs, from:-24h
+| filter contains(content, &quot;StepFunction&quot;) or contains(content, &quot;StateMachine&quot;)
+| fieldsKeep timestamp, content, log.source
+| sort timestamp desc
+| limit 20
+</code></pre>
+<p><a id="dynamodb"></a></p>
+<h2>7. DynamoDB Performance</h2>
+<p>DynamoDB is frequently used with Lambda for serverless data storage. Key monitoring areas:</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Concern</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Read/Write capacity</strong></td>
+<td>Throttling if exceeded</td>
+</tr>
+<tr>
+<td><strong>Latency</strong></td>
+<td>Slow queries impacting Lambda duration</td>
+</tr>
+<tr>
+<td><strong>Consumed vs provisioned</strong></td>
+<td>Over/under-provisioning</td>
+</tr>
+<tr>
+<td><strong>Error count</strong></td>
+<td>Conditional check failures, throttles</td>
+</tr>
+</tbody>
+</table>
+<h3>DynamoDB Span Analysis</h3>
+<pre><code class="language-dql">// Database call duration from Lambda spans in the last 6 hours
+//
+// Corrected 08/12/2026: `db.operation` is not a field — the stable name is `db.operation.name`.
+// It went unnoticed because the preceding `db.system == &quot;dynamodb&quot;` filter already emptied the
+// stream, so the bad field in the summarize was never evaluated. The hard-coded dynamodb filter
+// is also removed: it returns nothing unless that engine is present. Group by db.system and read
+// what your estate actually calls.
+fetch spans, from:-6h
+| filter span.kind == &quot;client&quot; and isNotNull(db.system)
+| summarize {avg_duration_ms = avg(duration) / 1ms, call_count = count()}, by:{db.system, db.namespace, db.operation.name}
+| sort avg_duration_ms desc
+| limit 15
+</code></pre>
+<p><a id="e2e-tracing"></a></p>
+<h2>8. End-to-End Serverless Tracing</h2>
+<p>A complete serverless application might follow this pattern:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImMwNGItYXJyb3ciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iMTAiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHRleHQgeD0iNDY1IiB5PSIzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+RW5kLXRvLUVuZCBTZXJ2ZXJsZXNzIFRyYWNlPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPkEgc3luY2hyb25vdXMgcmVxdWVzdCBwYXRoIHBsdXMgdHdvIGFzeW5jaHJvbm91cyBicmFuY2hlcywgbGlua2VkIGludG8gb25lIGRpc3RyaWJ1dGVkIHRyYWNlPC90ZXh0PgogIDxyZWN0IHg9IjMwIiB5PSIxMjAiIHdpZHRoPSIxNjAiIGhlaWdodD0iNzAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTEwLjAiIHk9IjE1MC41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5BUEkgR2F0ZXdheTwvdGV4dD4KICA8dGV4dCB4PSIxMTAuMCIgeT0iMTY3LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkhUVFAgZW50cnkgcG9pbnQ8L3RleHQ+CiAgPGxpbmUgeDE9IjE5MCIgeTE9IjE1NSIgeDI9IjIyNSIgeTI9IjE1NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNjMDRiLWFycm93KSIvPgogIDxyZWN0IHg9IjIyNSIgeT0iMTIwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjcwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjMxMC4wIiB5PSIxNTAuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+TGFtYmRhIChhdXRoKTwvdGV4dD4KICA8dGV4dCB4PSIzMTAuMCIgeT0iMTY3LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmF1dGhvcml6ZXMgdGhlIHJlcXVlc3Q8L3RleHQ+CiAgPGxpbmUgeDE9IjM5NSIgeTE9IjE1NSIgeDI9IjQzMCIgeTI9IjE1NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNjMDRiLWFycm93KSIvPgogIDxyZWN0IHg9IjQzMCIgeT0iMTIwIiB3aWR0aD0iMjEwIiBoZWlnaHQ9IjcwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjUzNS4wIiB5PSIxNTAuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+TGFtYmRhIChidXNpbmVzcyBsb2dpYyk8L3RleHQ+CiAgPHRleHQgeD0iNTM1LjAiIHk9IjE2Ny41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5jb3JlIHJlcXVlc3QgaGFuZGxpbmc8L3RleHQ+CiAgPGxpbmUgeDE9IjY0MCIgeTE9IjE1NSIgeDI9IjY5MCIgeTI9IjE1NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNjMDRiLWFycm93KSIvPgogIDxyZWN0IHg9IjY5MCIgeT0iMTIwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjcwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc5MC4wIiB5PSIxNTAuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+RHluYW1vREI8L3RleHQ+CiAgPHRleHQgeD0iNzkwLjAiIHk9IjE2Ny41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5zeW5jaHJvbm91cyBkYXRhIGFjY2VzczwvdGV4dD4KICA8cGF0aCBkPSJNIDUzNSAxOTAgTCA1MzUgMjc1IEwgNjAwIDI3NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iNSw0IiBtYXJrZXItZW5kPSJ1cmwoI2MwNGItYXJyb3cpIi8+CiAgPHJlY3QgeD0iNjAwIiB5PSIyNDAiIHdpZHRoPSIxMTAiIGhlaWdodD0iNzAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNjU1LjAiIHk9IjI3MC41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5TUVM8L3RleHQ+CiAgPHRleHQgeD0iNjU1LjAiIHk9IjI4Ny41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5xdWV1ZSBtZXNzYWdlPC90ZXh0PgogIDxsaW5lIHgxPSI3MTAiIHkxPSIyNzUiIHgyPSI3NDUiIHkyPSIyNzUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1kYXNoYXJyYXk9IjUsNCIgbWFya2VyLWVuZD0idXJsKCNjMDRiLWFycm93KSIvPgogIDxyZWN0IHg9Ijc0NSIgeT0iMjQwIiB3aWR0aD0iMTQ1IiBoZWlnaHQ9IjcwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjgxNy41IiB5PSIyNzAuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+TGFtYmRhPC90ZXh0PgogIDx0ZXh0IHg9IjgxNy41IiB5PSIyODcuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YXN5bmMgcHJvY2Vzc29yPC90ZXh0PgogIDxwYXRoIGQ9Ik0gNTIwIDE5MCBMIDUyMCAzNzUgTCA2MDAgMzc1IiBmaWxsPSJub25lIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtZGFzaGFycmF5PSI1LDQiIG1hcmtlci1lbmQ9InVybCgjYzA0Yi1hcnJvdykiLz4KICA8cmVjdCB4PSI2MDAiIHk9IjM0MCIgd2lkdGg9IjExMCIgaGVpZ2h0PSI3MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI2NTUuMCIgeT0iMzcwLjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlNOUzwvdGV4dD4KICA8dGV4dCB4PSI2NTUuMCIgeT0iMzg3LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnRvcGljIHB1Ymxpc2g8L3RleHQ+CiAgPGxpbmUgeDE9IjcxMCIgeTE9IjM3NSIgeDI9Ijc0NSIgeTI9IjM3NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iNSw0IiBtYXJrZXItZW5kPSJ1cmwoI2MwNGItYXJyb3cpIi8+CiAgPHJlY3QgeD0iNzQ1IiB5PSIzNDAiIHdpZHRoPSIxNDUiIGhlaWdodD0iNzAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iODE3LjUiIHk9IjM3MC41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5FbWFpbDwvdGV4dD4KICA8dGV4dCB4PSI4MTcuNSIgeT0iMzg3LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm5vdGlmaWNhdGlvbjwvdGV4dD4KICA8cmVjdCB4PSIzMCIgeT0iMjQwIiB3aWR0aD0iNDUwIiBoZWlnaHQ9IjE3MCIgZmlsbD0iI0E3OEJGQSIgZmlsbC1vcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjQ0IiB5PSIyNjIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+SG93IHRoZSB0cmFjZSBzdGF5cyBjb25uZWN0ZWQ8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjI5MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5UaGUgRHluYXRyYWNlIExhbWJkYSBMYXllciBvbiBlYWNoIGZ1bmN0aW9uIHByb3BhZ2F0ZXM8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjMxMCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5jb250ZXh0IGhlYWRlcnMgb24gb3V0Z29pbmcgY2FsbHMuPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIzNDAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+SW52b2NhdGlvbnMgZnJvbSBBUEkgR2F0ZXdheSwgU1FTIGFuZCBTTlMgY2FuIGJlIGxpbmtlZDwvdGV4dD4KICA8dGV4dCB4PSI1MCIgeT0iMzYwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPnRvIHRoZWlyIHBhcmVudCwgc28gdGhlIGFzeW5jIGJyYW5jaGVzIGpvaW4gdGhlIHNhbWUgdHJhY2UuPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIzOTAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSIgZm9udC1zdHlsZT0iaXRhbGljIj5zb2xpZCA9IHN5bmNocm9ub3VzIGNhbGw8L3RleHQ+CiAgPHRleHQgeD0iMjUwIiB5PSIzOTAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSIgZm9udC1zdHlsZT0iaXRhbGljIj5kYXNoZWQgPSBhc3luY2hyb25vdXMgaG9wPC90ZXh0Pgo8L3N2Zz4K" alt="End-to-end serverless trace" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| From | To | Hop |
+|------|----|-----|
+| API Gateway | Lambda (auth) | Synchronous |
+| Lambda (auth) | Lambda (business logic) | Synchronous |
+| Lambda (business logic) | DynamoDB | Synchronous |
+| Lambda (business logic) | SQS → Lambda (async processor) | Asynchronous |
+| Lambda (business logic) | SNS → Email notification | Asynchronous |
+For environments where SVG doesn't render
+-->
+<p>Dynatrace traces the entire flow as a single distributed trace when the Lambda Layer propagates context headers.</p>
+<h3>Trace Analysis Across Services</h3>
+<pre><code class="language-dql">// Slowest traces that include a Lambda invocation, last hour.
+//
+// Corrected 09/24/2026: the old cell filtered only span.kind == &quot;server&quot; and never selected on
+// Lambda, so it ranked every single-span server trace in the estate. faas.name marks the Lambda
+// spans; the join then measures each of those traces end to end.
+fetch spans, from:-1h
+| filter isNotNull(faas.name)
+| fields trace.id
+| join [
+    fetch spans, from:-1h
+    | summarize {trace_duration = max(duration), span_count = count()}, by:{trace.id}
+  ], on:{trace.id}, fields:{trace_duration, span_count}
+| dedup trace.id
+| sort trace_duration desc
+| limit 10
+</code></pre>
+<h3>Serverless Monitoring Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Always install Dynatrace Lambda Layer</strong></td>
+<td>Enables distributed tracing and code-level visibility</td>
+</tr>
+<tr>
+<td><strong>Set meaningful function names</strong></td>
+<td>Avoid auto-generated names for better identification</td>
+</tr>
+<tr>
+<td><strong>Monitor concurrency headroom</strong></td>
+<td>Alert before hitting account limits</td>
+</tr>
+<tr>
+<td><strong>Track cold start ratio</strong></td>
+<td>High ratio indicates scaling or provisioned concurrency needs</td>
+</tr>
+<tr>
+<td><strong>Correlate API Gateway with Lambda</strong></td>
+<td>End-to-end latency matters more than Lambda duration alone</td>
+</tr>
+</tbody>
+</table>
+<p><a id="summary"></a></p>
+<h2>9. Summary and Next Steps</h2>
+<h3>Key Takeaways</h3>
+<ul>
+<li>Lambda monitoring combines <strong>CloudWatch metrics</strong> (invocations, errors, throttles) with <strong>Dynatrace Lambda Layer</strong> (traces, code-level visibility)</li>
+<li><strong>Cold starts</strong> can be detected via spans and mitigated with provisioned concurrency or SnapStart</li>
+<li><strong>Error-to-invocation ratio</strong> is a more meaningful health metric than raw error count</li>
+<li><strong>End-to-end tracing</strong> through API Gateway, Lambda, and downstream services requires context propagation</li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li><strong>CLOUD-05: Azure Integration</strong> — Azure-specific monitoring patterns</li>
+<li><strong>CLOUD-07: CloudWatch Log Ingestion</strong> — Forward Lambda logs to Dynatrace</li>
+<li><strong>CLOUD-08: Multi-Cloud Patterns</strong> — Unified serverless monitoring across providers</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DASH-02: Dashboard Hierarchy</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DASH — Dashboard Design &amp; Building</a><span class="sep">/</span><span aria-current="page">DASH-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DASH-02: Dashboard Hierarchy</h1>
+<blockquote>
+<p><strong>Series:</strong> DASH — Dashboard Design &amp; Building | <strong>Notebook:</strong> 2 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/26/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Not every stakeholder needs the same view. A well-designed dashboard strategy uses a three-tier hierarchy — Executive, Operations, and Engineering — where each tier serves a different audience with appropriate information density. This notebook defines each tier, explains how to select metrics and refresh cadence for each, and provides sample DQL queries representative of each level.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#three-tier-model">The Three-Tier Model</a></li>
+<li><a href="#executive-tier">Executive Tier</a></li>
+<li><a href="#operations-tier">Operations Tier</a></li>
+<li><a href="#engineering-tier">Engineering Tier</a></li>
+<li><a href="#information-density">Information Density by Tier</a></li>
+<li><a href="#refresh-cadence">Refresh Cadence Recommendations</a></li>
+<li><a href="#summary-and-next-steps">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS with Grail — the Dashboards app and DQL are not available on Dynatrace Managed, which keeps classic dashboards</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:logs:read</code>, <code>storage:metrics:read</code>, <code>storage:events:read</code>, <code>storage:spans:read</code></td>
+</tr>
+<tr>
+<td><strong>Prior Reading</strong></td>
+<td>DASH-01: Dashboard Fundamentals</td>
+</tr>
+</tbody>
+</table>
+<p><a id="three-tier-model"></a></p>
+<h2>1. The Three-Tier Model</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+VGhlIFRocmVlLVRpZXIgRGFzaGJvYXJkIEhpZXJhcmNoeTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5SaWdodCBpbmZvcm1hdGlvbiwgcmlnaHQgbGV2ZWwgb2YgZGV0YWlsLCByaWdodCBhdWRpZW5jZSDigJQgZHJpbGwtZG93biBieSBkZXNpZ248L3RleHQ+CgogIDxkZWZzPgogICAgPG1hcmtlciBpZD0iZHRUaWVyQXJyb3ciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjOTRBM0I4Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gVGllciAxOiBFeGVjdXRpdmUgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjgwIiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjM4MCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIxMDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI3MDAiPkV4ZWN1dGl2ZTwvdGV4dD4KICA8dGV4dCB4PSIxODAiIHk9IjEyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+VlBzIMK3IERpcmVjdG9ycyDCtyBDLXN1aXRlPC90ZXh0PgoKICA8IS0tIG1vY2sgZXhlY3V0aXZlIGRhc2hib2FyZCAtLT4KICA8cmVjdCB4PSI2MCIgeT0iMTQ4IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjE5MCIgZmlsbD0iIzBGMTcyQSIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI0Ii8+CiAgPCEtLSA0IEtQSSB0aWxlcyBpbiAyeDIgLS0+CiAgPHJlY3QgeD0iNzAiIHk9IjE1OCIgd2lkdGg9IjEwNSIgaGVpZ2h0PSI1MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEiIHJ4PSIzIi8+CiAgPHRleHQgeD0iMTIyIiB5PSIxNzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iOSI+QXZhaWxhYmlsaXR5PC90ZXh0PgogIDx0ZXh0IHg9IjEyMiIgeT0iMjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iNzAwIj45OS43JTwvdGV4dD4KCiAgPHJlY3QgeD0iMTg1IiB5PSIxNTgiIHdpZHRoPSIxMDUiIGhlaWdodD0iNTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iMyIvPgogIDx0ZXh0IHg9IjIzNyIgeT0iMTc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjkiPk1UVFIgKDI0aCk8L3RleHQ+CiAgPHRleHQgeD0iMjM3IiB5PSIyMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSI3MDAiPjEyIG1pbjwvdGV4dD4KCiAgPHJlY3QgeD0iNzAiIHk9IjIxOCIgd2lkdGg9IjEwNSIgaGVpZ2h0PSI1MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEiIHJ4PSIzIi8+CiAgPHRleHQgeD0iMTIyIiB5PSIyMzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iOSI+QWN0aXZlIFByb2JsZW1zPC90ZXh0PgogIDx0ZXh0IHg9IjEyMiIgeT0iMjYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iNzAwIj4zPC90ZXh0PgoKICA8cmVjdCB4PSIxODUiIHk9IjIxOCIgd2lkdGg9IjEwNSIgaGVpZ2h0PSI1MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEiIHJ4PSIzIi8+CiAgPHRleHQgeD0iMjM3IiB5PSIyMzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iOSI+RXJyb3IgQnVkZ2V0PC90ZXh0PgogIDx0ZXh0IHg9IjIzNyIgeT0iMjYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iNzAwIj44MiU8L3RleHQ+CgogIDwhLS0gdHJlbmQgc3RyaXAgLS0+CiAgPHJlY3QgeD0iNzAiIHk9IjI3OCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSI1MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEiIHJ4PSIzIi8+CiAgPHRleHQgeD0iMTgwIiB5PSIyOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iOSI+QXZhaWxhYmlsaXR5IOKAlCBsYXN0IDcgZGF5czwvdGV4dD4KICA8cG9seWxpbmUgcG9pbnRzPSI4MCwzMTggMTAwLDMxNiAxMjAsMzE3IDE0MCwzMTUgMTYwLDMxNiAxODAsMzE0IDIwMCwzMTMgMjIwLDMxNSAyNDAsMzE0IDI2MCwzMTMgMjgwLDMxMiIKICAgICAgICAgICAgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjODZFRkFDIiBzdHJva2Utd2lkdGg9IjEuNSIvPgoKICA8IS0tIG1ldGEgLS0+CiAgPHJlY3QgeD0iNjAiIHk9IjM1MCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiMwRjE3MkEiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNCIvPgogIDx0ZXh0IHg9IjE4MCIgeT0iMzcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5UaWVyIGNoYXJhY3RlcmlzdGljczwvdGV4dD4KICA8dGV4dCB4PSI3NSIgeT0iMzg5IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj7igKIgNOKAkzYgaGlnaC1pbXBhY3QgdGlsZXM8L3RleHQ+CiAgPHRleHQgeD0iNzUiIHk9IjQwNSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+4oCiIFJlZnJlc2g6IDXigJMxNSBtaW48L3RleHQ+CiAgPHRleHQgeD0iNzUiIHk9IjQyMSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+4oCiIEZvY3VzOiBidXNpbmVzcyBLUElzLCBTTEFzPC90ZXh0PgogIDx0ZXh0IHg9Ijc1IiB5PSI0MzciIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPuKAoiAiSXMgdGhlIGJ1c2luZXNzIGhlYWx0aHk/IjwvdGV4dD4KCiAgPCEtLSBEcmlsbC1kb3duIGFycm93IDEg4oaSIDIgLS0+CiAgPGxpbmUgeDE9IjMyMCIgeTE9IjI2NSIgeDI9IjM0NSIgeTI9IjI2NSIgc3Ryb2tlPSIjOTRBM0I4IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjZHRUaWVyQXJyb3cpIi8+CiAgPHRleHQgeD0iMzMyIiB5PSIyNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOSI+ZHJpbGw8L3RleHQ+CgogIDwhLS0gVGllciAyOiBPcGVyYXRpb25zIC0tPgogIDxyZWN0IHg9IjM0NSIgeT0iODAiIHdpZHRoPSIyODAiIGhlaWdodD0iMzgwIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMiIgcng9IjgiLz4KICA8dGV4dCB4PSI0ODUiIHk9IjEwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9IjcwMCI+T3BlcmF0aW9uczwvdGV4dD4KICA8dGV4dCB4PSI0ODUiIHk9IjEyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+U1JFcyDCtyBQbGF0Zm9ybSBFbmdpbmVlcnMgwrcgTk9DPC90ZXh0PgoKICA8IS0tIG1vY2sgb3BlcmF0aW9ucyBkYXNoYm9hcmQgLS0+CiAgPHJlY3QgeD0iMzY1IiB5PSIxNDgiIHdpZHRoPSIyNDAiIGhlaWdodD0iMTkwIiBmaWxsPSIjMEYxNzJBIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMSIgcng9IjQiLz4KICA8IS0tIGhlYWRlciArIDYgdGlsZSBtb2NrIC0tPgogIDxyZWN0IHg9IjM3NSIgeT0iMTU4IiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjIyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMSIgcng9IjMiLz4KICA8dGV4dCB4PSI0ODUiIHk9IjE3MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSI5Ij5BY3RpdmUgUHJvYmxlbXMgwrcgU2V2ZXJpdHkgRGlzdHJpYnV0aW9uPC90ZXh0PgoKICA8cmVjdCB4PSIzNzUiIHk9IjE4NiIgd2lkdGg9IjEwNSIgaGVpZ2h0PSIzNSIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSIzIi8+CiAgPHRleHQgeD0iNDI3IiB5PSIyMDEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iOSI+RXJyb3IgUmF0ZTwvdGV4dD4KICA8cG9seWxpbmUgcG9pbnRzPSIzODUsMjE1IDM5NywyMTMgNDA5LDIxMCA0MjEsMjEyIDQzMywyMDkgNDQ1LDIwOCA0NTcsMjEyIDQ2OSwyMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZDRDM0RCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KCiAgPHJlY3QgeD0iNDkwIiB5PSIxODYiIHdpZHRoPSIxMDUiIGhlaWdodD0iMzUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iMyIvPgogIDx0ZXh0IHg9IjU0MiIgeT0iMjAxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjkiPlA5NSBMYXRlbmN5PC90ZXh0PgogIDxwb2x5bGluZSBwb2ludHM9IjUwMCwyMTUgNTEyLDIxMyA1MjQsMjEwIDUzNiwyMTIgNTQ4LDIwOSA1NjAsMjA4IDU3MiwyMTIgNTg0LDIxMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkNEMzREIiBzdHJva2Utd2lkdGg9IjEuNSIvPgoKICA8cmVjdCB4PSIzNzUiIHk9IjIyNyIgd2lkdGg9IjEwNSIgaGVpZ2h0PSIzNSIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSIzIi8+CiAgPHRleHQgeD0iNDI3IiB5PSIyNDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iOSI+SG9zdHM6IDE0Mi8xNDU8L3RleHQ+CgogIDxyZWN0IHg9IjQ5MCIgeT0iMjI3IiB3aWR0aD0iMTA1IiBoZWlnaHQ9IjM1IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMSIgcng9IjMiLz4KICA8dGV4dCB4PSI1NDIiIHk9IjI0NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSI5Ij5Mb2cgVm9sOiAxMiBHQi9kPC90ZXh0PgoKICA8IS0tIHRhYmxlIC0tPgogIDxyZWN0IHg9IjM3NSIgeT0iMjY4IiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjYyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMSIgcng9IjMiLz4KICA8dGV4dCB4PSI0ODUiIHk9IjI4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSI5IiBmb250LXdlaWdodD0iNzAwIj5Ub3AgU2VydmljZXMgYnkgRXJyb3JzPC90ZXh0PgogIDxsaW5lIHgxPSIzODUiIHkxPSIyODgiIHgyPSI1ODUiIHkyPSIyODgiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIwLjUiLz4KICA8dGV4dCB4PSIzODUiIHk9IjMwMCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5Ij5jaGVja291dC1zZXJ2aWNlPC90ZXh0PgogIDx0ZXh0IHg9IjU4NSIgeT0iMzAwIiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjkiPjg0NzwvdGV4dD4KICA8dGV4dCB4PSIzODUiIHk9IjMxNCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5Ij5wYXltZW50LXNlcnZpY2U8L3RleHQ+CiAgPHRleHQgeD0iNTg1IiB5PSIzMTQiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iOSI+MzEyPC90ZXh0PgogIDx0ZXh0IHg9IjM4NSIgeT0iMzI4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkiPmNhcnQtc2VydmljZTwvdGV4dD4KICA8dGV4dCB4PSI1ODUiIHk9IjMyOCIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSI5Ij44OTwvdGV4dD4KCiAgPCEtLSBtZXRhIC0tPgogIDxyZWN0IHg9IjM2NSIgeT0iMzUwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzBGMTcyQSIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNDg1IiB5PSIzNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPlRpZXIgY2hhcmFjdGVyaXN0aWNzPC90ZXh0PgogIDx0ZXh0IHg9IjM4MCIgeT0iMzg5IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj7igKIgOOKAkzEyIGRldGFpbGVkIHRpbGVzPC90ZXh0PgogIDx0ZXh0IHg9IjM4MCIgeT0iNDA1IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj7igKIgUmVmcmVzaDogMeKAkzUgbWluPC90ZXh0PgogIDx0ZXh0IHg9IjM4MCIgeT0iNDIxIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj7igKIgRm9jdXM6IHNlcnZpY2UgaGVhbHRoLCBhbGVydHM8L3RleHQ+CiAgPHRleHQgeD0iMzgwIiB5PSI0MzciIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPuKAoiAiV2hhdCdzIGRlZ3JhZGVkIHJpZ2h0IG5vdz8iPC90ZXh0PgoKICA8IS0tIERyaWxsLWRvd24gYXJyb3cgMiDihpIgMyAtLT4KICA8bGluZSB4MT0iNjI1IiB5MT0iMjY1IiB4Mj0iNjUwIiB5Mj0iMjY1IiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNkdFRpZXJBcnJvdykiLz4KICA8dGV4dCB4PSI2MzciIHk9IjI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5Ij5kcmlsbDwvdGV4dD4KCiAgPCEtLSBUaWVyIDM6IEVuZ2luZWVyaW5nIC0tPgogIDxyZWN0IHg9IjY1MCIgeT0iODAiIHdpZHRoPSIyNDAiIGhlaWdodD0iMzgwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMiIgcng9IjgiLz4KICA8dGV4dCB4PSI3NzAiIHk9IjEwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9IjcwMCI+RW5naW5lZXJpbmc8L3RleHQ+CiAgPHRleHQgeD0iNzcwIiB5PSIxMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkRldmVsb3BlcnMgwrcgREJBcyDCtyBQZXJmIEVuZzwvdGV4dD4KCiAgPCEtLSBtb2NrIGVuZ2luZWVyaW5nIGRhc2hib2FyZCAtLT4KICA8cmVjdCB4PSI2NzAiIHk9IjE0OCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxOTAiIGZpbGw9IiMwRjE3MkEiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNCIvPgogIDwhLS0gbWFueSBzbWFsbCB0aWxlcyAtLT4KICA8cmVjdCB4PSI2ODAiIHk9IjE1OCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMSIgcng9IjMiLz4KICA8dGV4dCB4PSI3MTAiIHk9IjE3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSI4Ij5QNTA6IDE4bXM8L3RleHQ+CiAgPHJlY3QgeD0iNzQ1IiB5PSIxNTgiIHdpZHRoPSI2MCIgaGVpZ2h0PSIzMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSIzIi8+CiAgPHRleHQgeD0iNzc1IiB5PSIxNzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iOCI+UDk1OiAyMjBtczwvdGV4dD4KICA8cmVjdCB4PSI4MTAiIHk9IjE1OCIgd2lkdGg9IjU1IiBoZWlnaHQ9IjMwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMSIgcng9IjMiLz4KICA8dGV4dCB4PSI4MzciIHk9IjE3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSI4Ij5QOTk6IDQ4MG1zPC90ZXh0PgoKICA8cmVjdCB4PSI2ODAiIHk9IjE5NCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI1MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSIzIi8+CiAgPHRleHQgeD0iNzcwIiB5PSIyMDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iOCI+U3BhbiBsYXRlbmN5IGJ5IGVuZHBvaW50PC90ZXh0PgogIDxwb2x5bGluZSBwb2ludHM9IjY5MCwyMzggNzA1LDIzNCA3MjAsMjMxIDczNSwyMzMgNzUwLDIyOCA3NjUsMjI1IDc4MCwyMzIgNzk1LDIyOCA4MTAsMjI1IDgyNSwyMjkgODQwLDIyNiA4NTUsMjI0IgogICAgICAgICAgICBmaWxsPSJub25lIiBzdHJva2U9IiNCRkRCRkUiIHN0cm9rZS13aWR0aD0iMS41Ii8+CgogIDxyZWN0IHg9IjY4MCIgeT0iMjUwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMSIgcng9IjMiLz4KICA8dGV4dCB4PSI3NzAiIHk9IjI2MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSI4IiBmb250LXdlaWdodD0iNzAwIj5Ub3AgU2xvdyBFbmRwb2ludHMgKHRhYmxlKTwvdGV4dD4KICA8bGluZSB4MT0iNjkwIiB5MT0iMjY5IiB4Mj0iODUwIiB5Mj0iMjY5IiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMC41Ii8+CiAgPHRleHQgeD0iNjkwIiB5PSIyODAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOCI+L2FwaS9jaGVja291dC9zdWJtaXQ8L3RleHQ+CiAgPHRleHQgeD0iODUwIiB5PSIyODAiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOCI+ODIwbXM8L3RleHQ+CiAgPHRleHQgeD0iNjkwIiB5PSIyOTMiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOCI+L2FwaS9vcmRlcnMvY3JlYXRlPC90ZXh0PgogIDx0ZXh0IHg9Ijg1MCIgeT0iMjkzIiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjgiPjQxMG1zPC90ZXh0PgogIDx0ZXh0IHg9IjY5MCIgeT0iMzA2IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjgiPi9hcGkvY2FydC91cGRhdGU8L3RleHQ+CiAgPHRleHQgeD0iODUwIiB5PSIzMDYiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOCI+Mjk1bXM8L3RleHQ+CiAgPHRleHQgeD0iNjkwIiB5PSIzMTkiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOCI+L2FwaS9hdXRoL2xvZ2luPC90ZXh0PgogIDx0ZXh0IHg9Ijg1MCIgeT0iMzE5IiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjgiPjE4N21zPC90ZXh0PgoKICA8IS0tIG1ldGEgLS0+CiAgPHJlY3QgeD0iNjcwIiB5PSIzNTAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjMEYxNzJBIiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMSIgcng9IjQiLz4KICA8dGV4dCB4PSI3NzAiIHk9IjM3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+VGllciBjaGFyYWN0ZXJpc3RpY3M8L3RleHQ+CiAgPHRleHQgeD0iNjg1IiB5PSIzODkiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPuKAoiAxMOKAkzE1IGRldGFpbGVkIHRpbGVzPC90ZXh0PgogIDx0ZXh0IHg9IjY4NSIgeT0iNDA1IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj7igKIgUmVmcmVzaDogb24tZGVtYW5kPC90ZXh0PgogIDx0ZXh0IHg9IjY4NSIgeT0iNDIxIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj7igKIgRm9jdXM6IHRyYWNlcywgY29kZS1sZXZlbDwvdGV4dD4KICA8dGV4dCB4PSI2ODUiIHk9IjQzNyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+4oCiICJXaHkgaXMgWCBzbG93PyI8L3RleHQ+CgogIDwhLS0gRm9vdGVyIC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjExIj5EcmlsbC1kb3duIGJ5IGRlc2lnbiDigJQgbGluayB0aWVycyB2aWEgbWFya2Rvd24gdGlsZSBkYXNoYm9hcmQgbGlua3Mgc28gdXNlcnMgY2FuIG5hdmlnYXRlIHJlZCBLUEkg4oaSIGRlZ3JhZGVkIHNlcnZpY2Ug4oaSIHJvb3QgY2F1c2UuPC90ZXh0Pgo8L3N2Zz4K" alt="Three-Tier Dashboard Hierarchy" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Tier | Audience | Tile Count | Refresh | Question Answered |
+|------|----------|------------|---------|-------------------|
+| Executive | VPs / Directors / C-suite | 4-6 | 5-15 min | Is the business healthy? |
+| Operations | SREs / Platform / NOC | 8-12 | 1-5 min | What's degraded right now? |
+| Engineering | Developers / DBAs / Perf | 10-15 | on-demand | Why is X slow? |
+Drill-down by design — link tiers via markdown tile dashboard links.
+For environments where SVG doesn't render
+-->
+<p>The three-tier hierarchy ensures every stakeholder gets the right information at the right level of detail.</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Audience</th>
+<th>Focus</th>
+<th>Tile Count</th>
+<th>Refresh</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Executive</strong></td>
+<td>VPs, Directors, C-suite</td>
+<td>Business KPIs, SLAs, high-level health</td>
+<td>4-6</td>
+<td>5-15 min</td>
+</tr>
+<tr>
+<td><strong>Operations</strong></td>
+<td>SREs, Platform Engineers, NOC</td>
+<td>Service health, alerts, infrastructure</td>
+<td>8-12</td>
+<td>1-5 min</td>
+</tr>
+<tr>
+<td><strong>Engineering</strong></td>
+<td>Developers, DBAs, Performance Engineers</td>
+<td>Traces, code-level metrics, deep dives</td>
+<td>10-15</td>
+<td>On-demand</td>
+</tr>
+</tbody>
+</table>
+<h3>Navigation Pattern</h3>
+<p>Design dashboards so users can drill down through the tiers:</p>
+<ol>
+<li><strong>Executive</strong> dashboard shows a red SLA indicator</li>
+<li>Click through to <strong>Operations</strong> dashboard to see which service is degraded</li>
+<li>Click through to <strong>Engineering</strong> dashboard for trace-level root cause</li>
+</ol>
+<p>Use dashboard links in markdown tiles to connect the tiers.</p>
+<p><a id="executive-tier"></a></p>
+<h2>2. Executive Tier</h2>
+<p>Executive dashboards answer: <strong>&quot;Is the business healthy?&quot;</strong></p>
+<h3>Characteristics</h3>
+<ul>
+<li><strong>Minimal tiles</strong> — 4-6 maximum</li>
+<li><strong>Single-value and trend</strong> tiles dominate</li>
+<li><strong>Traffic light colors</strong> — green/yellow/red for instant comprehension</li>
+<li><strong>No technical jargon</strong> — &quot;Availability&quot; not &quot;HTTP 200 ratio&quot;</li>
+<li><strong>Longer time ranges</strong> — daily/weekly trends, not minute-by-minute</li>
+</ul>
+<h3>Sample KPIs</h3>
+<table>
+<thead>
+<tr>
+<th>KPI</th>
+<th>Query Approach</th>
+<th>Tile Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Overall availability %</td>
+<td>Successful ÷ total requests, or an SLO — <strong>not</strong> problem downtime, which overlaps and over-counts (DASH-03 § 2)</td>
+<td>Single value</td>
+</tr>
+<tr>
+<td>Mean time to resolve</td>
+<td>Closed problem duration average — how long problems stayed open, not time to human resolution (ADOPT-03 § 3)</td>
+<td>Single value</td>
+</tr>
+<tr>
+<td>Active problem count</td>
+<td>Count of open detected problems</td>
+<td>Single value</td>
+</tr>
+<tr>
+<td>Problem trend (7 day)</td>
+<td>Problem count timeseries</td>
+<td>Line chart</td>
+</tr>
+</tbody>
+</table>
+<h3>Example: Weekly Problem Trend</h3>
+<pre><code class="language-dql">// Weekly problem trend — suitable for executive line chart
+// time:event.start bins each problem on the day it opened. The default (timestamp) is the
+// problem's last update, which counts old problems again on the day they were touched.
+fetch dt.davis.problems, from:-7d
+| makeTimeseries problem_count = count(), interval:24h, time:event.start
+</code></pre>
+<h3>Example: Active Problem Count (Single Value)</h3>
+<pre><code class="language-dql">// Active problems — single value tile for executive dashboard
+fetch dt.davis.problems, from:-24h
+| filter event.status == &quot;ACTIVE&quot;
+| filter dt.davis.is_duplicate == false
+| summarize active_count = countDistinct(event.id)
+</code></pre>
+<p><a id="operations-tier"></a></p>
+<h2>3. Operations Tier</h2>
+<p>Operations dashboards answer: <strong>&quot;What needs attention right now?&quot;</strong></p>
+<h3>Characteristics</h3>
+<ul>
+<li><strong>8-12 tiles</strong> with mixed chart types</li>
+<li><strong>Real-time focus</strong> — 1-2 hour time windows</li>
+<li><strong>Service-centric</strong> — grouped by service or application</li>
+<li><strong>Alert integration</strong> — active problems and events prominent</li>
+<li><strong>Top-N lists</strong> — worst offenders by error rate, latency, volume</li>
+</ul>
+<h3>Sample Metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Query Approach</th>
+<th>Tile Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Service response time</td>
+<td>Span duration by service</td>
+<td>Line chart</td>
+</tr>
+<tr>
+<td>Error rate by service</td>
+<td>Error count / total count</td>
+<td>Bar chart</td>
+</tr>
+<tr>
+<td>Log volume by level</td>
+<td>Log count timeseries</td>
+<td>Stacked area</td>
+</tr>
+<tr>
+<td>Top 5 problem types</td>
+<td>detected problem aggregation</td>
+<td>Table</td>
+</tr>
+<tr>
+<td>Infrastructure CPU</td>
+<td>Host CPU timeseries</td>
+<td>Line chart</td>
+</tr>
+</tbody>
+</table>
+<h3>Example: Service Error Rate</h3>
+<pre><code class="language-dql">// Error rate by service — operations bar chart
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| summarize {total = count(), errors = countIf(span.status_code == &quot;error&quot;)}, by:{dt.entity.service}
+| fieldsAdd error_rate = 100.0 * errors / total
+| sort error_rate desc
+| limit 10
+</code></pre>
+<h3>Example: Log Volume by Level</h3>
+<pre><code class="language-dql">// Log volume trend by severity — operations stacked area chart
+fetch logs, from:-2h
+| filterOut loglevel == &quot;NONE&quot;
+| makeTimeseries log_count = count(), interval:5m, by:{loglevel}
+</code></pre>
+<p><a id="engineering-tier"></a></p>
+<h2>4. Engineering Tier</h2>
+<p>Engineering dashboards answer: <strong>&quot;Why is this happening and where exactly?&quot;</strong></p>
+<h3>Characteristics</h3>
+<ul>
+<li><strong>10-15 tiles</strong> with high data density</li>
+<li><strong>Deep-dive focus</strong> — specific services, endpoints, database queries</li>
+<li><strong>Filter-heavy</strong> — variables for service, environment, namespace</li>
+<li><strong>Table tiles</strong> — detailed data for investigation</li>
+<li><strong>On-demand refresh</strong> — engineers trigger when investigating</li>
+</ul>
+<h3>Sample Metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Query Approach</th>
+<th>Tile Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Slowest endpoints</td>
+<td>Span p95 by HTTP route</td>
+<td>Table</td>
+</tr>
+<tr>
+<td>Database query time</td>
+<td>DB span duration by statement</td>
+<td>Table</td>
+</tr>
+<tr>
+<td>Trace error details</td>
+<td>Span attributes for failed traces</td>
+<td>Table</td>
+</tr>
+<tr>
+<td>Deployment impact</td>
+<td>Before/after latency comparison</td>
+<td>Line chart</td>
+</tr>
+</tbody>
+</table>
+<h3>Example: Top 10 Slowest Endpoints</h3>
+<pre><code class="language-dql">// Top 10 slowest endpoints by p95 response time
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| filter isNotNull(http.route)
+| summarize {p95_ms = percentile(duration, 95) / 1ms, request_count = count()}, by:{http.route, dt.entity.service}
+| sort p95_ms desc
+| limit 10
+</code></pre>
+<h3>Example: Database Performance by System</h3>
+<pre><code class="language-dql">// Database response time by system — engineering detail table
+fetch spans, from:-1h
+| filter span.kind == &quot;client&quot; and isNotNull(db.system)
+// Connection opens, commits and driver phases are DB spans but not queries
+| filter not(in(coalesce(db.operation.name, &quot;&quot;), {&quot;CONNECT&quot;, &quot;COMMIT&quot;, &quot;PREPARE&quot;, &quot;RESULTSET&quot;}))
+| summarize {avg_ms = avg(duration) / 1ms, p95_ms = percentile(duration, 95) / 1ms, query_count = count()}, by:{db.system, db.namespace}
+| sort p95_ms desc
+</code></pre>
+<p><a id="information-density"></a></p>
+<h2>5. Information Density by Tier</h2>
+<p>Information density describes how much data a viewer must process. Match density to the audience's time and technical depth.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Executive</th>
+<th>Operations</th>
+<th>Engineering</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Tiles per dashboard</strong></td>
+<td>4-6</td>
+<td>8-12</td>
+<td>10-15</td>
+</tr>
+<tr>
+<td><strong>Time range</strong></td>
+<td>7d-30d trends</td>
+<td>1h-6h real-time</td>
+<td>15m-1h focused</td>
+</tr>
+<tr>
+<td><strong>Chart complexity</strong></td>
+<td>Single values, simple lines</td>
+<td>Mixed: lines, bars, tables</td>
+<td>Tables, detailed charts</td>
+</tr>
+<tr>
+<td><strong>Filters/variables</strong></td>
+<td>None or minimal</td>
+<td>Environment, service</td>
+<td>Service, namespace, endpoint</td>
+</tr>
+<tr>
+<td><strong>Text tiles</strong></td>
+<td>Section headers, links to ops</td>
+<td>Alert context, runbooks</td>
+<td>Technical notes, query docs</td>
+</tr>
+<tr>
+<td><strong>Viewing time</strong></td>
+<td>10-30 seconds</td>
+<td>1-5 minutes</td>
+<td>5-30 minutes</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> If an executive dashboard takes more than 30 seconds to understand, it has too much detail. Push that detail down to the operations tier.</p>
+</blockquote>
+<p><a id="refresh-cadence"></a></p>
+<h2>6. Refresh Cadence Recommendations</h2>
+<p>Auto-refresh should match how the dashboard is consumed.</p>
+<table>
+<thead>
+<tr>
+<th>Dashboard Type</th>
+<th>Refresh Interval</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Executive (wall screen)</td>
+<td>10-15 min</td>
+<td>Data changes slowly; reduce load</td>
+</tr>
+<tr>
+<td>Executive (weekly review)</td>
+<td>Manual</td>
+<td>Viewed periodically, not monitored</td>
+</tr>
+<tr>
+<td>Operations (NOC wall)</td>
+<td>1-2 min</td>
+<td>Real-time situational awareness</td>
+</tr>
+<tr>
+<td>Operations (on-call)</td>
+<td>2-5 min</td>
+<td>Balance freshness with query cost</td>
+</tr>
+<tr>
+<td>Engineering (investigation)</td>
+<td>Manual</td>
+<td>Engineer triggers when ready</td>
+</tr>
+<tr>
+<td>Engineering (release check)</td>
+<td>Manual, after each deployment</td>
+<td>Dashboards refresh on a timer or by hand — nothing triggers a refresh from a deployment</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> Aggressive refresh intervals (&lt; 1 min) on complex queries can cause unnecessary load. Start at 5 minutes and decrease only if real-time awareness is critical.</p>
+</blockquote>
+<p><a id="summary-and-next-steps"></a></p>
+<h2>7. Summary and Next Steps</h2>
+<p>In this notebook you learned:</p>
+<ul>
+<li>The three-tier dashboard hierarchy: Executive, Operations, Engineering</li>
+<li>Appropriate metrics, tile types, and complexity for each tier</li>
+<li>How to manage information density based on audience</li>
+<li>Refresh cadence recommendations that balance freshness with performance</li>
+<li>Sample DQL queries for each tier level</li>
+</ul>
+<p><strong>Next:</strong> In <strong>DASH-03: Executive Dashboards</strong>, we deep-dive into building polished executive-level dashboards with KPI selection, availability calculations, and MTTR tracking.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

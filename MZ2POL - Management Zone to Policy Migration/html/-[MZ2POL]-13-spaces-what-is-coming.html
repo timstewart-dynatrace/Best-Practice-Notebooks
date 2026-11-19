@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MZ2POL-13: Spaces — What Is Coming and How to Prepare</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MZ2POL — Management Zone Migration: Segments, Policies, Workflows</a><span class="sep">/</span><span aria-current="page">MZ2POL-13</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MZ2POL-13: Spaces — What Is Coming and How to Prepare</h1>
+<blockquote>
+<p><strong>Series:</strong> MZ2POL — Management Zone Migration: Segments, Policies, Workflows | <strong>Notebook:</strong> 14 of 17 | <strong>Created:</strong> October 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<blockquote>
+<p><strong>Status (10/13/2026): upcoming — not documented as an available feature.</strong> Everything in this notebook that goes beyond the single published dictionary entry is marked as unknown or as this series' own recommendation. Do not design production access around Spaces until Dynatrace documents them.</p>
+</blockquote>
+<p>&quot;Spaces&quot; comes up in almost every management-zone conversation, usually as &quot;the thing that will replace zones&quot;. That expectation is understandable: a zone was a named slice of the environment that a team owned, and the one published description of Spaces talks about <em>&quot;granular scoping and delegation of monitoring responsibilities.&quot;</em></p>
+<p>This notebook separates what is published from what is not, explains where a space field would sit relative to the mechanisms this series already uses, and lists the preparation steps that pay off <strong>whether or not</strong> Spaces arrive in the form people expect. It is deliberately short on mechanics, because none are documented.</p>
+<blockquote>
+<p><strong>Reading order:</strong> after MZ2POL-12. Numbered 13 because it was added to an existing series.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#what-is-published">What Is Published</a></li>
+<li><a href="#what-is-not-documented">What Is Not Documented</a></li>
+<li><a href="#where-it-would-sit">Where a Space Field Would Sit</a></li>
+<li><a href="#no-regret-preparation">No-Regret Preparation</a></li>
+<li><a href="#checking-status">Checking the Status on Your Tenant</a></li>
+<li><a href="#what-would-change">What Would Change This Guidance</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Any Latest Dynatrace SaaS tenant (the §5 checks scan zero bytes)</td>
+</tr>
+<tr>
+<td><strong>Background reading</strong></td>
+<td>MZ2POL-10 (tagging at source), MZ2POL-12 (IAM reference architecture), FAQ-02 §2 (where Spaces appears in the tagging model)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="what-is-published"></a></p>
+<h2>1. What Is Published</h2>
+<p>One public source describes <code>dt.space</code>: the semantic dictionary's permission-field page. It lists the field as <code>experimental</code>, of type <code>string</code>, with the tags <code>permission</code> and <code>primary-field</code>, and describes it in one sentence: <em>&quot;The space associated with the record. Spaces enable granular scoping and delegation of monitoring responsibilities.&quot;</em></p>
+<p>Read narrowly, that entry says three things:</p>
+<table>
+<thead>
+<tr>
+<th>From the entry</th>
+<th>What it implies — and only that</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tagged <code>permission</code></td>
+<td>It belongs to the set of fields Dynatrace marks as usable for access control — the same tag <code>dt.security_context</code> carries</td>
+</tr>
+<tr>
+<td>Tagged <code>primary-field</code></td>
+<td>It is grouped with built-in fields such as <code>dt.host_group.id</code> and <code>k8s.namespace.name</code></td>
+</tr>
+<tr>
+<td><em>&quot;associated with the record&quot;</em></td>
+<td>It is a field on data records, like the security context — not an entity property alone</td>
+</tr>
+<tr>
+<td><code>experimental</code></td>
+<td>Its definition can still change</td>
+</tr>
+</tbody>
+</table>
+<p>Nothing else about Spaces — how a record gets one, who defines them, what they grant — is in that entry.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+U3BhY2VzOiBXaGF0IElzIGFuZCBJcyBOb3QgRG9jdW1lbnRlZDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyLjUiPlN0YXR1cyBhcyBvZiAxMS8xMS8yMDI2IOKAlCB1cGNvbWluZywgbm90IGRvY3VtZW50ZWQgYXMgYW4gYXZhaWxhYmxlIGZlYXR1cmU8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9Ijc2IiB3aWR0aD0iNDMwIiBoZWlnaHQ9IjIxNCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzMCIgeT0iOTUiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+UHVibGlzaGVkPC90ZXh0PgogIDx0ZXh0IHg9IjMwIiB5PSIxMTIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5TZW1hbnRpYyBkaWN0aW9uYXJ5IHBlcm1pc3Npb24tZmllbGQgcGFnZTo8L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjEzNCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPmR0LnNwYWNlIOKAlCBzdHJpbmcsIHJlc291cmNlLCBleHBlcmltZW50YWw8L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjE1NiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPlRhZ3M6IHBlcm1pc3Npb24sIHByaW1hcnktZmllbGQ8L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjE3OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPiJUaGUgc3BhY2UgYXNzb2NpYXRlZCB3aXRoIHRoZSByZWNvcmQuPC90ZXh0PgogIDx0ZXh0IHg9IjMwIiB5PSIyMDAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5TcGFjZXMgZW5hYmxlIGdyYW51bGFyIHNjb3BpbmcgYW5kPC90ZXh0PgogIDx0ZXh0IHg9IjMwIiB5PSIyMjIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5kZWxlZ2F0aW9uIG9mIG1vbml0b3JpbmcgcmVzcG9uc2liaWxpdGllcy4iPC90ZXh0PgogIDxyZWN0IHg9IjQ4MCIgeT0iNzYiIHdpZHRoPSI0MzAiIGhlaWdodD0iMjE0IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjQ5MCIgeT0iOTUiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+Tm90IGRvY3VtZW50ZWQ8L3RleHQ+CiAgPHRleHQgeD0iNDkwIiB5PSIxMTIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij7igKIgQSBTcGFjZXMgZG9jcyBwYWdlIG9yIGhvdy10bzwvdGV4dD4KICA8dGV4dCB4PSI0OTAiIHk9IjEzNCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPuKAoiBBbiBJQU0gcG9saWN5IGNvbmRpdGlvbiBvbiBkdC5zcGFjZTwvdGV4dD4KICA8dGV4dCB4PSI0OTAiIHk9IjE1NiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPuKAoiBIb3cgYSByZWNvcmQgZ2V0cyBpdHMgc3BhY2U8L3RleHQ+CiAgPHRleHQgeD0iNDkwIiB5PSIxNzgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij7igKIgUmVsYXRpb24gdG8gZHQuc2VjdXJpdHlfY29udGV4dCwgc2VnbWVudHM8L3RleHQ+CiAgPHRleHQgeD0iNDkwIiB5PSIyMDAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij7igKIgT3duZXJzaGlwIG9mIGRvY3VtZW50cyBvciBjb25maWcgb2JqZWN0czwvdGV4dD4KICA8dGV4dCB4PSI0OTAiIHk9IjIyMiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPuKAoiBBIHJlbGVhc2UgdmVyc2lvbiBvciBHQSBkYXRlPC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSIzMDYiIHdpZHRoPSI4OTAiIGhlaWdodD0iOTIiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2UtZGFzaGFycmF5PSI1IDQiLz4KICA8dGV4dCB4PSIzNiIgeT0iMzI2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIuNSIgZm9udC13ZWlnaHQ9IjcwMCI+SGlzdG9yeTwvdGV4dD4KICA8dGV4dCB4PSIzNiIgeT0iMzQ3IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+MDkvMjQvMjAyNiDigJQgU2FhUyAxLjM0OCBwcmUtcmVsZWFzZSBub3RlcyBhbm5vdW5jZWQgc3BhY2UtYmFzZWQgYWNjZXNzIGNvbnRyb2wgd2l0aCBkdC5zcGFjZS48L3RleHQ+CiAgPHRleHQgeD0iMzYiIHk9IjM2NyIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPjEwLzEzLzIwMjYg4oCUIHRoZSBzYW1lIG5vdGVzIG5vIGxvbmdlciBsaXN0IGl0OyB0aGUgdmFsaWRhdGlvbiB0ZW5hbnQncyBkaWN0aW9uYXJ5IGhhcyBubyBkdC5zcGFjZSByb3cuPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSIzODciIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij4xMS8xMS8yMDI2IOKAlCBkdC5zcGFjZSAoZXhwZXJpbWVudGFsKSBpcyBub3cgaW4gdGhlIHZhbGlkYXRpb24gdGVuYW50J3MgZGljdGlvbmFyeTsgQVBJIDEuMzUxIChwcmUtcmVsZWFzZSkgYWRkcyBzcGFjZUF3YXJlLjwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iNDEyIiB3aWR0aD0iODkwIiBoZWlnaHQ9IjY2IiByeD0iNyIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjIwIiB5PSI0MTIiIHdpZHRoPSI4OTAiIGhlaWdodD0iNjYiIHJ4PSI3IiBmaWxsPSJub25lIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzYiIHk9IjQzNiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5TbzogZGVzaWduIHByb2R1Y3Rpb24gYWNjZXNzIG9uIGR0LnNlY3VyaXR5X2NvbnRleHQgYW5kIGJvdW5kYXJpZXMgdG9kYXkgKE1aMlBPTC0xMikuPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSI0NTYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5QcmVwYXJlIGZvciBTcGFjZXMgb25seSB3aXRoIHN0ZXBzIHRoYXQgYWxyZWFkeSBwYXkgb2ZmIHdpdGhvdXQgdGhlbSAowqc0KS48L3RleHQ+Cjwvc3ZnPgo=" alt="Spaces: what is and is not documented" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Published | Not documented | History |
+|---|---|---|
+| Semantic dictionary permission-field page: dt.space — string, resource, experimental; tags permission, primary-field; "The space associated with the record. Spaces enable granular scoping and delegation of monitoring responsibilities." | A Spaces docs page or how-to; an IAM policy condition on dt.space; how a record gets its space; relation to dt.security_context and segments; ownership of documents or configuration objects; a release version or GA date | 09/24/2026: SaaS 1.348 pre-release notes announced space-based access control with dt.space. 10/13/2026: the same notes no longer list it, nor do the GA notes (rollout start 10/12/2026, read 10/23/2026); the validation tenant's dictionary has no dt.space row. 11/11/2026: dt.space (experimental) is in the validation tenant's dictionary; API 1.351 (pre-release) adds an undescribed spaceAware schema property |
+Conclusion: design production access on dt.security_context and boundaries today (MZ2POL-12); prepare for Spaces only with steps that pay off without them (§4).
+For environments where SVG doesn't render
+-->
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/tags/permission">Permission fields — semantic dictionary (DT docs)</a> — <em>&quot;The space associated with the record. Spaces enable granular scoping and delegation of monitoring responsibilities.&quot;</em> (listed <code>experimental</code>, tags <code>permission</code>, <code>primary-field</code>; read 10/13/2026).</sub></p>
+</blockquote>
+<p><a id="what-is-not-documented"></a></p>
+<h2>2. What Is Not Documented</h2>
+<p>As of 10/13/2026, re-checked 11/11/2026:</p>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Status</th>
+<th>Checked against</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Is there a Spaces documentation page or how-to?</td>
+<td><strong>No page found</strong></td>
+<td>Dynatrace docs search</td>
+</tr>
+<tr>
+<td>Can an IAM policy condition on <code>dt.space</code>?</td>
+<td><strong>Not listed</strong> — the reference has no <code>storage:dt.space</code> condition on any Grail permission</td>
+<td>IAM policy reference</td>
+</tr>
+<tr>
+<td>Is it in a release?</td>
+<td><strong>Not in the SaaS 1.348 GA notes (rollout start 10/12/2026).</strong> A pre-release version listed space-based access control on 09/24/2026; the GA notes do not. <strong>Forthcoming (API 1.351, pre-release, rollout planned from 11/11/2026):</strong> the API changelog adds a <code>spaceAware</code> property to the schema definitions returned by <code>GET /settings/schemas/{schemaId}</code> and <code>GET /extensions/{extensionName}/{extensionVersion}/schema</code> — with no description of what it means</td>
+<td>What's new in SaaS 1.348</td>
+</tr>
+<tr>
+<td>Is the field on a tenant?</td>
+<td><strong>On the validation tenant since 11/11/2026 at the latest</strong> — <code>dt.space</code> (<code>experimental</code>, tagged <code>permission</code> only) now returns from <code>dt.semantic_dictionary.fields</code>; on 10/13/2026 it did not. A dictionary row is not a feature: there is still no IAM condition or documentation for it</td>
+<td>§5 query</td>
+</tr>
+<tr>
+<td>How does a record get a space?</td>
+<td>Not documented</td>
+<td>—</td>
+</tr>
+<tr>
+<td>How do spaces relate to <code>dt.security_context</code>, segments, buckets?</td>
+<td>Not documented</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Do spaces own documents or configuration (alerts, SLOs, settings)?</td>
+<td>Not documented — the field description's &quot;delegation of monitoring responsibilities&quot; is not a documented mechanism, and the forthcoming <code>spaceAware</code> schema property is undescribed</td>
+<td>API changelog 1.351</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What this means for a migration plan:</strong> none of the MZ2POL replacements may depend on Spaces. Access goes through <code>dt.security_context</code> and boundaries (MZ2POL-12), filtering through segments (MZ2POL-05), alerting through workflows (MZ2POL-09). Those are documented and available, and they do not need to be undone if Spaces arrive.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a> — no <code>dt.space</code> condition, checked 10/13/2026. <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">What's new in Dynatrace SaaS 1.348 (DT docs)</a> — read 09/24/2026 (pre-release) with a Spaces entry; 10/13/2026 and 10/23/2026 (GA, rollout start 10/12/2026) without one. <strong>Dictionary:</strong> no <code>dt.space</code> row under <code>filter contains(name, &quot;space&quot;)</code>, read 10/13/2026 (control: <code>dt.security_context</code> returned, <code>stable</code>, tagged <code>permission</code>); <code>dt.space</code> (<code>experimental</code>, tagged <code>permission</code>) present, read 11/11/2026. <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-351">Dynatrace API changelog 1.351 (DT docs)</a> — pre-release (<em>&quot;Rollout start on Nov 11, 2026 (planned)&quot;</em>), <code>spaceAware</code> listed under <em>Added property</em>.</sub></p>
+</blockquote>
+<p><a id="where-it-would-sit"></a></p>
+<h2>3. Where a Space Field Would Sit</h2>
+<p>Given only the two tags and the one sentence, the most that can be said is where such a field would <strong>fit</strong> in the model this series has built. This is an orientation, not a prediction.</p>
+<table>
+<thead>
+<tr>
+<th>Layer in this series</th>
+<th>Field it uses today</th>
+<th>Where a record-level, permission-tagged <code>dt.space</code> would fit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Access (MZ2POL-12)</td>
+<td><code>dt.security_context</code>, built-in fields</td>
+<td>Another field of the same kind — <em>if</em> IAM conditions on it are introduced</td>
+</tr>
+<tr>
+<td>Filtering (MZ2POL-05)</td>
+<td><code>primary_tags.*</code>, built-in fields</td>
+<td>A primary field can be filtered like <code>dt.host_group.id</code> is today</td>
+</tr>
+<tr>
+<td>Alerting (MZ2POL-09)</td>
+<td>Entity tags, DQL matcher on the problem</td>
+<td>Not indicated by the entry</td>
+</tr>
+<tr>
+<td>Configuration ownership</td>
+<td><strong>Nothing today</strong> — settings permissions, <code>settings:schemaId</code></td>
+<td>The entry's &quot;delegation of monitoring responsibilities&quot; points at this gap, but no mechanism is documented</td>
+</tr>
+</tbody>
+</table>
+<p>The last row is the honest reason Spaces attract so much interest from teams leaving management zones. A zone let a central team hand a slice of the environment — and often its settings, dashboards and alerts — to an application team. Today's replacements cover <strong>data</strong> access and <strong>views</strong> well; delegating <strong>configuration</strong> is the part with no clean equivalent, which FAQ-02 §2 also records. If Spaces close that gap, they will matter. Until it is documented, treat that as hope, not plan.</p>
+<blockquote>
+<p><sub><strong>Derived:</strong> the &quot;where it would fit&quot; column places the published tags (<code>permission</code>, <code>primary-field</code>) next to the mechanisms in MZ2POL-05, -09 and -12; it states no Spaces behaviour.</sub></p>
+</blockquote>
+<p><a id="no-regret-preparation"></a></p>
+<h2>4. No-Regret Preparation</h2>
+<p>These steps are this series' recommendation. Each one is already worth doing for the documented migration, and none of them depends on how Spaces turn out.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+Tm8tUmVncmV0IFByZXBhcmF0aW9uIGZvciBTcGFjZXM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMi41Ij5FdmVyeSBzdGVwIGJlbG93IHBheXMgb2ZmIHRvZGF5OyBub25lIGRlcGVuZHMgb24gaG93IFNwYWNlcyB0dXJuIG91dDwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iNzQiIHdpZHRoPSI0NDAiIGhlaWdodD0iNzQiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzYiIHk9IjEwMCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPk9uZSB0ZWFtIHZvY2FidWxhcnksIHNldCBhdCBzb3VyY2U8L3RleHQ+CiAgPHRleHQgeD0iMzYiIHk9IjEyNCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPnByaW1hcnlfdGFncy50ZWFtICsgZHQuc2VjdXJpdHlfY29udGV4dCBpbiBvbmUgc3RlcCAoTVoyUE9MLTEwKTwvdGV4dD4KICA8cmVjdCB4PSI0NzAiIHk9Ijc0IiB3aWR0aD0iNDQwIiBoZWlnaHQ9Ijc0IiByeD0iNyIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjQ3MCIgeT0iNzQiIHdpZHRoPSI0NDAiIGhlaWdodD0iNzQiIHJ4PSI3IiBmaWxsPSJub25lIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNDg2IiB5PSIxMTYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5BbnkgZnV0dXJlIHJlY29yZC1sZXZlbCBzY29wZSBuZWVkcyB0aGUgdGVhbSBvbiB0aGUgcmVjb3JkPC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSIxNTYiIHdpZHRoPSI0NDAiIGhlaWdodD0iNzQiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzYiIHk9IjE4MiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPk9uZSBib3VuZGFyeSBwZXIgdGVhbTwvdGV4dD4KICA8dGV4dCB4PSIzNiIgeT0iMjA2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+Z3JvdXBzIMOXIGRlZmF1bHQgcG9saWNpZXMgw5cgdGVhbSBib3VuZGFyeSAoTVoyUE9MLTEyKTwvdGV4dD4KICA8cmVjdCB4PSI0NzAiIHk9IjE1NiIgd2lkdGg9IjQ0MCIgaGVpZ2h0PSI3NCIgcng9IjciIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSI0NzAiIHk9IjE1NiIgd2lkdGg9IjQ0MCIgaGVpZ2h0PSI3NCIgcng9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI0ODYiIHk9IjE5OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPkEgY2xlYW4gdW5pdCB0byByZS1wb2ludCBpZiBhIG5ldyBjb25kaXRpb24gYXBwZWFyczwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iMjM4IiB3aWR0aD0iNDQwIiBoZWlnaHQ9Ijc0IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjM2IiB5PSIyNjQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMi41IiBmb250LXdlaWdodD0iNzAwIj5TZWdtZW50cyBwZXIgZGltZW5zaW9uPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSIyODgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij50ZWFtLCBhcHAsIHN0YWdlIChNWjJQT0wtMDUpPC90ZXh0PgogIDxyZWN0IHg9IjQ3MCIgeT0iMjM4IiB3aWR0aD0iNDQwIiBoZWlnaHQ9Ijc0IiByeD0iNyIgZmlsbD0iIzIyRDNFRSIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjQ3MCIgeT0iMjM4IiB3aWR0aD0iNDQwIiBoZWlnaHQ9Ijc0IiByeD0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjQ4NiIgeT0iMjgwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+Vmlld3MgdGhhdCBkbyBub3QgZGVwZW5kIG9uIHRoZSBhY2Nlc3MgbWVjaGFuaXNtPC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSIzMjAiIHdpZHRoPSI0NDAiIGhlaWdodD0iNzQiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzYiIHk9IjM0NiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPk93bmVyc2hpcCB0YWdzIG9uIGVudGl0aWVzPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSIzNzAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5vd25lciAvIGR0Lm93bmVyIChGQVEtMjEpPC90ZXh0PgogIDxyZWN0IHg9IjQ3MCIgeT0iMzIwIiB3aWR0aD0iNDQwIiBoZWlnaHQ9Ijc0IiByeD0iNyIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjQ3MCIgeT0iMzIwIiB3aWR0aD0iNDQwIiBoZWlnaHQ9Ijc0IiByeD0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjQ4NiIgeT0iMzYyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+V2hvIGlzIHJlc3BvbnNpYmxlIOKAlCBhbHJlYWR5IHVzZWQgZm9yIHJvdXRpbmc8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjQwMiIgd2lkdGg9IjQ0MCIgaGVpZ2h0PSI3NCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzNiIgeT0iNDI4IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIuNSIgZm9udC13ZWlnaHQ9IjcwMCI+SW52ZW50b3J5IGRlbGVnYXRlZCByZXNwb25zaWJpbGl0eTwvdGV4dD4KICA8dGV4dCB4PSIzNiIgeT0iNDUyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+d2hpY2ggem9uZXMgZGVsZWdhdGVkIHNldHRpbmdzLCBhbGVydHMsIGRhc2hib2FyZHM8L3RleHQ+CiAgPHJlY3QgeD0iNDcwIiB5PSI0MDIiIHdpZHRoPSI0NDAiIGhlaWdodD0iNzQiIHJ4PSI3IiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iNDcwIiB5PSI0MDIiIHdpZHRoPSI0NDAiIGhlaWdodD0iNzQiIHJ4PSI3IiBmaWxsPSJub25lIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNDg2IiB5PSI0NDQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5UaGUgZ2FwIHRoZSBkdC5zcGFjZSBkZXNjcmlwdGlvbiBuYW1lczsgcmVjb3JkIGl0IG5vdzwvdGV4dD4KPC9zdmc+Cg==" alt="No-regret preparation for Spaces" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | How | Why it pays off either way |
+|---|---|---|
+| One team vocabulary, set at source | primary_tags.team + dt.security_context in one enrichment step (MZ2POL-10) | Any future record-level scope needs the team on the record |
+| One boundary per team | Groups × default policies × team boundary (MZ2POL-12) | A clean unit to re-point if a new condition appears |
+| Segments per dimension | Team, app, stage (MZ2POL-05) | Views that do not depend on the access mechanism |
+| Ownership tags on entities | owner / dt.owner (FAQ-21) | Who is responsible — already used for routing |
+| Inventory delegated responsibility | Which zones delegated settings, alerts, dashboards | The gap the dt.space description names; record it now |
+For environments where SVG doesn't render
+-->
+<h3>Why these and not others</h3>
+<ul>
+<li><strong>Team values on the record are the common denominator.</strong> Whatever a future scope is called, it can only act on records that say whose they are. The MZ2POL-10 gate is the preparation.</li>
+<li><strong>One boundary per team is the cheapest thing to change later.</strong> If a new condition becomes available, it is one line in one boundary per team, not a redesign of every binding.</li>
+<li><strong>The delegation inventory is information you lose at cutover.</strong> When zones are deleted, the record of which team was trusted with which settings, dashboards and alerting profiles goes with them. Export it during assessment (MZ2POL-00, -03) and keep it with the translation worksheet (MZ2POL-11 §10).</li>
+</ul>
+<h3>What not to do</h3>
+<ul>
+<li>Do not keep management zones alive &quot;until Spaces arrive&quot;. Zones are not evaluated for Grail data, and zone-scoped settings conditions stop matching as the Smartscape transition arrives (MZ2POL-12 §5) — waiting buys nothing.</li>
+<li>Do not invent your own <code>dt.space</code> field in enrichment. A self-made field with the same name as a published, still-undocumented platform field can collide with the real one when it ships.</li>
+<li>Do not promise teams a Spaces-based model in migration plans or contracts.</li>
+</ul>
+<p><a id="checking-status"></a></p>
+<h2>5. Checking the Status on Your Tenant</h2>
+<p>The semantic dictionary changes with the platform version, so the field can appear on one tenant before another. This query reads the dictionary at zero cost and includes a control row so that an empty result means something.</p>
+<pre><code class="language-dql">// Is dt.space defined on this tenant? dt.security_context is the control —
+// if it is missing too, the query surface is broken, not the field.
+// Zero bytes scanned. Summarized: the dictionary repeats a field once per model (model_id)
+// (2,197 dt.security_context rows on the validation tenant, 11/11/2026).
+fetch dt.semantic_dictionary.fields
+| filter name == &quot;dt.space&quot; or name == &quot;dt.security_context&quot;
+| summarize {rows = count(), stability = collectDistinct(stability), tags = collectDistinct(tags), description = takeFirst(description)}, by:{name}
+</code></pre>
+<p>On the validation tenant (10/13/2026) this returned <code>dt.security_context</code> (<code>stable</code>, tagged <code>permission</code>) and no <code>dt.space</code>. On 11/11/2026 it returned both: <code>dt.space</code> is now in the tenant dictionary (<code>experimental</code>, tagged <code>permission</code>, with the same one-sentence description). So the validation tenant now meets the condition below, and none of the three checks that follow it.</p>
+<p>If <code>dt.space</code> appears on your tenant, check three more things before relying on it:</p>
+<ol>
+<li><strong>The IAM policy reference</strong> — is there a <code>storage:dt.space</code> condition, and on which permissions?</li>
+<li><strong>A Spaces documentation page</strong> — how values are assigned, and by whom.</li>
+<li><strong>The release notes</strong> for your tenant's version — whether the feature is announced as available, and with what rollout.</li>
+</ol>
+<p>Until all three exist, keep the MZ2POL-12 design.</p>
+<p><a id="what-would-change"></a></p>
+<h2>6. What Would Change This Guidance</h2>
+<p>This notebook will be revised when any of the following is published:</p>
+<table>
+<thead>
+<tr>
+<th>Trigger</th>
+<th>What changes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A Spaces documentation page</td>
+<td>§1–§3 rewritten from the documented behaviour, with version-gated framing</td>
+</tr>
+<tr>
+<td><code>dt.space</code> as an IAM condition</td>
+<td>MZ2POL-12 gains a Spaces option in the reference architecture; boundaries may gain a line</td>
+</tr>
+<tr>
+<td>Spaces delegating configuration ownership</td>
+<td>MZ2POL-03's inventory and MZ2POL-11's worksheet gain a &quot;delegated to space&quot; column</td>
+</tr>
+<tr>
+<td><code>dt.space</code> moving to <code>stable</code></td>
+<td>The §5 check becomes a readiness check rather than a watch</td>
+</tr>
+<tr>
+<td>A description of the <code>spaceAware</code> schema property (added, undescribed, in the forthcoming API 1.351)</td>
+<td>§3 gains which settings schemas a space can scope; MZ2POL-03's inventory may gain a column</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Summary</h2>
+<ol>
+<li><strong>One published entry:</strong> <code>dt.space</code> is an <code>experimental</code> record field tagged <code>permission</code> and <code>primary-field</code>, described as enabling <em>&quot;granular scoping and delegation of monitoring responsibilities.&quot;</em></li>
+<li><strong>Everything else is undocumented</strong> — no page, no IAM condition, no release entry that describes Spaces. The field reached the validation tenant's dictionary by 11/11/2026, still <code>experimental</code>, and the forthcoming API 1.351 adds an undescribed <code>spaceAware</code> schema property.</li>
+<li><strong>Build the migration on documented mechanisms</strong> — <code>dt.security_context</code> and boundaries, segments, workflows.</li>
+<li><strong>Prepare with no-regret steps</strong> — team values on the record, one boundary per team, segments per dimension, ownership tags, and an inventory of delegated responsibility.</li>
+<li><strong>Check your tenant</strong> with the §5 query, and re-check on each platform release.</li>
+</ol>
+<h2>Next Steps</h2>
+<ul>
+<li><strong>MZ2POL-12</strong> — the access design to build now.</li>
+<li><strong>MZ2POL-10</strong> — the tagging foundation every option depends on.</li>
+<li><strong>FAQ-02 §2</strong> — where Spaces appears in the tagging model, kept current with this notebook.</li>
+</ul>
+<h2>Additional Resources</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/semantic-dictionary/tags/permission">Permission fields — semantic dictionary (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">What's new in Dynatrace SaaS 1.348 (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

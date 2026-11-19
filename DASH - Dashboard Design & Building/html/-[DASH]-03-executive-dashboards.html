@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DASH-03: Executive Dashboards</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DASH — Dashboard Design &amp; Building</a><span class="sep">/</span><span aria-current="page">DASH-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DASH-03: Executive Dashboards</h1>
+<blockquote>
+<p><strong>Series:</strong> DASH — Dashboard Design &amp; Building | <strong>Notebook:</strong> 3 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Executive dashboards distill complex observability data into a handful of business-meaningful KPIs. The goal is not to show everything — it is to show exactly what a decision-maker needs to assess system health in under 30 seconds. This notebook covers KPI selection, single-value tiles, trend lines, traffic-light patterns, MTTR calculations, and how to tell a story with data while avoiding information overload.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#kpi-selection">KPI Selection Framework</a></li>
+<li><a href="#availability-percentage">Availability Percentage</a></li>
+<li><a href="#mttr">Mean Time to Resolve (MTTR)</a></li>
+<li><a href="#problem-trends">Problem Count and Trends</a></li>
+<li><a href="#service-health-score">Service Health Score</a></li>
+<li><a href="#error-budget">Error Budget Tracking</a></li>
+<li><a href="#storytelling">Storytelling with Data</a></li>
+<li><a href="#summary-and-next-steps">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS with Grail — the Dashboards app and DQL are not available on Dynatrace Managed, which keeps classic dashboards</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:events:read</code>, <code>storage:metrics:read</code>, <code>storage:spans:read</code></td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>detected problems with closed events (for MTTR), service spans</td>
+</tr>
+<tr>
+<td><strong>Prior Reading</strong></td>
+<td>DASH-01 and DASH-02</td>
+</tr>
+</tbody>
+</table>
+<p><a id="kpi-selection"></a></p>
+<h2>1. KPI Selection Framework</h2>
+<p>Selecting the right KPIs is the most important decision in executive dashboard design. Use these criteria:</p>
+<h3>The SMART Filter for Dashboard KPIs</h3>
+<table>
+<thead>
+<tr>
+<th>Criterion</th>
+<th>Question</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Specific</strong></td>
+<td>Does this metric answer one clear question?</td>
+</tr>
+<tr>
+<td><strong>Measurable</strong></td>
+<td>Can Dynatrace calculate it reliably?</td>
+</tr>
+<tr>
+<td><strong>Actionable</strong></td>
+<td>Does a change in value trigger a specific response?</td>
+</tr>
+<tr>
+<td><strong>Relevant</strong></td>
+<td>Does the executive audience care about this?</td>
+</tr>
+<tr>
+<td><strong>Time-bound</strong></td>
+<td>Is the time range meaningful for decision-making?</td>
+</tr>
+</tbody>
+</table>
+<h3>Recommended Executive KPIs</h3>
+<table>
+<thead>
+<tr>
+<th>KPI</th>
+<th>Description</th>
+<th>Tile Type</th>
+<th>Threshold Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Availability %</strong></td>
+<td>Uptime as a percentage of total time</td>
+<td>Single value</td>
+<td>Green: &gt;99.9%, Yellow: &gt;99.5%, Red: &lt;99.5%</td>
+</tr>
+<tr>
+<td><strong>MTTR</strong></td>
+<td>Average time to resolve problems</td>
+<td>Single value</td>
+<td>Green: &lt;1h, Yellow: &lt;4h, Red: &gt;4h</td>
+</tr>
+<tr>
+<td><strong>Active Problems</strong></td>
+<td>Current open problem count</td>
+<td>Single value</td>
+<td>Green: 0, Yellow: 1-3, Red: &gt;3</td>
+</tr>
+<tr>
+<td><strong>Problem Trend</strong></td>
+<td>Problem count over 7-30 days</td>
+<td>Line chart</td>
+<td>Trending up = concern</td>
+</tr>
+<tr>
+<td><strong>Error Rate</strong></td>
+<td>Overall % of failed requests</td>
+<td>Single value</td>
+<td>Green: &lt;1%, Yellow: &lt;5%, Red: &gt;5%</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> Start with 4-5 KPIs. You can always add more later, but removing tiles executives have grown accustomed to is harder.</p>
+</blockquote>
+<p><a id="availability-percentage"></a></p>
+<h2>2. Availability Percentage</h2>
+<p>Availability is the most commonly requested executive metric. There are several ways to calculate it depending on what &quot;availability&quot; means in your organization.</p>
+<h3>Approach 1: Problem Impact — <em>not</em> an availability percentage</h3>
+<p>This is the tile most often asked for and most often wrong. Detected problems tell you <strong>how much impact</strong> occurred, not <strong>what fraction of time</strong> the estate was up.</p>
+<blockquote>
+<p><strong>Why a sum of problem durations is not downtime.</strong> Problems overlap — Dynatrace opens one per
+affected entity, and many run concurrently. Measured on a live tenant over 7 days (08/25/2026):
+<strong>319</strong> AVAILABILITY problems across <strong>254</strong> entities summing to <strong>714.7 hours</strong> against a
+<strong>168-hour</strong> window — <em>4.3x the entire period</em>, with a peak of <strong>73</strong> problems open at once.
+Subtracting that from wall-clock time yields a negative availability, which is what this cell
+reported before it was corrected (<strong>-325%</strong>).</p>
+<p>The sum is a real and useful quantity — <strong>entity-hours of impact</strong> — but it is not elapsed
+downtime, and no filter makes it so. Elapsed downtime needs the <em>union</em> of the problem intervals,
+which this shape cannot express. For a real availability number use <strong>Approach 2</strong> below
+(success-rate, which measures requests rather than problems) or an <strong>SLO</strong> — see the SLO series,
+which exists for exactly this.</p>
+</blockquote>
+<blockquote>
+<p><strong>Counting affected entities across the field change.</strong> The alert-notification upgrade guide: <em>&quot;root_cause_entity_id and root_cause_entity_name are deprecated in favor of root_cause.smartscape_entity, and affected_entity_ids in favor of smartscape.affected_entities.&quot;</em> The classic field still works, but neither field alone counts the right entities today. Over 30 days of closed AVAILABILITY problems on the validation tenant (11/11/2026), <code>affected_entity_ids</code> gave 230 distinct entities and <code>smartscape.affected_entities</code> gave 18, because availability problems on process group instances carried no Smartscape field. Over 7 days of all problems it went the other way: the classic field named only <code>ENVIRONMENT-0000000000000001</code> on 1,479 problems whose Smartscape field named an AWS EC2 instance. The queries below take the Smartscape IDs where a problem has them and the classic IDs only where it has none (224 distinct entities for the same 30 days). (<a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade from Classic problem notification to simple workflows (DT docs)</a>)</p>
+</blockquote>
+<pre><code class="language-dql">// Problem impact over 7 days. NOTE: this is entity-hours of impact, NOT downtime —
+// problems overlap, so the sum exceeds wall-clock time. See the note above.
+fetch dt.davis.problems, from:-7d
+| filter event.status == &quot;CLOSED&quot;
+| filter event.category == &quot;AVAILABILITY&quot;
+| filter dt.davis.is_duplicate == false
+// Affected entities: Smartscape node IDs where the problem has them, the deprecated
+// affected_entity_ids only where it has none (see the note above).
+| fieldsAdd ss_ids = toString(smartscape.affected_entities[][id]),
+            classic_ids = if(isNull(smartscape.affected_entities), affected_entity_ids)
+| summarize
+    impact_hours = sum(resolved_problem_duration / 1h),
+    problem_count = count(),
+    ss_arrays = collectArray(ss_ids),
+    classic_arrays = collectArray(classic_ids),
+    longest_problem_hours = max(resolved_problem_duration / 1h)
+// The ID fields are arrays: countDistinctExact on them counts distinct ARRAYS, not entities.
+| fieldsAdd affected_entities = arraySize(arrayRemoveNulls(arrayDistinct(arrayConcat(arrayFlatten(ss_arrays), arrayFlatten(classic_arrays)))))
+| fieldsRemove ss_arrays, classic_arrays
+</code></pre>
+<h3>Approach 2: Based on Service Success Rate</h3>
+<p>Calculate availability as the percentage of successful server-side requests.</p>
+<blockquote>
+<p><strong>Count the failures and subtract — never count the successes.</strong> This is the one tile in the executive set where a plausible-looking query is catastrophically wrong, and the failure mode is a <em>credible number</em>, not an error:</p>
+<table>
+<thead>
+<tr>
+<th>Written as</th>
+<th>Reads on a healthy estate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>countIf(otel.status_code != &quot;ERROR&quot;)</code></td>
+<td><strong>0</strong> — the field does not exist at all (no row in <code>dt.semantic_dictionary.fields</code>; the real field is <code>span.status_code</code>)</td>
+</tr>
+<tr>
+<td><code>countIf(span.status_code != &quot;ERROR&quot;)</code></td>
+<td><strong>0</strong> — right field, wrong case. Grail values are lowercase <code>&quot;error&quot;</code></td>
+</tr>
+<tr>
+<td><code>countIf(span.status_code != &quot;error&quot;)</code></td>
+<td><strong>≈0</strong> — right field, right case, wrong logic. <code>span.status_code</code> is <strong>null on successful spans</strong>, and <code>!=</code> against null yields null, not true</td>
+</tr>
+<tr>
+<td><strong><code>total - countIf(span.status_code == &quot;error&quot;)</code></strong></td>
+<td><strong>99.598%</strong> — the correct figure for the same 24 h window, tenant <code>yhu28601</code>, 08/11/2026</td>
+</tr>
+</tbody>
+</table>
+<p>All three wrong forms put <strong>0% availability</strong> in front of an executive audience while the platform is running normally — the fastest possible way to destroy trust in the dashboard, and precisely the outcome the storytelling warning in §7 is about.</p>
+</blockquote>
+<pre><code class="language-dql">// Service-level availability based on span success rate
+//
+// Successes are DERIVED, not counted. span.status_code is null on successful spans
+// (&quot;ok&quot; is written vanishingly rarely), so countIf(span.status_code != &quot;error&quot;)
+// counts almost nothing and this tile would read ~0% availability on a healthy
+// estate — with no error to warn you. total - errors is the only correct form.
+fetch spans, from:-24h
+| filter span.kind == &quot;server&quot;
+| summarize {
+    total = count(),
+    errors = countIf(span.status_code == &quot;error&quot;)
+  }
+| fieldsAdd successes = total - errors
+| fieldsAdd availability_pct = round(100.0 * successes / total, decimals: 3)
+</code></pre>
+<p><a id="mttr"></a></p>
+<h2>3. Mean Time to Resolve (MTTR)</h2>
+<p>MTTR here is the average duration of closed problems. A problem closes when its events close, so this measures how long anomalies lasted — including issues that recovered on their own — not how long a team took to resolve them, and it is not DORA's failed-deployment recovery time (ADOPT-03 § 3). Label the tile accordingly.</p>
+<h3>Current MTTR (Single Value)</h3>
+<pre><code class="language-dql">// Average MTTR over last 7 days in hours
+fetch dt.davis.problems, from:-7d
+| filter event.status == &quot;CLOSED&quot;
+| filter dt.davis.is_duplicate == false
+| summarize mttr_hours = avg(resolved_problem_duration / 1h)
+</code></pre>
+<h3>MTTR Trend Over Time</h3>
+<p>Show MTTR as a daily trend to highlight improvement or degradation.</p>
+<pre><code class="language-dql">// MTTR trend — daily average over 30 days
+fetch dt.davis.problems, from:-30d
+| filter event.status == &quot;CLOSED&quot;
+| filter dt.davis.is_duplicate == false
+| makeTimeseries mttr_hours = avg(resolved_problem_duration / 1h), interval:24h, time:event.end
+</code></pre>
+<p><a id="problem-trends"></a></p>
+<h2>4. Problem Count and Trends</h2>
+<p>Problem trends reveal whether operational health is improving or declining over time.</p>
+<h3>Weekly Problem Trend by Category</h3>
+<pre><code class="language-dql">// Problem trend by category over 7 days
+// time:event.start bins each problem on the day it opened, not the day it was last updated
+fetch dt.davis.problems, from:-7d
+| filter dt.davis.is_duplicate == false
+| makeTimeseries problem_count = count(), interval:24h, by:{event.category}, time:event.start
+</code></pre>
+<h3>Problems by Category — Executive Summary Table</h3>
+<pre><code class="language-dql">// Problem summary by category — executive table tile
+fetch dt.davis.problems, from:-7d
+| filter dt.davis.is_duplicate == false
+| summarize {total = count(), active = countIf(event.status == &quot;ACTIVE&quot;), closed = countIf(event.status == &quot;CLOSED&quot;)}, by:{event.category}
+| sort total desc
+</code></pre>
+<p><a id="service-health-score"></a></p>
+<h2>5. Service Health Score</h2>
+<p>A composite health score combines multiple signals into a single number. This is useful for executives who want one metric per service.</p>
+<h3>Simple Health Score Formula</h3>
+<p>Health = 100 - (error_rate_penalty + latency_penalty)</p>
+<table>
+<thead>
+<tr>
+<th>Factor</th>
+<th>Penalty Calculation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Error rate &gt; 1%</td>
+<td>+20 penalty</td>
+</tr>
+<tr>
+<td>Error rate &gt; 5%</td>
+<td>+50 penalty</td>
+</tr>
+<tr>
+<td>P95 latency &gt; 1s</td>
+<td>+15 penalty</td>
+</tr>
+<tr>
+<td>P95 latency &gt; 3s</td>
+<td>+35 penalty</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Service health score — composite metric for executive dashboard
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| summarize {total = count(), errors = countIf(span.status_code == &quot;error&quot;), p95_ns = percentile(duration, 95)}, by:{dt.entity.service}
+| fieldsAdd error_rate = 100.0 * errors / total
+| fieldsAdd p95_ms = p95_ns / 1ms
+| fieldsAdd error_penalty = if(error_rate &gt; 5, then: 50, else: if(error_rate &gt; 1, then: 20, else: 0))
+| fieldsAdd latency_penalty = if(p95_ms &gt; 3000, then: 35, else: if(p95_ms &gt; 1000, then: 15, else: 0))
+| fieldsAdd health_score = 100 - error_penalty - latency_penalty
+| fieldsKeep dt.entity.service, health_score, error_rate, p95_ms
+| sort health_score asc
+| limit 10
+</code></pre>
+<p><a id="error-budget"></a></p>
+<h2>6. Error Budget Tracking</h2>
+<p>Error budgets quantify how much failure is acceptable before an SLA breach. For a 99.9% SLA, the monthly error budget is 43.2 minutes of downtime.</p>
+<table>
+<thead>
+<tr>
+<th>SLA Target</th>
+<th>Monthly Error Budget</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>99.99%</td>
+<td>4.32 minutes</td>
+</tr>
+<tr>
+<td>99.9%</td>
+<td>43.2 minutes</td>
+</tr>
+<tr>
+<td>99.5%</td>
+<td>3.6 hours</td>
+</tr>
+<tr>
+<td>99.0%</td>
+<td>7.2 hours</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>An error budget cannot be computed from summed problem durations.</strong> The 43.2-minute figure is
+<em>wall-clock</em> downtime, while summing problem durations counts overlapping problems repeatedly. On the
+verification tenant that produced a budget-remaining of <strong>-6,824,364%</strong> — 2,948,168 minutes of
+&quot;downtime&quot; claimed inside a 30-day window. Error budgets are an SLO construct: define the SLO, and the
+burn rate follows from it. See <strong>SLO-03</strong> (composition and error budgets) and <strong>SLO-04</strong> (burn-rate
+alerting). The query below reports the impact figures this data <em>can</em> support.</p>
+</blockquote>
+<h3>Problem Impact Against the Budget Reference</h3>
+<pre><code class="language-dql">// Problem impact over 30 days, against the 99.9% budget reference.
+// impact_minutes is entity-minutes of impact, NOT wall-clock downtime — it is shown
+// beside the budget for scale, not subtracted from it. Use an SLO for a real budget.
+fetch dt.davis.problems, from:-30d
+| filter event.status == &quot;CLOSED&quot;
+| filter event.category == &quot;AVAILABILITY&quot;
+| filter dt.davis.is_duplicate == false
+// Affected entities: Smartscape node IDs where the problem has them, the deprecated
+// affected_entity_ids only where it has none (see §2).
+| fieldsAdd ss_ids = toString(smartscape.affected_entities[][id]),
+            classic_ids = if(isNull(smartscape.affected_entities), affected_entity_ids)
+| summarize
+    impact_minutes = sum(resolved_problem_duration / 1m),
+    problem_count = count(),
+    ss_arrays = collectArray(ss_ids),
+    classic_arrays = collectArray(classic_ids)
+| fieldsAdd budget_reference_min_999 = 43.2
+// The ID fields are arrays: countDistinctExact on them counts distinct ARRAYS, not entities.
+| fieldsAdd affected_entities = arraySize(arrayRemoveNulls(arrayDistinct(arrayConcat(arrayFlatten(ss_arrays), arrayFlatten(classic_arrays)))))
+| fieldsRemove ss_arrays, classic_arrays
+</code></pre>
+<p><a id="storytelling"></a></p>
+<h2>7. Storytelling with Data</h2>
+<p>An executive dashboard should tell a story without explanation. Follow these storytelling principles:</p>
+<h3>Layout Pattern for Executive Dashboard</h3>
+<table>
+<thead>
+<tr>
+<th>Row</th>
+<th>Left</th>
+<th>Center</th>
+<th>Right</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Top</strong></td>
+<td>Availability % (single value)</td>
+<td>MTTR (single value)</td>
+<td>Active Problems (single value)</td>
+</tr>
+<tr>
+<td><strong>Middle</strong></td>
+<td>Problem trend (7d line chart)</td>
+<td>—</td>
+<td>Error budget remaining (single value)</td>
+</tr>
+<tr>
+<td><strong>Bottom</strong></td>
+<td>Service health table (top 5 worst)</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3>Storytelling Principles</h3>
+<ol>
+<li><strong>Lead with the headline</strong> — the top row answers &quot;are we healthy?&quot; in 3 numbers</li>
+<li><strong>Support with trends</strong> — the middle row shows direction (improving or declining)</li>
+<li><strong>Provide detail on demand</strong> — the bottom row offers specifics for those who want them</li>
+<li><strong>Use color intentionally</strong> — green means healthy, yellow means watch, red means act</li>
+<li><strong>Avoid decoration</strong> — no gratuitous pie charts, no unnecessary 3D effects, no logos</li>
+</ol>
+<blockquote>
+<p><strong>Warning:</strong> Executives will lose trust in a dashboard that shows misleading data. Always validate that your availability and MTTR calculations match what the team reports manually. A discrepancy between the dashboard and a status meeting destroys credibility.</p>
+</blockquote>
+<p><a id="summary-and-next-steps"></a></p>
+<h2>8. Summary and Next Steps</h2>
+<p>In this notebook you learned:</p>
+<ul>
+<li>How to select KPIs using the SMART filter</li>
+<li>Two approaches to calculating availability percentage</li>
+<li>MTTR calculation and trending over time</li>
+<li>Problem count analysis by category and status</li>
+<li>Composite service health scores</li>
+<li>Error budget tracking for SLA targets</li>
+<li>Storytelling principles for executive dashboard layout</li>
+</ul>
+<p><strong>Next:</strong> In <strong>DASH-04: Operations Dashboards</strong>, we move to the operations tier — real-time service monitoring, infrastructure health, log volume tracking, and problem/alert integration.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SL2DT-07: User Governance &amp; Access</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SL2DT — Sumo Logic to Dynatrace</a><span class="sep">/</span><span aria-current="page">SL2DT-07</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SL2DT-07: User Governance &amp; Access</h1>
+<blockquote>
+<p><strong>Series:</strong> SL2DT — Sumo Logic to Dynatrace | <strong>Notebook:</strong> 7 of 11 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 10/14/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Goal of this step:</strong> translate Sumo's RBAC model (roles + search filters + capabilities) into Dynatrace Platform IAM (groups + policies + bucket scoping). Do not defer this work — IAM decisions are made in Wave 1 of the migration, not at the end.</p>
+<p>Governance drift — users without proper policies, buckets without proper scoping, SSO not mapped — causes cutover delays more often than query translation issues. Get this right before Wave 2.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#outputs">What You'll Produce</a></li>
+<li><a href="#model">Sumo → Dynatrace IAM Mapping Model</a></li>
+<li><a href="#bucket-policies">Bucket-Scoped Policies — Implementation</a></li>
+<li><a href="#sso">SSO &amp; User Provisioning</a></li>
+<li><a href="#content-access">Role-Based Dashboard/Monitor Access</a></li>
+<li><a href="#audit">Audit Trail Parity</a></li>
+<li><a href="#pitfalls">Governance Pitfalls to Avoid</a></li>
+<li><a href="#gate">Step Exit Criteria</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Platform admins + security team</td>
+</tr>
+<tr>
+<td><strong>Inputs</strong></td>
+<td><code>inventory/roles.json</code>, <code>users.json</code>, <code>rbac-mapping.md</code> from SL2DT-02</td>
+</tr>
+<tr>
+<td><strong>Dynatrace access — Platform Token</strong></td>
+<td>For querying audit events (<code>fetch dt.system.events</code>): <code>storage:system:read</code> and <code>storage:buckets:read</code> on the <code>dt_system_events</code> bucket. Policy and group definitions are read through the Account Management API with the OAuth client below</td>
+</tr>
+<tr>
+<td><strong>Dynatrace access — OAuth client</strong></td>
+<td><strong>The Terraform resources used in this notebook's HCL examples (<code>dynatrace_iam_group</code>, <code>dynatrace_iam_policy</code>, <code>dynatrace_iam_policy_bindings_v2</code>) are OAuth-client-only</strong> — a Platform Token cannot drive them. Provision an OAuth client (<code>DT_CLIENT_ID</code>/<code>DT_CLIENT_SECRET</code>/<code>DT_ACCOUNT_ID</code>) with scopes <code>account-idm-read</code>, <code>account-idm-write</code>, <code>iam-policies-management</code>, <code>account-env-read</code></td>
+</tr>
+<tr>
+<td><strong>SSO context</strong></td>
+<td>Existing IdP details (Okta, Entra, Ping)</td>
+</tr>
+<tr>
+<td><strong>Prior reading</strong></td>
+<td>IAM-01 (Platform IAM fundamentals), IAM-07 (bucket policies)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="outputs"></a></p>
+<h2>1. What You'll Produce</h2>
+<table>
+<thead>
+<tr>
+<th>Artifact</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>iam/groups.tf</code></td>
+<td>Terraform for IAM groups (one per Sumo role)</td>
+</tr>
+<tr>
+<td><code>iam/policies.tf</code></td>
+<td>Policies (scoped by bucket)</td>
+</tr>
+<tr>
+<td><code>iam/bindings.tf</code></td>
+<td>Group→policy bindings</td>
+</tr>
+<tr>
+<td><code>iam/sso-mapping.md</code></td>
+<td>IdP claim → group membership rule</td>
+</tr>
+<tr>
+<td><code>iam-rollout-plan.md</code></td>
+<td>Sequence: shadow-mode → cut-over → retire-legacy</td>
+</tr>
+</tbody>
+</table>
+<p><a id="model"></a></p>
+<h2>2. Sumo → Dynatrace IAM Mapping Model</h2>
+<h3>The Three Layers</h3>
+<pre><code>Sumo Role              Dynatrace IAM Model
+═══════════════        ═══════════════════════
+Role name       →      Group name
+Capabilities    →      Policy permissions
+Search filter   →      Policy bucket/scope filter
+User assignment →      Group membership (often via SSO claim)
+</code></pre>
+<h3>Example Mapping</h3>
+<p><strong>Sumo role:</strong> <code>prod-readers</code></p>
+<ul>
+<li>Search filter: <code>_sourceCategory=prod/*</code></li>
+<li>Capabilities: Dashboard view, Search, Monitor view (no edit)</li>
+<li>Assigned users: 82</li>
+</ul>
+<p><strong>Dynatrace equivalent:</strong></p>
+<pre><code class="language-hcl"># Group
+resource &quot;dynatrace_iam_group&quot; &quot;g_prod_readers&quot; {
+  name = &quot;g_prod_readers&quot;
+  description = &quot;Read-only access to production logs + dashboards&quot;
+}
+
+# Policy (bucket-scoped)
+resource &quot;dynatrace_iam_policy&quot; &quot;p_prod_readers&quot; {
+  name = &quot;p_prod_readers&quot;
+  environment = var.tenant_uuid
+  statement_query = &lt;&lt;-EOT
+    ALLOW storage:buckets:read WHERE storage:bucket-name = &quot;custom_logs_prod&quot;;
+    ALLOW storage:logs:read, storage:events:read, storage:metrics:read
+    WHERE storage:bucket-name = &quot;custom_logs_prod&quot;;
+    ALLOW document:documents:read;
+  EOT
+}
+
+# Binding
+resource &quot;dynatrace_iam_policy_bindings_v2&quot; &quot;b_prod_readers&quot; {
+  group = dynatrace_iam_group.g_prod_readers.id
+  environment = var.tenant_uuid
+  policy = [dynatrace_iam_policy.p_prod_readers.id]
+}
+</code></pre>
+<blockquote>
+<p><strong>Critical — <code>dynatrace_iam_policy_bindings_v2</code> re-assigns all policies bound to a group on every apply.</strong> Per the <a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_policy_bindings_v2"><code>dynatrace_iam_policy_bindings_v2</code> resource docs (Dynatrace provider docs)</a> — also mirrored, JavaScript-free, at <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/iam_policy_bindings_v2.md">the provider repo (Dynatrace GitHub)</a>: <em>&quot;This resource re-assigns all policies bound to a group, so every policy that should remain bound must be specified in the configuration; otherwise, it will be unbound.&quot;</em> The single-policy example above is illustrative — if <code>g_prod_readers</code> already has other policies bound (in Dynatrace itself or in a separate Terraform resource), applying this block with only <code>p_prod_readers</code> listed will <strong>unbind those other policies</strong>. List every policy that should remain bound to the group in the same <code>policy = [...]</code> array.</p>
+</blockquote>
+<h3>Policy Language</h3>
+<p>Dynatrace policies use a declarative grant syntax:</p>
+<pre><code>ALLOW &lt;permission&gt;, &lt;permission&gt;, ...
+  WHERE &lt;condition&gt;;
+</code></pre>
+<p>Every read of bucket data needs <strong>two</strong> grants: the table permission (<code>storage:logs:read</code>, <code>storage:events:read</code>, …) <strong>and</strong> <code>storage:buckets:read</code> — <em>&quot;Grants permission to read records from Grail buckets. Required additionally to a table permission.&quot;</em> A policy with only the table permission reads nothing.</p>
+<p>Common bucket-scope conditions:</p>
+<ul>
+<li><code>storage:bucket-name = &quot;bucket_x&quot;</code></li>
+<li><code>storage:bucket-name IN (&quot;a&quot;, &quot;b&quot;, &quot;c&quot;)</code></li>
+<li><code>storage:bucket-name startsWith &quot;custom_logs_prod&quot;</code></li>
+<li><code>storage:table-name = &quot;logs&quot;</code> (on <code>storage:buckets:read</code> — every bucket of one table)</li>
+</ul>
+<p>Conditions take <code>=</code>, <code>!=</code>, <code>IN</code>, <code>NOT IN</code>, <code>startsWith</code>, <code>NOT startsWith</code> and <code>MATCH</code>; there is no <code>LIKE</code>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="bucket-policies"></a></p>
+<h2>3. Bucket-Scoped Policies — Implementation</h2>
+<p>Bucket scoping is the primary isolation mechanism. Apply it for every team/environment boundary.</p>
+<h3>Policy Patterns</h3>
+<h4>Pattern 1 — Read-only to one bucket</h4>
+<pre><code>ALLOW storage:buckets:read
+  WHERE storage:bucket-name = &quot;custom_logs_prod&quot;;
+ALLOW storage:logs:read, storage:events:read
+  WHERE storage:bucket-name = &quot;custom_logs_prod&quot;;
+</code></pre>
+<h4>Pattern 2 — Read all, write via a deliberate unscoped grant</h4>
+<pre><code>ALLOW storage:buckets:read
+  WHERE storage:table-name = &quot;logs&quot;;
+ALLOW storage:logs:read;
+// Storage writes cannot be condition-scoped (live-verified 07/2026) —
+// grant unscoped, only to the team's ingest service user, and control
+// where data lands via OpenPipeline routing, not IAM conditions.
+ALLOW storage:logs:write;
+</code></pre>
+<h4>Pattern 3 — Admin on multiple buckets</h4>
+<pre><code>ALLOW storage:buckets:read
+  WHERE storage:bucket-name startsWith &quot;custom_logs_prod&quot;;
+ALLOW storage:logs:read, storage:events:read
+  WHERE storage:bucket-name startsWith &quot;custom_logs_prod&quot;;
+ALLOW storage:logs:write;
+ALLOW document:documents:read, document:documents:write;
+ALLOW settings:objects:read, settings:objects:write
+  WHERE settings:schemaId = &quot;builtin:monitoring.slo&quot;;
+</code></pre>
+<blockquote>
+<p><strong>Storage writes cannot be bucket-scoped (live-verified 07/2026):</strong> <code>storage:logs:write WHERE storage:bucket-name ...</code> is rejected with <code>Invalid condition name</code>. Grant writes unscoped in a deliberately-assigned policy and route data via OpenPipeline. Wildcard permissions (<code>storage:*:read</code>, <code>ALLOW *</code>) are also rejected — enumerate.</p>
+</blockquote>
+<h4>Pattern 4 — Full admin (limit to platform engineering)</h4>
+<p>Do not author a wildcard policy (<code>ALLOW *</code> is rejected by the API). Bind the built-in <strong>Admin User</strong> managed policy — or, for a classic-parity custom grant, combine <code>environment:roles:viewer</code> + <code>environment:roles:manage-settings</code> with enumerated storage/settings permissions.</p>
+<h3>Avoid</h3>
+<ul>
+<li>Binding admin-level policies to team-level groups. Escalation risk.</li>
+<li>Broad enumerated grants where a scoped read would do — harder to audit.</li>
+<li>Read permissions without WHERE clauses — silently grants tenant-wide access. (Storage <em>writes</em> cannot take WHERE at all — grant them deliberately and sparingly.)</li>
+</ul>
+<h3>Validate Policies</h3>
+<p>After applying, verify a test user in the group can (and cannot) do what the policy says:</p>
+<blockquote>
+<p><strong>For teams spanning multiple source categories by component type</strong> (e.g., a database team needing access to <code>_sourceCategory=*/db/*</code> regardless of application), a structured <code>comp:&lt;component&gt;/bu:&lt;business-unit&gt;/app:&lt;application&gt;</code> security context format enables a single <code>MATCH('comp:db*')</code> boundary to work across all applications. See <strong>IAM-04: Policy Authoring</strong> and <strong>ORGNZ-06: Security Context</strong> for the design pattern.</p>
+</blockquote>
+<pre><code class="language-dql">// Verify recent activity from the environment audit trail
+//
+// IAM policies, groups and bindings live in Account Management — they are not a Grail data object
+// (`dt.iam.policies` fails with UNKNOWN_DATA_OBJECT). Read their definitions through the Account
+// Management API, and their change history in the account audit log.
+//
+// Activity inside the environment IS queryable, as AUDIT_EVENT records in dt.system.events.
+// Audit events carry user.id (not user.email).
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| summarize {calls = count(), users = countDistinctExact(user.id)}, by:{event.provider, event.type}
+| sort calls desc
+| limit 20
+</code></pre>
+<p><a id="sso"></a></p>
+<h2>4. SSO &amp; User Provisioning</h2>
+<h3>SCIM / SAML Integration</h3>
+<p>Most migrations preserve the same IdP (Okta / Entra / Ping). Map IdP groups to Dynatrace groups via the SAML federation's group claim or SCIM group push.</p>
+<p><strong>SAML — group claim mapping.</strong> There is no fixed attribute name. In the federation's <strong>Attribute mapping</strong>, set <strong>Federated</strong> to the attribute your IdP sends group claims in (the docs' Entra ID example is the Microsoft <code>…/identity/claims/groups</code> claim URI; other IdPs send their own attribute name, for example <code>groups</code>). Then, on each Dynatrace group, add the <strong>SAML Group Attribute Values</strong> — the IdP group names or IDs — that map to it:</p>
+<pre><code>groups = &quot;g_prod_readers,g_payments_team&quot;     # example: whatever attribute your IdP sends
+</code></pre>
+<p>On a federated user's sign-in, Dynatrace matches the incoming group claims against the SAML Group Attribute Values and adds the user to each matching group. A comma-separated value is split into separate groups, so send group names or IDs, not a full LDAP DN.</p>
+<p><strong>SCIM push (preferred for lifecycle management):</strong></p>
+<ul>
+<li>The IdP's SCIM application provisions users and groups into Dynatrace (one-way, IdP → Dynatrace)</li>
+<li>Membership changes propagate with the IdP's SCIM synchronization</li>
+<li>A user disabled or removed in the IdP is disabled in Dynatrace; how quickly depends on the IdP's provisioning cycle — measure it during the pilot rather than assuming it is immediate</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml">SAML (DT docs)</a> — <em>&quot;you need to specify the SAML Group Attribute Value in the attribute mapping configuration that contains the groups/roles of a user from your IdP&quot;</em>; <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-scim">SCIM (DT docs)</a> — <em>&quot;if a user is disabled or removed from the IdP, it will also disable the user in Dynatrace&quot;</em>, <em>&quot;SCIM synchronization is one-way from the IdP to Dynatrace.&quot;</em></sub></p>
+</blockquote>
+<h3>User Lifecycle</h3>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Sumo Behavior</th>
+<th>Dynatrace Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>New hire</td>
+<td>Manual add in Sumo admin</td>
+<td>SCIM push → auto-assigned to groups</td>
+</tr>
+<tr>
+<td>Team change</td>
+<td>Role manually reassigned</td>
+<td>SCIM push reassigns group memberships</td>
+</tr>
+<tr>
+<td>Termination</td>
+<td>Manual disable</td>
+<td>SCIM push removes all memberships</td>
+</tr>
+</tbody>
+</table>
+<h3>Provisioning Tracker</h3>
+<pre><code class="language-markdown">| User | Sumo Role | Target DT Group | SSO Push Confirmed |
+|------|-----------|-----------------|---------------------|
+| jane@example.com | prod-readers | g_prod_readers | ✅ 2026-05-01 |
+| ... |
+</code></pre>
+<p><a id="content-access"></a></p>
+<h2>5. Role-Based Dashboard/Monitor Access</h2>
+<p>Dashboards, notebooks, and workflows have their own access model (via <code>document:documents:*</code> permissions) separate from bucket scoping.</p>
+<h3>Document Permission Levels</h3>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>document:documents:read</code></td>
+<td>Read documents of the document service</td>
+</tr>
+<tr>
+<td><code>document:documents:write</code></td>
+<td>Create and update documents</td>
+</tr>
+<tr>
+<td><code>document:documents:delete</code></td>
+<td>Delete documents</td>
+</tr>
+<tr>
+<td><code>document:documents:admin</code></td>
+<td>Admin permissions for documents (platform admins only)</td>
+</tr>
+</tbody>
+</table>
+<p>The policy reference lists no &quot;owner&quot; or &quot;shared with&quot; conditions for these permissions, so IAM does not decide <em>which</em> documents a user sees — sharing does. A document is visible beyond its owner only when it is shared with a user, a group or the environment, which is why the share defaults below matter.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Default Shares</h3>
+<p>Set dashboard defaults during migration so new dashboards are readable by the team:</p>
+<ul>
+<li>Every team dashboard: shared with the team's IAM group (read)</li>
+<li>Every team notebook (operational): shared with team (read)</li>
+<li>Every team workflow: owned by team admin group (read/write)</li>
+</ul>
+<h3>Content Folders</h3>
+<p>Dynatrace Documents have a flat namespace with tags/shares, not folder hierarchy like Sumo. Map Sumo folders to tags:</p>
+<table>
+<thead>
+<tr>
+<th>Sumo Folder</th>
+<th>Dynatrace Tag</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Payments/Prod</code></td>
+<td><code>team:payments</code>, <code>env:prod</code></td>
+</tr>
+<tr>
+<td><code>Identity/Shared</code></td>
+<td><code>team:identity</code></td>
+</tr>
+<tr>
+<td><code>Archive</code></td>
+<td><code>status:archived</code></td>
+</tr>
+</tbody>
+</table>
+<p><a id="audit"></a></p>
+<h2>6. Audit Trail Parity</h2>
+<p>Sumo's audit log captures user actions in one place. Dynatrace splits them across two records:</p>
+<ul>
+<li><strong>Environment activity</strong> — <em>&quot;In Latest Dynatrace, audit events are stored in Grail as dt.system.events, queryable with Dynatrace Query Language (DQL)&quot;</em>, filtered with <code>event.kind == &quot;AUDIT_EVENT&quot;</code>. <em>&quot;Audit events are retained for one year in Grail, compared to 30 days in the classic API.&quot;</em></li>
+<li><strong>Access changes</strong> — groups, policies, SSO: <em>&quot;The Account Management audit log (IAM changes, SSO configuration, budget changes) stays a separate system in both models.&quot;</em> It is read in Account Management, not with DQL, and <em>&quot;Audit log data is stored for up to 10 years (3650 days).&quot;</em></li>
+</ul>
+<h3>Sumo audit categories → Dynatrace equivalents</h3>
+<table>
+<thead>
+<tr>
+<th>Sumo</th>
+<th>Dynatrace</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Login</td>
+<td><code>event.kind == &quot;AUDIT_EVENT&quot;</code>, <code>event.type == &quot;LOGIN&quot;</code></td>
+</tr>
+<tr>
+<td>Monitor / settings created or updated</td>
+<td><code>event.provider == &quot;SETTINGS&quot;</code>, <code>event.type</code> <code>CREATE</code> / <code>UPDATE</code> / <code>DELETE</code></td>
+</tr>
+<tr>
+<td>Dashboard / notebook sharing and ownership</td>
+<td><code>event.provider == &quot;DOCUMENTS&quot;</code> (<code>ENV_SHARE_CREATE</code>, <code>ENV_SHARE_DELETE</code>, <code>DOCUMENT_TRANSFER_OWNER</code>, …)</td>
+</tr>
+<tr>
+<td>API calls</td>
+<td><code>event.provider == &quot;API_GATEWAY&quot;</code> or <code>&quot;CLASSIC_API&quot;</code>, <code>event.type</code> = HTTP method</td>
+</tr>
+<tr>
+<td>Search executed</td>
+<td><code>event.kind == &quot;QUERY_EXECUTION_EVENT&quot;</code> (also in <code>dt.system.events</code>; carries <code>user.email</code> and the query)</td>
+</tr>
+<tr>
+<td>User / role changes</td>
+<td>Account Management audit log (not in Grail)</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>event.provider</code> / <code>event.type</code> values above are the ones a test tenant recorded over seven days on 10/05/2026 — run the query below on yours to see the full set. <strong>FAQ-24</strong> §7 and <strong>IAM-07</strong> cover audit reporting in depth.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-audit-logs-classic">Upgrade from classic audit logs (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage/account-management/audit-logs">Account Management audit logs (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Query audit events</h3>
+<pre><code class="language-dql">// Dynatrace environment audit events, by source and action
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| summarize c = count(), by:{event.provider, event.type}
+| sort c desc
+
+</code></pre>
+<h3>Retention</h3>
+<p>Environment audit events are stored in the system bucket <code>dt_system_events</code> and kept for one year (see above). The <code>audit_logs</code> bucket from SL2DT-03 holds audit-trail <strong>log sources</strong> you ingest, not Dynatrace's own audit events. If compliance needs environment activity beyond one year, plan an export. Account-level IAM changes are kept for up to ten years in the Account Management audit log.</p>
+<p>Confirm the system bucket's retention on your tenant:</p>
+<pre><code class="language-dql">fetch dt.system.buckets
+| filter name == &quot;dt_system_events&quot;
+| fields name, retention_days
+</code></pre>
+<p><a id="pitfalls"></a></p>
+<h2>7. Governance Pitfalls to Avoid</h2>
+<h3>Pitfall 1 — &quot;We'll do IAM at the end&quot;</h3>
+<p>Deferring IAM means rebuilding ingest (bucket decisions are coupled to policy scope). Do IAM in Wave 1.</p>
+<h3>Pitfall 2 — Overly broad initial groups</h3>
+<p>Tempting: start with one group <code>all-users</code> with <code>ALLOW *</code>. Migration pressure compounds: &quot;we'll tighten later.&quot; Later never comes, and when it does, revoking access breaks people's workflows.</p>
+<p><strong>Fix:</strong> start with the Sumo role structure as-is (one DT group per Sumo role, same scope). Refactor later with data.</p>
+<h3>Pitfall 3 — Unscoped dashboard writes</h3>
+<p>A dashboard created by a team member ends up without share settings, then becomes unreachable when they leave. Every dashboard should have a group owner, not a user owner.</p>
+<p><strong>Fix:</strong> enforce via PR review during SL2DT-06. Check the default-share policy.</p>
+<h3>Pitfall 4 — SSO group-name mismatch</h3>
+<p>Okta pushes group name <code>payments-platform-prod</code>; Dynatrace group is <code>g_prod_readers</code>. Users log in but get no permissions.</p>
+<p><strong>Fix:</strong> document SSO-claim → DT-group mapping in <code>iam/sso-mapping.md</code>. Test with at least one user per group before cutover.</p>
+<h3>Pitfall 5 — Missing audit events for bucket-level access</h3>
+<p>Bucket read/write permissions are evaluated per-query, so &quot;who queried what&quot; is answered by query-execution events, not by the <code>AUDIT_EVENT</code> records above.</p>
+<p><strong>Fix:</strong> confirm <code>event.kind == &quot;QUERY_EXECUTION_EVENT&quot;</code> records are present in <code>dt.system.events</code> before cutover, and agree retention for both records with compliance (§6).</p>
+<p><a id="gate"></a></p>
+<h2>8. Step Exit Criteria</h2>
+<p><strong>G7 — Governance Ready</strong></p>
+<ul>
+<li>[ ] IAM groups created (one per Sumo role)</li>
+<li>[ ] Policies created with bucket scoping</li>
+<li>[ ] Group↔policy bindings applied</li>
+<li>[ ] SSO mapping documented and tested with at least one user per group</li>
+<li>[ ] Dashboard/notebook share defaults configured</li>
+<li>[ ] Environment audit events (<code>dt.system.events</code>, one year) and the Account Management audit log reviewed; export planned if compliance needs longer retention</li>
+<li>[ ] Rollout plan documented (shadow-mode → cutover → retire legacy)</li>
+</ul>
+<p><strong>Next step:</strong> <strong>SL2DT-08 — Automation &amp; GitOps</strong> (Monaco/Terraform for config promotion, CI/CD integration).</p>
+<hr />
+<p><a id="references"></a></p>
+<h2>9. References</h2>
+<h3>Dynatrace IAM</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management">Identity and access management (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies">Manage user permissions and policies (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management-classic/access-tokens-and-oauth-clients/access-tokens">Access tokens (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/shortlink/platform-tokens">Platform tokens (DT docs)</a></li>
+</ul>
+<h3>Sumo Logic users and roles (source)</h3>
+<ul>
+<li><a href="https://www.sumologic.com:443/help/docs/manage/users-roles/">Sumo Logic users and roles (Sumo Logic docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://www.sumologic.com:443/help/docs/">Sumo Logic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WFLOW-99: Best Practice Summary</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">WFLOW — Workflows and Alert Notifications</a><span class="sep">/</span><span aria-current="page">WFLOW-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>WFLOW-99: Best Practice Summary</h1>
+<blockquote>
+<p><strong>Series:</strong> WFLOW — Workflows and Alert Notifications | <strong>Notebook:</strong> 99 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook consolidates every actionable best practice from the WFLOW series (notebooks 01-09 and the WFLOW-94 and WFLOW-95 LABs) into definitive tables organized by category. Each best practice includes the exact setting or value to use, a priority rating, and the source notebook.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#workflow-design-architecture">Workflow Design &amp; Architecture</a></li>
+<li><a href="#triggers">Triggers</a></li>
+<li><a href="#connections-credentials">Connections &amp; Credentials</a></li>
+<li><a href="#notification-channels">Notification Channels</a></li>
+<li><a href="#message-formatting-templates">Message Formatting &amp; Templates</a></li>
+<li><a href="#routing-escalation">Routing &amp; Escalation</a></li>
+<li><a href="#incident-management-integration">Incident Management Integration</a></li>
+<li><a href="#auto-remediation">Auto-Remediation</a></li>
+<li><a href="#javascript-http-actions">JavaScript &amp; HTTP Actions</a></li>
+<li><a href="#security">Security</a></li>
+<li><a href="#access-control">Access Control</a></li>
+<li><a href="#observability-monitoring">Observability &amp; Monitoring</a></li>
+<li><a href="#operations-change-management">Operations &amp; Change Management</a></li>
+</ol>
+<hr />
+<p><a id="workflow-design-architecture"></a></p>
+<h2>1. Workflow Design &amp; Architecture</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Use Workflows for all new automation</td>
+<td>Problem-triggered workflows rather than Classic alerting profiles + problem notifications. No end-of-life date is published for profiles, but management-zone scoping does not carry over: rebuild it with affected-entity tags or a custom DQL matcher</td>
+<td>Critical</td>
+<td>WFLOW-01</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Use a simple workflow for a single-destination notification</td>
+<td>One task, a restricted action set (no Run JavaScript, no Run workflow) and no workflow-hours cost</td>
+<td>Recommended</td>
+<td>WFLOW-01, WFLOW-03</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Use a standard workflow only when you need one</td>
+<td>Several tasks, branches, loops or JavaScript make a standard workflow, billed in workflow hours for as long as it exists, not per run. Delete experiments you no longer need</td>
+<td>Recommended</td>
+<td>WFLOW-01, WFLOW-03</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Deploy before you wait for a trigger</td>
+<td>Triggers only start live workflows; a draft runs only from the <strong>Run</strong> button. Select <strong>Deploy</strong></td>
+<td>Critical</td>
+<td>WFLOW-01, WFLOW-02</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Run production workflows as a service user</td>
+<td>Every task runs with the actor's permissions; set a service user as the actor of production workflows that several people work on</td>
+<td>Critical</td>
+<td>WFLOW-01, WFLOW-09</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Keep workflows small and focused</td>
+<td>One trigger → one outcome. In community practice, stay under ~20 tasks and split larger flows; no per-workflow task cap is published</td>
+<td>Recommended</td>
+<td>WFLOW-01</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Set explicit task timeouts</td>
+<td>Default 60 minutes, max 7 days: <code>timeout: &lt;seconds&gt;</code> per task. Distinct from the documented 120 s runtime limit per action (DQL query, JavaScript/HTTP call)</td>
+<td>Critical</td>
+<td>WFLOW-01, WFLOW-08</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Design within the documented limits</td>
+<td>1,000 event-triggered executions per hour per workflow (beyond that, HTTP 429 throttling); 1,000-character trigger filter; 10 MB input and result; 10,000 workflows per environment. Concurrent executions run <em>within system capacity</em>, with no fixed cap published</td>
+<td>Recommended</td>
+<td>WFLOW-01, WFLOW-09</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Start with simple notifications</td>
+<td>Basic notifications first, then layer in complexity</td>
+<td>Recommended</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Run independent notification tasks in parallel</td>
+<td>Tasks with no predecessor start in parallel when the trigger fires (Slack + Teams + Email)</td>
+<td>Recommended</td>
+<td>WFLOW-03</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Chain dependent tasks with <code>predecessors</code></td>
+<td>A task with predecessors waits for all of them; give it a state condition on each (<code>SUCCESS</code>, <code>OK</code>, <code>ERROR</code>, <code>NOK</code>, <code>ANY</code>)</td>
+<td>Recommended</td>
+<td>WFLOW-04, WFLOW-08</td>
+</tr>
+</tbody>
+</table>
+<p><a id="triggers"></a></p>
+<h2>2. Triggers</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Use the Problem trigger for incident alerts</td>
+<td>Trigger type <em>Problem</em> (<code>davis-problem</code> in an exported workflow); its payload is the <code>dt.davis.problems</code> record</td>
+<td>Critical</td>
+<td>WFLOW-02</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Use the Davis event trigger only for per-alert reactions</td>
+<td>Put the threshold in an anomaly detector (ALERT-02); trigger on the problem, and use the Davis event trigger only when you need per-alert granularity</td>
+<td>Critical</td>
+<td>WFLOW-02</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Grant the actor read access to what the trigger watches</td>
+<td><code>storage:events:read</code> for Problem and Davis event triggers; <code>storage:bizevents:read</code>, <code>storage:security.events:read</code> or <code>storage:system:read</code> for Event triggers on those tables; plus <code>storage:buckets:read</code></td>
+<td>Critical</td>
+<td>WFLOW-02</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Use the Schedule trigger for reports and health checks</td>
+<td>Fixed time, time interval, or a five-field cron expression (six-field Quartz expressions are not supported)</td>
+<td>Critical</td>
+<td>WFLOW-02</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Test with a manual run before deploying</td>
+<td><strong>Run</strong> in the editor works on a draft; <code>POST /platform/automation/v1/workflows/&lt;id&gt;/run</code> (platform token with <code>automation:workflows:run</code>) runs the live workflow</td>
+<td>Critical</td>
+<td>WFLOW-02</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Scope Problem triggers with affected-entity tags</td>
+<td><em>Include entities with all defined tags</em> (<code>entityTagsMatch: all</code>, <code>entityTags: {env: [prod]}</code> in an export). The trigger has no management-zone filter</td>
+<td>Critical</td>
+<td>WFLOW-02</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Select only the problem categories you need</td>
+<td>Availability, Error, Slowdown, Resource, Custom, Monitoring unavailable, Info (there is no Performance category); add the <strong>Severity</strong> filter to drop lower levels (WFLOW-04 §3). Every selection uses part of the 1,000-character filter budget</td>
+<td>Recommended</td>
+<td>WFLOW-02, WFLOW-04</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Enable Wait for root cause analysis</td>
+<td>Advanced options. Dynatrace marks it <em>Recommended</em> to avoid triggering on incomplete problem data</td>
+<td>Recommended</td>
+<td>WFLOW-02</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Use Minimum duration to suppress short-lived problems</td>
+<td>5, 10, 15, 30, 60, 120, 240, 1440 or 10080 minutes; the replacement for an alerting profile's delay. A problem that closes sooner never starts the workflow</td>
+<td>Recommended</td>
+<td>WFLOW-02, WFLOW-04</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Handle all problem lifecycle events</td>
+<td>Problem state <em>active or closed</em>; branch on <code>event.status</code> (<code>ACTIVE</code> / <code>CLOSED</code>) in a single workflow</td>
+<td>Recommended</td>
+<td>WFLOW-05</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Validate the filter with Query past events</td>
+<td>Zero matches across every window in an environment you know is busy means the filter is over-constrained; nothing else reports it</td>
+<td>Recommended</td>
+<td>WFLOW-02</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Stagger scheduled workflows</td>
+<td>Start minutes such as <code>:00</code>, <code>:03</code>, <code>:07</code> instead of pinning every workflow to <code>:00</code></td>
+<td>Recommended</td>
+<td>WFLOW-02</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Always set a time zone on schedule triggers</td>
+<td><code>timezone: America/New_York</code>; a cron schedule otherwise takes the browser's locale</td>
+<td>Recommended</td>
+<td>WFLOW-02</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Use the Event trigger for business process automation</td>
+<td>Event type <code>bizevents</code> with a DQL-matcher filter query (<code>event.type == &quot;com.company.order-completed&quot;</code>); send business events as flat JSON</td>
+<td>Optional</td>
+<td>WFLOW-02</td>
+</tr>
+</tbody>
+</table>
+<p><a id="connections-credentials"></a></p>
+<h2>3. Connections &amp; Credentials</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Use descriptive connection names</td>
+<td>Pattern: <code>&lt;service&gt;-&lt;environment&gt;-&lt;purpose&gt;</code> (e.g., <code>slack-prod-oncall</code>)</td>
+<td>Critical</td>
+<td>WFLOW-03</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Separate connections per environment</td>
+<td>Distinct connections for prod vs staging vs dev</td>
+<td>Critical</td>
+<td>WFLOW-03</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Apply least-privilege scopes</td>
+<td>Slack bot: <code>chat:write</code>, <code>channels:read</code> and <code>groups:read</code> (Dynatrace's minimal manifest); add <code>chat:write.public</code> or <code>channels:join</code> only to post to channels the bot has not joined</td>
+<td>Critical</td>
+<td>WFLOW-03, WFLOW-09</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Allow every destination host</td>
+<td>A host pattern under <strong>Settings &gt; General &gt; External requests</strong> for each connector and HTTP target, and the connector permissions under <strong>Workflows &gt; Settings &gt; Authorization settings</strong></td>
+<td>Critical</td>
+<td>WFLOW-03</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Rotate credentials with a dual-credential overlap</td>
+<td>Cadence set by your security policy (community baseline: quarterly for Slack bot tokens and ServiceNow OAuth secrets, annually for PagerDuty integration keys). Mint the new credential, create a <code>-v2</code> connection, migrate workflows, then revoke the old credential</td>
+<td>Recommended</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Prefer OAuth Client Credentials for ServiceNow</td>
+<td>The connection accepts only Basic Authentication or OAuth Client Credentials. Use a dedicated integration user with table-level rights, never <code>admin</code></td>
+<td>Recommended</td>
+<td>WFLOW-05, WFLOW-09</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Pick the PagerDuty connection by action</td>
+<td>An Events connection (routing key) for <strong>Send event</strong>; a REST API key connection for <strong>Create an incident</strong> and the list actions. Separate Events connections per routing target (<code>pagerduty-prod-critical</code>, <code>pagerduty-prod-standard</code>, <code>pagerduty-platform</code>)</td>
+<td>Recommended</td>
+<td>WFLOW-05</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Use a bot token for the Slack connection</td>
+<td>The Slack connector takes a Slack app bot token and has no webhook option. An incoming webhook is reachable only from an HTTP Request task</td>
+<td>Recommended</td>
+<td>WFLOW-03</td>
+</tr>
+</tbody>
+</table>
+<p><a id="notification-channels"></a></p>
+<h2>4. Notification Channels</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Multi-channel for Critical production problems</td>
+<td><code>event.severity</code> 1: PagerDuty + Slack #alerts-urgent + Email simultaneously</td>
+<td>Critical</td>
+<td>WFLOW-03, WFLOW-04</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Slack + email for Major production problems</td>
+<td><code>event.severity</code> 2: Slack #alerts-production + Email</td>
+<td>Recommended</td>
+<td>WFLOW-04</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Slack only for Minor problems</td>
+<td><code>event.severity</code> 3, or unset: Slack #alerts-production; staging gets a daily digest. Problems never carry 4 or 5</td>
+<td>Recommended</td>
+<td>WFLOW-04</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Use a Teams Workflows (Power Automate) webhook</td>
+<td>Office 365 connectors stopped working in May 2026. The Teams connection takes the URL from <em>Send webhook alerts to a channel</em>; allow its host (e.g., <code>*.api.powerplatform.com</code>) under External requests</td>
+<td>Critical</td>
+<td>WFLOW-03</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Use the built-in Send email action for simple notifications</td>
+<td>Sends from <code>no-reply@apps.dynatrace.com</code>, up to 10 addresses per To/Cc/Bcc field, markdown rather than HTML, and needs <code>email:emails:send</code>. It has no SMTP option: for a corporate sender or high volume, call the provider's API (SendGrid, SES, a relay) from an HTTP Request task</td>
+<td>Optional</td>
+<td>WFLOW-03</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Include the problem category in the email subject</td>
+<td><code>[{{ event()['event.category'] }}] {{ event()['event.name'] }}</code></td>
+<td>Recommended</td>
+<td>WFLOW-03</td>
+</tr>
+</tbody>
+</table>
+<p><a id="message-formatting-templates"></a></p>
+<h2>5. Message Formatting &amp; Templates</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Structure messages: Severity + Title + Key metrics + Link</td>
+<td>Line 1: severity indicator + title; Line 2: impact; Line 3: affected entities; Line 4: action link</td>
+<td>Critical</td>
+<td>WFLOW-06</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Use severity-coded visual indicators</td>
+<td>Slack, keyed on <code>event.severity</code>: <code>:red_circle:</code> 1 Critical, <code>:large_orange_circle:</code> 2 Major, <code>:large_yellow_circle:</code> 3 Minor, <code>:large_blue_circle:</code> 4 Warning (Davis events only; problems carry 1–3)</td>
+<td>Critical</td>
+<td>WFLOW-06</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Use Slack Block Kit for rich messages</td>
+<td>Block Kit JSON in <code>message</code> with <code>messageFormat: slack_format</code>; the action has no separate <code>blocks</code> input. A double quote in a resolved value breaks the JSON, so send a test message</td>
+<td>Recommended</td>
+<td>WFLOW-03, WFLOW-06</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Use Teams Adaptive Cards v1.4</td>
+<td>Card JSON (<code>type: AdaptiveCard</code>, <code>version: &quot;1.4&quot;</code>, <code>FactSet</code>, <code>TextBlock</code>, <code>Action.OpenUrl</code>) in <code>message</code> with the default <code>msteams_format</code>, or a <code>selectTemplate</code> card. Use Dynatrace expressions; Adaptive Card templating is not supported</td>
+<td>Recommended</td>
+<td>WFLOW-03, WFLOW-06</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Always include a link to the Dynatrace problem</td>
+<td><code>&lt;{{ problem_link() }}|View in Dynatrace&gt;</code> (Slack) or <code>Action.OpenUrl</code> (Teams). <code>problem_link()</code> evaluates only under a Problem trigger</td>
+<td>Critical</td>
+<td>WFLOW-03</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Use dictionary mapping for severity-to-emoji</td>
+<td><code>{{ {1: &quot;:red_circle:&quot;, ...}.get(event().get(&quot;event.severity&quot;) | int(5), &quot;:white_circle:&quot;) }}</code></td>
+<td>Recommended</td>
+<td>WFLOW-06</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Limit affected entities shown to 3-5</td>
+<td>Read Smartscape names first and fall back to the deprecated classic IDs, which are better populated today: <code>(event().get(&quot;smartscape.affected_entities&quot;) or []) | map(attribute=&quot;name&quot;) | join(&quot;, &quot;) or event()[&quot;affected_entity_ids&quot;] | join(&quot;, &quot;)</code>. Slice to <code>[:3]</code> with an overflow indicator</td>
+<td>Recommended</td>
+<td>WFLOW-05, WFLOW-06</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Read optional fields with <code>.get()</code></td>
+<td><code>(event().get(&quot;root_cause.smartscape_entity&quot;) or {}).get(&quot;name&quot;, &quot;not yet determined&quot;)</code>. Most problems name no root cause (79% had neither <code>root_cause.smartscape_entity</code> nor the deprecated <code>root_cause_entity_id</code> over 7 days on a validation tenant, 10/06/2026), and a bracket read of a missing field fails the task with <em>Undefined variables</em></td>
+<td>Critical</td>
+<td>WFLOW-02, WFLOW-03, WFLOW-07</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Truncate long strings</td>
+<td><code>{{ event()[&quot;event.name&quot;] | truncate(50) }}</code></td>
+<td>Recommended</td>
+<td>WFLOW-06</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Enrich notifications with DQL data</td>
+<td>A JavaScript task before the notification task runs <code>queryExecutionClient.queryExecute()</code> and polls with <code>queryPoll()</code> until the query finishes; skip it when the problem names no root cause</td>
+<td>Optional</td>
+<td>WFLOW-06, WFLOW-08</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Test templates before production</td>
+<td>An On-Demand workflow with a JavaScript mock event using the <code>dt.davis.problems</code> field names. <code>problem_link()</code> renders only under a Problem trigger, so confirm the link on a real problem. A template that fails to evaluate shows up as <code>Error evaluating</code> on the <code>WORKFLOW_EXECUTION</code> record</td>
+<td>Critical</td>
+<td>WFLOW-06</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Preview Slack templates in Block Kit Builder</td>
+<td>https://app.slack.com/block-kit-builder before deploying</td>
+<td>Recommended</td>
+<td>WFLOW-06</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Create a resolved-problem template</td>
+<td><code>:white_check_mark: Problem Resolved</code> with the duration from <code>resolved_problem_duration</code> and the resolution time from <code>event.end</code></td>
+<td>Recommended</td>
+<td>WFLOW-06</td>
+</tr>
+</tbody>
+</table>
+<p><a id="routing-escalation"></a></p>
+<h2>6. Routing &amp; Escalation</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Route by severity</td>
+<td><code>event.severity</code> 1 Critical: PagerDuty + Slack + Email; 2 Major: Slack + Email; 3 Minor, or unset: Slack. Problems never carry 4 (Warning) or 5 (Informational). Check which sources set severity: SaaS 1.348 stops defaulting it to 3 (rollout start 10/12/2026, staged tenant rollout)</td>
+<td>Critical</td>
+<td>WFLOW-04</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Route by team ownership tags</td>
+<td>Preferred: one workflow per team, whose Problem trigger filters on the built-in ownership tag (<code>owner</code> / <code>dt.owner</code>) with the <em>Affected entities</em> tag filter, so the match is made before any task runs. Fallback in a task condition: problem records carry tags in <code>entity_tags</code> (an array of <code>key:value</code> strings, deprecated), so <code>&quot;owner:checkout&quot; in (event().get(&quot;entity_tags&quot;) or [])</code> is an exact element test. A <code>tags</code> field read with <code>.get(&quot;tags&quot;, &quot;&quot;)</code> no longer appears on problem records and always evaluates false</td>
+<td>Critical</td>
+<td>WFLOW-04</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Do <strong>not</strong> route by management zone</td>
+<td><code>&quot;Production&quot; in event()[&quot;management_zones&quot;]</code> is legacy, and the field is not present on problem records (0 of 15,878 over 30 days on a live tenant, 10/05/2026, with management zones still in use), so the condition has nothing to match. Route on ownership tags or Smartscape ownership instead</td>
+<td>Critical</td>
+<td>WFLOW-04</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Implement time-based routing</td>
+<td>Business hours: Slack channel; off-hours Critical: PagerDuty; off-hours non-critical: queue for morning. Pass the team's time zone, <code>now(&quot;America/New_York&quot;)</code>; <code>now()</code> is UTC otherwise. Business calendars (<code>calendars()</code>) cover holidays</td>
+<td>Critical</td>
+<td>WFLOW-04</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Escalate problems that are still active</td>
+<td>Task option <strong>Wait before</strong> (<code>waitBefore: 900</code>), then re-query <code>dt.davis.problems</code> and escalate to PagerDuty if <code>event.status</code> is still <code>ACTIVE</code>; or a second workflow with Minimum duration 15. Neither sees acknowledgment: leave acknowledgment-aware escalation to the paging tool</td>
+<td>Recommended</td>
+<td>WFLOW-04</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Multi-tier escalation</td>
+<td>0 min: Slack; 15 min: Email team lead; 30 min: PagerDuty on-call; 60 min: PagerDuty manager</td>
+<td>Recommended</td>
+<td>WFLOW-04</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Combine checks in one custom condition</td>
+<td>Each task has one <code>conditions</code> block: <code>states</code> of its predecessors, one <code>custom</code> Jinja expression with <code>and</code> / <code>or</code> / <code>not</code> inside it, and <code>else: SKIP</code> on branches that may not run (the default is stop). E.g. <code>custom: '{{ (event().get(&quot;event.severity&quot;) | int(5)) &lt;= 1 and &quot;env:prod&quot; in (event().get(&quot;entity_tags&quot;) or []) }}'</code></td>
+<td>Recommended</td>
+<td>WFLOW-04</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Use JavaScript for dynamic channel selection</td>
+<td>Read the <code>owner:</code> tag from <code>entity_tags</code> (deprecated; may arrive as an array or a JSON string) to build <code>#${team}-alerts</code>, or use the Ownership app's <strong>Get owners</strong> action for each team's Slack channels</td>
+<td>Optional</td>
+<td>WFLOW-04, WFLOW-08</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Separate environment routing</td>
+<td>Production: immediate notification; Staging: Slack only; Dev: daily digest</td>
+<td>Recommended</td>
+<td>WFLOW-04</td>
+</tr>
+</tbody>
+</table>
+<p><a id="incident-management-integration"></a></p>
+<h2>7. Incident Management Integration</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Deduplicate PagerDuty incidents</td>
+<td><code>dedupKey: &quot;dynatrace-{{ event()['display_id'] }}&quot;</code> on every Send event for the problem, through the same Events connection</td>
+<td>Critical</td>
+<td>WFLOW-05</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Deduplicate ServiceNow incidents</td>
+<td>Set <code>correlationId: &quot;DT-{{ event()['display_id'] }}&quot;</code> and run <strong>Search incidents</strong> on it before <strong>Create Incident</strong>, creating only when nothing is found. Create Incident is a plain POST and does not deduplicate on the correlation ID</td>
+<td>Critical</td>
+<td>WFLOW-05</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Map Dynatrace severity to PagerDuty severity</td>
+<td><code>event.severity</code> 1: <code>critical</code>; 2: <code>error</code>; 3: <code>warning</code>; 4: <code>info</code></td>
+<td>Critical</td>
+<td>WFLOW-05</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Map Dynatrace severity to ServiceNow impact/urgency</td>
+<td><code>event.severity</code> 1–2: impact=1, urgency=1; 3: impact=2, urgency=2; 4: impact=3, urgency=3; 5: usually no incident</td>
+<td>Critical</td>
+<td>WFLOW-05</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Auto-resolve incidents when the problem closes</td>
+<td>Problem state <em>active or closed</em>. On <code>event.status == &quot;CLOSED&quot;</code>: Send event with <code>eventAction: resolve</code> and the same <code>dedupKey</code> (PagerDuty), or <strong>Resolve incident</strong> with the incident number from Search incidents, resolution notes and a resolution code from your instance's list (ServiceNow)</td>
+<td>Critical</td>
+<td>WFLOW-05</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Include Dynatrace problem URL in incident details</td>
+<td><code>{{ problem_link() }}</code> in <code>customDetails</code> (PagerDuty) or the <code>description</code> body (ServiceNow)</td>
+<td>Critical</td>
+<td>WFLOW-05</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Write the incident number back onto the problem</td>
+<td>Read <code>result(&quot;create_snow_incident&quot;).number</code> downstream and post it with <code>problemsClient.createComment()</code> on <code>event()[&quot;event.id&quot;]</code>. Comment and Resolve take the incident number, not the <code>sys_id</code>. Deprecated in Dynatrace API 1.349 (staged rollout from 10/27/2026): <em>&quot;POST /problems/{problemId}/comments Deprecated&quot;</em>, no successor named</td>
+<td>Recommended</td>
+<td>WFLOW-05</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Use PagerDuty Events API v2</td>
+<td>Integration type: Events API v2 (not v1)</td>
+<td>Critical</td>
+<td>WFLOW-05</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Fill ServiceNow's required fields</td>
+<td>Category, Subcategory, Impact, Urgency and Assignment Group are required on Create Incident. Pick the assignment group in the editor (it is stored as the group's sys_id) and set Caller</td>
+<td>Critical</td>
+<td>WFLOW-05</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Implement bi-directional sync</td>
+<td>A scheduled workflow polls ServiceNow for open DT-correlated incidents, with a Credential Vault credential, and writes their status back as problem comments; or the ServiceNow-side Dynatrace app / ITOM (ALERT-04)</td>
+<td>Optional</td>
+<td>WFLOW-05</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Harden the integration</td>
+<td><strong>Retry on error</strong> for transient failures (fixed count and delay, no backoff, retries every failure); route the task's error state to a dead-letter task; monitor connector <code>ACTION_EXECUTION</code> errors</td>
+<td>Recommended</td>
+<td>WFLOW-05</td>
+</tr>
+</tbody>
+</table>
+<p><a id="auto-remediation"></a></p>
+<h2>8. Auto-Remediation</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Rate-limit remediation attempts</td>
+<td>Max 3 remediation runs per hour, counted with <code>countDistinctExact(dt.automation_engine.workflow_execution.id)</code> excluding the current run. The check task throws at the limit, so a remediation task gated on its <code>SUCCESS</code> does not run. The count spans all entities; a per-entity limit needs the entity recorded, for example in a business event</td>
+<td>Critical</td>
+<td>WFLOW-07</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Enforce time-window guardrails</td>
+<td>A <code>custom</code> condition on the remediation task, weekdays 06:00–22:00 in a named time zone (<code>now(&quot;Europe/Vienna&quot;)</code>), with <code>else: SKIP</code></td>
+<td>Critical</td>
+<td>WFLOW-07</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Implement cooldown periods</td>
+<td>30 minutes minimum between remediation actions on the same entity</td>
+<td>Critical</td>
+<td>WFLOW-07</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Capture pre-remediation state for rollback</td>
+<td>Record current state before executing any change</td>
+<td>Critical</td>
+<td>WFLOW-07</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Gate every action on a root-cause entity</td>
+<td>Read <code>root_cause.smartscape_entity</code> first, fall back to the deprecated <code>root_cause_entity_id</code>, and end with a &quot;skipped&quot; result when neither is present. Most problems name none (79% over 7 days on a validation tenant)</td>
+<td>Critical</td>
+<td>WFLOW-07, WFLOW-08</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Require human approval for production remediation</td>
+<td>Slack <strong>Request approval</strong> action (copy its ID from the action picker) with a 30-minute task timeout; test what a Decline and a timeout leave before gating on it. Auto-approve only when a primary tag positively marks the problem non-production, so a missing tag fails closed to approval</td>
+<td>Critical</td>
+<td>WFLOW-03, WFLOW-07</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Auto-remediate only well-defined scenarios</td>
+<td>Pod crash loops: yes (restart the workload); Disk space 90%: yes (cleanup); Database deadlocks: no (investigate); Security incidents: no (human judgment)</td>
+<td>Critical</td>
+<td>WFLOW-07</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Remediate through connectors</td>
+<td>Kubernetes Connector <strong>Rollout restart resource</strong> on the one workload the problem names (it has no rollback action; leave rollback to your CD tooling), and AWS Connector <strong>Reboot instances</strong> after resolving the instance ID from Smartscape. A Run JavaScript task cannot import npm client libraries by name</td>
+<td>Recommended</td>
+<td>WFLOW-07</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Follow remediation maturity model</td>
+<td>Level 0: manual; Level 1: notification + runbook link; Level 2: semi-automated (approval); Level 3: fully automated with guardrails; Level 4: self-healing with learning</td>
+<td>Recommended</td>
+<td>WFLOW-07</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Map problem types to runbooks</td>
+<td>JavaScript <code>runbookMap</code> object mapping problem title patterns to runbook IDs</td>
+<td>Recommended</td>
+<td>WFLOW-07</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Include runbook links in notifications</td>
+<td>Jinja conditional: <code>{% if &quot;CPU&quot; in event()[&quot;event.name&quot;] %}</code> links to CPU runbook</td>
+<td>Recommended</td>
+<td>WFLOW-07</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Validate after remediation</td>
+<td>Query metrics/logs post-action to confirm resolution</td>
+<td>Recommended</td>
+<td>WFLOW-07</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Start non-prod, promote to prod</td>
+<td>Test all remediation workflows in staging before enabling in production</td>
+<td>Critical</td>
+<td>WFLOW-07</td>
+</tr>
+</tbody>
+</table>
+<p><a id="javascript-http-actions"></a></p>
+<h2>9. JavaScript &amp; HTTP Actions</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Always use <code>export default async function</code></td>
+<td>The runtime injects only <code>executionId</code> and <code>actionExecutionId</code>; read the event with <code>execution()</code> and predecessor results with <code>await result()</code> from <code>@dynatrace-sdk/automation-utils</code></td>
+<td>Critical</td>
+<td>WFLOW-08</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Handle errors deliberately</td>
+<td><code>try</code>/<code>catch</code> for recoverable errors, returning a degraded result. Throw when the failure is terminal, so the task ends in <code>ERROR</code> and an on-failure task can route around it; a guardrail that returns <code>{proceed: false}</code> leaves its task in <code>SUCCESS</code></td>
+<td>Critical</td>
+<td>WFLOW-07, WFLOW-08</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Retry only what can succeed</td>
+<td>Max 3 attempts, delay = <code>1000 * attempt</code> ms, on network errors and 5xx only (a 4xx is thrown at once). Retry a <code>POST</code> only if the target treats a repeat as a no-op</td>
+<td>Recommended</td>
+<td>WFLOW-08</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Set request timeouts on external HTTP</td>
+<td><code>AbortController</code> with a 10-second timeout on outbound <code>fetch()</code> calls. Distinct from the task <code>timeout</code> (whole-task budget) and the 120 s runtime budget (per action). See WFLOW-08 §9–§10</td>
+<td>Critical</td>
+<td>WFLOW-08</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Poll DQL queries to completion</td>
+<td><code>queryExecute()</code> returns the result only if the query finishes within <code>requestTimeoutMilliseconds</code>; otherwise it returns a <code>requestToken</code>. Poll with <code>queryPoll()</code> until the state is final, and fail on anything but <code>SUCCEEDED</code> — never read <code>result.result.records</code> unchecked. The 120 s runtime budget still applies. See WFLOW-08 §2 and §10</td>
+<td>Critical</td>
+<td>WFLOW-08</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Limit DQL query scope</td>
+<td><code>from: now() - 1h</code>, select only needed <code>fields</code>, <code>limit 100</code></td>
+<td>Critical</td>
+<td>WFLOW-08</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Use <code>Promise.all()</code> for parallel entity lookups</td>
+<td>Execute all independent API calls concurrently</td>
+<td>Recommended</td>
+<td>WFLOW-08</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Always use HTTPS for external calls</td>
+<td>Never use <code>http://</code> in HTTP request URLs</td>
+<td>Critical</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Allow-list every outbound host</td>
+<td>Add each host a Run JavaScript or HTTP Request task calls under <strong>Settings &gt; General &gt; External requests</strong>; a call to an unlisted host fails with <code>Blocked request to '…' (host not in allowlist)</code>. Hosts on a private network, and targets that admit only allow-listed source IPs, are reached through EdgeConnect (WFLOW-94)</td>
+<td>Critical</td>
+<td>WFLOW-08, WFLOW-94</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Read secrets from the Credential Vault</td>
+<td><code>credentialVaultClient.getCredentialsDetails({ id })</code> in JavaScript (actor has <code>credential-vault:entries:read</code>, credential scoped to AppEngine, <em>Allow access without app context</em> on, actor granted access); the Authentication field in HTTP tasks. Never hardcode, log or return a secret</td>
+<td>Critical</td>
+<td>WFLOW-08, WFLOW-09</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Give each step its own failure task</td>
+<td>A task waits for all of its predecessors, so one failure task chained after several steps never fires. Give each step a failure task with a single predecessor set to <code>NOK</code> and <code>else: SKIP</code></td>
+<td>Recommended</td>
+<td>WFLOW-08</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Add problem comments after remediation</td>
+<td><code>problemsClient.createComment()</code> with the problem ID <code>event.id</code>, not <code>display_id</code>. Deprecated in Dynatrace API 1.349 (staged rollout from 10/27/2026): <em>&quot;POST /problems/{problemId}/comments Deprecated&quot;</em>, no successor named</td>
+<td>Recommended</td>
+<td>WFLOW-08</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Validate secret existence before use</td>
+<td><code>if (!apiToken) throw new Error('Missing required secret: ...')</code></td>
+<td>Recommended</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Grant the workflow the scopes its tasks use</td>
+<td><strong>Workflows &gt; Settings &gt; Authorization settings</strong> (for example <code>environment-api:credentials:read</code>, <code>environment-api:problems:write</code>, the <code>storage:*:read</code> of each queried table); a missing scope fails the task with a 403</td>
+<td>Recommended</td>
+<td>WFLOW-07, WFLOW-08</td>
+</tr>
+</tbody>
+</table>
+<p><a id="security"></a></p>
+<h2>10. Security</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Never hardcode secrets in workflows</td>
+<td>Connections for connector actions; Credential Vault for HTTP (Authentication field) and JavaScript (<code>credentialVaultClient</code>)</td>
+<td>Critical</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Sanitize all dynamic inputs</td>
+<td>Remove <code>&quot;'\\</code> characters, limit string length to 200 chars before using in queries</td>
+<td>Critical</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Never log secrets</td>
+<td>Do not <code>console.log()</code> a credential or return it in task output — results are visible to anyone who can read the workflow</td>
+<td>Critical</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Name credentials consistently</td>
+<td>Pattern: <code>&lt;service&gt;-&lt;env&gt;-&lt;purpose&gt;</code> for Credential Vault entries and connections</td>
+<td>Recommended</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Rotate secrets on your policy's cadence</td>
+<td>Dual-credential overlap: mint the new credential, create a <code>-v2</code> connection, migrate workflows one at a time, wait a full execution cycle, then revoke the old one at its source. On suspected exposure, revoke first</td>
+<td>Recommended</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Fail secure on errors</td>
+<td>Default to safe state (no action) when errors occur, never expose error details externally</td>
+<td>Critical</td>
+<td>WFLOW-09</td>
+</tr>
+</tbody>
+</table>
+<p><a id="access-control"></a></p>
+<h2>11. Access Control</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Grant minimum permissions per role</td>
+<td>Viewers: <code>automation:workflows:read</code>; builders: <code>read</code> + <code>write</code> + <code>run</code>; workflow admins add <code>automation:workflows:admin</code> (Workflow admin mode). Using Workflows needs <code>app-engine:apps:run</code>, and writing and running them <code>app-engine:functions:run</code>. Which workflows a user sees follows ownership and visibility, not a policy condition</td>
+<td>Critical</td>
+<td>WFLOW-01, WFLOW-09</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Limit who can create billed workflows</td>
+<td><code>ALLOW automation:workflows:write WHERE automation:workflow-type = &quot;SIMPLE&quot;;</code> for app teams. <code>automation:workflow-type</code> is the only condition on this permission; IAM has no workflow-owner condition</td>
+<td>Recommended</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Separate connection write access</td>
+<td>Connections are settings objects: grant <code>settings:objects:write</code> on the connector's schema (e.g., <code>WHERE settings:schemaId = &quot;app:dynatrace.pagerduty:connection&quot;</code>) only to workflow admins and SRE. There is no <code>automation:connections:*</code> permission</td>
+<td>Critical</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Record ownership in the workflow's own fields</td>
+<td><code>owner</code> with <code>ownerType: GROUP</code> for team ownership, <code>isPrivate</code>, and a service-user <code>actor</code>; team and classification in the <code>description</code> or the naming convention. There is no free-form <code>metadata</code> ownership block</td>
+<td>Recommended</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Control who can assign service-user actors</td>
+<td><code>ALLOW iam:service-users:use WHERE iam:service-user-email IN (&quot;&lt;SERVICE_USER_EMAIL&gt;&quot;);</code>. A person who edits a workflow becomes its actor unless the actor is a service user or the edit is made in Workflow admin mode</td>
+<td>Critical</td>
+<td>WFLOW-09</td>
+</tr>
+</tbody>
+</table>
+<p><a id="observability-monitoring"></a></p>
+<h2>12. Observability &amp; Monitoring</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Alert on workflow success rate</td>
+<td>Threshold: &lt; 95% success rate over 7 days</td>
+<td>Critical</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Alert on average execution duration</td>
+<td>Threshold: &gt; 5 minutes average</td>
+<td>Recommended</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Alert on failure spike</td>
+<td>Threshold: &gt; 5 failures per hour</td>
+<td>Critical</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Build a workflow health dashboard</td>
+<td>Queries on <code>dt.system.events</code> (<code>event.kind == &quot;WORKFLOW_EVENT&quot;</code>): overall health, per-workflow success rates, execution trend, recent failures, task-level performance. Count final records only (<code>dt.automation_engine.state.is_final == true</code>)</td>
+<td>Critical</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Create a workflow-monitoring workflow</td>
+<td>Scheduled; query for workflows with 3+ failures in the last hour; alert to <code>#workflow-alerts</code>. Its actor needs <code>storage:system:read</code> and <code>storage:buckets:read</code></td>
+<td>Recommended</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Monitor notification task success rates</td>
+<td>Query final <code>ACTION_EXECUTION</code> records in <code>dt.system.events</code> by <code>dt.automation_engine.action.app</code> (<code>dynatrace.email</code>, <code>dynatrace.slack</code>, …)</td>
+<td>Recommended</td>
+<td>WFLOW-03</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Track remediation success rates</td>
+<td>Query <code>WORKFLOW_EXECUTION</code> records filtered on <code>dt.automation_engine.workflow.title</code> containing <code>remediation</code> (<code>caseSensitive: false</code>), or on the remediation workflows' IDs</td>
+<td>Recommended</td>
+<td>WFLOW-07</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Monitor skipped tasks</td>
+<td>Query <code>TASK_EXECUTION</code> records with <code>dt.automation_engine.state</code> <code>SKIPPED</code> / <code>DISCARDED</code> to validate routing conditions are working as designed</td>
+<td>Optional</td>
+<td>WFLOW-04</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Exclude tasks that never ran from duration statistics</td>
+<td><code>filter in(dt.automation_engine.state, {&quot;SUCCESS&quot;, &quot;ERROR&quot;})</code>; <code>DISCARDED</code> and <code>SKIPPED</code> tasks are final but always carry duration 0</td>
+<td>Recommended</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Watch for throttling and blocked hosts</td>
+<td>The Workflows overview's throttled filter (1,000 event-triggered executions per hour per workflow); <code>Blocked request … (host not in allowlist)</code> in <code>dt.automation_engine.state_info</code> means a missing External requests entry</td>
+<td>Recommended</td>
+<td>WFLOW-09</td>
+</tr>
+</tbody>
+</table>
+<p><a id="operations-change-management"></a></p>
+<h2>13. Operations &amp; Change Management</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Name workflows consistently</td>
+<td>Pattern: <code>&lt;team&gt;-&lt;function&gt;-&lt;environment&gt;</code> (e.g., <code>sre-problem-notifications-prod</code>)</td>
+<td>Critical</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Export workflows for version control</td>
+<td><code>GET /platform/automation/v1/workflows/&lt;id&gt;/export</code> with a platform token (<code>automation:workflows:read</code>, sent as <code>Bearer</code>), saved to Git</td>
+<td>Recommended</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Test changes on cloned workflow first</td>
+<td>Clone, modify, test with On-Demand trigger, review results, promote</td>
+<td>Critical</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Rollback procedure</td>
+<td>Disable the failing workflow, restore the previous version from its history (<code>POST /platform/automation/v1/workflows/&lt;id&gt;/history/&lt;version&gt;/restore</code>, which deploys it), enable it, verify. Import your own export only if the history no longer has the version</td>
+<td>Critical</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Daily: check execution dashboard</td>
+<td>Review success rates and investigate failures</td>
+<td>Recommended</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Weekly: verify external connections</td>
+<td>Test all Slack, Teams, PagerDuty, ServiceNow connections</td>
+<td>Recommended</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Rotate secrets per your policy</td>
+<td>Dual-credential overlap, then revoke the old credential (§10 row 5)</td>
+<td>Recommended</td>
+<td>WFLOW-09</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Query execution history with DQL</td>
+<td><code>fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; and event.type == &quot;WORKFLOW_EXECUTION&quot; | filter dt.automation_engine.state.is_final == true</code> — without <code>is_final</code>, a run is counted once as <code>RUNNING</code> and again in its final state</td>
+<td>Recommended</td>
+<td>WFLOW-01</td>
+</tr>
+</tbody>
+</table>
+<h2>Summary</h2>
+<p>This notebook contains <strong>128 best practices</strong> across 13 categories extracted from the complete WFLOW series.</p>
+<p><strong>Priority distribution:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Priority</th>
+<th>Count</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Critical</strong></td>
+<td>62</td>
+<td>Must implement for production readiness</td>
+</tr>
+<tr>
+<td><strong>Recommended</strong></td>
+<td>60</td>
+<td>Strongly advised for operational maturity</td>
+</tr>
+<tr>
+<td><strong>Optional</strong></td>
+<td>6</td>
+<td>Beneficial for advanced use cases</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Implementation order:</strong></p>
+<ol>
+<li>Connections, External requests host patterns and a service-user actor (WFLOW-01, WFLOW-03, WFLOW-09)</li>
+<li>A simple problem-notification workflow, then severity and ownership routing (WFLOW-01, WFLOW-03, WFLOW-04)</li>
+<li>Incident management integration with search-before-create deduplication (WFLOW-05)</li>
+<li>Custom templates with severity indicators and links (WFLOW-06)</li>
+<li>Workflow health monitoring dashboard (WFLOW-09)</li>
+<li>Auto-remediation with guardrails (WFLOW-07)</li>
+</ol>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows">Workflows umbrella (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger">Workflow triggers (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions">Workflow actions (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions">Notification actions umbrella (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action">HTTP request action (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action">Run JavaScript action (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference">Workflow reference / Jinja expressions (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app">Davis Problems app (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications">Alerting and notifications umbrella (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide — Alert notification (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event triggers for workflows (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build">Build workflows (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security">Manage workflow permissions (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/license/capabilities/automation/automation">Automation Workflow consumption (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-setup">Set up Slack Connector (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/email">Email (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now">ServiceNow Connector (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/edgeconnect">EdgeConnect (DT docs)</a></li>
+<li><a href="https://developer.dynatrace.com/develop/">Dynatrace Developer Portal (Dynatrace)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

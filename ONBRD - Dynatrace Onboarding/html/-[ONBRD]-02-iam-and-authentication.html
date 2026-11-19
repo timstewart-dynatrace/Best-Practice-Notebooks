@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ONBRD-02: IAM and Authentication</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ONBRD — Dynatrace Onboarding</a><span class="sep">/</span><span aria-current="page">ONBRD-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ONBRD-02: IAM and Authentication</h1>
+<blockquote>
+<p><strong>Series:</strong> ONBRD — Dynatrace Onboarding | <strong>Notebook:</strong> 2 of 10 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 11/16/2026</p>
+</blockquote>
+<h2>Setting Up Secure Access</h2>
+<p>Before inviting your team, configure authentication and permissions properly. This notebook covers SAML/SSO setup, API tokens, and the modern permission model.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#why-iam-first">Why IAM First?</a></li>
+<li><a href="#authentication-options">Authentication Options</a></li>
+<li><a href="#configuring-saml-sso">Configuring SAML SSO</a></li>
+<li><a href="#user-groups-and-permissions">User Groups and Permissions</a></li>
+<li><a href="#api-token-and-oauth-management">API Token and OAuth Management</a></li>
+<li><a href="#verification-queries">Verification Queries</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>Account owner or admin access</li>
+<li>Identity provider details (for SSO)</li>
+<li>Understanding of your organization's access requirements</li>
+</ul>
+<p><a id="why-iam-first"></a></p>
+<h2>1. Why IAM First?</h2>
+<p>Setting up IAM before deploying OneAgent or inviting users ensures:</p>
+<table>
+<thead>
+<tr>
+<th>Benefit</th>
+<th>Why It Matters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Consistent access</strong></td>
+<td>Users authenticate the same way from day one</td>
+</tr>
+<tr>
+<td><strong>Proper permissions</strong></td>
+<td>No accidental admin access for viewers</td>
+</tr>
+<tr>
+<td><strong>Audit trail</strong></td>
+<td>All access tied to corporate identity</td>
+</tr>
+<tr>
+<td><strong>Offboarding</strong></td>
+<td>With SAML, a disabled IdP account can't sign in; with SAML + SCIM, users are also removed when deprovisioned in the IdP</td>
+</tr>
+<tr>
+<td><strong>Compliance</strong></td>
+<td>Meet security requirements from the start</td>
+</tr>
+</tbody>
+</table>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgMjAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3RlcDFHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjU2M2ViO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3RlcDJHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzEwYjk4MTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMDU5NjY5O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3RlcDNHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y1OWUwYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZDk3NzA2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3RlcDRHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhiNWNmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojN2MzYWVkO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9Im9yZGVyU2hhZG93Ij4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMSIgZHk9IjEiIHN0ZERldmlhdGlvbj0iMiIgZmxvb2Qtb3BhY2l0eT0iMC4xNSIvPgogICAgPC9maWx0ZXI+CiAgICA8bWFya2VyIGlkPSJvcmRlckFycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI3MDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSIzNTAiIHk9IjI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5SZWNvbW1lbmRlZCBPbmJvYXJkaW5nIE9yZGVyPC90ZXh0PgoKICA8IS0tIFN0ZXAgMTogRmlyc3QgU3RlcHMgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjU1IiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjcwIiByeD0iMTAiIGZpbGw9InVybCgjc3RlcDFHcmFkKSIgZmlsdGVyPSJ1cmwoI29yZGVyU2hhZG93KSIvPgogIDx0ZXh0IHg9Ijk1IiB5PSI4MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjEuIEZpcnN0IFN0ZXBzPC90ZXh0PgogIDx0ZXh0IHg9Ijk1IiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4oQWNjb3VudCBBY2Nlc3MpPC90ZXh0PgogIDx0ZXh0IHg9Ijk1IiB5PSIxMTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PTkJSRC0wMTwvdGV4dD4KCiAgPCEtLSBBcnJvdyAxLT4yIC0tPgogIDxwYXRoIGQ9Ik0xNjUsOTAgTDE5NSw5MCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjb3JkZXJBcnJvdykiLz4KCiAgPCEtLSBTdGVwIDI6IElBTSBTZXR1cCAtLT4KICA8cmVjdCB4PSIyMDAiIHk9IjU1IiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjcwIiByeD0iMTAiIGZpbGw9InVybCgjc3RlcDJHcmFkKSIgZmlsdGVyPSJ1cmwoI29yZGVyU2hhZG93KSIvPgogIDx0ZXh0IHg9IjI2NSIgeT0iODIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4yLiBJQU0gU2V0dXA8L3RleHQ+CiAgPHRleHQgeD0iMjY1IiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4oU2VjdXJpdHkgRmlyc3QpPC90ZXh0PgogIDx0ZXh0IHg9IjI2NSIgeT0iMTE1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+T05CUkQtMDI8L3RleHQ+CgogIDwhLS0gQXJyb3cgMi0+MyAtLT4KICA8cGF0aCBkPSJNMzM1LDkwIEwzNjUsOTAiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI29yZGVyQXJyb3cpIi8+CgogIDwhLS0gU3RlcCAzOiBEZXBsb3kgT25lQWdlbnQgLS0+CiAgPHJlY3QgeD0iMzcwIiB5PSI1NSIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI3MCIgcng9IjEwIiBmaWxsPSJ1cmwoI3N0ZXAzR3JhZCkiIGZpbHRlcj0idXJsKCNvcmRlclNoYWRvdykiLz4KICA8dGV4dCB4PSI0MzUiIHk9IjgyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+My4gRGVwbG95IEFnZW50czwvdGV4dD4KICA8dGV4dCB4PSI0MzUiIHk9IjEwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPihBY3RpdmVHYXRlLCBPbmVBZ2VudCk8L3RleHQ+CiAgPHRleHQgeD0iNDM1IiB5PSIxMTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PTkJSRC0wMyAvIE9OQlJELTA1PC90ZXh0PgoKICA8IS0tIEFycm93IDMtPjQgLS0+CiAgPHBhdGggZD0iTTUwNSw5MCBMNTM1LDkwIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNvcmRlckFycm93KSIvPgoKICA8IS0tIFN0ZXAgNDogSW52aXRlIFRlYW0gLS0+CiAgPHJlY3QgeD0iNTQwIiB5PSI1NSIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI3MCIgcng9IjEwIiBmaWxsPSJ1cmwoI3N0ZXA0R3JhZCkiIGZpbHRlcj0idXJsKCNvcmRlclNoYWRvdykiLz4KICA8dGV4dCB4PSI2MDUiIHk9IjgyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+NC4gSW52aXRlIFRlYW08L3RleHQ+CiAgPHRleHQgeD0iNjA1IiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4oV2l0aCBQcm9wZXIgQWNjZXNzKTwvdGV4dD4KICA8dGV4dCB4PSI2MDUiIHk9IjExNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnZpYSBJZFA8L3RleHQ+CgogIDwhLS0gS2V5IGluc2lnaHQgY2FsbG91dCAtLT4KICA8cmVjdCB4PSIxNzAiIHk9IjE0NSIgd2lkdGg9IjM2MCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9IiNmZWYzYzciIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMzUwIiB5PSIxNjMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzkyNDAwZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9ImJvbGQiPktleSBJbnNpZ2h0OiBDb25maWd1cmUgSUFNIGJlZm9yZSBkZXBsb3lpbmcgYWdlbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iMTc3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5MjQwMGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlRoaXMgZW5zdXJlcyBhbGwgdXNlcnMgYXV0aGVudGljYXRlIHByb3Blcmx5IGZyb20gZGF5IG9uZTwvdGV4dD4KPC9zdmc+Cg==" alt="Recommended Onboarding Order" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Description |
+|------|-------------|
+| 1. First Steps | Account access (ONBRD-01) |
+| 2. IAM Setup | Security configuration (ONBRD-02) |
+| 3. Deploy Agents | ActiveGate if needed (ONBRD-03), then OneAgent (ONBRD-05) |
+| 4. Invite Team | Users join with proper access via IdP |
+-->
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-enterprises-iam">Enterprise identity management (DT docs)</a> — <em>&quot;Users are removed immediately when deprovisioned in the IdP&quot;</em> (SAML + SCIM).</sub></p>
+</blockquote>
+<p><a id="authentication-options"></a></p>
+<h2>2. Authentication Options</h2>
+<p>Dynatrace manages users either in its own user database or through an IdP using the federation protocols <strong>SAML</strong> and <strong>SCIM</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Local Users</strong></td>
+<td>Built-in user accounts</td>
+<td>Small teams, testing, the non-federated fallback account</td>
+</tr>
+<tr>
+<td><strong>SAML 2.0</strong></td>
+<td>Delegated authentication (SSO) through your IdP</td>
+<td>Most organizations</td>
+</tr>
+<tr>
+<td><strong>SCIM</strong> (with SAML)</td>
+<td>Automated provisioning and deprovisioning of users and groups from your IdP</td>
+<td>Dynatrace's recommended enterprise approach for most organizations</td>
+</tr>
+</tbody>
+</table>
+<h3>Authentication Flow</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMjYwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idXNlckdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2Njk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJkdEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTQ5NmZmO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwYTY0YmM7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJpZHBHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhiNWNmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojN2MzYWVkO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9ImF1dGhTaGFkb3ciPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIxIiBkeT0iMSIgc3RkRGV2aWF0aW9uPSIyIiBmbG9vZC1vcGFjaXR5PSIwLjE1Ii8+CiAgICA8L2ZpbHRlcj4KICAgIDxtYXJrZXIgaWQ9ImF1dGhBcnJvdyIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjNjQ3NDhiIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjI2MCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDAwIiB5PSIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U0FNTCBBdXRoZW50aWNhdGlvbiBGbG93PC90ZXh0PgogIDx0ZXh0IHg9IjQwMCIgeT0iNDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RW50ZXJwcmlzZSBTU08gaW50ZWdyYXRpb24gd2l0aCBpZGVudGl0eSBwcm92aWRlcjwvdGV4dD4KCiAgPCEtLSBVc2VyIEJveCAtLT4KICA8cmVjdCB4PSI1MCIgeT0iOTAiIHdpZHRoPSIxNDAiIGhlaWdodD0iMTAwIiByeD0iMTAiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjYXV0aFNoYWRvdykiLz4KICA8cmVjdCB4PSI1MCIgeT0iOTAiIHdpZHRoPSIxNDAiIGhlaWdodD0iMzAiIHJ4PSIxMCIgZmlsbD0idXJsKCN1c2VyR3JhZCkiLz4KICA8cmVjdCB4PSI1MCIgeT0iMTEwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjEwIiBmaWxsPSJ1cmwoI3VzZXJHcmFkKSIvPgogIDx0ZXh0IHg9IjEyMCIgeT0iMTEyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VXNlcjwvdGV4dD4KICA8dGV4dCB4PSIxMjAiIHk9IjE0NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5SZXF1ZXN0cyBhY2Nlc3M8L3RleHQ+CiAgPHRleHQgeD0iMTIwIiB5PSIxNjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+dG8gRHluYXRyYWNlPC90ZXh0PgoKICA8IS0tIER5bmF0cmFjZSBCb3ggKFNQKSAtLT4KICA8cmVjdCB4PSIyODAiIHk9IjkwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjEwMCIgcng9IjEwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiMxNDk2ZmYiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI2F1dGhTaGFkb3cpIi8+CiAgPHJlY3QgeD0iMjgwIiB5PSI5MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIzMCIgcng9IjEwIiBmaWxsPSJ1cmwoI2R0R3JhZCkiLz4KICA8cmVjdCB4PSIyODAiIHk9IjExMCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIxMCIgZmlsbD0idXJsKCNkdEdyYWQpIi8+CiAgPHRleHQgeD0iMzcwIiB5PSIxMTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EeW5hdHJhY2UgKFNQKTwvdGV4dD4KICA8dGV4dCB4PSIzNzAiIHk9IjE0NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TZXJ2aWNlIFByb3ZpZGVyPC90ZXh0PgogIDx0ZXh0IHg9IjM3MCIgeT0iMTY1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlZhbGlkYXRlcyBTQU1MIHNpZ25hdHVyZTwvdGV4dD4KCiAgPCEtLSBJZFAgQm94IC0tPgogIDxyZWN0IHg9IjU1MCIgeT0iOTAiIHdpZHRoPSIxODAiIGhlaWdodD0iMTAwIiByeD0iMTAiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzhiNWNmNiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjYXV0aFNoYWRvdykiLz4KICA8cmVjdCB4PSI1NTAiIHk9IjkwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjMwIiByeD0iMTAiIGZpbGw9InVybCgjaWRwR3JhZCkiLz4KICA8cmVjdCB4PSI1NTAiIHk9IjExMCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIxMCIgZmlsbD0idXJsKCNpZHBHcmFkKSIvPgogIDx0ZXh0IHg9IjY0MCIgeT0iMTEyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SWRlbnRpdHkgUHJvdmlkZXI8L3RleHQ+CiAgPHRleHQgeD0iNjQwIiB5PSIxNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+T2t0YSwgQXp1cmUgQUQsIGV0Yy48L3RleHQ+CiAgPHRleHQgeD0iNjQwIiB5PSIxNjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QXV0aGVudGljYXRlcyArIE1GQTwvdGV4dD4KCiAgPCEtLSBBcnJvd3MgLS0+CiAgPCEtLSBVc2VyIHRvIER5bmF0cmFjZSAtLT4KICA8cGF0aCBkPSJNMTkwLDEyNSBMMjcwLDEyNSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYXV0aEFycm93KSIvPgogIDx0ZXh0IHg9IjIzMCIgeT0iMTE4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjEuIExvZ2luPC90ZXh0PgoKICA8IS0tIER5bmF0cmFjZSB0byBJZFAgLS0+CiAgPHBhdGggZD0iTTQ2MCwxMjUgTDU0MCwxMjUiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2F1dGhBcnJvdykiLz4KICA8dGV4dCB4PSI1MDAiIHk9IjExOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4yLiBSZWRpcmVjdDwvdGV4dD4KCiAgPCEtLSBJZFAgdG8gRHluYXRyYWNlIChib3R0b20gYXJjKSAtLT4KICA8cGF0aCBkPSJNNjQwLDE5NSBRNjQwLDIzMCAzNzAsMjMwIFEyODAsMjMwIDI4MCwxOTUiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBzdHJva2UtZGFzaGFycmF5PSI1LDMiLz4KICA8cG9seWdvbiBwb2ludHM9IjI4MCwxOTUgMjc1LDIwNSAyODUsMjA1IiBmaWxsPSIjNjQ3NDhiIi8+CiAgPHRleHQgeD0iNDYwIiB5PSIyNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+My4gU2lnbmVkIFNBTUwgcmVzcG9uc2UgKHdob2xlIG1lc3NhZ2Ugc2lnbmVkLCBub3QgZW5jcnlwdGVkKTwvdGV4dD4KCiAgPCEtLSBTdWNjZXNzIGluZGljYXRvciAtLT4KICA8Y2lyY2xlIGN4PSIxMjAiIGN5PSIyMjAiIHI9IjEyIiBmaWxsPSIjMTBiOTgxIi8+CiAgPHRleHQgeD0iMTIwIiB5PSIyMjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuKckzwvdGV4dD4KICA8dGV4dCB4PSIxODAiIHk9IjIyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMTBiOTgxIj40LiBBY2Nlc3MgR3JhbnRlZDwvdGV4dD4KPC9zdmc+Cg==" alt="SAML Authentication Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Description |
+|------|-------------|
+| 1. Login | User requests access to Dynatrace |
+| 2. Redirect | Dynatrace redirects to Identity Provider |
+| 3. Auth + MFA | User authenticates with IdP |
+| 4. SAML Response | IdP sends a signed SAML response (entire message signed; assertion **not** encrypted) |
+| 5. Access Granted | User is logged in |
+-->
+<h3>Common Identity Providers</h3>
+<ul>
+<li><strong>Azure Active Directory (Entra ID)</strong> - Microsoft environments</li>
+<li><strong>Okta</strong> - Cloud-native identity</li>
+<li><strong>OneLogin</strong> - Enterprise identity</li>
+<li><strong>PingFederate</strong> - On-premises/hybrid</li>
+<li><strong>Google Workspace</strong> - Google-centric organizations</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management">Identity management (DT docs)</a> — <em>&quot;an IdP with the supported federation protocols SAML and SCIM&quot;</em>; <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-enterprises-iam">Enterprise identity management (DT docs)</a> — <em>&quot;This is the recommended enterprise approach for most organizations.&quot;</em>; <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml">SAML (DT docs)</a> — <em>&quot;No assertion encryption.&quot;</em></sub></p>
+</blockquote>
+<p><a id="configuring-saml-sso"></a></p>
+<h2>3. Configuring SAML SSO</h2>
+<p>Dynatrace documents four steps, in this order: create a fallback user account, verify your domain, configure SAML, test.</p>
+<h3>Step 1: Create a Fallback User Account</h3>
+<p><strong>Location:</strong> Account Management → Identity &amp; access management → User management → <strong>Invite user</strong></p>
+<p>Invite a <strong>non-federated</strong> user — an email address on a <em>different</em> domain from the one you are federating — and add it to a group with the <strong>View and manage users and groups</strong> permission. This account is how you get back in if the SAML configuration locks you out.</p>
+<h3>Step 2: Verify Domain Ownership</h3>
+<p><strong>Location:</strong> Account Management → Identity &amp; access management → <strong>Domain verification</strong></p>
+<ol>
+<li>Add the domain (for example <code>mycompanyname.com</code>); add every domain your users sign in with</li>
+<li>Copy the TXT resource record and add it to the domain's DNS</li>
+<li>Select <strong>Actions → Verify</strong> (DNS propagation can take minutes, occasionally up to 24 hours)</li>
+</ol>
+<h3>Step 3: Configure SAML</h3>
+<p><strong>Location:</strong> Account Management → Identity &amp; access management → <strong>SAML configuration</strong> → <strong>New configuration</strong></p>
+<ol>
+<li>Choose the <strong>federation type</strong> (Global, Account, or Environment)</li>
+<li>Download the Dynatrace <strong>SP metadata</strong> (Entity ID, Assertion Consumer Service URL, Logout URL) and register it in your IdP</li>
+<li>In your IdP, configure the Dynatrace application so that:
+<ul>
+<li>The <strong>entire SAML message is signed</strong> — signing only the assertion is rejected with <code>400 Bad Request</code></li>
+<li>The assertion is <strong>not encrypted</strong></li>
+<li>The NameID format is <code>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</code> (the user's email comes from the NameID)</li>
+</ul>
+</li>
+<li>Upload the IdP metadata XML to Dynatrace</li>
+<li><em>(Optional)</em> Map attributes: first name, last name, and the federated group/role attribute</li>
+<li>Select the domains, activate the configuration (<strong>Enable SSO</strong>), and complete it</li>
+</ol>
+<h3>Step 4: Test SSO</h3>
+<ol>
+<li>Open a new browser instance and a new incognito/private window</li>
+<li>For Account or Environment federation, go to your tenant URL first (<code>https://{tenant-id}.apps.dynatrace.com</code>) — that is how Dynatrace SSO gets the context; sign-in is routed by your email domain</li>
+<li>Complete IdP authentication</li>
+<li>Verify you land in Dynatrace with the correct permissions, and that you can still see <strong>User management</strong> and <strong>Group management</strong></li>
+</ol>
+<blockquote>
+<p><strong>Warning:</strong> If sign-in breaks, use the fallback account from Step 1 to fix or disable the configuration. SAML sessions time out after 1 hour; that timeout is not configurable.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml">SAML (DT docs)</a> — <em>&quot;The entire SAML message must be signed (signing only SAML assertions is insufficient and generates a 400 Bad Request response).&quot;</em>; <em>&quot;Your fallback account must be a non-federated user account belonging to a group that has View and manage users and groups permission and isn't covered by the federated sign-in.&quot;</em>; <em>&quot;To test an Account or Environment federation, go to the tenant URL first&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="user-groups-and-permissions"></a></p>
+<h2>4. User Groups and Permissions</h2>
+<h3>Permission Model</h3>
+<p>Dynatrace uses policy-based access control. Its default policies come in two types — <strong>access policies</strong> (built-in user roles) and <strong>data policies</strong> (access to Grail data) — and you assign them to groups at the account level (all environments) or for an individual environment:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgMjgwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYWRtaW5HcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2VmNDQ0NDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZGMyNjI2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iY29uZmlnR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmNTllMGI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Q5NzcwNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9Im9wZXJhdG9yR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMzYjgyZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzI1NjNlYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InZpZXdlckdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2Njk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0icGVybVNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjEiIGR5PSIxIiBzdGREZXZpYXRpb249IjIiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI3MDAiIGhlaWdodD0iMjgwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSIzNTAiIHk9IjI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EZWZhdWx0IFBvbGljaWVzPC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iNDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QnVpbHQtaW4gYWNjZXNzIHBvbGljaWVzIHBsdXMgZGF0YSBwb2xpY2llcyDigJQgYmluZCBhdCBhY2NvdW50IG9yIGVudmlyb25tZW50IGxldmVsPC90ZXh0PgoKICA8IS0tIFBlcm1pc3Npb24gTGV2ZWxzIChzdGFja2VkKSAtLT4KICA8IS0tIEFkbWluIC0tPgogIDxyZWN0IHg9IjEwMCIgeT0iNzAiIHdpZHRoPSI1MDAiIGhlaWdodD0iNDUiIHJ4PSI4IiBmaWxsPSJ1cmwoI2FkbWluR3JhZCkiIGZpbHRlcj0idXJsKCNwZXJtU2hhZG93KSIvPgogIDx0ZXh0IHg9IjEzMCIgeT0iOTgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIj5BRE1JTiBVU0VSPC90ZXh0PgogIDx0ZXh0IHg9IjI4MCIgeT0iOTgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIj5BZG1pbmlzdHJhdGl2ZSBhY2Nlc3MgYWNyb3NzIGFsbCBQbGF0Zm9ybSBTZXJ2aWNlczwvdGV4dD4KCiAgPCEtLSBDb25maWd1cmF0b3IgLS0+CiAgPHJlY3QgeD0iMTAwIiB5PSIxMjAiIHdpZHRoPSI1MDAiIGhlaWdodD0iNDUiIHJ4PSI4IiBmaWxsPSJ1cmwoI2NvbmZpZ0dyYWQpIiBmaWx0ZXI9InVybCgjcGVybVNoYWRvdykiLz4KICA8dGV4dCB4PSIxMzAiIHk9IjE0OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiPlBSTyBVU0VSPC90ZXh0PgogIDx0ZXh0IHg9IjI4MCIgeT0iMTQ4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSI+QnVpbGQsIGRlcGxveSBhbmQgcnVuIGFwcHMgYW5kIGF1dG9tYXRlZCB3b3JrZmxvd3M8L3RleHQ+CgogIDwhLS0gT3BlcmF0b3IgLS0+CiAgPHJlY3QgeD0iMTAwIiB5PSIxNzAiIHdpZHRoPSI1MDAiIGhlaWdodD0iNDUiIHJ4PSI4IiBmaWxsPSJ1cmwoI29wZXJhdG9yR3JhZCkiIGZpbHRlcj0idXJsKCNwZXJtU2hhZG93KSIvPgogIDx0ZXh0IHg9IjEzMCIgeT0iMTk4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSI+U1RBTkRBUkQgVVNFUjwvdGV4dD4KICA8dGV4dCB4PSIyODAiIHk9IjE5OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiPkFjY2VzcyB0aGUgZW52aXJvbm1lbnQgYW5kIHJ1biBEeW5hdHJhY2UgQXBwczwvdGV4dD4KCiAgPCEtLSBWaWV3ZXIgLS0+CiAgPHJlY3QgeD0iMTAwIiB5PSIyMjAiIHdpZHRoPSI1MDAiIGhlaWdodD0iNDUiIHJ4PSI4IiBmaWxsPSJ1cmwoI3ZpZXdlckdyYWQpIiBmaWx0ZXI9InVybCgjcGVybVNoYWRvdykiLz4KICA8dGV4dCB4PSIxMzAiIHk9IjI0OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiPkRBVEEgUE9MSUNJRVM8L3RleHQ+CiAgPHRleHQgeD0iMjgwIiB5PSIyNDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIj5HcmFpbCBkYXRhIGFjY2VzcyAoZS5nLiBSZWFkIExvZ3MpIOKAlCBhZGQgcGVyIGdyb3VwPC90ZXh0PgoKICA8IS0tIEFycm93IGluZGljYXRpbmcgaGllcmFyY2h5IC0tPgogIDxwYXRoIGQ9Ik02MzAsOTIgTDYzMCwyNDAiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+CiAgPHBvbHlnb24gcG9pbnRzPSI2MzAsMjQ1IDYyNSwyMzUgNjM1LDIzNSIgZmlsbD0iIzY0NzQ4YiIvPgogIDx0ZXh0IHg9IjY2MCIgeT0iMTcwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIHRyYW5zZm9ybT0icm90YXRlKDkwIDY2MCwxNzApIj5BY2Nlc3Mg4oaSIERhdGE8L3RleHQ+Cjwvc3ZnPgo=" alt="Permission Hierarchy" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Default policy | Type | Access |
+|-------|------|--------|
+| Admin User | Access | Administrative access across all Platform Services |
+| Pro User | Access | Build, deploy and run apps and automated workflows |
+| Standard User | Access | Access the environment and run Dynatrace Apps |
+| Data policies (e.g. Read Logs) | Data | Access to Grail data — add per group |
+-->
+<h3>Recommended Groups</h3>
+<p>A suggested starting mapping (adapt it to your organization):</p>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th>Default policies</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Platform Admins</strong></td>
+<td>Admin User</td>
+<td>Platform team, IAM management</td>
+</tr>
+<tr>
+<td><strong>SRE Team</strong></td>
+<td>Pro User + data policies</td>
+<td>Workflow setup, monitoring config</td>
+</tr>
+<tr>
+<td><strong>Developers</strong></td>
+<td>Standard User + scoped data policies</td>
+<td>Problem response, dashboards</td>
+</tr>
+<tr>
+<td><strong>Stakeholders</strong></td>
+<td>Standard User + read-only data policy</td>
+<td>Reports, read-only access</td>
+</tr>
+</tbody>
+</table>
+<h3>Creating Groups</h3>
+<p><strong>Location:</strong> Account Management → Identity &amp; access management → Group management</p>
+<ol>
+<li>Click &quot;Create group&quot;</li>
+<li>Name the group (e.g., &quot;SRE-Team&quot;)</li>
+<li>Add a description</li>
+<li>Assign policies (permissions)</li>
+<li>Optionally link to IdP groups for automatic membership</li>
+</ol>
+<h3>Scoping Access with Policies</h3>
+<p>The modern platform uses <strong>policies</strong> to control what users can access:</p>
+<table>
+<thead>
+<tr>
+<th>Policy Type</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Access policies</strong></td>
+<td>Feature-level access (Admin User, Pro User, Standard User, or your own)</td>
+</tr>
+<tr>
+<td><strong>Data policies</strong></td>
+<td>Access to Grail data, scoped by bucket / table / <code>storage:dt.security_context</code> conditions. (Segments filter views; they don't grant access.)</td>
+</tr>
+</tbody>
+</table>
+<p>Either type is bound at the <strong>account</strong> level (all environments) or the <strong>environment</strong> level.</p>
+<h3>Parameterized Policies (Strongly Recommended)</h3>
+<p>Prefer <strong>one parameterized policy bound to multiple groups via binding parameters</strong> over many copies of the same policy with hardcoded scope values:</p>
+<pre><code class="language-text">ALLOW storage:buckets:read WHERE storage:table-name = &quot;logs&quot;;
+ALLOW storage:logs:read WHERE storage:dt.security_context = &quot;${bindParam:team}&quot;;
+</code></pre>
+<p>The first statement is not optional: a table permission alone returns no records. <code>storage:buckets:read</code> is <em>&quot;Required additionally to a table permission.&quot;</em></p>
+<p>Parameters are written as <code>${bindParam:&lt;name&gt;}</code> — Dynatrace's policy templating rule is <em>&quot;Policy parameters should be prefixed with bindParam: and enclosed in ${...}.&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating">Policy templating (DT docs)</a>). Bind the policy to <code>team-payments</code>, <code>team-checkout</code>, <code>team-fraud</code>, etc., varying only the <code>team</code> parameter — one policy, N bindings. The parameter shape is load-bearing: design once, change rarely.</p>
+<p>The <strong><code>dt.security_context</code></strong> field is the standardized boundary for Gen3 IAM scoping across both data and configurations. Without it, cross-entity-type policies cannot be written. Decide your <code>dt.security_context</code> value space before tagging anything (covered in <strong>ONBRD-06</strong>).</p>
+<h3>Where to Go Deeper</h3>
+<ul>
+<li><strong>IAM-04 / IAM-05</strong> — Designing effective policies and boundary conditions</li>
+<li><strong>IAM-10: Templated Policy-Group Assignments</strong> — binding one templated policy to many groups with <code>bindParam</code> values</li>
+<li><strong>IAM-11 (WORKSHOP)</strong> — Hands-on policy and persona design</li>
+<li><strong>IAM-99</strong> — IAM best-practice summary and DQL reference</li>
+<li><strong>FAQ-02</strong> — Tagging sources, standards, and strategy (<code>dt.security_context</code> design)</li>
+<li><strong>ORGNZ-06 / ORGNZ-07</strong> — Security context for data and configuration scoping</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> For data filtering, use <strong>Segments + <code>dt.security_context</code></strong> (covered in ONBRD-06) rather than the legacy Management Zones. Segments narrow what a user sees; access itself is enforced by IAM policies.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies">Default policies (DT docs)</a> — <em>&quot;You can assign policies to groups via the user group details either on the account level, which includes all environments in that account, or on the individual environment level.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements (DT docs)</a> — <em>&quot;Grants permission to read records from Grail buckets. Required additionally to a table permission.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-visibility">Segments visibility (DT docs)</a> — <em>&quot;All queries, with or without segments, always respect data access permissions enforced by IAM policies.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="api-token-and-oauth-management"></a></p>
+<h2>5. API Token and OAuth Management</h2>
+<p>The modern platform supports three credential types — pick based on the integration:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5EeW5hdHJhY2UgQVBJIENyZWRlbnRpYWwgVHlwZXM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+Q2hvb3NlIGJ5IGludGVncmF0aW9uIGNsYXNzPC90ZXh0PgoKICA8IS0tIENvbHVtbiAxOiBQbGF0Zm9ybSBUb2tlbiAocmVjb21tZW5kZWQpIC0tPgogIDxyZWN0IHg9IjQwIiB5PSI5MCIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIzODAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iOCIvPgogIDx0ZXh0IHg9IjE3NSIgeT0iMTE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5QbGF0Zm9ybSBUb2tlbjwvdGV4dD4KICA8dGV4dCB4PSIxNzUiIHk9IjEzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSI+4piFIFJlY29tbWVuZGVkIERlZmF1bHQ8L3RleHQ+CgogIDxyZWN0IHg9IjYwIiB5PSIxNTUiIHdpZHRoPSIyMzAiIGhlaWdodD0iNTUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjYiLz4KICA8dGV4dCB4PSIxNzUiIHk9IjE3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+UHJlZml4PC90ZXh0PgogIDx0ZXh0IHg9IjE3NSIgeT0iMTk4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5kdDBzMTY8L3RleHQ+CgogIDxyZWN0IHg9IjYwIiB5PSIyMjUiIHdpZHRoPSIyMzAiIGhlaWdodD0iNTUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjYiLz4KICA8dGV4dCB4PSIxNzUiIHk9IjI0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+QXV0aCBTY2hlbWU8L3RleHQ+CiAgPHRleHQgeD0iMTc1IiB5PSIyNjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPkF1dGhvcml6YXRpb246IEJlYXJlcjwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjI5NSIgd2lkdGg9IjIzMCIgaGVpZ2h0PSIxNjAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjYiLz4KICA8dGV4dCB4PSIxNzUiIHk9IjMxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+V2hlbiB0byBVc2U8L3RleHQ+CiAgPHRleHQgeD0iMTc1IiB5PSIzMzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk5ldyBhdXRvbWF0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjE3NSIgeT0iMzU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5NQ1AgKyBpbnN0YWxsZXIgZG93bmxvYWQ8L3RleHQ+CiAgPHRleHQgeD0iMTc1IiB5PSIzNzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk9wZW5QaXBlbGluZSBjb25maWc8L3RleHQ+CiAgPHRleHQgeD0iMTc1IiB5PSIzOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlNldHRpbmdzIHYyPC90ZXh0PgogIDx0ZXh0IHg9IjE3NSIgeT0iNDEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TY29wZXMg4omkIHVzZXIgcGVybWlzc2lvbnM8L3RleHQ+CiAgPHRleHQgeD0iMTc1IiB5PSI0MzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPuKGkiBEZWZhdWx0IGZvciBuZXQtbmV3PC90ZXh0PgoKICA8IS0tIENvbHVtbiAyOiBPQXV0aCBDbGllbnQgLS0+CiAgPHJlY3QgeD0iMzMwIiB5PSI5MCIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIzODAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIxMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPk9BdXRoIENsaWVudDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjEzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMSI+RXh0ZXJuYWwgLyBBY2NvdW50LUFkbWluPC90ZXh0PgoKICA8cmVjdCB4PSIzNTAiIHk9IjE1NSIgd2lkdGg9IjIzMCIgaGVpZ2h0PSI1NSIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5Gb3JtPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTk4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5DbGllbnQgSUQgKyBTZWNyZXQ8L3RleHQ+CgogIDxyZWN0IHg9IjM1MCIgeT0iMjI1IiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjU1IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIyNDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkF1dGggU2NoZW1lPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjY4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5BdXRob3JpemF0aW9uOiBCZWFyZXI8L3RleHQ+CgogIDxyZWN0IHg9IjM1MCIgeT0iMjk1IiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjE2MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5XaGVuIHRvIFVzZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjMzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RXh0ZXJuYWwgU2FhUyBpbnRlZ3JhdGlvbnM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIzNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkFjY291bnQtYWRtaW4gYXV0b21hdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjM3NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+QWJvdmUtdGVuYW50IG9wZXJhdGlvbnM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIzOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlNob3J0LWxpdmVkIGJlYXJlciB0b2tlbnM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0MTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlJlLXJlcXVlc3Qgb24gZXhwaXJ5PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj7ihpIgRXh0ZXJuYWwgb3IgYWRtaW48L3RleHQ+CgogIDwhLS0gQ29sdW1uIDM6IENsYXNzaWMgQVBJIFRva2VuIC0tPgogIDxyZWN0IHg9IjYyMCIgeT0iOTAiIHdpZHRoPSIyNzAiIGhlaWdodD0iMzgwIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9Ijc1NSIgeT0iMTE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5DbGFzc2ljIEFQSSBUb2tlbjwvdGV4dD4KICA8dGV4dCB4PSI3NTUiIHk9IjEzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+4pqgIExlZ2FjeSAvIFBoYXNlLU91dDwvdGV4dD4KCiAgPHJlY3QgeD0iNjQwIiB5PSIxNTUiIHdpZHRoPSIyMzAiIGhlaWdodD0iNTUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjYiLz4KICA8dGV4dCB4PSI3NTUiIHk9IjE3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+UHJlZml4PC90ZXh0PgogIDx0ZXh0IHg9Ijc1NSIgeT0iMTk4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5kdDBjMDE8L3RleHQ+CgogIDxyZWN0IHg9IjY0MCIgeT0iMjI1IiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjU1IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzU1IiB5PSIyNDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkF1dGggU2NoZW1lPC90ZXh0PgogIDx0ZXh0IHg9Ijc1NSIgeT0iMjY4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5BdXRob3JpemF0aW9uOiBBcGktVG9rZW48L3RleHQ+CgogIDxyZWN0IHg9IjY0MCIgeT0iMjk1IiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjE2MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc1NSIgeT0iMzE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5XaGVuIHRvIFVzZTwvdGV4dD4KICA8dGV4dCB4PSI3NTUiIHk9IjMzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RXhpc3Rpbmcgc2NyaXB0czwvdGV4dD4KICA8dGV4dCB4PSI3NTUiIHk9IjM1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Q2xhc3NpYy9oeWJyaWQgdGVuYW50cyBvbmx5PC90ZXh0PgogIDx0ZXh0IHg9Ijc1NSIgeT0iMzc0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5MZWdhY3kgaW50ZWdyYXRpb25zPC90ZXh0PgogIDx0ZXh0IHg9Ijc1NSIgeT0iMzkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TY29wZS1saXN0IHBlcm1pc3Npb25zPC90ZXh0PgogIDx0ZXh0IHg9Ijc1NSIgeT0iNDEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5NaWdyYXRlIHdoZXJlIHBvc3NpYmxlPC90ZXh0PgogIDx0ZXh0IHg9Ijc1NSIgeT0iNDM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj7ihpIgTGVnYWN5IG9ubHk8L3RleHQ+CgogIDwhLS0gRm9vdGVyIC0tPgogIDxsaW5lIHgxPSI0MCIgeTE9IjQ3OCIgeDI9Ijg5MCIgeTI9IjQ3OCIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjQ5NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMCI+V3Jvbmcgc2NoZW1lIHJldHVybnMgNDAxIGV2ZW4gd2l0aCBjb3JyZWN0IHNjb3Blcy9wb2xpY2llczwvdGV4dD4KPC9zdmc+Cg==" alt="Token Type Decision" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Token Type | Prefix | Auth Scheme | When to Use |
+|------------|--------|-------------|-------------|
+| Platform Token (recommended default) | dt0s16 | Authorization: Bearer | New automation, MCP + installer download, OpenPipeline, Settings v2; scopes bounded by user permissions |
+| OAuth Client | client ID + secret | Authorization: Bearer | External SaaS integrations, account-admin automation; short-lived bearer tokens, re-request on expiry |
+| Classic API Token (legacy phase-out) | dt0c01 | Authorization: Api-Token | Existing scripts; classic/hybrid tenants only; migrate to Platform Token |
+For environments where SVG doesn't render
+-->
+<table>
+<thead>
+<tr>
+<th>Credential</th>
+<th>Prefix / Form</th>
+<th>When to Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Platform Token</strong> <em>(recommended default for new automation)</em></td>
+<td><code>dt0s16</code></td>
+<td>New automation, MCP integrations, OpenPipeline configuration, Settings v2, installer downloads</td>
+</tr>
+<tr>
+<td><strong>OAuth 2.0 Client</strong></td>
+<td>client ID + secret</td>
+<td>External SaaS integrations, account-admin automation</td>
+</tr>
+<tr>
+<td><strong>Classic API Token</strong> <em>(legacy phase-out)</em></td>
+<td><code>dt0c01</code></td>
+<td>Existing scripts on classic/hybrid environments; migrate to Platform Token where possible</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Workflows don't use a token.</strong> Every workflow task runs as the workflow's <strong>actor</strong> (a user or service user; by default the workflow's creator) — grant permissions to the actor, not a token.</p>
+</blockquote>
+<h3>Platform Tokens (Recommended Default)</h3>
+<p>Platform Tokens are the standard for new automation — in Latest Dynatrace they replace classic access tokens. They:</p>
+<ul>
+<li>Carry the <strong>scopes you select</strong> at creation, and only work within the permissions of the user (or service user) they are issued for — <em>&quot;A platform token will only work within the limits of the assigned user's permissions.&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens">Platform tokens (DT docs)</a>)</li>
+<li>Are bound to a single user identity (or service identity) for traceability</li>
+<li>Should be the default unless you have a specific reason to choose OAuth or Classic</li>
+</ul>
+<p><strong>Location:</strong> <strong>My platform tokens</strong> (<code>myaccount.dynatrace.com/platformTokens</code>) for your own tokens; admins: <strong>Account Management → Identity &amp; access management → Platform tokens</strong></p>
+<pre><code class="language-bash"># Authorization scheme by token prefix:
+#   dt0s16           →  Authorization: Bearer &lt;token&gt;  (dt0s01 is a separate SCIM account token, not a Platform Token)
+#   dt0c01           →  Authorization: Api-Token &lt;token&gt;
+# Wrong scheme returns 401 even with correct scopes/policies.
+</code></pre>
+<h3>OAuth 2.0 Clients</h3>
+<p>Use for <strong>external system integrations</strong> or <strong>account-admin automation</strong> that operates above the tenant level.</p>
+<p><strong>Location:</strong> Account Management → Identity &amp; access management → OAuth clients</p>
+<ol>
+<li>Create an OAuth client</li>
+<li>Use client credentials flow to obtain bearer tokens</li>
+<li>Bearer tokens are short-lived (the documented example response has <code>&quot;expires_in&quot;: 300</code>, in seconds) — request a new one with the client credentials when it expires</li>
+</ol>
+<h3>Classic API Tokens (Legacy)</h3>
+<p>Classic access tokens exist only on classic and hybrid environments — on a latest environment, <em>&quot;Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available.&quot;</em> — so existing scripts that use them need a migration plan. Migrate to Platform Tokens during routine refresh cycles. Classic tokens use the <code>Api-Token</code> Authorization scheme (not <code>Bearer</code>).</p>
+<p><strong>Location:</strong> the <strong>Access Tokens</strong> app in your environment → <strong>Generate new token</strong> (not Account Management)</p>
+<table>
+<thead>
+<tr>
+<th>Common Use</th>
+<th>Classic scope</th>
+<th>Platform-token scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OneAgent Installer Download</strong></td>
+<td><code>InstallerDownload</code></td>
+<td><code>fleet-management:oneagents:download</code></td>
+</tr>
+<tr>
+<td><strong>ActiveGate Installer Download</strong></td>
+<td><code>InstallerDownload</code></td>
+<td><code>fleet-management:activegates:download</code></td>
+</tr>
+<tr>
+<td><strong>Metric Ingestion</strong></td>
+<td><code>metrics.ingest</code></td>
+<td><code>openpipeline:metrics:ingest</code></td>
+</tr>
+<tr>
+<td><strong>Log Ingestion</strong></td>
+<td><code>logs.ingest</code></td>
+<td><code>openpipeline:logs:ingest</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Token Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Minimal scope / least-privilege policy</strong></td>
+<td>Limit blast radius if compromised</td>
+</tr>
+<tr>
+<td><strong>Descriptive names</strong></td>
+<td>Know what each token is for</td>
+</tr>
+<tr>
+<td><strong>Expiration dates</strong></td>
+<td>Force rotation, reduce risk</td>
+</tr>
+<tr>
+<td><strong>Separate tokens per use</strong></td>
+<td>Revoke one without affecting others</td>
+</tr>
+<tr>
+<td><strong>Never commit to code</strong></td>
+<td>Use environment variables or secrets managers</td>
+</tr>
+<tr>
+<td><strong>Prefer Platform Tokens for new work</strong></td>
+<td>Aligned with the Gen3 IAM model</td>
+</tr>
+</tbody>
+</table>
+<h3>Where to Go Deeper</h3>
+<ul>
+<li><strong>IAM series</strong> — Token management, lifecycle, audit patterns</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic">Upgrade from access tokens classic (DT docs)</a> — (latest environment) <em>&quot;Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/oneagent/download-oneagent-latest">Download latest OneAgent installer (DT docs)</a> — <em>&quot;Platform Token / OAuth: Required scope: fleet-management:oneagents:download&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/activegate/download-activegate-latest">Download latest ActiveGate installer (DT docs)</a> — <em>&quot;Platform Token / OAuth: Required scope: fleet-management:activegates:download&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security">Workflow security (DT docs)</a> — <em>&quot;By default, the actor is the creator of the workflow.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients">OAuth clients (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-api/basics/dynatrace-api-authentication">API authentication — token prefixes (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="verification-queries"></a></p>
+<h2>6. Verification Queries</h2>
+<p>After configuring IAM, these queries confirm that people are signing in to this environment. They read environment audit events in <code>dt.system.events</code>.</p>
+<blockquote>
+<p><strong>One sign-in can be two events.</strong> From SaaS 1.349 (rollout start 10/27/2026), sign-in and sign-out audit events reach Grail, and <em>&quot;signing in to a classic app can produce two audit events—one from the API gateway and one from the cluster&quot;</em>. Dynatrace says <em>&quot;You can differentiate them by their event provider&quot;</em>, so both queries below show <code>event.provider</code> (on the validation tenant, 11/11/2026: <code>API_GATEWAY</code> and <code>CLASSIC_LOGIN</code>, 91 and 12 events over 7 days). Count one provider when you need a number of sign-ins rather than a number of events. (<a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-349">SaaS 1.349 release notes (DT docs)</a>)</p>
+</blockquote>
+<blockquote>
+<p><strong>What they can't show:</strong> SSO configuration, group and permission changes are recorded in the separate <strong>Account Management audit log</strong> (Account Management UI, or the Account Audits API with the <code>account-audit-logs-read</code> scope) — <em>&quot;Neither v2/auditlogs nor dt.system.events captures it.&quot;</em> (<a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-audit-logs-classic">Upgrade from audit logs classic (DT docs)</a>). Use the manual checklist below to confirm SSO itself.</p>
+</blockquote>
+<pre><code class="language-dql">// Environment sign-ins (platform gateway audit events)
+// A classic-app sign-in can log twice (API_GATEWAY and CLASSIC_LOGIN) - read event.provider (SaaS 1.349).
+// Data object corrected 09/24/2026. The Dynatrace audit trail is NOT in `logs`: the former
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)` matched nothing, or matched an
+// unrelated file-based audit log (a database .aud file on the validation tenant). Environment
+// audit records are structured events in `dt.system.events` with event.kind == &quot;AUDIT_EVENT&quot;.
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter event.type == &quot;LOGIN&quot;
+| fields timestamp, user.id, event.provider, event.outcome, authentication.type, origin.type
+| sort timestamp desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// Sign-in outcomes over the last 7 days (audit events, not application logs)
+// Split by event.provider: a classic-app sign-in can produce two events, one per provider (SaaS 1.349).
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter event.type == &quot;LOGIN&quot;
+| summarize {events = count(), users = countDistinct(user.id)}, by:{event.provider, event.outcome}
+| sort events desc
+</code></pre>
+<h3>Manual Verification Checklist</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>How to Verify</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SSO working</strong></td>
+<td>Login via IdP in incognito window</td>
+</tr>
+<tr>
+<td><strong>Groups created</strong></td>
+<td>Check Account Management → Identity &amp; access management → Group management</td>
+</tr>
+<tr>
+<td><strong>Permissions assigned</strong></td>
+<td>Test with a viewer account</td>
+</tr>
+<tr>
+<td><strong>Fallback account</strong></td>
+<td>The non-federated fallback user can still sign in</td>
+</tr>
+<tr>
+<td><strong>API tokens</strong></td>
+<td>Installer-download token ready (platform token with <code>fleet-management:oneagents:download</code>, or classic <code>InstallerDownload</code> on classic/hybrid tenants)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="next-steps"></a></p>
+<h2>7. Next Steps</h2>
+<p>With IAM configured, you're ready to:</p>
+<ol>
+<li><strong>ONBRD-03: Deploying ActiveGate</strong> — Set up network routing (if needed for restricted networks)</li>
+<li><strong>ONBRD-04: Cloud &amp; SaaS Integrations</strong> — Connect AWS / Azure / GCP and SaaS sources</li>
+<li><strong>ONBRD-05: Deploying OneAgent</strong> — Start collecting infrastructure and application data</li>
+<li><strong>ONBRD-06: Organizing Your Environment</strong> — Set up tags, segments, and <code>dt.security_context</code></li>
+<li>Invite team members via your IdP</li>
+<li>Create additional Platform Tokens or OAuth clients as needed</li>
+</ol>
+<h3>IAM Tasks Before Moving On</h3>
+<ul>
+<li>[ ] SAML/SSO configured and tested</li>
+<li>[ ] Non-federated fallback account created and documented</li>
+<li>[ ] User groups created for major roles</li>
+<li>[ ] Parameterized policy shape decided; group → policy bindings drafted</li>
+<li>[ ] <code>dt.security_context</code> value space planned (deeper in ONBRD-06 / FAQ-02)</li>
+<li>[ ] Platform Token issued for migration / automation tooling</li>
+<li>[ ] Installer-download token issued (platform token with <code>fleet-management:oneagents:download</code>, or classic <code>InstallerDownload</code> on classic/hybrid tenants)</li>
+<li>[ ] Token naming conventions established</li>
+</ul>
+<h3>Where to Go Deeper</h3>
+<ul>
+<li><strong>IAM series</strong> (16 notebooks) — full IAM administration depth</li>
+<li><strong>FAQ-02</strong> — Tagging sources, standards, and strategy</li>
+<li><strong>ORGNZ series</strong> — Bucket strategy, segments, security context</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Why IAM should be configured before deploying agents</li>
+<li>Authentication options (Local, SAML, SCIM)</li>
+<li>How to configure SAML SSO</li>
+<li>Default policies (Admin User, Pro User, Standard User, data policies), group structure, and parameterized policies</li>
+<li>The three credential types (Platform Token, OAuth, Classic API Token) and when to use each</li>
+<li><code>dt.security_context</code> as the standardized boundary field for Gen3 IAM</li>
+<li>How to verify IAM configuration</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management">Identity and access management (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens">Platform tokens (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating">Policy templating (DT docs)</a> — the <code>${bindParam:...}</code> syntax quoted in section 4</li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml">SAML (DT docs)</a> — fallback account, domain verification, IdP requirements</li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml/saml-configurations">SAML configurations (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-enterprises-iam">Enterprise identity management — SAML and SCIM (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies">Default policies (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management">Identity management — SSO and federation (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management-classic/access-tokens-and-oauth-clients/access-tokens">Access tokens classic (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients">OAuth clients (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

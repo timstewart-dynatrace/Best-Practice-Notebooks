@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ONBRD-99: Best Practice Summary</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ONBRD — Dynatrace Onboarding</a><span class="sep">/</span><span aria-current="page">ONBRD-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ONBRD-99: Best Practice Summary</h1>
+<blockquote>
+<p><strong>Series:</strong> ONBRD — Dynatrace Onboarding | <strong>Reference:</strong> 99 — Best Practice Summary | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/16/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Reference card for an architect or tenant lead onboarding a new 2026 Dynatrace tenant: recommended defaults, the key decision matrix, validation queries, anti-patterns, and the cross-series next-steps map.</p>
+<p>For the <strong>sequence + dependencies + per-step decisions</strong>, see <strong>ONBRD-00: Architect's Sequence &amp; Dependency Runbook</strong>.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#recommended-defaults">Recommended Defaults (2026)</a></li>
+<li><a href="#decision-matrix">Decision Matrix</a></li>
+<li><a href="#validation-queries">Validation Queries</a></li>
+<li><a href="#anti-patterns">Anti-Patterns to Avoid</a></li>
+<li><a href="#where-to-go-deeper">Where to Go Deeper — Topic Series Map</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Audience</td>
+<td>Architect or tenant lead onboarding a new 2026 Dynatrace tenant</td>
+</tr>
+<tr>
+<td>Used alongside</td>
+<td><strong>ONBRD-00: Architect's Sequence &amp; Dependency Runbook</strong> for sequence + dependencies</td>
+</tr>
+</tbody>
+</table>
+<p><a id="recommended-defaults"></a></p>
+<h2>1. Recommended Defaults (2026)</h2>
+<p>A new 2026 tenant should default to these choices unless there is a specific reason not to.</p>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Default</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>API token</td>
+<td><strong>Platform Token</strong> (<code>dt0s16</code>) with <code>Authorization: Bearer</code></td>
+<td>Latest environments have platform tokens only: (latest environment) <em>&quot;Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available.&quot;</em> Classic access tokens (<code>dt0c01</code>, <code>Authorization: Api-Token</code>) exist only in Classic and hybrid environments.</td>
+</tr>
+<tr>
+<td>Configuration</td>
+<td><strong>Settings v2</strong> / Configuration as Code (Terraform <code>dynatrace_settings</code>, Monaco v2)</td>
+<td>SaaS 1.337: <em>&quot;Many Configuration API endpoints are now covered by the Settings endpoints in the Environment API v2.&quot;</em> The affected Configuration API endpoints are deprecated. Plan automation around Settings v2.</td>
+</tr>
+<tr>
+<td>Extensions</td>
+<td><strong>Extensions 2.0</strong></td>
+<td>Current extensions framework; EF1.0 end of support 2025-03-31. JMX and PMI EF1 extensions were kept past that date but are deprecated: <em>&quot;As of July 1, 2027, all Extension Framework 1.0 JMX and PMI extensions will be out of support for SaaS Environments.&quot;</em> Migrate them during onboarding.</td>
+</tr>
+<tr>
+<td>Tagging at source</td>
+<td><strong>Primary fields/tags at OneAgent install</strong> via <code>oneagentctl --set-host-tag=&quot;primary_tags.&lt;key&gt;=&lt;value&gt;&quot;</code> and <code>--set-host-tag=&quot;dt.security_context=&lt;value&gt;&quot;</code> (single tags-hub form, June 2026; prefix written explicitly)</td>
+<td>OneAgent attribute enrichment (OneAgent 1.333+) emits these on every signal at ingest.</td>
+</tr>
+<tr>
+<td>Boundary field</td>
+<td><strong><code>dt.security_context</code></strong> for data + IAM scoping</td>
+<td>Gen3 standard; segments + this field replace legacy Management Zones.</td>
+</tr>
+<tr>
+<td>IAM policies</td>
+<td><strong>Parameterized policies</strong> bound to groups via binding parameters</td>
+<td>Avoids N-copies-of-similar-policy maintenance burden.</td>
+</tr>
+<tr>
+<td>K8s deployment</td>
+<td><strong>Dynatrace Operator + Cloud Native FullStack</strong></td>
+<td><em>&quot;Classic Full-Stack mode is not supported when using a platform token&quot;</em>, the default credential above; ONBRD-05 covers the mode choice.</td>
+</tr>
+<tr>
+<td>K8s CRD baseline</td>
+<td><strong>DynaKube <code>v1beta6</code></strong> for new DynaKubes</td>
+<td>Operator 1.11.0 removes <code>v1beta4</code> and says <em>&quot;Before upgrading, update all DynaKube manifests to v1beta6.&quot;</em> <code>v1beta5</code> is still served by 1.11.0 but marked deprecated in its CRD (ONBRD-05).</td>
+</tr>
+<tr>
+<td>Alerting</td>
+<td><strong>Workflows</strong> (simple workflows for notification) + <strong>custom alerts</strong> for metric conditions</td>
+<td>Alerting profiles and problem notifications are Dynatrace Classic: <em>&quot;They continue to work and are not being removed on a published schedule, but they'll not receive new capabilities.&quot;</em> Build new alerting on workflows (ONBRD-09).</td>
+</tr>
+<tr>
+<td>Logs</td>
+<td><strong>OpenPipeline</strong></td>
+<td>The Latest Dynatrace path for log processing; OPMIG covers moving off classic log processing, OPLOGS the pipelines themselves.</td>
+</tr>
+<tr>
+<td>Windows OneAgent</td>
+<td><strong>Npcap</strong> for network insight (OneAgent 1.337+)</td>
+<td>Required for Network Agent metrics; WinPcap is no longer supported.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/basics/dynatrace-api-authentication">Authentication (DT docs)</a> — <em>&quot;dt0s16 Platform Token enabling programmatic access to Dynatrace platform services.&quot;</em>; <a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic">Upgrade from classic access tokens (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-337">SaaS 1.337 (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/extensions/end-of-support/jmx-pmi-ef1-deprecation">EF1 JMX and PMI extensions end of support (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news">End-of-support news (DT docs)</a> — <em>&quot;Note that JMX and PMI Extensions Framework 1.0 are supported past March 2025 but are deprecated.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/how-it-works/other-deployment-modes/classic-fullstack">Classic Full-Stack monitoring (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0">Operator 1.11.0 release notes (DT docs)</a>; <code>v1beta5</code> <code>deprecated: true</code> read from the DynaKube CRD in the Operator v1.11.0 <code>kubernetes.yaml</code> (<a href="https://github.com/Dynatrace/dynatrace-operator/releases">Operator releases (Dynatrace GitHub)</a>), 10/02/2026</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide: alert notifications (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="decision-matrix"></a></p>
+<h2>2. Decision Matrix</h2>
+<p>Decisions an architect makes during onboarding, with default and when to deviate.</p>
+<table>
+<thead>
+<tr>
+<th>Decision</th>
+<th>Default</th>
+<th>When to deviate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ActiveGate yes/no</td>
+<td>Recommended if &gt;500 hosts (ONBRD-03); needed for hybrid/on-prem or cloud-API polling at scale</td>
+<td>Pure SaaS-only with no on-prem footprint can defer until cloud-API polling demands it</td>
+</tr>
+<tr>
+<td>ActiveGate sizing</td>
+<td>At least 8 GB <strong>disk</strong> per ActiveGate, about 12.5 GB with extensions (ONBRD-03); CPU and memory per FAQ-10; 2–3 AGs per network zone</td>
+<td>Larger only when load testing shows it is needed</td>
+</tr>
+<tr>
+<td>Per-cloud integration</td>
+<td><strong>Clouds app</strong> for AWS (GA) and Azure (SaaS 1.337+, no AG for metric polling); GCP Clouds-app connection generally available (10/29/2026) — verify it has reached your tenant; the classic GCP integration (<code>dynatrace-gcp-monitor</code> on GKE, no ActiveGate on SaaS) remains the working path until then</td>
+<td>If existing CloudWatch / Azure Monitor pipelines exist, evaluate migration effort vs leaving in place</td>
+</tr>
+<tr>
+<td>OneAgent rollout sequence</td>
+<td>Pilot 2–5 non-critical hosts (ONBRD-05) → expand by host group → full</td>
+<td>Skip pilot if you have onboarded the same workload class on another tenant</td>
+</tr>
+<tr>
+<td>Tag taxonomy</td>
+<td>env / team / app / <code>dt.security_context</code> / <code>dt.cost.costcenter</code></td>
+<td>Add compliance dimensions (<code>*-pci</code>, <code>*-pii</code>) only if a hard audit boundary exists</td>
+</tr>
+<tr>
+<td>Host group naming</td>
+<td><code>&lt;env&gt;-&lt;app&gt;</code> or <code>&lt;env&gt;-&lt;workload-type&gt;</code> per FAQ-01</td>
+<td>Customer-specific patterns acceptable; avoid <code>all-hosts</code> / <code>default</code> / hardware-trait names</td>
+</tr>
+<tr>
+<td>Bucket strategy</td>
+<td><code>dt.security_context</code> for general data access; <strong>buckets only for compliance / retention / hard cost / hostile multi-tenancy</strong></td>
+<td>See ORGNZ-02 (Grail buckets) and ORGNZ-99 for the buckets-vs-<code>dt.security_context</code> decision</td>
+</tr>
+<tr>
+<td>OTel coexistence</td>
+<td>OneAgent for instrumentation; OTel for app-code spans / business events / serverless</td>
+<td>Per FAQ-03 OneAgent and OpenTelemetry decision framework</td>
+</tr>
+<tr>
+<td>Workflow trigger</td>
+<td>Problem trigger (default); Event trigger with a DQL filter (advanced)</td>
+<td>Custom DQL triggers when business-event-driven alerting is required</td>
+</tr>
+<tr>
+<td>Dashboard tier</td>
+<td>Operations + Executive (mandatory); Engineering (recommended)</td>
+<td>Skip Executive if there is no exec stakeholder for this tenant</td>
+</tr>
+<tr>
+<td>Notification channel for new tenant</td>
+<td>Slack / email / PagerDuty silent channel for first 1–2 weeks</td>
+<td>Switch to live channels only after dual-alert window validates volume parity</td>
+</tr>
+</tbody>
+</table>
+<p><a id="validation-queries"></a></p>
+<h2>3. Validation Queries</h2>
+<p>A small DQL set that verifies each phase complete. Save these as a notebook in the new tenant — they are the architect's smoke-test for the deployment.</p>
+<h3>Phase 1 — Foundation complete</h3>
+<p>Hosts reporting (Gate G1):</p>
+<pre><code class="language-dql">// Hosts reporting (Gate G1 — Foundation -&gt; Organize)
+smartscapeNodes &quot;HOST&quot;
+| summarize host_count = count()
+
+// Caveat: Smartscape HOST nodes can leave out PaaS-only hosts. On a validation tenant
+// (10/02/2026) this returned 7 while fetch dt.entity.host returned 15; the 8 missing were
+// Kubernetes application-only and AWS Fargate hosts (paasVendorType KUBERNETES /
+// AWS_ECS_FARGATE). For those rollouts, count with the classic entity instead:
+//   fetch dt.entity.host
+//   | summarize host_count = count(), by: {paasVendorType}
+</code></pre>
+<pre><code class="language-dql">// Services discovered
+smartscapeNodes &quot;SERVICE&quot;
+| summarize service_count = count()
+</code></pre>
+<h3>Phase 2 — Organize complete</h3>
+<p>Primary fields propagating; <code>dt.security_context</code> populated (Gate G2):</p>
+<pre><code class="language-dql">// dt.security_context populated on logs (Gate G2 — Organize -&gt; Operate)
+fetch logs, from:-1h
+| summarize { c = count() }, by:{dt.security_context}
+| sort c desc
+</code></pre>
+<pre><code class="language-dql">// Primary tags propagating
+fetch logs, from:-1h
+| filter isNotNull(primary_tags.environment)
+| summarize { c = count() }, by:{primary_tags.environment}
+</code></pre>
+<h3>Phase 3 — Operate complete</h3>
+<p>Davis surfacing problems, and workflows running:</p>
+<pre><code class="language-dql">// Davis problems detected (last 7 days)
+fetch dt.davis.problems, from:-7d
+| summarize { c = count() }, by:{event.status}
+</code></pre>
+<pre><code class="language-dql">// Workflow runs by final state (last 7 days)
+// Each run also writes a RUNNING record when it starts; filter to final states to count runs once
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;WORKFLOW_EVENT&quot; and event.type == &quot;WORKFLOW_EXECUTION&quot;
+| filter in(dt.automation_engine.state, {&quot;SUCCESS&quot;, &quot;ERROR&quot;})
+| summarize { runs = count() }, by:{dt.automation_engine.workflow.title, dt.automation_engine.state}
+| sort runs desc
+</code></pre>
+<p><a id="anti-patterns"></a></p>
+<h2>4. Anti-Patterns to Avoid</h2>
+<table>
+<thead>
+<tr>
+<th>Anti-pattern</th>
+<th>Why it bites later</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Single host group (<code>all-hosts</code> / <code>default</code>)</td>
+<td>Per-host-group thresholds, alerting profiles, and IAM policies become impossible to scope</td>
+</tr>
+<tr>
+<td>Setting tags retroactively (after install)</td>
+<td>Primary-tag-at-install propagation gets skipped; signals before the retroactive setting do not carry the tag</td>
+</tr>
+<tr>
+<td>Many copies of similar IAM policies (one per group with hardcoded scope)</td>
+<td>Maintenance grows with org churn; use parameterized policies bound via binding parameters</td>
+</tr>
+<tr>
+<td>Legacy Management Zones for new tenant</td>
+<td>API 1.337 marks the <code>managementZone</code> (and <code>serviceTag</code>) properties of calculated service metrics deprecated; segments + <code>dt.security_context</code> + policies are the Latest Dynatrace path (MZ2POL)</td>
+</tr>
+<tr>
+<td>Auto-tagging rules as the primary tagging strategy</td>
+<td>Applied to entities by periodic background rule evaluation, which can lag (<em>&quot;the application of all tags might be delayed!&quot;</em>), not written onto records at ingest; doesn't propagate to logs / business events uniformly</td>
+</tr>
+<tr>
+<td><code>fetch dt.entity.*</code> queries in new content</td>
+<td>Modern path is <code>smartscapeNodes &quot;&lt;TYPE&gt;&quot;</code>; <code>dt.entity.*</code> works but is deprecated</td>
+</tr>
+<tr>
+<td>Buckets used as the primary access-control mechanism</td>
+<td>Buckets are for compliance / retention / hard cost / hostile multi-tenancy; default for general data access is <code>dt.security_context</code></td>
+</tr>
+<tr>
+<td>Classic FullStack on Kubernetes</td>
+<td>Not supported with platform tokens; use Cloud Native FullStack</td>
+</tr>
+<tr>
+<td>Configuration API for new automation</td>
+<td>Many Configuration API endpoints are deprecated in favour of Settings (SaaS 1.337); plan new pipelines on Settings v2 / Terraform / Monaco v2</td>
+</tr>
+<tr>
+<td>Naming host groups by hardware traits (<code>4cpu-hosts</code>, <code>region-only</code>)</td>
+<td>Encodes properties that change; rename burden as workloads scale</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-337">Dynatrace API 1.337 (DT docs)</a> — <code>POST /calculatedMetrics/service</code>: <em>&quot;Changed property managementZone Deprecated changed to true&quot;</em>; <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-tags-auto-tagging">Settings API: automatically applied tags schema (DT docs)</a> — <em>&quot;Tagging rules are executed periodically in the background, for a limited timeframe.&quot;</em>; <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/how-it-works/other-deployment-modes/classic-fullstack">Classic Full-Stack monitoring (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-337">SaaS 1.337 (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="where-to-go-deeper"></a></p>
+<h2>5. Where to Go Deeper — Topic Series Map</h2>
+<p>ONBRD covers the foundation. These topic series cover each domain in depth:</p>
+<table>
+<thead>
+<tr>
+<th>Domain</th>
+<th>Topic Series</th>
+<th>Notebooks</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>IAM administration</strong></td>
+<td>IAM</td>
+<td>16</td>
+</tr>
+<tr>
+<td><strong>Data organization (buckets, segments, security context)</strong></td>
+<td>ORGNZ</td>
+<td>11</td>
+</tr>
+<tr>
+<td><strong>Frequently asked questions</strong></td>
+<td>FAQ</td>
+<td>growing collection</td>
+</tr>
+<tr>
+<td><strong>OpenPipeline log processing</strong></td>
+<td>OPLOGS</td>
+<td>9</td>
+</tr>
+<tr>
+<td><strong>Classic Logs → OpenPipeline migration</strong></td>
+<td>OPMIG</td>
+<td>10</td>
+</tr>
+<tr>
+<td><strong>OpenPipeline beyond logs (spans, metrics, events, bizevents)</strong></td>
+<td>OPIPE</td>
+<td>8</td>
+</tr>
+<tr>
+<td><strong>Distributed tracing &amp; spans</strong></td>
+<td>SPANS</td>
+<td>9</td>
+</tr>
+<tr>
+<td><strong>Kubernetes monitoring &amp; DynaKube</strong></td>
+<td>K8S</td>
+<td>15</td>
+</tr>
+<tr>
+<td><strong>Cloud integration deep dives (AWS, Azure, GCP)</strong></td>
+<td>CLOUD</td>
+<td>9</td>
+</tr>
+<tr>
+<td><strong>OpenTelemetry integration</strong></td>
+<td>OTEL</td>
+<td>9</td>
+</tr>
+<tr>
+<td><strong>Workflows &amp; alert notifications</strong></td>
+<td>WFLOW</td>
+<td>12</td>
+</tr>
+<tr>
+<td><strong>Alerting strategy &amp; design</strong></td>
+<td>ALERT</td>
+<td>5</td>
+</tr>
+<tr>
+<td><strong>Service level objectives</strong></td>
+<td>SLO</td>
+<td>6</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Intelligence (Causal/Predictive/Generative AI, Davis)</strong></td>
+<td>AIOPS</td>
+<td>8</td>
+</tr>
+<tr>
+<td><strong>Dashboard strategy &amp; executive reporting</strong></td>
+<td>DASH</td>
+<td>8</td>
+</tr>
+<tr>
+<td><strong>Configuration automation &amp; GitOps</strong></td>
+<td>AUTOM</td>
+<td>14</td>
+</tr>
+<tr>
+<td><strong>Management Zone migration (segments, policies, workflows)</strong></td>
+<td>MZ2POL</td>
+<td>19</td>
+</tr>
+<tr>
+<td><strong>Web Real User Monitoring</strong></td>
+<td>WEBRUM</td>
+<td>10</td>
+</tr>
+<tr>
+<td><strong>Native mobile monitoring</strong></td>
+<td>MOBL</td>
+<td>13</td>
+</tr>
+<tr>
+<td><strong>Synthetic monitoring</strong></td>
+<td>SYNTH</td>
+<td>7</td>
+</tr>
+<tr>
+<td><strong>Business events &amp; funnel analytics</strong></td>
+<td>BIZEV</td>
+<td>8</td>
+</tr>
+<tr>
+<td><strong>Database monitoring</strong></td>
+<td>DBMON</td>
+<td>7</td>
+</tr>
+<tr>
+<td><strong>Application security</strong></td>
+<td>APPSEC</td>
+<td>10</td>
+</tr>
+<tr>
+<td><strong>Cost management &amp; FinOps</strong></td>
+<td>FINOPS</td>
+<td>3</td>
+</tr>
+<tr>
+<td><strong>Platform maturity &amp; adoption roadmap</strong></td>
+<td>ADOPT</td>
+<td>7</td>
+</tr>
+<tr>
+<td><strong>Running Dynatrace Managed</strong></td>
+<td>DTM</td>
+<td>15</td>
+</tr>
+<tr>
+<td><strong>Managed → SaaS migration</strong></td>
+<td>M2S</td>
+<td>11</td>
+</tr>
+<tr>
+<td><strong>SaaS → SaaS migration</strong></td>
+<td>S2S</td>
+<td>12</td>
+</tr>
+<tr>
+<td><strong>New Relic → Dynatrace (procedural runbook)</strong></td>
+<td>NR2DT</td>
+<td>11</td>
+</tr>
+<tr>
+<td><strong>New Relic → Dynatrace (component deep dives)</strong></td>
+<td>NRLC</td>
+<td>9</td>
+</tr>
+<tr>
+<td><strong>Sumo Logic → Dynatrace</strong></td>
+<td>SL2DT</td>
+<td>11</td>
+</tr>
+<tr>
+<td><strong>Splunk → Dynatrace</strong></td>
+<td>S2D</td>
+<td>10</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against the current <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K8S-10: Metadata Telemetry Enrichment</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">K8S — Kubernetes Monitoring</a><span class="sep">/</span><span aria-current="page">K8S-10</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>K8S-10: Metadata Telemetry Enrichment</h1>
+<blockquote>
+<p><strong>Series:</strong> K8S — Kubernetes Monitoring | <strong>Notebook:</strong> 10 of 14 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/15/2026</p>
+</blockquote>
+<h2>Enriching All Telemetry with Kubernetes Metadata</h2>
+<p>Kubernetes metadata enrichment automatically adds labels and annotations from your Kubernetes resources to all telemetry signals. This is the <strong>recommended approach</strong> for adding context to your observability data because it enriches everything: metrics, logs, traces, events, and entities.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#why-metadata-enrichment">Why Metadata Enrichment?</a></li>
+<li><a href="#enrichment-methods-comparison">Enrichment Methods Comparison</a></li>
+<li><a href="#dynakube-configuration">DynaKube Configuration</a></li>
+<li><a href="#configuring-settings-based-enrichment">Configuring Settings-Based Enrichment</a></li>
+<li><a href="#namespace-selectors">Namespace Selectors</a></li>
+<li><a href="#understanding-enrichment-files">Understanding Enrichment Files</a></li>
+<li><a href="#querying-enriched-data">Querying Enriched Data</a></li>
+<li><a href="#use-cases">Use Cases</a></li>
+<li><a href="#settings-api">Settings API</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+</ol>
+<hr />
+<h3>OneAgent Attribute Enrichment (OneAgent 1.333+)</h3>
+<blockquote>
+<p><strong>Requires:</strong> OneAgent version <strong>1.333</strong> or later</p>
+</blockquote>
+<p>OneAgent can enrich <strong>all telemetry signals</strong> (metrics, spans, logs, events, entities) with custom metadata at the source — before data reaches the Dynatrace platform. This is more efficient than server-side tagging (auto-tags) because enrichment happens on the host and propagates to all Smartscape nodes.</p>
+<p><strong>Primary Fields</strong> (standardized from Semantic Dictionary):</p>
+<ul>
+<li><code>dt.security_context</code> — data governance and access control</li>
+<li><code>dt.cost.costcenter</code> — cost allocation</li>
+<li><code>dt.cost.product</code> — product attribution</li>
+</ul>
+<p><strong>Primary Tags</strong> (custom key-value pairs):</p>
+<ul>
+<li><code>primary_tags.environment</code> — environment identification (production, staging, etc.)</li>
+<li><code>primary_tags.team</code> — team ownership</li>
+<li><code>primary_tags.business_unit</code> — organizational unit</li>
+</ul>
+<p><strong>Configuration:</strong></p>
+<pre><code class="language-bash"># Set during OneAgent installation
+Dynatrace-OneAgent-Linux.sh --set-host-tag=&quot;primary_tags.environment=production&quot; --set-host-tag=&quot;dt.security_context=confidential&quot;
+
+# Set on existing agents via oneagentctl
+oneagentctl --set-host-tag=&quot;primary_tags.environment=production&quot;
+oneagentctl --set-host-tag=&quot;dt.cost.costcenter=12345&quot;
+
+# Per-process via environment variable (overrides host-level)
+DT_TAGS=&quot;primary_tags.team=platform primary_tags.environment=production&quot;
+</code></pre>
+<p><strong>Benefits over auto-tagging:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Auto-Tags (Server-Side)</th>
+<th>Attribute Enrichment (Agent-Side)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>When applied</td>
+<td>After data arrives at platform</td>
+<td>At the source, before transmission</td>
+</tr>
+<tr>
+<td>Scope</td>
+<td>Entity tags only</td>
+<td>All signals: metrics, spans, logs, events, entities</td>
+</tr>
+<tr>
+<td>Grail integration</td>
+<td>Limited</td>
+<td>Full — feeds OpenPipeline routing, bucket assignment, permissions</td>
+</tr>
+<tr>
+<td>Cost allocation</td>
+<td>Not supported</td>
+<td><code>dt.cost.costcenter</code>, <code>dt.cost.product</code> fields</td>
+</tr>
+<tr>
+<td>Security context</td>
+<td>Not supported</td>
+<td><code>dt.security_context</code> for data governance</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>See:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment">Primary Grail fields and tags enrichment through OneAgent</a></p>
+</blockquote>
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>settings:objects:read</code>, <code>settings:objects:write</code> (classic tokens: <code>settings.read</code>, <code>settings.write</code>)</td>
+</tr>
+<tr>
+<td><strong>DynaKube</strong></td>
+<td>Deployed with OneAgent injection, or with <code>metadataEnrichment.enabled: true</code></td>
+</tr>
+<tr>
+<td><strong>Kubernetes</strong></td>
+<td>Namespaces with labels/annotations to enrich</td>
+</tr>
+</tbody>
+</table>
+<p><a id="why-metadata-enrichment"></a></p>
+<h2>1. Why Metadata Enrichment?</h2>
+<p>Kubernetes metadata enrichment solves a critical observability challenge: <strong>connecting telemetry to business context</strong>.</p>
+<h3>Common Use Cases</h3>
+<table>
+<thead>
+<tr>
+<th>Use Case</th>
+<th>Metadata Example</th>
+<th>Benefit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cost allocation</strong></td>
+<td><code>cost-center: finance</code></td>
+<td>Attribute costs to teams</td>
+</tr>
+<tr>
+<td><strong>Environment identification</strong></td>
+<td><code>env: production</code></td>
+<td>Filter by deployment stage</td>
+</tr>
+<tr>
+<td><strong>Team ownership</strong></td>
+<td><code>team: checkout</code></td>
+<td>Route alerts to owners</td>
+</tr>
+<tr>
+<td><strong>Compliance tagging</strong></td>
+<td><code>compliance: pci-dss</code></td>
+<td>Identify regulated workloads</td>
+</tr>
+<tr>
+<td><strong>Application grouping</strong></td>
+<td><code>app: ecommerce</code></td>
+<td>Group related services</td>
+</tr>
+</tbody>
+</table>
+<h3>What Gets Enriched</h3>
+<p>With settings-based enrichment, <strong>all signals</strong> receive metadata:</p>
+<table>
+<thead>
+<tr>
+<th>Signal Type</th>
+<th>Enriched?</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Logs</td>
+<td>Yes</td>
+<td>All container and pod logs</td>
+</tr>
+<tr>
+<td>Metrics</td>
+<td>Yes</td>
+<td>Including Kubernetes platform metrics</td>
+</tr>
+<tr>
+<td>Spans/Traces</td>
+<td>Yes</td>
+<td>Distributed tracing data</td>
+</tr>
+<tr>
+<td>Events</td>
+<td>Yes</td>
+<td>Kubernetes events</td>
+</tr>
+<tr>
+<td>Entities</td>
+<td>Yes</td>
+<td>Smartscape topology</td>
+</tr>
+</tbody>
+</table>
+<h3>Primary Grail Fields and Tags</h3>
+<p>In addition to settings-based enrichment, Dynatrace automatically propagates certain <strong>Primary Grail Fields</strong> across all signal types. These fields are indexed, require no configuration, and are the foundation for cross-signal data organization:</p>
+<table>
+<thead>
+<tr>
+<th>Primary Grail Field</th>
+<th>DQL Field</th>
+<th>Propagation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Kubernetes Cluster</td>
+<td><code>k8s.cluster.name</code></td>
+<td>All signals</td>
+</tr>
+<tr>
+<td>Kubernetes Namespace</td>
+<td><code>k8s.namespace.name</code></td>
+<td>All signals</td>
+</tr>
+<tr>
+<td>Host Group</td>
+<td><code>dt.host_group.id</code></td>
+<td>All signals</td>
+</tr>
+<tr>
+<td>AWS Account</td>
+<td><code>aws.account.id</code></td>
+<td>All signals</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Primary Grail Tags</strong> (prefix <code>primary_tags.</code>) extend this concept for custom dimensions like <code>primary_tags.app</code> or <code>primary_tags.team</code>. Use them when Primary Grail Fields don't align with your organizational structure (e.g., shared infrastructure hosting multiple applications).</p>
+<h4>Setting Primary Tags Directly from Kubernetes</h4>
+<p>The <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s">Kubernetes tag setup (DT docs)</a> page documents dedicated <code>metadata.dynatrace.com</code> annotations for primary tags and primary fields:</p>
+<pre><code class="language-yaml">metadata:
+  annotations:
+    metadata.dynatrace.com/primary_tags.team: payments
+    metadata.dynatrace.com/primary_tags.environment: production
+    metadata.dynatrace.com/dt.security_context: confidential
+    metadata.dynatrace.com/dt.cost.costcenter: it_services
+</code></pre>
+<p>They can sit on a namespace, a workload object or a pod. Within the annotations, <em>&quot;the pod-level value wins over the workload-level value, and the workload-level value wins over the namespace-level value.&quot;</em> Across the enrichment methods, <em>&quot;the priority from highest to lowest is: metadata.dynatrace.com/<key> annotations DynaKube resource attributes Central enrichment rules&quot;</em> — § 2 compares the three.</p>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Minimum versions (Kubernetes tag setup page, read 10/02/2026)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Kubernetes primary-field and tag enrichment</td>
+<td>Operator 1.10+, OneAgent 1.333+, ActiveGate 1.343+</td>
+</tr>
+<tr>
+<td>Workload-level annotations</td>
+<td>Operator 1.11.0+, ActiveGate 1.347+</td>
+</tr>
+<tr>
+<td>At-source host and process tags (<code>--set-host-tag</code>, <code>DT_TAGS</code>)</td>
+<td>OneAgent 1.333+</td>
+</tr>
+<tr>
+<td>Central configuration opt-in</td>
+<td>Dynatrace platform 1.345+ (§ 9)</td>
+</tr>
+</tbody>
+</table>
+<p>Operator 1.11.0 (released 10/01/2026) and ActiveGate 1.347 (rollout from 09/30/2026) both announce workload and pod labels and annotations as enrichment sources, and the docs page gates the workload level on <strong>ActiveGate 1.347</strong> — verify your ActiveGate version before relying on workload-level values. Until then, namespace- and pod-level annotations are the working path. Agent and ActiveGate versions lag the tenant version, so check the fleet, not the tenant.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s">Kubernetes tag setup (DT docs)</a> — <em>&quot;When the same key is set at multiple levels, the pod-level value wins over the workload-level value, and the workload-level value wins over the namespace-level value.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0">Operator 1.11.0 release notes (DT docs)</a> — <em>&quot;the ingest enrichment configuration now supports workload and pod annotations and labels as sources for primary tags and Kubernetes tags.&quot;</em></sub></p>
+</blockquote>
+<p><strong>Cost allocation fields</strong> like <code>dt.cost.costcenter</code> and <code>dt.cost.product</code> also propagate to service metrics, enabling chargeback reporting across teams.</p>
+<blockquote>
+<p><strong>See also:</strong> <strong>ORGNZ-10: Advanced Segment Definitions</strong> covers Primary Grail Fields in depth, including enrichment approaches for dedicated vs. shared infrastructure scenarios.</p>
+</blockquote>
+<p><a id="enrichment-methods-comparison"></a></p>
+<h2>2. Enrichment Methods Comparison</h2>
+<p>Dynatrace offers multiple ways to add Kubernetes metadata. Choose based on your needs:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5LdWJlcm5ldGVzIEVucmljaG1lbnQgTWV0aG9kczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5UaHJlZSB3YXlzIHRvIHB1dCBwcmltYXJ5IGZpZWxkcyBhbmQgcHJpbWFyeSB0YWdzIG9uIEt1YmVybmV0ZXMgdGVsZW1ldHJ5IOKAlCBoaWdoZXN0IHByZWNlZGVuY2Ugb24gdGhlIGxlZnQ8L3RleHQ+CgogIDwhLS0gQ29sdW1uIDE6IGRlZGljYXRlZCBhbm5vdGF0aW9ucyAtLT4KICA8cmVjdCB4PSIzMCIgeT0iODUiIHdpZHRoPSIyNzUiIGhlaWdodD0iMjY1IiByeD0iMTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8cmVjdCB4PSIzMCIgeT0iODUiIHdpZHRoPSIyNzUiIGhlaWdodD0iNDQiIHJ4PSIxMCIgZmlsbD0iIzE0OTZGRiIvPgogIDx0ZXh0IHg9IjE2NyIgeT0iMTA1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj4xIMK3IERlZGljYXRlZCBhbm5vdGF0aW9uczwvdGV4dD4KICA8dGV4dCB4PSIxNjciIHk9IjEyMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+bWV0YWRhdGEuZHluYXRyYWNlLmNvbS8mbHQ7a2V5Jmd0OzwvdGV4dD4KICA8dGV4dCB4PSI0NSIgeT0iMTUyIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5TY29wZTwvdGV4dD4KICA8dGV4dCB4PSI0NSIgeT0iMTcwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5OYW1lc3BhY2UsIHdvcmtsb2FkIG9yIHBvZCBvYmplY3Q8L3RleHQ+CiAgPHRleHQgeD0iNDUiIHk9IjE5NiIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+V2l0aGluIHRoZSBtZXRob2Q8L3RleHQ+CiAgPHRleHQgeD0iNDUiIHk9IjIxNCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+UG9kIHdpbnMgb3ZlciB3b3JrbG9hZCw8L3RleHQ+CiAgPHRleHQgeD0iNDUiIHk9IjIzMCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+d29ya2xvYWQgd2lucyBvdmVyIG5hbWVzcGFjZTwvdGV4dD4KICA8dGV4dCB4PSI0NSIgeT0iMjU2IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5Vc2UgZm9yPC90ZXh0PgogIDx0ZXh0IHg9IjQ1IiB5PSIyNzQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPlBlci1vYmplY3QgdmFsdWVzIGtlcHQgaW4gbWFuaWZlc3RzPC90ZXh0PgogIDx0ZXh0IHg9IjQ1IiB5PSIzMDAiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPldvcmtsb2FkIGxldmVsOiBPcGVyYXRvciAxLjExLjArLDwvdGV4dD4KICA8dGV4dCB4PSI0NSIgeT0iMzE2IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5BY3RpdmVHYXRlIDEuMzQ3KzwvdGV4dD4KCiAgPCEtLSBDb2x1bW4gMjogRHluYUt1YmUgcmVzb3VyY2UgYXR0cmlidXRlcyAtLT4KICA8cmVjdCB4PSIzMjciIHk9Ijg1IiB3aWR0aD0iMjc1IiBoZWlnaHQ9IjI2NSIgcng9IjEwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHJlY3QgeD0iMzI3IiB5PSI4NSIgd2lkdGg9IjI3NSIgaGVpZ2h0PSI0NCIgcng9IjEwIiBmaWxsPSIjQTc4QkZBIi8+CiAgPHRleHQgeD0iNDY0IiB5PSIxMDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMwRjE3MkEiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjIgwrcgRHluYUt1YmUgYXR0cmlidXRlczwvdGV4dD4KICA8dGV4dCB4PSI0NjQiIHk9IjEyMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzBGMTcyQSIgZm9udC1zaXplPSIxMSI+c3BlYy5yZXNvdXJjZUF0dHJpYnV0ZXM8L3RleHQ+CiAgPHRleHQgeD0iMzQyIiB5PSIxNTIiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlNjb3BlPC90ZXh0PgogIDx0ZXh0IHg9IjM0MiIgeT0iMTcwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5FdmVyeXRoaW5nIHRoZSBEeW5hS3ViZSBpbnN0cnVtZW50czwvdGV4dD4KICA8dGV4dCB4PSIzNDIiIHk9IjE5NiIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+V2l0aGluIHRoZSBtZXRob2Q8L3RleHQ+CiAgPHRleHQgeD0iMzQyIiB5PSIyMTQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPlBlci1tb2RlIGFkZGl0aW9uYWxSZXNvdXJjZUF0dHJpYnV0ZXM8L3RleHQ+CiAgPHRleHQgeD0iMzQyIiB5PSIyMzAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPndpbiBvdmVyIHNwZWMucmVzb3VyY2VBdHRyaWJ1dGVzPC90ZXh0PgogIDx0ZXh0IHg9IjM0MiIgeT0iMjU2IiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5Vc2UgZm9yPC90ZXh0PgogIDx0ZXh0IHg9IjM0MiIgeT0iMjc0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5TdGF0aWMsIGNsdXN0ZXItd2lkZSBmYWN0czwvdGV4dD4KICA8dGV4dCB4PSIzNDIiIHk9IjMwMCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+T3BlcmF0b3IgMS4xMC4wKzwvdGV4dD4KCiAgPCEtLSBDb2x1bW4gMzogY2VudHJhbCBlbnJpY2htZW50IHJ1bGVzIC0tPgogIDxyZWN0IHg9IjYyNCIgeT0iODUiIHdpZHRoPSIyNzYiIGhlaWdodD0iMjY1IiByeD0iMTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8cmVjdCB4PSI2MjQiIHk9Ijg1IiB3aWR0aD0iMjc2IiBoZWlnaHQ9IjQ0IiByeD0iMTAiIGZpbGw9IiM3M0JFMjgiLz4KICA8dGV4dCB4PSI3NjIiIHk9IjEwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzBGMTcyQSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+MyDCtyBDZW50cmFsIGVucmljaG1lbnQgcnVsZXM8L3RleHQ+CiAgPHRleHQgeD0iNzYyIiB5PSIxMjEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMwRjE3MkEiIGZvbnQtc2l6ZT0iMTEiPlNldHRpbmdzLCBubyBtYW5pZmVzdCBjaGFuZ2U8L3RleHQ+CiAgPHRleHQgeD0iNjM5IiB5PSIxNTIiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlNjb3BlPC90ZXh0PgogIDx0ZXh0IHg9IjYzOSIgeT0iMTcwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5OYW1lc3BhY2UgbGFiZWxzIGFuZCBhbm5vdGF0aW9uczs8L3RleHQ+CiAgPHRleHQgeD0iNjM5IiB5PSIxODYiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPndvcmtsb2FkL3BvZDogT3BlcmF0b3IgMS4xMSssIEFHIDEuMzQ3KzwvdGV4dD4KICA8dGV4dCB4PSI2MzkiIHk9IjIxMiIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+U2V0dGluZ3Mgc2NoZW1hPC90ZXh0PgogIDx0ZXh0IHg9IjYzOSIgeT0iMjMwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5idWlsdGluOmt1YmVybmV0ZXMuZ2VuZXJpYy5tZXRhZGF0YS5lbnJpY2htZW50PC90ZXh0PgogIDx0ZXh0IHg9IjYzOSIgeT0iMjQ2IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7ihpIgYnVpbHRpbjppbmdlc3QuZW5yaWNobWVudC5jb25maWc8L3RleHQ+CiAgPHRleHQgeD0iNjM5IiB5PSIyNzIiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlRpbWluZzwvdGV4dD4KICA8dGV4dCB4PSI2MzkiIHk9IjI5MCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+TGVnYWN5LXNjaGVtYSBydWxlczogdXAgdG8gNDUgbWluLDwvdGV4dD4KICA8dGV4dCB4PSI2MzkiIHk9IjMwNiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+dGhlbiByZXN0YXJ0IHRoZSBwb2RzPC90ZXh0PgogIDx0ZXh0IHg9IjYzOSIgeT0iMzMyIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5DZW50cmFsIGNvbmZpZ3VyYXRpb246IFNhYVMgMS4zNDUrIG9wdC1pbjwvdGV4dD4KCiAgPCEtLSBQcmVjZWRlbmNlIGFycm93IC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5TYW1lIGtleSBmcm9tIHNldmVyYWwgbWV0aG9kczogYW5ub3RhdGlvbnMgICZndDsgIER5bmFLdWJlIGF0dHJpYnV0ZXMgICZndDsgIGNlbnRyYWwgcnVsZXM8L3RleHQ+CgogIDwhLS0gQ292ZXJhZ2UgYmFuZCAtLT4KICA8cmVjdCB4PSIzMCIgeT0iMzkyIiB3aWR0aD0iODcwIiBoZWlnaHQ9Ijk0IiByeD0iMTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI1MCIgeT0iNDIwIiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5Db3ZlcmFnZSAoYW5ub3RhdGlvbnMgYW5kIGNlbnRyYWwgcnVsZXMpPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSI0NDIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPkRpc3RyaWJ1dGVkIHRyYWNlcyDCtyBPbmVBZ2VudCwgSk1YL1BNSSBhbmQgc2VydmljZSBtZXRyaWNzIMK3IEt1YmVybmV0ZXMgcGxhdGZvcm0gbWV0cmljcyDCtyBLdWJlcm5ldGVzIGV2ZW50cyDCtzwvdGV4dD4KICA8dGV4dCB4PSI1MCIgeT0iNDYwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5TbWFydHNjYXBlIEt1YmVybmV0ZXMgZW50aXRpZXMgwrcgUHJvbWV0aGV1cyBzY3JhcGluZyDCtyBPbmVBZ2VudCBhbmQgRmx1ZW50IEJpdCBsb2dzIMK3IE9wZW5UZWxlbWV0cnkgQ29sbGVjdG9yIGRhdGE8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjQ3NiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+T25lQWdlbnQtYmFzZWQgcGF0aHMgbmVlZCBDbG91ZCBOYXRpdmUgRnVsbCBTdGFjayBvciBBcHBsaWNhdGlvbiBNb25pdG9yaW5nIOKAlCBDbGFzc2ljIEZ1bGwgU3RhY2sgaXMgbm90IHN1cHBvcnRlZDwvdGV4dD4KPC9zdmc+Cg==" alt="Enrichment Methods Comparison" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Method | Scope | Precedence | Use for |
+|--------|-------|------------|---------|
+| Dedicated `metadata.dynatrace.com` annotations | Namespace, workload (Operator 1.11.0+, AG 1.347+) or pod | Highest; pod > workload > namespace | Per-object values kept in manifests |
+| DynaKube resource attributes | Everything the DynaKube instruments | Middle | Static, cluster-wide facts |
+| Central enrichment rules (Settings) | Namespace labels and annotations; workload and pod labels/annotations with Operator 1.11+ and ActiveGate 1.347+ | Lowest | Promoting labels you already have, with no manifest change |
+
+Coverage: annotations and central rules both reach traces, OneAgent/JMX/service metrics, Kubernetes platform metrics, Kubernetes events, Smartscape Kubernetes entities, Prometheus scraping, OneAgent and Fluent Bit logs, and OpenTelemetry Collector data. OneAgent-based paths need Cloud Native Full Stack or Application Monitoring.
+For environments where SVG doesn't render
+-->
+<h3>Choosing a method</h3>
+<ul>
+<li><strong>Central enrichment rules</strong> promote namespace labels and annotations you already maintain, from one place in Settings, with no change to manifests.</li>
+<li><strong>Dedicated annotations</strong> carry values that differ per workload or pod, and win over every other method when the same key is set twice.</li>
+<li><strong>DynaKube resource attributes</strong> attach fixed, cluster-wide facts (account, platform team) to everything the DynaKube instruments.</li>
+</ul>
+<p>The docs' coverage table marks the same signals for central rules and dedicated annotations, so the choice is about where the value is maintained, not which signals it reaches. OneAgent-based enrichment <em>&quot;requires the Cloud Native Full Stack or Application Monitoring deployment mode. Classic Full Stack is not supported.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s">Kubernetes tag setup (DT docs)</a> — <em>&quot;OneAgent-based enrichment requires the Cloud Native Full Stack or Application Monitoring deployment mode. Classic Full Stack is not supported.&quot;</em></sub></p>
+</blockquote>
+<blockquote>
+<p><strong>New (ActiveGate 1.345 — rollout from 08/25/2026): Kubernetes ingest enrichment supports custom rules.</strong> The release note states plainly that <em>&quot;ActiveGate now supports ingest enrichment for custom rules.&quot;</em> This adds a third lever alongside the DynaKube-level and settings-based methods compared above: enrichment applied at the ActiveGate on ingest, driven by your own rules rather than only the built-in Kubernetes metadata set. Where you already maintain enrichment in two places, check whether a custom ingest rule consolidates it — and mind precedence, since another enrichment source setting the same key still wins or loses by the precedence order above. One documented limit from the same release note: <em>&quot;Ingest enrichment rules with conditions are ignored by the ActiveGate.&quot;</em> — a conditional rule silently does nothing on this path, so keep conditional logic in the settings-based method.</p>
+<p>The same release adds <strong><code>container.runtime.name</code> to the Smartscape <code>CONTAINER</code> node</strong> — useful for fleets running more than one runtime (containerd, CRI-O, gVisor), because it makes &quot;which runtime is this workload on&quot; a queryable dimension rather than a node-labelling exercise. That matters in practice: gVisor is exactly the runtime behind the <code>dynatrace-webhook</code> <code>CrashLoopBackOff</code> fixed in Operator 1.10.2, and this field is how you find those nodes before an upgrade.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/activegate/sprint-345">ActiveGate 1.345 release notes (DT docs)</a> — custom-rule ingest enrichment and the <code>container.runtime.name</code> field on the Smartscape <code>CONTAINER</code> node, read 08/28/2026.</sub></p>
+</blockquote>
+<p><a id="dynakube-configuration"></a></p>
+<h2>3. DynaKube Configuration</h2>
+<p>Metadata enrichment must be enabled in your DynaKube custom resource.</p>
+<h3>Enable Metadata Enrichment</h3>
+<pre><code class="language-yaml">apiVersion: dynatrace.com/v1beta6
+kind: DynaKube
+metadata:
+  name: dynakube
+  namespace: dynatrace
+spec:
+  apiUrl: https://ENVIRONMENT_ID.live.dynatrace.com/api
+  
+  # In v1beta6, metadataEnrichment.enabled is false by default; OneAgent
+  # injection enables enrichment for injected pods on its own. Set it to
+  # true for enrichment without OneAgent injection.
+  metadataEnrichment:
+    enabled: true
+  
+  oneAgent:
+    cloudNativeFullStack: {}
+  
+  activeGate:
+    capabilities:
+      - kubernetes-monitoring
+</code></pre>
+<h3>Disable Metadata Enrichment (if needed)</h3>
+<pre><code class="language-yaml">spec:
+  metadataEnrichment:
+    enabled: false
+</code></pre>
+<h3>Defining Resource Attributes in the DynaKube (Operator 1.10.0+)</h3>
+<p>Dynatrace Operator <strong>1.10.0</strong> (released July 15, 2026) adds a cluster-scoped enrichment surface: static resource attributes defined directly in the DynaKube spec. The <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s">Kubernetes tag setup (DT docs)</a> page positions this mechanism in the primary-tag specificity chain below pod/namespace annotations and above central configuration rules. Three spec fields participate:</p>
+<table>
+<thead>
+<tr>
+<th>Spec field</th>
+<th>Applies to</th>
+<th>Precedence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.spec.resourceAttributes</code></td>
+<td>All signals (OneAgent, OTLP, log monitoring, ActiveGate)</td>
+<td>Base — overridden by the mode-specific fields below on duplicate keys</td>
+</tr>
+<tr>
+<td><code>.spec.oneAgent.&lt;mode&gt;.additionalResourceAttributes</code></td>
+<td>OneAgent-emitted signals only</td>
+<td>Wins over <code>.spec.resourceAttributes</code> on duplicate keys</td>
+</tr>
+<tr>
+<td><code>.spec.otlpExporterConfiguration.additionalResourceAttributes</code></td>
+<td>OTLP telemetry only</td>
+<td>Wins over <code>.spec.resourceAttributes</code> on duplicate keys</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-yaml">spec:
+  resourceAttributes:
+    aws.account.id: &quot;123456789012&quot;
+  oneAgent:
+    cloudNativeFullStack:
+      additionalResourceAttributes:
+        my.team: platform
+  otlpExporterConfiguration:
+    additionalResourceAttributes:
+      my.team: platform
+</code></pre>
+<p>Constraints documented with the feature:</p>
+<ul>
+<li>A <strong>soft limit of 10 attributes</strong> applies across <code>.spec.resourceAttributes</code> and all <code>additionalResourceAttributes</code> blocks combined.</li>
+<li>Keys are sanitized (invalid DNS characters replaced); keys over 63 characters violate Kubernetes label limits.</li>
+<li>When both OneAgent and OTLP injection are active on the same pod, <strong>conflicting keys produce undefined behavior</strong> — keep the two mode-specific blocks consistent.</li>
+<li>The values are cluster-scoped and static. Use pod/namespace annotations for per-workload values; use this surface for cluster-wide facts (account IDs, environment, owning platform team).</li>
+</ul>
+<blockquote>
+<p><strong>Running an earlier Operator?</strong> These spec fields require Operator 1.10.0+ — on earlier versions the DynaKube rejects them at admission. The namespace/pod annotation path and the settings-based enrichment described in this notebook remain the working paths until your clusters upgrade.</p>
+</blockquote>
+<h3>Tagging Rule Precedence Changed in Operator 1.10.2</h3>
+<p><strong>Operator 1.10.2</strong> (released July 30, 2026) fixed a regression in Kubernetes workload and namespace tagging where, when several rules matched the same key, <strong>each subsequent matching rule overwrote the previous one</strong>. From 1.10.2, <strong>only the first matching rule for a given key applies</strong>.</p>
+<p>This is a <strong>behaviour change, not only a defect fix</strong>, and it is the one thing to check before upgrading:</p>
+<table>
+<thead>
+<tr>
+<th>Your rule set</th>
+<th>Effect of upgrading to 1.10.2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>At most one rule per key</td>
+<td>None. The fix is invisible to you.</td>
+</tr>
+<tr>
+<td>Several rules matching the same key, and you relied on the <strong>last</strong> one winning</td>
+<td><strong>Tag values change.</strong> The first matching rule now wins instead. Audit and reorder before you upgrade.</td>
+</tr>
+<tr>
+<td>Several rules matching the same key, ordering incidental</td>
+<td>Values may change; confirm the winner is the one you want.</td>
+</tr>
+</tbody>
+</table>
+<p>Because these tags flow into <code>dt.security_context</code>, cost fields and primary tags, a silent flip changes what IAM boundaries admit and how cost is attributed — the failure is in <em>routing and access</em>, not in an error message. Audit first:</p>
+<pre><code class="language-bash"># List the enrichment/tagging rules currently configured
+kubectl -n dynatrace get dynakube -o yaml | grep -A20 &quot;resourceAttributes&quot;
+
+# After upgrading, confirm the resulting values on live telemetry
+</code></pre>
+<pre><code class="language-dql">// Which security contexts and primary tags are actually landing on telemetry?
+fetch logs, from:-1h
+| filter isNotNull(dt.security_context)
+| summarize recordCount = count(), by:{k8s.cluster.name, k8s.namespace.name, dt.security_context}
+| sort recordCount desc
+| limit 50
+</code></pre>
+<p>The same release also <strong>starts logging metadata-enrichment rules the Operator cannot apply</strong> instead of disregarding them silently — so after upgrading, the operator log is worth reading once for rules that were never taking effect:</p>
+<pre><code class="language-bash">kubectl -n dynatrace logs -l app.kubernetes.io/name=dynatrace-operator --tail=200 | grep -i enrich
+</code></pre>
+<blockquote>
+<p><strong>Adopting on your own schedule.</strong> Operator upgrades roll out per estate, not per tenant. Until 1.10.2 reaches a given cluster, the previous last-rule-wins behaviour is what that cluster exhibits — and everything else in this notebook describes it correctly. Plan the rule audit as part of the upgrade, not after it.</p>
+</blockquote>
+<blockquote>
+<p><strong>See:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/metadata-automation/metadata-enrichment">Metadata enrichment (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-0">Operator 1.10.0 release notes (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-2">Operator 1.10.2 release notes (DT docs)</a></p>
+</blockquote>
+<p><a id="configuring-settings-based-enrichment"></a></p>
+<h2>4. Configuring Settings-Based Enrichment</h2>
+<h3>Access Settings</h3>
+<p>Rules live in the <strong>Kubernetes telemetry enrichment</strong> setting (schema <code>builtin:kubernetes.generic.metadata.enrichment</code>), at environment or cluster scope. § 9 covers the central configuration that replaces this schema from SaaS 1.345.</p>
+<h3>Rule Configuration Options</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Metadata type</strong></td>
+<td><code>LABEL</code> or <code>ANNOTATION</code> — <em>&quot;Only namespace-level labels or annotations can be used as source.&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Source</strong></td>
+<td>The label or annotation key on the namespace</td>
+</tr>
+<tr>
+<td><strong>Target</strong></td>
+<td><code>dt.security_context</code>, <code>dt.cost.costcenter</code> or <code>dt.cost.product</code></td>
+</tr>
+<tr>
+<td><strong>Enrich telemetry with label/annotation directly</strong></td>
+<td>Adds the value as a field of its own, for example <code>k8s.namespace.label.&lt;key&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<p>Up to 20 rules. <em>&quot;New rules may take up to 45 minutes to take effect. Pod restarts are required after the 45 mins to ensure the changes take effect.&quot;</em></p>
+<h3>Example: Capture Team, Cost Center and Environment</h3>
+<p>If your namespaces have:</p>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Namespace
+metadata:
+  name: checkout
+  labels:
+    team: checkout-team
+    cost-center: engineering
+    env: production
+</code></pre>
+<p>Create enrichment rules:</p>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Metadata Type</th>
+<th>Source</th>
+<th>Target / option</th>
+<th>Field on telemetry</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Label</td>
+<td><code>team</code></td>
+<td>Target <code>dt.security_context</code></td>
+<td><code>dt.security_context: checkout-team</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>Label</td>
+<td><code>cost-center</code></td>
+<td>Target <code>dt.cost.costcenter</code></td>
+<td><code>dt.cost.costcenter: engineering</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Label</td>
+<td><code>env</code></td>
+<td>Enrich directly</td>
+<td><code>k8s.namespace.label.env: production</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-kubernetes-generic-metadata-enrichment">Kubernetes telemetry enrichment schema (DT docs)</a> — <em>&quot;New rules may take up to 45 minutes to take effect. Pod restarts are required after the 45 mins to ensure the changes take effect.&quot;</em></sub></p>
+</blockquote>
+<p><a id="namespace-selectors"></a></p>
+<h2>5. Namespace Selectors</h2>
+<p>By default, enrichment rules apply to <strong>all namespaces</strong>. Use namespace selectors to limit scope.</p>
+<h3>DynaKube Namespace Selector</h3>
+<p>If your DynaKube uses a <code>namespaceSelector</code>, ensure it matches the namespaces you want to enrich:</p>
+<pre><code class="language-yaml">spec:
+  metadataEnrichment:
+    enabled: true
+    namespaceSelector:
+      matchLabels:
+        dynatrace-enrich: enabled
+</code></pre>
+<h3>Labeling Namespaces for Enrichment</h3>
+<pre><code class="language-bash"># Enable enrichment for a namespace
+kubectl label namespace checkout dynatrace-enrich=enabled
+
+# Verify labels
+kubectl get namespace checkout --show-labels
+</code></pre>
+<h3>Match Expressions</h3>
+<p>For more complex selection:</p>
+<pre><code class="language-yaml">namespaceSelector:
+  matchExpressions:
+    - key: env
+      operator: In
+      values:
+        - production
+        - staging
+</code></pre>
+<p><a id="understanding-enrichment-files"></a></p>
+<h2>6. Understanding Enrichment Files</h2>
+<p>The Dynatrace Operator creates enrichment files that are used by OneAgent and applications.</p>
+<h3>File Locations</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Location</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt_metadata.json</code></td>
+<td><code>/var/lib/dynatrace/enrichment/</code> in the pod</td>
+<td>JSON format metadata</td>
+</tr>
+<tr>
+<td><code>dt_metadata.properties</code></td>
+<td><code>/var/lib/dynatrace/enrichment/</code> in the pod</td>
+<td>Properties format</td>
+</tr>
+</tbody>
+</table>
+<p>The Operator also writes the same metadata to the <code>metadata.dynatrace.com</code> pod annotation, and DynaKube resource attributes to <code>dt_node_metadata.properties</code> for host OneAgents.</p>
+<h3>Example dt_metadata.json Content</h3>
+<pre><code class="language-json">{
+  &quot;k8s.cluster.name&quot;: &quot;prod-eu-1&quot;,
+  &quot;k8s.namespace.name&quot;: &quot;checkout&quot;,
+  &quot;k8s.pod.name&quot;: &quot;checkout-api-7d9f8c6b4d-x2k9m&quot;,
+  &quot;k8s.workload.kind&quot;: &quot;deployment&quot;,
+  &quot;k8s.workload.name&quot;: &quot;checkout-api&quot;
+}
+</code></pre>
+<h3>Accessing Enrichment Files in Applications</h3>
+<p>For manual instrumentation or custom applications:</p>
+<pre><code class="language-python">import json
+import os
+
+# Load Dynatrace metadata
+enrichment_paths = [
+    '/var/lib/dynatrace/enrichment/dt_metadata.json',
+]
+
+metadata = {}
+for path in enrichment_paths:
+    if os.path.exists(path):
+        with open(path) as f:
+            metadata.update(json.load(f))
+
+print(metadata)
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/metadata-automation/metadata-enrichment">Metadata enrichment (DT docs)</a> — <em>&quot;Dynatrace Operator writes metadata to the enrichment directory at /var/lib/dynatrace/enrichment and to the metadata.dynatrace.com pod annotation.&quot;</em></sub></p>
+</blockquote>
+<p><a id="querying-enriched-data"></a></p>
+<h2>7. Querying Enriched Data</h2>
+<p>Once enrichment is configured, you can filter and group by the enriched attributes.</p>
+<pre><code class="language-dql">// Log volume by namespace and team (primary tag)
+// primary_tags.team is null until an annotation, DynaKube attribute or central rule sets it.
+fetch logs, from:-1h
+| filter isNotNull(k8s.namespace.name)
+| summarize logCount = count(), by:{k8s.namespace.name, primary_tags.team}
+| sort logCount desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// CPU by cost center — sum() of every container carrying that dt.cost.costcenter value
+// rollup: avg averages each container within a time bucket before the cross-container sum;
+// without it, sum() also adds the 1-min points in each bucket and wide timeframes read ~10x high.
+timeseries cpuMillicores = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-1h,
+  by:{k8s.cluster.name, dt.cost.costcenter}
+| fieldsAdd avgCpuMillicores = round(arrayAvg(cpuMillicores), decimals: 0)
+| fields k8s.cluster.name, dt.cost.costcenter, avgCpuMillicores
+| sort avgCpuMillicores desc
+</code></pre>
+<pre><code class="language-dql">// Span volume and latency by namespace and service
+// dt.service.name, not service.name: service.name is the OpenTelemetry resource attribute and is
+// absent on OneAgent spans (on the validation tenant, 10/02/2026, it was set on 4,258 of 304,602
+// spans carrying k8s.namespace.name). dt.service.name is set on every span.
+fetch spans, from:-1h
+| filter isNotNull(k8s.namespace.name)
+| summarize {spanCount = count(), avgDurationMs = avg(duration) / 1ms},
+    by:{k8s.namespace.name, dt.service.name}
+| sort spanCount desc
+| limit 20
+</code></pre>
+<p><a id="use-cases"></a></p>
+<h2>8. Use Cases</h2>
+<h3>Cost Allocation by Team</h3>
+<p>Label namespaces with cost centers:</p>
+<pre><code class="language-bash">kubectl label namespace checkout cost-center=checkout-team
+kubectl label namespace catalog cost-center=catalog-team
+kubectl label namespace shared cost-center=platform
+</code></pre>
+<p>Create an enrichment rule with source <code>cost-center</code> and target <code>dt.cost.costcenter</code>, then query:</p>
+<pre><code class="language-dql">timeseries totalCpu = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-1h, by:{dt.cost.costcenter}
+</code></pre>
+<h3>Pipeline Routing (Bucket Assignment)</h3>
+<p>Send logs to different buckets based on enriched metadata. OpenPipeline has no &quot;route&quot; processor for this: inside a pipeline, the bucket is chosen in the <strong>Bucket assignment</strong> stage, where each <strong>Bucket assignment</strong> processor pairs a DQL matching condition with a target bucket. Add one processor per destination:</p>
+<table>
+<thead>
+<tr>
+<th>Matching condition (DQL)</th>
+<th>Bucket</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>k8s.namespace.label.env == &quot;production&quot;</code></td>
+<td><code>prod_logs_365d</code></td>
+</tr>
+<tr>
+<td><code>k8s.namespace.label.env == &quot;staging&quot;</code></td>
+<td><code>staging_logs_35d</code></td>
+</tr>
+</tbody>
+</table>
+<p>The stage applies the first matching processor only, so order processors from most to least specific. Matching conditions are DQL: strings take double quotes, and a single-quoted condition such as <code>k8s.namespace.label.env == 'production'</code> is rejected.</p>
+<h3>Security Context Assignment</h3>
+<p>The simplest route is an enrichment rule with target <code>dt.security_context</code> (§ 4), which sets the field before ingest. To derive it in the pipeline instead, use the <strong>Permission</strong> stage: add a <strong>Set security context</strong> processor with a matching condition such as <code>k8s.namespace.label.team == &quot;checkout-team&quot;</code> and the value <code>team:checkout</code>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — Bucket assignment stage: <em>&quot;Assign records to the best fit bucket.&quot;</em> Permission stage: <em>&quot;Apply security context to the records that match the query.&quot;</em></sub></p>
+</blockquote>
+<h3>Grail Permissions</h3>
+<p>Create IAM policies based on Kubernetes attributes:</p>
+<pre><code>ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH &quot;default_&quot;;
+ALLOW storage:logs:read WHERE storage:k8s.namespace.name = &quot;checkout&quot;;
+</code></pre>
+<p><a id="settings-api"></a></p>
+<h2>9. Settings API</h2>
+<p>Manage enrichment rules programmatically via the Settings API.</p>
+<h3>Schema</h3>
+<p>The schema for Kubernetes telemetry enrichment is: <code>builtin:kubernetes.generic.metadata.enrichment</code></p>
+<blockquote>
+<p><strong>This schema is being replaced by the central configuration (SaaS 1.345+ — verify your tenant).</strong> Starting with SaaS 1.345 you can opt a cluster, or the whole tenant, into central configuration, and the rules move to <code>builtin:ingest.enrichment.config</code>. The examples below still describe the working path until you opt in.</p>
+<p>What to know before you opt in:</p>
+<ul>
+<li><strong>Version floors.</strong> The migration guide lists <em>&quot;Dynatrace Operator version 1.10 or later&quot;</em>, <em>&quot;OneAgent version 1.333 or later&quot;</em>, <em>&quot;ActiveGate version 1.343 or later&quot;</em>, and <em>&quot;Dynatrace version 1.345+ (required for the central configuration opt-in)&quot;</em>. Primary Grail tags on edge additionally need <em>&quot;Dynatrace version 1.348+ and ActiveGate version 1.345 or later (for primary Grail tags on edge)&quot;</em>. SaaS 1.348 is a staged rollout, so check it has reached your tenant.</li>
+<li><strong>Automatic migration happens only once.</strong> When you opt in, <em>&quot;If none exist, your current enrichment setup is automatically migrated to the new central configuration setting in the background. If rules already exist, no automatic migration occurs and your existing setup remains unchanged.&quot;</em> If you create even one rule in the new schema by hand first, you migrate the rest yourself.</li>
+<li><strong>Inheritance flips from override to merge.</strong> In the current schema, <em>&quot;rules defined at the Kubernetes cluster level replace rules defined at the environment level.&quot;</em> In the new schema, <em>&quot;The new settings merge rules from the environment level with rules from the cluster level, where cluster-level rules take precedence.&quot;</em> So an environment-level rule that a cluster-level rule set silently hid today starts applying to that cluster after migration. Review environment-level rules before you opt in, because tags and cost fields can appear where they never did.</li>
+<li><strong>Automation that writes this schema</strong> (the <code>curl</code> examples below, Monaco, Terraform) must move to the new schema id. The new rules use a different shape as well: the guide maps a current <code>Label</code> rule to a <code>K8S_NAMESPACE_LABEL</code> rule with a <code>target</code>.</li>
+</ul>
+<p>The ready-made <em>Check your upgrade readiness</em> dashboard lists clusters whose enrichment rules have not been migrated yet.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/metadata-automation/k8s-enrichment-migration">Migrate to central configuration for Kubernetes telemetry enrichment (DT docs)</a> — all quotes in this callout.</sub></p>
+</blockquote>
+<h3>Workload and pod rules in central configuration</h3>
+<p>The central schema <code>builtin:ingest.enrichment.config</code> takes more than namespace rules. Its rule types include <code>K8S_NAMESPACE_LABEL</code>, <code>K8S_NAMESPACE_ANNOTATION</code>, <code>K8S_WORKLOAD_LABEL</code>, <code>K8S_WORKLOAD_ANNOTATION</code>, <code>K8S_POD_LABEL</code> and <code>K8S_POD_ANNOTATION</code>. Dynatrace's AWS end-to-end example uses them the way you would expect: namespace labels for values the whole namespace shares (<code>app</code>, <code>stage</code>) and a workload label for the value that differs per workload (<code>team</code>), all at the cluster scope.</p>
+<ul>
+<li><strong>Version floors.</strong> Workload and pod rule types need Dynatrace Operator 1.11+ and ActiveGate 1.347+. ActiveGate 1.347 is a staged rollout, so check it has reached your clusters.</li>
+<li><strong>Restart after a label change.</strong> <em>&quot;Values resolved from Kubernetes metadata are applied when a pod starts, so restart the pods after changing a label.&quot;</em></li>
+<li><strong>The pages now agree.</strong> The Kubernetes tag page says <em>&quot;Each central configuration rule selects a source, for example, a namespace label, a workload annotation, a pod label, or a static literal value, and a target, such as a primary field or a primary tag.&quot;</em> and <em>&quot;Workload and pod rule types require Dynatrace Operator version 1.11+ ActiveGate version 1.347+&quot;</em>. Keep the <code>metadata.dynatrace.com</code> annotations for values you want to set in the manifest rather than read from an existing label.</li>
+</ul>
+<p>FAQ-26 § 5.2 compares all Kubernetes enrichment options; CLOUD-03 shows the EKS split between cluster rules and AWS-account rules.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-ingest-enrichment-config">Ingest enrichment configuration schema (DT docs)</a> — rule types <code>K8S_WORKLOAD_LABEL</code>, <code>K8S_WORKLOAD_ANNOTATION</code>, <code>K8S_POD_LABEL</code>, <code>K8S_POD_ANNOTATION</code>; <a href="https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws">Apply primary Grail tags across an example AWS estate (DT docs)</a> — <em>&quot;Values resolved from Kubernetes metadata are applied when a pod starts, so restart the pods after changing a label.&quot;</em>; <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s">Enrich Kubernetes telemetry with primary Grail fields and tags (DT docs)</a> — <em>&quot;Each central configuration rule selects a source, for example, a namespace label, a workload annotation, a pod label, or a static literal value, and a target, such as a primary field or a primary tag.&quot;</em>, <em>&quot;Workload and pod rule types require Dynatrace Operator version 1.11+ ActiveGate version 1.347+&quot;</em>.</sub></p>
+</blockquote>
+<h3>List Current Rules</h3>
+<pre><code class="language-bash">curl -X GET &quot;https://ENVIRONMENT_ID.live.dynatrace.com/api/v2/settings/objects?schemaIds=builtin:kubernetes.generic.metadata.enrichment&amp;scopes=environment&quot; \
+  -H &quot;Authorization: Api-Token YOUR_TOKEN&quot;
+</code></pre>
+<h3>Create Rule via API</h3>
+<pre><code class="language-bash">curl -X POST &quot;https://ENVIRONMENT_ID.live.dynatrace.com/api/v2/settings/objects&quot; \
+  -H &quot;Authorization: Api-Token YOUR_TOKEN&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '[
+    {
+      &quot;schemaId&quot;: &quot;builtin:kubernetes.generic.metadata.enrichment&quot;,
+      &quot;scope&quot;: &quot;environment&quot;,
+      &quot;value&quot;: {
+        &quot;rules&quot;: [
+          {
+            &quot;type&quot;: &quot;LABEL&quot;,
+            &quot;source&quot;: &quot;cost-center&quot;,
+            &quot;target&quot;: &quot;dt.cost.costcenter&quot;,
+            &quot;primaryGrailTag&quot;: false
+          }
+        ]
+      }
+    }
+  ]'
+</code></pre>
+<p><a id="troubleshooting"></a></p>
+<h2>10. Troubleshooting</h2>
+<h3>Enrichment Not Appearing</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Cause</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No enriched attributes</td>
+<td>Rules not propagated</td>
+<td>Wait up to 45 minutes after rule creation, then restart the pods</td>
+</tr>
+<tr>
+<td>Some namespaces missing</td>
+<td>namespaceSelector mismatch</td>
+<td>Verify DynaKube namespaceSelector</td>
+</tr>
+<tr>
+<td>Pods not enriched</td>
+<td>metadataEnrichment disabled</td>
+<td>Check DynaKube spec</td>
+</tr>
+</tbody>
+</table>
+<h3>Verify DynaKube Status</h3>
+<pre><code class="language-bash"># Check DynaKube configuration
+kubectl -n dynatrace get dynakube -o yaml | grep -A5 metadataEnrichment
+
+</code></pre>
+<h3>Verify Enrichment Files</h3>
+<pre><code class="language-bash"># Check enrichment directory exists
+kubectl exec -it &lt;pod-name&gt; -- ls -la /var/lib/dynatrace/enrichment/
+
+# View enrichment content
+kubectl exec -it &lt;pod-name&gt; -- cat /var/lib/dynatrace/enrichment/dt_metadata.json
+</code></pre>
+<h3>Timing Considerations</h3>
+<p>For the settings-based rules, the schema states: <em>&quot;New rules may take up to 45 minutes to take effect. Pod restarts are required after the 45 mins to ensure the changes take effect.&quot;</em></p>
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>The three enrichment methods — dedicated annotations, DynaKube attributes, central rules — and their precedence</li>
+<li>How to enable enrichment in DynaKube</li>
+<li>Creating enrichment rules in Settings, and what each rule field does</li>
+<li>Using namespace selectors to scope enrichment</li>
+<li>Understanding enrichment file locations and formats</li>
+<li>Querying enriched data with DQL</li>
+<li>Practical use cases: cost allocation, routing, security</li>
+<li>Troubleshooting common issues</li>
+</ul>
+<blockquote>
+<p><strong>Beyond Kubernetes:</strong> <strong>FAQ-26</strong> covers how the same primary fields and tags are set by every other producer — OneAgent, OpenTelemetry, cloud connections, extensions, synthetic monitors and RUM — and how to audit coverage across all of them.</p>
+</blockquote>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/metadata-automation/k8s-metadata-telemetry-enrichment">Metadata enrichment for K8s telemetry (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/metadata-automation/metadata-enrichment">Configure enrichment directory (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-kubernetes-generic-metadata-enrichment">Settings API — K8s Telemetry Enrichment schema (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/k8-security-context">K8s security context Grail permissions (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s">Set up Dynatrace on Kubernetes (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s">Kubernetes tag setup (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters">DynaKube parameters (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

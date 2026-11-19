@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SL2DT-06: Dashboard Conversion</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SL2DT — Sumo Logic to Dynatrace</a><span class="sep">/</span><span aria-current="page">SL2DT-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SL2DT-06: Dashboard Conversion</h1>
+<blockquote>
+<p><strong>Series:</strong> SL2DT — Sumo Logic to Dynatrace | <strong>Notebook:</strong> 6 of 11 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 10/14/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Goal of this step:</strong> rebuild in-scope Sumo dashboards in Dynatrace using Notebooks (for analytical dashboards) or Dashboards (for operational/executive views). Map each Sumo panel to a DQL section + visualization. Do <strong>not</strong> migrate every dashboard — only those that survived cut-scope (SL2DT-02).</p>
+<p>The translation work leans on SL2DT-04 for the queries and on train-the-trainer for app-team delivery.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#outputs">What You'll Produce</a></li>
+<li><a href="#targets">Notebooks vs Dashboards — Choosing the Target</a></li>
+<li><a href="#panels">Panel-to-Section Mapping</a></li>
+<li><a href="#visualizations">Visualization Type Translation</a></li>
+<li><a href="#variables">Sumo Variables → Dashboard Variables</a></li>
+<li><a href="#demos">Rebuilding the Core Team's 5 Demo Dashboards</a></li>
+<li><a href="#playbook">App-Team Playbook (train-the-trainer)</a></li>
+<li><a href="#gate">Step Exit Criteria</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Core migration engineers + app-team dashboard authors</td>
+</tr>
+<tr>
+<td><strong>Inputs</strong></td>
+<td><code>inventory/dashboards/</code> + translations from SL2DT-04 + cut-scope from SL2DT-02</td>
+</tr>
+<tr>
+<td><strong>Dynatrace access</strong></td>
+<td>Platform Token with <code>document:documents:write</code> (for notebooks/dashboards)</td>
+</tr>
+<tr>
+<td><strong>Prior reading</strong></td>
+<td>DASH-01 (Dashboard strategy), dynatrace-notebook-authoring skill</td>
+</tr>
+</tbody>
+</table>
+<p><a id="outputs"></a></p>
+<h2>1. What You'll Produce</h2>
+<table>
+<thead>
+<tr>
+<th>Artifact</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dashboards/notebook-configs/</code></td>
+<td>Dynatrace Notebook JSON per migrated asset</td>
+</tr>
+<tr>
+<td><code>dashboards/dashboard-configs/</code></td>
+<td>Dynatrace Dashboard JSON (for op views)</td>
+</tr>
+<tr>
+<td><code>dashboards/variable-map.md</code></td>
+<td>Sumo dashboard variable → Dynatrace dashboard variable mapping</td>
+</tr>
+<tr>
+<td><code>dashboards/rebuild-tracker.csv</code></td>
+<td>Per-dashboard status: owner, target, done/in-progress/blocked</td>
+</tr>
+<tr>
+<td><code>dashboard-rebuild-report.md</code></td>
+<td>Weekly progress to PM</td>
+</tr>
+</tbody>
+</table>
+<p><a id="targets"></a></p>
+<h2>2. Notebooks vs Dashboards — Choosing the Target</h2>
+<p>Dynatrace has two dashboard-like products. Pick deliberately.</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Notebook</th>
+<th>Dashboard</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Purpose</td>
+<td>Analytical, runbook, authoring</td>
+<td>Operational, at-a-glance view</td>
+</tr>
+<tr>
+<td>Navigation</td>
+<td>Top-to-bottom reading</td>
+<td>Panels in grid</td>
+</tr>
+<tr>
+<td>DQL editing</td>
+<td>Inline</td>
+<td>Inline</td>
+</tr>
+<tr>
+<td>Markdown sections</td>
+<td>Yes, freely interleaved</td>
+<td>Text tiles only</td>
+</tr>
+<tr>
+<td>Variables</td>
+<td>No — a <code>$name</code> reference fails to parse in a notebook section</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Sharing</td>
+<td>Document API</td>
+<td>Document API</td>
+</tr>
+<tr>
+<td>Suited for</td>
+<td>Investigation, tutorials, reports</td>
+<td>Monitoring displays, SRE pages</td>
+</tr>
+</tbody>
+</table>
+<h3>Decision Rule</h3>
+<table>
+<thead>
+<tr>
+<th>Sumo Dashboard Type</th>
+<th>Dynatrace Target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Any dashboard that relies on variables</td>
+<td><strong>Dashboard</strong></td>
+</tr>
+<tr>
+<td>Investigation / analytical</td>
+<td><strong>Notebook</strong></td>
+</tr>
+<tr>
+<td>On-call operator view</td>
+<td><strong>Dashboard</strong></td>
+</tr>
+<tr>
+<td>Team home page</td>
+<td><strong>Dashboard</strong> (with embedded notebook links)</td>
+</tr>
+<tr>
+<td>Executive KPI view</td>
+<td><strong>Dashboard</strong></td>
+</tr>
+<tr>
+<td>Post-incident forensics</td>
+<td><strong>Notebook</strong></td>
+</tr>
+<tr>
+<td>SRE runbook with manual steps</td>
+<td><strong>Notebook</strong></td>
+</tr>
+</tbody>
+</table>
+<p><a id="panels"></a></p>
+<h2>3. Panel-to-Section Mapping</h2>
+<p>Each Sumo panel becomes one DQL section (with <code>visualization</code> field) in the notebook/dashboard.</p>
+<h3>Sumo Panel Anatomy</h3>
+<pre><code class="language-json">{
+  &quot;id&quot;: &quot;panel-123&quot;,
+  &quot;title&quot;: &quot;Error Rate by Service&quot;,
+  &quot;query&quot;: &quot;_sourceCategory=prod/api | timeslice 1m | count by service&quot;,
+  &quot;visualization&quot;: &quot;line&quot;,
+  &quot;position&quot;: { &quot;x&quot;: 0, &quot;y&quot;: 0, &quot;width&quot;: 6, &quot;height&quot;: 4 }
+}
+</code></pre>
+<h3>Dynatrace Notebook Section (Version 7)</h3>
+<pre><code class="language-json">{
+  &quot;id&quot;: &quot;section-1&quot;,
+  &quot;type&quot;: &quot;dql&quot;,
+  &quot;title&quot;: &quot;Error Rate by Service&quot;,
+  &quot;state&quot;: {
+    &quot;input&quot;: {
+      &quot;value&quot;: &quot;fetch logs, from:-1h | filter sumo.source_category == \&quot;prod/api\&quot; | makeTimeseries c = count(), interval:1m, by:{k8s.workload.name}&quot;,
+      &quot;timeframe&quot;: { &quot;from&quot;: &quot;now()-1h&quot;, &quot;to&quot;: &quot;now()&quot; }
+    },
+    &quot;visualizationSettings&quot;: {
+      &quot;chartSettings&quot;: { &quot;gapPolicy&quot;: &quot;connect&quot; }
+    }
+  },
+  &quot;visualization&quot;: &quot;lineChart&quot;
+}
+</code></pre>
+<p><strong>Pick the split field by coverage, not by name.</strong> Sumo's <code>by service</code> was usually a field your collectors or FERs set, and Dynatrace has no single field that carries it for every log. <code>service.name</code> is an OpenTelemetry resource attribute and is empty on most OneAgent-collected logs: on the validation tenant (1 h, 10/14/2026) it was set on 1.3% of logs, <code>dt.smartscape.service</code> on 3.6%, <code>k8s.workload.name</code> on 41%, and <code>log.source</code> on 80%. The example splits by <code>k8s.workload.name</code>; for non-Kubernetes sources use <code>log.source</code> or <code>sumo.source_category</code>. Count <code>countIf(isNotNull(&lt;field&gt;))</code> against <code>count()</code> on your own logs first — every log without the field lands in one null row.</p>
+<h3>Mapping Workflow</h3>
+<p>For each panel:</p>
+<ol>
+<li>Look up the Sumo query in <code>translations/all-queries.csv</code> → get the DQL</li>
+<li>Add <code>from:</code> to the DQL (time range from Sumo panel config)</li>
+<li>Map Sumo visualization type → Dynatrace visualization (see table below)</li>
+<li>Preserve title, layout position, description</li>
+<li>Skip panels marked <code>retire</code> in cut-scope</li>
+</ol>
+<h3>Common Mistakes</h3>
+<ul>
+<li><strong>Copying the time range wrong.</strong> Sumo dashboards have a global time picker that overrides panel-level ranges. Check both.</li>
+<li><strong>Missing <code>from:</code> clause.</strong> The query still runs — it silently uses the tile or notebook timeframe — so it is the #1 cause of numbers that don't match the Sumo panel.</li>
+<li><strong>Stale DQL from SL2DT-04.</strong> If you re-translated after schema changes, re-pull from the CSV.</li>
+</ul>
+<p><a id="visualizations"></a></p>
+<h2>4. Visualization Type Translation</h2>
+<table>
+<thead>
+<tr>
+<th>Sumo Viz</th>
+<th>Dynatrace Viz</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Line chart</td>
+<td>Line chart</td>
+<td>Most common — direct</td>
+</tr>
+<tr>
+<td>Area chart</td>
+<td>Area chart</td>
+<td></td>
+</tr>
+<tr>
+<td>Bar chart</td>
+<td>Bar chart (categorical)</td>
+<td></td>
+</tr>
+<tr>
+<td>Column chart</td>
+<td>Bar chart (categorical, vertical)</td>
+<td></td>
+</tr>
+<tr>
+<td>Pie chart</td>
+<td>Pie / donut</td>
+<td>Tables read better for many categories</td>
+</tr>
+<tr>
+<td>Single value</td>
+<td>Single value</td>
+<td>With threshold colors</td>
+</tr>
+<tr>
+<td>Table</td>
+<td>Table</td>
+<td></td>
+</tr>
+<tr>
+<td>Honeycomb</td>
+<td>Honeycomb</td>
+<td>Status grids</td>
+</tr>
+<tr>
+<td>Heat map</td>
+<td>Heatmap</td>
+<td></td>
+</tr>
+<tr>
+<td>Map (geo)</td>
+<td>Choropleth map, dot map or bubble map</td>
+<td>Pick by data shape: regions, points, or sized points</td>
+</tr>
+<tr>
+<td>Gauge</td>
+<td>Gauge (or meter bar)</td>
+<td></td>
+</tr>
+<tr>
+<td>Text panel</td>
+<td>Markdown section / text tile</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/edit-visualizations">Edit visualizations (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Example — Single Value with Threshold</h3>
+<p>Sumo: percentage panel showing <code>error_pct</code> with red if &gt;5%, yellow if &gt;1%, green otherwise.</p>
+<p>Dynatrace Notebook:</p>
+<pre><code class="language-dql">// 4. Visualization Type Translation — single value with thresholds
+fetch logs, from:-5m
+| filter sumo.source_category == &quot;prod/api&quot;
+| summarize {total = count(), errors = countIf(contains(content, &quot;error&quot;, caseSensitive:false))}
+| fieldsAdd error_pct = 100.0 * toDouble(errors) / toDouble(total)
+| fields error_pct
+
+</code></pre>
+<pre><code class="language-json">{
+  &quot;visualization&quot;: &quot;singleValue&quot;,
+  &quot;visualizationSettings&quot;: {
+    &quot;thresholds&quot;: [
+      { &quot;value&quot;: 1, &quot;color&quot;: &quot;#FFB800&quot; },
+      { &quot;value&quot;: 5, &quot;color&quot;: &quot;#DE350B&quot; }
+    ]
+  }
+}
+</code></pre>
+<p><a id="variables"></a></p>
+<h2>5. Sumo Variables → Dashboard Variables</h2>
+<p>Sumo dashboards use variables (e.g., <code>{{environment}}</code>, <code>{{host}}</code>). In Dynatrace, <strong>only Dashboards have variables</strong> — declared in the dashboard and referenced as <code>$var_name</code> in tile queries. Notebooks have none: a <code>$name</code> reference in a notebook section fails to parse (<em>&quot;<code>$</code> isn't allowed here&quot;</em>). A Sumo dashboard that depends on variables therefore becomes a Dynatrace Dashboard.</p>
+<h3>Mapping Example</h3>
+<p><strong>Sumo variable:</strong></p>
+<pre><code class="language-text">{{environment}} → dropdown with values [prod, preprod, dev]
+</code></pre>
+<p><strong>Dynatrace dashboard variable:</strong> a variable named <code>environment</code> whose values are <code>prod</code>, <code>preprod</code> and <code>dev</code> — either a fixed list or a DQL query that returns them — with <code>prod</code> as the default.</p>
+<p><strong>Usage in DQL:</strong></p>
+<pre><code class="language-dql">// 5. Sumo Variables → Dashboard Variables
+//
+// Corrected 08/12/2026: `$variable` references resolve only inside a Dashboard tile — executed as a
+// notebook cell they fail at parse time with &quot;`$` isn't allowed here&quot;. The literals below make the
+// cell runnable; the commented line above each filter is the form to paste into a dashboard tile.
+//
+// Split by a field your logs carry (see §3). `service.name` was set on 1.3% of logs on the validation
+// tenant (10/14/2026); `k8s.workload.name` on 41%, so ~59% still land in the null row there. Check the
+// null row's share before publishing the tile, and use log.source or sumo.source_category if it dominates.
+fetch logs, from:-1h
+// dashboard tile: | filter startsWith(sumo.source_category, concat($environment, &quot;/&quot;))
+| filter isNotNull(sumo.source_category)
+| summarize c = count(), by:{k8s.workload.name}
+| sort c desc
+| limit 20
+</code></pre>
+<h3>Dependent Variables</h3>
+<p>Sumo supports variable dependencies (<code>{{host}}</code> filtered by <code>{{environment}}</code>). In a Dynatrace dashboard, build the dependent variable from a DQL query that references the parent variable.</p>
+<h3>Multi-Value Variables</h3>
+<p>Sumo <code>{{host}}</code> with multi-select becomes DQL <code>in(f, $host)</code> where <code>$host</code> is a multi-select dashboard variable.</p>
+<p><a id="demos"></a></p>
+<h2>6. Rebuilding the Core Team's 5 Demo Dashboards</h2>
+<p>The train-the-trainer model (SL2DT-01 §4) requires the core team to rebuild 5 real-world dashboards as worked examples. Choose:</p>
+<ol>
+<li><strong>A simple operational dashboard</strong> — 4–6 panels, all line charts, one service</li>
+<li><strong>A multi-team dashboard</strong> — requires variable for team selection</li>
+<li><strong>A complex analytical dashboard</strong> — 10+ panels, mixed viz types</li>
+<li><strong>An SLA dashboard</strong> — singleValue + thresholds + burn rate</li>
+<li><strong>A capacity dashboard</strong> — metric queries, host-level detail</li>
+</ol>
+<p>For each, produce:</p>
+<ul>
+<li>The raw Sumo → DT translation (what the translator did)</li>
+<li>The refined DT version (what an engineer polished)</li>
+<li>A README with lessons learned</li>
+</ul>
+<p>These become the app-team reference library.</p>
+<h3>Demo Dashboard Template Structure</h3>
+<pre><code>demos/
+├── 01-simple-operational/
+│   ├── sumo-original.json       # Exported from Sumo
+│   ├── dt-raw-translation.json  # Post-translation, pre-polish
+│   ├── dt-final.json            # What shipped
+│   └── README.md                # Walkthrough
+├── 02-multi-team/
+├── 03-complex-analytical/
+├── 04-sla/
+└── 05-capacity/
+</code></pre>
+<p><a id="playbook"></a></p>
+<h2>7. App-Team Playbook (Train-the-Trainer)</h2>
+<p>Give each app team this playbook:</p>
+<h3>Dashboard Conversion — 7 Steps</h3>
+<ol>
+<li><strong>Identify your dashboards</strong> in <code>cut-scope.md</code> (filter by your team)</li>
+<li><strong>Locate translations</strong> in <code>translations/all-queries.csv</code> (filter by your dashboard IDs)</li>
+<li><strong>Pick target</strong> — Notebook (analytical) or Dashboard (operational)</li>
+<li><strong>Start from a demo template</strong> — pick the closest of the 5 core-team demos</li>
+<li><strong>Rebuild panel-by-panel</strong> — for each panel, paste the DQL from translations, set visualization, title, position</li>
+<li><strong>Add dashboard variables</strong> if the original had them</li>
+<li><strong>Submit PR to core team</strong> for review — include screenshot + link + owner signoff</li>
+</ol>
+<h3>PR Checklist for App Teams</h3>
+<ul>
+<li>[ ] All in-scope panels recreated</li>
+<li>[ ] Each panel's DQL validated (runs successfully against tenant)</li>
+<li>[ ] Variables mapped to dashboard variables</li>
+<li>[ ] Title, description, metadata preserved</li>
+<li>[ ] Screenshot attached showing working state</li>
+<li>[ ] Link to live notebook/dashboard in tenant</li>
+</ul>
+<h3>Common App-Team Mistakes</h3>
+<ul>
+<li>Using <code>parse</code> at query time when a FER (SL2DT-03) already extracted the field</li>
+<li>Forgetting <code>from:</code> on fetch/timeseries — the query silently uses the tile or notebook timeframe instead, the #1 cause of numbers that don't match the Sumo panel</li>
+<li>Copying Sumo panel time ranges that made sense in Sumo but not in Dynatrace (e.g., Sumo's &quot;all time&quot; → DT needs a concrete <code>from:</code>)</li>
+<li>Skipping the cut-scope review (&quot;I want to rebuild everything&quot;) — slows them down and burns budget</li>
+</ul>
+<p><a id="gate"></a></p>
+<h2>8. Step Exit Criteria</h2>
+<p><strong>G6 — Dashboards Rebuilt</strong></p>
+<ul>
+<li>[ ] Core team's 5 demo dashboards complete and committed to <code>demos/</code></li>
+<li>[ ] All Wave 3 (top-usage) dashboards rebuilt and validated for <strong>fidelity</strong> (tiles show the numbers the Sumo original showed)</li>
+<li>[ ] All rebuilt dashboards pass <strong>schema/render validation</strong> — opened in the Dashboards app with zero validation warnings, not just accepted by the API (see <strong>DASH-07 §5</strong>; under SaaS 1.344 a dashboard that fails validation no longer loads at all)</li>
+<li>[ ] App-team Wave 4 dashboards: ≥75% complete, others tracked in <code>rebuild-tracker.csv</code></li>
+<li>[ ] Variable mapping documented for every dashboard that uses variables</li>
+<li>[ ] Every rebuilt dashboard: owner signoff recorded</li>
+<li>[ ] Aggregate metric: dashboard-conversion fidelity ≥90%</li>
+</ul>
+<p><strong>Next step:</strong> <strong>SL2DT-07 — User Governance &amp; Access</strong> (IAM groups, bucket-scoped policies, SSO).</p>
+<hr />
+<p><a id="references"></a></p>
+<h2>9. References</h2>
+<h3>Dynatrace visualization surfaces</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks">Dashboards and notebooks (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/notebooks">Notebooks (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">DQL Reference (DT docs)</a></li>
+</ul>
+<h3>Sumo Logic dashboard reference (source)</h3>
+<ul>
+<li><a href="https://www.sumologic.com:443/help/docs/dashboards/">Sumo Logic dashboards (Sumo Logic docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://www.sumologic.com:443/help/docs/">Sumo Logic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

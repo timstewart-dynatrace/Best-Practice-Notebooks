@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SL2DT-03: Log Ingest Architecture</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SL2DT — Sumo Logic to Dynatrace</a><span class="sep">/</span><span aria-current="page">SL2DT-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SL2DT-03: Log Ingest Architecture</h1>
+<blockquote>
+<p><strong>Series:</strong> SL2DT — Sumo Logic to Dynatrace | <strong>Notebook:</strong> 3 of 11 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Goal of this step:</strong> stand up Dynatrace ingest that produces parity with (or improvement over) the Sumo collector footprint. Design Grail buckets, deploy OneAgent + OTel + OpenPipeline pipelines, convert every Field Extraction Rule into an OpenPipeline processor.</p>
+<p>This step is gating. Downstream monitors (SL2DT-05), dashboards (SL2DT-06), and the translation pass (SL2DT-04) all assume logs are flowing into the correct buckets with the expected fields. Don't start those until the ingest layer produces at least 5–10% of final production volume for validation.</p>
+<blockquote>
+<p><strong>Metrics are a separate workstream.</strong> This notebook covers the <strong>log</strong> ingest path. If the source account also collects metrics — Telegraf, hosted metrics sources, StatsD, or Prometheus scrape — run <strong>SL2DT-10: Migrating Telegraf-Collected Metrics</strong> alongside this step rather than after cutover.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#outputs">What You'll Produce</a></li>
+<li><a href="#access">Prerequisites &amp; Access</a></li>
+<li><a href="#buckets">Grail Bucket Design</a></li>
+<li><a href="#sourcecat"><code>_sourceCategory</code> Mapping — Implementation</a></li>
+<li><a href="#oneagent">Deploy OneAgent for Host Collectors</a></li>
+<li><a href="#otel">Deploy OTel Collector for Non-OneAgent Sources</a></li>
+<li><a href="#openpipeline">Configure OpenPipeline Pipelines</a></li>
+<li><a href="#fers">Convert FERs to OpenPipeline Processors</a></li>
+<li><a href="#validate">Validate Ingest Parity</a></li>
+<li><a href="#gate">Step Exit Criteria</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Platform engineering + ingest team</td>
+</tr>
+<tr>
+<td><strong>Dynatrace tenant</strong></td>
+<td>Gen3 SaaS, Platform Token with <code>storage:buckets:write</code> and <code>settings:objects:write</code> scopes (OpenPipeline pipelines, ingest sources and routing are Settings 2.0 objects). Changing <strong>routing</strong> needs <code>settings:objects:write</code> on <code>builtin:openpipeline.logs.routing</code>, which covers every route in the scope — see §2</td>
+</tr>
+<tr>
+<td><strong>Prior reading</strong></td>
+<td>SL2DT-02 (taxonomy map + collector inventory + FER inventory); OPMIG-01 (OpenPipeline fundamentals); K8S-01 (if K8s sources)</td>
+</tr>
+<tr>
+<td><strong>Tools</strong></td>
+<td>Terraform + Monaco for config-as-code (recommended); kubectl for K8s; cURL for Platform Token validation</td>
+</tr>
+</tbody>
+</table>
+<p><a id="outputs"></a></p>
+<h2>1. What You'll Produce</h2>
+<table>
+<thead>
+<tr>
+<th>Artifact</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Grail bucket configs</td>
+<td>One per retention/IAM tier from taxonomy map</td>
+</tr>
+<tr>
+<td>OneAgent rollout config</td>
+<td>Hosts auto-instrumented</td>
+</tr>
+<tr>
+<td>OTel Collector manifests</td>
+<td>Non-OneAgent sources (syslog, HTTP, cloud)</td>
+</tr>
+<tr>
+<td>OpenPipeline pipeline configs</td>
+<td>Per bucket + per <code>_sourceCategory</code> scope</td>
+</tr>
+<tr>
+<td>OpenPipeline processors</td>
+<td>FER equivalents (one per original FER)</td>
+</tr>
+<tr>
+<td>Ingest validation report</td>
+<td>Parity check: Sumo volume vs DT volume per scope</td>
+</tr>
+</tbody>
+</table>
+<p>Commit to <code>config/ingest/</code> as Terraform HCL + Monaco YAML.</p>
+<p><a id="access"></a></p>
+<h2>2. Prerequisites &amp; Access</h2>
+<p>This step uses two distinct credential types — they are <strong>not interchangeable</strong>, and mixing them up is a common source of &quot;permission denied&quot; confusion during ingest setup.</p>
+<h3>Platform Token — query/runtime API calls</h3>
+<p>Platform Token (prefix <code>dt0s16.</code>) with these scopes, for runtime/query-time API calls (bucket read/write of data, log/settings read/write, OpenPipeline configuration through the Settings API):</p>
+<pre><code>storage:buckets:read, storage:buckets:write
+storage:logs:read, storage:logs:write
+settings:objects:read, settings:objects:write   (includes OpenPipeline pipelines, ingest sources, routing)
+</code></pre>
+<p>Bucket-scoped IAM policies are <strong>not</strong> in this list: a platform token does not manage IAM. Policies, groups and bindings run on an OAuth client — see SL2DT-07 for the client and SL2DT-08 §4 for the Terraform side.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md">Dynatrace Terraform provider — argument reference (Dynatrace GitHub)</a> — <em>&quot;Platform tokens can't be used for IAM (Account Management) or classic resources.&quot;</em></sub></p>
+</blockquote>
+<p><strong>OpenPipeline is configured through the Settings API.</strong> Log pipelines, ingest sources and routing are the Settings 2.0 schemas <code>builtin:openpipeline.logs.pipelines</code>, <code>builtin:openpipeline.logs.ingest-sources</code> and <code>builtin:openpipeline.logs.routing</code>, governed by <code>settings:objects:read</code> / <code>settings:objects:write</code>. Routing has no owner-based sharing: <em>&quot;Owner-based control is available for pipelines and ingest sources, and not routing.&quot;</em> A write grant on the routing schema covers every route in that scope — <em>&quot;This policy gives users write permissions to all routes for a configuration scope and should therefore be used with caution.&quot;</em> Grant it with a policy such as:</p>
+<pre><code class="language-text">ALLOW settings:objects:write WHERE settings:schemaId IN (&quot;builtin:openpipeline.logs.pipelines&quot;, &quot;builtin:openpipeline.logs.ingest-sources&quot;, &quot;builtin:openpipeline.logs.routing&quot;);
+</code></pre>
+<blockquote>
+<p>Older guides list <code>openpipeline:configurations:read</code> / <code>openpipeline:configurations:write</code>. Those scopes belonged to the OpenPipeline Configurations API (<code>GET</code> / <code>POST /platform/openpipeline/v1/configurations/{id}</code>, deprecated in SaaS 1.327), which reached end of life on June 29, 2026. Don't request them for pipeline or routing changes. The read scope is still the one every endpoint on the current OpenPipeline API reference requires — Preview, Matcher, DQL processor, Technology and <strong>List configurations</strong> (<code>GET /platform/openpipeline/v1/configurations</code>, which lists configuration identifiers).</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/access-control">Owner-based access control in OpenPipeline (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-342">SaaS 1.342 release notes (DT docs)</a> — <em>&quot;On June 29, 2026, we will deactivate the legacy Configurations API and migrate all environments to the new configuration based on the Settings API.&quot;</em>, <a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-openpipeline-v1/configurations-get">List configurations (DT docs)</a> — <em>&quot;you need a platform token or OAuth access token with openpipeline:configurations:read scope&quot;</em></sub></p>
+</blockquote>
+<p><strong>Critical:</strong> Platform Token uses <code>Authorization: Bearer &lt;token&gt;</code>, not <code>Api-Token</code>.</p>
+<pre><code class="language-bash">export DT_TENANT=&quot;https://&lt;env-id&gt;.apps.dynatrace.com&quot;
+export DT_TOKEN=&quot;dt0s16.XXXXX...&quot;
+# Smoke test: a one-row Grail query exercises storage:buckets:read + storage:logs:read.
+curl -s -X POST &quot;$DT_TENANT/platform/storage/query/v1/query:execute&quot; \
+  -H &quot;Authorization: Bearer $DT_TOKEN&quot; -H &quot;Content-Type: application/json&quot; \
+  -d '{&quot;query&quot;: &quot;fetch logs, from:-5m | limit 1&quot;}'
+</code></pre>
+<p>Don't verify a platform token with the token lookup endpoint. <code>/api/v2/apiTokens/lookup</code> takes a classic access token (<code>dt0c01.</code>, <code>Api-Token</code> auth); platform tokens have no lookup by secret.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic">Upgrade from Classic access tokens to platform tokens (DT docs)</a> — <em>&quot;Platform tokens don't support lookup by secret value&quot;</em>.</sub></p>
+</blockquote>
+<h3>OAuth client — Terraform-managed bucket definitions</h3>
+<p><strong>The <code>dynatrace_platform_bucket</code> Terraform resource used later in this notebook is OAuth-client-only</strong> — a Platform Token cannot drive it, regardless of the <code>storage:*</code> scopes above. Provision an OAuth client with:</p>
+<pre><code>storage:bucket-definitions:read    (View bucket metadata)
+storage:bucket-definitions:write   (Write buckets)
+storage:bucket-definitions:delete  (Delete buckets)
+</code></pre>
+<pre><code class="language-bash">export DT_CLIENT_ID=&quot;dt0s02.XXXXX&quot;
+export DT_CLIENT_SECRET=&quot;dt0s02.XXXXX.YYYYY&quot;
+export DT_ACCOUNT_ID=&quot;&lt;account-uuid&gt;&quot;
+</code></pre>
+<p>The Platform Token scopes above (<code>storage:buckets:*</code>) gate query/read access to bucket <strong>data</strong> at runtime — they are a separate concern from OAuth-client-gated bucket <strong>definition</strong> CRUD via Terraform.</p>
+<blockquote>
+<p>This OAuth-client-only requirement isn't unique to buckets — it applies to every IAM resource too, and <strong>AUTOM-04</strong>'s consolidated resource catalog now documents the full list of OAuth-client-only resources in one place (buckets, IAM group/policy/bindings) alongside the Platform-Token-eligible ones.</p>
+</blockquote>
+<h3>Terraform + Monaco</h3>
+<pre><code class="language-bash"># Terraform
+terraform init
+
+# Monaco (for bulk config promotion)
+monaco --version
+</code></pre>
+<p><a id="buckets"></a></p>
+<h2>3. Grail Bucket Design</h2>
+<p>From the taxonomy map (SL2DT-02 output), define buckets.</p>
+<h3>Bucket Naming Convention</h3>
+<pre><code class="language-text">custom_logs_{env}[_{scope}]
+</code></pre>
+<p>Examples:</p>
+<ul>
+<li><code>custom_logs_prod</code> — production logs, default</li>
+<li><code>custom_logs_prod_db</code> — production database logs (separate retention)</li>
+<li><code>custom_logs_preprod</code> — pre-production</li>
+<li><code>custom_logs_dev</code> — development</li>
+<li><code>audit_logs</code> — audit-trail <strong>log sources</strong> carried over from Sumo (compliance retention). Dynatrace's own audit events are not stored here — see SL2DT-07 §6.</li>
+</ul>
+<h3>How buckets are managed</h3>
+<p>Bucket definitions are not managed through a Settings 2.0 schema — no <code>builtin:bucket-configuration</code> schema is documented. Manage them with the Terraform <code>dynatrace_platform_bucket</code> resource (OAuth client — see §2) or the Monaco <code>bucket</code> type (<em>&quot;Since Dynatrace Monaco CLI version 2.9.0+, the <code>bucket</code> type is supported&quot;</em>). Both need the <code>storage:bucket-definitions:*</code> permissions listed in §2.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_bucket.md">dynatrace_platform_bucket (Terraform provider, Dynatrace GitHub)</a>, <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas-type-fields">Monaco configuration type fields (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Terraform Example</h3>
+<pre><code class="language-hcl">resource &quot;dynatrace_platform_bucket&quot; &quot;custom_logs_prod&quot; {
+  name         = &quot;custom_logs_prod&quot;
+  display_name = &quot;Production Logs&quot;
+  retention    = 90
+  table        = &quot;logs&quot;
+}
+
+resource &quot;dynatrace_platform_bucket&quot; &quot;custom_logs_prod_db&quot; {
+  name         = &quot;custom_logs_prod_db&quot;
+  display_name = &quot;Production Database Logs&quot;
+  retention    = 180
+  table        = &quot;logs&quot;
+}
+
+resource &quot;dynatrace_platform_bucket&quot; &quot;audit_logs&quot; {
+  name         = &quot;audit_logs&quot;
+  display_name = &quot;Audit Trail&quot;
+  retention    = 365
+  table        = &quot;logs&quot;
+}
+</code></pre>
+<h3>Validate buckets exist</h3>
+<pre><code class="language-dql">// Confirm bucket inventory
+//
+// Corrected 08/12/2026: the field is `display_name` (snake_case), not `displayName`, and the
+// retention field is `retention_days`. The old cell failed with FIELD_DOES_NOT_EXIST.
+fetch dt.system.buckets
+| fields name, display_name, retention_days, dt.system.table, records
+| sort name asc
+</code></pre>
+<p><a id="sourcecat"></a></p>
+<h2>4. <code>_sourceCategory</code> Mapping — Implementation</h2>
+<p>Two decisions come out of the taxonomy map (SL2DT-02): bucket routing and attribute preservation. Both get implemented in OpenPipeline.</p>
+<h3>Pattern A — Bucket routing at ingest</h3>
+<p>Route on a source identifier (namespace, host group, tag, container label) with a <strong>bucket assignment</strong> in the pipeline's Storage stage. The matcher is a DQL condition — for example:</p>
+<pre><code class="language-dql">k8s.namespace.name == &quot;prod&quot; or startsWith(log.source, &quot;/var/log/prod/&quot;)
+</code></pre>
+<p>with target bucket <code>custom_logs_prod</code>. §7 shows where this sits in the current Settings shape.</p>
+<h3>Pattern B — Attribute preservation</h3>
+<p>Carry the Sumo <code>_sourceCategory</code> value in a <strong>customer-owned attribute outside the <code>dt.*</code> namespace</strong> — this series uses <code>sumo.source_category</code> — so translated queries can still group by it. Set it with a <strong>DQL processor</strong> (§7):</p>
+<pre><code class="language-dql">fieldsAdd sumo.source_category = concat(&quot;prod/api/&quot;, k8s.deployment.name)
+</code></pre>
+<p>Do <strong>not</strong> reuse <code>dt.source_entity</code>. It is a Dynatrace-owned field holding the <strong>entity ID</strong> of the log's source (the semantic dictionary describes it as <em>&quot;The ID of the entity considered the source of the signal&quot;</em>), it is already populated on most OneAgent logs, and OpenPipeline adds it only after processing: <em>&quot;The following fields are added after the Processing stage when Dynatrace runs its entity detection. You can use them only in stages after the Processing stage&quot;</em> — <code>dt.source_entity</code> is on that list. A processor that writes a category into it does not produce the field the queries expect.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits">OpenPipeline limits (DT docs)</a>. <strong>Dictionary:</strong> <code>dt.source_entity</code> (<code>deprecated</code>), read 10/05/2026.</sub></p>
+</blockquote>
+<p>Most customers do both: bucket for isolation, attribute for query-time grouping.</p>
+<h3>Query what you get</h3>
+<p>After OpenPipeline is live, this should return your taxonomy:</p>
+<pre><code class="language-dql">// Inspect the preserved _sourceCategory equivalent
+fetch logs, from:-1h, bucket:{&quot;custom_logs_prod&quot;}
+| summarize c = count(), by:{sumo.source_category}
+| sort c desc
+| limit 50
+
+</code></pre>
+<p><a id="oneagent"></a></p>
+<h2>5. Deploy OneAgent for Host Collectors</h2>
+<p>Every Sumo Installed Collector has a OneAgent equivalent. For hosts already running a Sumo Installed Collector:</p>
+<h3>Linux / Windows Hosts</h3>
+<pre><code class="language-bash"># Fetch installer from tenant UI or API, then:
+/bin/sh Dynatrace-OneAgent-Linux-1.xxx.sh \
+  --set-app-log-content-access=true \
+  --set-host-group=prod-web
+
+# Verify
+oneagentctl --get-host-tag
+oneagentctl --get-logmonitoring-enabled
+</code></pre>
+<h3>AWS / Azure / GCP Hosts</h3>
+<p>VMs that ran a Sumo Installed Collector still need OneAgent — deploy it with your provisioning tooling (SL2DT-08 §7). The Clouds app (AWS) and the Azure / GCP integrations add the managed-service metrics and logs; they do not collect host log files or processes, so they complement OneAgent rather than replace it.</p>
+<h3>Kubernetes</h3>
+<p>Install the Dynatrace Operator, then configure DynaKube:</p>
+<pre><code class="language-yaml">apiVersion: dynatrace.com/v1beta6
+kind: DynaKube
+metadata:
+  name: dynakube
+  namespace: dynatrace
+spec:
+  apiUrl: https://&lt;env-id&gt;.live.dynatrace.com/api
+  tokens: tokens-secret
+  oneAgent:
+    cloudNativeFullStack:
+      tolerations: []
+      nodeSelector: {}
+  activeGate:
+    capabilities:
+      - kubernetes-monitoring
+      - routing
+  logMonitoring:
+    ingestRuleMatchers:
+      - attribute: k8s.namespace.name
+        values: [&quot;prod-payments&quot;, &quot;prod-web&quot;, &quot;preprod-payments&quot;]
+</code></pre>
+<p><code>apiUrl</code> is the environment URL <em>&quot;including the <code>/api</code> path at the end&quot;</em> — on SaaS the <code>live.dynatrace.com</code> host, not the <code>apps.dynatrace.com</code> platform host. An <code>ingestRuleMatchers</code> entry has only <code>attribute</code> and <code>values</code> (there is no <code>operator</code>), and the documentation's examples list exact names — list each namespace rather than relying on wildcards. Plan the list up front: <em>&quot;This field is immutable once set.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters">DynaKube parameters (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Capture host groupings</h3>
+<p>Tag hosts per team/environment. These tags feed the bucket routing in OpenPipeline.</p>
+<pre><code class="language-bash">oneagentctl --set-host-tag=&quot;team=payments&quot;
+oneagentctl --set-host-tag=&quot;env=prod&quot;
+</code></pre>
+<h3>Verify ingest</h3>
+<pre><code class="language-dql">// Confirm OneAgent-instrumented hosts are sending logs
+fetch logs, from:-15m
+| filter isNotNull(dt.entity.host)
+| summarize c = count(), by:{entityName(dt.entity.host)}
+| sort c desc
+| limit 20
+
+</code></pre>
+<p><a id="otel"></a></p>
+<h2>6. Deploy OTel Collector for Non-OneAgent Sources</h2>
+<p>For sources where OneAgent doesn't apply (syslog listener, HTTP upload, message-queue consumer, proprietary agents), deploy an OTel Collector.</p>
+<h3>Minimal OTel Collector Config</h3>
+<pre><code class="language-yaml">receivers:
+  syslog:
+    tcp:
+      listen_address: 0.0.0.0:5514
+    protocol: rfc5424
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  resourcedetection:
+    detectors: [env, system]
+  batch:
+    send_batch_size: 1000
+    timeout: 5s
+
+exporters:
+  otlphttp:
+    endpoint: https://&lt;env-id&gt;.live.dynatrace.com/api/v2/otlp
+    headers:
+      Authorization: &quot;Api-Token dt0c01.XXX&quot;
+
+service:
+  pipelines:
+    logs:
+      receivers: [syslog, otlp]
+      processors: [resourcedetection, batch]
+      exporters: [otlphttp]
+</code></pre>
+<p><strong>Note on auth:</strong> the exporter above uses a Classic API token (<code>dt0c01.</code>, <code>Api-Token</code> scheme) with the <code>logs.ingest</code> scope, which covers the OpenTelemetry log ingest API. From <strong>SaaS 1.343</strong> (staged tenant rollout from 07/14/2026) platform tokens also authenticate against classic and ingest endpoints: send <code>Authorization: Bearer dt0s16.…</code> with the scope that matches the signal — <code>openpipeline:logs:ingest</code> for logs, <code>openpipeline:traces:ingest</code> for OTLP traces. Confirm 1.343 has reached your tenant before switching; until it has, the <code>dt0c01</code> token remains the working path, and it stays supported afterwards.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-343">What's new in Dynatrace SaaS 1.343 (DT docs)</a> — <em>&quot;You can now use platform tokens to authenticate against all classic and ingest API endpoints, including logs, metrics, and business events.&quot;</em>, <em>&quot;Existing API token authentication remains fully supported, so no changes are required for current integrations.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/basics/dynatrace-api-authentication">Dynatrace API authentication (DT docs)</a> — <em>&quot;Platform tokens work across ingest endpoints and require a scope that matches the signal type&quot;</em>; <code>logs.ingest</code> <em>&quot;Grants access to the POST ingest logs request of the Log Monitoring API v2 as well as the OpenTelemetry log ingest API.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<h3>HTTP Source Equivalent</h3>
+<p>Sumo &quot;Hosted HTTP Source&quot; → OpenPipeline HTTP endpoint (no OTel in between):</p>
+<pre><code class="language-bash">curl -X POST &quot;https://&lt;env-id&gt;.live.dynatrace.com/api/v2/logs/ingest&quot; \
+  -H &quot;Authorization: Api-Token dt0c01.XXX&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '[{&quot;content&quot;: &quot;app log line&quot;, &quot;log.source&quot;: &quot;prod/api/web&quot;}]'
+</code></pre>
+<p>The log ingest endpoint is on the environment's <code>live.dynatrace.com</code> host, as in the documented example — not the <code>apps.dynatrace.com</code> host held in <code>$DT_TENANT</code> for platform API calls. With a platform token on SaaS 1.343+, replace the header with <code>Authorization: Bearer &lt;platform-token&gt;</code> (scope <code>openpipeline:logs:ingest</code>).</p>
+<p>Scripted ingestion from CloudWatch, EventHub, Pub/Sub — replace with Dynatrace cloud integrations (AWS Clouds app, Azure, GCP) rather than dual-writing via HTTP.</p>
+<p><a id="openpipeline"></a></p>
+<h2>7. Configure OpenPipeline Pipelines</h2>
+<p>For each bucket, define a pipeline that:</p>
+<ol>
+<li><strong>Matches</strong> — which logs belong here</li>
+<li><strong>Processes</strong> — parse, enrich, redact</li>
+<li><strong>Routes</strong> — to the target bucket</li>
+</ol>
+<h3>Example: Production API Logs Pipeline</h3>
+<p><strong>Note on API surface:</strong> the OpenPipeline <strong>Configurations API</strong> (the older <code>pipelineId</code>/<code>matchers</code>/<code>processors</code> JSON shape) is deprecated with an end-of-life of <strong>June 29, 2026</strong>. Current pipeline configuration goes through the <strong>Settings API</strong>, using the per-scope schema family <code>builtin:openpipeline.&lt;scope&gt;.pipelines</code> (plus <code>.routing</code> and <code>.ingest-sources</code> for matching/routing and source config), or the equivalent Terraform resource. Both forms below reflect the current shape.</p>
+<p><strong>Settings API — <code>builtin:openpipeline.logs.pipelines</code>:</strong></p>
+<pre><code class="language-json">{
+  &quot;schemaId&quot;: &quot;builtin:openpipeline.logs.pipelines&quot;,
+  &quot;scope&quot;: &quot;environment&quot;,
+  &quot;value&quot;: {
+    &quot;displayName&quot;: &quot;Production API Logs&quot;,
+    &quot;customId&quot;: &quot;pipeline_prod_api&quot;,
+    &quot;processing&quot;: {
+      &quot;processors&quot;: [
+        {
+          &quot;type&quot;: &quot;dql&quot;,
+          &quot;id&quot;: &quot;processor_parse_http_fields&quot;,
+          &quot;description&quot;: &quot;Parse method/path/status from content&quot;,
+          &quot;matcher&quot;: &quot;true&quot;,
+          &quot;dql&quot;: {
+            &quot;script&quot;: &quot;parse content, \&quot;LD? 'method=' WORD:http.method ' path=' DATA:http.path ' status=' INT:http.status\&quot;&quot;
+          },
+          &quot;enabled&quot;: true
+        },
+        {
+          &quot;type&quot;: &quot;dql&quot;,
+          &quot;id&quot;: &quot;processor_add_source_category&quot;,
+          &quot;description&quot;: &quot;Derive sumo.source_category from k8s.deployment.name&quot;,
+          &quot;matcher&quot;: &quot;true&quot;,
+          &quot;dql&quot;: {
+            &quot;script&quot;: &quot;fieldsAdd sumo.source_category = concat(\&quot;prod/api/\&quot;, k8s.deployment.name)&quot;
+          },
+          &quot;enabled&quot;: true
+        }
+      ]
+    }
+  }
+}
+</code></pre>
+<p><strong>Terraform equivalent — <code>dynatrace_openpipeline_v2_logs_pipelines</code>:</strong></p>
+<pre><code class="language-hcl">resource &quot;dynatrace_openpipeline_v2_logs_pipelines&quot; &quot;pipeline_prod_api&quot; {
+  display_name = &quot;Production API Logs&quot;
+  custom_id    = &quot;pipeline_prod_api&quot;
+  processing {
+    processors {
+      processor {
+        type        = &quot;dql&quot;
+        id          = &quot;processor_parse_http_fields&quot;
+        description = &quot;Parse method/path/status from content&quot;
+        matcher     = &quot;true&quot;
+        dql {
+          script = &quot;parse content, \&quot;LD? 'method=' WORD:http.method ' path=' DATA:http.path ' status=' INT:http.status\&quot;&quot;
+        }
+        enabled = true
+      }
+      processor {
+        type        = &quot;dql&quot;
+        id          = &quot;processor_add_source_category&quot;
+        description = &quot;Derive sumo.source_category from k8s.deployment.name&quot;
+        matcher     = &quot;true&quot;
+        dql {
+          script = &quot;fieldsAdd sumo.source_category = concat(\&quot;prod/api/\&quot;, k8s.deployment.name)&quot;
+        }
+        enabled = true
+      }
+    }
+  }
+}
+</code></pre>
+<p><strong>Why a DQL processor for the category.</strong> The <strong>Add fields</strong> processor writes static values only — <em>&quot;This processor doesn't leverage DQL processing statements and doesn't support dynamic values.&quot;</em> … <em>&quot;To add fields with dynamic values, use the DQL processor instead.&quot;</em> Given <code>concat(...)</code>, it would store that text literally. The parse pattern starts with <code>LD?</code> rather than <code>LD</code> because <code>LD</code> needs at least one character before <code>method=</code>, so it returns nothing for a line that <em>starts</em> with <code>method=</code> — a line Sumo's <code>&quot;method=*&quot;</code> does match.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing-stage">OpenPipeline processing stage (DT docs)</a>.</sub></p>
+</blockquote>
+<p>Redaction (for example, masking card numbers) belongs in a dedicated masking/DQL processor stage — see OPLOGS-03 and OPIPE for the current redaction processor shape rather than a standalone <code>&quot;type&quot;: &quot;redact&quot;</code> block, which does not exist in the current API.</p>
+<p>Route-to-bucket is a separate concern from the pipeline's processors — it's handled by the pipeline's <code>storage</code> stage / bucket-assignment processor (<code>bucket_assignment_processor</code> in Terraform), not a top-level <code>targetBucket</code> field on the pipeline object.</p>
+<h3>Validation Queries</h3>
+<pre><code class="language-dql">// Check that parsing produces the expected fields
+fetch logs, from:-15m, bucket:{&quot;custom_logs_prod&quot;}
+| filter sumo.source_category == &quot;prod/api/payments&quot;
+| filter isNotNull(http.status)
+| summarize c = count(), by:{http.method, http.status}
+| sort c desc
+
+</code></pre>
+<p><a id="fers"></a></p>
+<h2>8. Convert FERs to OpenPipeline Processors</h2>
+<p>Every Sumo FER becomes one OpenPipeline parse processor. The logic is the same; only the pattern syntax changes.</p>
+<h3>Sumo FER Example</h3>
+<pre><code># FER name: api-parse-req
+# Scope: _sourceCategory=prod/api/*
+# Parse expression:
+&quot;method=*&quot; &quot;path=*&quot; &quot;status=*&quot;
+</code></pre>
+<p>Fields extracted: <code>method</code>, <code>path</code>, <code>status</code>.</p>
+<h3>Dynatrace OpenPipeline Equivalent</h3>
+<p>A DQL processor, in the same Settings shape as §7, on the pipeline whose route covers the FER's scope (<code>prod/api/*</code>) — the route does the scoping, so the processor matches everything that reaches it:</p>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;dql&quot;,
+  &quot;id&quot;: &quot;processor_fer_api_parse_req&quot;,
+  &quot;description&quot;: &quot;FER api-parse-req&quot;,
+  &quot;matcher&quot;: &quot;true&quot;,
+  &quot;dql&quot;: {
+    &quot;script&quot;: &quot;parse content, \&quot;LD? 'method=' WORD:http.method ' path=' DATA:http.path ' status=' INT:http.status\&quot;&quot;
+  },
+  &quot;enabled&quot;: true
+}
+</code></pre>
+<h3>DPL Pattern Cheat Sheet</h3>
+<table>
+<thead>
+<tr>
+<th>Sumo regex</th>
+<th>DPL matcher</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.+</code> (greedy)</td>
+<td><code>DATA</code> (lazy, default)</td>
+</tr>
+<tr>
+<td><code>\w+</code> (word chars)</td>
+<td><code>WORD</code></td>
+</tr>
+<tr>
+<td><code>\d+</code> (digits)</td>
+<td><code>INT</code></td>
+</tr>
+<tr>
+<td><code>\d+\.\d+</code> (float)</td>
+<td><code>DOUBLE</code></td>
+</tr>
+<tr>
+<td><code>\S+</code> (non-space)</td>
+<td><code>NSPACE</code> (<code>LD</code> matches any characters, spaces included)</td>
+</tr>
+<tr>
+<td><code>\d+\.\d+\.\d+\.\d+</code> (IPv4)</td>
+<td><code>IPADDR</code></td>
+</tr>
+<tr>
+<td>ISO 8601 timestamp</td>
+<td><code>ISO8601</code> (or <code>TIMESTAMP('&lt;format&gt;')</code> with an explicit format)</td>
+</tr>
+<tr>
+<td>Quoted string</td>
+<td><code>DQS</code> (double-quoted) / <code>SQS</code> (single-quoted)</td>
+</tr>
+<tr>
+<td><code>\{.*\}</code> (JSON blob)</td>
+<td><code>JSON</code></td>
+</tr>
+</tbody>
+</table>
+<p>Every row was checked with <code>data record(content=&quot;…&quot;) | parse content, &quot;…&quot;</code> on 10/05/2026. <strong>FAQ-15</strong> is the corpus's full DPL reference, including the matchers that do not exist.</p>
+<h3>FER Conversion Workflow</h3>
+<ol>
+<li>For each FER in <code>inventory/fers.json</code>, identify the scope.</li>
+<li>Map the parse expression to DPL matchers.</li>
+<li>Create the OpenPipeline processor on the matching pipeline.</li>
+<li>Validate extraction via a DQL query.</li>
+</ol>
+<h3>Check: Parsed fields are available</h3>
+<pre><code class="language-dql">// After FER conversion, confirm extraction is working
+fetch logs, from:-15m, bucket:{&quot;custom_logs_prod&quot;}
+| filter startsWith(sumo.source_category, &quot;prod/api/&quot;)
+| filter isNotNull(http.method)
+| limit 10
+| fields content, http.method, http.path, http.status
+
+</code></pre>
+<p><a id="validate"></a></p>
+<h2>9. Validate Ingest Parity</h2>
+<p>Parity = volume per scope per hour in DT is within 5% of Sumo volume for the same scope.</p>
+<h3>Sumo-side baseline</h3>
+<pre><code class="language-sumoql">*
+| count by _sourceCategory
+| where _count &gt; 0
+</code></pre>
+<h3>Dynatrace-side comparison</h3>
+<pre><code class="language-dql">// Count per scope in DT — compare to Sumo baseline
+fetch logs, from:-1h
+| summarize c = count(), by:{sumo.source_category}
+| sort c desc
+| limit 50
+
+</code></pre>
+<h3>Parity report</h3>
+<table>
+<thead>
+<tr>
+<th><code>_sourceCategory</code></th>
+<th>Sumo count/hr</th>
+<th>DT count/hr</th>
+<th>% diff</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>prod/api/payments</td>
+<td>18,452</td>
+<td>18,110</td>
+<td>-1.9%</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>prod/web/frontend</td>
+<td>9,300</td>
+<td>9,044</td>
+<td>-2.8%</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>prod/db/primary</td>
+<td>2,103</td>
+<td>1,845</td>
+<td>-12.3%</td>
+<td>⚠️ investigate</td>
+</tr>
+<tr>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Target:</strong> ≥95% of scopes within 5% diff. Flag any scope with &gt;10% diff for investigation before proceeding.</p>
+<h3>Common Parity Gaps</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DT count much lower</td>
+<td>OneAgent or OTel not deployed to all sources</td>
+<td>Check deployment inventory</td>
+</tr>
+<tr>
+<td>DT count much higher</td>
+<td>Duplicate ingest paths (Sumo still writing + DT ingesting same source twice)</td>
+<td>Audit collector config</td>
+</tr>
+<tr>
+<td>DT missing entire scope</td>
+<td><code>_sourceCategory</code> pattern didn't match any OpenPipeline matcher</td>
+<td>Adjust matcher</td>
+</tr>
+<tr>
+<td>Parsed fields missing</td>
+<td>FER processor not applied to the pipeline</td>
+<td>Re-check processor scope</td>
+</tr>
+</tbody>
+</table>
+<p><a id="gate"></a></p>
+<h2>10. Step Exit Criteria</h2>
+<p><strong>G3 — Ingest Parity Achieved</strong></p>
+<ul>
+<li>[ ] All planned buckets exist and retention configured</li>
+<li>[ ] OneAgent deployed to 100% of host-based collectors</li>
+<li>[ ] OTel Collector deployed for non-OneAgent sources</li>
+<li>[ ] OpenPipeline pipelines configured per bucket</li>
+<li>[ ] Every FER has a corresponding OpenPipeline processor</li>
+<li>[ ] <code>sumo.source_category</code> populated on all logs routed from Sumo-equivalent sources</li>
+<li>[ ] Parity report: ≥95% of scopes within 5% of Sumo volume</li>
+<li>[ ] No scope with &gt;10% volume gap uninvestigated</li>
+</ul>
+<p><strong>Next step:</strong> <strong>SL2DT-04 — SumoQL → DQL Translation</strong> (translate the query surface with the <code>sumoql-to-dql</code> skill).</p>
+<hr />
+<p><a id="references"></a></p>
+<h2>11. References</h2>
+<h3>Log ingest paths</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from">Ingest from (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent">Dynatrace OneAgent (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry">OpenTelemetry ingest (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs">Logs (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api">Dynatrace API (DT docs)</a></li>
+</ul>
+<h3>Routing, parsing, and storage</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline">OpenPipeline (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language">DPL Pattern Reference (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail">Grail (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://www.sumologic.com:443/help/docs/">Sumo Logic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

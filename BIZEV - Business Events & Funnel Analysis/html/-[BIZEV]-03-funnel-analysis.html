@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BIZEV-03: Funnel Analysis</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">BIZEV — Business Events &amp; Funnel Analysis</a><span class="sep">/</span><span aria-current="page">BIZEV-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>BIZEV-03: Funnel Analysis</h1>
+<blockquote>
+<p><strong>Series:</strong> BIZEV — Business Events &amp; Funnel Analysis | <strong>Notebook:</strong> 3 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/25/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Conversion funnel analysis is one of the most powerful applications of business events. By tracking users through a sequence of steps — browse, add to cart, checkout, purchase — you can identify where customers drop off, measure conversion rates, and quantify the business impact of friction points. This notebook demonstrates how to build multi-step funnels from business events using DQL, calculate step-by-step conversion rates, and analyze the time users spend between funnel stages.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#funnel-analysis-concepts">Funnel Analysis Concepts</a></li>
+<li><a href="#building-a-basic-funnel">Building a Basic Funnel</a></li>
+<li><a href="#step-by-step-conversion-rates">Step-by-Step Conversion Rates</a></li>
+<li><a href="#identifying-drop-off-points">Identifying Drop-Off Points</a></li>
+<li><a href="#time-between-steps">Time Between Steps</a></li>
+<li><a href="#funnel-segmentation">Funnel Segmentation</a></li>
+<li><a href="#funnel-trends-over-time">Funnel Trends Over Time</a></li>
+<li><a href="#summary-and-next-steps">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:bizevents:read</code></td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>Business events with sequential event types (e.g., browse, cart, checkout, purchase)</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>BIZEV-01 fundamentals, DQL <code>summarize</code> and <code>countIf</code></td>
+</tr>
+</tbody>
+</table>
+<p><a id="funnel-analysis-concepts"></a></p>
+<h2>1. Funnel Analysis Concepts</h2>
+<blockquote>
+<p><strong>Restrict Business Flow to specific buckets (SaaS 1.346 — staged rollout from 08/25/2026).</strong> Verbatim: <em>&quot;in the Business Flow edit mode, it's possible to restrict business flow analysis to one or more specific business event buckets (up to 10 selected buckets), so all DQL queries will scan a smaller amount of bytes, increasing performance in the queries and reducing DPS license consumption on every run.&quot;</em> This matters more than a performance tweak: a Business Flow re-runs its DQL on <strong>every</strong> view, so an unrestricted flow scanning all bizevent buckets bills that scan repeatedly. If your bizevents are already partitioned into buckets — the ORGNZ pattern — selecting the relevant ones (max 10) cuts both latency and per-run DPS. The funnel DQL below is unchanged; the restriction applies at the Business Flow configuration level, not in the query text.</p>
+<p><sub>Source: <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-346">What's new in Dynatrace SaaS 1.346 (DT docs)</a></sub></p>
+</blockquote>
+<p>A <strong>conversion funnel</strong> models a sequence of steps that users take to complete a desired outcome. Each step represents a business event type.</p>
+<h3>Example: E-Commerce Funnel</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Event Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>com.myapp.product.viewed</code></td>
+<td>User views a product page</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>com.myapp.cart.updated</code></td>
+<td>User adds item to cart</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>com.myapp.checkout.started</code></td>
+<td>User begins checkout</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>com.myapp.payment.processed</code></td>
+<td>Payment completed</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>com.myapp.order.completed</code></td>
+<td>Order confirmed</td>
+</tr>
+</tbody>
+</table>
+<h3>Key Metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Formula</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Step conversion rate</strong></td>
+<td>Step N count / Step N-1 count</td>
+<td>% proceeding to next step</td>
+</tr>
+<tr>
+<td><strong>Overall conversion rate</strong></td>
+<td>Last step / First step</td>
+<td>End-to-end conversion</td>
+</tr>
+<tr>
+<td><strong>Drop-off rate</strong></td>
+<td>1 - step conversion rate</td>
+<td>% leaving at each step</td>
+</tr>
+<tr>
+<td><strong>Time to convert</strong></td>
+<td>Avg time from first to last step</td>
+<td>Speed of conversion</td>
+</tr>
+</tbody>
+</table>
+<p><a id="building-a-basic-funnel"></a></p>
+<h2>2. Building a Basic Funnel</h2>
+<p>The simplest funnel counts <strong>events</strong> at each step with <code>countIf</code>, in a single query. Event counts are a quick health signal but not a conversion rate: a user who updates the cart three times is three <code>cart.updated</code> events, so a step can exceed the one before it. For user-level conversion, count distinct users or sessions per step — the second query below.</p>
+<blockquote>
+<p><strong>Note:</strong> Adapt the <code>event.type</code> values below to match your actual business event names. The examples use a generic e-commerce pattern.</p>
+</blockquote>
+<pre><code class="language-dql">// Basic funnel — count events at each step over the last 24 hours
+fetch bizevents, from:-24h
+| summarize {step1_view = countIf(event.type == &quot;com.myapp.product.viewed&quot;),
+           step2_cart = countIf(event.type == &quot;com.myapp.cart.updated&quot;),
+           step3_checkout = countIf(event.type == &quot;com.myapp.checkout.started&quot;),
+           step4_payment = countIf(event.type == &quot;com.myapp.payment.processed&quot;),
+           step5_complete = countIf(event.type == &quot;com.myapp.order.completed&quot;)}
+</code></pre>
+<pre><code class="language-dql">// Funnel with distinct user counts (more accurate for conversion)
+// Uses countDistinctApprox for performance on large datasets
+fetch bizevents, from:-24h
+| filter isNotNull(user_id)
+| summarize {step1_users = countDistinctApprox(if(event.type == &quot;com.myapp.product.viewed&quot;, then: user_id)),
+           step2_users = countDistinctApprox(if(event.type == &quot;com.myapp.cart.updated&quot;, then: user_id)),
+           step3_users = countDistinctApprox(if(event.type == &quot;com.myapp.checkout.started&quot;, then: user_id)),
+           step4_users = countDistinctApprox(if(event.type == &quot;com.myapp.payment.processed&quot;, then: user_id)),
+           step5_users = countDistinctApprox(if(event.type == &quot;com.myapp.order.completed&quot;, then: user_id))}
+</code></pre>
+<p><a id="step-by-step-conversion-rates"></a></p>
+<h2>3. Step-by-Step Conversion Rates</h2>
+<p>Conversion rates reveal the percentage of users who proceed from one step to the next. This is the core metric for funnel optimization. The query below divides <strong>event</strong> counts for brevity — swap in the distinct-user counts from § 2 when a step can repeat per user, or a rate above 100% will appear.</p>
+<pre><code class="language-dql">// Calculate conversion rates between each funnel step
+fetch bizevents, from:-24h
+| summarize {step1 = countIf(event.type == &quot;com.myapp.product.viewed&quot;),
+           step2 = countIf(event.type == &quot;com.myapp.cart.updated&quot;),
+           step3 = countIf(event.type == &quot;com.myapp.checkout.started&quot;),
+           step4 = countIf(event.type == &quot;com.myapp.payment.processed&quot;),
+           step5 = countIf(event.type == &quot;com.myapp.order.completed&quot;)}
+| fieldsAdd view_to_cart = round(toDouble(step2) / toDouble(step1) * 100, decimals: 1),
+           cart_to_checkout = round(toDouble(step3) / toDouble(step2) * 100, decimals: 1),
+           checkout_to_payment = round(toDouble(step4) / toDouble(step3) * 100, decimals: 1),
+           payment_to_complete = round(toDouble(step5) / toDouble(step4) * 100, decimals: 1),
+           overall_conversion = round(toDouble(step5) / toDouble(step1) * 100, decimals: 2)
+</code></pre>
+<p><a id="identifying-drop-off-points"></a></p>
+<h2>4. Identifying Drop-Off Points</h2>
+<p>Drop-off analysis highlights where users abandon the process. The step with the highest drop-off rate is your biggest optimization opportunity.</p>
+<pre><code class="language-dql">// Visualize funnel steps as a bar chart to see drop-off
+// Each row represents one funnel step
+fetch bizevents, from:-24h
+| filter in(event.type, {&quot;com.myapp.product.viewed&quot;, &quot;com.myapp.cart.updated&quot;, &quot;com.myapp.checkout.started&quot;, &quot;com.myapp.payment.processed&quot;, &quot;com.myapp.order.completed&quot;})
+| summarize event_count = count(), by:{event.type}
+| sort event_count desc
+</code></pre>
+<pre><code class="language-dql">// Identify checkout abandonment — users who started checkout but did not pay
+// Requires a user_id or session_id field in your business events
+fetch bizevents, from:-24h
+| filter in(event.type, {&quot;com.myapp.checkout.started&quot;, &quot;com.myapp.payment.processed&quot;})
+| filter isNotNull(user_id)
+| summarize {started_checkout = countIf(event.type == &quot;com.myapp.checkout.started&quot;),
+           completed_payment = countIf(event.type == &quot;com.myapp.payment.processed&quot;)}, by:{user_id}
+| filter started_checkout &gt; 0 and completed_payment == 0
+| summarize abandoned_users = count()
+</code></pre>
+<p><a id="time-between-steps"></a></p>
+<h2>5. Time Between Steps</h2>
+<p>Understanding how long users take between funnel steps reveals friction points. A long delay between &quot;add to cart&quot; and &quot;checkout&quot; may indicate a confusing checkout flow or price comparison behavior.</p>
+<pre><code class="language-dql">// Average time between cart and checkout (per user)
+// Requires a user_id or session identifier
+fetch bizevents, from:-24h
+| filter in(event.type, {&quot;com.myapp.cart.updated&quot;, &quot;com.myapp.checkout.started&quot;})
+| filter isNotNull(user_id)
+| summarize {cart_time = min(if(event.type == &quot;com.myapp.cart.updated&quot;, then: timestamp)),
+           checkout_time = min(if(event.type == &quot;com.myapp.checkout.started&quot;, then: timestamp))}, by:{user_id}
+| filter isNotNull(cart_time) and isNotNull(checkout_time)
+| fieldsAdd time_to_checkout_sec = (toDouble(unixMillisFromTimestamp(checkout_time)) - toDouble(unixMillisFromTimestamp(cart_time))) / 1000.0
+| filter time_to_checkout_sec &gt; 0
+| summarize {avg_seconds = avg(time_to_checkout_sec),
+           median_seconds = median(time_to_checkout_sec),
+           p95_seconds = percentile(time_to_checkout_sec, 95)}
+</code></pre>
+<p><a id="funnel-segmentation"></a></p>
+<h2>6. Funnel Segmentation</h2>
+<p>Segmenting funnels by dimensions — device type, geographic region, customer tier — reveals which segments convert better and which need attention.</p>
+<pre><code class="language-dql">// Funnel conversion rates segmented by event provider
+// Useful for comparing web vs mobile vs API channels
+fetch bizevents, from:-24h
+| summarize {step1 = countIf(event.type == &quot;com.myapp.product.viewed&quot;),
+           step5 = countIf(event.type == &quot;com.myapp.order.completed&quot;)}, by:{event.provider}
+| filter step1 &gt; 0
+| fieldsAdd conversion_pct = round(toDouble(step5) / toDouble(step1) * 100, decimals: 1)
+| sort conversion_pct desc
+</code></pre>
+<pre><code class="language-dql">// Funnel by business line — group on a payload field such as product_category
+fetch bizevents, from:-24h
+| summarize {views = countIf(event.type == &quot;com.myapp.product.viewed&quot;),
+           purchases = countIf(event.type == &quot;com.myapp.order.completed&quot;)}, by:{product_category}
+| filter views &gt; 0
+| fieldsAdd conversion_pct = round(toDouble(purchases) / toDouble(views) * 100, decimals: 1)
+| sort conversion_pct desc
+</code></pre>
+<p><a id="funnel-trends-over-time"></a></p>
+<h2>7. Funnel Trends Over Time</h2>
+<p>Track how conversion rates change over time to measure the impact of feature releases, marketing campaigns, or incidents.</p>
+<pre><code class="language-dql">// Funnel step volumes over time
+fetch bizevents, from:-7d
+| filter in(event.type, {&quot;com.myapp.product.viewed&quot;, &quot;com.myapp.cart.updated&quot;, &quot;com.myapp.checkout.started&quot;, &quot;com.myapp.order.completed&quot;})
+| makeTimeseries event_count = count(), by:{event.type}, interval:6h
+</code></pre>
+<pre><code class="language-dql">// Daily overall conversion rate trend over the past week
+fetch bizevents, from:-7d
+| fieldsAdd day = bin(timestamp, 24h)
+| summarize {views = countIf(event.type == &quot;com.myapp.product.viewed&quot;),
+           orders = countIf(event.type == &quot;com.myapp.order.completed&quot;)}, by:{day}
+| filter views &gt; 0
+| fieldsAdd conversion_pct = round(toDouble(orders) / toDouble(views) * 100, decimals: 2)
+| sort day asc
+</code></pre>
+<p><a id="summary-and-next-steps"></a></p>
+<h2>8. Summary and Next Steps</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li><strong>Funnel concepts</strong> — Steps, conversion rates, drop-off rates</li>
+<li><strong>Building funnels with DQL</strong> — Using <code>countIf</code> to count each step in a single query</li>
+<li><strong>Conversion rate calculation</strong> — Step-by-step and overall rates</li>
+<li><strong>Drop-off analysis</strong> — Identifying abandoned sessions</li>
+<li><strong>Time between steps</strong> — Measuring friction via inter-step timing</li>
+<li><strong>Segmentation</strong> — Comparing funnels by provider, category, or other dimensions</li>
+<li><strong>Trend analysis</strong> — Tracking conversion rates over time</li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li><strong>BIZEV-04: Revenue Impact</strong> — Connect funnel drop-offs to revenue loss during incidents</li>
+<li><strong>BIZEV-05: KPIs and Metrics</strong> — Define business KPIs from event data</li>
+</ul>
+<h3>References</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/observe/business-observability">Dynatrace Business Analytics</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/structuring-commands">DQL structuring commands (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

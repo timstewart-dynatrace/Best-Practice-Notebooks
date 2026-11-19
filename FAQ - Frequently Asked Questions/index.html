@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ - Frequently Asked Questions</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../">Best Practice Notebooks</a><span class="sep">/</span><span aria-current="page">FAQ — Frequently Asked Questions</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1 id="faq---frequently-asked-questions">FAQ - Frequently Asked Questions</h1>
+<p>Frequently asked questions and answers across the Dynatrace Best-Practice Notebooks series. Each entry consolidates guidance, trade-offs, and design principles for a single recurring question.</p>
+<blockquote>
+<p><strong>Recommended:</strong> Import the JSON files from notebooks/ into a Dynatrace tenant for the best experience. These notebooks contain interactive DQL queries that execute against your environment's data.</p>
+</blockquote>
+<h2 id="structure">Structure</h2>
+<ul>
+<li>notebooks/ — Dynatrace notebook JSON files</li>
+<li>pdfs/ — Printable versions of each notebook</li>
+<li>markdown/ — Markdown exports of the notebooks</li>
+</ul>
+<h2 id="faq-entries">FAQ Entries</h2>
+<ol>
+<li><a href="html/-%5BFAQ%5D-01-host-group-naming-strategy.html">Why you need a good Host Group naming strategy</a> — How host group naming influences access control, alerting, automation, and tenant maintainability</li>
+<li><a href="html/-%5BFAQ%5D-02-tagging-sources-standards-strategy.html">Tagging — Sources, Standards, and Strategy</a> — The four tag sources, primary tags vs. ordinary tags, and the standards that turn tag sprawl into a managed asset</li>
+<li><a href="html/-%5BFAQ%5D-03-oneagent-vs-otel-decision-framework.html">OneAgent and OpenTelemetry — Choosing Per Workload</a> — How OneAgent and OpenTelemetry combine per workload — layer vs. convert vs. leave-alone vs. greenfield, covering Java, .NET, Node.js, Python, Go, PHP, Ruby, with async context propagation edge cases and JVM dynamic-attach guidance</li>
+<li><a href="html/-%5BFAQ%5D-04-managing-oneagent-updates-saas.html">Managing OneAgent Updates on SaaS</a> — Update mechanism, the three modes, tenant/host-group/host precedence, update vs. maintenance windows, the DynaKube <code>autoUpdate</code> deprecation, validation, rollback, and common pitfalls</li>
+<li><a href="html/-%5BFAQ%5D-05-managing-activegate-updates-saas.html">Managing ActiveGate Updates on SaaS</a> — Fleet management target versions and update windows vs the Classic per-AG toggle, auto-update vs manual decision, ActiveGates-before-OneAgents sequencing, HA-pair rolling updates, role-specific considerations (routing, synthetic, EF 2.0, cloud), validation, rollback, and common pitfalls</li>
+<li><a href="html/-%5BFAQ%5D-06-can-we-trust-davis-ai.html">Can We Trust Davis AI? A Risk and Controls Walkthrough</a> — Four-surface taxonomy (Causal, Predictive, Generative/Dynatrace Assist, AI Observability) with data residency, training boundary, hallucination controls, autonomy limits, audit trail, IAM, compliance posture, and a decision framework for when to lean in vs hold back</li>
+<li><a href="html/-%5BFAQ%5D-07-launcher-page-setup.html">How Do I Set Up a Launcher Page? (Default + Persona-Based)</a> — Default launcher configuration plus persona-based launcher patterns for tailoring the entry experience by role</li>
+<li><a href="html/-%5BFAQ%5D-08-oneagent-log-autodiscovery.html">How Does OneAgent Decide Which Logs to Collect?</a> — Log auto-discovery rules, what gets picked up automatically vs what needs a custom log source, host scanning, include/exclude patterns, and verification checklist</li>
+<li><a href="html/-%5BFAQ%5D-09-metrics-instead-of-log-queries.html">When Should I Query a Metric Instead of Raw Logs?</a> — Decision framework for replacing recurring log aggregations with pre-extracted metrics; covers Grail query economics, OOTB metrics, cardinality, and extraction trade-offs</li>
+<li><a href="html/-%5BFAQ%5D-10-activegate-sizing-and-scaling.html">How Do I Size and Scale ActiveGates?</a> — Capability-to-sizing-dimension map, host-based and containerized K8s sizing tables, synthetic node sizing, HA/network-zone survivor-capacity math, and saturation detection via <code>dt.sfm.active_gate.*</code> Grail metrics</li>
+<li><a href="html/-%5BFAQ%5D-11-how-metrics-work.html">How Do Metrics Work in Dynatrace?</a> — End-to-end metric mechanics: data-point model (gauge summaries + count deltas), Classic vs Grail dual-write backends, all ingest paths (OneAgent, API v2, OTLP, OpenPipeline), storage/rollup/retention, cardinality enforcement, timeseries querying, and DPS billing</li>
+<li><a href="html/-%5BFAQ%5D-12-cost-of-coverage-gaps.html">Coming from Another Tool — How Partial Enablement Handicaps Your Dynatrace Coverage</a> — Per-capability habit-to-handicap matrix for migration customers who carry partial-enablement patterns from their previous tool; what each gap costs, when reduced coverage is right, and objection handling</li>
+<li><a href="html/-%5BFAQ%5D-13-openshift-scc-seccomp-injection.html">How Do Dynatrace Injection and OpenShift SCCs Interact?</a> — Why anyuid + seccomp:RuntimeDefault fails at admission after Operator 1.9.0, built-in SCC compatibility matrix, custom SCC long-term fix, pre-upgrade workload impact assessment, and operator change-management practices</li>
+<li><a href="html/-%5BFAQ%5D-14-sql-server-extension-vs-custom-scripts.html">Should I Replace My Custom SQL Server Monitoring Scripts with the Dynatrace Extension?</a> — Decision framework and migration sequence for mapping a homegrown script/Telegraf monitor estate onto the Dynatrace SQL Server extension; covers honest gaps, the small custom EF 2.0 fallback, and when keeping Telegraf is right</li>
+<li><a href="html/-%5BFAQ%5D-15-how-dpl-works.html">How Does DPL Work?</a> — Canonical Dynatrace Pattern Language reference: the matcher-expression model, a regex compare/contrast (DPL does no backtracking, and character classes are the only regex-compatible construct), the full matcher catalog, matching semantics and the traps that return null or a silently wrong value, the five DQL surfaces that consume DPL, and a four-step failure diagnosis</li>
+<li><a href="html/-%5BFAQ%5D-16-entity-selectors-to-smartscape.html">How Do I Migrate Classic Entity Selectors to Smartscape?</a> — Classify the query before translating it (only a pure entity-list query must become <code>smartscapeNodes</code>; mass-data queries should try a direct dimension filter first), entity type mapping, construct migration, <code>traverse</code> and edge discovery, and a live-verified before/after showing that the same entity set returns different <code>name</code> strings</li>
+<li><a href="html/-%5BFAQ%5D-17-planning-a-migration-cutover.html">How Do I Plan a Migration Cutover?</a> — The eight invariants every migration cutover shares and which series documents each best; the validation ladder (why output parity beats row-count parity), parallel-run discipline, rollback triggers before procedures, and live-verified entity-parity checks. Orchestrates the migration series rather than restating them</li>
+<li><a href="html/-%5BFAQ%5D-18-monitoring-aem-cloud-service.html">How Do I Monitor Adobe Experience Manager as a Cloud Service?</a> — The Dynatrace-published OneAgent full-stack integration on Adobe-run containers: why enablement is an Adobe customer-care ticket rather than anything you can self-serve, exactly what the ticket must contain, the control boundary that redirects standard host and agent guidance, per-environment licensing, and the displacement rule that removes the parallel run from a migration cutover</li>
+<li><a href="html/-%5BFAQ%5D-19-third-party-saas-telemetry-integration.html">How Do I Bring a Third-Party SaaS Platform's Telemetry Into Dynatrace?</a> — The reusable pattern for a platform you do not run: mapping questions to signal classes, letting the vendor's transport pick the ingestion route, extracting signal at ingest and discarding raw records (and the stage-order trap that silently defeats it), modeling vendor objects as <code>CUSTOM_*</code> Smartscape topology, and isolating whatever you do retain</li>
+<li><a href="html/-%5BFAQ%5D-20-monitoring-zscaler.html">How Do I Monitor Zscaler With Dynatrace?</a> — The worked example of FAQ-19: the ZIA and ZPA extensions versus build-your-own for ZDX, why ZIA and ZPA logs cannot replace ZDX, the transport split across the three product lines that breaks a single-route design, direct-vs-multi-home ingestion architectures, what to extract and what to discard, a five-node topology model, field mapping and metric naming, and when synthetic monitoring adds anything over ZDX</li>
+<li><a href="html/-%5BFAQ%5D-21-alert-notification-routing.html">How Do I Get the Right Alerts to the Right People?</a> — Decision layer over ALERT-03 / WFLOW-04: separates the four axes an alerting design conflates — <strong>fires</strong> (anomaly detector, scoped by segment), <strong>routes</strong> (problem-triggered workflow trigger), <strong>sees</strong> (the IAM access model), <strong>filters</strong> (segments, UI only). Built strictly on the documented trigger surface — problem state, event category, severity, affected-entity tags, Minimum duration, Updates, and the additional custom filter query — and the documented recommendation to filter on <em>&quot;Primary Grail fields, Security context, Custom attributes.&quot;</em> <strong>Ownership is the built-in answer</strong> — <code>owner</code> and <code>dt.owner</code> are default tag keys in every environment, so the affected-entity tag filter routes on ownership with no custom field and no DQL; a custom attribute matched with a DQL matcher is the fallback where ownership cannot be populated (<code>matchesPhrase</code> / <code>matchesValue</code> / <code>isNotNull</code> / <code>isNull</code>, boolean and numeric operators, <code>iAny</code>). Covers denoise-before-routing via Davis correlation, the <strong>Minimum duration</strong> option for duration suppression (5 min–1 week, evaluated on <code>dt.duration_marker</code>) (the upgrade guide, rewritten 09/07/2026, now agrees), and three anti-patterns: segments-scope-notification, routing-replaces-visibility, route-before-enrich</li>
+<li><a href="html/-%5BFAQ%5D-22-purepath-timings-in-grail.html">What Happened to My PurePath Timings in Grail?</a> — For teams porting classic PurePath analysis onto span DQL. CPU time survived the move as <code>span.timing.cpu</code> and <code>span.timing.cpu_self</code>; IO time, disk IO time, lock time, and suspension were never modeled — absent from the semantic dictionary entirely, which is a stronger and more durable statement than absent from a query result. Covers what to use instead (child spans, not <code>duration - cpu</code> arithmetic), why an external web request is a client span with no endpoint, no <code>request.is_failed</code>, and no <code>dt.service.request.*</code> series, the <code>request_attribute.&lt;name&gt;</code> vs <code>captured_attribute.&lt;name&gt;</code> distinction — both <code>stable</code>, both arrays, so equality silently matches nothing — and the four-case <code>dt.semantic_dictionary.fields</code> test that answers any &quot;does Grail have this field, and can I alert on it&quot; question at zero billable bytes</li>
+<li><a href="html/-%5BFAQ%5D-23-monitoring-box.html">How Do I Monitor Box With Dynatrace?</a> — The second worked example of FAQ-19, and the one where the obvious starting point is wrong: Box webhooks attach to individual files and folders, cap at 1,000 resources, cannot be set on the root folder, and never carry logins, admin actions, or <code>SHIELD_ALERT</code> — so they cannot deliver an audit feed at all, and the enterprise stream is pull-only because Box &quot;does not support long polling.&quot; Works a real sizing question at <strong>1,000,000 events/day</strong> end to end and finds that neither side is the constraint (Box ≈1.4 requests/min against a 1,000/min limit; the Dynatrace ingest API has no events-per-minute cap) — what is missing is the collector between them. Gives complete <strong>Workflow</strong> and <strong>Python</strong> implementations with the 120-second JS-runtime ceiling as the decision boundary, the cursor rules that make the difference between a replayable failure and permanent data loss inside a two-week retention window, the <code>Drop record</code>-vs-<code>No storage assignment</code> stage trap, <code>boxsdk</code> v10 vs the deprecated <code>box-sdk-gen</code>, and three silent-success traps reproduced during research — a webhook that delivers nothing, a span query keyed on a URL field that is empty on the tenant, and a collector-health check that reports &quot;OK&quot; when no data has ever arrived. Also assesses the <code>restapi</code> OpenTelemetry Collector receiver (full DBDOT build only) as an optional third collector, and where its v1.2.0 release falls short of the entry's cursor, timestamp and rate-limit rules</li>
+<li><a href="html/-%5BFAQ%5D-24-can-we-trust-dynatrace-with-our-data.html">Can We Trust Dynatrace With Our Data?</a> — The platform counterpart to FAQ-06. Treats &quot;is our data safe?&quot; as four separate questions — what gets captured, where it is stored, who can access it, and how you prove it — each answered by a different control, and maps each to the series that documents it. Covers masking at capture versus at ingest, residency and retention, the two security-context checks to run before writing a policy, and three failures that pass every validator: segments used as access control, <code>=</code> or <code>IN</code> on an array-valued security context, and one masking layer treated as complete.</li>
+<li><a href="html/-%5BFAQ%5D-25-what-carries-over-to-a-new-tenant.html">What Actually Carries Over When We Migrate to a New Tenant?</a> — Migration teams ask this in a dozen shapes — do entity IDs stay the same, can we reuse the baselines, can we send to both tenants at once — and all of them are answered by sorting the thing in question into one of three classes: <strong>configuration</strong> (authored, so it moves and gets rewritten), <strong>identity</strong> (platform-minted, so it is re-minted on arrival) and <strong>accumulated state</strong> (learned or secret, so there is no tool at all). The useful part is that each class fails differently: class 1 fails loudly with an error list, class 2 fails silently as a dashboard tile that renders empty, and class 3 fails on a delay as a first fortnight of alerting nobody can interpret — which is why the three need attention at three different times. Includes the <code>id == id_classic</code> comparison that always returns false because the two fields are different types (live-reproduced: 23 of 23 services match with <code>toString(id)</code>, 0 without, with Grail flagging it only as an INFO notification), the classic → Smartscape mapping read from the semantic dictionary instead of a table, a reconciliation-readiness check for duplicate host names, a per-host baseline-clock query, and why running two OneAgents on one host is an unsupported state rather than a costly trade-off</li>
+<li><a href="html/-%5BFAQ%5D-26-metadata-strategy.html">What Metadata Should We Set, Where, and Why?</a> — Metadata gets planned as a list of tag names, and the list is rarely the problem — what fails is a value that never reaches the extension metrics, a team tag present in logs but absent from RUM, a cost center populated without its product, or a primary tag that everyone treats as an access boundary and no IAM policy can use. Treats each dimension as three decisions — the <strong>job</strong> it does, the <strong>producer</strong> that owns it, and how far it <strong>reaches</strong> — and works through every producer: OneAgent, Kubernetes, OpenTelemetry, cloud connections, local and remote extensions, synthetic monitors and RUM, each with its own precedence, version floor and trap. Separates OpenPipeline primary Grail tag rules, which run before routing, from processing-stage processors, which don't; lists the silent failure modes; and ends with a four-query coverage audit, run live, that shows which signal types are missing which value</li>
+<li><a href="html/-%5BFAQ%5D-27-monitoring-microsoft-365-audit-logs.html">How Do I Get Microsoft 365 Audit Logs Into Dynatrace?</a> — The third worked example of FAQ-19, and another where the obvious starting point is wrong: the Microsoft 365 Hub extension produces service-health and usage metrics and reads audit logs only to count users, and Entra ID sign-ins already have a documented route through diagnostic settings, an Event Hub and Azure log forwarding — so the design is two routes, not one collector. For the workload audit (Exchange, SharePoint and OneDrive, Teams, DLP) it gives complete <strong>Python</strong> and <strong>Workflow</strong> collectors on the Office 365 Management Activity API and the rules that keep them from losing records: a checkpoint on <code>contentCreated</code> rather than event time, every <code>NextPageUri</code> followed, <code>PublisherIdentifier</code> on every call, duplicates removed because Microsoft says they are expected, and the <strong>24-hour timestamp trap</strong> — Microsoft keeps content for 7 days while Dynatrace drops records stamped more than 24 hours in the past, answering <code>200</code> instead of an error. It also assesses the <code>m365</code> OpenTelemetry Collector receiver as a no-code alternative, and where its current version falls short of those rules</li>
+<li><a href="html/-%5BFAQ%5D-28-when-and-where-to-deploy-activegates.html">When and Where Should I Deploy ActiveGates?</a> — Decide per job, not per organization: which jobs still need an ActiveGate, what the container image can and can't run, pros and cons of VMs compared with Kubernetes, network-zone placement, the two-set Kubernetes recommendation, and a fleet audit query.</li>
+</ol>
+<h2 id="usage">Usage</h2>
+<ol>
+<li>Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.</li>
+<li>FAQ entries are independent — read only the entries relevant to your current question.</li>
+</ol>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

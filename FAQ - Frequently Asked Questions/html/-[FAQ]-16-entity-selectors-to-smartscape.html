@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ-16: How Do I Migrate Classic Entity Selectors to Smartscape?</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">FAQ — Frequently Asked Questions</a><span class="sep">/</span><span aria-current="page">FAQ-16</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>FAQ-16: How Do I Migrate Classic Entity Selectors to Smartscape?</h1>
+<blockquote>
+<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 16 — Migrating Classic Entity Selectors to Smartscape | <strong>Created:</strong> July 2026 | <strong>Last Updated:</strong> 10/15/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><code>dt.entity.*</code>, <code>classicEntitySelector()</code>, <code>entityName()</code>, and <code>entityAttr()</code> are deprecated in favour of Smartscape — <code>smartscapeNodes</code>, <code>smartscapeEdges</code>, and <code>traverse</code>. The legacy forms still run, but they are on a support window rather than open-ended: SaaS 1.334 (rollout from 03/10/2026) states that classic queries <em>&quot;remain fully supported for the next year&quot;</em>. There is no published removal date yet, so plan the migration inside that window rather than waiting for something to break.</p>
+<p><strong>The most common mistake is not a syntax error.</strong> It is reaching for Smartscape when the query never needed an entity lookup in the first place. A metrics or logs query filtered by an entity condition can usually resolve that condition to a raw dimension on the data itself — no topology lookup, no subquery, less scanned data. Smartscape is the fallback for that shape, not the default.</p>
+<p>So the first step is not translation. It is working out which of three things your query is doing.</p>
+<h3>Short answer</h3>
+<table>
+<thead>
+<tr>
+<th>Your query</th>
+<th>Migrate to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Lists entities (<code>fetch dt.entity.*</code> as the result)</td>
+<td><code>smartscapeNodes</code> — the only valid path</td>
+</tr>
+<tr>
+<td>Filters mass data (logs, metrics, spans) by an entity condition</td>
+<td>A <strong>direct dimension filter</strong> where possible; a Smartscape subquery only if no dimension carries the condition</td>
+</tr>
+<tr>
+<td>Walks relationships between entities</td>
+<td><code>traverse</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-334">What's new in Dynatrace SaaS 1.334 (DT docs)</a> — <em>&quot;Classic queries remain fully supported for the next year. Your existing DQL queries using the classic entity model continue to work.&quot;</em>, <a href="https://docs.dynatrace.com/docs/semantic-dictionary/tags/entity-id">Fields referencing classic entities (DT docs)</a> — <em>&quot;These fields are deprecated and will be removed in the future; use fields referencing Smartscape nodes instead.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#start-by-classifying-the-query">Start by Classifying the Query</a></li>
+<li><a href="#entity-type-mapping">Entity Type Mapping</a></li>
+<li><a href="#migrating-the-constructs">Migrating the Constructs</a></li>
+<li><a href="#a-verified-before-and-after">A Verified Before-and-After</a></li>
+<li><a href="#topology-navigation">Topology Navigation</a></li>
+<li><a href="#things-that-are-fields-not-entities">Things That Are Fields, Not Entities</a></li>
+<li><a href="#gotchas-worth-knowing-first">Gotchas Worth Knowing First</a></li>
+<li><a href="#finding-the-queries-to-migrate">Finding the Queries to Migrate</a></li>
+<li><a href="#summary-and-next-steps">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<p><a id="prerequisites"></a></p>
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail and Smartscape</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:smartscape:read</code> for <code>smartscapeNodes</code>, <code>smartscapeEdges</code> and <code>traverse</code>; <code>storage:entities:read</code> for the classic forms (<code>fetch dt.entity.*</code>, <code>classicEntitySelector</code>); <code>storage:metrics:read</code> for the § 1 <code>timeseries</code> examples; and <code>storage:buckets:read</code> alongside each table permission</td>
+</tr>
+<tr>
+<td><strong>Prior reading</strong></td>
+<td>Basic DQL familiarity — see ORGNZ-99 for the DQL reference</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Validation status.</strong> Every entity and topology query in this document was <strong>executed against a live Dynatrace tenant on 07/23/2026</strong> and returned the results described — including the equivalence check in <a href="#a-verified-before-and-after">section 4</a> and the edge inventory in <a href="#topology-navigation">section 5</a>. The three <code>timeseries</code> forms in <a href="#start-by-classifying-the-query">section 1</a> were executed on 10/02/2026 against a real host group: grouped by host, the classic <code>classicEntitySelector</code> filter, the direct <code>dt.host_group.id</code> filter and the Smartscape-subquery fallback each returned the same four hosts, with no notifications.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Assign permissions in Grail (DT docs)</a> — the table-permission list maps <code>storage:entities:read</code> to <code>fetch</code>, <code>classicEntitySelector</code>, <code>entityAttr</code> and <code>entityName</code>, <code>storage:metrics:read</code> to <code>timeseries</code>, and <code>storage:smartscape:read</code> to <code>smartscapeNodes</code>, <code>smartscapeEdges</code>, <code>getNodeName()</code> and <code>getNodeField()</code>; it also notes that <em>&quot;granting access to buckets, you also need to configure table permissions&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="start-by-classifying-the-query"></a></p>
+<h2>1. Start by Classifying the Query</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5DbGFzc2lmeSB0aGUgUXVlcnkgQmVmb3JlIE1pZ3JhdGluZyBJdDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5Pbmx5IG9uZSBvZiB0aGVzZSB0aHJlZSBzaGFwZXMgYWN0dWFsbHkgcmVxdWlyZXMgU21hcnRzY2FwZTwvdGV4dD4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8cmVjdCB4PSIzMTUiIHk9Ijg0IiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQ2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTA1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5XaGF0IGRvZXMgdGhlIHF1ZXJ5IHJldHVybj88L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIxMjEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkFzayB0aGlzIGJlZm9yZSB3cml0aW5nIGFueSBEUUw8L3RleHQ+CgogIDxsaW5lIHgxPSI0MDAiIHkxPSIxMzAiIHgyPSIyNTAiIHkyPSIxNjgiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXIpIi8+CiAgPGxpbmUgeDE9IjUzMCIgeTE9IjEzMCIgeDI9IjY4MCIgeTI9IjE2OCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcikiLz4KCiAgPHJlY3QgeD0iNDAiIHk9IjE3MiIgd2lkdGg9IjQyMCIgaGVpZ2h0PSIyNTAiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMjUwIiB5PSIxOTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPk1hc3MgZGF0YSAobG9ncyDCtyBtZXRyaWNzIMK3IHNwYW5zKTwvdGV4dD4KICA8dGV4dCB4PSIyNTAiIHk9IjIxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+U2l0dWF0aW9ucyAxIGFuZCAyIOKAlCBlbnRpdHkgY29uZGl0aW9uIGlzIGEgRklMVEVSPC90ZXh0PgoKICA8cmVjdCB4PSI2MiIgeT0iMjM2IiB3aWR0aD0iMzc2IiBoZWlnaHQ9Ijc2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjI1MCIgeT0iMjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj4xLiBUcnkgYSBkaXJlY3QgZGltZW5zaW9uIGZpbHRlcjwvdGV4dD4KICA8dGV4dCB4PSIyNTAiIHk9IjI3NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+ZmlsdGVyOiB7IGR0Lmhvc3RfZ3JvdXAuaWQgPT0gInByb2Qtd2ViIiB9PC90ZXh0PgogIDx0ZXh0IHg9IjI1MCIgeT0iMjk2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5ObyB0b3BvbG9neSBsb29rdXAgwrcgbGVhc3QgZGF0YSBzY2FubmVkPC90ZXh0PgoKICA8cmVjdCB4PSI2MiIgeT0iMzI0IiB3aWR0aD0iMzc2IiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjI1MCIgeT0iMzQ2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj4yLiBGYWxsIGJhY2sgdG8gYSBTbWFydHNjYXBlIHN1YnF1ZXJ5PC90ZXh0PgogIDx0ZXh0IHg9IjI1MCIgeT0iMzY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5kdC5zbWFydHNjYXBlLmhvc3QgaW4gWyBzbWFydHNjYXBlTm9kZXMgIkhPU1QiIC4uLiBdPC90ZXh0PgogIDx0ZXh0IHg9IjI1MCIgeT0iMzg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Pbmx5IHdoZW4gbm8gZGltZW5zaW9uIGNhcnJpZXMgdGhlIGNvbmRpdGlvbjwvdGV4dD4KCiAgPHJlY3QgeD0iNDgwIiB5PSIxNzIiIHdpZHRoPSI0MTAiIGhlaWdodD0iMjUwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjY4NSIgeT0iMTk4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5FbnRpdGllcyB0aGVtc2VsdmVzPC90ZXh0PgogIDx0ZXh0IHg9IjY4NSIgeT0iMjE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TaXR1YXRpb24gMyDigJQgdGhlIGVudGl0eSBsaXN0IElTIHRoZSByZXN1bHQ8L3RleHQ+CgogIDxyZWN0IHg9IjUwMiIgeT0iMjM2IiB3aWR0aD0iMzY2IiBoZWlnaHQ9Ijc2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjY4NSIgeT0iMjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5zbWFydHNjYXBlTm9kZXMgIkhPU1QiPC90ZXh0PgogIDx0ZXh0IHg9IjY4NSIgeT0iMjc3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5UaGUgb25seSB2YWxpZCBwYXRoIOKAlCBubyByYXctZGltZW5zaW9uPC90ZXh0PgogIDx0ZXh0IHg9IjY4NSIgeT0iMjk2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5hbHRlcm5hdGl2ZSBleGlzdHMgZm9yIHRoaXMgc2hhcGU8L3RleHQ+CgogIDxyZWN0IHg9IjUwMiIgeT0iMzI0IiB3aWR0aD0iMzY2IiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjY4NSIgeT0iMzQ2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5XYWxraW5nIHJlbGF0aW9uc2hpcHM/IHRyYXZlcnNlPC90ZXh0PgogIDx0ZXh0IHg9IjY4NSIgeT0iMzY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5lZGdlVHlwZXM6IHtydW5zX29ufSwgdGFyZ2V0VHlwZXM6IHtIT1NUfTwvdGV4dD4KICA8dGV4dCB4PSI2ODUiIHk9IjM4NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Tm9kZSB0eXBlcyBVUFBFUkNBU0UgwrcgZWRnZSB0eXBlcyBsb3dlcmNhc2U8L3RleHQ+CgogIDxsaW5lIHgxPSI0MCIgeTE9IjQ0NiIgeDI9Ijg5MCIgeTI9IjQ0NiIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0MCIgeT0iNDcwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5WZXJpZnkgdmFsdWVzLCBub3Qgcm93IGNvdW50cyDigJQgdGhlIHNhbWUgZW50aXR5IHNldCBjYW4gY29tZSBiYWNrIHdpdGggZGlmZmVyZW50IG5hbWUgc3RyaW5ncyAoY2xhc3NpYyBuYW1lcyBjYXJyeSBhIFtob3N0LWdyb3VwXSBwcmVmaXgpLjwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iNDg4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5kdC5lbnRpdHkuKiBpcyBkZXByZWNhdGVkLiBTYWFTIDEuMzM0IChNYXIgMjAyNik6IGNsYXNzaWMgcXVlcmllcyBmdWxseSBzdXBwb3J0ZWQgZm9yIG9uZSBtb3JlIHllYXIuPC90ZXh0Pgo8L3N2Zz4K" alt="Classifying a classic entity query before migrating it" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Situation | What the query does | Migration strategy |
+|-----------|--------------------|--------------------|
+| 1 | Mass data filtered by an inline entity selector | Resolve the condition to a raw dimension; Smartscape subquery only as fallback |
+| 2 | Mass data filtered by an entity subquery | Same — dimension first |
+| 3 | Entity list as the result itself | smartscapeNodes; no alternative exists |
+For environments where SVG doesn't render
+-->
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Situation</th>
+<th>Classic shape</th>
+<th>Strategy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1</strong></td>
+<td>Mass data filtered by entity conditions</td>
+<td><code>classicEntitySelector(...)</code> inline in a <code>filter:</code> on a timeseries or logs query</td>
+<td>Resolve the conditions to raw data dimensions first</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>Mass data filtered by an entity subquery</td>
+<td><code>fetch dt.entity.*</code> inside <code>in [...]</code>, <code>lookup [...]</code>, or <code>join [...]</code></td>
+<td>Same — dimension first, Smartscape subquery as fallback</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>Pure entity list</td>
+<td><code>fetch dt.entity.*</code> as the primary result</td>
+<td><code>smartscapeNodes</code> — no raw-dimension alternative exists</td>
+</tr>
+</tbody>
+</table>
+<h3>Why dimension-first matters for situations 1 and 2</h3>
+<p>An entity subquery makes the engine resolve a topology lookup before it can filter the data. When the mass data already carries a dimension expressing the same condition, filtering on it directly skips that work entirely.</p>
+<pre><code class="language-dql">// Situation 1 — classic: entity selector inline in the filter
+timeseries avg(dt.host.cpu.usage), from:-1h,
+  filter: { in(dt.entity.host, classicEntitySelector(&quot;type(HOST),hostGroupName(prod-web)&quot;)) }
+
+// Preferred — if a dimension carries the condition, filter on it directly
+timeseries avg(dt.host.cpu.usage), from:-1h, by:{dt.smartscape.host},
+  filter: { dt.host_group.id == &quot;prod-web&quot; }
+
+// Fallback — only when no dimension expresses the condition
+timeseries avg(dt.host.cpu.usage), from:-1h, by:{dt.smartscape.host},
+  filter: { dt.smartscape.host in [ smartscapeNodes &quot;HOST&quot;
+                                    | filter dt.host_group.id == &quot;prod-web&quot;
+                                    | fields id ] }
+</code></pre>
+<p>To find out which dimensions your data actually carries, run <code>fieldsSummary</code> or <code>fieldsSnapshot</code> against the table before choosing. Do not assume a dimension exists — and do not assume it does not.</p>
+<blockquote>
+<p><strong>Note the operator.</strong> The fallback uses the <code>in</code> <strong>operator</strong> with a bracketed subquery (<code>field in [ ... ]</code>), not the <code>in()</code> <strong>function</strong>. <code>in()</code> takes a static value set — <code>in(field, {&quot;a&quot;, &quot;b&quot;})</code> — and does not accept an execution block.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/dynatrace/dynatrace-for-ai">Smartscape topology navigation (Dynatrace GitHub — dt-dql-essentials)</a>, <a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">Dynatrace Query Language reference (DT docs)</a>. <strong>Derived:</strong> the dimension-first ordering combines the deprecation guidance with the observation that a subquery forces a topology resolution the raw dimension avoids.</sub></p>
+</blockquote>
+<p><a id="entity-type-mapping"></a></p>
+<h2>2. Entity Type Mapping</h2>
+<p>Two vocabularies, and they differ in case. <strong>Field names are lowercase dotted; node type strings are UPPERCASE.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Classic field</th>
+<th>Smartscape field</th>
+<th><code>smartscapeNodes</code> type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.entity.host</code></td>
+<td><code>dt.smartscape.host</code></td>
+<td><code>&quot;HOST&quot;</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.service</code></td>
+<td><code>dt.smartscape.service</code></td>
+<td><code>&quot;SERVICE&quot;</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.process_group_instance</code></td>
+<td><code>dt.smartscape.process</code></td>
+<td><code>&quot;PROCESS&quot;</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.container_group_instance</code></td>
+<td><code>dt.smartscape.container</code></td>
+<td><code>&quot;CONTAINER&quot;</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.kubernetes_cluster</code></td>
+<td><code>dt.smartscape.k8s_cluster</code></td>
+<td><code>&quot;K8S_CLUSTER&quot;</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.kubernetes_node</code></td>
+<td><code>dt.smartscape.k8s_node</code></td>
+<td><code>&quot;K8S_NODE&quot;</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.kubernetes_service</code></td>
+<td><code>dt.smartscape.k8s_service</code></td>
+<td><code>&quot;K8S_SERVICE&quot;</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.cloud_application_instance</code></td>
+<td><code>dt.smartscape.k8s_pod</code></td>
+<td><code>&quot;K8S_POD&quot;</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.cloud_application_namespace</code></td>
+<td><code>dt.smartscape.k8s_namespace</code></td>
+<td><code>&quot;K8S_NAMESPACE&quot;</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.application</code></td>
+<td><code>dt.smartscape.frontend</code></td>
+<td><code>&quot;FRONTEND&quot;</code> — with <code>frontend.type == &quot;web&quot;</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.mobile_application</code></td>
+<td><code>dt.smartscape.frontend</code></td>
+<td><code>&quot;FRONTEND&quot;</code> — with <code>frontend.type == &quot;mobile&quot;</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.custom_application</code></td>
+<td><code>dt.smartscape.frontend</code> per the docs field reference — <strong>not</strong> in the dictionary's <code>classic_models</code></td>
+<td><code>&quot;FRONTEND&quot;</code> — verify on your tenant; see below</td>
+</tr>
+<tr>
+<td><code>dt.entity.synthetic_test</code></td>
+<td><code>dt.smartscape.browser_monitor</code></td>
+<td><code>&quot;BROWSER_MONITOR&quot;</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.http_check</code></td>
+<td><code>dt.smartscape.http_monitor</code></td>
+<td><code>&quot;HTTP_MONITOR&quot;</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.multiprotocol_monitor</code></td>
+<td><code>dt.smartscape.network_availability_monitor</code></td>
+<td><code>&quot;NETWORK_AVAILABILITY_MONITOR&quot;</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.synthetic_location</code></td>
+<td><code>dt.smartscape.synthetic_location</code></td>
+<td><code>&quot;SYNTHETIC_LOCATION&quot;</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.aws_lambda_function</code></td>
+<td><code>dt.smartscape.aws_lambda_function</code> — matched by name; not in the dictionary's <code>classic_models</code></td>
+<td><code>&quot;AWS_LAMBDA_FUNCTION&quot;</code> — no <code>id_classic</code>; reconcile on <code>aws.arn</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.cloud_application</code></td>
+<td>several workload fields</td>
+<td>several K8s workload types</td>
+</tr>
+<tr>
+<td><em>no classic entity type</em></td>
+<td><code>dt.smartscape.activegate</code> — no <code>classic_models</code></td>
+<td><code>&quot;ACTIVEGATE&quot;</code> — see below</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>The transition is now underway in-product, starting with Cost Intelligence (SaaS 1.347 — staged tenant rollout from 09/16/2026; verify the change has reached your tenant).</strong> Verbatim: <em>&quot;Dynatrace is transitioning entity ID attributes in billing usage events from the Classic Monitored Entity (ME) model to Smartscape-based IDs.&quot;</em> The release note names the same three mappings this table already carries — <code>dt.entity.host</code> → <code>dt.smartscape.host</code>, <code>dt.entity.kubernetes_cluster</code> → <code>dt.smartscape.k8s_cluster</code>, <code>dt.entity.cloud_application_namespace</code> → <code>dt.smartscape.k8s_namespace</code>.</p>
+<p>Two things this does and does not mean. It <strong>does</strong> confirm the direction of travel this entry describes, and it makes the migration concrete in one surface first — so a Cost Intelligence query written against classic IDs is the one to re-check now. It <strong>does not</strong> retire classic entity IDs corpus-wide: the rest of the platform still accepts them, and the dimension-first strategy in §1 remains the right default for mass-data queries. Migrate where the product has moved, not everywhere at once.</p>
+</blockquote>
+<p><code>dt.entity.cloud_application</code> is the awkward one — it fans out to multiple Kubernetes workload types rather than mapping to one. Check the target type before translating it.</p>
+<p><code>dt.entity.custom_application</code> is the row where the two sources disagree. The docs field reference points it at <code>dt.smartscape.frontend</code>, but the tenant dictionary lists only <code>dt.entity.application</code> and <code>dt.entity.mobile_application</code> as classic counterparts of the <code>FRONTEND</code> model, and no custom-application <code>FRONTEND</code> nodes were observed on the validation tenant (which has no custom applications). Before migrating, check whether your custom applications surface as <code>FRONTEND</code> nodes — <code>smartscapeNodes &quot;FRONTEND&quot;, from:-7d | filter startsWith(id_classic, &quot;CUSTOM_APPLICATION&quot;)</code>. What does not exist is a <code>&quot;CUSTOM_APPLICATION&quot;</code> node type: querying it returns nothing rather than an error (see <a href="#gotchas-worth-knowing-first">section 7</a> on ambiguous zero-row results).</p>
+<h3>Three rows that do not behave like the rest</h3>
+<p><strong>ActiveGate is a different shape from every other row in the table.</strong> There is no classic entity type to migrate <em>from</em> — <code>dt.entity.active_gate</code>, <code>dt.entity.environment_active_gate</code>, and <code>dt.entity.environment_activegate</code> all return <strong>zero rows</strong> with only a WARNING notification (<code>The entity type … wasn't found</code>) — no error — so <code>fetch dt.entity.*_active_gate</code> was never a working query and is not a fallback, and a reader who only looks at the rows sees an empty environment. <code>smartscapeNodes &quot;ACTIVEGATE&quot;</code> is the only DQL path. The semantic dictionary now carries a <code>dt.smartscape.activegate</code> model for it (node type <code>ACTIVEGATE</code>, no classic counterpart listed, read 10/02/2026). The node exposes <code>dt.active_gate.id</code> (hex, the same form as the classic <code>agId</code>), <code>dt.active_gate.version</code>, <code>dt.active_gate.group.name</code>, <code>dt.network_zone.id</code>, <code>is_containerized</code>, <code>is_fips</code>, <code>modules[]</code>, <code>os.type</code>, <code>addresses[]</code>, <code>load_balancer_addresses</code> and <code>dt.remote_extensions.version</code>.</p>
+<p>The practical consequence: <strong>migrating ActiveGate work may mean replacing a REST call, not a DQL selector.</strong> ActiveGate 1.343 (published 07/15/2026, rollout from 07/28/2026) deprecates <code>GET /api/v2/activeGates</code>, <code>/api/v2/activeGates/{agId}</code>, and <code>/api/v2/activeGates/groups</code>, so automation that enumerated ActiveGates over the API is the code that needs a new home — and <code>smartscapeNodes &quot;ACTIVEGATE&quot;</code> is where it lands. Note that the classic <strong>Entities API v2</strong> selector (<code>GET /api/v2/entities?entitySelector=type(&quot;ENVIRONMENT_ACTIVE_GATE&quot;)</code>) is a <em>different surface</em> from DQL and may still respond during the deprecation period; that it works says nothing about whether the DQL entity type exists, because it never did.</p>
+<p><strong>Digital Experience types collapse rather than map one-to-one.</strong> Web and mobile applications both become <code>FRONTEND</code> nodes, distinguished by <code>frontend.type</code> (<code>web</code> / <code>mobile</code>). A translation that assumes one classic type per node type will over-count — a query migrated from <code>dt.entity.application</code> without a <code>frontend.type == &quot;web&quot;</code> filter silently picks up the mobile apps too. <code>FRONTEND</code> nodes carry <code>id_classic</code> holding the original <code>APPLICATION-*</code> / <code>MOBILE_APPLICATION-*</code> id, which is the reliable way to reconcile a migrated result against the classic one. One wrinkle worth knowing: <code>frontend.type</code> is <strong>absent from the model's own <code>fields</code> array</strong> in the semantic dictionary yet queries and filters correctly — so absence from the field list is not proof a field does not exist.</p>
+<p><strong><code>synthetic_test</code> splits, and <code>multiprotocol_monitor</code> is renamed.</strong> Monitor and step are <strong>separate node types</strong> — <code>BROWSER_MONITOR_STEP</code> and <code>HTTP_MONITOR_STEP</code> exist alongside their parents. A classic query that read steps as attributes of the test needs a <code>traverse</code> to the step nodes (<a href="#topology-navigation">section 5</a>), not a field read. And <code>dt.entity.multiprotocol_monitor</code> becomes <code>NETWORK_AVAILABILITY_MONITOR</code> — a genuine rename, not a transliteration, so pattern-matching the classic name to derive the node type produces a type that does not exist.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-347">What's new in Dynatrace SaaS 1.347 (DT docs)</a> — the Cost Intelligence classic-ME to Smartscape transition quoted above; the page now reads <em>&quot;Rollout start on Sep 16, 2026&quot;</em> (re-read 10/12/2026)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/semantic-dictionary/tags/entity-id">Fields referencing classic entities (DT docs)</a> — for <code>dt.entity.custom_application</code>: <em>&quot;This field is deprecated and will be removed in the future. Use dt.smartscape.frontend instead.&quot;</em> The page has no <code>dt.entity.aws_lambda_function</code> row</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">Dynatrace Query Language reference (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343">ActiveGate 1.343 release notes (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/entity-v2/get-entities-list">Entities API v2 — GET entities (DT docs)</a></sub></li>
+<li><sub><strong>Dictionary:</strong> mappings read from <code>fetch dt.semantic_dictionary.models</code> 07/30/2026 and re-read 10/02/2026, except the <code>custom_application</code> row (docs field reference) and the Lambda row (matched by name). <code>dt.smartscape.frontend</code> <code>classic_models</code>: <code>dt.entity.application</code>, <code>dt.entity.mobile_application</code>; <code>dt.smartscape.aws_lambda_function</code> and <code>dt.smartscape.activegate</code> <code>classic_models</code>: empty; <code>frontend.type</code> absent from the <code>FRONTEND</code> model's <code>fields</code> array, read 10/02/2026</sub></li>
+<li><sub>Live tenant, 07/30/2026 and 10/02/2026: the three <code>dt.entity.*active_gate*</code> spellings return <code>records: []</code> with an <code>ENTITY_DATA_OBJECT_UNDEFINED</code> WARNING; <code>smartscapeNodes &quot;ACTIVEGATE&quot;</code> returned 4 nodes; <code>frontend.type</code> returned <code>web</code> (27) and <code>mobile</code> (7) over 7 days, every <code>id_classic</code> prefixed <code>APPLICATION-</code> or <code>MOBILE_APPLICATION-</code>; 34 <code>AWS_LAMBDA_FUNCTION</code> nodes, none with <code>id_classic</code>, all with <code>aws.arn</code></sub></li>
+</ul>
+</blockquote>
+<p><a id="migrating-the-constructs"></a></p>
+<h2>3. Migrating the Constructs</h2>
+<table>
+<thead>
+<tr>
+<th>Classic</th>
+<th>Smartscape</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>entityName(x)</code></td>
+<td><code>name</code></td>
+<td>Nodes expose <code>name</code> directly; <code>getNodeName(x)</code> is for resolving an id held in mass data</td>
+</tr>
+<tr>
+<td><code>entityAttr(x, &quot;attr&quot;)</code></td>
+<td>the field itself</td>
+<td>Nodes expose their attributes as fields; <code>getNodeField(x, &quot;attr&quot;)</code> is for mass data</td>
+</tr>
+<tr>
+<td><code>classicEntitySelector(&quot;...&quot;)</code></td>
+<td><code>filter</code> on node fields</td>
+<td>Translate each predicate to a field comparison</td>
+</tr>
+<tr>
+<td><code>belongs_to[...]</code>, <code>runs[...]</code>, <code>instance_of[...]</code></td>
+<td><code>traverse</code></td>
+<td>Or <code>references[...]</code> for static edges only</td>
+</tr>
+<tr>
+<td>classic entity id</td>
+<td><code>id</code>, with <code>id_classic</code> as the bridge</td>
+<td>See <a href="#gotchas-worth-knowing-first">gotchas</a></td>
+</tr>
+<tr>
+<td><code>affected_entity_ids</code></td>
+<td><code>smartscape.affected_entities</code></td>
+<td>An array of <code>{id, type, name}</code> records — <code>smartscape.affected_entities[][id]</code> gives the id list. <code>smartscape.affected_entity.ids</code> / <code>.types</code> are <strong>also deprecated</strong>; do not migrate to them</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>entityName</code>/<code>getNodeName</code> and <code>entityAttr</code>/<code>getNodeField</code> pairs are the ones people get wrong, because the <code>getNode*</code> functions look like the natural replacements and are not. See <a href="#gotchas-worth-knowing-first">section 7</a>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/davis">Davis AI (DT docs — semantic dictionary)</a> — <code>affected_entity_ids</code>: <em>&quot;This field is deprecated and will be removed in the future. Use smartscape.affected_entities instead.&quot;</em>; <code>smartscape.affected_entity.ids</code>: <em>&quot;This field is deprecated and will be removed in the future. Use 'smartscape.affected_entities' instead.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-347">What's new in Dynatrace SaaS 1.347 (DT docs)</a> — release notes that refer to <em>&quot;tenants where the deprecated fields are no longer written&quot;</em>. <code>smartscape.affected_entities[][id]</code> executed against <code>dt.davis.problems</code> 10/02/2026 and returned the same ids as <code>smartscape.affected_entity.ids</code>.</sub></p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Dictionary:</strong> <code>dt.smartscape.host</code> publishes <code>id</code>, <code>id_classic</code>, <code>name</code> and <code>type</code> as node fields — the basis for the <code>entityName</code> → <code>name</code> and <em>classic id → <code>id</code>, with <code>id_classic</code> as the bridge</em> rows; read from <code>dt.semantic_dictionary.models</code> 08/27/2026. <strong>Derived:</strong> the construct-by-construct mapping is this entry's translation table; no single page presents the classic and Smartscape surfaces side by side.</sub></p>
+</blockquote>
+<p><a id="a-verified-before-and-after"></a></p>
+<h2>4. A Verified Before-and-After</h2>
+<p>Situation 3 — list the hosts in a host group. Both queries below were executed against the same tenant and returned <strong>the same four host IDs</strong>.</p>
+<p>First the classic form:</p>
+<pre><code class="language-dql">// CLASSIC — deprecated, still functional.
+// classicEntitySelector() carries the predicate; hostGroupName is a classic attribute.
+fetch dt.entity.host
+| filter in(id, classicEntitySelector(&quot;type(HOST),hostGroupName(esa-k8s-playground)&quot;))
+| fields id, entity.name, hostGroupName
+| sort entity.name asc
+</code></pre>
+<p>Then the Smartscape form. The selector predicate becomes an ordinary field comparison — there is no selector-string equivalent, and that is the point.</p>
+<pre><code class="language-dql">// SMARTSCAPE — the migration target.
+// The selector predicate becomes a plain filter on a node field.
+smartscapeNodes &quot;HOST&quot;
+| filter dt.host_group.id == &quot;esa-k8s-playground&quot;
+| fields id, name, dt.host_group.id
+| sort name asc
+</code></pre>
+<p><strong>Same four IDs — but not the same output.</strong> The <code>name</code> values differ:</p>
+<table>
+<thead>
+<tr>
+<th>Query</th>
+<th><code>name</code> value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Classic <code>entity.name</code></td>
+<td><code>[esa-k8s-playground] - ip-192-168-8-164.ec2.internal</code></td>
+</tr>
+<tr>
+<td>Smartscape <code>name</code></td>
+<td><code>ip-192-168-8-164.ec2.internal</code></td>
+</tr>
+</tbody>
+</table>
+<p>Classic host names are <strong>prefixed with the host group in square brackets</strong>; Smartscape names are not. Anything downstream that matches on the name string — a dashboard filter, a regex, a <code>contains()</code>, a report join — will silently stop matching after migration even though the entity set is identical.</p>
+<p><strong>Check the values, not just the row count.</strong> A migration that returns the right number of rows can still return different strings in them.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> both queries executed against a Dynatrace tenant, 07/23/2026 — 4 records each, identical <code>id</code> sets, differing <code>name</code> values as shown.</sub></p>
+</blockquote>
+<p><a id="topology-navigation"></a></p>
+<h2>5. Topology Navigation</h2>
+<p>Classic relationship fields (<code>belongs_to[...]</code>, <code>runs[...]</code>) become <code>traverse</code>. Before traversing, find out which edges exist — the edge inventory is tenant-specific.</p>
+<pre><code class="language-dql">// Which relationship types exist in this tenant, and how common are they?
+// smartscapeEdges REQUIRES a type argument — &quot;*&quot; matches all.
+smartscapeEdges &quot;*&quot;
+| summarize edge_count = count(), by:{type}
+| sort edge_count desc
+</code></pre>
+<p>On the validation tenant this returned 12 edge types, led by <code>belongs_to</code> (4,075), <code>runs_on</code> (2,237), <code>is_part_of</code> (1,875), <code>contains</code> (1,411), and <code>uses</code> (896), with <code>calls</code>, <code>routes_to</code>, <code>balances</code>, <code>is_attached_to</code>, <code>monitors</code>, <code>balanced_by</code>, and <code>is_assigned_to</code> behind them.</p>
+<p><strong>Edge types are lowercase.</strong> Node types are uppercase (<code>&quot;HOST&quot;</code>), edge types are lowercase (<code>runs_on</code>). Passing <code>&quot;RUNS_ON&quot;</code> returns zero rows rather than an error — it parses, matches nothing, and looks exactly like a tenant with no such relationship.</p>
+<p>Now the traversal itself:</p>
+<pre><code class="language-dql">// Walk from processes to the hosts they run on.
+// traverse takes NAMED parameters — edgeTypes:, targetTypes:, direction:
+// Edge types unquoted and lowercase; target types unquoted and uppercase.
+// A containerized process runs_on a CONTAINER, not a HOST — narrow after the walk, not before it.
+smartscapeNodes &quot;PROCESS&quot;
+| traverse edgeTypes: {runs_on}, targetTypes: {HOST}, direction: forward
+| dedup id
+| fields id, name, type
+| limit 5
+</code></pre>
+<p>A process's <code>runs_on</code> target can be a <code>HOST</code> or a <code>CONTAINER</code>, which is why the query walks every process and narrows afterwards: picking one process first can legitimately return nothing when that process is containerized.</p>
+<p>Chain <code>traverse</code> commands for multi-hop walks. <code>direction:</code> accepts <code>forward</code> or <code>backward</code> — an edge that returns nothing in one direction may well return results in the other, so check both before concluding the relationship is absent.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> the edge inventory executed against a Dynatrace tenant 07/23/2026 and returned the 12 types and counts quoted. The traversal executed 10/15/2026 in the form above and returned 5 HOST nodes with no notification; the earlier <code>| limit 1</code> form returned zero rows, because <code>runs_on</code> edges from processes on the validation tenant pointed to HOST (157) and CONTAINER (133). The named-parameter form is required: a <code>traverse runs_on { PROCESS }</code> block form fails with <code>PARSE_ERROR</code>.</sub></p>
+</blockquote>
+<p><a id="things-that-are-fields-not-entities"></a></p>
+<h2>6. Things That Are Fields, Not Entities</h2>
+<p>Some classic entity types have <strong>no standalone Smartscape node</strong>. They became attributes of the entity they described. Translating them literally produces a query for a node type that does not exist.</p>
+<table>
+<thead>
+<tr>
+<th>Classic entity</th>
+<th>Smartscape reality</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Host group</td>
+<td><code>dt.host_group.id</code> — a field on <code>HOST</code></td>
+</tr>
+<tr>
+<td>Process group</td>
+<td>fields on <code>PROCESS</code></td>
+</tr>
+<tr>
+<td>Container group</td>
+<td>fields on <code>CONTAINER</code>; preserve output shape with placeholders if a consumer expects the old columns</td>
+</tr>
+</tbody>
+</table>
+<p>Section 4 is exactly this case: the classic query treated the host group as a selector predicate against a host-group concept, and the Smartscape query filters a field on the host itself.</p>
+<p>A <code>HOST</code> node carries substantially more than the classic entity did — on the validation tenant, roughly 35 fields including <code>dt.host_group.id</code>, <code>dt.security_context</code>, <code>cloud.provider</code>, <code>aws.arn</code>, <code>aws.availability_zone</code>, <code>os.type</code>, <code>os.version</code>, <code>cores</code>, <code>host.software_technologies</code>, and <code>host.custom.metadata</code>. Inspect a single node before assuming an attribute needs a lookup:</p>
+<blockquote>
+<p><sub><strong>Dictionary:</strong> <code>dt.host_group.id</code> is a field on <code>dt.smartscape.host</code>, not a node type — and there is <strong>no</strong> Smartscape node model for a Dynatrace host group, process group or container group: of the <strong>2,144</strong> <code>smartscape.nodes</code> models, every <code>*GROUP*</code> node type is a cloud-provider or database resource (<code>AWS_EKS_NODEGROUP</code>, <code>AZURE_…_CONTAINERGROUPS</code>, <code>DB_AVAILABILITY_GROUP_MSSQL</code>, …). Read from <code>dt.semantic_dictionary.models</code> 08/27/2026; the 2,144-model count is the control that makes the absence meaningful rather than an empty result.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// What does one node actually expose? Run this before building any migration.
+// Cheaper and more reliable than guessing at field names.
+smartscapeNodes &quot;HOST&quot;
+| limit 1
+</code></pre>
+<p><a id="gotchas-worth-knowing-first"></a></p>
+<h2>7. Gotchas Worth Knowing First</h2>
+<p>Each of these was hit while validating this document.</p>
+<p><strong><code>getNodeField()</code> returns null inside <code>smartscapeNodes</code>.</strong> It resolves a node id held in <em>mass data</em> — it is not for the node you are already iterating. Inside <code>smartscapeNodes</code>, read the field directly.</p>
+<pre><code class="language-dql">// Wrong — returns null, no error
+smartscapeNodes &quot;HOST&quot; | fieldsAdd tags = getNodeField(dt.smartscape.host, &quot;tags&quot;)
+
+// Right — the node exposes its fields directly
+smartscapeNodes &quot;HOST&quot; | fields id, name, dt.host_group.id
+</code></pre>
+<p>The same applies to <code>getNodeName()</code> versus <code>name</code>. Both <code>getNode*</code> functions belong on the mass-data side of a query, where you hold an id and need the topology to resolve it.</p>
+<p><strong>Case is not cosmetic.</strong> Node types uppercase (<code>&quot;HOST&quot;</code>), edge types lowercase (<code>runs_on</code>). The wrong case on an edge type returns zero rows silently.</p>
+<p><strong><code>smartscapeEdges</code> requires a type argument.</strong> Bare <code>smartscapeEdges</code> fails with <code>NO_PARAMETERS_FOR_COMMAND</code>. Use <code>&quot;*&quot;</code> for all types.</p>
+<p><strong><code>traverse</code> uses named parameters.</strong> <code>edgeTypes:</code>, <code>targetTypes:</code>, <code>direction:</code> — not a <code>{ }</code> block after the edge name, which fails to parse.</p>
+<p><strong><code>id_classic</code> is the bridge between the two id spaces — and you cannot compare it with <code>==</code>.</strong> Every Smartscape node that has a classic counterpart carries it, holding the classic <code>HOST-…</code> / <code>SERVICE-…</code> identifier, which makes it the obvious key for joining migrated and unmigrated queries. The obvious way to use it does not work. (Smartscape-native types such as <code>ACTIVEGATE</code>, <code>ONEAGENT</code> and cloud resources like <code>AWS_EC2_INSTANCE</code> carry no <code>id_classic</code> at all, and <code>PROCESS</code> carried it on 210 of 215 nodes on the validation tenant, 09/28/2026 — so filter reconciliation queries with <code>isNotNull(id_classic)</code> before counting unmatched nodes.)</p>
+<p><code>id</code> and <code>id_classic</code> are <strong>different types</strong>: <code>id</code> is a <code>smartscape_id</code>, <code>id_classic</code> is a <code>string</code>. Comparing them directly is <strong>always false</strong>, even when the two values print identically side by side. Grail never raises an error — on 09/21/2026 it attached an <strong>INFO-severity notification</strong> to the otherwise-successful result, and on 09/24/2026 not even that — so the query runs, returns a full set of rows, and answers the opposite of the question:</p>
+<pre><code class="language-dql">// Wrong — &quot;no&quot; on every row, and no error. Both columns print the SAME value.
+smartscapeNodes &quot;SERVICE&quot;
+| fieldsAdd same = if(id == id_classic, then: &quot;yes&quot;, else: &quot;no&quot;)
+
+// Right — compare like with like
+smartscapeNodes &quot;SERVICE&quot;
+| fieldsAdd same = if(toString(id) == id_classic, then: &quot;yes&quot;, else: &quot;no&quot;)
+</code></pre>
+<p>On the validation tenant (09/21/2026) <code>toString(id) == id_classic</code> matched <strong>23 of 23</strong> services and <strong>7 of 7</strong> hosts; the bare <code>==</code> matched <strong>0</strong> of each, with Grail attaching this notification text (tenant response, 09/21/2026): The <code>==</code> operation will always return <code>false</code> as <code>id</code> is a smartscape id, while <code>id_classic</code> is a string.</p>
+<p><strong>Why this one bites hardest during a migration.</strong> Reconciling <code>id_classic</code> against the source tenant's ids is how you prove the target tenant found everything — so a reconciliation query built on the bare <code>==</code> reports that <em>nothing</em> matched, which is indistinguishable from a failed migration and sends you hunting a problem that does not exist. Used as a <code>filter</code> instead, it returns zero rows, which reads as &quot;nothing to fix.&quot; Both directions are silent. <strong>FAQ-25 § 4</strong> covers the migration case.</p>
+<p>The values being identical on <code>HOST</code> and <code>SERVICE</code> is also not something to generalize to every node type. Inspect before you rely on it:</p>
+<pre><code class="language-dql">smartscapeNodes &quot;SERVICE&quot; | fields id, id_classic, name
+</code></pre>
+<p><strong>A zero-row result is ambiguous.</strong> A wrong edge-type case, a genuinely absent relationship, a wrong traversal direction, and a missing read scope all return nothing. Work down that list before assuming the query is wrong.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> all five behaviours reproduced against a Dynatrace tenant, 07/23/2026 — <code>getNodeField</code> null result, <code>&quot;RUNS_ON&quot;</code> zero-row return, <code>NO_PARAMETERS_FOR_COMMAND</code> on bare <code>smartscapeEdges</code>, <code>PARSE_ERROR</code> on the <code>traverse</code> block form, and identical <code>id</code>/<code>id_classic</code> values on HOST and SERVICE nodes. The <code>==</code> type-mismatch behaviour was reproduced separately on 09/21/2026 — SERVICE 23 of 23 and HOST 7 of 7 matched with <code>toString(id)</code>, 0 of each without, with the <code>EQUALITY_COMPARISON_OF_INCOMPATIBLE_TYPES</code> notification quoted verbatim from the query response. Re-run 09/24/2026: same result, with an empty <code>notifications</code> array. <code>id_classic</code> population by node type executed 09/28/2026.</sub></p>
+</blockquote>
+<p><a id="finding-the-queries-to-migrate"></a></p>
+<h2>8. Finding the Queries to Migrate</h2>
+<p>Everything above assumes you already know which queries to migrate. In practice that is the hard part: classic-entity DQL is spread across dashboard tiles, notebook sections, workflow tasks and segment variables that nobody has opened in months.</p>
+<p>Grail records every query it runs in <code>dt.system.query_executions</code>, including the query text and the app that sent it, so you can get the list from execution history instead of opening every document. The query engine also sets a flag, <code>CLASSIC_ENTITY_MIGRATION_ADVISED</code>, on executions it recognizes as classic-entity DQL. That value comes from the tenant, not from a docs page. Dynatrace's own <strong>Check your upgrade readiness</strong> dashboard filters on it, and on the validation tenant it was set on about 365,000 of 2.4 million successful executions over 30 days (09/29/2026).</p>
+<p>Do not rely on the flag alone. The query below also matches the classic constructs in the query text, which catches executions the flag misses. On the same tenant, text matching found about 408,000 executions against 365,000 flagged.</p>
+<pre><code class="language-dql">// Which dashboards, notebooks and workflows still run classic-entity DQL?
+// Ranked by executions: the top rows are the documents people actually use.
+fetch dt.system.query_executions, from:-30d
+| filter status == &quot;SUCCEEDED&quot;
+| filter in(client.application_context, {&quot;dynatrace.dashboards&quot;, &quot;dynatrace.notebooks&quot;, &quot;dynatrace.automations&quot;})
+| filter in(&quot;CLASSIC_ENTITY_MIGRATION_ADVISED&quot;, flags)
+    or contains(query_string, &quot;classicEntitySelector&quot;)
+    or contains(query_string, &quot;entityName(&quot;)
+    or contains(query_string, &quot;entityAttr(&quot;)
+    or contains(query_string, &quot;dt.entity.&quot;)
+// Dashboards and notebooks carry their document id in the client URL; workflows carry it in their own field.
+| parse client.source, &quot;LD '/ui/dashboard/' [a-zA-Z0-9._-]+:dashboard_id&quot;
+| parse client.source, &quot;LD '/ui/notebook/' [a-zA-Z0-9._-]+:notebook_id&quot;
+| fieldsAdd document_id = coalesce(dashboard_id, notebook_id, client.workflow_context)
+| summarize {executions = count(), users = countDistinct(user.email)}, by:{client.application_context, document_id}
+| sort executions desc
+| limit 50
+</code></pre>
+<p>On the validation tenant this returned 17 documents (10/02/2026): two workflows at the top (2,160 and 200 executions), then a notebook and a run of dashboards, nearly all with a single user. One workflow on a schedule can run more classic-entity DQL than all your dashboards together, so the ranking tends to put scheduled automation first. That is also the right order to fix things in.</p>
+<p><strong>Reading the result.</strong></p>
+<ul>
+<li><code>document_id</code> is the id that appears in the document's own URL (<code>…/ui/dashboard/&lt;id&gt;</code>, <code>…/ui/notebook/&lt;id&gt;</code>) or, for a workflow, its workflow id. Ids that read as names rather than UUIDs, such as <code>com-dynatrace-extension-postgres-overview</code> or <code>dynatrace.upgrade.readiness.migration-status</code>, belong to ready-made or extension content. The second one is the readiness dashboard itself. It runs <code>fetch dt.entity.*</code> queries of its own, so its own checks will list it. Find out who owns a document before you plan to edit it.</li>
+<li><code>users</code> separates a document one person runs from one a team depends on. A document with one user and a handful of executions is a candidate to retire rather than migrate.</li>
+<li><strong>A document missing from the list has not run in the window, which is different from being clean.</strong> A dashboard nobody opened in 30 days has no executions to find. Widen <code>from:</code> before you conclude the migration is done.</li>
+<li><code>contains(query_string, &quot;dt.entity.&quot;)</code> also matches <code>dt.entity.*</code> <em>dimensions</em> in a <code>by:</code> or <code>filter:</code>. That is intended, since those are situation 1 and 2 queries from <a href="#start-by-classifying-the-query">section 1</a>. It also means the text match never proves a query is a pure entity list.</li>
+</ul>
+<p>Segment variables and Site Reliability Guardian objectives run classic-entity DQL too. The readiness dashboard finds them through <code>client.client_context</code> and the <code>dynatrace.site.reliability.guardian</code> application context. Add those to the <code>in(client.application_context, …)</code> list if your tenant uses them.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> query executed against a Dynatrace tenant 09/29/2026 (14 documents) and re-executed 10/02/2026 (17 documents, no notifications); 364,711 flagged and 407,789 text-matched out of 2,360,811 successful executions in 30 days. <strong>Dictionary:</strong> the <code>query_execution_event</code> model lists <code>query_string</code>, <code>client.application_context</code>, <code>client.source</code>, <code>status</code> and <code>flags</code>, read 09/29/2026. The <code>CLASSIC_ENTITY_MIGRATION_ADVISED</code> value appears in no public documentation page found on 09/29/2026; it is observed tenant behaviour and is also the filter the ready-made <em>Check your upgrade readiness</em> dashboard uses. <code>client.workflow_context</code> is not in that model's field list but was populated on every workflow row returned.</sub></p>
+</blockquote>
+<p><a id="summary-and-next-steps"></a></p>
+<h2>9. Summary and Next Steps</h2>
+<p><strong>The four things to carry away:</strong></p>
+<ol>
+<li><strong>Classify before translating.</strong> Only a pure entity-list query has to become <code>smartscapeNodes</code>. Mass-data queries should try a direct dimension filter first.</li>
+<li><strong>Predicates become filters.</strong> <code>classicEntitySelector(&quot;...&quot;)</code> has no Smartscape counterpart by design — each predicate becomes an ordinary field comparison.</li>
+<li><strong>Verify values, not row counts.</strong> The host-group example returns the same four entities under both forms with <em>different</em> <code>name</code> strings. Downstream string matching breaks silently.</li>
+<li><strong>Inspect a node before writing the migration.</strong> <code>smartscapeNodes &quot;&lt;TYPE&gt;&quot; | limit 1</code> answers most field questions faster than any mapping table.</li>
+</ol>
+<p><strong>There is no removal date yet, but there is a support window.</strong> SaaS 1.334 (rollout from 03/10/2026) states that classic queries <em>&quot;remain fully supported for the next year&quot;</em>. Plan the migration inside that window rather than sweeping everything at once: start from the ranked list in <a href="#finding-the-queries-to-migrate">section 8</a>, take first the surfaces the product is moving (Cost Intelligence, SaaS 1.347, rolling out from 09/16/2026), and verify each query's output against the classic form as you go.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-334">What's new in Dynatrace SaaS 1.334 (DT docs)</a> — <em>&quot;Classic queries remain fully supported for the next year.&quot;</em></sub></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>If you need…</th>
+<th>Read</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Host group naming and strategy</td>
+<td>FAQ-01 (host group naming strategy)</td>
+</tr>
+<tr>
+<td>Tagging as a filter dimension</td>
+<td>FAQ-02 (tagging sources, standards, strategy)</td>
+</tr>
+<tr>
+<td>Metric mechanics and selector conversion</td>
+<td>FAQ-11 (how metrics work)</td>
+</tr>
+<tr>
+<td>Segments as the modern filtering construct</td>
+<td>ORGNZ-08 (Grail segments), ORGNZ-10 (advanced segment definitions)</td>
+</tr>
+<tr>
+<td>DQL syntax generally</td>
+<td>ORGNZ-99 (best practice summary and DQL reference)</td>
+</tr>
+<tr>
+<td>The wider classic-to-Gen3 migration this sits inside</td>
+<td>The -START-HERE- playbook, Doorway 4</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

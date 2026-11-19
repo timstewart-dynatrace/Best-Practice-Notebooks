@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLOUD-01: Cloud Integration Fundamentals</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">CLOUD — Cloud Provider Integrations</a><span class="sep">/</span><span aria-current="page">CLOUD-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>CLOUD-01: Cloud Integration Fundamentals</h1>
+<blockquote>
+<p><strong>Series:</strong> CLOUD — Cloud Provider Integrations | <strong>Notebook:</strong> 1 of 8 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook introduces how Dynatrace integrates with major cloud providers (AWS, Azure, GCP) to deliver full-stack observability across cloud environments. You will learn the difference between ActiveGate-based polling and API-based ingestion, how the Dynatrace entity model maps cloud resources, and how to plan a multi-cloud monitoring strategy.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#integration-architecture">Integration Architecture</a></li>
+<li><a href="#activegate-vs-api">Connection Methods: Clouds App vs Classic</a></li>
+<li><a href="#cloud-entity-model">Cloud Entity Model</a></li>
+<li><a href="#cloud-vs-host-metrics">Cloud Metrics vs Host Metrics</a></li>
+<li><a href="#querying-cloud-entities">Querying Cloud Entities</a></li>
+<li><a href="#multi-cloud-strategy">Multi-Cloud Strategy</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail (the DQL cells do not run on Dynatrace Managed)</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:metrics:read</code>, <code>storage:entities:read</code> + <code>storage:smartscape:read</code>, <code>settings:objects:read</code>, <code>storage:buckets:read</code> (Grail IAM permissions)</td>
+</tr>
+<tr>
+<td><strong>Cloud Integration</strong></td>
+<td>At least one cloud provider connected (AWS, Azure, or GCP)</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td>Basic Dynatrace navigation and DQL fundamentals</td>
+</tr>
+</tbody>
+</table>
+<p><a id="integration-architecture"></a></p>
+<h2>1. Integration Architecture</h2>
+<p>Dynatrace supports multiple approaches for cloud integration, with <strong>direct connections via the Clouds app</strong> being the recommended modern approach:</p>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Mechanism</th>
+<th>Latency</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Clouds App (Direct Connection)</strong></td>
+<td>Dynatrace SaaS connects directly to cloud provider APIs — no ActiveGate needed</td>
+<td>5 min</td>
+<td>Recommended for SaaS: full entity discovery, topology, metrics</td>
+</tr>
+<tr>
+<td><strong>Classic ActiveGate Polling</strong></td>
+<td>Environment ActiveGate queries cloud provider APIs on a schedule</td>
+<td>5-15 min</td>
+<td>Legacy approach; required for Managed deployments</td>
+</tr>
+<tr>
+<td><strong>API-Based / Streaming</strong></td>
+<td>Cloud provider pushes data to Dynatrace via API (e.g., Firehose, Event Hub, Pub/Sub)</td>
+<td>Near real-time</td>
+<td>High-frequency metrics, log forwarding</td>
+</tr>
+<tr>
+<td><strong>OneAgent on Host</strong></td>
+<td>Agent installed directly on VMs/containers</td>
+<td>Seconds</td>
+<td>Deep code-level visibility, distributed tracing</td>
+</tr>
+</tbody>
+</table>
+<h3>How the Clouds App Works (Recommended)</h3>
+<ol>
+<li>Open the <strong>Clouds app</strong> in your Dynatrace environment.</li>
+<li>Select the cloud provider (AWS, Azure, or GCP) and follow the guided onboarding flow.</li>
+<li>For <strong>AWS</strong>: Dynatrace deploys a CloudFormation stack in your account that creates IAM roles, Secrets Manager entries, and optional log forwarding resources.</li>
+<li>For <strong>Azure</strong>: Create an Azure connection in the Clouds app (Entra ID app registration with a federated identity credential and the Monitoring Reader role), or use the Azure Native Dynatrace Service from the Azure Marketplace.</li>
+<li>For <strong>GCP</strong>: Create a GCP connection in the Clouds app (generally available — verify it has reached your tenant; keyless service account impersonation), or deploy <code>dynatrace-gcp-monitor</code> on GKE (maintenance mode; keeps working until you move), which polls Cloud Monitoring for metrics and pulls logs from Pub/Sub.</li>
+<li>Dynatrace connects directly to cloud APIs — <strong>no ActiveGate required</strong> for SaaS deployments.</li>
+<li>Discovered resources are mapped to the Dynatrace entity model, enriched with cloud-native metadata (tags, account IDs, regions).</li>
+</ol>
+<blockquote>
+<p><strong>Note:</strong> Classic ActiveGate-based polling is still supported for Managed deployments and environments with strict network requirements, but direct connections are the recommended approach for SaaS.</p>
+</blockquote>
+<h3>Key Consideration: Integration vs Agent</h3>
+<p>Cloud integration (whether direct or via ActiveGate) provides <strong>infrastructure-level</strong> visibility (CPU, memory, network, cloud-specific metrics). For <strong>application-level</strong> visibility (distributed traces, code-level diagnostics), you add OneAgent, OpenTelemetry, or both.</p>
+<p><a id="activegate-vs-api"></a></p>
+<h2>2. Connection Methods: Clouds App vs Classic</h2>
+<h3>Clouds App — Direct Connections (Recommended)</h3>
+<p>The <strong>Clouds app</strong> provides a streamlined, fully managed experience for connecting cloud providers to Dynatrace SaaS. No customer-deployed ActiveGate is required.</p>
+<p><strong>Advantages:</strong></p>
+<ul>
+<li>No ActiveGate infrastructure to deploy or maintain</li>
+<li>Guided onboarding with Infrastructure-as-Code (CloudFormation for AWS)</li>
+<li>Unified management interface for all cloud connections</li>
+<li>Automatic telemetry enrichment with cloud-native metadata (tags, account IDs)</li>
+<li>Supports metrics, logs, topology, and events from a single connection</li>
+</ul>
+<p><strong>Supported Providers:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Provider</th>
+<th>Status</th>
+<th>Onboarding Method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AWS</strong></td>
+<td>Available</td>
+<td>CloudFormation template via Clouds app</td>
+</tr>
+<tr>
+<td><strong>Azure</strong></td>
+<td>Available</td>
+<td>Azure Native Dynatrace Service or Entra ID app</td>
+</tr>
+<tr>
+<td><strong>GCP</strong></td>
+<td>Available (GA 10/29/2026)</td>
+<td>GCP connection (service account impersonation); <code>dynatrace-gcp-monitor</code> on GKE keeps working until you move</td>
+</tr>
+</tbody>
+</table>
+<h3>Classic ActiveGate-Based Polling (Legacy)</h3>
+<p>For Managed deployments or environments with specific network constraints, the classic ActiveGate approach is still available. On Managed, classic polling runs on Environment ActiveGates; their placement, redundancy and updates are covered in DTM-04: ActiveGate Deployment on Managed.</p>
+<p><strong>Advantages:</strong></p>
+<ul>
+<li>Works with Dynatrace Managed (on-premises)</li>
+<li>Supports environments with outbound-only connectivity</li>
+<li>Single integration point behind firewalls</li>
+</ul>
+<p><strong>Limitations:</strong></p>
+<ul>
+<li>Requires deploying and maintaining ActiveGate compute resources</li>
+<li>Polling interval introduces 5-15 minute data latency</li>
+<li>API rate limits can slow discovery in large environments</li>
+<li>Higher operational overhead</li>
+</ul>
+<h3>When to Use Which</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Recommended Approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dynatrace SaaS (new setup)</td>
+<td><strong>Clouds app</strong> direct connection</td>
+</tr>
+<tr>
+<td>Dynatrace Managed</td>
+<td>Classic ActiveGate polling</td>
+</tr>
+<tr>
+<td>High-frequency alerting (&lt; 5 min)</td>
+<td>API-based streaming (Firehose, Event Hub, Pub/Sub)</td>
+</tr>
+<tr>
+<td>Serverless workloads (Lambda, Functions)</td>
+<td>Clouds app + Lambda Layer for tracing</td>
+</tr>
+<tr>
+<td>Strict network isolation</td>
+<td>Classic ActiveGate (outbound-only)</td>
+</tr>
+<tr>
+<td>Large-scale environments (1000+ resources)</td>
+<td>Clouds app + selective streaming for critical metrics</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/amazon-web-services">AWS integration (DT docs)</a> — CloudFormation onboarding and the connection model, <a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services-classic/azure-native-integration">Azure Native Dynatrace Service (DT docs)</a> — the Azure onboarding path, <a href="https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform">Google Cloud integration (DT docs)</a> — the Helm/Pub-Sub deployment. <strong>Derived:</strong> the Clouds-app-vs-classic advantages list is this entry's comparison; no page frames them as a trade-off table. <em>(The AWS row previously read &quot;Generally Available&quot; — no source applies that lifecycle term, so it now reads &quot;Available&quot;, matching CLOUD-05 § 4 and DBMON-01 § 7.)</em></sub></p>
+</blockquote>
+<h3>Two Directions of Authentication</h3>
+<p>A cloud connection is <em>Dynatrace reading your cloud</em>: AWS role assumption, an Azure service principal, or GCP service-account impersonation. <strong>Workload identity federation</strong> is the opposite direction — <em>&quot;Workload identity federation (WIF) lets an external workload call the Dynatrace API with a token issued by its own identity provider.&quot;</em> It suits CI jobs, Azure and GCP workloads and Kubernetes pods that call Dynatrace APIs, and it is configured through the Account Management API. It is Preview: <em>&quot;Workload identity federation is an Early Access feature.&quot;</em></p>
+<p>It does not replace the tokens that push paths such as Firehose and CloudWatch Metric Streams authenticate with; those send a static key. The page does not list which ingest endpoints accept a federated token, so verify before designing around it.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/workload-identity-federation">Workload identity federation (DT docs)</a> — <em>&quot;Workload identity federation (WIF) lets an external workload call the Dynatrace API with a token issued by its own identity provider.&quot;</em></sub></p>
+</blockquote>
+<h3>Upgrading from Classic to New Cloud Connections</h3>
+<p>An environment that already runs classic connections — ActiveGate polling for AWS and Azure, the self-hosted <code>dynatrace-gcp-monitor</code> workload for GCP — does not move to Clouds-app connections by itself: <em>&quot;Existing connections are not automatically upgraded or removed.&quot;</em> The new connection is created alongside the classic one, and everything built on classic data is re-pointed before the classic connection is switched off.</p>
+<p>Two things change for every dashboard, alert, SLO, workflow and notebook that reads classic cloud data:</p>
+<table>
+<thead>
+<tr>
+<th>What changes</th>
+<th>Classic connection</th>
+<th>New cloud connection</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Entities</strong></td>
+<td>Classic types such as <code>EC2_INSTANCE</code> and <code>AZURE_VM</code>, or <code>CUSTOM_DEVICE</code> (every GCP resource, with a <code>cloud:gcp:*</code> sub-type)</td>
+<td>Smartscape nodes such as <code>AWS_EC2_INSTANCE</code>, <code>AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES</code>, <code>GCP_COMPUTE_GOOGLEAPIS_COM_INSTANCE</code> — classic IDs do not carry over</td>
+</tr>
+<tr>
+<td><strong>AWS metric keys</strong></td>
+<td><code>dt.cloud.aws.*</code>, <code>cloud.aws.*</code> (Metric Streams), <code>builtin:cloud.aws.*</code></td>
+<td><code>cloud.aws.&lt;Service&gt;.&lt;Metric&gt;.By.&lt;Dimension&gt;</code>, dimension <code>dt.da.source == &quot;aws-metric-poller&quot;</code></td>
+</tr>
+<tr>
+<td><strong>Azure metric keys</strong></td>
+<td><code>builtin:cloud.azure.*</code>, <code>ext:cloud.azure.*</code></td>
+<td><code>cloud.azure.&lt;namespace&gt;.&lt;Metric&gt;</code>, dimension <code>dt.da.source == &quot;azure-metric-poller&quot;</code></td>
+</tr>
+<tr>
+<td><strong>GCP metric keys</strong></td>
+<td><code>ext:cloud.gcp.*</code></td>
+<td><code>cloud.gcp.&lt;service&gt;.&lt;Metric&gt;</code>, dimension <code>dt.da.source == &quot;gcp-cloud-monitoring&quot;</code></td>
+</tr>
+</tbody>
+</table>
+<p>The guide's sequence, per account, subscription or project:</p>
+<ol>
+<li><strong>Create the new connection</strong> next to the classic one — start with a non-production account.</li>
+<li><strong>Verify topology and telemetry</strong> — inventory takes up to 15 minutes to reach Smartscape.</li>
+<li><strong>Upgrade dependent assets</strong> — dashboards, alerts and anomaly detectors, SLOs, workflows, notebooks, API integrations, and classic auto-tagging / management zones. The AWS and Azure metric-and-entity mapping pages are the lookup for each rewrite; CLOUD-04 § 1 shows the Lambda keys side by side.</li>
+<li><strong>Switch over</strong> — disable the classic connection and <em>&quot;Keep it disabled (not deleted) for one to two weeks as a rollback buffer.&quot;</em></li>
+<li><strong>Decommission</strong> — delete the classic connection once nothing depends on it. Historical classic data stays queryable until it ages out under your retention settings.</li>
+</ol>
+<p>Plan the overlap deliberately. Classic and new connections can run side by side across <em>different</em> accounts, but the guide advises against running both against the <em>same</em> account, subscription or project for long: it risks <em>&quot;Duplicated cost&quot;</em> and <em>&quot;Cloud API throttling&quot;</em>. Keep the overlap short. One gap remains on AWS: CloudWatch Metric Streams is not yet supported by new AWS connections, so an account that depends on it keeps that classic path for now (CLOUD-02 § 7).</p>
+<p>To see which key scheme an environment is ingesting before you rewrite anything, group cloud metric keys by <code>dt.da.source</code>. Rows with a <code>dt.da.source</code> value come from new connections. Rows without one come from a classic path: <code>dt.cloud.*</code> keys from classic built-in services, or <code>cloud.*</code> keys from classic cloud services and classic Metric Streams.</p>
+<pre><code class="language-dql">metrics from:now()-9d
+| filter startsWith(metric.key, &quot;cloud.&quot;) or startsWith(metric.key, &quot;dt.cloud.&quot;)
+| fieldsAdd scheme = if(startsWith(metric.key, &quot;dt.cloud.&quot;), &quot;dt.cloud.* (classic)&quot;, else: &quot;cloud.*&quot;)
+| summarize keys = countDistinctExact(metric.key), by:{scheme, dt.da.source}
+| sort scheme asc
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections">Upgrade from classic to new cloud connections (DT docs)</a> — <em>&quot;Existing connections are not automatically upgraded or removed.&quot;</em>, <em>&quot;Classic entity IDs and classic entity types do not carry over to new Smartscape nodes.&quot;</em>, <em>&quot;Metric keys are unified to cloud.azure.<namespace>.<Metric> with a metric dimension dt.da.source == &quot;azure-metric-poller&quot; when using the new Azure connection.&quot;</em>, <em>&quot;Keep it disabled (not deleted) for one to two weeks as a rollback buffer.&quot;</em>, <em>&quot;Not yet supported by new AWS connections.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections/metric-and-entity-mapping-aws">AWS metric and entity mapping (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/clouds-app/upgrade-guide-cloud-connections/metric-and-entity-mapping-azure">Azure metric and entity mapping (DT docs)</a></sub></li>
+<li><sub>Key-scheme query executed on the validation tenant 11/11/2026: 93 <code>cloud.aws.*</code> keys with <code>aws-metric-poller</code>, 62 <code>cloud.azure.*</code> keys with <code>azure-metric-poller</code>, and, with no <code>dt.da.source</code>, 6 <code>dt.cloud.*</code> keys plus 2 lowercase classic cloud-service keys (<code>cloud.azure.microsoft_storage.storageaccounts.transactions</code>, <code>…usedcapacity</code>) over 9 days.</sub></li>
+</ul>
+</blockquote>
+<p><a id="cloud-entity-model"></a></p>
+<h2>3. Cloud Entity Model</h2>
+<p>Dynatrace maps cloud resources to its entity model. Each cloud resource becomes a monitored entity with relationships to other entities.</p>
+<h3>AWS Entity Types</h3>
+<table>
+<thead>
+<tr>
+<th>Entity Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.entity.ec2_instance</code></td>
+<td>EC2 virtual machines</td>
+</tr>
+<tr>
+<td><code>dt.entity.aws_lambda_function</code></td>
+<td>Lambda functions</td>
+</tr>
+<tr>
+<td><code>dt.entity.relational_database_service</code></td>
+<td>RDS instances</td>
+</tr>
+<tr>
+<td><code>dt.entity.elastic_load_balancer</code></td>
+<td>ALB/NLB/CLB load balancers</td>
+</tr>
+<tr>
+<td><code>dt.entity.aws_availability_zone</code></td>
+<td>Availability zones</td>
+</tr>
+<tr>
+<td><code>dt.entity.custom_device</code></td>
+<td>Other AWS services via CloudWatch</td>
+</tr>
+</tbody>
+</table>
+<h3>Azure Entity Types</h3>
+<table>
+<thead>
+<tr>
+<th>Entity Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.entity.azure_vm</code></td>
+<td>Virtual machines</td>
+</tr>
+<tr>
+<td><code>dt.entity.azure_web_app</code></td>
+<td>App Service instances</td>
+</tr>
+<tr>
+<td><code>dt.entity.azure_sql_database</code></td>
+<td>SQL Database instances</td>
+</tr>
+<tr>
+<td><code>dt.entity.azure_cosmos_db</code></td>
+<td>Cosmos DB accounts</td>
+</tr>
+<tr>
+<td><code>dt.entity.azure_load_balancer</code></td>
+<td>Load balancers</td>
+</tr>
+</tbody>
+</table>
+<h3>GCP Entity Types</h3>
+<p>GCP is the one provider whose classic entity types do <strong>not</strong> follow the <code>dt.entity.&lt;service&gt;</code> shape the AWS
+and Azure tables above use. Managed GCP services are modelled under a colon-delimited namespace —
+<code>dt.entity.cloud:gcp:&lt;service&gt;</code> — which is not guessable from the AWS/Azure pattern:</p>
+<table>
+<thead>
+<tr>
+<th>Entity Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.entity.cloud_application</code></td>
+<td>Kubernetes workloads (GKE and any other monitored cluster) — not Cloud Run, whose OneAgent-monitored instances appear as hosts</td>
+</tr>
+<tr>
+<td><code>dt.entity.cloud_application_instance</code></td>
+<td>Individual pods/instances</td>
+</tr>
+<tr>
+<td><code>dt.entity.cloud:gcp:gce_instance</code></td>
+<td>Compute Engine VMs</td>
+</tr>
+<tr>
+<td><code>dt.entity.cloud:gcp:cloud_function</code></td>
+<td>Cloud Functions</td>
+</tr>
+<tr>
+<td><code>dt.entity.cloud:gcp:cloud_run_revision</code></td>
+<td>Cloud Run revisions</td>
+</tr>
+<tr>
+<td><code>dt.entity.cloud:gcp:cloudsql_database</code></td>
+<td>Cloud SQL databases</td>
+</tr>
+<tr>
+<td><code>dt.entity.cloud:gcp:gcs_bucket</code></td>
+<td>Cloud Storage buckets</td>
+</tr>
+<tr>
+<td><code>dt.entity.cloud:gcp:pubsub_topic</code> / <code>…:pubsub_subscription</code></td>
+<td>Pub/Sub</td>
+</tr>
+<tr>
+<td><code>dt.entity.cloud:gcp:k8s_cluster</code> / <code>…:k8s_pod</code> / <code>…:k8s_node</code></td>
+<td>GKE topology</td>
+</tr>
+<tr>
+<td><code>dt.entity.gcp_zone</code>, <code>dt.entity.google_compute_engine</code></td>
+<td>Zone and GCE roll-ups</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ <strong><code>dt.entity.google_cloud_platform_service</code> does not exist</strong>, and a query against it does not error —
+it returns zero rows behind a <em>&quot;The entity type … wasn't found&quot;</em> warning, which reads as an empty
+environment. Corrected 08/27/2026. This is a partial list: 50+ GCP entity models exist (55 on the validation tenant, 09/24/2026). Enumerate the
+real set rather than guessing a name:</p>
+<pre><code class="language-dql">fetch dt.semantic_dictionary.models
+| filter startsWith(name, &quot;dt.entity.&quot;) and contains(name, &quot;gcp&quot;)
+| fields name
+| sort name asc
+</code></pre>
+</blockquote>
+<p><a id="cloud-vs-host-metrics"></a></p>
+<h2>4. Cloud Metrics vs Host Metrics</h2>
+<p>Understanding the difference between cloud-sourced metrics and OneAgent host metrics is critical for accurate monitoring.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Cloud Metrics</th>
+<th>Host Metrics (OneAgent)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Source</strong></td>
+<td>Cloud provider API (CloudWatch, Azure Monitor, etc.)</td>
+<td>OneAgent on the host</td>
+</tr>
+<tr>
+<td><strong>Granularity</strong></td>
+<td>1-5 minutes</td>
+<td>10-60 seconds</td>
+</tr>
+<tr>
+<td><strong>Scope</strong></td>
+<td>Infrastructure + managed services</td>
+<td>OS, processes, code-level</td>
+</tr>
+<tr>
+<td><strong>Metric namespace</strong></td>
+<td><code>cloud.aws.*</code>, <code>cloud.azure.*</code>, <code>cloud.gcp.*</code></td>
+<td><code>dt.host.*</code>, <code>dt.process.*</code></td>
+</tr>
+<tr>
+<td><strong>Cost</strong></td>
+<td>Cloud API call costs</td>
+<td>No additional cloud cost</td>
+</tr>
+<tr>
+<td><strong>Coverage</strong></td>
+<td>All resources (even without agent)</td>
+<td>Only instrumented hosts</td>
+</tr>
+</tbody>
+</table>
+<h3>Best Practice: Use Both</h3>
+<p>For compute resources (EC2, Azure VMs, GCE), use <strong>both</strong> cloud integration and OneAgent:</p>
+<ul>
+<li>Cloud integration provides the <strong>cloud context</strong> (instance type, availability zone, tags)</li>
+<li>OneAgent provides <strong>deep observability</strong> (processes, traces, code-level diagnostics)</li>
+<li>Dynatrace automatically correlates both data sources via the entity model</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail">Built-in metrics on Grail (DT docs)</a> — the <code>builtin:</code> → <code>dt.</code> naming transformation, which is what decides whether a metric key from a classic example still resolves, <a href="https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/aws-metrics-ingest">AWS metrics ingest (DT docs)</a> — the polling ingestion path and its granularity, <a href="https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/aws-metrics-ingest/cloudwatch-metric-streams">CloudWatch Metric Streams (DT docs)</a> — the streaming path, which uses a <strong>different key scheme</strong> (see CLOUD-04 § 1). <strong>Derived:</strong> the use-both recommendation for compute resources combines the two coverage models; no page states it as a recommendation.</sub></p>
+</blockquote>
+<p>Let's query the cloud entities currently monitored in your environment.</p>
+<p><a id="querying-cloud-entities"></a></p>
+<h2>5. Querying Cloud Entities</h2>
+<p>The following queries demonstrate how to explore cloud entities in your Dynatrace environment.</p>
+<h3>Count EC2 Instances</h3>
+<pre><code class="language-dql">// Count all monitored EC2 instances
+fetch dt.entity.ec2_instance, from:-7d
+| summarize instance_count = count()
+
+// Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
+// only entities SEEN in the query window, not the standing inventory. Without an explicit from:
+// this counted 5 of 13 EC2 instances against the notebook default window and looked correct.
+// Smartscape note (dt.entity.* is deprecated but still functional): this resource IS a Smartscape
+// node — AWS_EC2_INSTANCE, AWS_RDS_DBINSTANCE, AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES,
+// AZURE_MICROSOFT_WEB_SITES (CloudFormation / ARM type, uppercased). On Clouds-app connections the
+// classic dt.entity.* type can under-count or return nothing for the same estate (validation
+// tenant 09/24/2026: RDS 0 classic vs 3 Smartscape; EC2 6 vs 25 running). Prefer the Smartscape
+// query.
+</code></pre>
+<h3>Count Azure VMs</h3>
+<pre><code class="language-dql">// Count all monitored Azure VMs
+fetch dt.entity.azure_vm, from:-7d
+| summarize vm_count = count()
+
+// Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
+// only entities SEEN in the query window, not the standing inventory. Without an explicit from:
+// this counted 5 of 13 EC2 instances against the notebook default window and looked correct.
+// Smartscape note (dt.entity.* is deprecated but still functional): this resource IS a Smartscape
+// node — AWS_EC2_INSTANCE, AWS_RDS_DBINSTANCE, AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES,
+// AZURE_MICROSOFT_WEB_SITES (CloudFormation / ARM type, uppercased). On Clouds-app connections the
+// classic dt.entity.* type can under-count or return nothing for the same estate (validation
+// tenant 09/24/2026: RDS 0 classic vs 3 Smartscape; EC2 6 vs 25 running). Prefer the Smartscape
+// query.
+</code></pre>
+<h3>Compare Cloud Resources Across Providers</h3>
+<p>This query uses <code>append</code> to combine entity counts from multiple cloud providers into a single view.</p>
+<pre><code class="language-dql">// Compare cloud resource counts across providers
+fetch dt.entity.ec2_instance, from:-7d
+| summarize resource_count = count()
+| fieldsAdd provider = &quot;AWS&quot;, resource_type = &quot;Compute (EC2)&quot;
+| append [
+    fetch dt.entity.azure_vm, from:-7d
+    | summarize resource_count = count()
+    | fieldsAdd provider = &quot;Azure&quot;, resource_type = &quot;Compute (VM)&quot;
+  ]
+| append [
+    fetch dt.entity.aws_lambda_function, from:-7d
+    | summarize resource_count = count()
+    | fieldsAdd provider = &quot;AWS&quot;, resource_type = &quot;Serverless (Lambda)&quot;
+  ]
+| sort provider asc
+
+// Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
+// only entities SEEN in the query window, not the standing inventory. Without an explicit from:
+// this counted 5 of 13 EC2 instances against the notebook default window and looked correct.
+
+// Smartscape note (dt.entity.* is deprecated but still functional): these resources ARE
+// Smartscape nodes — AWS_EC2_INSTANCE, AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES,
+// AWS_LAMBDA_FUNCTION, AZURE_MICROSOFT_WEB_SITES (CloudFormation / ARM type, uppercased). On
+// Clouds-app connections the classic dt.entity.* types can under-count or return nothing for the
+// same estate (validation tenant 09/24/2026: EC2 6 classic vs 25 running on Smartscape; Lambda 2
+// vs 34; Azure VM 1 vs 8; Web App 0 vs 2). Prefer smartscapeNodes for the cloud-resource inventory.
+</code></pre>
+<h3>Host CPU Usage Across Cloud Hosts</h3>
+<p>This query retrieves average CPU usage for all monitored hosts, which includes both cloud and on-premises hosts.</p>
+<pre><code class="language-dql">// Average CPU usage across all hosts in the last hour
+timeseries avgCpu = avg(dt.host.cpu.usage), from:-1h, by:{dt.entity.host}
+| fieldsAdd avgCpuValue = arrayAvg(avgCpu)
+| sort avgCpuValue desc
+| limit 10
+</code></pre>
+<p><a id="multi-cloud-strategy"></a></p>
+<h2>6. Multi-Cloud Strategy</h2>
+<p>When monitoring multiple cloud providers with Dynatrace, consider these best practices:</p>
+<h3>Naming Conventions</h3>
+<p>Establish consistent naming across providers:</p>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>Convention</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Tags</strong></td>
+<td><code>cloud-provider:aws</code>, <code>cloud-provider:azure</code></td>
+<td>Identify cloud origin</td>
+</tr>
+<tr>
+<td><strong>Segments</strong></td>
+<td><code>Cloud - AWS - Production</code>, <code>Cloud - Azure - Staging</code></td>
+<td>Scope views by provider/env (filtering only — access is granted by IAM policies, not segments; Management Zones are the classic equivalent)</td>
+</tr>
+<tr>
+<td><strong>Workflow triggers</strong></td>
+<td><code>cloud-aws-critical</code>, <code>cloud-azure-warning</code></td>
+<td>Route problems by provider with problem-triggered workflows (alerting profiles are the classic equivalent)</td>
+</tr>
+</tbody>
+</table>
+<h3>Deployment Pattern</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Recommended Deployment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Environment ActiveGate</strong></td>
+<td>Only for classic polling (Managed / strict network isolation): one per provider per region; not needed for Clouds-app connections on SaaS</td>
+</tr>
+<tr>
+<td><strong>OneAgent</strong></td>
+<td>On all compute instances (EC2, Azure VM, GCE)</td>
+</tr>
+<tr>
+<td><strong>Cloud Integration</strong></td>
+<td>Enabled per provider with least-privilege IAM</td>
+</tr>
+<tr>
+<td><strong>Log Forwarding</strong></td>
+<td>Centralized via OpenPipeline</td>
+</tr>
+</tbody>
+</table>
+<h3>Cost Considerations</h3>
+<ul>
+<li><strong>Monitor only what you need</strong> — disable unused service monitoring to reduce API calls</li>
+<li><strong>Use tag-based filtering</strong> — monitor only tagged resources (e.g., <code>monitored:true</code>)</li>
+<li><strong>Review cloud API costs</strong> — CloudWatch API calls, Azure Monitor queries, and GCP monitoring API calls all have costs</li>
+<li><strong>Right-size polling intervals</strong> — not every metric needs 1-minute granularity</li>
+</ul>
+<p><a id="summary"></a></p>
+<h2>7. Summary and Next Steps</h2>
+<h3>Key Takeaways</h3>
+<ul>
+<li>Dynatrace integrates with cloud providers via the <strong>Clouds app</strong> (direct connections, recommended) or <strong>classic ActiveGate polling</strong> (legacy/Managed)</li>
+<li>Cloud resources are mapped to the <strong>Dynatrace entity model</strong> with automatic relationship discovery</li>
+<li><strong>Cloud metrics</strong> complement <strong>OneAgent host metrics</strong> — use both for full visibility</li>
+<li>A consistent <strong>naming convention</strong> and <strong>tagging strategy</strong> is essential for multi-cloud governance</li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li><strong>CLOUD-02: AWS Integration</strong> — Deep dive into AWS-specific setup and monitoring</li>
+<li><strong>CLOUD-05: Azure Integration</strong> — Azure Monitor integration and supported services</li>
+<li><strong>CLOUD-06: GCP Integration</strong> — Google Cloud monitoring configuration</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

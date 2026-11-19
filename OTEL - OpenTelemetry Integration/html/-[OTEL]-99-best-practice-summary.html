@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OTEL-99: Best Practice Summary</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OTEL — OpenTelemetry Integration</a><span class="sep">/</span><span aria-current="page">OTEL-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OTEL-99: Best Practice Summary</h1>
+<blockquote>
+<p><strong>Series:</strong> OTEL — OpenTelemetry Integration | <strong>Notebook:</strong> 99 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/29/2026</p>
+</blockquote>
+<h2>Introduction</h2>
+<p>This notebook consolidates every actionable best practice from the OTEL series (notebooks 01-08) into definitive, reference-ready tables. Each practice specifies the exact setting or value to use, a priority level, and its category. Use this as a checklist when planning, deploying, or auditing OpenTelemetry integration with Dynatrace.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#collector-configuration">Collector Configuration</a></li>
+<li><a href="#deployment-and-sizing">Deployment and Sizing</a></li>
+<li><a href="#security">Security</a></li>
+<li><a href="#dynatrace-otlp-integration">Dynatrace OTLP Integration</a></li>
+<li><a href="#resource-attributes-and-entity-mapping">Resource Attributes and Entity Mapping</a></li>
+<li><a href="#trace-instrumentation">Trace Instrumentation</a></li>
+<li><a href="#metrics-instrumentation">Metrics Instrumentation</a></li>
+<li><a href="#logs-instrumentation">Logs Instrumentation</a></li>
+<li><a href="#semantic-conventions">Semantic Conventions</a></li>
+<li><a href="#performance-and-reliability">Performance and Reliability</a></li>
+<li><a href="#troubleshooting-and-observability">Troubleshooting and Observability</a></li>
+</ol>
+<hr />
+<p><a id="collector-configuration"></a></p>
+<h2>1. Collector Configuration</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Always use the <code>batch</code> processor</td>
+<td><code>processors.batch.timeout: 10s</code>, <code>send_batch_size: 1000</code>, <code>send_batch_max_size: 1500</code></td>
+<td>Critical</td>
+<td>OTEL-02</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Always use the <code>memory_limiter</code> processor</td>
+<td><code>processors.memory_limiter.check_interval: 1s</code>, <code>limit_mib:</code> 80% of container memory, <code>spike_limit_mib:</code> 25% of limit</td>
+<td>Critical</td>
+<td>OTEL-02</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Place <code>memory_limiter</code> first in every pipeline</td>
+<td><code>processors: [memory_limiter, resource, batch]</code></td>
+<td>Critical</td>
+<td>OTEL-02, OTEL-08</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Pin Collector image to a specific version</td>
+<td><code>image: ghcr.io/dynatrace/dynatrace-otel-collector/dynatrace-otel-collector:v0.48.0</code> (never <code>latest</code>; pin Contrib the same way in test setups, e.g. <code>otel/opentelemetry-collector-contrib:0.151.0</code>)</td>
+<td>Critical</td>
+<td>OTEL-03, OTEL-07</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Validate config before deploy</td>
+<td>Run <code>otelcol-contrib validate --config=config.yaml</code></td>
+<td>Critical</td>
+<td>OTEL-08</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Run the Dynatrace OTel Collector in production; use Contrib only for testing</td>
+<td>Production: <code>ghcr.io/dynatrace/dynatrace-otel-collector/dynatrace-otel-collector</code> — the distribution Dynatrace Support covers; its limited support for Core, Contrib and Builder setups covers only the components the Dynatrace distribution includes. Test setups: <code>otel/opentelemetry-collector-contrib</code></td>
+<td>Recommended</td>
+<td>OTEL-02, OTEL-07</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Use <code>GOMEMLIMIT</code> instead of deprecated <code>memory_ballast</code></td>
+<td>Set <code>GOMEMLIMIT</code> env var to ~80% of container memory limit</td>
+<td>Critical</td>
+<td>OTEL-02</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Use environment variables for all secrets</td>
+<td><code>${DT_API_TOKEN}</code>, <code>${DT_ENV_ID}</code> in YAML config</td>
+<td>Critical</td>
+<td>OTEL-02</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Add a default <code>service.name</code> via resource processor</td>
+<td><code>processors.resource.attributes: [{key: service.name, value: &quot;unknown-service&quot;, action: insert}]</code></td>
+<td>Recommended</td>
+<td>OTEL-07, OTEL-08</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Enable retry on failure for exporters</td>
+<td><code>retry_on_failure.enabled: true</code>, <code>initial_interval: 5s</code>, <code>max_interval: 30s</code>, <code>max_elapsed_time: 300s</code></td>
+<td>Recommended</td>
+<td>OTEL-03, OTEL-07</td>
+</tr>
+</tbody>
+</table>
+<p><a id="deployment-and-sizing"></a></p>
+<h2>2. Deployment and Sizing</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>11</td>
+<td>Use DaemonSet (agent mode) for per-node collection</td>
+<td><code>kind: DaemonSet</code> in K8s manifest</td>
+<td>Recommended</td>
+<td>OTEL-03</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Use Deployment (gateway mode) for centralized processing</td>
+<td><code>kind: Deployment</code> with <code>replicas: 2+</code></td>
+<td>Recommended</td>
+<td>OTEL-03</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Size gateway resources by measured throughput</td>
+<td>Community starting points — &lt;1k spans/s: 100m/256Mi; &lt;10k: 500m/1Gi; &lt;100k: 2/4Gi; &gt;100k: 4+/8Gi+ — then resize from your own memory headroom</td>
+<td>Critical</td>
+<td>OTEL-03</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Set <code>memory_limiter.limit_mib</code> to 80% of container memory limit</td>
+<td>Container limit 1Gi -&gt; <code>limit_mib: 800</code></td>
+<td>Critical</td>
+<td>OTEL-03</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Deploy gateway with minimum 2 replicas for HA</td>
+<td><code>spec.replicas: 2</code></td>
+<td>Recommended</td>
+<td>OTEL-03</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Add PodDisruptionBudget for gateway</td>
+<td><code>minAvailable: 1</code></td>
+<td>Recommended</td>
+<td>OTEL-03</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Use HorizontalPodAutoscaler at 70% CPU target</td>
+<td><code>averageUtilization: 70</code>, <code>minReplicas: 2</code>, <code>maxReplicas: 10</code></td>
+<td>Recommended</td>
+<td>OTEL-03</td>
+</tr>
+<tr>
+<td>18</td>
+<td>Enable persistent queue for gateway exporters</td>
+<td><code>sending_queue.enabled: true</code>, <code>queue_size: 1000</code>, <code>storage: file_storage</code></td>
+<td>Recommended</td>
+<td>OTEL-03</td>
+</tr>
+<tr>
+<td>19</td>
+<td>Install via Helm for K8s deployments</td>
+<td><code>helm install otel-collector open-telemetry/opentelemetry-collector --set mode=deployment --set image.repository=ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s --set command.name=otelcol-k8s</code> (the chart has no default image)</td>
+<td>Recommended</td>
+<td>OTEL-03</td>
+</tr>
+<tr>
+<td>20</td>
+<td>Fix time zones where text timestamps are parsed</td>
+<td>OTLP timestamps are epoch nanoseconds with no zone; set the location on the <code>file_log</code> time parser, not the container <code>TZ</code></td>
+<td>Recommended</td>
+<td>OTEL-08</td>
+</tr>
+</tbody>
+</table>
+<p><a id="security"></a></p>
+<h2>3. Security</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>21</td>
+<td>Store API tokens in Kubernetes Secrets</td>
+<td><code>kind: Secret</code>, reference via <code>secretKeyRef</code></td>
+<td>Critical</td>
+<td>OTEL-03</td>
+</tr>
+<tr>
+<td>22</td>
+<td>Enable TLS on receiver endpoints</td>
+<td><code>tls.cert_file</code>, <code>tls.key_file</code> on <code>otlp.protocols.grpc</code> and <code>.http</code></td>
+<td>Critical</td>
+<td>OTEL-03</td>
+</tr>
+<tr>
+<td>23</td>
+<td>Enable mTLS for internal traffic</td>
+<td><code>tls.client_ca_file</code> on receiver</td>
+<td>Optional</td>
+<td>OTEL-03</td>
+</tr>
+<tr>
+<td>24</td>
+<td>Apply NetworkPolicy to restrict Collector ingress/egress</td>
+<td>Allow ingress 4317/4318 from app namespaces; egress 443 to Dynatrace only</td>
+<td>Recommended</td>
+<td>OTEL-03</td>
+</tr>
+<tr>
+<td>25</td>
+<td>Strip sensitive attributes in the processor pipeline</td>
+<td><code>processors.attributes.actions: [{key: api.key, action: delete}]</code></td>
+<td>Critical</td>
+<td>OTEL-02</td>
+</tr>
+<tr>
+<td>26</td>
+<td>Never embed tokens in code or config files</td>
+<td>Always use env vars or Secret references</td>
+<td>Critical</td>
+<td>OTEL-07</td>
+</tr>
+<tr>
+<td>27</td>
+<td>Never include PII in span or metric attributes</td>
+<td>Exclude user emails, SSNs, credit card numbers</td>
+<td>Critical</td>
+<td>OTEL-04</td>
+</tr>
+</tbody>
+</table>
+<p><a id="dynatrace-otlp-integration"></a></p>
+<h2>4. Dynatrace OTLP Integration</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>28</td>
+<td>Use OTLP/HTTP with binary protobuf for direct Dynatrace ingest</td>
+<td><code>exporters.otlphttp.endpoint: https://{env-id}.live.dynatrace.com/api/v2/otlp</code> — JSON payloads are not supported</td>
+<td>Critical</td>
+<td>OTEL-01, OTEL-07</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Route gRPC through a Collector (gRPC is not supported for direct DT ingest)</td>
+<td>Collector with <code>otlp</code> gRPC receiver + <code>otlphttp</code> exporter to Dynatrace</td>
+<td>Critical</td>
+<td>OTEL-01, OTEL-07</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Match the auth scheme to the token</td>
+<td>Classic token: <code>Authorization: Api-Token &lt;token&gt;</code>. Platform token: <code>Authorization: Bearer &lt;token&gt;</code></td>
+<td>Critical</td>
+<td>OTEL-07</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Create a dedicated token with minimum required scopes</td>
+<td>Platform: <code>openpipeline:traces:ingest</code> + <code>openpipeline:metrics:ingest</code> + <code>openpipeline:logs:ingest</code>. Classic: <code>openTelemetryTrace.ingest</code> + <code>metrics.ingest</code> + <code>logs.ingest</code></td>
+<td>Critical</td>
+<td>OTEL-01, OTEL-07</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Use Dynatrace Collector distribution for production</td>
+<td><code>ghcr.io/dynatrace/dynatrace-otel-collector/dynatrace-otel-collector</code></td>
+<td>Recommended</td>
+<td>OTEL-07</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Use ActiveGate endpoint for on-prem or network-restricted envs</td>
+<td><code>https://{activegate-host}:9999/e/{env-id}/api/v2/otlp</code></td>
+<td>Recommended</td>
+<td>OTEL-07</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Use Dynatrace Operator OTLP auto-config for K8s (v1.8+)</td>
+<td>Annotation <code>otlp-exporter-configuration.dynatrace.com/inject</code> for per-pod control</td>
+<td>Recommended</td>
+<td>OTEL-07</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Inventory OTLP metric dimensions before enabling Advanced OTLP metric dimensions</td>
+<td>All attributes become dimensions, keys keep their case, and histograms change type (Counter → Histogram) — re-check SLOs, alerts and dashboards afterwards</td>
+<td>Critical</td>
+<td>OTEL-05, OTEL-07</td>
+</tr>
+<tr>
+<td>36</td>
+<td>Treat OTel and OneAgent as complementary — decide per workload</td>
+<td>OTel-only is a complete path; OneAgent where fully managed collection or runtime depth is wanted; both where that fits. Mixed estates are normal</td>
+<td>Critical</td>
+<td>OTEL-01</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Keep existing OTel instrumentation when adding OneAgent</td>
+<td>Layer, don't convert; pick one ingestion path per process (Span Sensor <strong>or</strong> OTLP export) to avoid duplicate spans</td>
+<td>Critical</td>
+<td>OTEL-01, OTEL-07</td>
+</tr>
+<tr>
+<td>38</td>
+<td>Add OneAgent where runtime-access capabilities are needed</td>
+<td>Application Security (RVA / RAP), Live Debugger (Java, Node.js; OneAgent 1.309+), automatic RUM JavaScript injection — not provided by OTel telemetry</td>
+<td>Recommended</td>
+<td>OTEL-01</td>
+</tr>
+<tr>
+<td>39</td>
+<td>Manage large Collector fleets centrally</td>
+<td>Bindplane (OpAMP-based fleet management, multi-destination routing) — optional, not a prerequisite; never write into the reserved <code>dt.bindplane.*</code> namespace (SaaS 1.346); components only in the Dynatrace Bindplane OTel Collector fall outside the Dynatrace OTel Collector support statement</td>
+<td>Recommended</td>
+<td>OTEL-07</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Give OTel-only hosts host and process entities</td>
+<td>Collector <code>hostmetrics</code> with the Dynatrace reference configuration + activate the OpenTelemetry Host Monitoring extension from Hub</td>
+<td>Recommended</td>
+<td>OTEL-07</td>
+</tr>
+</tbody>
+</table>
+<p><a id="resource-attributes-and-entity-mapping"></a></p>
+<h2>5. Resource Attributes and Entity Mapping</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>41</td>
+<td>Always set <code>service.name</code> resource attribute</td>
+<td><code>resource.create({&quot;service.name&quot;: &quot;checkout-api&quot;})</code></td>
+<td>Critical</td>
+<td>OTEL-07, OTEL-08</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Set <code>service.version</code> for release tracking</td>
+<td><code>&quot;service.version&quot;: &quot;1.2.3&quot;</code></td>
+<td>Recommended</td>
+<td>OTEL-07</td>
+</tr>
+<tr>
+<td>43</td>
+<td>Set <code>service.namespace</code> for service grouping</td>
+<td><code>&quot;service.namespace&quot;: &quot;ecommerce&quot;</code></td>
+<td>Recommended</td>
+<td>OTEL-07</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Set <code>deployment.environment.name</code> for environment identification</td>
+<td><code>&quot;deployment.environment.name&quot;: &quot;production&quot;</code> (use stable name, not legacy <code>deployment.environment</code>)</td>
+<td>Recommended</td>
+<td>OTEL-01, OTEL-07</td>
+</tr>
+<tr>
+<td>45</td>
+<td>Set K8s resource attributes for entity linking</td>
+<td><code>k8s.namespace.name</code>, <code>k8s.pod.name</code>, <code>k8s.deployment.name</code></td>
+<td>Recommended</td>
+<td>OTEL-01, OTEL-07</td>
+</tr>
+<tr>
+<td>46</td>
+<td>Use <code>resourcedetection</code> processor for cloud/K8s metadata</td>
+<td><code>processors.resourcedetection</code> with env, gcp, aws, azure, or k8s detectors</td>
+<td>Recommended</td>
+<td>OTEL-02</td>
+</tr>
+</tbody>
+</table>
+<p><a id="trace-instrumentation"></a></p>
+<h2>6. Trace Instrumentation</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>47</td>
+<td>Start with auto-instrumentation, add manual spans for business logic</td>
+<td>Auto-instrument frameworks; add custom spans with <code>tracer.start_as_current_span()</code></td>
+<td>Recommended</td>
+<td>OTEL-04</td>
+</tr>
+<tr>
+<td>48</td>
+<td>Use low-cardinality span names</td>
+<td><code>HTTP GET /users/{id}</code> not <code>HTTP GET /users/12345</code></td>
+<td>Critical</td>
+<td>OTEL-04</td>
+</tr>
+<tr>
+<td>49</td>
+<td>Use descriptive, operation-based span names</td>
+<td><code>process_order</code>, <code>db.query</code> not <code>order_abc123</code>, <code>SELECT * FROM...</code></td>
+<td>Critical</td>
+<td>OTEL-04</td>
+</tr>
+<tr>
+<td>50</td>
+<td>Always record errors on spans</td>
+<td><code>span.record_exception(e)</code> + <code>span.set_status(StatusCode.ERROR, str(e))</code></td>
+<td>Critical</td>
+<td>OTEL-04</td>
+</tr>
+<tr>
+<td>51</td>
+<td>Add business context as span attributes</td>
+<td><code>span.set_attribute(&quot;order.id&quot;, order_id)</code></td>
+<td>Recommended</td>
+<td>OTEL-04</td>
+</tr>
+<tr>
+<td>52</td>
+<td>Use span events for key milestones</td>
+<td><code>span.add_event(&quot;payment_completed&quot;, {&quot;transaction_id&quot;: txn_id})</code></td>
+<td>Optional</td>
+<td>OTEL-04</td>
+</tr>
+<tr>
+<td>53</td>
+<td>Use <code>BatchSpanProcessor</code> (never <code>SimpleSpanProcessor</code> in production)</td>
+<td><code>provider.add_span_processor(BatchSpanProcessor(exporter))</code></td>
+<td>Critical</td>
+<td>OTEL-04</td>
+</tr>
+<tr>
+<td>54</td>
+<td>Use W3C Trace Context propagation (required for OneAgent interop)</td>
+<td><code>W3CTraceparentPropagator</code> + <code>W3CTracestatePropagator</code></td>
+<td>Critical</td>
+<td>OTEL-04, OTEL-07</td>
+</tr>
+<tr>
+<td>55</td>
+<td>Propagate context across async boundaries</td>
+<td>In Python, asyncio tasks copy the current context when created — no explicit attach/detach is needed around <code>await</code> / <code>gather</code> / <code>create_task</code></td>
+<td>Critical</td>
+<td>OTEL-04, OTEL-08</td>
+</tr>
+<tr>
+<td>56</td>
+<td>Propagate context in messaging (Kafka, RabbitMQ)</td>
+<td>Inject context into message headers on produce; extract on consume</td>
+<td>Recommended</td>
+<td>OTEL-04</td>
+</tr>
+<tr>
+<td>57</td>
+<td>Use <code>TraceIdRatioBased</code> sampler to control trace volume</td>
+<td><code>TraceIdRatioBased(0.1)</code> for 10% sampling in high-throughput envs</td>
+<td>Recommended</td>
+<td>OTEL-08</td>
+</tr>
+</tbody>
+</table>
+<p><a id="metrics-instrumentation"></a></p>
+<h2>7. Metrics Instrumentation</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>58</td>
+<td>Choose the correct instrument type</td>
+<td>Counter for monotonic; Histogram for durations/sizes; UpDownCounter for gauges; ObservableGauge for current state</td>
+<td>Critical</td>
+<td>OTEL-05</td>
+</tr>
+<tr>
+<td>59</td>
+<td>Use hierarchical metric naming</td>
+<td><code>&lt;domain&gt;.&lt;component&gt;.&lt;metric&gt;</code> e.g. <code>http.server.request.duration</code></td>
+<td>Recommended</td>
+<td>OTEL-05</td>
+</tr>
+<tr>
+<td>60</td>
+<td>Use the semantic-convention unit</td>
+<td><code>http.server.request.duration</code> is a Histogram in <code>s</code> (seconds); <code>unit=&quot;By&quot;</code> for bytes. Never reuse a convention name with a different unit</td>
+<td>Recommended</td>
+<td>OTEL-05</td>
+</tr>
+<tr>
+<td>61</td>
+<td>Keep attribute cardinality low</td>
+<td>Use route templates (<code>/users/{id}</code>), status classes (<code>2xx</code>), never user IDs or timestamps</td>
+<td>Critical</td>
+<td>OTEL-05</td>
+</tr>
+<tr>
+<td>62</td>
+<td>Configure explicit histogram bucket boundaries</td>
+<td><code>boundaries: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]</code> (seconds) for response times</td>
+<td>Recommended</td>
+<td>OTEL-05</td>
+</tr>
+<tr>
+<td>63</td>
+<td>Use Views to drop noisy internal metrics</td>
+<td><code>View(instrument_name=&quot;internal.debug.*&quot;, aggregation=DropAggregation())</code></td>
+<td>Optional</td>
+<td>OTEL-05</td>
+</tr>
+<tr>
+<td>64</td>
+<td>Use <code>ObservableGauge</code> / <code>ObservableCounter</code> for system stats</td>
+<td>Avoid polling in the request hot path</td>
+<td>Recommended</td>
+<td>OTEL-05</td>
+</tr>
+<tr>
+<td>65</td>
+<td>Set appropriate export interval</td>
+<td><code>PeriodicExportingMetricReader(exporter, export_interval_millis=60000)</code> (60s default)</td>
+<td>Recommended</td>
+<td>OTEL-05</td>
+</tr>
+<tr>
+<td>66</td>
+<td>Measure RED metrics for services</td>
+<td>Rate (Counter), Errors (Counter), Duration (Histogram)</td>
+<td>Critical</td>
+<td>OTEL-05</td>
+</tr>
+<tr>
+<td>67</td>
+<td>Measure USE metrics for resources</td>
+<td>Utilization, Saturation, Errors</td>
+<td>Recommended</td>
+<td>OTEL-05</td>
+</tr>
+</tbody>
+</table>
+<p><a id="logs-instrumentation"></a></p>
+<h2>8. Logs Instrumentation</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>68</td>
+<td>Use the Log Bridge pattern (do not replace your logging library)</td>
+<td>Attach <code>LoggingHandler</code> to standard Python logger; use Log4j/Logback appenders for Java</td>
+<td>Critical</td>
+<td>OTEL-06</td>
+</tr>
+<tr>
+<td>69</td>
+<td>Enable automatic log-trace correlation</td>
+<td>Use OTel tracing + log bridge together; <code>trace_id</code> and <code>span_id</code> are injected automatically</td>
+<td>Critical</td>
+<td>OTEL-06</td>
+</tr>
+<tr>
+<td>70</td>
+<td>Use structured JSON logging</td>
+<td>Output logs as JSON objects with <code>timestamp</code>, <code>level</code>, <code>message</code>, and structured fields</td>
+<td>Recommended</td>
+<td>OTEL-06</td>
+</tr>
+<tr>
+<td>71</td>
+<td>Filter DEBUG/TRACE logs at the Collector, not in the app</td>
+<td><code>processors.filter.logs.log_record: ['severity_number &gt; 0 and severity_number &lt; 9']</code> (0 = no severity; keep it)</td>
+<td>Recommended</td>
+<td>OTEL-06</td>
+</tr>
+<tr>
+<td>72</td>
+<td>Use <code>BatchLogRecordProcessor</code> for log export</td>
+<td>Never use synchronous log export in production</td>
+<td>Critical</td>
+<td>OTEL-06</td>
+</tr>
+<tr>
+<td>73</td>
+<td>Use the file log receiver for container/file-based log collection</td>
+<td><code>receivers.file_log.include: [&quot;/var/log/containers/*.log&quot;]</code> — <code>file_log</code> from collector-contrib v0.149.0; older Collectors only know <code>filelog</code></td>
+<td>Recommended</td>
+<td>OTEL-02, OTEL-06</td>
+</tr>
+<tr>
+<td>74</td>
+<td>Set log severity appropriately</td>
+<td>ERROR: unexpected failures; WARN: recoverable issues; INFO: business events; DEBUG: dev only</td>
+<td>Recommended</td>
+<td>OTEL-06</td>
+</tr>
+<tr>
+<td>75</td>
+<td>Never log PII or secrets</td>
+<td>Exclude passwords, tokens, personal data from log bodies and attributes</td>
+<td>Critical</td>
+<td>OTEL-06</td>
+</tr>
+</tbody>
+</table>
+<p><a id="semantic-conventions"></a></p>
+<h2>9. Semantic Conventions</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>76</td>
+<td>Migrate to stable HTTP semantic conventions</td>
+<td>Use <code>http.request.method</code> (not <code>http.method</code>), <code>http.response.status_code</code> (not <code>http.status_code</code>), <code>url.full</code> (not <code>http.url</code>)</td>
+<td>Recommended</td>
+<td>OTEL-01</td>
+</tr>
+<tr>
+<td>77</td>
+<td>Migrate to stable DB semantic conventions</td>
+<td>Use <code>db.namespace</code> (not <code>db.name</code>), <code>db.query.text</code> (not <code>db.statement</code>), <code>db.operation.name</code> (not <code>db.operation</code>)</td>
+<td>Recommended</td>
+<td>OTEL-01</td>
+</tr>
+<tr>
+<td>78</td>
+<td>Use <code>OTEL_SEMCONV_STABILITY_OPT_IN</code> to control migration</td>
+<td><code>http</code> for stable-only, <code>http/dup</code> for dual-emit during migration; same pattern for <code>database</code></td>
+<td>Recommended</td>
+<td>OTEL-01</td>
+</tr>
+<tr>
+<td>79</td>
+<td>Use stable resource attribute <code>deployment.environment.name</code></td>
+<td>Not the legacy <code>deployment.environment</code></td>
+<td>Recommended</td>
+<td>OTEL-01</td>
+</tr>
+<tr>
+<td>80</td>
+<td>Follow semantic conventions for all standard attributes</td>
+<td>Use <code>service.name</code>, <code>service.version</code>, <code>k8s.namespace.name</code>, <code>k8s.pod.name</code>, etc.</td>
+<td>Critical</td>
+<td>OTEL-01</td>
+</tr>
+</tbody>
+</table>
+<p><a id="performance-and-reliability"></a></p>
+<h2>10. Performance and Reliability</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>81</td>
+<td>Derive RED metrics from traces before sampling</td>
+<td><code>span_metrics</code> connector (<code>spanmetrics</code> before contrib v0.151.0) with histogram buckets <code>[100ms, 500ms, 1s, 5s]</code></td>
+<td>Optional</td>
+<td>OTEL-02, OTEL-04</td>
+</tr>
+<tr>
+<td>82</td>
+<td>Filter health-check spans at the Collector</td>
+<td><code>processors.filter.traces.span: ['attributes[&quot;url.path&quot;] == &quot;/health&quot;']</code></td>
+<td>Recommended</td>
+<td>OTEL-02</td>
+</tr>
+<tr>
+<td>83</td>
+<td>Use fan-out to send data to multiple backends</td>
+<td>Define multiple named exporters under <code>exporters</code> and list all in pipeline</td>
+<td>Optional</td>
+<td>OTEL-02</td>
+</tr>
+<tr>
+<td>84</td>
+<td>Increase <code>sending_queue.num_consumers</code> for high throughput</td>
+<td><code>num_consumers: 10</code></td>
+<td>Recommended</td>
+<td>OTEL-08</td>
+</tr>
+<tr>
+<td>85</td>
+<td>Do not over-instrument</td>
+<td>Only create spans for meaningful operations; avoid spans on every function call</td>
+<td>Recommended</td>
+<td>OTEL-04</td>
+</tr>
+<tr>
+<td>86</td>
+<td>Limit attribute value sizes</td>
+<td>Avoid multi-KB strings in span attributes or log bodies</td>
+<td>Recommended</td>
+<td>OTEL-04</td>
+</tr>
+<tr>
+<td>87</td>
+<td>Configure proxy for network-restricted environments</td>
+<td><code>exporters.otlphttp.proxy_url: http://proxy.example.com:8080</code> or <code>HTTPS_PROXY</code> env var</td>
+<td>Optional</td>
+<td>OTEL-08</td>
+</tr>
+</tbody>
+</table>
+<p><a id="troubleshooting-and-observability"></a></p>
+<h2>11. Troubleshooting and Observability</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>88</td>
+<td>Enable <code>health_check</code> extension</td>
+<td><code>extensions.health_check.endpoint: 0.0.0.0:13133</code></td>
+<td>Critical</td>
+<td>OTEL-02, OTEL-08</td>
+</tr>
+<tr>
+<td>89</td>
+<td>Enable <code>zpages</code> extension in non-production</td>
+<td><code>extensions.zpages.endpoint: 0.0.0.0:55679</code></td>
+<td>Recommended</td>
+<td>OTEL-02, OTEL-08</td>
+</tr>
+<tr>
+<td>90</td>
+<td>Use <code>debug</code> exporter during development</td>
+<td><code>exporters.debug.verbosity: detailed</code> alongside production exporter</td>
+<td>Recommended</td>
+<td>OTEL-02, OTEL-08</td>
+</tr>
+<tr>
+<td>91</td>
+<td>Set Collector log level to <code>info</code> in production, <code>debug</code> for troubleshooting</td>
+<td><code>service.telemetry.logs.level: info</code> (default), switch to <code>debug</code> when investigating</td>
+<td>Recommended</td>
+<td>OTEL-08</td>
+</tr>
+<tr>
+<td>92</td>
+<td>Verify tracer provider is not NoOp</td>
+<td>In Python: <code>print(trace.get_tracer_provider())</code> must not show <code>NoOpTracerProvider</code></td>
+<td>Critical</td>
+<td>OTEL-08</td>
+</tr>
+<tr>
+<td>93</td>
+<td>Test connectivity with curl before deploying</td>
+<td><code>curl -v https://{env}.live.dynatrace.com/api/v2/otlp/v1/traces -X POST -H &quot;Authorization: Api-Token &lt;token&gt;&quot; -H &quot;Content-Type: application/x-protobuf&quot; --data-binary ''</code></td>
+<td>Recommended</td>
+<td>OTEL-08</td>
+</tr>
+<tr>
+<td>94</td>
+<td>Troubleshoot systematically: SDK -&gt; Collector -&gt; Backend</td>
+<td>Follow the data path; isolate which component is failing</td>
+<td>Recommended</td>
+<td>OTEL-08</td>
+</tr>
+<tr>
+<td>95</td>
+<td>Enable <code>pprof</code> extension for Go heap profiling</td>
+<td><code>extensions.pprof.endpoint: 0.0.0.0:1777</code></td>
+<td>Optional</td>
+<td>OTEL-08</td>
+</tr>
+</tbody>
+</table>
+<h2>Summary</h2>
+<p>This notebook contains <strong>95 best practices</strong> extracted from the OTEL series, organized into 11 categories:</p>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Count</th>
+<th>Critical</th>
+<th>Recommended</th>
+<th>Optional</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Collector Configuration</td>
+<td>10</td>
+<td>7</td>
+<td>3</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Deployment and Sizing</td>
+<td>10</td>
+<td>2</td>
+<td>8</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Security</td>
+<td>7</td>
+<td>5</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Dynatrace OTLP Integration</td>
+<td>13</td>
+<td>7</td>
+<td>6</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Resource Attributes and Entity Mapping</td>
+<td>6</td>
+<td>1</td>
+<td>5</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Trace Instrumentation</td>
+<td>11</td>
+<td>6</td>
+<td>4</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Metrics Instrumentation</td>
+<td>10</td>
+<td>3</td>
+<td>6</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Logs Instrumentation</td>
+<td>8</td>
+<td>4</td>
+<td>4</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Semantic Conventions</td>
+<td>5</td>
+<td>1</td>
+<td>4</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Performance and Reliability</td>
+<td>7</td>
+<td>0</td>
+<td>4</td>
+<td>3</td>
+</tr>
+<tr>
+<td>Troubleshooting and Observability</td>
+<td>8</td>
+<td>2</td>
+<td>5</td>
+<td>1</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>95</strong></td>
+<td><strong>38</strong></td>
+<td><strong>50</strong></td>
+<td><strong>7</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Priority guide:</strong></p>
+<ul>
+<li><strong>Critical</strong> -- Implement before going to production. Skipping causes data loss, security exposure, or broken entity mapping.</li>
+<li><strong>Recommended</strong> -- Implement for production-grade deployments. Improves reliability, performance, and maintainability.</li>
+<li><strong>Optional</strong> -- Implement when the specific use case applies. Adds value in targeted scenarios.</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry">Dynatrace OpenTelemetry Integration</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector">Dynatrace Collector Distribution</a> — <em>&quot;Dynatrace recommends using the Contrib distribution only for testing purposes.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api">OTLP API Endpoints</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/configure-otlp-metrics">Configure OTLP Metrics</a></li>
+<li><a href="https://opentelemetry.io/docs/">OpenTelemetry Official Docs</a></li>
+<li><a href="https://opentelemetry.io/docs/collector/configuration/">OTel Collector Configuration</a></li>
+<li><a href="https://opentelemetry.io/docs/specs/semconv/">Semantic Conventions</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

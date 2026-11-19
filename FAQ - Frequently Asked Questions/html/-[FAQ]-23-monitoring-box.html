@@ -1,0 +1,2117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ-23: How Do I Monitor Box With Dynatrace?</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">FAQ — Frequently Asked Questions</a><span class="sep">/</span><span aria-current="page">FAQ-23</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>FAQ-23: How Do I Monitor Box With Dynatrace?</h1>
+<blockquote>
+<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 23 — Monitoring Box With Dynatrace | <strong>Created:</strong> August 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Box holds the documents. That is the whole reason this integration comes up: the audit trail of who opened, downloaded, shared, and deleted them is a compliance artifact, and it lives in a system nobody in the observability team administers. The request usually arrives phrased as a logging problem — &quot;we need Box logs in Dynatrace&quot; — and is answered as though the only open question were which ingestion endpoint to point at.</p>
+<p>It is not. Two things about this integration are commonly assumed the wrong way round, and both change the design:</p>
+<ul>
+<li><strong>There is no turnkey Dynatrace integration for Box.</strong> No Hub listing, no extension to activate. Verified three independent ways in August 2026 — Hub catalog search, web search, and the Dynatrace documentation assistant — all empty. You are building and owning this.</li>
+<li><strong>Box cannot push its audit feed to you.</strong> Box webhooks exist, and they are the wrong tool: they attach to individual files and folders, cap at 1,000 resources per application, cannot be set on the root folder, and never carry logins, admin actions, or security alerts. The enterprise audit feed is available <em>only</em> by polling, and Box states plainly that it &quot;does not support long polling.&quot; Every working design is a scheduled pull that owns a cursor.</li>
+</ul>
+<p>That second point is the expensive one. A team that starts from &quot;set up a webhook&quot; will build a receiver, wire it correctly, and then discover that the events they actually needed were never eligible to arrive. This entry exists partly to prevent that specific week.</p>
+<p>This entry is a <strong>worked example of FAQ-19</strong>. The generic decisions — signal classes, route selection, extract-then-discard, bucket isolation — are made there; here they are made concretely for Box, with a sizing example at <strong>1,000,000 events per day</strong> drawn from a real migration question.</p>
+<blockquote>
+<p><strong>A note on the DQL in this entry.</strong> Box data will not exist in your tenant until the collector runs. The parsing, Shield and dedupe queries (§ 11, § 12.1–12.2) are therefore written to run standalone against a synthetic record using <code>data record(...)</code> — <strong>zero bytes scanned</strong> — so you can validate the shape before you have ingested anything. Swap <code>data record(...)</code> for <code>fetch logs | filter log.source == &quot;box.events&quot;</code> once data flows. The span query (§ 3.1) and the bucket, volume and staleness checks (§ 12.3, § 12.4, § 13.1) read real spans or logs and are billed as queries: each scanned more than a gigabyte on the validation tenant even with no Box data present (10/02/2026), so keep their timeframes short. All queries were executed against a live tenant on 08/25/2026; the changed ones again on 10/02/2026.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#no-turnkey">What Box Is — and Why There Is No Turnkey Integration</a></li>
+<li><a href="#signal-classes">The Four Signal Classes</a></li>
+<li><a href="#events-api">The Events API — The Constraint That Shapes Everything</a></li>
+<li><a href="#sizing">Sizing: A Worked Example at 1,000,000 Events/Day</a></li>
+<li><a href="#choosing">Choosing the Collector — Workflow, Python or the Collector Receiver</a></li>
+<li><a href="#workflow">Implementation A — Dynatrace Workflow</a></li>
+<li><a href="#python">Implementation B — Python</a></li>
+<li><a href="#ingestion">Ingestion, Processing, and Storage</a></li>
+<li><a href="#field-mapping">Field Mapping Starting Point</a></li>
+<li><a href="#shield">Box Shield Alerts</a></li>
+<li><a href="#querying">Querying Box Events in Grail</a></li>
+<li><a href="#operating">Operating the Collector</a></li>
+<li><a href="#availability">Availability Monitoring</a></li>
+<li><a href="#downstream">Dashboards, Alerting, and SLOs</a></li>
+<li><a href="#sequence">Implementation Sequence and Checklist</a></li>
+<li><a href="#gotchas">Common Gotchas</a></li>
+<li><a href="#recommended-approach">Recommended Approach</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Box licensing</strong></td>
+<td>Business plan or above for the Events API. <strong>Box Shield is a separate SKU</strong> — § 11 explains what its absence removes, and it is worth confirming before scoping</td>
+</tr>
+<tr>
+<td><strong>Box admin access</strong></td>
+<td>The service account must be an <strong>enterprise admin or co-admin</strong> holding <em>&quot;Run new reports and access existing reports.&quot;</em> Without it the API returns nothing useful — which looks identical to &quot;no events&quot; (§ 17)</td>
+</tr>
+<tr>
+<td><strong>Box application</strong></td>
+<td>A Box app configured for <strong>Client Credentials Grant</strong> (server-side auth, no user interaction), with the application scope <strong>Manage enterprise properties</strong> checked, authorized in the Box Admin Console. Re-authorize the app in the Admin Console after changing its scopes</td>
+</tr>
+<tr>
+<td><strong>Dynatrace environment</strong></td>
+<td>SaaS with <strong>Grail</strong> and <strong>OpenPipeline</strong></td>
+</tr>
+<tr>
+<td><strong>Outbound connectivity</strong></td>
+<td>If collecting via Workflow, <code>api.box.com</code> must be allowed under <strong>Settings &gt; General &gt; External requests</strong> (§ 7) — test one run after adding it</td>
+</tr>
+<tr>
+<td><strong>Security sign-off</strong></td>
+<td>This feed carries user identity, file names, and IP addresses. Decide retention and masking before building — see FAQ-19 § 4 and § 6</td>
+</tr>
+<tr>
+<td><strong>Related reading</strong></td>
+<td><strong>FAQ-19</strong> (the generic pattern this instantiates), <strong>FAQ-20</strong> (the Zscaler worked example), <strong>OPIPE</strong> / <strong>OPLOGS</strong> (OpenPipeline depth), <strong>ORGNZ</strong> (buckets), <strong>WFLOW</strong> (workflows), <strong>ALERT</strong> / <strong>SLO</strong> / <strong>DASH</strong> (downstream)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<p>Build a scheduled collector that polls the Box Events API and posts to the Dynatrace Log Ingestion API. At typical enterprise volume — including <strong>1,000,000 events per day</strong> — a Dynatrace Workflow is sufficient and needs no external infrastructure.</p>
+<p><strong>The five decisions, made:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Decision</th>
+<th>Answer</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Transport</strong></td>
+<td>Scheduled <strong>pull</strong> from <code>GET /events</code></td>
+<td>Box has no push for enterprise events. Webhooks cannot carry this feed (§ 2)</td>
+</tr>
+<tr>
+<td><strong>Stream</strong></td>
+<td><code>admin_logs_streaming</code> for live; <code>admin_logs</code> for backfill</td>
+<td>They are not interchangeable — different retention, ordering, and duplicate behaviour (§ 4)</td>
+</tr>
+<tr>
+<td><strong>Collector</strong></td>
+<td><strong>Workflow</strong> up to ~35,000 events per run; Python beyond that or for deep backfill</td>
+<td>The 120-second JS-runtime timeout is the only real boundary (§ 6)</td>
+</tr>
+<tr>
+<td><strong>Destination</strong></td>
+<td>Log Ingestion API v2, dedicated <code>log.source</code></td>
+<td>No events-per-minute cap; 10 MB / 50,000 records per request (§ 9)</td>
+</tr>
+<tr>
+<td><strong>Retention</strong></td>
+<td>Extract metrics, then discard raw by default; dedicated bucket for what you keep</td>
+<td>~1.5 GB/day at 1M events is a real budget line (§ 5)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Start with the signal that costs nothing.</strong> If your own applications call Box, OneAgent is already tracing those calls. Query them before building anything — see § 3.</p>
+<hr />
+<p><a id="no-turnkey"></a></p>
+<h2>2. What Box Is — and Why There Is No Turnkey Integration</h2>
+<p>Box is a cloud content management platform — file storage, sharing, workflow, and governance — operated entirely by Box. In observability terms that single fact settles the architecture: there is no host to install OneAgent on, no process to inject, no infrastructure to discover. Everything you can learn about Box, you learn through its API.</p>
+<p>This is the same shape as Zscaler (<strong>FAQ-20</strong>) and Adobe AEM as a Cloud Service (<strong>FAQ-18</strong>), and it is the pattern generalized in <strong>FAQ-19</strong>.</p>
+<h3>2.1 No Hub listing — verified, not assumed</h3>
+<p>As of August 2026 there is no Dynatrace Hub listing, extension, or first-party integration for Box. This was checked three independent ways — the Hub catalog, general web search, and the Dynatrace documentation assistant — and all three returned nothing.</p>
+<p>Per the corpus rule that a negative claim needs a positive source: what is being reported here is the result of three catalog checks on 08/25/2026, not an inference from one empty search. Re-verify before quoting this in a design document; Hub listings appear over time.</p>
+<p>The practical consequence is ownership. There is no vendor-maintained connector to inherit, and no upgrade path that will fix your integration for you. That is a normal position — it is simply better decided deliberately in week one than discovered in week three.</p>
+<h3>2.2 Why webhooks are the wrong answer — and why people reach for them</h3>
+<p>Box does publish webhooks, which is exactly why this goes wrong. They are a real feature that does a different job.</p>
+<table>
+<thead>
+<tr>
+<th>Box webhooks V2</th>
+<th>Consequence for an audit feed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Attach to <strong>specific files or folders</strong>; <strong>cannot be set on the root folder</strong> (ID 0)</td>
+<td>There is no account-wide subscription to create</td>
+</tr>
+<tr>
+<td>Cap of <strong>1,000 webhooks per application + user</strong> combination</td>
+<td>You could watch 1,000 folders — not an enterprise</td>
+</tr>
+<tr>
+<td>Triggers are content actions (upload, copy, move, share, delete)</td>
+<td><strong>No logins, no admin actions, no <code>SHIELD_ALERT</code></strong></td>
+</tr>
+<tr>
+<td>Delivery requires a 2xx within 30 s; Box retries up to 5× over 1 hour</td>
+<td>A receiver outage drops events with no cursor to replay from</td>
+</tr>
+<tr>
+<td>Token expiry degrades the payload to <code>NO_ACTIVE_SESSION</code></td>
+<td>Silent partial failure</td>
+</tr>
+</tbody>
+</table>
+<p>Enterprise audit events are reachable only through <code>GET /events</code> with <code>stream_type</code> set to <code>admin_logs</code> or <code>admin_logs_streaming</code>, and Box's own documentation states that <strong>&quot;the enterprise event feed does not support long polling.&quot;</strong> It is pull-only.</p>
+<p><strong>If someone has recommended a webhook for this, they have answered a different question.</strong> Webhooks are the right tool for reacting to changes in a specific high-value folder — a contract repository, a regulated dataset. They are structurally incapable of carrying the audit trail.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://developer.box.com/guides/webhooks">Webhooks (Box Dev Docs)</a></sub></li>
+<li><sub><a href="https://developer.box.com/guides/webhooks/v2">Webhooks V2 (Box Dev Docs)</a> — <em>&quot;Box retries webhook deliveries up to 5 times over a period of 1 hour. These numbers could be subject to change.&quot;</em></sub></li>
+<li><sub><a href="https://developer.box.com/guides/webhooks/v2/limitations-v2">Webhook limitations V2 (Box Dev Docs)</a></sub></li>
+<li><sub><a href="https://developer.box.com/guides/events/enterprise-events/for-enterprise">Get Enterprise Events (Box Dev Docs)</a></sub></li>
+<li><sub><a href="https://www.dynatrace.com/hub/">Box Hub catalog (Dynatrace)</a></sub></li>
+<li><sub><strong>Catalog observation (08/25/2026):</strong> § 2.1's no-listing claim is the result of three independent catalog checks on that date, not a single search</sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="signal-classes"></a></p>
+<h2>3. The Four Signal Classes</h2>
+<p>FAQ-19 § 2 splits any third-party SaaS into signal classes and insists you choose which questions you are answering before choosing a transport. For Box there are four, and they differ enormously in cost.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+Qm94IOKAlCBGb3VyIFNpZ25hbCBDbGFzc2VzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPlN0YXJ0IHdpdGggdGhlIG9uZSB0aGF0IGNvc3RzIG5vdGhpbmcuIE9ubHkgdHdvIG9mIHRoZSBmb3VyIHJlcXVpcmUgYSBjb2xsZWN0b3IuPC90ZXh0PgoKICA8IS0tIENhcmQgMTogeW91ciBhcHBzIC0tPgogIDxyZWN0IHg9IjMwIiB5PSI5MCIgd2lkdGg9IjIwMiIgaGVpZ2h0PSIzMDAiIHJ4PSI4IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4Ii8+CiAgPHJlY3QgeD0iMzAiIHk9IjkwIiB3aWR0aD0iMjAyIiBoZWlnaHQ9IjMwMCIgcng9IjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHJlY3QgeD0iNDYiIHk9IjEwNiIgd2lkdGg9Ijk0IiBoZWlnaHQ9IjIwIiByeD0iMTAiIGZpbGw9IiM3M0JFMjgiLz4KICA8dGV4dCB4PSI5MyIgeT0iMTIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMEYxNzJBIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5aRVJPIEVGRk9SVDwvdGV4dD4KICA8dGV4dCB4PSI0NiIgeT0iMTUyIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5Zb3VyIGFwcHM8L3RleHQ+CiAgPHRleHQgeD0iNDYiIHk9IjE3MCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+Y2FsbGluZyBCb3g8L3RleHQ+CiAgPHRleHQgeD0iNDYiIHk9IjE5OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+U291cmNlOjwvdGV4dD4KICA8dGV4dCB4PSI0NiIgeT0iMjE0IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5PbmVBZ2VudCAoYWxyZWFkeSBvbik8L3RleHQ+CiAgPHRleHQgeD0iNDYiIHk9IjI0MiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+QW5zd2Vyczo8L3RleHQ+CiAgPHRleHQgeD0iNDYiIHk9IjI1OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+TGF0ZW5jeSBhbmQgZXJyb3JzIG9uPC90ZXh0PgogIDx0ZXh0IHg9IjQ2IiB5PSIyNzMiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm91dGJvdW5kIEJveCBBUEkgY2FsbHM8L3RleHQ+CiAgPHRleHQgeD0iNDYiIHk9IjI4OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+ZnJvbSB5b3VyIG93biBzZXJ2aWNlczwvdGV4dD4KICA8dGV4dCB4PSI0NiIgeT0iMzIyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5RdWVyeSB0b2RheTo8L3RleHQ+CiAgPHRleHQgeD0iNDYiIHk9IjM0MCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMC41IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj5zcGFuLmtpbmQgPT08L3RleHQ+CiAgPHRleHQgeD0iNDYiIHk9IjM1NSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMC41IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj4gICJjbGllbnQiPC90ZXh0PgogIDx0ZXh0IHg9IjQ2IiB5PSIzNzAiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+c2VydmVyLmFkZHJlc3M8L3RleHQ+CgogIDwhLS0gQ2FyZCAyOiBhdWRpdCBldmVudHMgLS0+CiAgPHJlY3QgeD0iMjUyIiB5PSI5MCIgd2lkdGg9IjIwMiIgaGVpZ2h0PSIzMDAiIHJ4PSI4IiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4Ii8+CiAgPHJlY3QgeD0iMjUyIiB5PSI5MCIgd2lkdGg9IjIwMiIgaGVpZ2h0PSIzMDAiIHJ4PSI4IiBmaWxsPSJub25lIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxyZWN0IHg9IjI2OCIgeT0iMTA2IiB3aWR0aD0iMTIyIiBoZWlnaHQ9IjIwIiByeD0iMTAiIGZpbGw9IiMxNDk2RkYiLz4KICA8dGV4dCB4PSIzMjkiIHk9IjEyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzBGMTcyQSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+QlVJTEQgQ09MTEVDVE9SPC90ZXh0PgogIDx0ZXh0IHg9IjI2OCIgeT0iMTUyIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5BdWRpdCBldmVudHM8L3RleHQ+CiAgPHRleHQgeD0iMjY4IiB5PSIxNzAiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPihlbnRlcnByaXNlKTwvdGV4dD4KICA8dGV4dCB4PSIyNjgiIHk9IjE5OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+U291cmNlOjwvdGV4dD4KICA8dGV4dCB4PSIyNjgiIHk9IjIxNCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+R0VUIC9ldmVudHMgKHB1bGwpPC90ZXh0PgogIDx0ZXh0IHg9IjI2OCIgeT0iMjQyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5BbnN3ZXJzOjwvdGV4dD4KICA8dGV4dCB4PSIyNjgiIHk9IjI1OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+V2hvIGRpZCB3aGF0IOKAlCBsb2dpbnMsPC90ZXh0PgogIDx0ZXh0IHg9IjI2OCIgeT0iMjczIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5kb3dubG9hZHMsIHNoYXJlcyw8L3RleHQ+CiAgPHRleHQgeD0iMjY4IiB5PSIyODgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnBlcm1pc3Npb24gY2hhbmdlczwvdGV4dD4KICA8dGV4dCB4PSIyNjgiIHk9IjMyMiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Q29uc3RyYWludDo8L3RleHQ+CiAgPHRleHQgeD0iMjY4IiB5PSIzNDAiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPk5vIHB1c2guIE5vIHdlYmhvb2tzLjwvdGV4dD4KICA8dGV4dCB4PSIyNjgiIHk9IjM1NiIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+Tm8gbG9uZyBwb2xsaW5nLjwvdGV4dD4KICA8dGV4dCB4PSIyNjgiIHk9IjM3NCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5DdXJzb3IgbXVzdCBwZXJzaXN0LjwvdGV4dD4KCiAgPCEtLSBDYXJkIDM6IHNoaWVsZCAtLT4KICA8cmVjdCB4PSI0NzQiIHk9IjkwIiB3aWR0aD0iMjAyIiBoZWlnaHQ9IjMwMCIgcng9IjgiIGZpbGw9IiNERTM1MEIiIG9wYWNpdHk9IjAuMDgiLz4KICA8cmVjdCB4PSI0NzQiIHk9IjkwIiB3aWR0aD0iMjAyIiBoZWlnaHQ9IjMwMCIgcng9IjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHJlY3QgeD0iNDkwIiB5PSIxMDYiIHdpZHRoPSIxMDAiIGhlaWdodD0iMjAiIHJ4PSIxMCIgZmlsbD0iI0RFMzUwQiIvPgogIDx0ZXh0IHg9IjU0MCIgeT0iMTIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5GUkVFIElGIEFCT1ZFPC90ZXh0PgogIDx0ZXh0IHg9IjQ5MCIgeT0iMTUyIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5TaGllbGQgYWxlcnRzPC90ZXh0PgogIDx0ZXh0IHg9IjQ5MCIgeT0iMTcwIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj4oc2VjdXJpdHkpPC90ZXh0PgogIDx0ZXh0IHg9IjQ5MCIgeT0iMTk4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Tb3VyY2U6PC90ZXh0PgogIDx0ZXh0IHg9IjQ5MCIgeT0iMjE0IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5TYW1lIGV2ZW50IHN0cmVhbTwvdGV4dD4KICA8dGV4dCB4PSI0OTAiIHk9IjI0MiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+QW5zd2Vyczo8L3RleHQ+CiAgPHRleHQgeD0iNDkwIiB5PSIyNTgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkNvbXByb21pc2VkIGFjY291bnRzLDwvdGV4dD4KICA8dGV4dCB4PSI0OTAiIHk9IjI3MyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YW5vbWFsb3VzIGRvd25sb2Fkcyw8L3RleHQ+CiAgPHRleHQgeD0iNDkwIiB5PSIyODgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm1hbHdhcmUsIHJhbnNvbXdhcmU8L3RleHQ+CiAgPHRleHQgeD0iNDkwIiB5PSIzMjIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkZpbHRlciBvbjo8L3RleHQ+CiAgPHRleHQgeD0iNDkwIiB5PSIzNDAiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+ZXZlbnRfdHlwZSA9PTwvdGV4dD4KICA8dGV4dCB4PSI0OTAiIHk9IjM1NSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMC41IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj4iU0hJRUxEX0FMRVJUIjwvdGV4dD4KICA8dGV4dCB4PSI0OTAiIHk9IjM3NCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMC41Ij5TZXBhcmF0ZSBsaWNlbmNlLjwvdGV4dD4KCiAgPCEtLSBDYXJkIDQ6IGF2YWlsYWJpbGl0eSAtLT4KICA8cmVjdCB4PSI2OTYiIHk9IjkwIiB3aWR0aD0iMjAyIiBoZWlnaHQ9IjMwMCIgcng9IjgiIGZpbGw9IiMyMkQzRUUiIG9wYWNpdHk9IjAuMDgiLz4KICA8cmVjdCB4PSI2OTYiIHk9IjkwIiB3aWR0aD0iMjAyIiBoZWlnaHQ9IjMwMCIgcng9IjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHJlY3QgeD0iNzEyIiB5PSIxMDYiIHdpZHRoPSI3MCIgaGVpZ2h0PSIyMCIgcng9IjEwIiBmaWxsPSIjMjJEM0VFIi8+CiAgPHRleHQgeD0iNzQ3IiB5PSIxMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMwRjE3MkEiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkxPVyBMSUZUPC90ZXh0PgogIDx0ZXh0IHg9IjcxMiIgeT0iMTUyIiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5BdmFpbGFiaWxpdHk8L3RleHQ+CiAgPHRleHQgeD0iNzEyIiB5PSIxOTgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlNvdXJjZTo8L3RleHQ+CiAgPHRleHQgeD0iNzEyIiB5PSIyMTQiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPlN0YXR1c3BhZ2UgSlNPTjwvdGV4dD4KICA8dGV4dCB4PSI3MTIiIHk9IjIyOSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+KyBTeW50aGV0aWMgbW9uaXRvcjwvdGV4dD4KICA8dGV4dCB4PSI3MTIiIHk9IjI1NiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+QW5zd2Vyczo8L3RleHQ+CiAgPHRleHQgeD0iNzEyIiB5PSIyNzIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPklzIEJveCB1cCAodmVuZG9yIHZpZXcpPC90ZXh0PgogIDx0ZXh0IHg9IjcxMiIgeT0iMjg3IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj52cy4gaXMgQm94IHVwIGZvciB1czwvdGV4dD4KICA8dGV4dCB4PSI3MTIiIHk9IjMwMiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+KHlvdXIgdmlldyk8L3RleHQ+CiAgPHRleHQgeD0iNzEyIiB5PSIzMzQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkJvdGggbWF0dGVyIOKAlCB0aGV5PC90ZXh0PgogIDx0ZXh0IHg9IjcxMiIgeT0iMzQ5IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5kaXNhZ3JlZSBtb3JlIG9mdGVuPC90ZXh0PgogIDx0ZXh0IHg9IjcxMiIgeT0iMzY0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj50aGFuIHlvdSB3b3VsZCBleHBlY3QuPC90ZXh0PgoKICA8IS0tIEZvb3RlciAtLT4KICA8cmVjdCB4PSIzMCIgeT0iNDA2IiB3aWR0aD0iODY4IiBoZWlnaHQ9Ijc0IiByeD0iOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjUwIiB5PSI0MjgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlNlcXVlbmNpbmc8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjQ0OSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+UXVlcnkgc2lnbmFsIDEgYmVmb3JlIGJ1aWxkaW5nIGFueXRoaW5nIOKAlCBpZiBpdCBhbnN3ZXJzICYjODIyMDtpcyBCb3ggaHVydGluZyB1cyYjODIyMTssIHRoZSBjb2xsZWN0b3IgbWF5IG5vdCBiZSBuZWVkZWQuPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSI0NjciIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPlNpZ25hbHMgMiBhbmQgMyBzaGFyZSBvbmUgY29sbGVjdG9yLCBzbyBidWlsZCBpdCBvbmNlLjwvdGV4dD4KPC9zdmc+Cg==" alt="Box — Four Signal Classes" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Signal | Source | Effort | Answers |
+|--------|--------|--------|---------|
+| Your apps calling Box | OneAgent (already running) | Zero | Latency and errors on outbound Box API calls from your services |
+| Audit events | GET /events (pull) | Build a collector | Who did what: logins, downloads, shares, permission changes |
+| Shield alerts | Same event stream, SHIELD_ALERT | Free once collector exists | Compromised accounts, anomalous downloads, malware, ransomware |
+| Availability | Statuspage JSON + Synthetic monitor | Low | Is Box up (vendor view) vs is Box up for us (your view) |
+-->
+<h3>3.1 Start with the signal that costs nothing</h3>
+<p>If any of your applications call the Box API, OneAgent is <strong>already</strong> capturing those as client spans. No Box configuration, no credentials, no collector. This is the fastest path to an answer and it is routinely skipped.</p>
+<p>Run this before you build anything:</p>
+<pre><code class="language-dql">// Signal 1 — your own services calling Box. Requires no Box integration at all.
+// Key on server.address: stable, and on every HTTP client span on the validation tenant.
+// Do not assume a URL field is populated. url.full is stable in the semantic dictionary
+// but was on 0 of 9.4M spans over 24 h on the validation tenant (10/15/2026); http.url is
+// not in the dictionary but was on 76,531 of them. Check countIf(isNotNull(...)) on your
+// own tenant before using either — see § 17. Same shape, different field: span.status_code values are
+// LOWERCASE, so `== &quot;ERROR&quot;` reports a 0% failure rate for every address.
+// Divide a duration by 1ms to get a number — dividing by 1000000 still yields a duration.
+fetch spans, from:-24h
+| filter span.kind == &quot;client&quot; and endsWith(server.address, &quot;box.com&quot;)
+| summarize {calls = count(),
+             failures = countIf(span.status_code == &quot;error&quot;),
+             p90_ms = percentile(duration, 90) / 1ms},
+            by:{server.address}
+| fieldsAdd failure_rate_pct = round(100.0 * failures / calls, decimals: 2)
+| sort calls desc
+</code></pre>
+<p>If that returns rows, you already have Box performance telemetry and can build a dashboard today. If it returns nothing, confirm <em>why</em> before concluding your services do not call Box — an empty result here has at least three causes (no Box traffic, no OneAgent on the calling tier, or a mistyped field name), and only one of them is informative.</p>
+<h3>3.2 What each remaining signal is actually for</h3>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Answers</th>
+<th>Does <strong>not</strong> answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audit events</strong></td>
+<td>Who accessed, shared, downloaded, or deleted what, when, from where</td>
+<td>Whether Box was slow or erroring</td>
+</tr>
+<tr>
+<td><strong>Shield alerts</strong></td>
+<td>Which of those actions Box's own detection considers a threat</td>
+<td>Anything Shield is not licensed to detect</td>
+</tr>
+<tr>
+<td><strong>Availability</strong></td>
+<td>Whether Box is reachable and healthy — vendor-declared and observed</td>
+<td>Which user was affected, or what they were doing</td>
+</tr>
+</tbody>
+</table>
+<p>The common mistake is expecting audit events to answer performance questions. They are an access record, not a latency record. Box does not publish per-request timing for its own service; if you need Box performance, it comes from signal 1 (your calls) or signal 4 (synthetics), never from the audit feed.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/fields">Global field reference (DT docs)</a>, <a href="https://developer.box.com/reference/get-events">List user and enterprise events (Box Dev Docs)</a>. <strong>Dictionary:</strong> <code>server.address</code>, <code>url.full</code>, <code>url.path</code> (<code>stable</code>); no row for <code>http.url</code>, read 10/15/2026 (control: the same filter returned the other three). <strong>Tenant observation (10/15/2026):</strong> over 24 h, <code>url.full</code> was on 0 of 9.4M spans and <code>http.url</code> on 76,531; over 1 h, <code>server.address</code> and <code>url.path</code> were on all 57,594 HTTP client spans. An 08/25/2026 note here said <code>http.url</code> returned zero rows; that query was also filtered on Box addresses on a tenant with no Box traffic, so the filter produced the zero, not the field.</sub></p>
+</blockquote>
+<hr />
+<p><a id="events-api"></a></p>
+<h2>4. The Events API — The Constraint That Shapes Everything</h2>
+<p>Everything enterprise-wide comes from one endpoint, <code>GET /events</code>, in one of two mutually exclusive modes. Choosing between them is the first real design decision, and most teams need both.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><code>admin_logs_streaming</code></th>
+<th><code>admin_logs</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Retention</strong></td>
+<td><strong>2 weeks</strong></td>
+<td><strong>1 year</strong></td>
+</tr>
+<tr>
+<td><strong>Latency</strong></td>
+<td>Near real-time</td>
+<td>Higher</td>
+</tr>
+<tr>
+<td><strong>Ordering</strong></td>
+<td>Out of chronological order</td>
+<td>Chronological</td>
+</tr>
+<tr>
+<td><strong>Duplicates</strong></td>
+<td><strong>Yes</strong> — dedupe on <code>event_id</code></td>
+<td>None</td>
+</tr>
+<tr>
+<td><strong>Designed for</strong></td>
+<td>Live monitoring and alerting</td>
+<td>Historical query, backfill, investigation</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Use streaming for the live pipeline and historical for backfill.</strong> They are not alternatives to choose between once; they are two jobs. A collector that only runs streaming has a two-week memory and no way to recover from a longer outage. A collector that only runs historical is too slow to alert on.</p>
+<h3>4.1 The constraints that shape the collector</h3>
+<table>
+<thead>
+<tr>
+<th>Constraint</th>
+<th>Value</th>
+<th>Design consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>No push</strong></td>
+<td><em>&quot;The enterprise event feed does not support long polling&quot;</em></td>
+<td>Scheduled pull. There is no event-driven option</td>
+</tr>
+<tr>
+<td><strong>Page size</strong></td>
+<td>500 events maximum</td>
+<td>Paging loop required; drives the sizing math in § 5</td>
+</tr>
+<tr>
+<td><strong>Cursor</strong></td>
+<td><code>stream_position</code> in, <code>next_stream_position</code> out</td>
+<td><strong>Must persist between runs</strong> or you re-ingest or skip</td>
+</tr>
+<tr>
+<td><strong>Rate limit</strong></td>
+<td>1,000 requests/min per user; 429 returns <code>retry-after</code></td>
+<td>Exponential backoff. Rarely binding — see § 5</td>
+</tr>
+<tr>
+<td><strong>Permission</strong></td>
+<td>Enterprise admin/co-admin with <em>&quot;Run new reports…&quot;</em>, <strong>and</strong> the app's <strong>Manage enterprise properties</strong> scope</td>
+<td>Missing the admin permission returns nothing, indistinguishable from no events. Missing the app scope is a separate cause — check both</td>
+</tr>
+</tbody>
+</table>
+<h3>4.2 The cursor is the whole design</h3>
+<p>Everything difficult about this collector reduces to one question: <em>where did I get to last time?</em> Box hands you <code>next_stream_position</code> with every page; you hand it back on the next call. Lose it and you either replay events you already have (paying twice) or skip events you never got (a compliance gap you cannot detect after the fact).</p>
+<p>Because <code>admin_logs_streaming</code> retains only two weeks, a lost cursor is not always recoverable. This is the single highest-consequence property of the integration and it drives § 13.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://developer.box.com/guides/events/enterprise-events/for-enterprise">Get Enterprise Events (Box Dev Docs)</a></sub></li>
+<li><sub><a href="https://developer.box.com/reference/get-events">List user and enterprise events (Box Dev Docs)</a> — <em>&quot;The user making the API call will need to have admin privileges, and the application will need to have the scope manage enterprise properties checked.&quot;</em></sub></li>
+<li><sub><a href="https://developer.box.com/guides/authorization/platform-app-approval">Platform app approval (Box Dev Docs)</a> — <em>&quot;When an application’s scopes or access level change, the application must be re-authorized for the changes to take effect.&quot;</em></sub></li>
+<li><sub><a href="https://developer.box.com/guides/api-calls/permissions-and-errors/rate-limits">Rate Limits (Box Dev Docs)</a></sub></li>
+<li><sub><a href="https://support.box.com/hc/en-us/articles/4412894211475-New-Enterprise-Event-Stream-API">New Enterprise Event Stream API (Box Support)</a></sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="sizing"></a></p>
+<h2>5. Sizing: A Worked Example at 1,000,000 Events/Day</h2>
+<p>This section works a real number end to end, because the volume question is usually asked about the wrong endpoint. A migrating customer asked whether a webhook could handle 1M Box events per day; the answer they received addressed only the Dynatrace ingest limits. Both halves matter, and — as it turns out — <strong>neither is the constraint.</strong></p>
+<h3>5.1 Both endpoints have ample headroom</h3>
+<table>
+<thead>
+<tr>
+<th>Side</th>
+<th>Documented limit</th>
+<th>At 1M events/day</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace ingest</strong></td>
+<td><strong>No events-per-minute cap</strong>; 10 MB and 50,000 records per request</td>
+<td>~11.6 events/sec</td>
+<td>Not a constraint</td>
+</tr>
+<tr>
+<td><strong>Box Events API</strong></td>
+<td>500 events/page; 1,000 requests/min per user</td>
+<td>1M ÷ 500 = 2,000 pages/day ≈ <strong>1.4 req/min</strong></td>
+<td>~0.1% of budget</td>
+</tr>
+</tbody>
+</table>
+<p>1,000,000 events per day is a modest load for both systems. <strong>The bottleneck is neither endpoint — it is that no collector exists between them.</strong> That is the part a question about &quot;which ingestion option handles the volume&quot; does not surface, because the ingest API is the destination, not the connection.</p>
+<h3>5.2 What that means for a Workflow</h3>
+<p>Polling every 5 minutes gives 288 runs/day and ~3,472 events per run — about <strong>7 pages of 500</strong>. Against a 120-second execution ceiling that is comfortable:</p>
+<table>
+<thead>
+<tr>
+<th>Quantity</th>
+<th>Value</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Runs per day (5-min schedule)</td>
+<td>288</td>
+<td>Schedule</td>
+</tr>
+<tr>
+<td>Events per run</td>
+<td>~3,472</td>
+<td>1M ÷ 288</td>
+</tr>
+<tr>
+<td>Pages per run</td>
+<td>~7</td>
+<td>500 events/page</td>
+</tr>
+<tr>
+<td>Estimated time per run</td>
+<td>~15 s</td>
+<td>~1–2 s per page — <strong>an estimate, not a documented figure</strong></td>
+</tr>
+<tr>
+<td>Execution ceiling</td>
+<td><strong>120 s</strong></td>
+<td>JS-runtime hard limit</td>
+</tr>
+<tr>
+<td>Approximate headroom used</td>
+<td><strong>~10%</strong></td>
+<td>Derived</td>
+</tr>
+</tbody>
+</table>
+<p>Mark the page-latency assumption clearly and measure it in your own tenant. The documented numbers here — 120 s, 500 events/page, 1,000 req/min, no ingest rate cap — are verified. The per-page round-trip time is not, and it is the one input that could move the conclusion.</p>
+<h3>5.3 The cost line nobody quotes</h3>
+<p>At roughly 1.5 KB per event:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Volume</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Per day</td>
+<td>~1.5 GB</td>
+</tr>
+<tr>
+<td>Per month</td>
+<td><strong>~45 GB</strong></td>
+</tr>
+</tbody>
+</table>
+<p>That is a real DPS line item, and it arrives whether or not anyone budgeted for it. It is also the strongest argument for the extract-then-discard posture in § 9: most of those 45 GB are <code>PREVIEW</code> and <code>DOWNLOAD</code> events whose analytical value is fully captured by a counter.</p>
+<p>Decide retention <em>before</em> you turn the collector on. Reducing retention later does not refund what you already ingested.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/lma-limits">Log ingestion limits (DT docs)</a>, <a href="https://developer.box.com/guides/api-calls/permissions-and-errors/rate-limits">Rate Limits (Box Dev Docs)</a>, <a href="https://developer.box.com/guides/events/enterprise-events/for-enterprise">Get Enterprise Events (Box Dev Docs)</a>. <strong>Derived:</strong> § 5.1–5.3 combine the documented per-side limits with a 1M/day rate and a ~1.5 KB average event size; the per-page latency and event size are estimates to verify locally.</sub></p>
+</blockquote>
+<hr />
+<p><a id="choosing"></a></p>
+<h2>6. Choosing the Collector — Workflow, Python or the Collector Receiver</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+Q2hvb3NpbmcgdGhlIENvbGxlY3RvciDigJQgV29ya2Zsb3cgYnkgRGVmYXVsdDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5Gb3IgV29ya2Zsb3cgdnMgUHl0aG9uLCB0aGUgMTIwLXNlY29uZCB0aW1lb3V0IGRlY2lkZXMuPC90ZXh0PgoKICA8IS0tIFdvcmtmbG93IGNhcmQgLS0+CiAgPHJlY3QgeD0iMjYiIHk9Ijc0IiB3aWR0aD0iNDI4IiBoZWlnaHQ9IjE4OCIgcng9IjgiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMDgiLz4KICA8cmVjdCB4PSIyNiIgeT0iNzQiIHdpZHRoPSI0MjgiIGhlaWdodD0iMTg4IiByeD0iOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI0NiIgeT0iMTAwIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5EeW5hdHJhY2UgV29ya2Zsb3cgKEpTIHJ1bnRpbWUpPC90ZXh0PgogIDx0ZXh0IHg9IjQ2IiB5PSIxMjIiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEuNSIgZm9udC13ZWlnaHQ9IjcwMCI+Tm8gZXh0ZXJuYWwgaW5mcmFzdHJ1Y3R1cmUgdG8gcnVuIG9yIHNlY3VyZTwvdGV4dD4KCiAgPHRleHQgeD0iNDYiIHk9IjE0OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5TZWNyZXRzIGluIENyZWRlbnRpYWwgVmF1bHQgJiM4MjEyOyBuZXZlciBpbiBjb2RlPC90ZXh0PgogIDx0ZXh0IHg9IjQ2IiB5PSIxNjciIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+Q3Vyc29yIHZpYSBzdGF0ZUNsaWVudCAmIzgyMTI7IHZlcmlmeSBpbiBhIHdvcmtmbG93IGZpcnN0PC90ZXh0PgogIDx0ZXh0IHg9IjQ2IiB5PSIxODYiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+U2NoZWR1bGluZywgcmV0cnkgYW5kIGZhaWx1cmUgYWxlcnRpbmcgYXJlIGJ1aWx0IGluPC90ZXh0PgoKICA8dGV4dCB4PSI0NiIgeT0iMjEyIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPkhhcmQgbGltaXRzOiAxMjAgcyBydW4gJiMxODM7IDI1NiBNQiAmIzE4MzsgNiBNQiB0YXNrIHJlc3VsdDwvdGV4dD4KICA8dGV4dCB4PSI0NiIgeT0iMjMxIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExLjUiPk11c3QgYmUgYSBTVEFOREFSRCB3b3JrZmxvdyAmIzgyMTI7IFJ1biBKYXZhU2NyaXB0PC90ZXh0PgogIDx0ZXh0IHg9IjQ2IiB5PSIyNDgiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEuNSI+aXMgbm90IGF2YWlsYWJsZSBpbiBzaW1wbGUgd29ya2Zsb3dzPC90ZXh0PgoKICA8IS0tIFB5dGhvbiBjYXJkIC0tPgogIDxyZWN0IHg9IjQ3NiIgeT0iNzQiIHdpZHRoPSI0MjgiIGhlaWdodD0iMTg4IiByeD0iOCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIvPgogIDxyZWN0IHg9IjQ3NiIgeT0iNzQiIHdpZHRoPSI0MjgiIGhlaWdodD0iMTg4IiByeD0iOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI0OTYiIHk9IjEwMCIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+UHl0aG9uIGNvbGxlY3RvcjwvdGV4dD4KICA8dGV4dCB4PSI0OTYiIHk9IjEyMiIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMS41IiBmb250LXdlaWdodD0iNzAwIj5ObyBleGVjdXRpb24gY2VpbGluZyAmIzgyMTI7IGJhY2tmaWxsIGFuZCByZXBsYXkgYXQgd2lsbDwvdGV4dD4KCiAgPHRleHQgeD0iNDk2IiB5PSIxNDgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+cGlwIGluc3RhbGwgYm94c2RrICYjODIxMjsgdjEwKywgQ2xpZW50IENyZWRlbnRpYWxzIEdyYW50PC90ZXh0PgogIDx0ZXh0IHg9IjQ5NiIgeT0iMTY3IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPkN1cnNvciBpbiB5b3VyIG93biBkdXJhYmxlIHN0b3JlPC90ZXh0PgogIDx0ZXh0IHg9IjQ5NiIgeT0iMTg2IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPlJ1biBvbiBLOHMgQ3JvbkpvYiwgTGFtYmRhLCBvciBhbnkgc2NoZWR1bGVyPC90ZXh0PgoKICA8dGV4dCB4PSI0OTYiIHk9IjIxMiIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMS41IiBmb250LXdlaWdodD0iNzAwIj5Zb3Ugb3duIHJ1bnRpbWUsIHNlY3JldHMsIHNjaGVkdWxpbmcgYW5kIGFsZXJ0aW5nPC90ZXh0PgogIDx0ZXh0IHg9IjQ5NiIgeT0iMjMxIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExLjUiPmJveC1zZGstZ2VuIGlzIHRoZSBERVBSRUNBVEVEIHBhY2thZ2UgJiM4MjEyOyB0aGU8L3RleHQ+CiAgPHRleHQgeD0iNDk2IiB5PSIyNDgiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEuNSI+bmFtZSBzdWdnZXN0cyBvdGhlcndpc2UuIFVzZSBib3hzZGsuPC90ZXh0PgoKICA8IS0tIEhlYWRyb29tIGJhciAtLT4KICA8dGV4dCB4PSI0NiIgeT0iMjk2IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5XaGVyZSAxTSBldmVudHMvZGF5IGFjdHVhbGx5IGxhbmRzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2IiB5PSIzMTYiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPlBvbGxpbmcgZXZlcnkgNSBtaW51dGVzID0gMjg4IHJ1bnMvZGF5ICYjODU5NDsgfjMsNDcyIGV2ZW50cyBwZXIgcnVuICYjODU5NDsgfjcgcGFnZXMgb2YgNTAwLjwvdGV4dD4KCiAgPHJlY3QgeD0iNDYiIHk9IjMyOCIgd2lkdGg9IjgxMiIgaGVpZ2h0PSIzNCIgcng9IjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8cmVjdCB4PSI0OCIgeT0iMzMwIiB3aWR0aD0iODEiIGhlaWdodD0iMzAiIHJ4PSI1IiBmaWxsPSIjNzNCRTI4Ii8+CiAgPHRleHQgeD0iODgiIHk9IjM1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzBGMTcyQSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+fjcgcGFnZXM8L3RleHQ+CiAgPHRleHQgeD0iNTAwIiB5PSIzNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTIiPnJlbWFpbmluZyBoZWFkcm9vbSBpbnNpZGUgdGhlIHNhbWUgMTIwIHMgcnVuICYjODIxMjsgcm91Z2hseSA2MyBtb3JlIHBhZ2VzPC90ZXh0PgoKICA8bGluZSB4MT0iMTI5IiB5MT0iMzIwIiB4Mj0iMTI5IiB5Mj0iMzcwIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNCwzIi8+CiAgPHRleHQgeD0iMTM1IiB5PSIzODIiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPjFNIGV2ZW50cy9kYXkgc2l0cyBoZXJlICYjODIxMjsgYWJvdXQgMTAlIG9mIHRoZSBydW4gYnVkZ2V0PC90ZXh0PgogIDx0ZXh0IHg9Ijg1OCIgeT0iMzgyIiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj4xMjAgcyBjZWlsaW5nPC90ZXh0PgoKICA8IS0tIFZlcmRpY3QgLS0+CiAgPHJlY3QgeD0iMjYiIHk9IjM5NCIgd2lkdGg9Ijg3OCIgaGVpZ2h0PSIxMDAiIHJ4PSI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNDYiIHk9IjQxNCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+VmVyZGljdCBhdCAxTS9kYXk6IHVzZSBhIFdvcmtmbG93LjwvdGV4dD4KICA8dGV4dCB4PSI0NiIgeT0iNDMyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5SZWFjaCBmb3IgUHl0aG9uIHdoZW4geW91IG5lZWQgYmFja2ZpbGwgYmV5b25kIHRoZSB0d28td2VlayB3aW5kb3csIG9yIHdoZW4gYSBzaW5nbGUgcnVuIHdvdWxkIGV4Y2VlZCB+MzUsMDAwIGV2ZW50cy48L3RleHQ+CiAgPHRleHQgeD0iNDYiIHk9IjQ0OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+UGFnZSBsYXRlbmN5IGlzIGFuIGVzdGltYXRlIOKAlCBtZWFzdXJlIGl0IGluIHlvdXIgb3duIHRlbmFudCBiZWZvcmUgcmVseWluZyBvbiB0aGUgbWFyZ2luLjwvdGV4dD4KICA8bGluZSB4MT0iNDYiIHkxPSI0NTgiIHgyPSI4ODQiIHkyPSI0NTgiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDYiIHk9IjQ3NCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij48dHNwYW4gZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI0NCRDVFMSI+VGhpcmQgb3B0aW9uOjwvdHNwYW4+IHRoZSByZXN0YXBpIENvbGxlY3RvciByZWNlaXZlciAoYmV0YTsgZnVsbCBCaW5kcGxhbmUgQ29sbGVjdG9yIGJ1aWxkLCBvdXRzaWRlIER5bmF0cmFjZSBDb2xsZWN0b3Igc3VwcG9ydCk8L3RleHQ+CiAgPHRleHQgeD0iNDYiIHk9IjQ4OSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij7igJQgbm8gY29kZSwgYnV0IG5vIGRlZHVwZSBhbmQgbm8gNDI5IGJhY2stb2ZmLiBTZWUgwqcgNi4xLjwvdGV4dD4KPC9zdmc+Cg==" alt="Choosing the Collector — Workflow by default" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Aspect | Dynatrace Workflow (JS runtime) | Python collector |
+|--------|-------------------------------|------------------|
+| Infrastructure | None | You run and secure it |
+| Execution ceiling | 120 s per run (hard) | None |
+| Limits | 256 MB memory, 6 MB task result; must be a standard workflow (Run JavaScript is not available in simple workflows) | Yours |
+| Secrets | Credential Vault | Your own secret store |
+| Cursor storage | stateClient app state (verify from a workflow first) | Your own durable store |
+| Scheduling/retry | Built in | You build it |
+| Best for | Steady-state polling up to ~35,000 events/run | Backfill, replay, very high volume |
+For Workflow vs Python, the 120-second timeout decides. At 1M events/day (~7 pages of 500 per 5-minute run, about 10% of the run budget) use a Workflow; reach for Python for backfill beyond the two-week window or above ~35,000 events per run. Page latency is an estimate — measure it in your own tenant.
+Third option: the restapi Collector receiver (beta; full Bindplane Collector build, outside Dynatrace Collector support) — no code, but no dedupe and no 429 back-off. See § 6.1.
+-->
+<table>
+<thead>
+<tr>
+<th></th>
+<th><strong>Workflow (JS runtime)</strong></th>
+<th><strong>Python</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Infrastructure</strong></td>
+<td>None — runs inside Dynatrace</td>
+<td>You provision, run, patch, secure</td>
+</tr>
+<tr>
+<td><strong>Execution ceiling</strong></td>
+<td><strong>120 s</strong> per run (hard)</td>
+<td>None</td>
+</tr>
+<tr>
+<td><strong>Memory / task result</strong></td>
+<td>256 MB / 6 MB task result</td>
+<td>Yours</td>
+</tr>
+<tr>
+<td><strong>Secrets</strong></td>
+<td>Credential Vault</td>
+<td>Your own secret store</td>
+</tr>
+<tr>
+<td><strong>Cursor</strong></td>
+<td><code>stateClient</code> app state — verify it works from a workflow first (§ 7.1)</td>
+<td>Your own durable store</td>
+</tr>
+<tr>
+<td><strong>Scheduling, retry, failure alerting</strong></td>
+<td>Built in</td>
+<td>You build all three</td>
+</tr>
+<tr>
+<td><strong>Backfill over months</strong></td>
+<td>Impractical</td>
+<td>Natural fit</td>
+</tr>
+</tbody>
+</table>
+<p><strong>At 1M events/day, use a Workflow.</strong> It clears the ceiling with roughly 90% headroom (§ 5.2) and removes an entire class of operational work — there is no container to keep patched, no secret to rotate outside Dynatrace, and failure alerting is already there.</p>
+<p><strong>Reach for Python when:</strong></p>
+<ul>
+<li>You need to backfill more than the two-week streaming window, or replay a year of <code>admin_logs</code>.</li>
+<li>Sustained volume pushes a single run past roughly 35,000 events (~70 pages).</li>
+<li>Policy requires the collector to live in your own estate.</li>
+<li>You want to enrich against systems the JS runtime cannot reach.</li>
+</ul>
+<p>A common and sensible split: <strong>Python for the one-time historical backfill, Workflow for steady state.</strong> They write to the same <code>log.source</code> and the same bucket, and the backfill runs once.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://developer.dynatrace.com/develop/reference/javascript-runtime/">JavaScript runtime limits (Dynatrace Developer)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action">Run JavaScript action (DT docs)</a> — <em>&quot;The task result size is limited to 6 MB.&quot;</em>, <a href="https://developer.box.com/guides/events/enterprise-events/for-enterprise">Get Enterprise Events (Box Dev Docs)</a>. <strong>Derived:</strong> the ~35,000-events-per-run boundary combines the documented 120 s ceiling with the 500-event page size and an estimated per-page latency — verify locally per § 5.2.</sub></p>
+</blockquote>
+<h3>6.1 The REST API Collector receiver</h3>
+<p>A third option needs no code of your own. The <code>restapi</code> receiver for the OpenTelemetry Collector is a generic REST poller: it calls a URL on a schedule, follows the API's pagination, and emits each item of the response array as a log record. It supports OAuth 2.0 client credentials with extra token parameters, which is what Box's enterprise service account needs, and an opaque cursor such as <code>stream_position</code>. It is maintained in the <code>dynatrace-bindplane-otel-contrib</code> repository and built into the full Dynatrace Bindplane Distribution of the Collector (DBDOT). It is not in the slim DBDOT build or in the Dynatrace OTel Collector distribution, and Dynatrace's Collector support covers only the components that distribution includes. Its README configures it in plain Collector YAML, so Bindplane is optional. Its stability is <strong>beta</strong>.</p>
+<p>Measured against the rules this entry depends on, v1.2.0 (released 10/28/2026) gets the cursor rule right and falls short in several other places:</p>
+<table>
+<thead>
+<tr>
+<th>Rule from this entry</th>
+<th><code>restapi</code> receiver v1.2.0</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Write the cursor only after ingest succeeds (§ 7.3, gotcha 5)</td>
+<td>Each page goes to the pipeline before the cursor advances. A pipeline error ends the poll without saving</td>
+<td>Meets the rule as far as the exporter — see the queue row</td>
+</tr>
+<tr>
+<td>Persist the cursor between runs (§ 4.2)</td>
+<td>Saved after each page and at the end of each poll, but only with a <code>storage</code> extension. Changing <code>url</code> invalidates the saved cursor</td>
+<td>Without <code>storage</code>, a restart is a first run (next row)</td>
+</tr>
+<tr>
+<td>Start a new stream at <code>now</code> (§ 8.2)</td>
+<td>An opaque cursor cannot be seeded: <code>starting_offset</code> is rejected with <code>offset_type: opaque</code>, and the first request omits <code>stream_position</code>. Adding <code>stream_position=now</code> to the URL does not help — the receiver adds its own parameter beside it on later requests</td>
+<td>Box documents <code>now</code> and <em>&quot;<code>0</code> or <code>null</code> will return all events&quot;</em>, not an omitted parameter. If the first run starts at the beginning, it replays up to two weeks, and records older than the Log Age limit are dropped at ingest</td>
+</tr>
+<tr>
+<td>Back off on <code>429</code> using <code>retry-after</code> (§ 4.1)</td>
+<td>No <code>429</code> or <code>Retry-After</code> handling. Any non-2xx response is an error, and the next attempt waits for the next poll, whose interval grows toward <code>max_poll_interval</code></td>
+<td>The cursor does not move, so nothing is lost. Rarely binding at Box's rate limit (§ 5)</td>
+</tr>
+<tr>
+<td>No <code>timestamp</code> on events older than ~23 h (§ 9.1, gotcha 16)</td>
+<td>The record time comes from the first top-level <code>timestamp</code>, <code>time</code>, <code>created_at</code> … field — for Box, <code>created_at</code>, always</td>
+<td>A backlog older than the Log Age limit is discarded at OTLP ingest. Applying the 23 h rule needs a <code>transform</code> processor rule (not written or tested here)</td>
+</tr>
+<tr>
+<td>Dedupe on <code>event_id</code> (§ 4, § 12.2)</td>
+<td>No deduplication</td>
+<td><code>admin_logs_streaming</code> duplicates reach Dynatrace. Count them with § 12.2 and dedupe at query time</td>
+</tr>
+<tr>
+<td>A crash must not lose collected events (§ 13)</td>
+<td>The exporter's sending queue is in memory unless you give it <code>storage</code>, so a page counts as forwarded once it is queued</td>
+<td>A crash can lose queued records the cursor has already passed. Set <code>sending_queue.storage</code> too</td>
+</tr>
+<tr>
+<td>Poll every 5 minutes (§ 5)</td>
+<td>Adaptive interval: it drops to <code>min_poll_interval</code> only when <code>page_limit</code> is set and the last page was full — not whenever data arrives, as the README says. Without <code>page_limit</code> each poll drains every page and the interval settles at <code>max_poll_interval</code></td>
+<td>Set <code>max_poll_interval: 5m</code> (the default) for the § 5 cadence</td>
+</tr>
+</tbody>
+</table>
+<p><strong>If you test it, start from this configuration — it has not been run against a Box enterprise:</strong></p>
+<pre><code class="language-yaml">extensions:
+  file_storage:
+    directory: /var/lib/otelcol/box   # must survive restarts
+receivers:
+  restapi/box:
+    url: https://api.box.com/2.0/events?stream_type=admin_logs_streaming
+    auth_mode: oauth2
+    oauth2:
+      client_id: ${env:BOX_CLIENT_ID}
+      client_secret: ${env:BOX_CLIENT_SECRET}
+      token_url: https://api.box.com/oauth2/token
+      endpoint_params:
+        box_subject_type: enterprise
+        box_subject_id: ${env:BOX_ENTERPRISE_ID}
+    response_field: entries
+    pagination:
+      mode: offset_limit
+      offset_limit:
+        offset_field_name: stream_position
+        next_offset_field_name: next_stream_position
+        offset_type: opaque
+        limit_field_name: limit
+        limit: 500
+    max_poll_interval: 5m
+    storage: file_storage
+exporters:
+  otlphttp:
+    # your environment's OTLP endpoint and token
+    sending_queue:
+      storage: file_storage   # persistent queue
+</code></pre>
+<p>Add <code>file_storage</code> to <code>service.extensions</code> and the receiver to a logs pipeline that uses the exporter. The receiver puts the whole Box event in the log body. The § 10 field mapping and the § 12 and § 13 queries read the <code>box.*</code> attributes and the <code>log.source</code> the Workflow and Python collectors write, so map them in OpenPipeline or adapt the queries before you rely on them.</p>
+<p><strong>When it fits:</strong> steady-state streaming, once you have run its first poll against a Box sandbox and seen where the stream starts. The Workflow (§ 7) stays the default, and the <code>admin_logs</code> backfill (§ 8.3) is unchanged: the receiver stamps every record with its event time, so without a <code>transform</code> rule it cannot replay events older than the Log Age limit. The receiver is new and actively developed, so re-check this table against each release.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/restapireceiver/README.md">restapireceiver README (Dynatrace GitHub)</a> — <em>&quot;When a storage extension is configured, the receiver saves its pagination state to storage after each page fetch.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/restapireceiver/metadata.yaml">restapireceiver metadata (Dynatrace GitHub)</a> — <em>&quot;beta: [logs, metrics]&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector">OpenTelemetry Collector (DT docs)</a> — <em>&quot;This support covers only the components and their versions that are included in the Dynatrace OTel Collector.&quot;</em></sub></li>
+<li><sub><a href="https://developer.box.com/reference/get-events">List user and enterprise events (Box Dev Docs)</a> — <em>&quot;<code>now</code> will return an empty list events and the latest stream position for initialization.&quot;</em></sub></li>
+<li><sub><a href="https://developer.box.com/guides/authentication/client-credentials">Client credentials grant (Box Dev Docs)</a> — <em>&quot;Every token request names one of three subjects.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/exporterhelper/README.md">Exporter helper (OpenTelemetry GitHub)</a> — <em>&quot;There is no in-memory queue when set.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-logs">Ingest OTLP logs (DT docs)</a> — <em>&quot;Log events older than the Log Age limit are discarded.&quot;</em></sub></li>
+<li><sub><strong>Code read (10/29/2026):</strong> at tag <code>v1.2.0</code>, <code>receiver.go</code> sends each page to the pipeline before reading the next cursor and returns on a pipeline error before saving; <code>client.go</code> treats every non-2xx status as an error and contains no <code>Retry-After</code> handling (control: its OAuth2 <code>token_url</code>, <code>scopes</code> and <code>endpoint_params</code> handling is found in the same file); <code>client.go</code> adds pagination parameters to any already in the URL rather than replacing them; <code>config.go</code> rejects <code>starting_offset</code> with <code>offset_type: opaque</code>; <code>pagination.go</code> omits the cursor parameter until a token arrives; <code>logs.go</code> reads the record time from the first of <code>timestamp</code>, <code>time</code>, <code>created_at</code>, <code>createdAt</code>, <code>date</code>, <code>datetime</code>, <code>@timestamp</code>. Component lists: <code>restapireceiver v1.2.0</code> is in the full DBDOT manifest and in neither the slim DBDOT manifest nor the Dynatrace OTel Collector manifest (0.59.0). Not run against Box</sub></li>
+<li><sub><strong>Derived:</strong> the queue row combines the exporter-helper sentence with the receiver forwarding a page before it saves the cursor</sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="workflow"></a></p>
+<h2>7. Implementation A — Dynatrace Workflow</h2>
+<p>The recommended path at typical volume. No infrastructure, secrets stay in the Credential Vault, and scheduling plus failure alerting come free.</p>
+<h3>7.1 Three things to set up first</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>What</th>
+<th>Why it matters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1. Credential Vault entry</strong></td>
+<td>Store the Box <code>client_id</code> / <code>client_secret</code> as a username/password credential with the <strong>AppEngine</strong> scope selected, <strong>Allow access without app context</strong> turned on, and access granted to the <strong>workflow actor</strong></td>
+<td>Never put Box secrets in workflow code — they are readable by anyone who can view the workflow. Workflow JavaScript tasks run without an app context, so a credential missing any of the three settings cannot be read by the task</td>
+</tr>
+<tr>
+<td><strong>2. Outbound allowlist</strong></td>
+<td>Add <code>api.box.com</code> — and <code>status.box.com</code> if you poll it (§ 14.1) — under <strong>Settings &gt; General &gt; External requests</strong> (<em>New host pattern</em>)</td>
+<td>Every HTTP call from the task is checked against this list. No page documents what a blocked call returns: in the collector below an uncaught error fails the task, while code that catches errors turns it into an empty run. Run the workflow once after adding the host and check that events arrive</td>
+</tr>
+<tr>
+<td><strong>3. Standard workflow</strong></td>
+<td>Create a <strong>standard</strong> workflow, not a simple one</td>
+<td>A simple workflow cannot contain a <strong>Run JavaScript</strong> action at all. Standard workflows also bill differently — see ALERT-03 § 1</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Verify the cursor store before you schedule the collector.</strong> The collector keeps its cursor in app state through <code>stateClient</code>. Two Dynatrace pages leave open whether app state is reachable from a Run JavaScript task: the state service says <em>&quot;These states are only accessible from their respective apps and can't be accessed using a different app or ad-hoc functions.&quot;</em>, and the Run JavaScript page says <em>&quot;JavaScript tasks run without an app context.&quot;</em> The code below matches the <code>@dynatrace-sdk/client-state</code> typings, but it has not been run in a workflow. Before relying on it, build a two-task test workflow: the first task calls <code>setAppState</code>, the second calls <code>getAppState</code> and returns the value. The workflow actor needs <code>state:app-states:read</code> and <code>state:app-states:write</code> (the scopes the SDK documents for these calls). If the value does not come back, keep the cursor in a store you have confirmed the workflow can read and write — the rest of the design does not change. Without a working cursor the run either fails or starts at <code>&quot;now&quot;</code> every time and never collects the events between runs.</p>
+</blockquote>
+<h3>7.2 The collector</h3>
+<p>A single <strong>Run JavaScript</strong> action on a 5-minute schedule. It authenticates, reads the cursor, pages until drained, ingests, and writes the cursor back.</p>
+<pre><code class="language-javascript">import { credentialVaultClient, logsClient } from &quot;@dynatrace-sdk/client-classic-environment-v2&quot;;
+import { stateClient, isNotFound } from &quot;@dynatrace-sdk/client-state&quot;;
+
+const BOX_CREDENTIAL_ID = &quot;CREDENTIALS_VAULT-XXXXXXXXXXXXXXXX&quot;;
+const BOX_ENTERPRISE_ID = &quot;1234567&quot;;
+const CURSOR_KEY        = &quot;box-events-cursor&quot;;
+const LOG_SOURCE        = &quot;box.events&quot;;
+const PAGE_LIMIT        = 500;
+const MAX_PAGES         = 60;      // stay clear of the 120 s ceiling
+const INGEST_BATCH      = 1000;    // well under 50,000 records / 10 MB
+const MAX_EVENT_AGE_MS  = 23 * 60 * 60 * 1000; // log ingest drops timestamps &gt; 24 h old (§ 9.1)
+
+export default async function () {
+  // --- 1. Authenticate (Client Credentials Grant) -------------------------
+  const creds = await credentialVaultClient.getCredentialsDetails({
+    id: BOX_CREDENTIAL_ID,
+  });
+
+  const tokenRes = await fetch(&quot;https://api.box.com/oauth2/token&quot;, {
+    method: &quot;POST&quot;,
+    headers: { &quot;Content-Type&quot;: &quot;application/x-www-form-urlencoded&quot; },
+    body: new URLSearchParams({
+      grant_type: &quot;client_credentials&quot;,
+      client_id: creds.username,
+      client_secret: creds.password,
+      box_subject_type: &quot;enterprise&quot;,
+      box_subject_id: BOX_ENTERPRISE_ID,
+    }).toString(),
+  });
+
+  if (!tokenRes.ok) {
+    // Fail loudly. A silent auth failure looks exactly like &quot;no events&quot;.
+    throw new Error(`Box auth failed: ${tokenRes.status} ${await tokenRes.text()}`);
+  }
+  const { access_token } = await tokenRes.json();
+
+  // --- 2. Read the cursor -------------------------------------------------
+  // &quot;now&quot; on first run starts at the live edge. Use 0 to replay everything
+  // the streaming window still holds (up to two weeks).
+  let streamPosition = &quot;now&quot;;
+  try {
+    const saved = await stateClient.getAppState({ key: CURSOR_KEY });
+    if (saved?.value) streamPosition = saved.value;
+  } catch (e) {
+    // No cursor yet — first run. Any other error should surface.
+    // The SDK error has no top-level `status`; use the exported type guard.
+    if (!isNotFound(e)) throw e;
+  }
+
+  // --- 3. Page until drained ---------------------------------------------
+  const seen = new Set();
+  const records = [];
+  let pages = 0;
+
+  while (pages &lt; MAX_PAGES) {
+    const url =
+      `https://api.box.com/2.0/events?stream_type=admin_logs_streaming` +
+      `&amp;limit=${PAGE_LIMIT}&amp;stream_position=${encodeURIComponent(streamPosition)}`;
+
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${access_token}` },
+    });
+
+    if (res.status === 429) {
+      // Respect Box's backoff and finish on the next scheduled run.
+      break;
+    }
+    if (!res.ok) {
+      throw new Error(`Box events failed: ${res.status} ${await res.text()}`);
+    }
+
+    const page = await res.json();
+    const entries = page.entries ?? [];
+
+    for (const evt of entries) {
+      // admin_logs_streaming can repeat events — dedupe within the run.
+      if (seen.has(evt.event_id)) continue;
+      seen.add(evt.event_id);
+
+      const record = {
+        content: JSON.stringify(evt),
+        &quot;log.source&quot;: LOG_SOURCE,
+        &quot;box.created_at&quot;: evt.created_at,
+        &quot;box.event_id&quot;: evt.event_id,
+        &quot;box.event_type&quot;: evt.event_type,
+        // SHIELD_ALERT events carry an anonymous created_by (empty login);
+        // the affected account is in additional_details.shield_alert.user (§ 11.2).
+        &quot;box.user.login&quot;: evt.created_by?.login || evt.additional_details?.shield_alert?.user?.email,
+        &quot;box.item.name&quot;: evt.source?.item_name,
+        &quot;box.ip_address&quot;: evt.ip_address,
+      };
+      // Log ingest DROPS a record whose timestamp is older than 24 h. For a
+      // backlog (first run from 0, a long outage), leave timestamp unset so the
+      // record takes its ingest time, and query event time on box.created_at.
+      if (Date.now() - Date.parse(evt.created_at) &lt; MAX_EVENT_AGE_MS) {
+        record.timestamp = evt.created_at;
+      }
+      records.push(record);
+    }
+
+    streamPosition = page.next_stream_position;
+    pages++;
+
+    // A short page usually means the live edge — but Box can return fewer than
+    // `limit` while events remain. Stopping here only defers them to the next
+    // run; the cursor still points at them, so nothing is lost.
+    if (entries.length &lt; PAGE_LIMIT) break;
+  }
+
+  // --- 4. Ingest in batches ----------------------------------------------
+  for (let i = 0; i &lt; records.length; i += INGEST_BATCH) {
+    await logsClient.storeLog({
+      type: &quot;application/json; charset=utf-8&quot;,
+      body: records.slice(i, i + INGEST_BATCH),
+    });
+  }
+
+  // --- 5. Persist the cursor LAST ----------------------------------------
+  // Only after a successful ingest. Writing it earlier means a failed ingest
+  // silently loses every event in this batch.
+  await stateClient.setAppState({
+    key: CURSOR_KEY,
+    body: { value: String(streamPosition) },
+  });
+
+  return { pages, ingested: records.length, cursor: streamPosition };
+}
+</code></pre>
+<h3>7.3 Six details in that code that are load-bearing</h3>
+<table>
+<thead>
+<tr>
+<th>Detail</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cursor written last</strong></td>
+<td>If ingest fails after the cursor advances, those events are skipped by the live collector — and once they fall out of the two-week streaming window, only an <code>admin_logs</code> backfill (§ 13.3) can recover them. Write-after-success makes a failed run replay instead of lose</td>
+</tr>
+<tr>
+<td><strong>No TTL on the cursor</strong></td>
+<td><code>stateClient</code> TTL (<code>validUntilTime</code>) accepts now+1m … now+90d. Set one and your cursor silently expires, resetting the collector. <strong>Omit it</strong></td>
+</tr>
+<tr>
+<td><strong><code>MAX_PAGES</code> guard</strong></td>
+<td>Bounds the run below the 120 s ceiling. A backlog drains across several runs rather than timing out forever on the first</td>
+</tr>
+<tr>
+<td><strong>Throwing on auth failure</strong></td>
+<td>An unhandled non-OK response would leave you with an empty ingest that looks identical to a quiet Box tenant</td>
+</tr>
+<tr>
+<td><strong><code>isNotFound(e)</code> on the first cursor read</strong></td>
+<td>The SDK's error object carries the HTTP response under <code>response</code>, not a top-level <code>status</code> — a <code>e.status !== 404</code> test is always true and makes every first run throw</td>
+</tr>
+<tr>
+<td><strong>No <code>timestamp</code> on events older than ~23 h</strong></td>
+<td>Log ingest drops any record timestamped more than 24 h in the past (§ 9.1). Replaying a backlog with <code>timestamp: created_at</code> loses it silently; ingest-time stamping plus <code>box.created_at</code> keeps it</td>
+</tr>
+</tbody>
+</table>
+<h3>7.4 Alert on the collector, not just on Box</h3>
+<p>A Workflow that stops running produces no logs — and no logs looks exactly like no activity. Add a second workflow that runs the § 13 staleness query and pages someone when it goes stale. <strong>This is not optional at a two-week retention window.</strong></p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://developer.dynatrace.com/develop/reference/javascript-runtime/">JavaScript runtime limits (Dynatrace Developer)</a></sub></li>
+<li><sub><a href="https://developer.dynatrace.com/develop/sdks/client-state/">client-state SDK (Dynatrace Developer)</a> — exports the <code>isNotFound</code> type guard (checked in <code>@dynatrace-sdk/client-state</code> 1.11.0 typings, 09/28/2026)</sub></li>
+<li><sub><a href="https://developer.dynatrace.com/develop/guides/security/manage-secrets/">Manage secrets (Dynatrace Developer)</a> — <em>&quot;Ensure to use the AppEngine scope for your credentials.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action">Run JavaScript action (DT docs)</a> — <em>&quot;The following credential settings are required. The AppEngine scope is selected. Allow access without app context is turned on. The workflow actor has access to the credential.&quot;</em>; <em>&quot;All HTTP calls are validated against the global allowlist.&quot;</em></sub></li>
+<li><sub><a href="https://developer.dynatrace.com/develop/platform-services/services/state-service/">State service (Dynatrace Developer)</a> — <em>&quot;These states are only accessible from their respective apps and can't be accessed using a different app or ad-hoc functions.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/simple-workflow">Create a simple workflow (DT docs)</a> — <em>&quot;You can use all available actions to create a simple workflow except Run JavaScript&quot;</em></sub></li>
+<li><sub><a href="https://developer.dynatrace.com/develop/sdks/client-classic-environment-v2/">Credential vault client (Dynatrace Developer)</a></sub></li>
+<li><sub><a href="https://developer.box.com/guides/authentication/client-credentials">Client Credentials Grant (Box Dev Docs)</a></sub></li>
+<li><sub><a href="https://developer.box.com/reference/get-events">List user and enterprise events (Box Dev Docs)</a></sub></li>
+<li><sub><strong>Derived:</strong> § 7.3's write-cursor-last rule combines the documented two-week streaming retention with the collector resuming from its stored cursor — events behind an advanced cursor are reachable again only through an <code>admin_logs</code> backfill (§ 13.3)</sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="python"></a></p>
+<h2>8. Implementation B — Python</h2>
+<p>Use Python for historical backfill, for replay, or when sustained volume exceeds what a single 120-second run can drain.</p>
+<h3>8.1 Install the right SDK — this one is easy to get backwards</h3>
+<pre><code class="language-bash">pip install boxsdk requests
+</code></pre>
+<p><strong><code>boxsdk</code> (v10+) is the current Box Python SDK. <code>box-sdk-gen</code> is the deprecated one.</strong> The naming is actively misleading — &quot;gen&quot; sounds like the newer generation, and it was, briefly: it shipped as a standalone package and was deprecated on <strong>17 September 2025</strong> when its functionality was absorbed into the core SDK at v10.</p>
+<p>The PyPI release history settles it: <code>boxsdk</code> 10.17.0 shipped 1 October 2026, while <code>box-sdk-gen</code> has not released since 05 September 2025 (both re-checked 10/02/2026).</p>
+<p><strong>The second half of the trap: you install <code>boxsdk</code>, but you import <code>box_sdk_gen</code>.</strong> From v10 the <code>boxsdk</code> distribution contains only the generated package — its PyPI page says v10 <em>&quot;fully and exclusively replaces the old <code>boxsdk</code> package&quot;</em> — so <code>from boxsdk import Client, CCGAuth</code>, which every pre-v10 example uses, fails with <code>ModuleNotFoundError</code>. The collector below imports <code>BoxClient</code>, <code>BoxCCGAuth</code> and <code>CCGConfig</code> from <code>box_sdk_gen</code>.</p>
+<h3>8.2 The collector</h3>
+<p>Syntax- and import-checked against <code>boxsdk</code> 10.17.0 (10/02/2026), including the <code>client.events.get_events</code> signature; it has not been run end-to-end against a Box enterprise. It authenticates to Dynatrace with a <strong>platform token</strong> (scope <code>openpipeline:logs:ingest</code>), because Latest Dynatrace environments have no classic access tokens. On a classic or hybrid environment a classic access token with <code>logs.ingest</code> also works — send <code>Api-Token &lt;token&gt;</code> instead of <code>Bearer &lt;token&gt;</code>.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Poll the Box enterprise event stream and ship to Dynatrace.
+
+Steady state:  --stream-type admin_logs_streaming
+Backfill:      --stream-type admin_logs --created-after 2026-01-01T00:00:00Z \
+               --cursor-file /var/lib/box/cursor-backfill
+
+Requires Python 3.11+ (datetime.fromisoformat accepts Box's offsets and &quot;Z&quot;).
+&quot;&quot;&quot;
+import argparse
+import json
+import os
+import time
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import requests
+from box_sdk_gen import BoxCCGAuth, BoxClient, CCGConfig
+from box_sdk_gen.managers.events import GetEventsStreamType
+
+BOX_CLIENT_ID     = os.environ[&quot;BOX_CLIENT_ID&quot;]
+BOX_CLIENT_SECRET = os.environ[&quot;BOX_CLIENT_SECRET&quot;]
+BOX_ENTERPRISE_ID = os.environ[&quot;BOX_ENTERPRISE_ID&quot;]
+
+DT_ENV_URL = os.environ[&quot;DT_ENV_URL&quot;]        # https://abc12345.live.dynatrace.com
+DT_PLATFORM_TOKEN = os.environ[&quot;DT_PLATFORM_TOKEN&quot;]  # scope: openpipeline:logs:ingest
+
+LOG_SOURCE    = &quot;box.events&quot;
+PAGE_LIMIT    = 500
+INGEST_BATCH  = 1000     # well under the 50,000-record / 10 MB request limits
+MAX_EVENT_AGE = timedelta(hours=23)  # ingest drops timestamps &gt; 24 h old (§ 9.1)
+
+
+def box_client() -&gt; BoxClient:
+    &quot;&quot;&quot;Server-side auth. No user interaction, no refresh-token juggling.&quot;&quot;&quot;
+    config = CCGConfig(
+        client_id=BOX_CLIENT_ID,
+        client_secret=BOX_CLIENT_SECRET,
+        enterprise_id=BOX_ENTERPRISE_ID,
+    )
+    return BoxClient(auth=BoxCCGAuth(config=config))
+
+
+def read_cursor(cursor_file: Path, default: str) -&gt; str:
+    return cursor_file.read_text().strip() if cursor_file.exists() else default
+
+
+def write_cursor(cursor_file: Path, position: str) -&gt; None:
+    &quot;&quot;&quot;Write atomically — a torn cursor file is worse than no cursor file.&quot;&quot;&quot;
+    cursor_file.parent.mkdir(parents=True, exist_ok=True)
+    tmp = cursor_file.with_suffix(&quot;.tmp&quot;)
+    tmp.write_text(str(position))
+    tmp.replace(cursor_file)
+
+
+def to_dt_record(evt: dict) -&gt; dict:
+    &quot;&quot;&quot;Flatten a Box event into a Dynatrace log record.&quot;&quot;&quot;
+    created_by = evt.get(&quot;created_by&quot;) or {}
+    source     = evt.get(&quot;source&quot;) or {}
+    created_at = evt.get(&quot;created_at&quot;)
+    details    = evt.get(&quot;additional_details&quot;)
+    shield     = (details.get(&quot;shield_alert&quot;) if isinstance(details, dict) else None) or {}
+    record = {
+        &quot;content&quot;:         json.dumps(evt, separators=(&quot;,&quot;, &quot;:&quot;)),
+        &quot;log.source&quot;:      LOG_SOURCE,
+        &quot;box.created_at&quot;:  created_at,
+        &quot;box.event_id&quot;:    evt.get(&quot;event_id&quot;),
+        &quot;box.event_type&quot;:  evt.get(&quot;event_type&quot;),
+        # SHIELD_ALERT: created_by is anonymous; the account is shield_alert.user.
+        &quot;box.user.login&quot;:  created_by.get(&quot;login&quot;) or (shield.get(&quot;user&quot;) or {}).get(&quot;email&quot;),
+        &quot;box.item.name&quot;:   source.get(&quot;item_name&quot;),
+        # File/folder sources use item_type/item_id; user sources use type/id.
+        &quot;box.item.type&quot;:   source.get(&quot;item_type&quot;) or source.get(&quot;type&quot;),
+        &quot;box.ip_address&quot;:  evt.get(&quot;ip_address&quot;),
+    }
+    # Only stamp event time when ingest will accept it. An older event keeps
+    # its ingest time as timestamp; query its real time on box.created_at.
+    if created_at:
+        age = datetime.now(timezone.utc) - datetime.fromisoformat(created_at)
+        if age &lt; MAX_EVENT_AGE:
+            record[&quot;timestamp&quot;] = created_at
+    return record
+
+
+def ingest(records: list[dict]) -&gt; None:
+    &quot;&quot;&quot;POST to the Dynatrace Log Ingestion API, batched.&quot;&quot;&quot;
+    url = f&quot;{DT_ENV_URL}/api/v2/logs/ingest&quot;
+    headers = {
+        &quot;Authorization&quot;: f&quot;Bearer {DT_PLATFORM_TOKEN}&quot;,
+        &quot;Content-Type&quot;: &quot;application/json; charset=utf-8&quot;,
+    }
+    for i in range(0, len(records), INGEST_BATCH):
+        batch = records[i:i + INGEST_BATCH]
+        for attempt in range(5):
+            resp = requests.post(url, headers=headers,
+                                 data=json.dumps(batch), timeout=30)
+            if resp.status_code == 204:
+                break
+            # 200 is a PARTIAL success: some records were dropped (for example
+            # &quot;... events were not ingested because of timestamp out of correct
+            # time range&quot;). Treat it as a failure so the cursor does not advance.
+            if resp.status_code == 200:
+                raise RuntimeError(f&quot;Dynatrace partial ingest: {resp.text}&quot;)
+            # 413 means the batch expanded past 10 MB (or 16 MB after
+            # preprocessing) — halving is the fix, not retrying.
+            if resp.status_code == 413 and len(batch) &gt; 1:
+                mid = len(batch) // 2
+                ingest(batch[:mid])
+                ingest(batch[mid:])
+                break
+            if resp.status_code in (429, 500, 502, 503, 504):
+                time.sleep(2 ** attempt)
+                continue
+            resp.raise_for_status()
+            raise RuntimeError(f&quot;Unexpected ingest response {resp.status_code}&quot;)
+        else:
+            raise RuntimeError(&quot;Dynatrace ingest failed after 5 attempts&quot;)
+
+
+def collect(stream_type: str, cursor_file: Path,
+            created_after: datetime | None = None) -&gt; int:
+    client = box_client()
+    # &quot;now&quot; returns no events, only the live-edge position; &quot;0&quot; replays
+    # everything the stream still holds. Backfill wants the latter.
+    default = &quot;0&quot; if stream_type == &quot;admin_logs&quot; else &quot;now&quot;
+    position = read_cursor(cursor_file, default)
+    seen: set[str] = set()
+    total = 0
+
+    while True:
+        # The SDK handles auth, retry and token refresh for us.
+        page = client.events.get_events(
+            stream_type=GetEventsStreamType(stream_type),
+            stream_position=position,
+            limit=PAGE_LIMIT,
+            created_after=created_after,
+        )
+        entries = page.entries or []
+
+        records = []
+        for evt in entries:
+            data = evt.to_dict()
+            eid = data.get(&quot;event_id&quot;)
+            # admin_logs_streaming repeats events; admin_logs does not.
+            if eid in seen:
+                continue
+            seen.add(eid)
+            records.append(to_dt_record(data))
+
+        if records:
+            ingest(records)
+            total += len(records)
+
+        # Persist only after a successful ingest — and on an EMPTY page too,
+        # or a cursor that started at &quot;now&quot; is never initialized.
+        position = str(page.next_stream_position)
+        write_cursor(cursor_file, position)
+
+        # Empty means the live edge. A short page may not be — Box can return
+        # fewer than `limit` while events remain — but stopping only defers
+        # them to the next run; the saved cursor still points at them.
+        if len(entries) &lt; PAGE_LIMIT:
+            break
+
+    return total
+
+
+if __name__ == &quot;__main__&quot;:
+    ap = argparse.ArgumentParser()
+    ap.add_argument(&quot;--stream-type&quot;, default=&quot;admin_logs_streaming&quot;,
+                    choices=[&quot;admin_logs_streaming&quot;, &quot;admin_logs&quot;])
+    ap.add_argument(&quot;--created-after&quot;, default=None,
+                    help=&quot;RFC3339 timestamp; admin_logs backfill only&quot;)
+    ap.add_argument(&quot;--cursor-file&quot;, type=Path,
+                    default=Path(os.environ.get(&quot;BOX_CURSOR_FILE&quot;,
+                                                &quot;/var/lib/box/cursor&quot;)),
+                    help=&quot;use a separate file per stream type&quot;)
+    args = ap.parse_args()
+
+    after = (datetime.fromisoformat(args.created_after)
+             if args.created_after else None)
+    count = collect(args.stream_type, args.cursor_file, after)
+    print(f&quot;ingested {count} events&quot;)
+</code></pre>
+<h3>8.3 Running it</h3>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Command</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Steady state</strong></td>
+<td><code>python box_collector.py</code></td>
+<td>Every 5 min via cron, K8s <code>CronJob</code>, or a systemd timer</td>
+</tr>
+<tr>
+<td><strong>Backfill</strong></td>
+<td><code>python box_collector.py --stream-type admin_logs --created-after 2026-01-01T00:00:00Z --cursor-file /var/lib/box/cursor-backfill</code></td>
+<td>Run once. The <strong>separate cursor file</strong> keeps it from clobbering the live cursor. Events older than 24 h land with their ingest time as <code>timestamp</code> — query them on <code>box.created_at</code> (§ 9.1)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Keep the two cursors apart.</strong> A backfill sharing the live cursor will drag the streaming collector backwards or forwards unpredictably — the most common way this design corrupts itself.</p>
+<h3>8.4 Where to run it</h3>
+<table>
+<thead>
+<tr>
+<th>Host</th>
+<th>Fit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Kubernetes <code>CronJob</code></strong></td>
+<td>Best fit if you already run K8s — secrets, scheduling, and restarts are solved</td>
+</tr>
+<tr>
+<td><strong>AWS Lambda / Azure Functions</strong></td>
+<td>Fine; keep the cursor in DynamoDB, Table Storage, or a parameter store rather than a file</td>
+</tr>
+<tr>
+<td><strong>A VM with cron</strong></td>
+<td>Works. Ensure the cursor file is on persistent storage, not ephemeral disk</td>
+</tr>
+</tbody>
+</table>
+<p>Whatever runs it needs monitoring of its own — see § 13.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://pypi.org/project/boxsdk/">boxsdk on PyPI</a> — <em>&quot;Starting with v10, the SDK is built entirely on the generated <code>box_sdk_gen</code> package, which fully and exclusively replaces the old <code>boxsdk</code> package.&quot;</em></sub></li>
+<li><sub><a href="https://developer.box.com/guides/tooling/sdks/python-gen">Deprecated Box Next Gen Python SDK (Box Dev Docs)</a></sub></li>
+<li><sub><a href="https://developer.box.com/guides/authentication/client-credentials">Client Credentials Grant (Box Dev Docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/log-monitoring-v2/post-ingest-logs">POST ingest logs (DT docs)</a> — <em>&quot;Platform Token / OAuth: One of the following scopes is required: openpipeline:logs:ingest storage:logs:write (legacy)&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic">Upgrade from classic access tokens (DT docs)</a> — (latest environment) <em>&quot;Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/lma-limits">Log ingestion limits (DT docs)</a> — <em>&quot;200 - in case some of the events in the payload have timestamps earlier than the log age limit.&quot;</em></sub></li>
+<li><sub><a href="https://developer.box.com/reference/get-events">List user and enterprise events (Box Dev Docs)</a> — <em>&quot;<code>now</code> will return an empty list events and the latest stream position for initialization&quot;</em>; <em>&quot;Sometimes, the events less than the limit requested can be returned even when there may be more events remaining.&quot;</em></sub></li>
+<li><sub><strong>Derived:</strong> § 8.1's current-vs-deprecated verdict comes from PyPI release dates (re-checked 10/02/2026) against Box's deprecation notice</sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="ingestion"></a></p>
+<h2>9. Ingestion, Processing, and Storage</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+Qm94ICYjODU5NDsgRHluYXRyYWNlIENvbGxlY3RvciBBcmNoaXRlY3R1cmU8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+Qm94IG5ldmVyIHB1c2hlcy4gRXZlcnl0aGluZyBiZWxvdyBpcyBkcml2ZW4gYnkgYSBzY2hlZHVsZWQgcHVsbCB0aGF0IG93bnMgYSBjdXJzb3IuPC90ZXh0PgoKICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iOCIgcmVmWD0iOSIgcmVmWT0iNCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNCBMMCw4IFoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyb3dDeWFuIiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iOCIgcmVmWD0iOSIgcmVmWT0iNCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNCBMMCw4IFoiIGZpbGw9IiMyMkQzRUUiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBTdGFnZSAxOiBCb3ggLS0+CiAgPHJlY3QgeD0iMjYiIHk9Ijk2IiB3aWR0aD0iMTcyIiBoZWlnaHQ9IjEzMiIgcng9IjgiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiLz4KICA8cmVjdCB4PSIyNiIgeT0iOTYiIHdpZHRoPSIxNzIiIGhlaWdodD0iMTMyIiByeD0iOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIxMTIiIHk9IjEyMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+Qm94IEV2ZW50cyBBUEk8L3RleHQ+CiAgPHRleHQgeD0iNDIiIHk9IjE0NiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+R0VUIC9ldmVudHM8L3RleHQ+CiAgPHRleHQgeD0iNDIiIHk9IjE2NiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+NTAwIGV2ZW50cyAvIHBhZ2U8L3RleHQ+CiAgPHRleHQgeD0iNDIiIHk9IjE4MiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+MSwwMDAgcmVxIC8gbWluIGxpbWl0PC90ZXh0PgogIDx0ZXh0IHg9IjQyIiB5PSIyMDIiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPnN0cmVhbWluZyA9IDIgd2sgb25seTwvdGV4dD4KICA8dGV4dCB4PSI0MiIgeT0iMjE4IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj4rIGR1cGxpY2F0ZXM8L3RleHQ+CgogIDxsaW5lIHgxPSIxOTgiIHkxPSIxNjIiIHgyPSIyNDYiIHkyPSIxNjIiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgogIDx0ZXh0IHg9IjIyMiIgeT0iMTUzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5PQXV0aDI8L3RleHQ+CgogIDwhLS0gU3RhZ2UgMjogQ29sbGVjdG9yIC0tPgogIDxyZWN0IHg9IjI0OCIgeT0iOTYiIHdpZHRoPSIxOTYiIGhlaWdodD0iMTMyIiByeD0iOCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4wOCIvPgogIDxyZWN0IHg9IjI0OCIgeT0iOTYiIHdpZHRoPSIxOTYiIGhlaWdodD0iMTMyIiByeD0iOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIzNDYiIHk9IjEyMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+Q29sbGVjdG9yPC90ZXh0PgogIDx0ZXh0IHg9IjI2NCIgeT0iMTQ2IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5Xb3JrZmxvdyAoSlMpIG9yIFB5dGhvbjwvdGV4dD4KICA8dGV4dCB4PSIyNjQiIHk9IjE2OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+MS4gUmVhZCBjdXJzb3I8L3RleHQ+CiAgPHRleHQgeD0iMjY0IiB5PSIxODQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPjIuIFBhZ2UgdW50aWwgZHJhaW5lZDwvdGV4dD4KICA8dGV4dCB4PSIyNjQiIHk9IjIwMCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+My4gRGVkdXBlIG9uIGV2ZW50X2lkPC90ZXh0PgogIDx0ZXh0IHg9IjI2NCIgeT0iMjE2IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj40LiBXcml0ZSBjdXJzb3IgYmFjazwvdGV4dD4KCiAgPGxpbmUgeDE9IjQ0NCIgeTE9IjE2MiIgeDI9IjQ5MiIgeTI9IjE2MiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CiAgPHRleHQgeD0iNDY4IiB5PSIxNTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlBPU1Q8L3RleHQ+CgogIDwhLS0gU3RhZ2UgMzogSW5nZXN0IC0tPgogIDxyZWN0IHg9IjQ5NCIgeT0iOTYiIHdpZHRoPSIxODAiIGhlaWdodD0iMTMyIiByeD0iOCIgZmlsbD0iIzIyRDNFRSIgb3BhY2l0eT0iMC4wOCIvPgogIDxyZWN0IHg9IjQ5NCIgeT0iOTYiIHdpZHRoPSIxODAiIGhlaWdodD0iMTMyIiByeD0iOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI1ODQiIHk9IjEyMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+TG9nIEluZ2VzdCBBUEkgdjI8L3RleHQ+CiAgPHRleHQgeD0iNTEwIiB5PSIxNDYiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPm9wZW5waXBlbGluZTpsb2dzOmluZ2VzdDwvdGV4dD4KICA8dGV4dCB4PSI1MTAiIHk9IjE2OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+MTAgTUIgLyByZXF1ZXN0PC90ZXh0PgogIDx0ZXh0IHg9IjUxMCIgeT0iMTg0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj41MCwwMDAgcmVjb3JkcyAvIHJlcTwvdGV4dD4KICA8dGV4dCB4PSI1MTAiIHk9IjIwNCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+Tm8gZXZlbnRzL21pbiBjYXA8L3RleHQ+CiAgPHRleHQgeD0iNTEwIiB5PSIyMjAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+MTYgTUIgcG9zdC1wcm9jZXNzaW5nPC90ZXh0PgoKICA8bGluZSB4MT0iNjc0IiB5MT0iMTYyIiB4Mj0iNzIyIiB5Mj0iMTYyIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KCiAgPCEtLSBTdGFnZSA0OiBPcGVuUGlwZWxpbmUgLS0+CiAgPHJlY3QgeD0iNzI0IiB5PSI5NiIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIxMzIiIHJ4PSI4IiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA4Ii8+CiAgPHJlY3QgeD0iNzI0IiB5PSI5NiIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIxMzIiIHJ4PSI4IiBmaWxsPSJub25lIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjgxNCIgeT0iMTIyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5PcGVuUGlwZWxpbmU8L3RleHQ+CiAgPHRleHQgeD0iNzQwIiB5PSIxNDYiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlBhcnNlIEpTT04gJiM4NTk0OyBmaWVsZHM8L3RleHQ+CiAgPHRleHQgeD0iNzQwIiB5PSIxNjIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk1hc2sgLyBoYXNoIGlkZW50aXR5PC90ZXh0PgogIDx0ZXh0IHg9Ijc0MCIgeT0iMTc4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5FeHRyYWN0IG1ldHJpY3M8L3RleHQ+CiAgPHRleHQgeD0iNzQwIiB5PSIxOTgiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkRpc2NhcmQgcmF3OiBObyBzdG9yYWdlPC90ZXh0PgogIDx0ZXh0IHg9Ijc0MCIgeT0iMjE0IiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5hc3NpZ25tZW50LCBub3QgRHJvcDwvdGV4dD4KCiAgPCEtLSBDdXJzb3Igc3RvcmUgLS0+CiAgPHJlY3QgeD0iMjQ4IiB5PSIyNjYiIHdpZHRoPSIxOTYiIGhlaWdodD0iNzYiIHJ4PSI4IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4Ii8+CiAgPHJlY3QgeD0iMjQ4IiB5PSIyNjYiIHdpZHRoPSIxOTYiIGhlaWdodD0iNzYiIHJ4PSI4IiBmaWxsPSJub25lIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjM0NiIgeT0iMjkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5DdXJzb3Igc3RvcmU8L3RleHQ+CiAgPHRleHQgeD0iMjY0IiB5PSIzMTEiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+c3RhdGVDbGllbnQuc2V0QXBwU3RhdGU8L3RleHQ+CiAgPHRleHQgeD0iMjY0IiB5PSIzMzAiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTAuNSI+VFRMIG1heCA5MCBkICYjODIxMjsgb21pdCBpdDwvdGV4dD4KCiAgPHBhdGggZD0iTTMzMCwyMjggTDMzMCwyNjYiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93Q3lhbikiLz4KICA8cGF0aCBkPSJNMzYyLDI2NiBMMzYyLDIyOCIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dDeWFuKSIvPgoKICA8IS0tIEJ1Y2tldHMgLS0+CiAgPHJlY3QgeD0iNzI0IiB5PSIyNjYiIHdpZHRoPSIxODAiIGhlaWdodD0iNzYiIHJ4PSI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iODE0IiB5PSIyOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkRlZGljYXRlZCBidWNrZXQ8L3RleHQ+CiAgPHRleHQgeD0iNzQwIiB5PSIzMTEiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk93biByZXRlbnRpb24gKyBvd248L3RleHQ+CiAgPHRleHQgeD0iNzQwIiB5PSIzMjciIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPklBTSBib3VuZGFyeTwvdGV4dD4KICA8cGF0aCBkPSJNODE0LDIyOCBMODE0LDI2NiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CgogIDwhLS0gV29ya2VkIGV4YW1wbGUgc3RyaXAgLS0+CiAgPHJlY3QgeD0iMjYiIHk9IjM3NiIgd2lkdGg9Ijg3OCIgaGVpZ2h0PSI5NiIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI0NiIgeT0iNDAwIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5Xb3JrZWQgZXhhbXBsZSAmIzgyMTI7IDEsMDAwLDAwMCBldmVudHMgLyBkYXk8L3RleHQ+CiAgPHRleHQgeD0iNDYiIHk9IjQyMyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+Qm94IHNpZGU6IDFNICYjMjQ3OyA1MDAgcGVyIHBhZ2UgPSAyLDAwMCByZXF1ZXN0cy9kYXkgJiM4Nzc2OyA8dHNwYW4gZmlsbD0iIzg2RUZBQyIgZm9udC13ZWlnaHQ9IjcwMCI+MS40IHJlcS9taW4gYWdhaW5zdCBhIDEsMDAwL21pbiBsaW1pdDwvdHNwYW4+ICYjODIxMjsgYWJvdXQgMC4xJSBvZiBidWRnZXQuPC90ZXh0PgogIDx0ZXh0IHg9IjQ2IiB5PSI0NDMiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPkR5bmF0cmFjZSBzaWRlOiAmIzg3NzY7IDExLjYgZXZlbnRzL3NlYywgYW5kIHRoZSBpbmdlc3QgQVBJIGhhcyA8dHNwYW4gZmlsbD0iIzg2RUZBQyIgZm9udC13ZWlnaHQ9IjcwMCI+bm8gZXZlbnRzLXBlci1taW51dGUgY2FwPC90c3Bhbj4gJiM4MjEyOyBub3QgYSBjb25zdHJhaW50LjwvdGV4dD4KICA8dGV4dCB4PSI0NiIgeT0iNDYzIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5OZWl0aGVyIGVuZHBvaW50IGlzIHRoZSBib3R0bGVuZWNrLiA8dHNwYW4gZmlsbD0iI0ZDRDM0RCIgZm9udC13ZWlnaHQ9IjcwMCI+VGhlIG9ubHkgdGhpbmcgbWlzc2luZyBpcyB0aGUgY29sbGVjdG9yIGluIHRoZSBtaWRkbGUuPC90c3Bhbj48L3RleHQ+Cjwvc3ZnPgo=" alt="Box to Dynatrace Collector Architecture" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Component | Key constraint |
+|-------|-----------|----------------|
+| 1 | Box Events API | 500 events/page; streaming retains 2 weeks; duplicates possible |
+| 2 | Collector (Workflow or Python) | Owns the cursor; dedupes on event_id |
+| 3 | Log Ingest API v2 (platform token scope openpipeline:logs:ingest) | 10 MB and 50,000 records per request; no events/min cap |
+| 4 | OpenPipeline | Parse, mask, extract metrics; discard raw with No storage assignment (Bucket assignment stage), never Drop record |
+| 5 | Dedicated bucket | Own retention and own IAM boundary |
+-->
+<h3>9.1 Ingest limits that actually bind</h3>
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>Value</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Events per minute</td>
+<td><strong>No limit</strong></td>
+<td>Volume is not the problem (§ 5)</td>
+</tr>
+<tr>
+<td>Payload per request</td>
+<td><strong>10 MB</strong></td>
+<td>Batch by size, not only by count</td>
+</tr>
+<tr>
+<td>Records per request</td>
+<td><strong>50,000</strong></td>
+<td>Rarely the binding limit — size hits first</td>
+</tr>
+<tr>
+<td>Post-processing expansion</td>
+<td>Rejected above <strong>16 MB</strong></td>
+<td>A batch inside 10 MB can still fail after processing. Halve on 413</td>
+</tr>
+<tr>
+<td>Attributes per record</td>
+<td>500</td>
+<td>Ample for Box events</td>
+</tr>
+<tr>
+<td>Attribute value length</td>
+<td>32 kB</td>
+<td>A large <code>additional_details</code> can approach this</td>
+</tr>
+<tr>
+<td>Log age</td>
+<td><strong>72 h</strong> for environments created after SaaS 1.348; <strong>24 h</strong> for older ones (raised to 72 h on request)</td>
+<td>A record timestamped earlier is <strong>dropped</strong>; a mixed batch returns <strong>200</strong> with a &quot;not ingested&quot; message, not an error. Backfill must not stamp old events with their event time (§ 7.3, § 8.2). If you cannot confirm your environment's limit, plan for 24 h</td>
+</tr>
+</tbody>
+</table>
+<h3>9.2 Extract, then discard — in that order</h3>
+<p>The mechanics and the trap are in <strong>FAQ-19 § 4</strong>; do not configure this without reading it. In short:</p>
+<table>
+<thead>
+<tr>
+<th>Extract</th>
+<th>Example</th>
+<th>Retention posture</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Metric</strong></td>
+<td>Event counts by <code>event_type</code> and user; download volume by user; failed-login counts</td>
+<td><strong>Keep the metric.</strong> Discard the source record unless separately justified</td>
+</tr>
+<tr>
+<td><strong>Business event</strong></td>
+<td>A file in a regulated folder was shared externally</td>
+<td><strong>Keep</strong>, minimal fields</td>
+</tr>
+<tr>
+<td><strong>Alert</strong></td>
+<td><code>SHIELD_ALERT</code> (§ 11)</td>
+<td><strong>Keep</strong> with full context</td>
+</tr>
+<tr>
+<td><strong>Raw record</strong></td>
+<td>Every <code>PREVIEW</code> and <code>DOWNLOAD</code> event</td>
+<td><strong>Discard by default.</strong> This is the bulk of your 45 GB/month</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>The trap, stated once more because it silently defeats the whole design:</strong> <code>Drop record</code> in the <strong>Processing</strong> stage pre-empts every extractor downstream — your metrics never get built. Use <strong><code>No storage assignment</code></strong> in the <strong>Bucket assignment</strong> stage instead: the record still runs through metric extraction, which comes after it, and is simply not stored. Extract first, discard last.</p>
+</blockquote>
+<p><strong>Field-level controls in the Processing stage, before storage:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field class</th>
+<th>Control</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>created_by.login</code>, <code>created_by.name</code></td>
+<td><strong>Hash</strong> where the analysis only needs correlation, not identity. Note a hash of a corporate email is enumerable — a control against casual exposure, not a privacy guarantee</td>
+</tr>
+<tr>
+<td><code>source.item_name</code></td>
+<td><strong>Consider masking.</strong> File names leak project names, client names, and deal names</td>
+</tr>
+<tr>
+<td><code>ip_address</code></td>
+<td>Keep — needed for the § 11 and § 12 access analysis</td>
+</tr>
+<tr>
+<td><code>additional_details</code> on high-volume event types</td>
+<td><strong>Remove.</strong> Cheapest control, apply first</td>
+</tr>
+</tbody>
+</table>
+<h3>9.3 Bucket isolation</h3>
+<p>Put Box events in a <strong>dedicated bucket</strong>. Two independent reasons, either sufficient:</p>
+<ul>
+<li><strong>Retention differs.</strong> An audit trail is typically kept far longer than application logs, and paying application-log retention across 45 GB/month of Box events is expensive.</li>
+<li><strong>Access differs.</strong> This feed names individuals and the documents they touched. It should be readable by security and compliance, not by everyone who can read application logs. A bucket is the boundary that makes that enforceable — see <strong>ORGNZ</strong>.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/lma-limits">Log ingestion limits (DT docs)</a> — <em>&quot;The event is dropped if it contains a timestamp older than the configured log age limit.&quot;</em> <em>&quot;For environments created after Dynatrace version 1.348 was released, the default log age limit is 72 hours.&quot;</em> <em>&quot;For environments created before Dynatrace version 1.348 was released, the default log age limit is 24 hours. The limit can be increased to 72 hours on request.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">What's new in Dynatrace SaaS 1.348 (DT docs)</a> — <em>&quot;Log ingestion now accepts log data up to 72 hours old&quot;</em>; GA, rollout start 10/12/2026; re-read 10/23/2026</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment">Configure data storage and retention for logs (DT docs)</a> — <em>&quot;This means you can extract metrics and generate alerts from records that you won't store.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion">Log ingestion (DT docs)</a> — the ingestion-route overview this section's API choice sits inside</sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="field-mapping"></a></p>
+<h2>10. Field Mapping Starting Point</h2>
+<p>Box events are JSON, so the parse is mechanical. What matters is normalizing to names that read the same as the rest of your data.</p>
+<table>
+<thead>
+<tr>
+<th>Box field</th>
+<th>Suggested Dynatrace field</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>event_id</code></td>
+<td><code>box.event_id</code></td>
+<td><strong>Dedupe key.</strong> Required — streaming repeats events</td>
+</tr>
+<tr>
+<td><code>event_type</code></td>
+<td><code>box.event_type</code></td>
+<td>Primary dimension. <code>LOGIN</code>, <code>UPLOAD</code>, <code>DOWNLOAD</code>, <code>SHARE</code>, <code>DELETE</code>, <code>SHIELD_ALERT</code>, …</td>
+</tr>
+<tr>
+<td><code>created_at</code></td>
+<td><code>timestamp</code></td>
+<td>Map to the record timestamp, not a custom field</td>
+</tr>
+<tr>
+<td><code>created_by.login</code></td>
+<td><code>box.user.login</code></td>
+<td>Consider hashing (§ 9.2). Empty on <code>SHIELD_ALERT</code> — use <code>additional_details.shield_alert.user.email</code> there (§ 11.2)</td>
+</tr>
+<tr>
+<td><code>created_by.id</code></td>
+<td><code>box.user.id</code></td>
+<td>Stable across renames — prefer for joins</td>
+</tr>
+<tr>
+<td><code>created_by.name</code></td>
+<td><code>box.user.name</code></td>
+<td>Display only</td>
+</tr>
+<tr>
+<td><code>source.item_type</code> (file and folder events) or <code>source.type</code> (other sources, such as users)</td>
+<td><code>box.item.type</code></td>
+<td>File and folder sources carry <code>item_type</code> / <code>item_id</code> / <code>item_name</code>; <code>type</code> / <code>id</code> appear only on other source objects</td>
+</tr>
+<tr>
+<td><code>source.item_id</code> or <code>source.id</code></td>
+<td><code>box.item.id</code></td>
+<td>Stable identifier — same split as the row above</td>
+</tr>
+<tr>
+<td><code>source.item_name</code></td>
+<td><code>box.item.name</code></td>
+<td>Consider masking (§ 9.2)</td>
+</tr>
+<tr>
+<td><code>ip_address</code></td>
+<td><code>box.ip_address</code></td>
+<td>Retain — needed for access analysis</td>
+</tr>
+<tr>
+<td><code>additional_details</code></td>
+<td><code>box.details.*</code></td>
+<td>Enterprise-stream only. Shape varies by <code>event_type</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Normalize before you extract.</strong> Metric dimensions and any Smartscape identifiers are computed from fields as they stand at their stage, so renaming after extraction leaves metrics carrying the old dimension names. Rename in Processing, then extract — the same ordering rule as § 9.2.</p>
+<p>If you also ingest identity events from elsewhere (Okta, Entra ID), map <code>box.user.login</code> onto whatever principal field those feeds use. Correlating a Box download with the sign-in that preceded it is one of the highest-value things this integration enables, and it only works if the principal is spelled the same way in both.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://developer.box.com/reference/resources/event-source">Event source (Box Dev Docs)</a> — <em>&quot;The type of the item that the event represents. Can be file or folder.&quot;</em>, <a href="https://developer.box.com/guides/events/event-triggers/shield-alert-events">Shield Alert Events (Box Dev Docs)</a>.</sub></p>
+</blockquote>
+<hr />
+<p><a id="shield"></a></p>
+<h2>11. Box Shield Alerts</h2>
+<p>Box Shield is Box's own threat detection. If it is licensed, its alerts arrive <strong>in the same event stream</strong> you are already collecting — no second integration, no extra credential. If it is not licensed, no <code>SHIELD_ALERT</code> events exist and nothing below applies.</p>
+<h3>11.1 What Shield detects</h3>
+<table>
+<thead>
+<tr>
+<th>Alert type</th>
+<th>Trigger</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Suspicious Locations</strong></td>
+<td>Access from unusual or excluded geographies</td>
+</tr>
+<tr>
+<td><strong>Suspicious Sessions</strong></td>
+<td>Unusual user-agents, new IPs, implausible travel</td>
+</tr>
+<tr>
+<td><strong>Anomalous Downloads</strong></td>
+<td>Download behaviour consistent with data theft</td>
+</tr>
+<tr>
+<td><strong>Malicious Content</strong></td>
+<td>Malware detected on upload</td>
+</tr>
+<tr>
+<td><strong>Ransomware Activity</strong></td>
+<td>File extensions consistent with ransomware (<strong>Shield Pro only</strong>)</td>
+</tr>
+</tbody>
+</table>
+<h3>11.2 The alert payload</h3>
+<p>Shield alerts follow the standard event schema with <code>event_type == &quot;SHIELD_ALERT&quot;</code>, carrying an <code>additional_details.shield_alert</code> object:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rule_category</code>, <code>rule_name</code></td>
+<td>Classification — the primary dimension for routing</td>
+</tr>
+<tr>
+<td><code>risk_score</code></td>
+<td>Numeric severity; good threshold for problem creation</td>
+</tr>
+<tr>
+<td><code>severity</code></td>
+<td>Box's own severity label — <em>&quot;One of Low, Medium, High, or Critical&quot;</em>, derived from <code>risk_score</code>; the older <code>priority</code> field is no longer sent</td>
+</tr>
+<tr>
+<td><code>alert_summary</code></td>
+<td>Context: IPs, affected files, timestamps</td>
+</tr>
+<tr>
+<td><code>link</code></td>
+<td>Deep link back to the Shield console — <strong>put this in the notification</strong></td>
+</tr>
+<tr>
+<td><code>user</code> (<code>id</code>, <code>name</code>, <code>email</code>)</td>
+<td>The affected account. The event's own <code>created_by</code> is Box's anonymous user (<code>id</code> 2, <code>name</code> &quot;Unknown User&quot;, empty <code>login</code>), so route and correlate on this field instead</td>
+</tr>
+<tr>
+<td><code>rule_response_action</code></td>
+<td>What Shield already did (e.g. terminated the session)</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>link</code> field deserves emphasis. An alert that reaches an analyst without a route back to the vendor console costs several minutes of navigation per incident. Carry it through processing into the notification payload.</p>
+<h3>11.3 Routing them</h3>
+<p>Shield alerts are the one Box signal that should page someone. Route them per <strong>FAQ-21</strong>:</p>
+<ol>
+<li>Extract <code>SHIELD_ALERT</code> events in OpenPipeline into a <strong>davis event</strong> or business event.</li>
+<li>Attach ownership so the trigger can route on it — FAQ-21 covers why <code>dt.owner</code> on an event needs an explicit, non-retroactive Problem fields mapping.</li>
+<li>Trigger a <strong>problem-triggered workflow</strong>, filtering on <code>rule_category</code> and <code>risk_score</code>.</li>
+<li><strong>Keep these records.</strong> This is the category where raw retention is justified — § 9.2's discard-by-default posture explicitly exempts it.</li>
+</ol>
+<pre><code class="language-dql">// Shield alert extraction. Runs standalone against a synthetic record — zero
+// bytes scanned. Replace the `data record(...)` line with:
+//   fetch logs, from:-24h | filter log.source == &quot;box.events&quot;
+// once your collector is running.
+// On SHIELD_ALERT, created_by is Box's anonymous user with an EMPTY login —
+// the affected account is additional_details.shield_alert.user.
+data record(content = &quot;{\&quot;event_id\&quot;:\&quot;a1\&quot;,\&quot;event_type\&quot;:\&quot;SHIELD_ALERT\&quot;,\&quot;created_at\&quot;:\&quot;2026-08-25T10:15:02-07:00\&quot;,\&quot;created_by\&quot;:{\&quot;type\&quot;:\&quot;user\&quot;,\&quot;id\&quot;:\&quot;2\&quot;,\&quot;name\&quot;:\&quot;Unknown User\&quot;,\&quot;login\&quot;:\&quot;\&quot;},\&quot;additional_details\&quot;:{\&quot;shield_alert\&quot;:{\&quot;rule_category\&quot;:\&quot;Anomalous Download\&quot;,\&quot;rule_name\&quot;:\&quot;Bulk download\&quot;,\&quot;risk_score\&quot;:78,\&quot;severity\&quot;:\&quot;High\&quot;,\&quot;alert_id\&quot;:\&quot;A3F9B2C1Y34T\&quot;,\&quot;user\&quot;:{\&quot;id\&quot;:2320,\&quot;name\&quot;:\&quot;Jane Doe\&quot;,\&quot;email\&quot;:\&quot;jdoe@example.com\&quot;},\&quot;link\&quot;:\&quot;https://app.box.com/master/shield/alerts/A3F9B2C1Y34T\&quot;}}}&quot;)
+| parse content, &quot;JSON:evt&quot;
+| filter evt[event_type] == &quot;SHIELD_ALERT&quot;
+| fieldsAdd box.alert.category   = evt[additional_details][shield_alert][rule_category],
+            box.alert.risk_score = evt[additional_details][shield_alert][risk_score],
+            box.alert.severity   = evt[additional_details][shield_alert][severity],
+            box.alert.link       = evt[additional_details][shield_alert][link],
+            box.user             = evt[additional_details][shield_alert][user][email],
+            box.created_by_login = evt[created_by][login]
+| fields box.alert.category, box.alert.risk_score, box.alert.severity, box.user, box.alert.link, box.created_by_login
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://developer.box.com/guides/events/event-triggers/shield-alert-events">Shield Alert Events (Box Dev Docs)</a> — the documented sample shows <code>created_by</code> as id 2, <em>&quot;Unknown User&quot;</em>, with an empty login, and the account under <code>shield_alert.user</code>; <em>&quot;The priority field is no longer included in Shield alert events. Use severity instead. Alert IDs are unique random alphanumeric strings.&quot;</em>; <a href="https://www.box.com/shield">Box Shield (Box)</a>. <strong>Tenant observation (11/13/2026):</strong> the query above returns <code>box.alert.severity</code> = <code>High</code>, <code>box.user</code> = <code>jdoe@example.com</code> and an empty <code>box.created_by_login</code>. <strong>Derived:</strong> § 11.3's routing sequence applies FAQ-21's four-axis model to the Shield payload; the recommendation to carry <code>link</code> into the notification is an operational inference, not a documented requirement.</sub></p>
+</blockquote>
+<hr />
+<p><a id="querying"></a></p>
+<h2>12. Querying Box Events in Grail</h2>
+<p>The queries in § 12.1 and § 12.2 run standalone at <strong>zero bytes scanned</strong> — swap the <code>data record(...)</code> line for <code>fetch logs, from:-24h | filter log.source == &quot;box.events&quot;</code> once data flows. The queries in § 12.3 and § 12.4 read real logs and are billed as queries; each scanned more than a gigabyte on the validation tenant with no Box data present (10/02/2026). Keep their timeframes short, and scope them to your Box bucket once it exists.</p>
+<h3>12.1 Parse a raw Box event</h3>
+<p>If you ingested <code>content</code> as the raw JSON (as both collectors in § 7 and § 8 do), this is how you get at the fields at query time. Doing it in OpenPipeline instead is cheaper — see § 9.2 — but this form is useful while validating.</p>
+<pre><code class="language-dql">// Parse a raw Box event record into queryable fields.
+// Runs standalone — zero bytes scanned.
+data record(content = &quot;{\&quot;event_id\&quot;:\&quot;f82c314e-9a01-4f2b-b6d2-1c7a55e0d311\&quot;,\&quot;event_type\&quot;:\&quot;LOGIN\&quot;,\&quot;created_at\&quot;:\&quot;2026-08-25T10:15:02-07:00\&quot;,\&quot;created_by\&quot;:{\&quot;type\&quot;:\&quot;user\&quot;,\&quot;id\&quot;:\&quot;12345\&quot;,\&quot;name\&quot;:\&quot;Jane Doe\&quot;,\&quot;login\&quot;:\&quot;jdoe@example.com\&quot;},\&quot;source\&quot;:{\&quot;type\&quot;:\&quot;user\&quot;,\&quot;id\&quot;:\&quot;12345\&quot;},\&quot;ip_address\&quot;:\&quot;203.0.113.42\&quot;}&quot;)
+| parse content, &quot;JSON:evt&quot;
+| fieldsAdd box.event_id   = evt[event_id],
+            box.event_type = evt[event_type],
+            box.user       = evt[created_by][login],
+            box.ip         = evt[ip_address]
+| fields box.event_id, box.event_type, box.user, box.ip
+</code></pre>
+<h3>12.2 Verify deduplication is working</h3>
+<p><code>admin_logs_streaming</code> returns duplicates by design. At 1M events/day an unnoticed duplicate rate is a direct and recurring cost. Run this weekly.</p>
+<pre><code class="language-dql">// Duplicate rate on the Box feed. Anything above ~0 means dedupe is not
+// working — check that the collector's `seen` set spans the whole run.
+// Runs standalone against synthetic records — zero bytes scanned.
+data record(box.event_id = &quot;evt-001&quot;, box.event_type = &quot;LOGIN&quot;),
+     record(box.event_id = &quot;evt-001&quot;, box.event_type = &quot;LOGIN&quot;),
+     record(box.event_id = &quot;evt-002&quot;, box.event_type = &quot;DOWNLOAD&quot;),
+     record(box.event_id = &quot;evt-003&quot;, box.event_type = &quot;SHIELD_ALERT&quot;)
+| summarize {ingested = count(), unique = countDistinct(box.event_id)}
+| fieldsAdd duplicates = ingested - unique
+| fieldsAdd duplicate_pct = round(100.0 * duplicates / ingested, decimals: 1)
+</code></pre>
+<h3>12.3 Confirm records landed in the right bucket</h3>
+<p>A bucket misassignment is silent — the data arrives, is queryable, and quietly inherits the wrong retention and the wrong access boundary.</p>
+<pre><code class="language-dql">// Which bucket are Box records actually in? Expect your dedicated bucket,
+// not `default_logs`. An empty result means no Box data yet — not success.
+fetch logs, from:-24h
+| filter log.source == &quot;box.events&quot;
+| summarize records = count(), by:{dt.system.bucket}
+| sort records desc
+</code></pre>
+<h3>12.4 Daily volume against the sizing assumption</h3>
+<p>Confirm reality matches the § 5 budget. A sustained overshoot is the earliest warning that retention posture needs revisiting.</p>
+<pre><code class="language-dql">// Daily Box event volume vs. a 1M/day planning assumption.
+// Use interval:24h — interval:1d raises a calendar-duration warning.
+fetch logs, from:-7d
+| filter log.source == &quot;box.events&quot;
+| makeTimeseries events = count(), interval:24h
+| fieldsAdd daily_avg = arrayAvg(events)
+| fieldsAdd pct_of_1m_budget = round(100.0 * arrayAvg(events) / 1000000, decimals: 1)
+</code></pre>
+<hr />
+<p><a id="operating"></a></p>
+<h2>13. Operating the Collector</h2>
+<p>This section is not optional, and it is the one most often skipped.</p>
+<p><strong>The failure mode:</strong> the collector stops. It produces no logs. No logs is indistinguishable from a quiet Box tenant. Nobody notices. Two weeks later the <code>admin_logs_streaming</code> window has rolled past the gap and <strong>those events are gone from the live stream</strong> — the only way back is an <code>admin_logs</code> backfill, which reaches back one year (§ 13.3), and past a year they exist only in the Box Admin Console's exported reports, outside the API.</p>
+<p>Because Box retains the streaming feed for only two weeks, your detection window for a collector outage is <em>shorter than two weeks</em>. Alert on it.</p>
+<h3>13.1 The staleness query — and the bug in the obvious version</h3>
+<p>The natural way to write this check has a defect worth seeing, because it fails in the exact direction that hurts.</p>
+<pre><code>| fieldsAdd collector_status = if(minutes_since_last &gt; 15, &quot;STALLED&quot;, else: &quot;OK&quot;)
+</code></pre>
+<p>When the collector has <strong>never</strong> run, <code>last_event</code> is null, so <code>now() - last_event</code> is null, <code>round(null)</code> is null, and <code>null &gt; 15</code> evaluates false — landing on <strong><code>&quot;OK&quot;</code></strong>. The health check reports healthy precisely when there is no data at all. Verified against a live tenant on 08/25/2026: this form returned <code>collector_status: &quot;OK&quot;</code> alongside <code>events: 0</code>.</p>
+<p>Test the record count explicitly:</p>
+<pre><code class="language-dql">// Collector health. Note the explicit events == 0 branch: without it, a
+// collector that has NEVER run reports &quot;OK&quot;, because null &gt; 15 is false.
+// Verified against a live tenant 08/25/2026.
+fetch logs, from:-24h
+| filter log.source == &quot;box.events&quot;
+| summarize {last_event = takeMax(timestamp), events = count()}
+| fieldsAdd minutes_since_last = round((now() - last_event) / 1m, decimals: 1)
+| fieldsAdd collector_status = if(events == 0, &quot;NO DATA — collector never ran or is misconfigured&quot;,
+                               else: if(minutes_since_last &gt; 15, &quot;STALLED&quot;,
+                               else: &quot;OK&quot;))
+</code></pre>
+<h3>13.2 What to alert on</h3>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Severity</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No Box events for <strong>&gt; 15 min</strong></td>
+<td>High</td>
+<td>At a 5-min schedule, three missed runs is a real outage</td>
+</tr>
+<tr>
+<td>No Box events <strong>ever</strong> (<code>events == 0</code>)</td>
+<td>High</td>
+<td>Misconfiguration — usually the outbound allowlist, the admin permission, or the app's scopes</td>
+</tr>
+<tr>
+<td>Duplicate rate rising above ~0</td>
+<td>Medium</td>
+<td>Dedupe broken; you are paying twice</td>
+</tr>
+<tr>
+<td>Daily volume deviating sharply from baseline</td>
+<td>Medium</td>
+<td>Either a Box-side change or a partial collection failure</td>
+</tr>
+<tr>
+<td>Workflow execution failure</td>
+<td>High</td>
+<td>Route via <strong>WFLOW</strong> — it is already built in</td>
+</tr>
+</tbody>
+</table>
+<h3>13.3 Recovering from an outage</h3>
+<table>
+<thead>
+<tr>
+<th>Outage length</th>
+<th>Recovery</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>&lt; 2 weeks</strong></td>
+<td>Reset the cursor to <code>0</code> and re-run. The streaming window still holds the events; dedupe on <code>event_id</code> protects against the overlap. Anything older than 24 h lands with its <strong>ingest time</strong> as <code>timestamp</code> (log ingest drops older timestamps — § 9.1); query recovered events on <code>box.created_at</code></td>
+</tr>
+<tr>
+<td><strong>&gt; 2 weeks</strong></td>
+<td>Streaming cannot help. Backfill with <code>admin_logs</code> and <code>created_after</code> (§ 8.3) — up to one year, chronological and duplicate-free, again with event time carried in <code>box.created_at</code> rather than <code>timestamp</code></td>
+</tr>
+<tr>
+<td><strong>Cursor lost, collector healthy</strong></td>
+<td>Same as above: pick the stream by how far back the gap goes</td>
+</tr>
+</tbody>
+</table>
+<p>Recovery is complete in content, not in time: recovered events keep their real time in <code>box.created_at</code>, so time-bucketed dashboards built on <code>timestamp</code> show the backlog at the moment it was ingested. The existence of a one-year <code>admin_logs</code> backfill path is exactly why § 8's Python collector is worth having even in a Workflow-first design. <strong>Build it before you need it</strong> — writing a backfill tool during an active compliance gap is not when you want to be learning the API.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://developer.box.com/guides/events/enterprise-events/for-enterprise">Get Enterprise Events (Box Dev Docs)</a>, <a href="https://docs.dynatrace.com/docs/shortlink/lma-limits">Log ingestion limits (DT docs)</a>. <strong>Tenant observation (08/25/2026):</strong> § 13.1's null-comparison behaviour was observed directly by executing both query forms against a live tenant. The Box page also states the retention split behind § 13.3: <em>&quot;One year of enterprise events are available when stream_type is set to admin_logs.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<p><a id="availability"></a></p>
+<h2>14. Availability Monitoring</h2>
+<p>Two different questions, two different answers, and they disagree more often than you would expect.</p>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Source</th>
+<th>What it tells you</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Is Box up?</strong></td>
+<td><code>https://status.box.com/api/v2/status.json</code></td>
+<td>Box's own declaration, per component</td>
+</tr>
+<tr>
+<td><strong>Is Box up <em>for us</em>?</strong></td>
+<td>Dynatrace Synthetic HTTP monitor</td>
+<td>Reachability and latency from your locations and networks</td>
+</tr>
+</tbody>
+</table>
+<h3>14.1 The Box status feed</h3>
+<p>Box runs a Statuspage instance with a public JSON API — verified reachable and well-formed on 08/25/2026:</p>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Returns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/v2/status.json</code></td>
+<td>Overall indicator and description</td>
+</tr>
+<tr>
+<td><code>/api/v2/summary.json</code></td>
+<td>Per-component status — Content API, Box Web Application, Login/SSO, Uploads/Downloads, Box Platform / API, and others</td>
+</tr>
+</tbody>
+</table>
+<p><code>summary.json</code> is the more useful of the two: &quot;Box is up&quot; is far less actionable than &quot;the Content API is degraded&quot;, especially when your integration depends on exactly that component.</p>
+<p>Poll it from the same Workflow that collects events — it is one extra <code>fetch</code> and requires no authentication.</p>
+<h3>14.2 Synthetic monitoring — when it adds something</h3>
+<p>A vendor status page reports what the vendor has decided to declare, on the vendor's timeline. A synthetic monitor reports what your users would actually experience. Add synthetics when:</p>
+<ul>
+<li>Box is on a critical business path and you need independent confirmation before opening a vendor ticket.</li>
+<li>You need per-location or per-network detail — a problem in one office is invisible to a global status page.</li>
+<li>You want Box availability in an SLO (§ 15) and need a signal you control the measurement of.</li>
+</ul>
+<p>Point an HTTP monitor at a stable, authenticated-free endpoint and alert on both availability and latency. Do not point synthetics at the Events API — you would be consuming your own rate-limit budget to test a service you are already polling.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://status.box.com">Box status page (Box)</a>. <strong>Observation (08/25/2026):</strong> § 14.1's endpoint list and component names were read directly from the live Statuspage API on that date.</sub></p>
+</blockquote>
+<hr />
+<p><a id="downstream"></a></p>
+<h2>15. Dashboards, Alerting, and SLOs</h2>
+<h3>15.1 Dashboards worth building</h3>
+<table>
+<thead>
+<tr>
+<th>Dashboard</th>
+<th>Audience</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Box security posture</strong></td>
+<td>Security</td>
+<td>Shield alerts by category and risk score; external shares; failed logins; access from new geographies</td>
+</tr>
+<tr>
+<td><strong>Box usage</strong></td>
+<td>IT / business</td>
+<td>Active users, uploads and downloads by volume, most-active folders, storage trend</td>
+</tr>
+<tr>
+<td><strong>Box integration health</strong></td>
+<td>Observability team</td>
+<td>Collector freshness (§ 13), duplicate rate, daily volume vs. budget, ingest failures</td>
+</tr>
+<tr>
+<td><strong>Your apps ↔ Box</strong></td>
+<td>Application teams</td>
+<td>Client-span latency and error rate against <code>box.com</code> (§ 3.1)</td>
+</tr>
+</tbody>
+</table>
+<p>The third one is the one teams forget, and it is the one that protects the other three. A security dashboard fed by a dead collector shows an encouraging absence of alerts.</p>
+<h3>15.2 What deserves an alert</h3>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Alert?</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SHIELD_ALERT</code> above a risk-score threshold</td>
+<td><strong>Yes</strong></td>
+<td>Page security. Route per FAQ-21</td>
+</tr>
+<tr>
+<td>Collector stale or absent</td>
+<td><strong>Yes</strong></td>
+<td>§ 13 — highest-consequence operational alert here</td>
+</tr>
+<tr>
+<td>Failed-login spike</td>
+<td><strong>Yes</strong></td>
+<td>Credential-stuffing signal</td>
+</tr>
+<tr>
+<td>External share of a regulated folder</td>
+<td><strong>Yes</strong>, if you can identify those folders</td>
+<td>Otherwise noise</td>
+</tr>
+<tr>
+<td>Individual downloads</td>
+<td><strong>No</strong></td>
+<td>Volume without signal. Use Shield's anomaly detection</td>
+</tr>
+<tr>
+<td>Box status page degradation</td>
+<td><strong>Maybe</strong></td>
+<td>Informational unless Box is on a critical path</td>
+</tr>
+</tbody>
+</table>
+<h3>15.3 SLOs</h3>
+<p>Box is a vendor service — you cannot control its reliability, so an SLO on Box itself is a reporting instrument, not an engineering target. What genuinely belongs in an SLO is <strong>your integration</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>SLO</th>
+<th>SLI</th>
+<th>Why it is the right target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audit completeness</strong></td>
+<td>% of 5-min windows with at least one successful collection</td>
+<td>Directly measures the compliance guarantee you actually made</td>
+</tr>
+<tr>
+<td><strong>Collection freshness</strong></td>
+<td>% of time the newest event is &lt; 15 min old</td>
+<td>The detection window that keeps § 13 honest</td>
+</tr>
+</tbody>
+</table>
+<p>The first of those is the one an auditor will ask about. See the <strong>SLO</strong> series for construction.</p>
+<hr />
+<p><a id="sequence"></a></p>
+<h2>16. Implementation Sequence and Checklist</h2>
+<h3>16.1 Sequence</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Do</th>
+<th>Gate before moving on</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1. Free signal</strong></td>
+<td>Run the § 3.1 span query</td>
+<td>Know whether you already have Box performance data</td>
+</tr>
+<tr>
+<td><strong>2. Scope</strong></td>
+<td>Decide which signal classes you need and why</td>
+<td>Written answer to &quot;which questions are we buying?&quot;</td>
+</tr>
+<tr>
+<td><strong>3. Box side</strong></td>
+<td>Create the app (CCG) with the <em>Manage enterprise properties</em> scope, authorize it, grant admin + reports permission</td>
+<td>A manual <code>curl</code> against <code>/events</code> returns entries</td>
+</tr>
+<tr>
+<td><strong>4. Dynatrace side</strong></td>
+<td>Credential Vault entry, <code>api.box.com</code> allowlisted, cursor store tested, bucket created</td>
+<td>A test run reaches Box, and a cursor written in one task is read back in the next (§ 7.1)</td>
+</tr>
+<tr>
+<td><strong>5. Collector</strong></td>
+<td>Build per § 7 (or § 8), run at low frequency</td>
+<td>Events arriving in the right bucket (§ 12.3)</td>
+</tr>
+<tr>
+<td><strong>6. Processing</strong></td>
+<td>OpenPipeline: parse, mask, extract metrics, discard raw</td>
+<td>Metrics exist <em>and</em> raw volume has dropped</td>
+</tr>
+<tr>
+<td><strong>7. Operate</strong></td>
+<td>Staleness alert (§ 13), duplicate check, volume check</td>
+<td>Alerts proven by deliberately stopping the collector</td>
+</tr>
+<tr>
+<td><strong>8. Downstream</strong></td>
+<td>Dashboards, Shield routing, SLOs</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Phase 7 is proven by breaking it on purpose.</strong> An untested staleness alert is an assumption, and the cost of that assumption being wrong is a permanent, undetectable audit gap.</p>
+<h3>16.2 Administrator checklist</h3>
+<p><strong>Box side</strong></p>
+<ul>
+<li>[ ] Box app created with <strong>Client Credentials Grant</strong></li>
+<li>[ ] App scope <strong>Manage enterprise properties</strong> checked</li>
+<li>[ ] App authorized in the Box Admin Console (a fresh app is <em>not</em> authorized by default) — and re-authorized after any scope change</li>
+<li>[ ] Service account is enterprise admin/co-admin with <strong>&quot;Run new reports and access existing reports&quot;</strong></li>
+<li>[ ] Confirmed <code>GET /events?stream_type=admin_logs_streaming</code> returns entries with a manual call</li>
+<li>[ ] Shield licensing confirmed (or § 11 knowingly skipped)</li>
+</ul>
+<p><strong>Dynatrace side</strong></p>
+<ul>
+<li>[ ] <code>client_id</code> / <code>client_secret</code> in the <strong>Credential Vault</strong> — not in workflow code — with <strong>AppEngine</strong> scope, <strong>Allow access without app context</strong> on, and the workflow actor granted access</li>
+<li>[ ] <strong><code>api.box.com</code> under Settings &gt; General &gt; External requests</strong> (Workflow path only; add <code>status.box.com</code> too if you poll it)</li>
+<li>[ ] Cursor store verified from a workflow: <code>setAppState</code> in one task, <code>getAppState</code> in the next (§ 7.1)</li>
+<li>[ ] Collector is a <strong>standard</strong> workflow, not simple</li>
+<li>[ ] Dedicated bucket created with agreed retention</li>
+<li>[ ] Platform token with <code>openpipeline:logs:ingest</code> — or, on a classic or hybrid environment, a classic token with <code>logs.ingest</code> (Python path only)</li>
+<li>[ ] OpenPipeline: parse → mask/hash → extract metrics → <strong><code>No storage assignment</code></strong> in the Bucket assignment stage, never <code>Drop record</code> in Processing</li>
+</ul>
+<p><strong>Operations</strong></p>
+<ul>
+<li>[ ] Cursor persisted, <strong>no TTL</strong>, written only after successful ingest</li>
+<li>[ ] Staleness alert live <strong>and tested by stopping the collector</strong></li>
+<li>[ ] Duplicate-rate check scheduled</li>
+<li>[ ] Backfill path (§ 8) built and tested <em>before</em> it is needed — including that events older than 24 h arrive (ingest-time <code>timestamp</code>, real time in <code>box.created_at</code>)</li>
+<li>[ ] Retention and masking signed off by whoever owns the data</li>
+</ul>
+<hr />
+<p><a id="gotchas"></a></p>
+<h2>17. Common Gotchas</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gotcha</th>
+<th>Symptom</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Reaching for webhooks</strong></td>
+<td>Receiver works; the events you need never arrive</td>
+<td>Webhooks are file/folder-scoped and carry no audit events. Poll <code>/events</code> (§ 2.2)</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Host not on the outbound allowlist</strong></td>
+<td>The task fails on the first <code>fetch</code>, or the run is empty if the code catches errors</td>
+<td>Add <code>api.box.com</code> under <strong>Settings &gt; General &gt; External requests</strong></td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Missing the reports permission or the app scope</strong></td>
+<td>API returns no entries, or an authorization error</td>
+<td>Grant &quot;Run new reports and access existing reports&quot; to the service account, <strong>and</strong> check the app's <em>Manage enterprise properties</em> scope (§ 4.1)</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>TTL on the cursor</strong></td>
+<td>Collector silently resets weeks later</td>
+<td><code>stateClient</code> TTL caps at 90 days. Omit <code>validUntilTime</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Cursor written before ingest</strong></td>
+<td>Events vanish on a failed ingest</td>
+<td>Write the cursor only after ingest succeeds (§ 7.3)</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Not deduplicating</strong></td>
+<td>Inflated counts and ingest cost</td>
+<td><code>admin_logs_streaming</code> repeats events. Dedupe on <code>event_id</code> (§ 12.2)</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Assuming a URL field is populated</strong></td>
+<td>Zero rows, reads as &quot;no Box traffic&quot;</td>
+<td><code>url.full</code> (<code>stable</code>) and <code>http.url</code> (not in the dictionary) can each be empty on a tenant. Key on <code>server.address</code>; check <code>countIf(isNotNull(…))</code> before relying on a URL field (§ 3.1)</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>Staleness check returns &quot;OK&quot; with no data</strong></td>
+<td>Dead collector reports healthy</td>
+<td><code>null &gt; 15</code> is false. Test <code>events == 0</code> explicitly (§ 13.1)</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong><code>Drop record</code> in the Processing stage</strong></td>
+<td>Raw discarded <em>and</em> metrics never built</td>
+<td>Use <code>No storage assignment</code> in the Bucket assignment stage (§ 9.2)</td>
+</tr>
+<tr>
+<td>10</td>
+<td><strong><code>box-sdk-gen</code> instead of <code>boxsdk</code> — or <code>from boxsdk import …</code></strong></td>
+<td>Building on a deprecated SDK, or <code>ModuleNotFoundError</code> on v10</td>
+<td>Install <code>boxsdk</code> v10+, import from <code>box_sdk_gen</code> (§ 8.1)</td>
+</tr>
+<tr>
+<td>11</td>
+<td><strong>Simple workflow</strong></td>
+<td>No <strong>Run JavaScript</strong> action is available</td>
+<td>Use a standard workflow (§ 7.1)</td>
+</tr>
+<tr>
+<td>12</td>
+<td><strong>Backfill sharing the live cursor</strong></td>
+<td>Live collector jumps backwards or forwards</td>
+<td>Separate cursor per stream type (§ 8.3)</td>
+</tr>
+<tr>
+<td>13</td>
+<td><strong>Renaming fields after extraction</strong></td>
+<td>Metrics carry stale dimension names</td>
+<td>Normalize in Processing, then extract (§ 10)</td>
+</tr>
+<tr>
+<td>14</td>
+<td><strong>413 on ingest</strong></td>
+<td>Batch inside 10 MB still rejected</td>
+<td>Payload expands during processing; ceiling is 16 MB. Halve the batch (§ 9.1)</td>
+</tr>
+<tr>
+<td>15</td>
+<td><strong><code>interval:1d</code></strong></td>
+<td>Calendar-duration warning</td>
+<td>Use <code>interval:24h</code> (§ 12.4)</td>
+</tr>
+<tr>
+<td>16</td>
+<td><strong>Backfill stamped with event time</strong></td>
+<td>Replay &quot;succeeds&quot;; events older than 24 h are silently dropped (Python sees a <strong>200</strong>, not an error)</td>
+<td>Omit <code>timestamp</code> for old events; carry <code>box.created_at</code> (§ 9.1)</td>
+</tr>
+<tr>
+<td>17</td>
+<td><strong>Testing <code>e.status</code> on a client-state error</strong></td>
+<td>First Workflow run always throws</td>
+<td>Use <code>isNotFound(e)</code> from <code>@dynatrace-sdk/client-state</code> (§ 7.3)</td>
+</tr>
+<tr>
+<td>18</td>
+<td><strong>Credential missing &quot;Allow access without app context&quot;</strong></td>
+<td>The first run fails reading the credential</td>
+<td>Workflow tasks have no app context — turn the setting on and grant the workflow actor access (§ 7.1)</td>
+</tr>
+<tr>
+<td>19</td>
+<td><strong>Shield alerts routed on <code>created_by.login</code></strong></td>
+<td>Every alert has an empty user</td>
+<td>Use <code>additional_details.shield_alert.user</code> (§ 11.2)</td>
+</tr>
+</tbody>
+</table>
+<p>Gotchas 1, 7, and 8 share a shape worth naming: <strong>each produces a confident, plausible, wrong answer rather than an error.</strong> A webhook that delivers nothing, a span query that returns zero, and a health check that says OK all look like success. Every one of them was reproduced during the research for this entry.</p>
+<hr />
+<p><a id="recommended-approach"></a></p>
+<h2>18. Recommended Approach</h2>
+<p><strong>Query your own spans first.</strong> If your services call Box, that data exists now and costs nothing (§ 3.1). It may answer the question that prompted the project.</p>
+<p><strong>Then build one collector, in a Workflow.</strong> At 1M events/day a Workflow clears the 120-second ceiling with roughly 90% headroom, keeps secrets in the Credential Vault, and inherits scheduling and failure alerting. Poll <code>admin_logs_streaming</code> every 5 minutes, dedupe on <code>event_id</code>, persist the cursor with <code>stateClient</code> and no TTL — after confirming in a test workflow that app state is reachable from a Run JavaScript task (§ 7.1) — and write that cursor only after a successful ingest.</p>
+<p><strong>Write the Python backfill before you need it.</strong> It is the only recovery path for an outage longer than two weeks, and the worst time to write it is during one. It recovers the events, not their place on the timeline: log ingest drops timestamps older than 24 h, so recovered events carry their real time in <code>box.created_at</code>.</p>
+<p><strong>Decide retention before switching on.</strong> At ~45 GB/month, extract-then-discard is not an optimization — it is the difference between a proportionate cost and an unpleasant surprise. Keep Shield alerts and regulated-folder activity; discard the <code>PREVIEW</code> and <code>DOWNLOAD</code> bulk once a counter has captured it.</p>
+<p><strong>Alert on the collector, and prove the alert works by stopping it.</strong> Everything else in this entry protects data you have. This is the only control that protects data you have not collected yet — and Box's two-week streaming window means an unnoticed outage becomes permanent.</p>
+<p><strong>What &quot;done&quot; looks like:</strong> Shield alerts routed to security with a working console link; a security dashboard whose freshness you can vouch for; audit records in a bucket with retention and access someone signed; and a staleness alert that has been tested by breaking it on purpose.</p>
+<hr />
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

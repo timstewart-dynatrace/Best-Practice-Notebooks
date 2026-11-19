@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NR2DT-09: Step 9 — Cutover, Rollback &amp; Decommission</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">NR2DT — New Relic to Dynatrace Migration Steps</a><span class="sep">/</span><span aria-current="page">NR2DT-09</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>NR2DT-09: Step 9 — Cutover, Rollback &amp; Decommission</h1>
+<blockquote>
+<p><strong>Series:</strong> NR2DT — New Relic to Dynatrace Migration Steps | <strong>Notebook:</strong> 9 of 10 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 11/03/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Goal of this step:</strong> complete the cutover from NR to DT. Halt NR ingest, archive NR artifacts, and confirm DT is the sole source of truth. Rollback plan stays valid for 30+ days.</p>
+<p>Procedural — see <strong>NRLC-08</strong> (rollback manifest mechanics) and <strong>NRLC-09</strong> (toolchain reference) for depth.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#cutover">Cutover Sequence</a></li>
+<li><a href="#rollback">Rollback Plan</a></li>
+<li><a href="#decommission">Decommission NR</a></li>
+<li><a href="#gate">Step Exit Criteria</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Migration lead + assigned engineer for this step</td>
+</tr>
+<tr>
+<td><strong>Completed</strong></td>
+<td>NR2DT-08 — Validate</td>
+</tr>
+<tr>
+<td><strong>Format</strong></td>
+<td>Procedural step — use as a runbook; defer to NRLC for depth</td>
+</tr>
+<tr>
+<td><strong>NRLC deep dives</strong></td>
+<td>NRLC-08 (rollback), NRLC-09 (toolchain)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="cutover"></a></p>
+<h2>1. Cutover Sequence</h2>
+<p>Cutover is per-component, sequenced.</p>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Component</th>
+<th>Cutover Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Dashboards</td>
+<td>Disable NR dashboard sharing; communicate DT URLs to consumers</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Synthetics</td>
+<td>Disable NR synthetic monitors (one type at a time)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Alerts</td>
+<td>Disable the conditions of the remaining NR alert policies (last: critical incident routes)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>SLOs</td>
+<td>Disable NR SLO reports; switch SLA dashboard data source to DT</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Logs</td>
+<td>Stop dual-shipping; NR log ingest disabled per source</td>
+</tr>
+</tbody>
+</table>
+<p>New Relic has no on/off switch for a policy itself: <em>&quot;You can't disable a policy directly. However, you can disable all of the policy's conditions.&quot;</em></p>
+<p><strong>Halt criteria:</strong> if any cutover step surfaces a regression, <strong>stop and roll back that component</strong>. Don't proceed to the next.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.newrelic.com/docs/alerts/organize-alerts/create-edit-or-find-alert-policy/">Create, edit, or find an alert policy (New Relic docs)</a>, read 10/05/2026.</sub></p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5DdXRvdmVyLCBSb2xsYmFjayAmYW1wOyBEZWNvbW1pc3Npb24gU2VxdWVuY2U8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+UGVyLWNvbXBvbmVudCBjdXRvdmVyIMK3IHJvbGxiYWNrIHJldGFpbmVkIDMwKyBkYXlzIMK3IE5SIGhhbHRlZCBsYXN0PC90ZXh0PgoKICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImNyLWFyciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM3M0JFMjgiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBMRUZUOiBDdXRvdmVyIHNlcXVlbmNlICh0b3AgdG8gYm90dG9tKSAtLT4KICA8dGV4dCB4PSIyMjAiIHk9Ijk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNzNCRTI4IiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5DdXRvdmVyIFNlcXVlbmNlIChwZXIgY29tcG9uZW50KTwvdGV4dD4KCiAgPGcgZm9udC1zaXplPSIxMCI+CiAgICA8cmVjdCB4PSI2MCIgeT0iMTEwIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjM4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI0Ii8+CiAgICA8dGV4dCB4PSI4MCIgeT0iMTMzIiBmaWxsPSIjQkZEQkZFIiBmb250LXdlaWdodD0iNjAwIj4xLiBEYXNoYm9hcmRzPC90ZXh0PgogICAgPHRleHQgeD0iMjIwIiB5PSIxMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiPmRpc2FibGUgTlIgc2hhcmluZyDCtyBjb21tdW5pY2F0ZSBEVCBVUkxzPC90ZXh0PgoKICAgIDxyZWN0IHg9IjYwIiB5PSIxNTUiIHdpZHRoPSIzMjAiIGhlaWdodD0iMzgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgcng9IjQiLz4KICAgIDx0ZXh0IHg9IjgwIiB5PSIxNzgiIGZpbGw9IiNBNUYzRkMiIGZvbnQtd2VpZ2h0PSI2MDAiPjIuIFN5bnRoZXRpY3M8L3RleHQ+CiAgICA8dGV4dCB4PSIyMjAiIHk9IjE3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCI+ZGlzYWJsZSBOUiBtb25pdG9ycyAob25lIHR5cGUgYXQgYSB0aW1lKTwvdGV4dD4KCiAgICA8cmVjdCB4PSI2MCIgeT0iMjAwIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjM4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMiIgcng9IjQiLz4KICAgIDx0ZXh0IHg9IjgwIiB5PSIyMjMiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtd2VpZ2h0PSI2MDAiPjMuIEFsZXJ0czwvdGV4dD4KICAgIDx0ZXh0IHg9IjIyMCIgeT0iMjIzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkVDQUNBIj5zaWxlbmNlIE5SIChjcml0aWNhbCByb3V0ZXMgTEFTVCk8L3RleHQ+CgogICAgPHJlY3QgeD0iNjAiIHk9IjI0NSIgd2lkdGg9IjMyMCIgaGVpZ2h0PSIzOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiByeD0iNCIvPgogICAgPHRleHQgeD0iODAiIHk9IjI2OCIgZmlsbD0iI0RERDZGRSIgZm9udC13ZWlnaHQ9IjYwMCI+NC4gU0xPczwvdGV4dD4KICAgIDx0ZXh0IHg9IjIyMCIgeT0iMjY4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4Ij5zd2l0Y2ggU0xBIGRhc2hib2FyZCBkYXRhIHNvdXJjZTwvdGV4dD4KCiAgICA8cmVjdCB4PSI2MCIgeT0iMjkwIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjM4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHJ4PSI0Ii8+CiAgICA8dGV4dCB4PSI4MCIgeT0iMzEzIiBmaWxsPSIjRkVGM0M3IiBmb250LXdlaWdodD0iNjAwIj41LiBMb2dzPC90ZXh0PgogICAgPHRleHQgeD0iMjIwIiB5PSIzMTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiPnN0b3AgZHVhbC1zaGlwcGluZzsgaGFsdCBOUiBpbmdlc3QgcGVyIHNvdXJjZTwvdGV4dD4KICA8L2c+CgogIDwhLS0gVmVydGljYWwgYXJyb3cgLS0+CiAgPGcgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiPgogICAgPGxpbmUgeDE9IjIyMCIgeTE9IjE0OCIgeDI9IjIyMCIgeTI9IjE1NSIgbWFya2VyLWVuZD0idXJsKCNjci1hcnIpIi8+CiAgICA8bGluZSB4MT0iMjIwIiB5MT0iMTkzIiB4Mj0iMjIwIiB5Mj0iMjAwIiBtYXJrZXItZW5kPSJ1cmwoI2NyLWFycikiLz4KICAgIDxsaW5lIHgxPSIyMjAiIHkxPSIyMzgiIHgyPSIyMjAiIHkyPSIyNDUiIG1hcmtlci1lbmQ9InVybCgjY3ItYXJyKSIvPgogICAgPGxpbmUgeDE9IjIyMCIgeTE9IjI4MyIgeDI9IjIyMCIgeTI9IjI5MCIgbWFya2VyLWVuZD0idXJsKCNjci1hcnIpIi8+CiAgPC9nPgoKICA8IS0tIEhhbHQgY3JpdGVyaWEgY2FsbG91dCAtLT4KICA8cmVjdCB4PSI2MCIgeT0iMzUwIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMEYxNzJBIiBzdHJva2U9IiNGQ0QzNEQiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iMjIwIiB5PSIzNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkhhbHQgY3JpdGVyaWEgKGFwcGx5IGF0IGV2ZXJ5IHN0ZXApPC90ZXh0PgogIDx0ZXh0IHg9IjIyMCIgeT0iMzg5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkVGM0M3IiBmb250LXNpemU9IjEwIj5JZiBhIHN0ZXAgc3VyZmFjZXMgYSByZWdyZXNzaW9uOjwvdGV4dD4KICA8dGV4dCB4PSIyMjAiIHk9IjQwNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMCI+U1RPUCBhbmQgcm9sbCBiYWNrIFRIQVQgY29tcG9uZW50PC90ZXh0PgogIDx0ZXh0IHg9IjIyMCIgeT0iNDIzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEwIj5EbyBOT1QgcHJvY2VlZCB0byB0aGUgbmV4dDwvdGV4dD4KCiAgPCEtLSBSSUdIVDogUm9sbGJhY2sgcGFuZWwgLS0+CiAgPHRleHQgeD0iNzAwIiB5PSI5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RFMzUwQiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+Um9sbGJhY2sgKG1hbmlmZXN0LWRyaXZlbik8L3RleHQ+CgogIDxyZWN0IHg9IjU0MCIgeT0iMTEwIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjExNSIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjREUzNTBCIiByeD0iNiIvPgogIDx0ZXh0IHg9IjU2MCIgeT0iMTM1IiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5taWdyYXRlLnB5IG1pZ3JhdGUgLS1yb2xsYmFjayAmbHQ7bWFuaWZlc3QmZ3Q7PC90ZXh0PgogIDx0ZXh0IHg9IjU2MCIgeT0iMTU1IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5EZWxldGVzIEVWRVJZIGVudHJ5IGluIHRoZSBtYW5pZmVzdCAobm8gZmlsdGVyKTwvdGV4dD4KICA8dGV4dCB4PSI1NjAiIHk9IjE3MiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+UnVuIHdpdGggLS1kcnktcnVuIGZpcnN0OiBsaXN0cyB0YXJnZXRzIG9ubHk8L3RleHQ+CiAgPHRleHQgeD0iNTYwIiB5PSIxOTUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlBhcnRpYWwgcm9sbGJhY2sgPSBmaWx0ZXJlZCBtYW5pZmVzdCBjb3B5PC90ZXh0PgogIDx0ZXh0IHg9IjU2MCIgeT0iMjEyIiBmaWxsPSIjRkJCRjI0IiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPk1hbmlmZXN0cyByZXRhaW5lZCDiiaUgMzAgZGF5cyBwb3N0LWN1dG92ZXI8L3RleHQ+CgogIDwhLS0gV2hhdCByb2xsYmFjayBkb2VzIE5PVCBkbyAtLT4KICA8cmVjdCB4PSI1NDAiIHk9IjI0MCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSIxMTUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZDRDM0RCIgc3Ryb2tlLWRhc2hhcnJheT0iMywyIiByeD0iNCIvPgogIDx0ZXh0IHg9IjcwMCIgeT0iMjYxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5Sb2xsYmFjayBkb2VzIE5PVCB1bmRvOjwvdGV4dD4KICA8dGV4dCB4PSI1NTUiIHk9IjI4MiIgZmlsbD0iI0ZFRjNDNyIgZm9udC1zaXplPSIxMCI+4pyXIERhdGEgYWxyZWFkeSBpbmdlc3RlZCBpbnRvIEdyYWlsIChjb25maWctb25seSk8L3RleHQ+CiAgPHRleHQgeD0iNTU1IiB5PSIzMDAiIGZpbGw9IiNGRUYzQzciIGZvbnQtc2l6ZT0iMTAiPuKclyBOUi1zaWRlIGNoYW5nZXMgKE5SIHN0YXlzIGRpc2FibGVkKTwvdGV4dD4KICA8dGV4dCB4PSI1NTUiIHk9IjMxOCIgZmlsbD0iI0ZFRjNDNyIgZm9udC1zaXplPSIxMCI+4pyXIE1hbnVhbCBlZGl0cyB0byBtaWdyYXRlZCBlbnRpdGllczwvdGV4dD4KICA8dGV4dCB4PSI1NTUiIHk9IjMzNiIgZmlsbD0iI0ZFRjNDNyIgZm9udC1zaXplPSIxMCI+ICAob25seSBkZWxldGVzIHdoYXQgdGhlIG1hbmlmZXN0IHJlY29yZHMpPC90ZXh0PgogIDx0ZXh0IHg9IjU1NSIgeT0iMzUwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPkZvciBhIGZyZXNoIHJlYnVpbGQgYWZ0ZXIgcm9sbGJhY2s6IHJlc3RhcnQgYXQgU3RlcCA0PC90ZXh0PgoKICA8IS0tIERlY29tbWlzc2lvbiB0ZXJtaW51cyAtLT4KICA8cmVjdCB4PSI1NDAiIHk9IjM3NSIgd2lkdGg9IjMyMCIgaGVpZ2h0PSI1NSIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xNSIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNCIvPgogIDx0ZXh0IHg9IjcwMCIgeT0iMzk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5TOSDigJQgTWlncmF0aW9uIENvbXBsZXRlPC90ZXh0PgogIDx0ZXh0IHg9IjcwMCIgeT0iNDEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRDlGOTlEIiBmb250LXNpemU9IjEwIj5BbGwgc3Rha2Vob2xkZXJzIHNpZ24gb2ZmIMK3IE5SIGNvbnRyYWN0IGFjdGlvbjwvdGV4dD4KCiAgPHRleHQgeD0iNDY1IiB5PSI0NzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkN1dG92ZXIgaXMgcmV2ZXJzaWJsZSBwZXIgY29tcG9uZW50IHVudGlsIE5SIGluZ2VzdCBpcyBoYWx0ZWQ7IHRoYXQncyB0aGUgb25lLXdheSBzdGVwLjwvdGV4dD4KPC9zdmc+Cg==" alt="Cutover, Rollback &amp; Decommission Sequence" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Cutover Action |
+|------|----------------|
+| 1 | Dashboards — disable NR sharing |
+| 2 | Synthetics — disable NR monitors |
+| 3 | Alerts — disable NR policy conditions (critical routes LAST) |
+| 4 | SLOs — switch SLA dashboard data source |
+| 5 | Logs — halt NR ingest per source |
+
+Rollback: `migrate.py migrate --rollback <manifest>` deletes every entry in the manifest — run with `--dry-run` first; partial rollback = a filtered copy of the manifest.
+
+Rollback manifests retained ≥ 30 days post-cutover.
+For environments where SVG doesn't render
+-->
+<p><a id="rollback"></a></p>
+<h2>2. Rollback Plan</h2>
+<p>Every <code>migrate</code> run except <code>--import-only</code> writes <code>rollback-manifest.json</code> into its <code>--output</code> directory: a full run lists the entities it created, and a <code>--dry-run</code> preview writes it with no entries, replacing any manifest already there. <code>--import-only</code> runs write no manifest. Retain each manifest for <strong>at least 30 days</strong> post-cutover.</p>
+<h3>Rollback command</h3>
+<pre><code class="language-bash"># Always preview first: lists the targets, deletes nothing
+python3 migrate.py migrate --rollback ./run-dashboards/rollback-manifest.json --dry-run
+
+# Execute (asks for confirmation)
+python3 migrate.py migrate --rollback ./run-dashboards/rollback-manifest.json
+</code></pre>
+<p>The rollback:</p>
+<ol>
+<li>Reads the manifest of created entities</li>
+<li>Lists the targets and asks for confirmation</li>
+<li>Calls DELETE on each via the DT API</li>
+<li>Prints each failure and an <code>ok</code> / <code>failed</code> total</li>
+</ol>
+<p><strong><code>--rollback</code> deletes every entry in the manifest.</strong> There is no per-component filter: <code>--components</code> is ignored on this path, so <code>--rollback &lt;manifest&gt; --components dashboards</code> also deletes every alert, SLO and workflow that run created. For a <strong>partial rollback</strong>, write a filtered copy of the manifest (<code>{&quot;entries&quot;: [...]}</code>) that keeps only the entries whose <code>entity_type</code> you want removed, dry-run it, then roll back from the copy:</p>
+<pre><code class="language-bash">jq '{entries: [.entries[] | select(.entity_type == &quot;anomaly_detector&quot;)]}' \
+  ./run-alerts/rollback-manifest.json &gt; rollback-detectors-only.json
+python3 migrate.py migrate --rollback rollback-detectors-only.json --dry-run
+</code></pre>
+<p><strong>What rollback DOES NOT undo:</strong></p>
+<ul>
+<li>Data already ingested into Grail (configuration-only rollback)</li>
+<li>NR-side changes (NR dashboards stay disabled even after rollback)</li>
+<li>Manual edits to migrated entities (only deletes what the manifest records)</li>
+<li>Anything created by an <code>--import-only</code> run, or by hand (no manifest entry)</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py">migrate.py @ 78cbfce (tool repo, GitHub)</a>, <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migration/state.py">migration/state.py @ 78cbfce (tool repo, GitHub)</a>, read 10/05/2026.</sub></p>
+</blockquote>
+<p>If you need a full rebuild after rollback, treat it as a fresh migration starting from Step 4 (translation is still valid).</p>
+<p><a id="decommission"></a></p>
+<h2>3. Decommission NR</h2>
+<p>Final-stage cleanup. Sequenced for safety.</p>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Action</th>
+<th>Reversible?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Disable NR alert routing (Workflows / channels)</td>
+<td>Yes — re-enable in NR UI</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Set NR dashboards to private / read-only</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Halt NR ingest per source (uninstall / reconfigure agents)</td>
+<td>Yes (reinstall)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Export NR account snapshot for archive</td>
+<td>One-way</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Cancel NR contract / reduce seat count</td>
+<td>Per contract terms</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Decommission gate W7</strong> (NR2DT-02 §4)<strong>:</strong> all stakeholders sign off that DT is operational and NR is no longer needed.</p>
+<p><a id="gate"></a></p>
+<h2>4. Step Exit Criteria</h2>
+<p><strong>S9 — Migration Complete</strong></p>
+<ul>
+<li>[ ] All components cut over to DT</li>
+<li>[ ] Rollback manifests retained per retention policy (≥ 30 days)</li>
+<li>[ ] NR alert routing disabled</li>
+<li>[ ] NR dashboards archived / set to read-only</li>
+<li>[ ] NR ingest halted at all sources</li>
+<li>[ ] NR account snapshot exported and stored</li>
+<li>[ ] All stakeholders signed off on completion</li>
+</ul>
+<p><strong>Next step:</strong> <strong>NR2DT-99 — Best Practice Summary</strong> (post-mortem and ongoing best practices).</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources, including the open-source <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities">NewRelic-to-Dynatrace-Migration-Utilities</a>, <a href="https://github.com/timstewart-dynatrace/nrql-engine">nrql-engine</a>, and <a href="https://github.com/timstewart-dynatrace/nrql-translator">nrql-translator</a> projects. This notebook series is not officially supported by Dynatrace or New Relic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://docs.newrelic.com">New Relic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

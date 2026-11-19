@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>APPSEC-07: Investigations and Dynatrace Assist for Security</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">APPSEC — Application Security</a><span class="sep">/</span><span aria-current="page">APPSEC-07</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>APPSEC-07: Investigations and Dynatrace Assist for Security</h1>
+<blockquote>
+<p><strong>Series:</strong> APPSEC — Application Security | <strong>Notebook:</strong> 7 of 10 | <strong>Created:</strong> June 2026 | <strong>Last Updated:</strong> 10/02/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>When a vulnerability opens or RAP reports an attack, an analyst's job is to follow the chain: which entities are affected, what else changed in the topology around that time, what's the most likely remediation? Dynatrace gives you two complementary surfaces for this work — the <strong>Investigations</strong> app (evidence-driven investigation over Grail data — queries, evidence, history, IP enrichment; earlier revisions of this series called it <em>Security Investigator</em>) and <strong>Dynatrace Assist</strong>, Dynatrace Intelligence's generative AI (natural language to DQL; formerly <em>Davis CoPilot</em>).</p>
+<p>This notebook covers when to reach for each, and the integration points back to the rest of the AppSec series.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5JbnZlc3RpZ2F0aW9ucyArIER5bmF0cmFjZSBBc3Npc3QgZm9yIFNlY3VyaXR5PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPkV2aWRlbmNlLWRyaXZlbiBxdWVyaWVzIG92ZXIgc2VjdXJpdHkgZXZlbnRzPC90ZXh0PgogIDxyZWN0IHg9IjQwIiB5PSI5NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiM4QjVDRjYiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzhCNUNGNiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIxMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPlZ1bG5lcmFiaWxpdHkgb3IgYXR0YWNrPC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSIxNjUiIHdpZHRoPSIyNDAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzhCNUNGNiIgcng9IjYiLz4KICA8dGV4dCB4PSIxODAiIHk9IjIxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+c3RhcnRpbmcgcG9pbnQ8L3RleHQ+CiAgPHJlY3QgeD0iMzM1IiB5PSI5NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiM4QjVDRjYiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzhCNUNGNiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDc1IiB5PSIxMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkludmVzdGlnYXRpb25zIGFwcDwvdGV4dD4KICA8cmVjdCB4PSIzNTUiIHk9IjE2NSIgd2lkdGg9IjI0MCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjOEI1Q0Y2IiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ3NSIgeT0iMjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExIj5xdWVyaWVzIC8gZXZpZGVuY2UgLyBJUCBlbnJpY2htZW50PC90ZXh0PgogIDxyZWN0IHg9IjYzMCIgeT0iOTUiIHdpZHRoPSIyODAiIGhlaWdodD0iMTcwIiBmaWxsPSIjOEI1Q0Y2IiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiM4QjVDRjYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9Ijc3MCIgeT0iMTM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5EeW5hdHJhY2UgQXNzaXN0IFEmYW1wO0E8L3RleHQ+CiAgPHJlY3QgeD0iNjUwIiB5PSIxNjUiIHdpZHRoPSIyNDAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzhCNUNGNiIgcng9IjYiLz4KICA8dGV4dCB4PSI3NzAiIHk9IjIxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+bmF0dXJhbC1sYW5ndWFnZSBmb2xsb3ctdXBzPC90ZXh0PgogIDxyZWN0IHg9IjQwIiB5PSIyNzUiIHdpZHRoPSIyODAiIGhlaWdodD0iMTcwIiBmaWxsPSIjOEI1Q0Y2IiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiM4QjVDRjYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjE4MCIgeT0iMzE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5EUUwgZ2VuZXJhdGVkIG9uIGRlbWFuZDwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMzQ1IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM4QjVDRjYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIzOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPm9wZW4gaW4gbm90ZWJvb2s8L3RleHQ+CiAgPHJlY3QgeD0iMzM1IiB5PSIyNzUiIHdpZHRoPSIyODAiIGhlaWdodD0iMTcwIiBmaWxsPSIjOEI1Q0Y2IiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiM4QjVDRjYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjQ3NSIgeT0iMzE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5GaW5kaW5ncyBleHBvcnRlZDwvdGV4dD4KICA8cmVjdCB4PSIzNTUiIHk9IjM0NSIgd2lkdGg9IjI0MCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjOEI1Q0Y2IiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ3NSIgeT0iMzkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExIj50byBkYXNoYm9hcmQgLyB3b3JrZmxvdzwvdGV4dD4KICA8cmVjdCB4PSI2MzAiIHk9IjI3NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiM4QjVDRjYiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzhCNUNGNiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNzcwIiB5PSIzMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkludmVzdGlnYXRpb24gbG9nPC90ZXh0PgogIDxyZWN0IHg9IjY1MCIgeT0iMzQ1IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM4QjVDRjYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzcwIiB5PSIzOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPmF1ZGl0LWdyYWRlIHRpbWVsaW5lPC90ZXh0Pgo8L3N2Zz4K" alt="Investigator + CoPilot workflow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Surface | Best for |
+|---------|----------|
+| Investigations app | Query, enrich and keep evidence over Grail data |
+| Dynatrace Assist | Natural-language Q to DQL |
+| Notebook | Durable investigation record |
+-->
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#investigator">1. Investigations Workflow</a></li>
+<li><a href="#copilot">2. Dynatrace Assist for Security Questions</a></li>
+<li><a href="#dql-export">3. DQL Generated On Demand</a></li>
+<li><a href="#audit">4. Investigation Log as Audit Artifact</a></li>
+<li><a href="#next">5. Next Steps</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Gen3 SaaS with Grail; AppSec entitlement enabled</td>
+</tr>
+<tr>
+<td><strong>OneAgent</strong></td>
+<td>Full-Stack mode (or code-module attached) on monitored hosts</td>
+</tr>
+<tr>
+<td><strong>Read access</strong></td>
+<td>To run the DQL: <code>storage:security.events:read</code> <strong>plus</strong> <code>storage:buckets:read</code> (a table permission alone reads nothing). The Vulnerabilities and Threats &amp; Exploits apps have their own requirements — see APPSEC-09 for the full model</td>
+</tr>
+<tr>
+<td><strong>Background</strong></td>
+<td>APPSEC-01 (fundamentals + three-pillar framing)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="investigator"></a></p>
+<h2>1. Investigations Workflow</h2>
+<p>Investigations starts from a query over Grail data — for a security case, <code>security.events</code> filtered to the vulnerability or the RAP detection in front of you — and keeps the path you take. The documented capabilities that matter for security work:</p>
+<ul>
+<li><strong>Combine queries</strong> and refine them without losing the earlier steps; the investigation history lets you go back.</li>
+<li><strong>Attach findings as evidence</strong>, keeping the context they came from.</li>
+<li><strong>IP enrichment</strong> — reputation context on attacker IP addresses from third-party threat intelligence.</li>
+<li><strong>Lookup tables</strong> to enrich events with your own context (asset owner, business unit).</li>
+<li><strong>Collaborate</strong> on an investigation with controlled access, and hand off to compatible apps for further detail.</li>
+</ul>
+<p>A flat list of events is a triage queue; a query path with evidence is an investigation.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/secure/investigations">Investigations (DT docs)</a> — <em>&quot;Define and execute queries while combining functionalities.&quot;</em>, <em>&quot;Attach relevant findings as evidence, while preserving the investigation context.&quot;</em>, <em>&quot;Add reputation context to IP addresses with IP enrichment powered by third-party threat intelligence.&quot;</em> and <em>&quot;Create and use lookup tables to enrich investigations with contextual data.&quot;</em> (re-read 10/02/2026).</sub></p>
+</blockquote>
+<p><a id="copilot"></a></p>
+<h2>2. Dynatrace Assist for Security Questions</h2>
+<p>Dynatrace Assist accepts natural-language questions and translates them into DQL, which it can also run. Examples:</p>
+<ul>
+<li>&quot;Which services were attacked the most in the last 24 hours?&quot; → DQL over <code>security.events</code> filtered to <code>DETECTION_FINDING</code> from <code>Runtime Application Protection</code> (APPSEC-04 § 4)</li>
+<li>&quot;Show me the vulnerabilities opened on payments services this week&quot; → DQL over vulnerability status-change events</li>
+<li>&quot;Are any of these vulnerabilities exposed to the public internet?&quot; → DQL on <code>vulnerability.davis_assessment.exposure_status</code> (§ 3)</li>
+</ul>
+<p>Assist is most useful when you can verbalize the question but the DQL is non-obvious — exactly the situation a security analyst hits often. Treat the generated DQL as a starting point; review and refine before pinning to a dashboard.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai">Agentic and generative AI (DT docs)</a> — <em>&quot;Dynatrace Intelligence agentic and generative AI takes your prompt and translates it to DQL, and is capable of auto-executing generated DQL queries.&quot;</em> (re-read 10/02/2026). <strong>Softened:</strong> the example prompts are illustrative — verify the generated DQL in your tenant. The AIOPS series covers Dynatrace Assist in depth.</sub></p>
+</blockquote>
+<p><a id="dql-export"></a></p>
+<h2>3. DQL Generated On Demand</h2>
+<p>When Assist generates a query you want to keep, the path is: open it in a notebook (this surface), refine, then pin to a dashboard. The pattern below is the kind of query a well-formed prompt should produce — compare generated DQL against it, because generated queries often skip the dedup step and count every periodic snapshot: <em>&quot;Show me the open vulnerabilities grouped by severity and internet exposure.&quot;</em></p>
+<pre><code class="language-dql">// Current open vulnerabilities by risk level and internet exposure (latest snapshot per vulnerability)
+fetch security.events, from:-7d
+| filter event.provider == &quot;Dynatrace&quot;
+| filter event.category == &quot;VULNERABILITY_MANAGEMENT&quot;
+| filter event.type == &quot;VULNERABILITY_STATE_REPORT_EVENT&quot;
+| filter event.level == &quot;VULNERABILITY&quot;
+| dedup {vulnerability.display_id}, sort:{timestamp desc}
+| filter vulnerability.resolution.status == &quot;OPEN&quot;
+| filter vulnerability.mute.status == &quot;NOT_MUTED&quot;
+| summarize open = count(), by:{vulnerability.risk.level, vulnerability.davis_assessment.exposure_status}
+| sort open desc
+
+</code></pre>
+<blockquote>
+<p><strong>Validation note:</strong> validated for syntax and field names on 09/18/2026 and executes cleanly; the validation tenant has no RVA data, so it returned 0 rows there.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/vulnerability">Vulnerability events (DT semantic dictionary)</a> — <code>vulnerability.davis_assessment.exposure_status</code> examples <code>NOT_AVAILABLE ; NOT_DETECTED ; PUBLIC_NETWORK ; ADJACENT_NETWORK</code>, and <em>&quot;a deduplicated latest snapshot per vulnerability reflects present exposure&quot;</em> (re-read 09/18/2026). <strong>Dictionary:</strong> <code>vulnerability.davis_assessment.exposure_status</code> (<code>stable</code>), <code>vulnerability.risk.level</code> (<code>stable</code>), <code>vulnerability.resolution.status</code> (<code>stable</code>), <code>vulnerability.mute.status</code> (<code>stable</code>), read 09/18/2026; no row for <code>vulnerability.public_exposure</code> under <code>filter startsWith(name, &quot;vulnerability.public&quot;)</code>, read 09/18/2026 (control: <code>filter startsWith(name, &quot;vulnerability&quot;)</code> → 70 rows).</sub></p>
+</blockquote>
+<p><a id="audit"></a></p>
+<h2>4. Investigation Log as Audit Artifact</h2>
+<p>In community practice in regulated environments, the investigation itself is treated as an audit artifact, with two habits:</p>
+<ol>
+<li><strong>Open each investigation in a notebook</strong>, not just the Investigations app. The notebook captures the queries, the reasoning, and the conclusion as a durable record.</li>
+<li><strong>Attach the notebook to the ticketing system</strong> (Jira/ServiceNow link) so the security-problem record links to the investigation record. APPSEC-08 covers the workflow patterns.</li>
+</ol>
+<p>This is more discipline than tooling. Both surfaces support it; the question is whether the team commits to using them this way.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/secure/investigations">Investigations (DT docs)</a> — <em>&quot;Attach relevant findings as evidence, while preserving the investigation context.&quot;</em> and <em>&quot;view your investigation history&quot;</em> (re-read 09/28/2026).</sub></p>
+</blockquote>
+<p><a id="next"></a></p>
+<h2>5. Next Steps</h2>
+<ol>
+<li>Start an investigation in Investigations from a recent vulnerability or RAP detection query. Attach one finding as evidence.</li>
+<li>Ask Dynatrace Assist one of the example prompts above. Review the generated DQL.</li>
+<li>Read <strong>APPSEC-08</strong> to wire the investigation outcome to a remediation ticket.</li>
+<li>Read <strong>APPSEC-09</strong> — Assist can only run queries against data the user has IAM access to; the policy model bounds the assistant's reach.</li>
+</ol>
+<p><a id="references"></a></p>
+<h2>References</h2>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/secure/investigations">Investigations (DT docs)</a></td>
+<td>The investigation app: queries, evidence, history, collaboration</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/vulnerability">Vulnerability events (DT semantic dictionary)</a></td>
+<td>Exposure and risk fields used in § 3</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/secure/application-security">Application Security (DT docs)</a></td>
+<td>AppSec hub</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><sub><strong>⚠️ DISCLAIMER</strong>: This information was AI generated and is provided &quot;as-is&quot; without warranty. It was produced as an independent, community-driven project and <strong>not supported by Dynatrace</strong>. Always refer to official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> for the most current information.</sub></p>
+</blockquote>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

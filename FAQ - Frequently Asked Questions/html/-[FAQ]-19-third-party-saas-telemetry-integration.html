@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ-19: How Do I Bring a Third-Party SaaS Platform&#x27;s Telemetry Into Dynatrace?</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">FAQ — Frequently Asked Questions</a><span class="sep">/</span><span aria-current="page">FAQ-19</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>FAQ-19: How Do I Bring a Third-Party SaaS Platform's Telemetry Into Dynatrace?</h1>
+<blockquote>
+<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 19 — Integrating Third-Party SaaS Telemetry | <strong>Created:</strong> July 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Sooner or later a platform you do not run becomes something you have to answer for. A secure-access service sits between every user and every application. A CDN fronts your customer traffic. An identity provider gates every login. A payment gateway carries revenue. None of them will ever host a OneAgent, and none of them will appear in Smartscape on their own — yet when they degrade, the tickets land on your team.</p>
+<p>These platforms all present the same shape of problem, and it is not the shape most integration guides assume. The vendor does not publish one feed; it publishes <strong>several, in different formats, over different transports, with different retention implications</strong> — and the most operationally valuable signal is usually the one that is not a log at all. The temptation is to point all of it at Grail and sort it out later. That is the expensive answer, and it is expensive in two directions at once: storage cost for records nobody queries, and a compliance surface for user identities and destinations you did not intend to retain.</p>
+<p>This entry covers <strong>the reusable pattern</strong>: how to choose an ingestion route from the vendor's transport rather than your preference, how to run signal-first so raw records are processed and then discarded, how to model the vendor's objects as real Smartscape topology, and how to isolate what you do keep. It is deliberately vendor-neutral — <strong>FAQ-20</strong> applies every section of it to Zscaler as a worked example; <strong>FAQ-23</strong> (Box) and <strong>FAQ-27</strong> (Microsoft 365) do the same for audit feeds.</p>
+<p><strong>A note on scope.</strong> This is an ingestion-and-modeling entry. Once the data is in Grail with topology attached, the downstream work is ordinary and already documented elsewhere in this corpus — § 8 routes you there rather than restating it.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#signal-classes">Three Signal Classes, Three Different Answers</a></li>
+<li><a href="#ingestion-routes">Choosing the Ingestion Route</a></li>
+<li><a href="#extract-then-drop">Signal-First Ingestion — Extract, Then Discard</a></li>
+<li><a href="#topology">Modeling the Vendor's Objects as Topology</a></li>
+<li><a href="#retention">Isolating What You Do Retain</a></li>
+<li><a href="#normalizing">Normalizing Dimensions Across Feeds</a></li>
+<li><a href="#downstream">Where This Plugs Into the Rest of the Corpus</a></li>
+<li><a href="#recommended-approach">Recommended Approach</a></li>
+<li><a href="#gotchas">Common Gotchas</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace environment</strong></td>
+<td>SaaS with <strong>Grail</strong> and <strong>OpenPipeline</strong>. The topology work in § 5 depends on Smartscape on Grail; the extract-then-discard pattern in § 4 depends on OpenPipeline stages</td>
+</tr>
+<tr>
+<td><strong>Vendor-side access</strong></td>
+<td>Admin rights on the source platform to configure log streaming and to mint API credentials. In most organizations this is a different team — budget for the hand-off</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>Enough access to create OpenPipeline pipelines and routes, create Grail buckets, and assign bucket permissions</td>
+</tr>
+<tr>
+<td><strong>A security decision-maker</strong></td>
+<td>§ 4 and § 6 are retention and exposure decisions, not engineering ones. Identify who signs off before you build the pipeline, not after</td>
+</tr>
+<tr>
+<td><strong>Related series</strong></td>
+<td><strong>OPIPE</strong> and <strong>OPLOGS</strong> (OpenPipeline depth), <strong>ORGNZ</strong> (buckets, segments, retention), <strong>FAQ-09</strong> (metric-vs-log query economics), <strong>FAQ-15</strong> (DPL, for parsing non-JSON feeds), <strong>FAQ-16</strong> (Smartscape query patterns), <strong>DASH</strong> / <strong>ALERT</strong> / <strong>SLO</strong> (downstream consumption)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<p><strong>Let the vendor's transport pick your ingestion route, extract the signal at ingest and discard the raw record by default, and model the vendor's operational objects as <code>CUSTOM_*</code> Smartscape nodes so everything downstream inherits topology.</strong></p>
+<p>Four decisions carry almost all the weight, and they are best made in this order:</p>
+<table>
+<thead>
+<tr>
+<th>Decision</th>
+<th>The rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1. Route</strong></td>
+<td>Determined by what the vendor can <em>send</em>, not by what you would prefer to receive. An HTTPS-push feed can reach Dynatrace directly; a raw-TCP or syslog feed cannot, and needs a collector hop. See § 3</td>
+</tr>
+<tr>
+<td><strong>2. Retention</strong></td>
+<td>Default to <em>discard</em>. Extract the metric, event, or alert you actually query, then drop the record. Keep raw only where security or compliance explicitly asks for it. See § 4</td>
+</tr>
+<tr>
+<td><strong>3. Topology</strong></td>
+<td>Model the vendor's objects — the applications, the connectors, the edges, the regions — as <code>CUSTOM_*</code> Smartscape nodes. This is the decision that makes every later dashboard and alert better. See § 5</td>
+</tr>
+<tr>
+<td><strong>4. Isolation</strong></td>
+<td>Whatever you do retain goes in a <strong>dedicated bucket</strong> with its own permissions, not in <code>default_logs</code>. See § 6</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/smartscape-extraction">Smartscape node and edge extraction in OpenPipeline (DT docs)</a>. <strong>Derived:</strong> the four-decision ordering is this entry's framing — the platform imposes no order, but route constrains retention options and topology depends on fields that survive processing.</sub></p>
+</blockquote>
+<hr />
+<p><a id="signal-classes"></a></p>
+<h2>2. Three Signal Classes, Three Different Answers</h2>
+<p>The single most common mistake is treating a vendor integration as a <em>log</em> integration. In community practice, most SaaS platforms of this kind emit three distinct classes of signal, and they answer genuinely different questions — the split below is a framing for deciding what to ingest, not a vendor-defined taxonomy, so check it against your own platform's catalogue. Deciding which questions you need answered — before you configure anything — is what keeps the project from becoming a log-volume problem.</p>
+<table>
+<thead>
+<tr>
+<th>Signal class</th>
+<th>What it is</th>
+<th>What it answers well</th>
+<th>What it cannot answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Transaction / access logs</strong></td>
+<td>Per-request or per-session records the platform writes as it handles traffic</td>
+<td>Who did what, when, to which destination, with what outcome, how many bytes, allowed or denied</td>
+<td>How it <em>felt</em> to the user. These are the platform's own view, recorded at its own vantage point</td>
+</tr>
+<tr>
+<td><strong>Infrastructure / component metrics</strong></td>
+<td>Health and capacity of the vendor's own components — gateways, connectors, collectors</td>
+<td>Is the vendor-side infrastructure saturated, disconnected, or unbalanced</td>
+<td>Anything about a specific user's session</td>
+</tr>
+<tr>
+<td><strong>Experience / probe telemetry</strong></td>
+<td>Active measurement from the endpoint or from a probe — device health, path quality, synthetic fetches</td>
+<td>Was it slow, where in the path, and was the endpoint itself the problem</td>
+<td>Full transaction detail; probes sample, they do not record everything</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The practical consequence.</strong> Access logs are usually the largest, cheapest-to-obtain, and <em>least</em> directly useful for experience questions. Experience telemetry is usually the smallest, hardest to obtain (it is often a separate SKU and a separate API), and the one that actually answers &quot;why is the user complaining.&quot; If your integration ships only the logs because the logs were the easy feed, you will have spent the storage budget on the signal class that answers the fewest of your questions.</p>
+<p><strong>Ask the question first.</strong> Write down the five questions the integration must answer, map each to a signal class using the table above, and configure only the feeds those classes require. Feeds are easy to add later; retention decisions made by accident are hard to unwind.</p>
+<hr />
+<p><a id="ingestion-routes"></a></p>
+<h2>3. Choosing the Ingestion Route</h2>
+<p>This is where most integration plans go wrong, and the failure is nearly always the same one: assuming every feed from a vendor can be pointed at the Dynatrace log ingest endpoint. <strong>It is the vendor's transport that decides the route, and a single vendor commonly uses two or three different transports across its own product lines.</strong></p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJmYTE5LWFycm93IiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5UaGUgVmVuZG9yJ3MgVHJhbnNwb3J0IERlY2lkZXMgdGhlIFJvdXRlPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPk5vdCB5b3VyIHByZWZlcmVuY2Ug4oCUIGEgc2luZ2xlIHZlbmRvciBjb21tb25seSB1c2VzIHR3byBvciB0aHJlZSB0cmFuc3BvcnRzIGFjcm9zcyBpdHMgcHJvZHVjdCBsaW5lczwvdGV4dD4KCiAgPCEtLSBDb2x1bW4gaGVhZGVycyAtLT4KICA8dGV4dCB4PSIxNDAiIHk9Ijk0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5XaGF0IHRoZSB2ZW5kb3Igc2VuZHM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI5NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+Um91dGU8L3RleHQ+CiAgPHRleHQgeD0iODAwIiB5PSI5NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+WW91IG9wZXJhdGU8L3RleHQ+CgogIDxsaW5lIHgxPSI0MCIgeTE9IjEwNCIgeDI9Ijg5MCIgeTI9IjEwNCIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KCiAgPCEtLSBSb3cgMTogSFRUUFMgcHVzaCAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMTEwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUyIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjE0MCIgeT0iMTMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5IVFRQUyBwdXNoPC90ZXh0PgogIDx0ZXh0IHg9IjE0MCIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5jdXN0b20gVVJMICsgYXV0aCBoZWFkZXI8L3RleHQ+CgogIDxsaW5lIHgxPSIyNDAiIHkxPSIxMzYiIHgyPSIzMzAiIHkyPSIxMzYiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZmExOS1hcnJvdykiLz4KCiAgPHJlY3QgeD0iMzMwIiB5PSIxMTAiIHdpZHRoPSIyNzAiIGhlaWdodD0iNTIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIxMzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkRpcmVjdCB0byBsb2cgaW5nZXN0IEFQSTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjE1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dGhlIG9ubHkgZ2VudWluZWx5IGRpcmVjdCByb3V0ZTwvdGV4dD4KCiAgPGxpbmUgeDE9IjYwMCIgeTE9IjEzNiIgeDI9IjY5MCIgeTI9IjEzNiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNmYTE5LWFycm93KSIvPgogIDx0ZXh0IHg9IjgwMCIgeT0iMTQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5Ob3RoaW5nPC90ZXh0PgoKICA8IS0tIFJvdyAyOiByYXcgVENQIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIxNzIiIHdpZHRoPSIyMDAiIGhlaWdodD0iNTIiIGZpbGw9IiNERTM1MEIiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTQwIiB5PSIxOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPlJhdyBUQ1AgLyBUTFM8L3RleHQ+CiAgPHRleHQgeD0iMTQwIiB5PSIyMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm5vIGhlYWRlcnMsIG5vIGF1dGg8L3RleHQ+CgogIDxsaW5lIHgxPSIyNDAiIHkxPSIxOTgiIHgyPSIzMzAiIHkyPSIxOTgiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZmExOS1hcnJvdykiLz4KCiAgPHJlY3QgeD0iMzMwIiB5PSIxNzIiIHdpZHRoPSIyNzAiIGhlaWdodD0iNTIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTk0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5Db2xsZWN0b3IgaG9wIHJlcXVpcmVkPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5jYW5ub3QgcmVhY2ggYSBEeW5hdHJhY2UgQVBJIHVuYWlkZWQ8L3RleHQ+CgogIDxsaW5lIHgxPSI2MDAiIHkxPSIxOTgiIHgyPSI2OTAiIHkyPSIxOTgiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZmExOS1hcnJvdykiLz4KICA8dGV4dCB4PSI4MDAiIHk9IjE5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+T1RlbCBDb2xsZWN0b3I8L3RleHQ+CiAgPHRleHQgeD0iODAwIiB5PSIyMTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkFHIHN5c2xvZyBvbmx5IGlmIHN5c2xvZy1mcmFtZWQ8L3RleHQ+CgogIDwhLS0gUm93IDM6IHN5c2xvZyAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMjM0IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUyIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjE0MCIgeT0iMjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5TeXNsb2c8L3RleHQ+CiAgPHRleHQgeD0iMTQwIiB5PSIyNzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlJGQyAzMTY0IC8gNTQyNDwvdGV4dD4KCiAgPGxpbmUgeDE9IjI0MCIgeTE9IjI2MCIgeDI9IjMzMCIgeTI9IjI2MCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNmYTE5LWFycm93KSIvPgoKICA8cmVjdCB4PSIzMzAiIHk9IjIzNCIgd2lkdGg9IjI3MCIgaGVpZ2h0PSI1MiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjI1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+QWN0aXZlR2F0ZSBzeXNsb2cgaW5nZXN0PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjc0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5MaW51eCBFbnZpcm9ubWVudCBBRyAxLjI5NSs8L3RleHQ+CgogIDxsaW5lIHgxPSI2MDAiIHkxPSIyNjAiIHgyPSI2OTAiIHkyPSIyNjAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZmExOS1hcnJvdykiLz4KICA8dGV4dCB4PSI4MDAiIHk9IjI1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+QWN0aXZlR2F0ZTwvdGV4dD4KICA8dGV4dCB4PSI4MDAiIHk9IjI3MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+bXVsdGktZW52IEFHIG5vdCBzdXBwb3J0ZWQ8L3RleHQ+CgogIDwhLS0gUm93IDQ6IHB1bGwgb25seSAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMjk2IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUyIiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjE0MCIgeT0iMzE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5Ob3RoaW5nIOKAlCBwdWxsIG9ubHk8L3RleHQ+CiAgPHRleHQgeD0iMTQwIiB5PSIzMzYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlJFU1QgQVBJPC90ZXh0PgoKICA8bGluZSB4MT0iMjQwIiB5MT0iMzIyIiB4Mj0iMzMwIiB5Mj0iMzIyIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2ZhMTktYXJyb3cpIi8+CgogIDxyZWN0IHg9IjMzMCIgeT0iMjk2IiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjUyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5TY2hlZHVsZWQgcG9sbGVyPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5taW5kIHBlci1yZXF1ZXN0IHRpbWUgd2luZG93czwvdGV4dD4KCiAgPGxpbmUgeDE9IjYwMCIgeTE9IjMyMiIgeDI9IjY5MCIgeTI9IjMyMiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNmYTE5LWFycm93KSIvPgogIDx0ZXh0IHg9IjgwMCIgeT0iMzE5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5Xb3JrZmxvdzwvdGV4dD4KICA8dGV4dCB4PSI4MDAiIHk9IjMzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+b3IgZXh0ZW5zaW9uIC8gY29sbGVjdG9yPC90ZXh0PgoKICA8IS0tIFJvdyA1OiBvYmplY3Qgc3RvcmFnZSAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMzU4IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUyIiBmaWxsPSIjNjBBNUZBIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM2MEE1RkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjE0MCIgeT0iMzgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5GaWxlcyBpbiBvYmplY3Qgc3RvcmFnZTwvdGV4dD4KICA8dGV4dCB4PSIxNDAiIHk9IjM5OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UzMgwrcgQXp1cmUgQmxvYiDCtyBHQ1M8L3RleHQ+CgogIDxsaW5lIHgxPSIyNDAiIHkxPSIzODQiIHgyPSIzMzAiIHkyPSIzODQiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZmExOS1hcnJvdykiLz4KCiAgPHJlY3QgeD0iMzMwIiB5PSIzNTgiIHdpZHRoPSIyNzAiIGhlaWdodD0iNTIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzYwQTVGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIzODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPlMzOiBTMyBsb2cgZm9yd2FyZGVyPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzk4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5CbG9iIC8gR0NTOiBubyBkb2N1bWVudGVkIHJvdXRlPC90ZXh0PgoKICA8bGluZSB4MT0iNjAwIiB5MT0iMzg0IiB4Mj0iNjkwIiB5Mj0iMzg0IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2ZhMTktYXJyb3cpIi8+CiAgPHRleHQgeD0iODAwIiB5PSIzODEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPkxhbWJkYSAoUzMpPC90ZXh0PgogIDx0ZXh0IHg9IjgwMCIgeT0iMzk3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5CbG9iIC8gR0NTOiBDb2xsZWN0b3IgcmVjZWl2ZXIgKG9wdGlvbmFsKTwvdGV4dD4KCiAgPCEtLSBSb3cgNjogZXhpc3RpbmcgcGlwZWxpbmUgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjQyMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI1MiIgZmlsbD0iIzIyRDNFRSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIxNDAiIHk9IjQ0MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+QWxyZWFkeSBpbiBhIHBpcGVsaW5lPC90ZXh0PgogIDx0ZXh0IHg9IjE0MCIgeT0iNDYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TSUVNIC8gZGF0YSBsYWtlIGZlZWQgZXhpc3RzPC90ZXh0PgoKICA8bGluZSB4MT0iMjQwIiB5MT0iNDQ2IiB4Mj0iMzMwIiB5Mj0iNDQ2IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2ZhMTktYXJyb3cpIi8+CgogIDxyZWN0IHg9IjMzMCIgeT0iNDIwIiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjUyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMiIgcng9IjYiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjQ0MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+TXVsdGktaG9tZSBhbiBvdXRwdXQ8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0NjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmFkZCBhbiBvdXRwdXQg4oCUIGRvbid0IHJlLXBvaW50IHRoZSBzb3VyY2U8L3RleHQ+CgogIDxsaW5lIHgxPSI2MDAiIHkxPSI0NDYiIHgyPSI2OTAiIHkyPSI0NDYiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZmExOS1hcnJvdykiLz4KICA8dGV4dCB4PSI4MDAiIHk9IjQ0MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+Tm90aGluZyBuZXc8L3RleHQ+CiAgPHRleHQgeD0iODAwIiB5PSI0NTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmluaGVyaXRzIHBpcGVsaW5lIGF2YWlsYWJpbGl0eTwvdGV4dD4KPC9zdmc+Cg==" alt="Ingestion route decided by the vendor's transport" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| What the vendor sends | Route | You operate |
+|---|---|---|
+| HTTPS push (custom URL + auth header) | Direct to log ingest API | Nothing |
+| Raw TCP / TLS (no headers, no auth) | Collector hop required | OTel Collector (ActiveGate syslog only if the stream is syslog-framed) |
+| Syslog (RFC 3164 / 5424) | ActiveGate syslog ingest | ActiveGate (multi-env not supported) |
+| Nothing — pull only (REST API) | Scheduled poller | Workflow, extension, or collector |
+| Files written to object storage (S3 / Blob / GCS) | S3: Dynatrace S3 log forwarder. Blob / GCS: no documented route | S3: a Lambda in your AWS account. Blob / GCS: a Collector receiver (optional) |
+| Already in a pipeline (SIEM feed exists) | Multi-home an output | Nothing new; inherits pipeline availability |
+For environments where SVG doesn't render
+-->
+<table>
+<thead>
+<tr>
+<th>What the vendor can send</th>
+<th>Route into Dynatrace</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>HTTPS POST</strong> to an arbitrary URL with custom headers</td>
+<td><strong>Direct</strong> to the Dynatrace log ingest API</td>
+<td>The only genuinely direct route. Requires the vendor to support a custom endpoint <em>and</em> a custom <code>Authorization</code> header. Where it cannot set the header, a collector must terminate the push — § 3.3</td>
+</tr>
+<tr>
+<td><strong>Raw TCP / TLS</strong> to a host and port</td>
+<td><strong>Collector hop required</strong> — an OpenTelemetry Collector with a TCP or log receiver, or an existing pipeline product. The ActiveGate syslog receiver applies only if the stream is RFC 3164 / 5424 syslog</td>
+<td>The vendor cannot authenticate to a Dynatrace API over raw TCP. Something must terminate the stream and forward it</td>
+</tr>
+<tr>
+<td><strong>Syslog</strong> (RFC 3164 / 5424)</td>
+<td><strong>ActiveGate syslog ingestion</strong> or an OTel Collector <code>syslog</code> receiver</td>
+<td>Environment ActiveGate on Linux, 1.295+, using its embedded OTel Collector. Multi-environment ActiveGates do not support syslog ingestion</td>
+</tr>
+<tr>
+<td><strong>Nothing — pull only (REST API)</strong></td>
+<td><strong>Scheduled poller</strong> — a Dynatrace workflow, an extension, or a collector</td>
+<td>Common for experience/score APIs. Watch for per-request time-window limits, which set your minimum poll frequency. A generic Collector poller exists — check it against § 3.3 first</td>
+</tr>
+<tr>
+<td><strong>Files written to object storage</strong> — S3, Azure Blob Storage, Google Cloud Storage</td>
+<td><strong>S3:</strong> the Dynatrace <strong>S3 log forwarder</strong>, a Lambda function you deploy in your AWS account. <strong>Azure Blob / GCS:</strong> no documented Dynatrace route for files at rest</td>
+<td>The S3 forwarder takes generic text logs and JSON streams, not only AWS service logs, and drops records older than 24 hours. Dynatrace's Azure and Google Cloud log forwarding read Event Hubs and Pub/Sub, not stored objects. For Blob and GCS, the Collector receivers in § 3.3 are an optional complement</td>
+</tr>
+<tr>
+<td><strong>Already flowing to a pipeline product</strong> you run</td>
+<td><strong>Multi-home</strong> an additional output to Dynatrace</td>
+<td>Usually the cleanest enterprise answer — see below</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-syslog">Syslog ingestion with ActiveGate (DT docs)</a> — <em>&quot;Environment ActiveGate version 1.295+ on Linux installed to monitor remote technologies&quot;</em>, which <em>&quot;uses an embedded Dynatrace OpenTelemetry Collector instance&quot;</em>; note also <em>&quot;Multi-environment ActiveGates do not support syslog ingestion.&quot;</em> The receiver is scoped to syslog: <em>&quot;Use this configuration only for syslog ingestion.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector-use-cases/syslog">Ingest syslog data with the OTel Collector (DT docs)</a></sub></li>
+<li><sub><a href="https://www.dynatrace.com/hub/detail/cribl-via-http/">Cribl via HTTP (Dynatrace Hub)</a></sub></li>
+<li><sub><a href="https://www.dynatrace.com/hub/detail/cribl-via-opentelemetry/">Cribl via OpenTelemetry (Dynatrace Hub)</a></sub></li>
+<li><sub><a href="https://www.dynatrace.com/hub/detail/syslog-via-opentelemetry-collector/">Syslog via OpenTelemetry Collector (Dynatrace Hub)</a> — the listed collector-hop routes for feeds that cannot post directly. The two Cribl listings read <em>&quot;Provided by Cribl&quot;</em> and <em>&quot;Support By the partner&quot;</em>; the syslog collector listing reads <em>&quot;Provided by Dynatrace&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/ingest-telemetry/aws-logs/amazon-s3-log-forwarder">Ingest AWS logs from Amazon S3 (DT docs)</a> — the forwarder runs as <em>&quot;an event-driven AWS Lambda function that you deploy in your own AWS account&quot;</em>; <em>&quot;Additionally, you can forward and ingest generic text logs and JSON streams&quot;</em>; <em>&quot;Log records with timestamps older than 24 hours are dropped at ingest.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-cloud-provider-log-forwarding">Cloud provider log forwarding (DT docs)</a> — <em>&quot;Dynatrace automatically discovers and connects to these Azure Event Hubs and starts to pull logs and events&quot;</em>; for Google Cloud, <em>&quot;During setup, a new Pub/Sub subscription will be created.&quot;</em></sub></li>
+<li><sub><strong>Docs check (10/29/2026):</strong> the cloud provider log forwarding page, the Azure log forwarder setup page and the S3 forwarder page were read for a route that ingests objects already stored in Azure Blob Storage or Google Cloud Storage. None was found (control: the same pages document the S3 route). The Azure forwarder deploys a storage account as part of its own resources, not as a log source</sub></li>
+</ul>
+</blockquote>
+<h3>3.1 The multi-home pattern — usually the right enterprise answer</h3>
+<p>If the vendor's logs already flow somewhere — a SIEM, a security data lake, an observability pipeline — you are rarely the first consumer, and you should not try to become the only one. Adding a <strong>second output</strong> from the existing pipeline is almost always better than re-pointing the source:</p>
+<ul>
+<li><strong>It does not disturb the security pipeline.</strong> Re-pointing a source feed that a SOC depends on is a change with a blast radius well outside observability. Adding an output is not.</li>
+<li><strong>It gives you a transformation point you control.</strong> Masking, field reduction, and sampling can be applied to the observability copy without touching the security copy, which usually must stay complete.</li>
+<li><strong>It solves the transport problem for free.</strong> The pipeline product already terminates whatever exotic transport the vendor uses; its outputs are ordinary HTTP.</li>
+</ul>
+<p>The Hub lists partner-provided destinations for at least one common pipeline product — Cribl, over both HTTP and OpenTelemetry. Both listings are provided and supported by the partner, not by Dynatrace.</p>
+<p><strong>The trade-off to state plainly:</strong> you have added a dependency. The observability feed now inherits the pipeline's availability, its release cadence, and its owning team's change process. Where the pipeline is already business-critical this costs nothing; where it was a best-effort side system, direct ingestion may be the more honest choice.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://www.dynatrace.com/hub/detail/cribl-via-http/">Cribl via HTTP (Dynatrace Hub)</a> and <a href="https://www.dynatrace.com/hub/detail/cribl-via-opentelemetry/">Cribl via OpenTelemetry (Dynatrace Hub)</a> — each reads <em>&quot;Provided by Cribl&quot;</em> and <em>&quot;Support By the partner&quot;</em>, <a href="https://www.dynatrace.com/hub/detail/syslog-via-opentelemetry-collector/">Syslog via OpenTelemetry Collector (Dynatrace Hub)</a>.</sub></p>
+</blockquote>
+<h3>3.2 Check the Hub before you build anything</h3>
+<p>Before designing a custom route, check whether the vendor already has a Dynatrace Hub listing. The answer materially changes the project:</p>
+<ul>
+<li><strong>A listing exists</strong> — you inherit a documented path. Check the listing's <em>Provided by</em> and <em>Support by</em> lines to see whether Dynatrace or a partner stands behind it, then take it.</li>
+<li><strong>No listing exists</strong> — you are building and owning the integration yourself. That is a legitimate and common position, but it should be a <em>decision</em>, not a discovery made in week three. It means you own the parsing, the field mapping, the failure modes, and the upgrade path when the vendor changes its schema.</li>
+</ul>
+<p>In community practice, the second case is more common than teams expect for security and networking platforms specifically — verify for your own vendor rather than assuming either way.</p>
+<h3>3.3 Generic Collector receivers — and what to check in any of them</h3>
+<p>When no documented route fits a feed, a generic OpenTelemetry Collector receiver can sometimes fill the gap. Four are maintained in the <code>dynatrace-bindplane-otel-contrib</code> repository:</p>
+<table>
+<thead>
+<tr>
+<th>Receiver (v1.2.0)</th>
+<th>Fills which row</th>
+<th>Stability</th>
+<th>Record time it sets</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>restapi</code></td>
+<td>Pull only — polls a REST API with pagination, OAuth 2.0 client credentials and a checkpoint</td>
+<td>beta</td>
+<td>The first top-level <code>timestamp</code>, <code>time</code>, <code>created_at</code> … field, else the poll time</td>
+</tr>
+<tr>
+<td><code>httpreceiver</code></td>
+<td>HTTPS push — an HTTP endpoint the vendor posts to; it answers <code>200</code> only after the pipeline accepts the records</td>
+<td>beta</td>
+<td>Observed time only; the vendor's own time stays in the body</td>
+</tr>
+<tr>
+<td><code>azureblobpollingreceiver</code></td>
+<td>Files in Azure Blob Storage — polls a container for new blobs</td>
+<td>beta</td>
+<td>Observed time only, for NDJSON, text and <code>{&quot;records&quot;:[...]}</code> blobs</td>
+</tr>
+<tr>
+<td><code>gcspubsubeventreceiver</code></td>
+<td>Files in Google Cloud Storage — reads each new object announced by a Pub/Sub notification</td>
+<td>alpha</td>
+<td>The time the object is read, for every line</td>
+</tr>
+</tbody>
+</table>
+<p>All four ship only in the full Dynatrace Bindplane Distribution of the Collector (DBDOT). They are not in the slim DBDOT build or in the Dynatrace OTel Collector distribution, and Dynatrace's Collector support covers only the components that distribution includes. They configure in plain Collector YAML, so Bindplane is optional. Treat them as complements: where a documented Dynatrace route exists for a feed — direct ingest, ActiveGate syslog, the S3 log forwarder, a Hub extension — use it. FAQ-23 § 6.1 assesses <code>restapi</code> against Box, and FAQ-27 § 8.1 assesses the vendor-specific <code>m365</code> receiver against Microsoft 365.</p>
+<p>A receiver whose record time is not the event time needs a <code>transform</code> rule, or OpenPipeline parsing, before time-based queries mean anything.</p>
+<p><strong>What to check in any generic poller or receiver</strong> — a Collector component, a Workflow, or a script you wrote:</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Why it matters</th>
+<th>Where it was found</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Rate limits.</strong> Does it honour <code>429</code> and <code>Retry-After</code>, or treat them as errors?</td>
+<td>A poller that ignores them keeps hitting the limit. One that treats them as errors must at least not move its cursor</td>
+<td><code>restapi</code> v1.2.0 treats every non-2xx as an error (FAQ-23 § 6.1)</td>
+</tr>
+<tr>
+<td><strong>Checkpoint after forwarding.</strong> Is the cursor written only after the records were accepted downstream, and is it durable — a storage extension or your own store?</td>
+<td>A cursor written first loses a window on any failure. One held only in memory loses its place on every restart</td>
+<td><code>m365</code> v1.2.0 advances its checkpoint even when a listing fails (FAQ-27 § 8.1)</td>
+</tr>
+<tr>
+<td><strong>Persistent exporter queue.</strong> In a Collector, is <code>sending_queue.storage</code> set?</td>
+<td>Without it the queue is in memory: records count as forwarded once queued, so a crash loses them after the checkpoint has moved</td>
+<td>Any Collector-based collector</td>
+</tr>
+<tr>
+<td><strong>Last page and first run.</strong> What happens when the API returns no next cursor, and where does a first run start?</td>
+<td>Dropping the cursor restarts the stream. An unseeded first run may replay everything the API still holds</td>
+<td><code>restapi</code> cannot seed an opaque cursor (FAQ-23 § 6.1); <code>m365</code> reads only the first page of a listing (FAQ-27 § 8.1)</td>
+</tr>
+<tr>
+<td><strong>Which timestamp.</strong> Does it stamp the vendor's event time, or the time it read the record?</td>
+<td>Log ingest drops records older than 24 hours, so event time on a backlog loses it. Read time keeps it but places it at the wrong point on the timeline</td>
+<td>The table above</td>
+</tr>
+<tr>
+<td><strong>Duplicates.</strong> Does the API repeat records, and does anything dedupe them?</td>
+<td>Repeats inflate counts and ingest cost</td>
+<td>Box <code>admin_logs_streaming</code> (FAQ-23 § 4)</td>
+</tr>
+</tbody>
+</table>
+<p>Where the cursor is written, and whether the exporter queue persists, decide what a crash costs:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJmYTE5cS1hcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+V2hlcmUgdGhlIEN1cnNvciBJcyBXcml0dGVuIERlY2lkZXMgV2hhdCBhIENyYXNoIExvc2VzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPkEgcG9sbGVyJ3MgY2hlY2twb2ludCBhbmQgYSBDb2xsZWN0b3IncyBleHBvcnRlciBxdWV1ZSBoYXZlIHRvIGJlIHJlYWQgdG9nZXRoZXI8L3RleHQ+CgogIDwhLS0gTGFuZSAtLT4KICA8cmVjdCB4PSIzMCIgeT0iMTAwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjEwMCIgeT0iMTM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5WZW5kb3IgQVBJPC90ZXh0PgogIDx0ZXh0IHg9IjEwMCIgeT0iMTUzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5wYWdlIG48L3RleHQ+CgogIDxsaW5lIHgxPSIxNzAiIHkxPSIxNDAiIHgyPSIyMDAiIHkyPSIxNDAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZmExOXEtYXJyb3cpIi8+CgogIDxyZWN0IHg9IjIwMCIgeT0iMTAwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjI3NSIgeT0iMTM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5SZWNlaXZlciAvIHBvbGxlcjwvdGV4dD4KICA8dGV4dCB4PSIyNzUiIHk9IjE1MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+cmVhZHMgdGhlIHBhZ2U8L3RleHQ+CgogIDxsaW5lIHgxPSIzNTAiIHkxPSIxNDAiIHgyPSIzODAiIHkyPSIxNDAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZmExOXEtYXJyb3cpIi8+CgogIDxyZWN0IHg9IjM4MCIgeT0iNzgiIHdpZHRoPSIyMTAiIGhlaWdodD0iMTI0IiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjQ4NSIgeT0iOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkV4cG9ydGVyIHNlbmRpbmcgcXVldWU8L3RleHQ+CiAgPHJlY3QgeD0iMzk0IiB5PSIxMDYiIHdpZHRoPSIxODIiIGhlaWdodD0iNDAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDg1IiB5PSIxMjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPmluIG1lbW9yeTwvdGV4dD4KICA8dGV4dCB4PSI0ODUiIHk9IjEzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+KGRlZmF1bHQpPC90ZXh0PgogIDxyZWN0IHg9IjM5NCIgeT0iMTUzIiB3aWR0aD0iMTgyIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ4NSIgeT0iMTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5zZW5kaW5nX3F1ZXVlLnN0b3JhZ2U8L3RleHQ+CiAgPHRleHQgeD0iNDg1IiB5PSIxODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPihwZXJzaXN0ZW50KTwvdGV4dD4KCiAgPGxpbmUgeDE9IjU5MCIgeTE9IjE0MCIgeDI9IjYyMCIgeTI9IjE0MCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNmYTE5cS1hcnJvdykiLz4KCiAgPHJlY3QgeD0iNjIwIiB5PSIxMDAiIHdpZHRoPSIxNDAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNjkwIiB5PSIxMzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkR5bmF0cmFjZSBpbmdlc3Q8L3RleHQ+CiAgPHRleHQgeD0iNjkwIiB5PSIxNTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmxvZyAvIE9UTFAgQVBJPC90ZXh0PgoKICA8bGluZSB4MT0iNzYwIiB5MT0iMTQwIiB4Mj0iNzkwIiB5Mj0iMTQwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2ZhMTlxLWFycm93KSIvPgoKICA8cmVjdCB4PSI3OTAiIHk9IjEwMCIgd2lkdGg9IjExMCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI4NDUiIHk9IjE0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+YWNjZXB0ZWQ8L3RleHQ+CgogIDwhLS0gQ3Vyc29yIHBvc2l0aW9ucyAtLT4KICA8dGV4dCB4PSIzMCIgeT0iMjI2IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5XaGVyZSBlYWNoIGRlc2lnbiB3cml0ZXMgaXRzIGN1cnNvcjwvdGV4dD4KCiAgPGxpbmUgeDE9IjM2NSIgeTE9IjE0NiIgeDI9IjM2NSIgeTI9IjI0MiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iNCwzIi8+CiAgPHJlY3QgeD0iMzAiIHk9IjI0MiIgd2lkdGg9Ijg3MCIgaGVpZ2h0PSIzMCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI2Ii8+CiAgPGNpcmNsZSBjeD0iMzY1IiBjeT0iMjU3IiByPSI2IiBmaWxsPSIjRkZCODAwIi8+CiAgPHRleHQgeD0iNDQiIHk9IjI2MSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+Q29sbGVjdG9yIHJlY2VpdmVyPC90ZXh0PgogIDx0ZXh0IHg9IjM4MCIgeT0iMjYxIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPmN1cnNvciBzYXZlZCBhZnRlciB0aGUgcGFnZSBpcyBoYW5kZWQgdG8gdGhlIHBpcGVsaW5lPC90ZXh0PgoKICA8bGluZSB4MT0iODQ1IiB5MT0iMTgwIiB4Mj0iODQ1IiB5Mj0iMjgwIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtZGFzaGFycmF5PSI0LDMiLz4KICA8cmVjdCB4PSIzMCIgeT0iMjgwIiB3aWR0aD0iODcwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8Y2lyY2xlIGN4PSI4NDUiIGN5PSIyOTUiIHI9IjYiIGZpbGw9IiM3M0JFMjgiLz4KICA8dGV4dCB4PSI0NCIgeT0iMjk5IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5Xb3JrZmxvdyAvIFB5dGhvbiBjb2xsZWN0b3JzIChGQVEtMjMsIEZBUS0yNyk8L3RleHQ+CiAgPHRleHQgeD0iODMwIiB5PSIyOTkiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+Y3Vyc29yIHdyaXR0ZW4gYWZ0ZXIgaW5nZXN0IHN1Y2NlZWRzPC90ZXh0PgoKICA8IS0tIENyYXNoIG91dGNvbWVzIC0tPgogIDx0ZXh0IHg9IjMwIiB5PSIzMzgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPldoYXQgYSBjcmFzaCBkb2VzPC90ZXh0PgoKICA8cmVjdCB4PSIzMCIgeT0iMzUwIiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjE2NSIgeT0iMzc0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5DcmFzaCBiZWZvcmUgaGFuZC1vZmY8L3RleHQ+CiAgPHRleHQgeD0iMTY1IiB5PSIzOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmN1cnNvciBoYXMgbm90IG1vdmVkPC90ZXh0PgogIDx0ZXh0IHg9IjE2NSIgeT0iNDExIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj50aGUgcGFnZSBpcyByZS1yZWFkIOKAlCBub3RoaW5nIGxvc3Q8L3RleHQ+CgogIDxyZWN0IHg9IjMzMCIgeT0iMzUwIiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMiIgcng9IjYiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM3NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+SW4tbWVtb3J5IHF1ZXVlLCBjdXJzb3Igc2F2ZWQ8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIzOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnF1ZXVlZCByZWNvcmRzIHRoZSBjdXJzb3IgaGFzIHBhc3NlZDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQxMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Y2FuIGJlIGxvc3Q8L3RleHQ+CgogIDxyZWN0IHg9IjYzMCIgeT0iMzUwIiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc2NSIgeT0iMzc0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5QZXJzaXN0ZW50IHF1ZXVlLCBjdXJzb3Igc2F2ZWQ8L3RleHQ+CiAgPHRleHQgeD0iNzY1IiB5PSIzOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnF1ZXVlZCByZWNvcmRzIHN1cnZpdmUgdGhlIGNyYXNoPC90ZXh0PgogIDx0ZXh0IHg9Ijc2NSIgeT0iNDExIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5leHBvcnRpbmcgY29udGludWVzIG9uIHJlc3RhcnQ8L3RleHQ+CgogIDwhLS0gRm9vdGVyIC0tPgogIDxyZWN0IHg9IjMwIiB5PSI0NDgiIHdpZHRoPSI4NzAiIGhlaWdodD0iMzYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSI0NzEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIuNSIgZm9udC13ZWlnaHQ9IjYwMCI+Q2hlY2twb2ludCBhZnRlciByZWNvcmRzIGFyZSBhY2NlcHRlZCBkb3duc3RyZWFtOyBnaXZlIGEgQ29sbGVjdG9yIGEgc3RvcmFnZSBleHRlbnNpb24gYW5kIGEgcGVyc2lzdGVudCBxdWV1ZS48L3RleHQ+Cjwvc3ZnPgo=" alt="Where the cursor is written decides what a crash loses" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+Lane: Vendor API (page n) -> Receiver / poller -> Exporter sending queue (in memory, the default; or sending_queue.storage, persistent) -> Dynatrace ingest -> accepted.
+| Design | Cursor written | Queue | Crash after cursor write |
+|---|---|---|---|
+| Any design, crash before hand-off | Not yet moved | Either | Nothing lost — the page is re-read |
+| Collector receiver | After the page is handed to the pipeline | In memory (default) | Queued records the cursor has passed can be lost |
+| Collector receiver | After the page is handed to the pipeline | `sending_queue.storage` (persistent) | Queued records survive; exporting continues on restart |
+| Workflow / Python collectors (FAQ-23, FAQ-27) | After ingest succeeds | None | Nothing lost — the cursor has not passed unaccepted records |
+Checkpoint after records are accepted downstream; give a Collector a storage extension and a persistent queue.
+For environments where SVG doesn't render
+-->
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector">OpenTelemetry Collector (DT docs)</a> — <em>&quot;This support covers only the components and their versions that are included in the Dynatrace OTel Collector.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/restapireceiver/README.md">restapireceiver README (Dynatrace GitHub)</a>, <a href="https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/httpreceiver/README.md">httpreceiver README (Dynatrace GitHub)</a> — <em>&quot;Anything that is able to send logs to an endpoint using HTTP will be able to utilize this receiver.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/azureblobpollingreceiver/README.md">azureblobpollingreceiver README (Dynatrace GitHub)</a>, <a href="https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/gcspubsubeventreceiver/README.md">gcspubsubeventreceiver README (Dynatrace GitHub)</a> — <em>&quot;consumes GCS event notifications for object finalization events&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/lma-limits">Log ingestion limits (DT docs)</a> — <em>&quot;The event is dropped if it contains a timestamp older than the configured log age limit.&quot;</em> <em>&quot;For environments created after Dynatrace version 1.348 was released, the default log age limit is 72 hours.&quot;</em> <em>&quot;For environments created before Dynatrace version 1.348 was released, the default log age limit is 24 hours. The limit can be increased to 72 hours on request.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/exporterhelper/README.md">Exporter helper (OpenTelemetry GitHub)</a> — <em>&quot;There is no in-memory queue when set.&quot;</em>; <em>&quot;If the collector instance is killed while having some items in the persistent queue, on restart the items will be picked and the exporting is continued.&quot;</em></sub></li>
+<li><sub><strong>Code read (10/29/2026):</strong> at tag <code>v1.2.0</code>, each receiver's <code>metadata.yaml</code> gives the stability shown; <code>restapireceiver/logs.go</code> reads the record time from the first of <code>timestamp</code>, <code>time</code>, <code>created_at</code>, <code>createdAt</code>, <code>date</code>, <code>datetime</code>, <code>@timestamp</code>; <code>httpreceiver/logs.go</code> sets only the observed time and writes <code>200</code> after the pipeline accepts the records (<code>500</code> if it does not); <code>internal/blobconsume</code> sets only the observed time in its NDJSON, text, line and records-JSON consumers; <code>gcspubsubeventreceiver/internal/worker/worker.go</code> sets both times to the read time. Component lists: all four are in the full DBDOT manifest and none is in the slim DBDOT manifest or the Dynatrace OTel Collector manifest (0.59.0) (control: the full manifest lists <code>m365receiver</code>, which FAQ-27 reads the same way)</sub></li>
+<li><sub><strong>Derived:</strong> the checklist generalizes the gaps found in FAQ-23 § 6.1 and FAQ-27 § 8.1; the queue row combines the exporter-helper sentence with a receiver forwarding records before it saves its cursor</sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="extract-then-drop"></a></p>
+<h2>4. Signal-First Ingestion — Extract, Then Discard</h2>
+<p>The default posture for a high-volume third-party feed should be: <strong>process the record for its value, then throw the record away.</strong> You keep the metric, the event, and the alert. You do not keep several hundred gigabytes of transaction records containing user identities and destinations that nobody will query and everybody will have to account for at audit time.</p>
+<p>OpenPipeline supports this directly — but <strong>the processor you choose, and the stage it sits in, decide whether it works or silently defeats itself.</strong></p>
+<h3>4.1 The stage order, and the trap inside it</h3>
+<p>Records traverse OpenPipeline stages in a fixed order — the one the docs list as <em>&quot;ordered in the pipeline sequence of execution&quot;</em>:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Stage</th>
+<th>What you would use it for here</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Processing</strong></td>
+<td>Parse, mask, hash, rename fields — and, if you choose, <strong>Drop record</strong></td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Smartscape node</strong></td>
+<td>Calculate a Smartscape ID; optionally create/update the node (§ 5)</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Smartscape edge</strong></td>
+<td>Record dynamic edges between nodes (§ 5)</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Permission</strong></td>
+<td>Set record-level security context</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Product allocation</strong></td>
+<td>Attribute consumption to a product</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Cost allocation</strong></td>
+<td>Attribute consumption to a cost center</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Bucket assignment</strong></td>
+<td>Assign a bucket — or <strong>No storage assignment</strong></td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>Metric extraction</strong></td>
+<td>Turn the record into a durable metric</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>Davis</strong></td>
+<td>Emit Davis events</td>
+</tr>
+<tr>
+<td>10</td>
+<td><strong>Data extraction</strong></td>
+<td>Emit business events or SDLC events</td>
+</tr>
+</tbody>
+</table>
+<p>Two processors both stop a record being retained, and they are <strong>not</strong> interchangeable:</p>
+<table>
+<thead>
+<tr>
+<th>Processor</th>
+<th>Stage</th>
+<th>Effect (docs, verbatim)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Drop record</strong></td>
+<td>Processing (1)</td>
+<td><em>&quot;Drops a record. The record isn't processed further and isn't stored.&quot;</em></td>
+</tr>
+<tr>
+<td><strong>No storage assignment</strong></td>
+<td>Bucket assignment (7)</td>
+<td><em>&quot;Doesn't store the record after processing. The record continues through all configured pipeline stages and isn't stored only at the end of the pipeline.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The trap:</strong> <em>Drop record</em> sits in stage 1 — <strong>before</strong> Smartscape extraction, metric extraction, Davis and data extraction. Use it for &quot;extract then drop&quot; and you drop the record before anything has been extracted from it. The pipeline reports healthy, the storage bill falls exactly as predicted, and the metrics you built the integration for never appear.</p>
+<p>Note that metric extraction runs <strong>after</strong> bucket assignment. That ordering is safe only because <em>No storage assignment</em> does not end the record's journey — it marks the record as not-to-be-stored and lets it continue through every remaining stage.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJmYTE5Yi1hcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iZmExOWItYXJyb3ctcmVkIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iI0RFMzUwQiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5FeHRyYWN0LCBUaGVuIERpc2NhcmQg4oCUIFN0YWdlIE9yZGVyIERlY2lkZXMgV2hldGhlciBJdCBXb3JrczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5Ud28gcHJvY2Vzc29ycyBib3RoIHN0b3AgcmV0ZW50aW9uLiBPbmx5IG9uZSBvZiB0aGVtIGxldHMgeW91IGV4dHJhY3QgZmlyc3QuPC90ZXh0PgoKICA8IS0tIFBpcGVsaW5lIHN0YWdlcyAtLT4KICA8dGV4dCB4PSI1MiIgeT0iMTEyIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5PcGVuUGlwZWxpbmUgc3RhZ2VzLCBpbiBvcmRlcjwvdGV4dD4KCiAgPCEtLSBTdGFnZSBib3hlcyAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMTI2IiB3aWR0aD0iMTI4IiBoZWlnaHQ9IjY0IiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMiIgcng9IjYiLz4KICA8dGV4dCB4PSIxMDQiIHk9IjE1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+MSBQcm9jZXNzaW5nPC90ZXh0PgogIDx0ZXh0IHg9IjEwNCIgeT0iMTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5wYXJzZSDCtyBtYXNrIMK3IGhhc2g8L3RleHQ+CiAgPHRleHQgeD0iMTA0IiB5PSIxODIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnJlbmFtZTwvdGV4dD4KCiAgPGxpbmUgeDE9IjE2OCIgeTE9IjE1OCIgeDI9IjE5MiIgeTI9IjE1OCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNmYTE5Yi1hcnJvdykiLz4KCiAgPHJlY3QgeD0iMTkyIiB5PSIxMjYiIHdpZHRoPSIxMjgiIGhlaWdodD0iNjQiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMjU2IiB5PSIxNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPjLigJMzIFNtYXJ0c2NhcGU8L3RleHQ+CiAgPHRleHQgeD0iMjU2IiB5PSIxNjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPm5vZGUgKyBlZGdlPC90ZXh0PgogIDx0ZXh0IHg9IjI1NiIgeT0iMTgzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj50b3BvbG9neSBleHRyYWN0aW9uPC90ZXh0PgoKICA8bGluZSB4MT0iMzIwIiB5MT0iMTU4IiB4Mj0iMzQ0IiB5Mj0iMTU4IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2ZhMTliLWFycm93KSIvPgoKICA8cmVjdCB4PSIzNDQiIHk9IjEyNiIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI2NCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI0MTkiIHk9IjE1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+NOKAkzY8L3RleHQ+CiAgPHRleHQgeD0iNDE5IiB5PSIxNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnBlcm1pc3Npb24gwrc8L3RleHQ+CiAgPHRleHQgeD0iNDE5IiB5PSIxODMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnByb2R1Y3QgKyBjb3N0IGFsbG9jYXRpb248L3RleHQ+CgogIDxsaW5lIHgxPSI0OTQiIHkxPSIxNTgiIHgyPSI1MTgiIHkyPSIxNTgiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZmExOWItYXJyb3cpIi8+CgogIDxyZWN0IHg9IjUxOCIgeT0iMTI2IiB3aWR0aD0iMTI4IiBoZWlnaHQ9IjY0IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMiIgcng9IjYiLz4KICA8dGV4dCB4PSI1ODIiIHk9IjE1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+NyBCdWNrZXQ8L3RleHQ+CiAgPHRleHQgeD0iNTgyIiB5PSIxNjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPmFzc2lnbm1lbnQ8L3RleHQ+CiAgPHRleHQgeD0iNTgyIiB5PSIxODMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmJ1Y2tldCBvciBubyBzdG9yYWdlPC90ZXh0PgoKICA8bGluZSB4MT0iNjQ2IiB5MT0iMTU4IiB4Mj0iNjcwIiB5Mj0iMTU4IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2ZhMTliLWFycm93KSIvPgoKICA8cmVjdCB4PSI2NzAiIHk9IjEyNiIgd2lkdGg9IjEwMCIgaGVpZ2h0PSI2NCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI3MjAiIHk9IjE1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+OCBNZXRyaWM8L3RleHQ+CiAgPHRleHQgeD0iNzIwIiB5PSIxNjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPmV4dHJhY3Rpb248L3RleHQ+CiAgPHRleHQgeD0iNzIwIiB5PSIxODMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmR1cmFibGUgbWV0cmljczwvdGV4dD4KCiAgPGxpbmUgeDE9Ijc3MCIgeTE9IjE1OCIgeDI9Ijc5NCIgeTI9IjE1OCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNmYTE5Yi1hcnJvdykiLz4KCiAgPHJlY3QgeD0iNzk0IiB5PSIxMjYiIHdpZHRoPSI5NiIgaGVpZ2h0PSI2NCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI4NDIiIHk9IjE1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+OeKAkzEwIERhdmlzPC90ZXh0PgogIDx0ZXh0IHg9Ijg0MiIgeT0iMTY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4rIGRhdGE8L3RleHQ+CiAgPHRleHQgeD0iODQyIiB5PSIxODMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmV2ZW50IGV4dHJhY3Rpb248L3RleHQ+CgogIDwhLS0gV1JPTkcgcGFuZWwgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjIyOCIgd2lkdGg9IjQxMCIgaGVpZ2h0PSIyNDAiIGZpbGw9IiNERTM1MEIiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMjQ1IiB5PSIyNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPuKclyAgRHJvcCByZWNvcmQg4oCUIGluIHN0YWdlIDE8L3RleHQ+CgogIDxyZWN0IHg9IjYyIiB5PSIyNzIiIHdpZHRoPSIzNjYiIGhlaWdodD0iNTIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0RFMzUwQiIgcng9IjYiLz4KICA8dGV4dCB4PSIyNDUiIHk9IjI5MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+UmVjb3JkIGlzIGdvbmUgYmVmb3JlIHN0YWdlcyAy4oCTMTAgZXZlciBydW48L3RleHQ+CiAgPHRleHQgeD0iMjQ1IiB5PSIzMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm5vIG1ldHJpYyDCtyBubyB0b3BvbG9neSDCtyBubyBldmVudDwvdGV4dD4KCiAgPGxpbmUgeDE9IjEwNCIgeTE9IjE5NiIgeDI9IjEwNCIgeTI9IjI2NiIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjQsMyIgbWFya2VyLWVuZD0idXJsKCNmYTE5Yi1hcnJvdy1yZWQpIi8+CgogIDx0ZXh0IHg9IjYyIiB5PSIzNTIiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPldoYXQgeW91IG9ic2VydmU8L3RleHQ+CiAgPHRleHQgeD0iNjIiIHk9IjM3NCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIFBpcGVsaW5lIHJlcG9ydHMgaGVhbHRoeTwvdGV4dD4KICA8dGV4dCB4PSI2MiIgeT0iMzk0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgU3RvcmFnZSBiaWxsIGZhbGxzIGV4YWN0bHkgYXMgcHJlZGljdGVkPC90ZXh0PgogIDx0ZXh0IHg9IjYyIiB5PSI0MTQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBUaGUgbWV0cmljcyB5b3UgYnVpbHQgdGhpcyBmb3IgbmV2ZXIgYXBwZWFyPC90ZXh0PgoKICA8cmVjdCB4PSI2MiIgeT0iNDI4IiB3aWR0aD0iMzY2IiBoZWlnaHQ9IjI4IiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjE1IiBzdHJva2U9IiNERTM1MEIiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iMjQ1IiB5PSI0NDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPkNvcnJlY3QgdXNlOiByZWNvcmRzIHlvdSB3YW50IGdvbmUgZW50aXJlbHk8L3RleHQ+CgogIDwhLS0gUklHSFQgcGFuZWwgLS0+CiAgPHJlY3QgeD0iNDgwIiB5PSIyMjgiIHdpZHRoPSI0MTAiIGhlaWdodD0iMjQwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjY4NSIgeT0iMjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj7inJMgIE5vIHN0b3JhZ2UgYXNzaWdubWVudCDigJQgaW4gc3RhZ2UgNzwvdGV4dD4KCiAgPHJlY3QgeD0iNTAyIiB5PSIyNzIiIHdpZHRoPSIzNjYiIGhlaWdodD0iNTIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjYiLz4KICA8dGV4dCB4PSI2ODUiIHk9IjI5MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+UmVjb3JkIGNvbnRpbnVlcyB0aHJvdWdoIHN0YWdlcyA44oCTMTAsIHRoZW4gaXMgbm90IHN0b3JlZDwvdGV4dD4KICA8dGV4dCB4PSI2ODUiIHk9IjMxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+bWV0cmljIOKckyDCtyB0b3BvbG9neSDinJMgwrcgZXZlbnQg4pyTIMK3IHN0b3JhZ2Ug4pyXPC90ZXh0PgoKICA8bGluZSB4MT0iNTgyIiB5MT0iMTk2IiB4Mj0iNTgyIiB5Mj0iMjI2IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNCwzIi8+CgogIDx0ZXh0IHg9IjUwMiIgeT0iMzUyIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5XaGF0IHlvdSBrZWVwPC90ZXh0PgogIDx0ZXh0IHg9IjUwMiIgeT0iMzc0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgTWV0cmljcyBmb3IgZGFzaGJvYXJkcywgRGF2aXMsIGFuZCBTTE9zPC90ZXh0PgogIDx0ZXh0IHg9IjUwMiIgeT0iMzk0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgQnVzaW5lc3MgYW5kIHByb2JsZW0gZXZlbnRzIHdpdGggZW50aXR5IGNvbnRleHQ8L3RleHQ+CiAgPHRleHQgeD0iNTAyIiB5PSI0MTQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBObyByYXcgaWRlbnRpdGllcyBvciBkZXN0aW5hdGlvbnMgYXQgcmVzdDwvdGV4dD4KCiAgPHJlY3QgeD0iNTAyIiB5PSI0MjgiIHdpZHRoPSIzNjYiIGhlaWdodD0iMjgiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMTUiIHN0cm9rZT0iIzczQkUyOCIgcng9IjQiLz4KICA8dGV4dCB4PSI2ODUiIHk9IjQ0NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+Q29ycmVjdCB1c2U6IHRoZSBleHRyYWN0LXRoZW4tZGlzY2FyZCBwYXR0ZXJuPC90ZXh0Pgo8L3N2Zz4K" alt="Drop record versus No storage assignment across the OpenPipeline stages" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Processor | Stage | Effect | Correct use |
+|---|---|---|---|
+| Drop record | 1 — Processing | Record is gone before stages 2–10 run: no topology, no metric, no event. Pipeline still reports healthy and the storage bill falls as predicted | Records you want gone entirely |
+| No storage assignment | 7 — Bucket assignment | Record continues through every remaining stage and is not stored at the end: topology yes, metric yes, event yes, storage no | The extract-then-discard pattern |
+Stage order: 1 Processing, 2-3 Smartscape node + edge, 4 Permission, 5-6 Product + cost allocation, 7 Bucket assignment, 8 Metric extraction, 9 Davis, 10 Data extraction.
+For environments where SVG doesn't render
+-->
+<p><strong>Use <code>No storage assignment</code> in the Bucket assignment stage</strong> for the extract-then-discard pattern. The record runs the full gauntlet — parsed, metricized, topology-tagged, event-emitting — and is then simply not persisted. Reserve <code>Drop record</code> for records you want <em>gone</em>: health-check noise, a chatty debug category, a feed you enabled by mistake.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — stage order and both processor definitions quoted above</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment">Configure data storage and retention for logs (DT docs)</a> — <em>&quot;the record continues through all configured pipeline stages and is not stored only at the end of the pipeline. This means you can extract metrics and generate alerts from records that you won't store.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction">Extraction stages in OpenPipeline (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-log-processing-pipeline">Parse log lines and extract a metric (DT docs)</a> — worked parse-and-extract-a-metric example; it has no discard step, so combine it with the <em>No storage assignment</em> step from the bucket-assignment page</sub></li>
+<li><sub><strong>Derived:</strong> that <code>Drop record</code> in stage 1 pre-empts the extractors follows from its definition and the documented stage order; validate on a narrow route before applying it broadly</sub></li>
+</ul>
+</blockquote>
+<h3>4.2 Decide what is worth keeping, by class</h3>
+<table>
+<thead>
+<tr>
+<th>What you extract</th>
+<th>Why it survives</th>
+<th>Retention posture</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Metric</strong> — a rate, a latency percentile, a saturation gauge, a count by dimension</td>
+<td>It is what dashboards, anomaly detection, and SLOs actually read. Cheap to store, cheap to query</td>
+<td><strong>Keep.</strong> Metric reads are not billed as a query capability the way log scans are — see FAQ-09</td>
+</tr>
+<tr>
+<td><strong>Business event</strong> — a meaningful state change worth analyzing individually</td>
+<td>Carries a handful of fields, not a full payload. Queryable, workflow-triggerable</td>
+<td><strong>Keep</strong>, with minimal fields — resist copying the whole record onto the event</td>
+</tr>
+<tr>
+<td><strong>Davis / problem event</strong> — a condition someone must act on</td>
+<td>It is the thing that pages a human and reaches your incident tooling</td>
+<td><strong>Keep</strong> with entity context attached (§ 5)</td>
+</tr>
+<tr>
+<td><strong>Raw record</strong></td>
+<td>Forensics, incident reconstruction, compliance obligation</td>
+<td><strong>Discard by default.</strong> Retain only where security or compliance explicitly asks — and then in an isolated bucket (§ 6)</td>
+</tr>
+</tbody>
+</table>
+<p>The economic argument is in <strong>FAQ-09</strong>: a metric you query on a dashboard every five minutes, forever, costs a fraction of the equivalent recurring log scan. A third-party feed that drives recurring dashboards and alerts is precisely the recurring-query case that rule exists for.</p>
+<p><strong>One caveat to state honestly.</strong> Extraction is <strong>forward-only</strong>. A metric starts existing the moment you configure it — it does not backfill from records already ingested, and it certainly does not backfill from records you dropped. If there is any chance you will want a dimension later, extract it from the start; adding it in month four gives you a metric with no history at the exact moment you need the comparison.</p>
+<hr />
+<p><a id="topology"></a></p>
+<h2>5. Modeling the Vendor's Objects as Topology</h2>
+<p>This is the section that separates an integration that ages well from one that becomes a pile of dashboards nobody trusts.</p>
+<p>The vendor's world contains operationally meaningful objects: applications, connectors, gateways, regions, tenants, collectors. If those exist in Dynatrace only as <em>string fields on log records</em>, then every dashboard filter is a string match, every alert payload is a bag of text, and nothing you build participates in Smartscape. If they exist as <strong>entities</strong>, they get identity, lifetime, tags, relationships, and — crucially — they show up in alert context automatically.</p>
+<p><strong>The good news, and it is more recent than most teams realize:</strong> you no longer need the legacy custom-device API for this. OpenPipeline can extract Smartscape nodes and edges directly from ingested signals, including entirely custom entity types.</p>
+<h3>5.1 How it works</h3>
+<p>A <strong>Smartscape ID</strong> is &quot;a unique identifier calculated from a node type and one or more ordered ID components&quot; — you nominate the node type and which record fields form the identity, and the platform computes a stable ID (for example <code>CUSTOM_TRUCK-0123456789ABCDEF</code>, landing in a field like <code>dt.smartscape.custom_truck</code>).</p>
+<p>Two behaviors sit behind one processor, and the difference matters:</p>
+<ul>
+<li><strong>ID enrichment only</strong> — the processor calculates the ID and stamps it on the record. The record is now <em>associated with that entity in queries</em>, but no node is created. Use this on high-volume signals that reference an entity defined elsewhere.</li>
+<li><strong>Extract node enabled</strong> — the processor additionally &quot;creates or updates the node in Smartscape storage,&quot; including its configured fields and static edges. Use this on the signal that legitimately defines the object.</li>
+</ul>
+<p><strong>Naming is constrained:</strong> a custom node type &quot;must begin with <code>CUSTOM_</code> or <code>EXT_</code>&quot; and &quot;must be unique in your environment.&quot; Pick the prefix scheme once, up front — renaming a node type later orphans every node already extracted under the old name.</p>
+<p><strong>Edges come in two kinds:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Edge kind</th>
+<th>Behavior</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Static</strong></td>
+<td>Stored on the node, inherits its lifetime, and overrides others of the same type when re-extracted</td>
+<td>Structural facts: a connector <em>belongs to</em> a connector group; an application <em>is served by</em> a gateway</td>
+</tr>
+<tr>
+<td><strong>Dynamic</strong></td>
+<td>Recorded at a point in time; requires <strong>both</strong> source and target Smartscape IDs already present on the record</td>
+<td>Observed, time-varying relationships: this gateway <em>served</em> this application during this window</td>
+</tr>
+</tbody>
+</table>
+<p>The dynamic-edge prerequisite is the one that bites. Both IDs must already be on the record when the edge processor runs — which means you calculate them earlier, with node processors in the node stage, even where you do not want those processors to create nodes.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/smartscape-extraction">Smartscape node and edge extraction in OpenPipeline (DT docs)</a> — all quoted definitions, the <code>CUSTOM_</code>/<code>EXT_</code> naming constraint, and the static-vs-dynamic edge distinction, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-topology">Define custom topology via OpenPipeline (DT docs)</a> — the worked node/edge processor configuration this section generalizes, <a href="https://docs.dynatrace.com/docs/platform/grail/smartscape-on-grail">Smartscape on Grail (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>5.2 A modeling checklist</h3>
+<p>Before configuring processors, answer these five questions for each candidate object:</p>
+<ol>
+<li><strong>Is it operationally meaningful?</strong> Would somebody be paged about it, own it, or filter a dashboard by it? If not, it is a dimension, not an entity. Over-modeling is a real cost — every node type is a thing to maintain.</li>
+<li><strong>What is its stable identity?</strong> The ID components must be present on every record that references the object, and must not change when the object is renamed or moved. A hostname is often a poor choice; a vendor-assigned ID is usually a good one.</li>
+<li><strong>Which feed defines it, and which merely mentions it?</strong> Exactly one feed should extract the node. Everything else enriches with the ID only.</li>
+<li><strong>What does it connect to?</strong> Structural relationships are static edges; observed ones are dynamic.</li>
+<li><strong>What is its lifetime?</strong> Set <em>Node validity duration</em> (60–1440 minutes) to match how often the defining feed reports. A node that stops being extracted keeps its last <code>lifetime[end]</code> and drops out of any query whose timeframe starts after that — so absence checks need an explicit <code>from:</code> (§ 5.3).</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/smartscape-extraction">Smartscape node and edge extraction in OpenPipeline (DT docs)</a> — <em>&quot;Define how long the node should stay valid after the last update, from 60 to 1440 minutes.&quot;</em>, <a href="https://docs.dynatrace.com/docs/platform/grail/smartscape-on-grail">Smartscape on Grail (DT docs)</a> — <em>&quot;Based on the query timeframe, you will see only those nodes that have a lifetime overlapping with the query timeframe.&quot;</em></sub></p>
+</blockquote>
+<h3>5.3 Verifying the model</h3>
+<p>Once extraction is running, confirm the topology exists before building anything on it. Note that <code>smartscapeNodes</code> returns <strong>zero rows rather than an error</strong> for a node type that does not exist — a clean empty result is not proof your configuration is right, only that it is syntactically valid.</p>
+<p>Discover which custom types actually landed:</p>
+<pre><code class="language-dql">// Which CUSTOM_* node types exist in this environment?
+// The from: matters: without it only nodes seen in the last 2 hours are returned,
+// so a feed polled hourly or daily can look absent between runs. Set it to at
+// least twice your poll interval.
+// Zero rows is expected before the pipeline first runs, not an error. Confirm it
+// is really that, though: a zero here is also what a wrong node type looks like.
+smartscapeNodes &quot;CUSTOM_*&quot;, from:-7d
+| dedup type
+| fields type
+</code></pre>
+<blockquote>
+<p><sub>Executed 10/02/2026: valid, zero rows on a tenant with no custom pipeline; the control <code>smartscapeNodes &quot;AWS_*&quot;, from:-7d | dedup type</code> returned types, so the wildcard form works. Without <code>from:</code> the query's analysis timeframe was 2 hours.</sub></p>
+</blockquote>
+<p>Then inspect one type, and check for nodes that have stopped being refreshed:</p>
+<pre><code class="language-dql">// Inspect extracted nodes of one custom type, and keep only the live ones.
+//
+// lifetime[end] is a rolling &quot;observed until&quot; timestamp — it is ALWAYS populated,
+// even on a stale node, so it is not a tombstone. Verified 08/27/2026: of 12 HOST
+// nodes, isNull(lifetime[end]) matched 0 and isNotNull matched all 12. Null-testing
+// it selects nothing, always; the inverse selects everything. Compare against now().
+smartscapeNodes CUSTOM_APP_CONNECTOR
+| fieldsAdd last_seen = lifetime[end]
+| filter last_seen &gt; now() - 10m
+| fields id, name, last_seen
+</code></pre>
+<p>Finally, confirm the relationships resolve. Prefer the full <code>traverse</code> syntax with named parameters — the short positional form is accepted but far less readable, and a wrong edge type returns empty rather than erroring:</p>
+<pre><code class="language-dql">// Walk a custom relationship. Edge types are lowercase; node types are uppercase.
+//
+// traverse REPLACES the record with the target node's own fields — id, name, type.
+// There is no sourceName or targetName: DQL resolves unknown identifiers to null
+// WITHOUT raising FIELD_DOES_NOT_EXIST, so selecting them returns the right number
+// of rows with every value empty and no error to tell you (verified 08/27/2026).
+// A wrong edge type likewise returns zero rows with no error — check smartscapeEdges
+// if this comes back empty.
+smartscapeNodes CUSTOM_SECURE_ACCESS_APP
+| traverse edgeTypes: {served_by}, targetTypes: {CUSTOM_APP_CONNECTOR}, direction: forward
+| fields id, name, type
+</code></pre>
+<hr />
+<p><a id="retention"></a></p>
+<h2>6. Isolating What You Do Retain</h2>
+<p>Where § 4 concluded &quot;retain this raw,&quot; the record needs somewhere to go that is not the default bucket.</p>
+<p><strong>Create a dedicated bucket</strong> for the vendor's retained records and assign permissions to it explicitly. Two independent reasons, and either alone justifies it:</p>
+<ul>
+<li><strong>Exposure.</strong> These feeds carry user identities, destinations, device context, and policy outcomes. In the default bucket they are readable by everyone with general log-read access — which is usually a far wider group than the one entitled to see who visited what.</li>
+<li><strong>Retention economics.</strong> A bucket carries its own retention period. Third-party transaction records typically want a <em>shorter</em> retention than application logs; without a dedicated bucket they inherit whatever the default is, indefinitely, at volume.</li>
+</ul>
+<p>Bucket permissions are assigned per bucket through Account Management rather than through general environment roles — which is precisely the property that makes the isolation meaningful.</p>
+<p>Once the bucket exists, confirm the vendor's records are landing where you intended — group the vendor's feed by bucket, rather than counting a bucket's contents:</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment">Configure data storage and retention for logs (DT docs)</a> — per-bucket retention and route-based storage assignment, <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Assign permissions in Grail (DT docs)</a> — <em>&quot;Permissions can be assigned at the bucket, table, record, and field level&quot;</em>, which is what makes a dedicated bucket a real isolation boundary. <strong>Derived:</strong> the exposure argument for a dedicated bucket combines per-bucket permissioning with the identity content of these feeds; no page frames it as a vendor-feed rule.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Where is the vendor's feed landing? Substitute the vendor's log.source
+// (or whichever field your route matches on).
+// Expect one row: your dedicated bucket. A default_logs row means the route
+// or the bucket assignment is wrong.
+// Every record in the window is evaluated, but the bytes scanned follow what the
+// filter matches: one hour read 2.1 GB unfiltered and 0.11 GB with a selective
+// log.source filter on the validation tenant (10/15/2026). A high-volume source
+// still reads its full volume, so keep the window short (see FAQ-09).
+fetch logs, from:-1h
+| filter log.source == &quot;&lt;vendor-source&gt;&quot;
+| summarize records = count(), by:{dt.system.bucket}
+</code></pre>
+<blockquote>
+<p><sub>Executed 10/02/2026 with a real <code>log.source</code> from the validation tenant: one row per bucket, including <code>default_logs</code> for a source split across four buckets — the shape this check is meant to surface. One hour scanned 2.36 GB, no notifications. Re-run 10/15/2026: with the placeholder source the same hour scanned 0.11 GB against 2.1 GB unfiltered, so the bytes scanned follow the matched volume.</sub></p>
+</blockquote>
+<p>Complementary controls worth applying in the Processing stage, before storage:</p>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>When to use it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Mask</strong></td>
+<td>The field's <em>shape</em> matters for debugging but its value does not</td>
+</tr>
+<tr>
+<td><strong>Hash</strong></td>
+<td>You need to correlate on a value across records without being able to read it — the usual answer for user identifiers</td>
+</tr>
+<tr>
+<td><strong>Field removal</strong></td>
+<td>The field has no analytical use at all. Cheapest control; use it first</td>
+</tr>
+</tbody>
+</table>
+<p>Hashing deserves a caveat: it preserves correlation, which is the point, but a hash of a low-cardinality value is reversible by anyone who can enumerate the input space. Usernames drawn from a known directory are a good example. Hashing is a control against casual exposure, not against a determined analyst.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment">Configure data storage and retention for logs (DT docs)</a> — bucket assignment processor and per-bucket permission assignment via Account Management, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a>. <strong>Derived:</strong> the hash-reversibility caveat is a general property of hashing low-cardinality inputs, not a Dynatrace-specific behavior.</sub></p>
+</blockquote>
+<hr />
+<p><a id="normalizing"></a></p>
+<h2>7. Normalizing Dimensions Across Feeds</h2>
+<p>A vendor's feeds will disagree with each other about field names. The same application will be <code>appname</code> in one feed, <code>Application</code> in another, and <code>app_name</code> in the API response. If you carry those differences through to Grail, every cross-feed question becomes a join problem, and the correlation the integration exists to provide never materializes.</p>
+<p><strong>Normalize at ingest, in the Processing stage, once.</strong> Pick your target dimension names and rename into them for every feed. The set that matters is small:</p>
+<table>
+<thead>
+<tr>
+<th>Canonical dimension</th>
+<th>Why it is load-bearing</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>app</code></td>
+<td>The join key between every feed. Get this one right or nothing correlates</td>
+</tr>
+<tr>
+<td><code>user</code> (hashed, per § 6)</td>
+<td>Ties experience to access to transaction</td>
+</tr>
+<tr>
+<td><code>location</code> / <code>region</code></td>
+<td>The most common triage axis, and the one executives ask about first</td>
+</tr>
+<tr>
+<td><code>department</code> / <code>business_unit</code></td>
+<td>Turns a technical dashboard into one a business owner will read</td>
+</tr>
+<tr>
+<td>The vendor's own component identifiers</td>
+<td>Feed the Smartscape ID components in § 5</td>
+</tr>
+</tbody>
+</table>
+<p>Two rules make this durable:</p>
+<ul>
+<li><strong>Normalize to your names, not the vendor's.</strong> Vendor field names change between product versions; your canonical names should not. The rename mapping is the thing that absorbs vendor churn.</li>
+<li><strong>Normalize before extraction, not after.</strong> Metric dimensions and Smartscape ID components are computed from fields as they exist at that stage. Renaming afterwards leaves you with metrics dimensioned on the old names and no way to retrofit them.</li>
+</ul>
+<p>For feeds that are not JSON, parsing happens here too — see <strong>FAQ-15</strong> for DPL, and note especially that DPL does not backtrack, which trips up patterns ported from regex.</p>
+<hr />
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — the Processing stage is where field renames happen, and it runs before the extraction stages, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction">Extraction stages in OpenPipeline (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/smartscape-extraction">Smartscape node and edge extraction in OpenPipeline (DT docs)</a> — ID components are read at extraction time, which is what makes normalize-before-extract load-bearing. <strong>Derived:</strong> the canonical-dimension list is this entry's recommendation, not a documented set.</sub></p>
+</blockquote>
+<p><a id="downstream"></a></p>
+<h2>8. Where This Plugs Into the Rest of the Corpus</h2>
+<p>Once the data is in Grail, normalized, and carrying topology, <strong>nothing downstream is special.</strong> That is the point of the pattern, and it is why this entry stops here rather than continuing into dashboards. Consume it the way you consume everything else:</p>
+<table>
+<thead>
+<tr>
+<th>What you want to build</th>
+<th>Where it is documented</th>
+<th>What the work in this entry buys you</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dashboards</strong></td>
+<td><code>DASH</code> series</td>
+<td>Entities from § 5 become filter dimensions and drill-down targets rather than string matches</td>
+</tr>
+<tr>
+<td><strong>Alerting and routing</strong></td>
+<td><code>ALERT</code> series — ALERT-01 architecture, ALERT-02 choosing detection, ALERT-03 routing and cost, ALERT-04 ServiceNow</td>
+<td>Alerts raised against entities carry topology into the payload automatically, which is what makes downstream correlation and routing work</td>
+</tr>
+<tr>
+<td><strong>SLOs and error budgets</strong></td>
+<td><code>SLO</code> series — SLO-02 for SLI definition, SLO-04 for burn-rate alerting</td>
+<td>Extracted metrics (§ 4) are exactly the shape an SLI wants</td>
+</tr>
+<tr>
+<td><strong>Anomaly detection</strong></td>
+<td><code>AIOPS</code> series</td>
+<td>Davis works on the extracted metrics; it cannot work on records you dropped, which is another argument for extracting generously in § 4</td>
+</tr>
+<tr>
+<td><strong>Synthetic validation</strong></td>
+<td><code>SYNTH</code> series</td>
+<td>Useful for testing a path the vendor's own telemetry cannot see — but check § 2 first; the vendor's experience feed often already answers the question</td>
+</tr>
+<tr>
+<td><strong>Bucket and retention design</strong></td>
+<td><code>ORGNZ</code> series — ORGNZ-02 for buckets</td>
+<td>§ 6 is the summary; ORGNZ is the depth</td>
+</tr>
+<tr>
+<td><strong>Consumption and cost</strong></td>
+<td><code>FINOPS</code> series</td>
+<td>Third-party feeds are a common source of unplanned ingest growth — FINOPS-02 for forecasting, FINOPS-03 for the Cut/Tune/Filter framework</td>
+</tr>
+<tr>
+<td><strong>Query economics</strong></td>
+<td><code>FAQ-09</code></td>
+<td>The metric-versus-log-scan reasoning behind § 4</td>
+</tr>
+</tbody>
+</table>
+<p><strong>On external consumers.</strong> Where an external tool — an event-correlation platform, an ITSM system, an SLO product — is the destination for this data, the work in § 5 is what makes that integration good rather than noisy: a payload carrying an entity, its relationships, and its business context beats a payload carrying a log line. Dynatrace-native equivalents exist for each (Workflows and problem notifications for routing, the SLO app for objectives), and it is worth knowing which you are choosing and why. ALERT-03 covers the routing-and-cost trade-off directly.</p>
+<hr />
+<p><a id="recommended-approach"></a></p>
+<h2>9. Recommended Approach</h2>
+<p>A defensible sequence. The ordering is deliberate — each step's output is the next step's input, and steps 1 and 2 are the ones teams skip and later regret.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Step</th>
+<th>Output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Write down the questions.</strong> Five operational questions the integration must answer, each mapped to a signal class (§ 2)</td>
+<td>A scope you can defend when someone asks for &quot;all the logs&quot;</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Inventory the feeds and their transports.</strong> For each: format, transport, volume estimate, sensitivity, and whether it already flows somewhere (§ 3)</td>
+<td>A route decision per feed, not one blanket route</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Check the Hub.</strong> Determine whether you are adopting a supported path or owning a custom one (§ 3.2)</td>
+<td>An explicit, early decision about who owns the integration</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Get the retention decision signed off.</strong> Which feeds may be retained raw, for how long, with which fields masked or hashed (§ 4, § 6)</td>
+<td>Security approval <em>before</em> the pipeline exists</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Design the topology model.</strong> Objects, ID components, edges — on paper, using the § 5.2 checklist</td>
+<td>A node/edge design you can review before it is expensive to change</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Build one feed end to end.</strong> Route → normalize → extract → topology → discard. One feed, fully finished</td>
+<td>A working reference implementation, and a realistic estimate for the rest</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Verify.</strong> Confirm nodes and edges exist (§ 5.3), metrics are populating, and records are landing in the intended bucket (§ 6)</td>
+<td>Evidence, not assumption</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>Then scale out</strong>, and only then build dashboards, alerts, and SLOs on top (§ 8)</td>
+<td>Downstream work that inherits topology from day one</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The single highest-value decision</strong> is step 5. Extraction and routing can be reworked cheaply. A topology model that nobody designed — where the vendor's objects live on as string fields — is what leaves you, two quarters later, with dashboards that filter on text and alerts that carry no context.</p>
+<hr />
+<p><a id="gotchas"></a></p>
+<h2>10. Common Gotchas</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gotcha</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong><code>Drop record</code> used for extract-then-discard.</strong> It sits in the Processing stage, ahead of every extractor — the record is gone before a metric is made from it</td>
+<td>Use <strong>No storage assignment</strong> in the Bucket assignment stage. <code>Drop record</code> is for records you want gone entirely (§ 4.1)</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Assuming every feed can go direct.</strong> A vendor commonly uses HTTPS for one product line and raw TCP for another; only the first can reach the ingest API unaided</td>
+<td>Route per feed, from the transport (§ 3)</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Extraction is forward-only.</strong> A metric added in month four has no history in months one through three</td>
+<td>Extract the dimensions you might want from the start (§ 4.2)</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Dynamic edges silently produce nothing</strong> when both Smartscape IDs are not already on the record</td>
+<td>Calculate both IDs with node processors in the node stage first, even where you do not want them to create nodes (§ 5.1)</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>A wrong node or edge type returns zero rows, not an error.</strong> Empty results look identical to &quot;not configured yet&quot;</td>
+<td>Verify with <code>smartscapeNodes &quot;CUSTOM_*&quot;, from:-7d</code> (a <code>from:</code> wider than your poll interval) and <code>smartscapeEdges</code> before concluding the pipeline is broken (§ 5.3)</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Renaming a custom node type orphans existing nodes.</strong> The type is part of the ID</td>
+<td>Settle the <code>CUSTOM_</code> / <code>EXT_</code> naming scheme before the first extraction (§ 5.1)</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Normalizing after extraction.</strong> Metric dimensions and ID components are computed from fields as they stand at that stage</td>
+<td>Rename in the Processing stage, ahead of everything (§ 7)</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>Retaining raw into the default bucket</strong> because retention was never explicitly decided</td>
+<td>Dedicated bucket with its own permissions and retention, or discard (§ 6)</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>Hashing a low-cardinality identifier and calling it anonymized.</strong> A hashed username from a known directory is enumerable</td>
+<td>Hash for correlation, not as a privacy guarantee; remove the field where you do not need to correlate on it (§ 6)</td>
+</tr>
+<tr>
+<td>10</td>
+<td><strong>Shipping only the access logs</strong> because they were the easy feed, then discovering they cannot answer experience questions</td>
+<td>Map questions to signal classes first (§ 2)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIOPS-02: Anomaly Detection</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">AIOPS — Dynatrace Intelligence</a><span class="sep">/</span><span aria-current="page">AIOPS-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>AIOPS-02: Anomaly Detection</h1>
+<blockquote>
+<p><strong>Series:</strong> AIOPS — Dynatrace Intelligence | <strong>Notebook:</strong> 2 of 8 | <strong>Created:</strong> May 2026 | <strong>Last Updated:</strong> 10/31/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Anomaly detection in Dynatrace is <strong>Predictive AI in action</strong> — the platform learns what normal looks like and surfaces deviations. Five mechanisms cover the practical detection landscape: static thresholds, auto-adaptive thresholds, seasonal baselines, multi-dimensional baselines, and novelty / forecasting.</p>
+<p>Most teams over-rely on static thresholds and miss what adaptive and seasonal detection would catch. This notebook walks the five mechanisms, when to use each, and how to test them against your data using the Davis analyzer MCP tools.</p>
+<p><strong>Audience:</strong> Platform admin tuning detection; SRE writing custom alerts.</p>
+<p><strong>Outcome:</strong> A working understanding of which detector to pick for each metric type, and live examples against your tenant.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+QW5vbWFseSBEZXRlY3Rpb24gTWVjaGFuaXNtczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5GaXZlIGRldGVjdGlvbiBhcHByb2FjaGVzIOKAlCBwaWNrIGJ5IG1ldHJpYyBjaGFyYWN0ZXIsIG5vdCBieSBoYWJpdDwvdGV4dD4KCiAgPCEtLSAxLiBTdGF0aWMgdGhyZXNob2xkIC0tPgogIDxyZWN0IHg9IjQwIiB5PSI5NSIgd2lkdGg9IjE3MCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiNERTM1MEIiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTI1IiB5PSIxMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjEuIFN0YXRpYzwvdGV4dD4KICA8dGV4dCB4PSIxMjUiIHk9IjE0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+VGhyZXNob2xkPC90ZXh0PgogIDxsaW5lIHgxPSI2MCIgeTE9IjE1NSIgeDI9IjE5MCIgeTI9IjE1NSIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIxMjUiIHk9IjE3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Rml4ZWQgbGltaXQ8L3RleHQ+CiAgPHRleHQgeD0iMTI1IiB5PSIxOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk1hbnVhbCBjb25maWc8L3RleHQ+CiAgPHRleHQgeD0iMTI1IiB5PSIyMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPlVzZSBmb3I6PC90ZXh0PgogIDx0ZXh0IHg9IjEyNSIgeT0iMjM3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TTE8gLyBjb250cmFjdDwvdGV4dD4KICA8dGV4dCB4PSIxMjUiIHk9IjI1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+bGltaXRzPC90ZXh0PgoKICA8IS0tIDIuIEF1dG8tYWRhcHRpdmUgLS0+CiAgPHJlY3QgeD0iMjI1IiB5PSI5NSIgd2lkdGg9IjE3MCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMzEwIiB5PSIxMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjIuIEF1dG8tQWRhcHRpdmU8L3RleHQ+CiAgPHRleHQgeD0iMzEwIiB5PSIxNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkJhc2VsaW5lPC90ZXh0PgogIDxsaW5lIHgxPSIyNDUiIHkxPSIxNTUiIHgyPSIzNzUiIHkyPSIxNTUiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMzEwIiB5PSIxNzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkxlYXJucyB0cmVuZDwvdGV4dD4KICA8dGV4dCB4PSIzMTAiIHk9IjE5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Tm8gc2Vhc29uYWxpdHk8L3RleHQ+CiAgPHRleHQgeD0iMzEwIiB5PSIyMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPlVzZSBmb3I6PC90ZXh0PgogIDx0ZXh0IHg9IjMxMCIgeT0iMjM3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5UcmVuZGluZyBtZXRyaWNzPC90ZXh0PgogIDx0ZXh0IHg9IjMxMCIgeT0iMjUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj53L28gY3ljbGVzPC90ZXh0PgoKICA8IS0tIDMuIFNlYXNvbmFsIC0tPgogIDxyZWN0IHg9IjQxMCIgeT0iOTUiIHdpZHRoPSIxNzAiIGhlaWdodD0iMTcwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjQ5NSIgeT0iMTIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj4zLiBTZWFzb25hbDwvdGV4dD4KICA8dGV4dCB4PSI0OTUiIHk9IjE0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+QmFzZWxpbmU8L3RleHQ+CiAgPGxpbmUgeDE9IjQzMCIgeTE9IjE1NSIgeDI9IjU2MCIgeTI9IjE1NSIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0OTUiIHk9IjE3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RGFpbHkvd2Vla2x5PC90ZXh0PgogIDx0ZXh0IHg9IjQ5NSIgeT0iMTk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5wYXR0ZXJuczwvdGV4dD4KICA8dGV4dCB4PSI0OTUiIHk9IjIyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+VXNlIGZvcjo8L3RleHQ+CiAgPHRleHQgeD0iNDk1IiB5PSIyMzciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkJ1c2luZXNzIGhvdXJzPC90ZXh0PgogIDx0ZXh0IHg9IjQ5NSIgeT0iMjUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5jeWNsaWNhbCB0cmFmZmljPC90ZXh0PgoKICA8IS0tIDQuIE11bHRpLWRpbSAtLT4KICA8cmVjdCB4PSI1OTUiIHk9Ijk1IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjE3MCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI2ODAiIHk9IjEyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+NC4gTXVsdGktRGltPC90ZXh0PgogIDx0ZXh0IHg9IjY4MCIgeT0iMTQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5CYXNlbGluZTwvdGV4dD4KICA8bGluZSB4MT0iNjE1IiB5MT0iMTU1IiB4Mj0iNzQ1IiB5Mj0iMTU1IiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjY4MCIgeT0iMTc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5QZXItZGltZW5zaW9uPC90ZXh0PgogIDx0ZXh0IHg9IjY4MCIgeT0iMTk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5EYXZpcy1tYW5hZ2VkPC90ZXh0PgogIDx0ZXh0IHg9IjY4MCIgeT0iMjIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5Vc2UgZm9yOjwvdGV4dD4KICA8dGV4dCB4PSI2ODAiIHk9IjIzNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UlVNLCBoaWdoPC90ZXh0PgogIDx0ZXh0IHg9IjY4MCIgeT0iMjUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5jYXJkaW5hbGl0eTwvdGV4dD4KCiAgPCEtLSA1LiBOb3ZlbHR5L0ZvcmVjYXN0IC0tPgogIDxyZWN0IHg9Ijc4MCIgeT0iOTUiIHdpZHRoPSIxMTAiIGhlaWdodD0iMTcwIiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjgzNSIgeT0iMTIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj41LiBOb3ZlbHR5PC90ZXh0PgogIDx0ZXh0IHg9IjgzNSIgeT0iMTM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj4rIEZvcmVjYXN0PC90ZXh0PgogIDxsaW5lIHgxPSI3OTUiIHkxPSIxNTMiIHgyPSI4NzUiIHkyPSIxNTMiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iODM1IiB5PSIxNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlVua25vd248L3RleHQ+CiAgPHRleHQgeD0iODM1IiB5PSIxOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnVua25vd25zPC90ZXh0PgogIDx0ZXh0IHg9IjgzNSIgeT0iMjE3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5Vc2UgZm9yOjwvdGV4dD4KICA8dGV4dCB4PSI4MzUiIHk9IjIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Y2FwYWNpdHk8L3RleHQ+CiAgPHRleHQgeD0iODM1IiB5PSIyNDkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnBsYW5uaW5nPC90ZXh0PgoKICA8IS0tIERlY2lzaW9uIGZsb3cgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjI5NSIgd2lkdGg9Ijg1MCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIzMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkRlY2lzaW9uIEZsb3c8L3RleHQ+CgogIDx0ZXh0IHg9IjYwIiB5PSIzNTAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPjEuIEhhcmQgU0xPIG9yIGNvbnRyYWN0dWFsIGxpbWl0PzwvdGV4dD4KICA8dGV4dCB4PSIzMjAiIHk9IjM1MCIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+4oaSIFN0YXRpYyB0aHJlc2hvbGQ8L3RleHQ+CgogIDx0ZXh0IHg9IjYwIiB5PSIzNzIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPjIuIFJlY3VycmluZyB3ZWVrbHkgLyBkYWlseSBwYXR0ZXJucz88L3RleHQ+CiAgPHRleHQgeD0iMzIwIiB5PSIzNzIiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPuKGkiBTZWFzb25hbCBiYXNlbGluZTwvdGV4dD4KCiAgPHRleHQgeD0iNjAiIHk9IjM5NCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+My4gVHJlbmRzIGJ1dCBubyBzZWFzb25hbGl0eT88L3RleHQ+CiAgPHRleHQgeD0iMzIwIiB5PSIzOTQiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPuKGkiBBdXRvLWFkYXB0aXZlIGJhc2VsaW5lPC90ZXh0PgoKICA8dGV4dCB4PSI1MTAiIHk9IjM1MCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+NC4gUlVNIC8gaGlnaC1jYXJkaW5hbGl0eT88L3RleHQ+CiAgPHRleHQgeD0iNzMwIiB5PSIzNTAiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPuKGkiBEYXZpcyBoYW5kbGVzIGl0PC90ZXh0PgoKICA8dGV4dCB4PSI1MTAiIHk9IjM3MiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+NS4gSHVudGluZyB1bmtub3duIHVua25vd25zPzwvdGV4dD4KICA8dGV4dCB4PSI3MzAiIHk9IjM3MiIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+4oaSIE5vdmVsdHkgZGV0ZWN0aW9uPC90ZXh0PgoKICA8dGV4dCB4PSI1MTAiIHk9IjM5NCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+Ni4gQ2FwYWNpdHkgcGxhbm5pbmc/PC90ZXh0PgogIDx0ZXh0IHg9IjczMCIgeT0iMzk0IiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj7ihpIgRm9yZWNhc3QgYW5hbHl6ZXI8L3RleHQ+CgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEyIiBmb250LXN0eWxlPSJpdGFsaWMiPkFudGktcGF0dGVybjogc3RhdGljIHRocmVzaG9sZHMgb24gdHJhZmZpYy1jb3JyZWxhdGVkIG1ldHJpY3MuIFRoZXkgYWxlcnQgb24gZXZlcnkgb2ZmLXBlYWsgaG91ci48L3RleHQ+Cjwvc3ZnPgo=" alt="Anomaly Detection Mechanisms" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Mechanism | Best for |
+|-----------|----------|
+| Static threshold | Hard SLO / contractual limits |
+| Auto-adaptive | Trending baselines |
+| Seasonal baseline | Recurring patterns (business hours, weekly) |
+| Multi-dimensional baseline | High-cardinality metrics (per-region, per-browser) |
+| Novelty / forecast | Never-seen-before patterns; capacity planning |
+For environments where SVG doesn't render
+-->
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#mechanisms">The Five Detection Mechanisms</a></li>
+<li><a href="#picking">Picking the Right Detector</a></li>
+<li><a href="#surface">Configuration Surface: App vs. Settings vs. Code</a></li>
+<li><a href="#building">Building a Davis Anomaly Detector</a></li>
+<li><a href="#dql-alerts">Custom Alerts via DQL</a></li>
+<li><a href="#schemas">Metric Events and Settings 2.0 Schemas</a></li>
+<li><a href="#analyzers">Testing Detectors with Davis Analyzers (MCP)</a></li>
+<li><a href="#volume">Anomaly Volume in Your Tenant</a></li>
+<li><a href="#cross">Cross-Series Pointers</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS Gen3 with Anomaly Detection app installed (custom alerts are created in <strong>Settings</strong> from SaaS 1.344 — § 3)</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>davis:analyzers:execute</code>, <code>settings:objects:read/write</code>, <code>storage:events:read</code></td>
+</tr>
+<tr>
+<td><strong>MCP</strong></td>
+<td>Dynatrace MCP server (for AIOPS-04 / AIOPS-06 integration); analyzers also exposed in the app</td>
+</tr>
+<tr>
+<td><strong>Optional</strong></td>
+<td>Monaco / Terraform for config-as-code (see AUTOM-03 / AUTOM-04)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="mechanisms"></a></p>
+<h2>1. The Five Detection Mechanisms</h2>
+<h3>1.1 Static threshold</h3>
+<p>Hard limit: <em>response time must be &lt; 1 s</em>. Trips when the metric crosses the line. Configured manually. Fast to set up, but brittle — a threshold that fits Tuesday at 3 AM rarely fits Friday at noon.</p>
+<p><strong>Use when:</strong> an SLO, contract, or capacity ceiling defines the limit. Don't use for anything that varies with traffic.</p>
+<h3>1.2 Auto-adaptive threshold</h3>
+<p>Davis learns the metric's baseline and shifts the detection threshold as the baseline moves. No seasonal awareness — purely adaptive to recent trend.</p>
+<p><strong>Use when:</strong> the metric trends over time but doesn't have weekly / daily seasonality. Service throughput on a steadily-growing app is a classic fit. Newly deployed or newly changed traffic needs about a week to produce a representative baseline — see the history-window note below.</p>
+<h3>1.3 Seasonal baseline</h3>
+<p>Davis learns the metric's daily and weekly patterns, trained on the last 14 days. Detection considers the <em>expected</em> pattern — Tuesday at 3 AM and Friday at noon get different thresholds.</p>
+<p><strong>Use when:</strong> the metric has obvious recurrence — business hours, weekday/weekend differences, monthly billing cycles. Give it roughly two weeks before trusting day-of-week distinctions — see below.</p>
+<h3>1.4 Multi-dimensional (automated) baseline</h3>
+<p>Davis builds baselines per-dimension automatically — per region, per browser, per OS, per user-action. You don't configure this; the platform does it under the hood for RUM-like metrics.</p>
+<p><strong>Use when:</strong> you don't — Davis chooses. Your job is to let the high-cardinality dimensions through to it (don't pre-aggregate them away).</p>
+<blockquote>
+<p><strong>This is not a licence to split <em>your own</em> detectors by a high-cardinality dimension.</strong> Davis's multi-dimensional baseline consumes the dimensions internally and still emits grouped problems. A custom detector grouped by a volatile dimension — application version, pod name, HTTP status code — emits a separate alert <em>per dimension value</em>: volume then scales with your deployment frequency, and alerts strand themselves on entities that no longer exist. Feed dimensions to Davis; do not fan your own alerting out across them. ALERT-02 §3 carries this as an anti-pattern.</p>
+</blockquote>
+<h3>1.5 Novelty detection and forecasting</h3>
+<p><strong>Novelty</strong> flags patterns the model has never seen — sudden new error types, never-before metric shapes. <strong>Forecasting</strong> projects a series forward, useful for capacity planning and trend extrapolation.</p>
+<p><strong>Use when:</strong> you're hunting for <em>unknown unknowns</em> (novelty) or projecting growth (forecast). Both available as Davis analyzers — see Section 7.</p>
+<p><strong>How much history before you can trust it.</strong> Auto-adaptive detection calculates its threshold from a trailing <strong>7-day</strong> reference window; seasonal baseline uses a trailing <strong>14-day</strong> window. A service that was just deployed, or whose traffic pattern just changed, won't have a representative auto-adaptive baseline for about a week, and won't have enough history to distinguish weekday from weekend behavior for about two — a detector built on either mechanism before then is judging against an incomplete picture, not a wrong one.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/auto-adaptive-threshold">Auto-adaptive thresholds for anomaly detection (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/reference/ai-models/seasonal-baseline">Seasonal baseline (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/adjust-sensitivity-anomaly-detection/adjust-sensitivity-services">Adjust the sensitivity of anomaly detection for services (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="picking"></a></p>
+<h2>2. Picking the Right Detector</h2>
+<p>A simple decision flow:</p>
+<ol>
+<li><em>Is there a hard contractual or SLO limit?</em> → <strong>Static threshold.</strong></li>
+<li><em>Does the metric have recurring weekly/daily patterns?</em> → <strong>Seasonal baseline.</strong></li>
+<li><em>Does it trend over time without strong seasonality?</em> → <strong>Auto-adaptive threshold.</strong></li>
+<li><em>Is it RUM / high-cardinality user-facing?</em> → <strong>Davis handles it; don't pre-aggregate.</strong></li>
+<li><em>Are you hunting unknown unknowns?</em> → <strong>Novelty detection.</strong></li>
+<li><em>Capacity planning?</em> → <strong>Forecasting.</strong></li>
+</ol>
+<p><strong>Anti-pattern alert:</strong> static thresholds on traffic-correlated metrics. They alert on every off-peak hour and on every traffic spike. Move to seasonal or auto-adaptive.</p>
+<p><a id="surface"></a></p>
+<h2>3. Configuration Surface: App vs. Settings vs. Code</h2>
+<p>Three places to configure detection — pick one per environment, not one per detector.</p>
+<table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Anomaly Detection app</strong></td>
+<td>Exploration, one-off detectors, quick wins. Best for SREs in the moment.</td>
+</tr>
+<tr>
+<td><strong>Settings 2.0 (UI)</strong></td>
+<td>Steady-state detection that's been validated; lives under specific settings schemas.</td>
+</tr>
+<tr>
+<td><strong>Config-as-code (Monaco / Terraform)</strong></td>
+<td>Anything you want versioned, reviewable, and reproducible across environments.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Custom alerts move to Settings (SaaS 1.344).</strong> <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones.&quot;</em> SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the <strong>Anomaly Detection</strong> app is where custom alerts are created, and the app-based build in § 4 and § 5 is the working path there.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app">Anomaly Detection (DT docs)</a> — <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings.&quot;</em></sub></p>
+</blockquote>
+<p>Production teams should converge on config-as-code. The app is the right place to <em>discover</em> what to alert on — but the moment a detector matters in production, it should live in source control. See <strong>AUTOM-03</strong> (Monaco) and <strong>AUTOM-04</strong> (Terraform) for the patterns.</p>
+<p><a id="building"></a></p>
+<h2>4. Building a Davis Anomaly Detector</h2>
+<p>Sections 1–3 told you <em>which</em> mechanism to pick and <em>where</em> to configure it. This section walks the actual build in the <strong>Anomaly Detection app</strong> — the four steps that turn a DQL query into a routable Davis event. On SaaS 1.344 and later, custom alerts are created in <strong>Settings</strong> instead (§ 3).</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+QnVpbGRpbmcgYSBEYXZpcyBhbm9tYWx5IGRldGVjdG9yPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPkZvdXIgc3RlcHMgZnJvbSBhIERRTCBxdWVyeSB0byBhIHJvdXRhYmxlIERhdmlzIGV2ZW50PC90ZXh0PgoKICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImZsb3ciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBTdGVwIDE6IFF1ZXJ5IC0tPgogIDxyZWN0IHg9IjMwIiB5PSI5MiIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIzNjAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTMwIiB5PSIxMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjEgwrcgUXVlcnk8L3RleHQ+CiAgPHJlY3QgeD0iNDgiIHk9IjEzNCIgd2lkdGg9IjE2NCIgaGVpZ2h0PSIxMjAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgcng9IjYiLz4KICA8dGV4dCB4PSIxMzAiIHk9IjE1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+dGltZXNlcmllczwvdGV4dD4KICA8dGV4dCB4PSIxMzAiIHk9IjE3NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dGhlIG1ldHJpYyB0byB3YXRjaDwvdGV4dD4KICA8dGV4dCB4PSIxMzAiIHk9IjE5OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+bm8gZnJvbTogaW4gdGltZXNlcmllczwvdGV4dD4KICA8dGV4dCB4PSIxMzAiIHk9IjIyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Ynk6IGRpbWVuc2lvbnM8L3RleHQ+CiAgPHRleHQgeD0iMTMwIiB5PSIyNDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnByb3RvdHlwZSBpbiBhIG5vdGVib29rPC90ZXh0PgogIDx0ZXh0IHg9IjEzMCIgeT0iMzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5ubyBzdGF0aWMgZmlsdGVyIOKAlDwvdGV4dD4KICA8dGV4dCB4PSIxMzAiIHk9IjMxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+dGhlIGFuYWx5emVyIGp1ZGdlczwvdGV4dD4KICA8dGV4dCB4PSIxMzAiIHk9IjMzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+dGhlIHNlcmllczwvdGV4dD4KCiAgPCEtLSBTdGVwIDI6IEFuYWx5emVyIC0tPgogIDxyZWN0IHg9IjI2MiIgeT0iOTIiIHdpZHRoPSIyMDAiIGhlaWdodD0iMzYwIiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjM2MiIgeT0iMTE2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj4yIMK3IEFuYWx5emVyPC90ZXh0PgogIDxyZWN0IHg9IjI4MCIgeT0iMTM0IiB3aWR0aD0iMTY0IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMzYyIiB5PSIxNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlN0YXRpYyB0aHJlc2hvbGQ8L3RleHQ+CiAgPHRleHQgeD0iMzYyIiB5PSIxNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmhhcmQgU0xPIC8gY29udHJhY3QgbGltaXQ8L3RleHQ+CiAgPHJlY3QgeD0iMjgwIiB5PSIxOTAiIHdpZHRoPSIxNjQiIGhlaWdodD0iNDgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgcng9IjYiLz4KICA8dGV4dCB4PSIzNjIiIHk9IjIxMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+QXV0by1hZGFwdGl2ZTwvdGV4dD4KICA8dGV4dCB4PSIzNjIiIHk9IjIyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dHJlbmQsIG5vIHNlYXNvbmFsaXR5PC90ZXh0PgogIDxyZWN0IHg9IjI4MCIgeT0iMjQ2IiB3aWR0aD0iMTY0IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMzYyIiB5PSIyNjciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlNlYXNvbmFsIGJhc2VsaW5lPC90ZXh0PgogIDx0ZXh0IHg9IjM2MiIgeT0iMjg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5yZWN1cnJpbmcgcGF0dGVybnM8L3RleHQ+CiAgPHJlY3QgeD0iMjgwIiB5PSIzMDYiIHdpZHRoPSIxNjQiIGhlaWdodD0iMTMyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMzYyIiB5PSIzMjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPnR1bmluZyBrbm9iczwvdGV4dD4KICA8dGV4dCB4PSIzNjIiIHk9IjM0NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dG9sZXJhbmNlIC8gc2Vuc2l0aXZpdHk8L3RleHQ+CiAgPHRleHQgeD0iMzYyIiB5PSIzNjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmFsZXJ0Q29uZGl0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjM2MiIgeT0iMzgyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj52aW9sYXRpbmdTYW1wbGVzPC90ZXh0PgogIDx0ZXh0IHg9IjM2MiIgeT0iNDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5zbGlkaW5nV2luZG93PC90ZXh0PgogIDx0ZXh0IHg9IjM2MiIgeT0iNDE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5kZWFsZXJ0aW5nU2FtcGxlczwvdGV4dD4KCiAgPCEtLSBTdGVwIDM6IEV2ZW50IHRlbXBsYXRlIC0tPgogIDxyZWN0IHg9IjQ5NCIgeT0iOTIiIHdpZHRoPSIyMDAiIGhlaWdodD0iMzYwIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjU5NCIgeT0iMTE2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj4zIMK3IEV2ZW50IHRlbXBsYXRlPC90ZXh0PgogIDxyZWN0IHg9IjUxMiIgeT0iMTM0IiB3aWR0aD0iMTY0IiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiByeD0iNiIvPgogIDx0ZXh0IHg9IjU5NCIgeT0iMTU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5kZWZpbmVzIHRoZSBldmVudDwvdGV4dD4KICA8dGV4dCB4PSI1OTQiIHk9IjE3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+bmFtZSArIGRlc2NyaXB0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjU5NCIgeT0iMTk4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5ldmVudCB0eXBlPC90ZXh0PgogIDx0ZXh0IHg9IjU5NCIgeT0iMjE2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4oQ1VTVE9NX0FMRVJULCBldGMuKTwvdGV4dD4KICA8dGV4dCB4PSI1OTQiIHk9IjIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+cHJvcGVydGllczwvdGV4dD4KICA8dGV4dCB4PSI1OTQiIHk9IjI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+e2RpbXM6Li4ufSBwbGFjZWhvbGRlcnM8L3RleHQ+CiAgPHRleHQgeD0iNTk0IiB5PSIyODQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnRlYW0gwrcgYXJlYSDCtyBzZXJ2aWNlPC90ZXh0PgogIDx0ZXh0IHg9IjU5NCIgeT0iMzEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj50aGVzZSBiZWNvbWU8L3RleHQ+CiAgPHRleHQgeD0iNTk0IiB5PSIzMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnJvdXRpbmcgbWV0YWRhdGE8L3RleHQ+CiAgPHJlY3QgeD0iNTEyIiB5PSIzNDYiIHdpZHRoPSIxNjQiIGhlaWdodD0iOTIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjYiLz4KICA8dGV4dCB4PSI1OTQiIHk9IjM3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+ZW5yaWNoIGhlcmUgPTwvdGV4dD4KICA8dGV4dCB4PSI1OTQiIHk9IjM5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+cm91dGUgbGF0ZXI8L3RleHQ+CiAgPHRleHQgeD0iNTk0IiB5PSI0MTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPldGTE9XIGZpbHRlcnMgb24gdGhpczwvdGV4dD4KCiAgPCEtLSBTdGVwIDQ6IERhdmlzIGV2ZW50IC0tPgogIDxyZWN0IHg9IjcyNiIgeT0iOTIiIHdpZHRoPSIxNzQiIGhlaWdodD0iMzYwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjgxMyIgeT0iMTE2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj40IMK3IERhdmlzIGV2ZW50PC90ZXh0PgogIDxyZWN0IHg9Ijc0MiIgeT0iMTUwIiB3aWR0aD0iMTQyIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNiIvPgogIDx0ZXh0IHg9IjgxMyIgeT0iMTg2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5maXJlcyBvbiBicmVhY2g8L3RleHQ+CiAgPHRleHQgeD0iODEzIiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnN1cmZhY2VzIGFzIGE8L3RleHQ+CiAgPHRleHQgeD0iODEzIiB5PSIyMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkRhdmlzIHByb2JsZW08L3RleHQ+CiAgPHRleHQgeD0iODEzIiB5PSIyNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKGkiByb3V0aW5nICZhbXA7IFNMT3M8L3RleHQ+CiAgPHJlY3QgeD0iNzQyIiB5PSIyODgiIHdpZHRoPSIxNDIiIGhlaWdodD0iMTIwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iODEzIiB5PSIzMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPnByb21vdGUgdG8gY29kZTwvdGV4dD4KICA8dGV4dCB4PSI4MTMiIHk9IjMzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YnVpbHRpbjpkYXZpcy48L3RleHQ+CiAgPHRleHQgeD0iODEzIiB5PSIzNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmFub21hbHktZGV0ZWN0b3JzPC90ZXh0PgogIDx0ZXh0IHg9IjgxMyIgeT0iMzc2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Nb25hY28gLyBUZXJyYWZvcm08L3RleHQ+CiAgPHRleHQgeD0iODEzIiB5PSIzOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm9uY2UgdmFsaWRhdGVkPC90ZXh0PgoKICA8IS0tIGFycm93cyBiZXR3ZWVuIHN0ZXBzIC0tPgogIDxsaW5lIHgxPSIyMzAiIHkxPSIyNzIiIHgyPSIyNjIiIHkyPSIyNzIiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZmxvdykiLz4KICA8bGluZSB4MT0iNDYyIiB5MT0iMjcyIiB4Mj0iNDk0IiB5Mj0iMjcyIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Zsb3cpIi8+CiAgPGxpbmUgeDE9IjY5NCIgeTE9IjI3MiIgeDI9IjcyNiIgeTI9IjI3MiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNmbG93KSIvPgoKICA8bGluZSB4MT0iNDAiIHkxPSI0NzgiIHgyPSI4OTAiIHkyPSI0NzgiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDY1IiB5PSI0OTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTEiPkFub21hbHkgRGV0ZWN0aW9uIGFwcCBmb3IgZGlzY292ZXJ5IMK3IGNvbmZpZy1hcy1jb2RlIGZvciBwcm9kdWN0aW9uPC90ZXh0Pgo8L3N2Zz4K" alt="Building a Davis anomaly detector" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | What you do | Key choices |
+|------|-------------|-------------|
+| 1 · Query | Provide a `timeseries` query for the metric to watch | no `from:` in a `timeseries` detector query; `by:` dimensions; prototype in a notebook first |
+| 2 · Analyzer | Choose how the series is judged | Static threshold / Auto-adaptive / Seasonal baseline + tuning |
+| 3 · Event template | Define the event that fires | Name, description, event type, properties with `{dims:...}` |
+| 4 · Davis event | Detector fires on breach | Surfaces as a Davis problem → routing & SLOs; promote to config-as-code |
+For environments where SVG doesn't render
+-->
+<h3>Step 1 — The query contract</h3>
+<p>The detector samples a <code>timeseries</code> query on a schedule. Critically, <strong>you do not write a <code>filter ... &gt; threshold</code> in the detector query</strong> — the analyzer (Step 2) is what decides whether the series is anomalous. Your query's job is to <em>return the metric</em>, grouped by the dimensions you want to alert per (<code>by:{...}</code>). Don't put <code>from:</code> or <code>to:</code> in a <code>timeseries</code> detector query.</p>
+<blockquote>
+<p><strong>Develop the query in a notebook first.</strong> This is the notebook-as-scratchpad pattern: write and run the <code>timeseries</code> here, confirm it returns the shape you expect, then paste it into the detector. A query that returns nothing in a notebook will silently never fire as a detector.</p>
+</blockquote>
+<h3>Step 1a — Records-based detectors for sparse signals</h3>
+<p>Not every signal is a metric series. For a condition that lives in raw logs or events and occurs rarely — failed logins, a specific exception, a licence error — set the detector's <strong>Data type</strong> to <strong>Records</strong> instead of a metric, and give it a deliberately large aggregation window:</p>
+<pre><code class="language-dql">fetch logs, from:now() - 60m
+| filter matchesPhrase(content, &quot;authentication failed&quot;)
+| summarize failed_login_count = count()
+| filter failed_login_count &gt; 500
+</code></pre>
+<p>With a 60-minute aggregation window, set the detector's <strong>Delay</strong> to <strong>60 Minutes</strong> so the evaluation window and the execution cadence line up. Two things improve at once:</p>
+<ul>
+<li><strong>Noise.</strong> A sparse signal evaluated minute by minute produces false positives from ordinary clustering. Five failed logins in one minute is nothing; 500 in an hour is something. The window <em>is</em> the tuning.</li>
+<li><strong>Cost.</strong> The detector runs once an hour rather than sixty times — a 60× reduction in evaluations against raw log data. Querying raw records on every evaluation is the expensive shape (FAQ-09, FINOPS-03), and widening the window is the cheapest mitigation short of extracting a metric at ingest (OPIPE).</li>
+</ul>
+<blockquote>
+<p><strong>Prototype this one especially carefully.</strong> The query above is syntactically valid and executes, but on the tenant it was tested against <code>&quot;authentication failed&quot;</code> matched nothing, so <code>summarize</code> returned a single row with <code>failed_login_count = 0</code> and the final <code>filter</code> removed even that. Zero rows is precisely the silent-detector failure described above — the detector would install cleanly and never fire. Run the query <em>without</em> the threshold filter first and confirm the count is non-zero before you trust the phrase.</p>
+</blockquote>
+<p>If the condition recurs often enough to warrant continuous watching, extract it to a metric in OpenPipeline and put an ordinary metric detector on that instead. Records-based detection is the right tool for genuinely sparse conditions, not a general substitute.</p>
+<h3>Step 2 — The analyzer and its tuning knobs</h3>
+<p>Apply one analyzer to the series:</p>
+<table>
+<thead>
+<tr>
+<th>Analyzer</th>
+<th>Judges against</th>
+<th>Use when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Static threshold</strong></td>
+<td>A fixed line</td>
+<td>A hard SLO / contract / capacity ceiling</td>
+</tr>
+<tr>
+<td><strong>Auto-adaptive threshold</strong></td>
+<td>A learned, drifting baseline</td>
+<td>The metric trends but has no seasonality</td>
+</tr>
+<tr>
+<td><strong>Seasonal baseline</strong></td>
+<td>A confidence band around the seasonal pattern</td>
+<td>The metric recurs (business hours, weekly cycles)</td>
+</tr>
+</tbody>
+</table>
+<p>The tuning parameters that control noise:</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tolerance</code> (seasonal) / sensitivity</td>
+<td>Width of the confidence band — higher = fewer alerts</td>
+</tr>
+<tr>
+<td><code>alertCondition</code></td>
+<td>Direction that trips: <code>ABOVE</code>, <code>BELOW</code>, or <code>OUTSIDE</code>. <code>ABOVE</code>/<code>BELOW</code> apply to every model; <strong><code>OUTSIDE</code> is a baselining concept</strong> and community guidance is that it is accepted only by auto-adaptive and seasonal models — confirm against the settings schema for your tenant before scripting it onto a static-threshold detector</td>
+</tr>
+<tr>
+<td><code>violatingSamples</code></td>
+<td>How many points in the window must violate to fire (max 60)</td>
+</tr>
+<tr>
+<td><code>slidingWindow</code></td>
+<td>How many points are evaluated together (max 60; ≥ <code>violatingSamples</code>)</td>
+</tr>
+<tr>
+<td><code>dealertingSamples</code></td>
+<td>Consecutive clean points required to close the alert (max 60)</td>
+</tr>
+<tr>
+<td><code>alertOnMissingData</code></td>
+<td>Treat absent data as a violation</td>
+</tr>
+<tr>
+<td>query offset</td>
+<td>Shift the evaluation window to absorb data latency</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The <code>violatingSamples</code> / <code>slidingWindow</code> pair is your primary noise control</strong> — requiring, say, 3 violations out of a 5-point window suppresses single-spike flapping while still catching sustained breaches.</p>
+<h3>Step 2a — Workflow problem-trigger delay (a different layer)</h3>
+<p><strong>SaaS 1.344 (rollout from 07/29/2026): problem triggers in Workflows can be delayed.</strong> In a workflow's Dynatrace Intelligence problem trigger you can set a delay, and <em>&quot;the trigger will fire only if a problem remains open for the configured period.&quot;</em> This damps <strong>notifications</strong>, not detection — Davis still opens the problem on schedule, and every other workflow on the same problem fires on its own settings. See FAQ-21 for the Minimum duration option.</p>
+<p><strong>This is not an analyzer parameter, and it is deliberately not a row in the table above.</strong> The two sit at different layers, and conflating them is how tuning goes wrong:</p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Decides</th>
+<th>Configured in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Analyzer parameters</strong> (<code>violatingSamples</code>, <code>slidingWindow</code>, <code>dealertingSamples</code>, tolerance)</td>
+<td>Whether <em>this series</em> is anomalous — i.e. whether a Davis event fires at all</td>
+<td>Per detector, in Settings (the Anomaly Detection app before SaaS 1.344) or <code>builtin:davis.anomaly-detectors</code></td>
+</tr>
+<tr>
+<td><strong>Workflow problem-trigger delay</strong></td>
+<td>Whether <em>this workflow</em> acts on a problem that has already opened — short-lived problems close before it fires</td>
+<td>Per workflow, on the problem trigger</td>
+</tr>
+</tbody>
+</table>
+<p>So the trigger delay <strong>complements</strong> <code>violatingSamples</code> / <code>slidingWindow</code> rather than replacing it. Its distinct value is reach: it suppresses paging for short-lived problems from detectors <strong>you do not own</strong> — built-in detections, and detectors configured by other teams — which no amount of analyzer tuning on your own detectors can touch. But it acts only for the workflow you set it on: the problem count does not change, and any notifying workflow without the delay keeps paging.</p>
+<p><strong>For any detector you build yourself, <code>violatingSamples</code> / <code>slidingWindow</code> remains the control to rely on and the right first lever.</strong> Tune the detector to stop firing spurious events; reach for the trigger delay for noise arriving from events you cannot tune at source.</p>
+<h3>Step 2b — Scoping the detector with Segments</h3>
+<p>Alongside the analyzer, the custom-alert editor offers <strong>Set scope</strong> (Simple or Advanced tab) with a <strong>Segments</strong> field — choose one or more segments to restrict which slice of data the detector evaluates. This lets you alert on a specific subset such as a region, cluster, or environment without rewriting the query. The editor is the same in both places: from SaaS 1.344 (staged tenant rollout) open it under <strong>Settings &gt; Analyze and alert &gt; Alerts &gt; All alerts &gt; Custom alerts</strong>; on earlier versions it is in the <strong>Anomaly Detection</strong> app. <em>Configure a simple custom alert</em> documents both paths and says <em>&quot;Because Anomaly Detection is deprecated, we recommend using Settings instead.&quot;</em></p>
+<blockquote>
+<p><strong>Do not duplicate a filter the segment already applies.</strong> Segment filters are injected into the query at execution time, so re-stating them in the <code>timeseries</code> query is redundant and makes the detector harder to reason about.</p>
+</blockquote>
+<p><strong>This is the only place segments touch alerting.</strong> Segments scope <em>detection</em> — which signals get evaluated — and they scope <em>queries</em>. They do <strong>not</strong> scope workflow triggers, notification routing, or problem visibility. If you are migrating off Management Zones and expecting segments to carry your alert routing, see MZ2POL-09: routing moves to problem-triggered workflows filtered on affected-entity tags, not to segments.</p>
+<p><strong>A detector transformed from a zone-scoped metric event arrives here unscoped.</strong> The zone does not carry over (§6), so this Segments field is where its scope has to be restored before the alert is relied on.</p>
+<h3>Step 3 — The event template (this is what makes routing possible)</h3>
+<p>When the detector fires it emits a Davis event whose shape <em>you</em> define: an event <strong>name</strong> and <strong>description</strong> (both support <code>{dims:...}</code> placeholders that interpolate the breaching dimensions), an event <strong>type</strong> (<code>CUSTOM_ALERT</code>, <code>ERROR_EVENT</code>, <code>PERFORMANCE_EVENT</code>, …), and <strong>properties</strong> — key/value pairs such as team, area, or service.</p>
+<p>Those properties are the metadata a downstream workflow filters on. <strong>Enrich here or you cannot route later</strong> — a detector that fires a bare event with no team/area property forces every workflow to re-derive ownership from the affected entity. Spend the effort in the template. Prefer primary Grail tags, which are copied onto the problem record, and ownership tags on the affected entity over free-form properties (ALERT-01 §4, FAQ-21).</p>
+<p><strong>Attribute the event to a real entity, or it correlates against the wrong one.</strong> Alongside name, description, type and properties, a Davis event carries <code>dt.smartscape_source.id</code> — the Smartscape entity ID of whatever the signal is <em>about</em>. Davis's universal correlation rule merges every event naming the same entity into a single problem (AIOPS-03 §1). Set it to an actual host, service, or workload ID, normally interpolated from a <code>by:{}</code> dimension the query already groups on.</p>
+<p>The documentation asks for this field to be set &quot;to an existing Smartscape entity ID, like a host or service entity ID rather than an arbitrary string&quot; — it does not say where a detector's event lands when the field is left unset. The one documented fallback belongs to the Events API v2: an event posted without an <code>entitySelector</code> &quot;is associated with the environment&quot; entity. For detector events no page says where an unset source lands. On a validation tenant (7 days to 10/12/2026), most problem-eligible events without one were still attached to a real entity, but those attached to the environment entity alone collected in large problems: 14.7 events per problem against 1.1 for the rest. Either way no threshold change fixes it; only the event template does (AIOPS-03 §1). Section 8 has a query that finds these in your own tenant.</p>
+<p><strong>Two event types that never open a problem on their own.</strong> <code>CUSTOM_INFO</code> (severity 5, Informational) and <code>WARNING</code> (severity 4, Warning) are stored in Grail, are fully queryable, and can trigger workflows, but they do not raise problems; correlation can still group them into a problem that something else opened. That makes them useful for chronic issues already tracked elsewhere, for routing an observation to Slack or Jira without cluttering the Problems app, and — most valuably — for calibration:</p>
+<blockquote>
+<p><strong>Shadow-deploy a new detector.</strong> Rather than guessing a threshold, ship the detector with <code>event.type</code> set to <code>CUSTOM_INFO</code>, leave it running for two to four weeks, then measure how often it <em>would</em> have fired (Section 8). Tune against that evidence, and only then promote it to <code>CUSTOM_ALERT</code>. This turns threshold-setting from a guess into a measurement, and being wrong during the observation window costs nothing but storage.</p>
+</blockquote>
+<h3>Step 4 — Fire, then promote</h3>
+<p>On breach the event surfaces as a Davis problem and flows into routing (WFLOW series) and SLO error budgets. Once a detector matters in production, move it out of the app and into config-as-code (<code>builtin:davis.anomaly-detectors</code> — see Section 6) so it is versioned and reviewable.</p>
+<h3>Step 5 — Pre-Publish Checklist</h3>
+<p>Three checks, run before a detector leaves the notebook-as-scratchpad stage — each one closes a failure mode this section already describes, so this is packaging, not new material:</p>
+<ul>
+<li>
+<p><strong>Cardinality.</strong> Does the <code>by:{}</code> grouping include a volatile dimension — pod name, application version, HTTP status code? Section 1.4's anti-pattern applies directly: a detector grouped by a high-cardinality field opens one alert per value, and volume then tracks deployment frequency rather than incident rate. Count the distinct values the grouping would produce before publishing, not after:</p>
+<pre><code class="language-dql">// Cardinality check — how many distinct alert identities would this grouping produce?
+// Swap in whatever by:{} dimension the detector will use.
+timeseries avg(dt.kubernetes.container.cpu_usage), by:{dt.entity.cloud_application_instance}, from:-7d
+| summarize distinct_entities = countDistinct(dt.entity.cloud_application_instance)
+</code></pre>
+</li>
+<li>
+<p><strong>Attribution.</strong> Does the event template set <code>dt.smartscape_source.id</code> to an existing entity ID, as the docs recommend (Step 3)? Events attached to the environment entity alone end up in large problems with no usable root cause (Section 8).</p>
+</li>
+<li>
+<p><strong>Cost.</strong> Was the query prototyped in a notebook first (Step 1), and — for a records-based detector — is the aggregation window wide enough to avoid a per-minute scan of raw data (Step 1a)? A detector that scans expensively on every evaluation compounds the cost of every firing, noisy or not.</p>
+</li>
+</ul>
+<p>None of these three are analyzer tuning — they're structural, and a mistuned analyzer sitting on a structurally broken detector still fires wrong.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-configuration">Anomaly detection configuration (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/configure-a-simple-ad">Configure a simple custom alert (DT docs)</a> — <em>&quot;Go to Settings &gt; Analyze and alert &gt; Alerts &gt; All alerts . Select Custom alerts .&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/set-up-anomaly-detectors-via-api">Set up anomaly detectors via API (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting">Avoid overalerting (DT docs)</a> — <em>&quot;make sure to set the dt.smartscape_source.id field to an existing Smartscape entity ID, like a host or service entity ID rather than an arbitrary string&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event">Ingest an event — POST /api/v2/events/ingest (DT docs)</a> — <em>&quot;If not set, the event is associated with the environment&quot;</em> (scoped to events posted through this API)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-344">What's new in Dynatrace SaaS 1.344 (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications/standardized-event-severity">Standardized event severity (DT docs)</a> — <em>&quot;they don't raise problems on their own&quot;</em> (Warning and Informational events)</sub></li>
+</ul>
+</blockquote>
+<p><a id="dql-alerts"></a></p>
+<h2>5. Custom Alerts via DQL</h2>
+<p>Beyond pre-canned detectors, Anomaly Detection app supports <strong>DQL-based custom alerts</strong> (created in <strong>Settings</strong> from SaaS 1.344 — § 3). You write the query, the app evaluates it on a schedule, and a breach generates a Davis event.</p>
+<p>Example — alert when a service's error rate breaches 5% for 5 minutes. Following the Step 1 contract in §4, the detector returns the error-rate series and the static-threshold analyzer applies the 5% line:</p>
+<pre><code class="language-dql">// Detector query: return the error-rate SERIES per service - no threshold filter.
+// Configure the threshold in the analyzer: Static threshold 5, alertCondition ABOVE,
+// violatingSamples 5 / slidingWindow 5 = &quot;above 5% for 5 minutes&quot;.
+timeseries {
+    failures = sum(dt.service.request.failure_count, default:0),
+    total    = sum(dt.service.request.count)
+  },
+  by:{dt.smartscape.service},
+  interval:1m
+| fieldsAdd error_rate = (failures[] / total[]) * 100
+| fieldsKeep timeframe, interval, dt.smartscape.service, error_rate
+</code></pre>
+<p><strong>Watchpoints when writing custom-alert DQL:</strong></p>
+<ul>
+<li>Don't include <code>from:</code> or <code>to:</code> in a <code>timeseries</code> detector query. The custom alert fails when it executes a query that has them.</li>
+<li>Use named-parameter <code>decimals:</code>, <code>then:</code>, <code>else:</code> where required (<code>round</code>, <code>if</code>, <code>substring</code>).</li>
+<li>Aggregations used downstream need explicit aliases (<code>error_rate = ...</code>, <code>mttr = ...</code>).</li>
+<li>Element-wise array operations on timeseries: <code>failures[] / total[]</code> returns an array. Keep the series as an array for a detector — <code>arrayAvg</code> + <code>filter</code> is an ad-hoc notebook check, not a detector query.</li>
+<li>Use <code>default:0</code> on sparse counters so zero-failure intervals count as 0, not null. Without it, an average over the array covers only the minutes that had failures and overstates the rate.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/anomaly-detection-dql-best-practice">Anomaly Detection DQL writing guide (DT docs)</a> — <em>&quot;Don't use from: and to: when creating a DQL query for the custom alert. Otherwise, you'll get failures whenever the custom alert tries to execute your query&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="schemas"></a></p>
+<h2>6. Metric Events and Settings 2.0 Schemas</h2>
+<p>Not every alert needs the DQL-based detector. <strong>Metric events</strong> are the classic Settings 2.0 mechanism for threshold / baseline alerting directly on a metric key — lighter weight than a DQL detector when you are alerting on a single pre-existing metric.</p>
+<table>
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>Settings 2.0 schema</th>
+<th>Upgrade status</th>
+<th>Reach for it when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DQL-based Davis anomaly detector</td>
+<td><code>builtin:davis.anomaly-detectors</code></td>
+<td>Carries forward</td>
+<td>The signal needs a query — joins, derived fields, multi-metric logic. Also the migration target for metric events</td>
+</tr>
+<tr>
+<td>Metric event</td>
+<td><code>builtin:anomaly-detection.metric-events</code></td>
+<td><strong>Removed in Latest Dynatrace</strong></td>
+<td>Only where you already have one; do not author new ones</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Prefer the Davis anomaly detector for anything new.</strong> <code>builtin:anomaly-detection.metric-events</code> is on Dynatrace's list of Settings 2.0 schemas removed in Latest Dynatrace, and none of the schemas on that list are visible there — so once the tenant moves to the latest Dynatrace, every metric event has to be recreated as a DQL-based detector, and any configuration-as-code that references the schema by ID has to be updated first. (On a tenant observed 07/31/2026, the ready-made <em>Check your upgrade readiness</em> dashboard flagged the same schema <strong>Blocked at upgrade</strong>.) Dynatrace publishes a transformation path, with the important limitation that <strong>only metric <em>selectors</em> can be transformed</strong>: metric <em>key</em> events, which put a static threshold on a single metric, have no automated conversion. The transformer also cannot tell whether the metric's data or its tags actually exist in the target, so every converted detector needs validating by hand afterwards.</p>
+<p><strong>A zone-scoped metric event loses its zone on transform.</strong> The custom-alert page says <em>&quot;Management zones aren't supported in Anomaly Detection and will be lost after transforming metric events.&quot;</em> and <em>&quot;The converted metric event is automatically disabled, and the newly created configuration is active instead.&quot;</em> So a metric event that watched one zone is replaced, in the same step, by an active detector that evaluates the whole environment. Set its segment scope (Step 2b) before you rely on the transformed alert.</p>
+<p>That reverses the older advice in this section. A metric event is still the lighter-weight mechanism, and one you already own is fine to leave running for now — but it is a construct with an expiry, so new work should not be authored against it, and a static threshold ported as-is is in any case the main source of Gen3 alert noise (ALERT-02).</p>
+<p>The Davis detector remains a first-class config-as-code target: provision it with Monaco or Terraform exactly as in <strong>AUTOM-03 (Monaco) / AUTOM-04 (Terraform)</strong>, with the schema name as the <code>--settings-schema</code> / resource selector. Check any schema's status in AUTOM-02's catalog before building a long-lived project around it.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection-classic/metric-events">Metric events (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-configuration">Anomaly detection configuration (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/metric-alerting">Upgrade metric alerting (DT docs)</a> — <em>&quot;Only metric selectors are available to transform.&quot;</em> and <em>&quot;the check can't detect whether the data from the metric is available or the necessary tags are present&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas">Settings 2.0 schemas removed in Latest Dynatrace (DT docs)</a> — lists <code>builtin:anomaly-detection.metric-events</code>; <em>&quot;None of the schemas on this page are visible in Latest Dynatrace.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/configure-a-simple-ad">Configure a simple custom alert (DT docs)</a> — <em>&quot;Management zones aren't supported in Anomaly Detection and will be lost after transforming metric events.&quot;</em>, <em>&quot;The converted metric event is automatically disabled, and the newly created configuration is active instead.&quot;</em></sub></li>
+<li><sub><strong>Derived:</strong> a zone-scoped metric event widens to the whole environment on transform unless a segment is set — combines the two custom-alert quotes</sub></li>
+</ul>
+</blockquote>
+<p><a id="analyzers"></a></p>
+<h2>7. Testing Detectors with Davis Analyzers (MCP)</h2>
+<p>The Dynatrace MCP server exposes Davis analyzers as callable tools. Useful when you want to test a detector against historical data before wiring it to a setting or a workflow.</p>
+<table>
+<thead>
+<tr>
+<th>MCP tool</th>
+<th>What it does</th>
+<th>Permission</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mcp__dynatrace__static-threshold-analyzer</code></td>
+<td>Test a static threshold against a series</td>
+<td><code>davis:analyzers:execute</code></td>
+</tr>
+<tr>
+<td><code>mcp__dynatrace__seasonal-baseline-anomaly-detector</code></td>
+<td>Detect anomalies vs. seasonal pattern</td>
+<td><code>davis:analyzers:execute</code></td>
+</tr>
+<tr>
+<td><code>mcp__dynatrace__adaptive-anomaly-detector</code></td>
+<td>Detect anomalies vs. learned baseline</td>
+<td><code>davis:analyzers:execute</code></td>
+</tr>
+<tr>
+<td><code>mcp__dynatrace__timeseries-novelty-detection</code></td>
+<td>Flag never-seen patterns</td>
+<td><code>davis:analyzers:execute</code></td>
+</tr>
+<tr>
+<td><code>mcp__dynatrace__timeseries-forecast</code></td>
+<td>Forecast future series; capacity planning</td>
+<td><code>davis:analyzers:execute</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Workflow pattern:</strong> write a <code>timeseries</code> query that returns the metric you care about, then pass the query to the analyzer. The analyzer's output is structured (anomalies, forecast bands, novelty flags) and can be embedded in workflows or notebooks.</p>
+<p><strong>In the UI</strong>, four of the five run from the <strong>Davis AI</strong> panel of a DQL or metrics section in Notebooks or Dashboards — static threshold, auto-adaptive threshold, seasonal baseline and forecast: <em>&quot;On the Davis AI panel, set Analyzers to the analyzer you want to use, and then configure the analyzer.&quot;</em> The Notebooks page names no GUI surface for novelty detection, so use the MCP tool for it. A detector you want to keep is saved as a custom alert — in Settings from SaaS 1.344 (staged tenant rollout), in the Anomaly Detection app on earlier versions (§ 3). The MCP tools are the same analyzers accessed programmatically.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/notebooks">Notebooks (DT docs)</a> — <em>&quot;On the Davis AI panel, set Analyzers to the analyzer you want to use, and then configure the analyzer.&quot;</em></sub></p>
+</blockquote>
+<p><a id="volume"></a></p>
+<h2>8. Anomaly Volume in Your Tenant</h2>
+<p>Davis events are the raw signals before Causal AI groups them into problems. Look at the category breakdown to understand what kinds of anomalies your detectors are firing.</p>
+<pre><code class="language-dql">// Davis event volume by category — last 24h
+fetch dt.davis.events, from:-24h
+| summarize count = count(), by:{event.category}
+| sort count desc
+</code></pre>
+<pre><code class="language-dql">// Active custom-alert problems (DQL-based custom alerts surface here)
+fetch dt.davis.problems, from:-7d
+| filter event.category == &quot;CUSTOM_ALERT&quot;
+| summarize count = count(), by:{event.status}
+| sort count desc
+</code></pre>
+<p><strong>Reading the result:</strong> A high <code>CUSTOM_ALERT</code> count means your custom-DQL detectors are firing — review whether they're noisy. A high <code>RESOURCE_CONTENTION</code> or <code>ERROR</code> count means out-of-the-box auto-adaptive / seasonal detection is doing real work.</p>
+<h3>Finding your noisiest detectors</h3>
+<p>The category breakdown tells you what <em>kinds</em> of anomaly fire. This tells you which specific detectors, and — the part that matters most — whether each one is attributable and navigable:</p>
+<pre><code class="language-dql">// Noisiest non-informational detectors over 7 days.
+// The two ID columns answer different questions - see the notes below.
+fetch dt.davis.events, from:-7d
+| filter not in(event.category, {&quot;INFO&quot;, &quot;WARNING&quot;})
+| summarize alerts = count(), by:{event.name, dt.settings.object_id, dt.smartscape_source.id}
+| sort alerts desc
+| limit 20
+</code></pre>
+<p>Real output from a demonstration tenant over seven days, <strong>measured 07/30/2026</strong>, abbreviated to the top rows. Treat the absolute counts as a snapshot, not a constant — they move with what the tenant is doing; the <em>shape</em> (a high-volume detector with a null <code>dt.smartscape_source.id</code>) is the durable part:</p>
+<table>
+<thead>
+<tr>
+<th><code>event.name</code></th>
+<th style="text-align:right"><code>alerts</code></th>
+<th><code>dt.settings.object_id</code></th>
+<th><code>dt.smartscape_source.id</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>YOU ARE A PROBLEM</code></td>
+<td style="text-align:right">5,378</td>
+<td><em>null</em></td>
+<td><em>null</em></td>
+</tr>
+<tr>
+<td><code>Response time degradation</code></td>
+<td style="text-align:right">2,439</td>
+<td><em>null</em></td>
+<td><code>SERVICE-6C36694E683AD694</code></td>
+</tr>
+<tr>
+<td><code>Failure rate increase</code></td>
+<td style="text-align:right">1,022</td>
+<td><em>null</em></td>
+<td><em>null</em></td>
+</tr>
+<tr>
+<td><code>DYNATRACE USER LOGIN</code></td>
+<td style="text-align:right">285</td>
+<td><code>builtin:davis.anomaly-detectors</code> …</td>
+<td><em>null</em></td>
+</tr>
+<tr>
+<td><code>Backoff event</code></td>
+<td style="text-align:right">254</td>
+<td><code>builtin:anomaly-detection.kubernetes.workload</code> …</td>
+<td><code>K8S_DEPLOYMENT-79081F0B98463CC2</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Read the top row first.</strong> A custom detector firing 5,378 times in seven days with <strong>no <code>dt.smartscape_source.id</code></strong> is the anti-pattern from Section 4 in its natural habitat. What it is <em>not</em> is one problem per firing — that reading is wrong, and it sends you hunting the wrong symptom. Re-measured on the same tenant over 7 days on 08/11/2026, this detector's firings collapsed to roughly <strong>11 firings per correlation</strong>. The damage is unrelated alerts sharing a problem and no usable root cause — not problem-count inflation. Re-tuning the threshold would not help either way. The event template has to name a real entity.</p>
+<p><strong>Then read the two ID columns, which answer different questions:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Question it answers</th>
+<th>Null means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.smartscape_source.id</code></td>
+<td>Is this alert attributed to the entity it is about?</td>
+<td>The template did not name the entity it is about. Check <code>affected_entity_ids</code>: if it holds only the environment entity, the alert will be grouped with unrelated ones</td>
+</tr>
+<tr>
+<td><code>dt.settings.object_id</code></td>
+<td>Can I navigate to the configuration behind it?</td>
+<td>No settings object; identify it by <code>event.name</code> instead</td>
+</tr>
+</tbody>
+</table>
+<p><code>dt.settings.object_id</code> identifies the configuration that produced the event, so a populated value leads straight to the detector's configuration. A useful property, observed in the values returned on 07/30/2026 rather than a documented contract: it encodes both the settings <strong>schema</strong> and the <strong>scope</strong>. The values abbreviated above resolve to <code>builtin:davis.anomaly-detectors</code> scoped to the tenant, and <code>builtin:anomaly-detection.kubernetes.workload</code> scoped to one specific <code>KUBERNETES_CLUSTER</code>. That scoping is why a single event name legitimately appears under several distinct object IDs — one per cluster — rather than indicating duplicated configuration.</p>
+<blockquote>
+<p><strong>Two caveats.</strong> <code>dt.settings.object_id</code> is marked <strong>experimental</strong> in the semantic dictionary (<a href="https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-351">Semantic Dictionary 1.351 (DT docs)</a>, published 10/05/2026, promotes the <code>dt.settings.*</code> fields to <code>stable</code>; the validation tenant still returned <code>experimental</code> on 10/23/2026) (<code>dt.smartscape_source.id</code> is <code>stable</code>) — fine for triage, not something to hard-code an integration against. And a seven-day unfiltered scan of <code>dt.davis.events</code> is not cheap: the run above scanned 12.9 GB and the 30-day version below 52.6 GB on 07/30/2026; the same 7-day scan read about 5.9 GB on 09/24/2026 — scan cost moves with event volume. Narrow the window for routine checks (FAQ-09, FINOPS-03).</p>
+</blockquote>
+<p>For what counts as &quot;too noisy&quot; in the first place, ALERT-99 §3 carries the 0.1%-of-observed-time yardstick and the audit cadence that uses it.</p>
+<h3>Measuring what a shadow-deployed detector would have done</h3>
+<p>The calibration pattern in Section 4 needs evidence before promotion. This measures the firing frequency of a detector running in observation mode as <code>CUSTOM_INFO</code> or <code>WARNING</code>:</p>
+<pre><code class="language-dql">// How often would this observation-mode detector have fired?
+// Replace the event.name with your own detector's name before running.
+fetch dt.davis.events, from:-30d
+| filter in(event.category, {&quot;INFO&quot;, &quot;WARNING&quot;})
+| filter event.name == &quot;NR ALERT: Host CPU &gt; 80% sustained 5m&quot;
+| summarize firing_count = count(), by:{day = bin(timestamp, 24h)}
+| sort day desc
+| limit 10
+</code></pre>
+<p>Measured 07/30/2026: run against a ported static threshold held in observation mode, the ten most recent daily counts came back <strong>236, 347, 459, 504, 470, 474, 502, 490, 480, 470</strong> — the first of those a still-running partial day.</p>
+<p><strong>That detector must not be promoted.</strong> Roughly 470 firings a day would mean up to roughly 470 problems a day from a single rule — correlation would merge some of them, but nothing like enough — against a healthy-detector expectation of one or two firings a <em>month</em> (ALERT-99 §3). The evidence says retune before promoting: widen the sliding window, raise the threshold, or — since this is CPU on hosts, a traffic-correlated signal — move it off a static threshold onto auto-adaptive entirely (Section 1).</p>
+<p>That is the whole value of the shadow deploy. Promoted straight to <code>CUSTOM_ALERT</code>, the same rule would have paged someone several hundred times a day before anyone discovered the threshold was wrong; held at <code>CUSTOM_INFO</code>, it cost nothing to learn the same thing.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting">Avoid overalerting (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-configuration">Anomaly detection configuration (DT docs)</a>. <strong>Derived:</strong> the promote/retune verdict applies the page's 0.1%-of-observed-time rule to the daily counts measured 07/30/2026.</sub></p>
+</blockquote>
+<p><a id="cross"></a></p>
+<h2>9. Cross-Series Pointers</h2>
+<ul>
+<li><strong>AUTOM-03, AUTOM-04</strong> — anomaly detection settings as code (Monaco, Terraform)</li>
+<li><strong>WFLOW</strong> — once a detector fires, route the resulting Davis event into a notification or remediation workflow</li>
+<li><strong>DBMON, CLOUD, K8S</strong> — domain-specific anomaly patterns sit in those series; this notebook is the canonical reference for the <em>mechanisms</em></li>
+<li><strong>AIOPS-05</strong> — the AI models behind these detectors (causal correlation, predictive baseline, seasonal)</li>
+<li><strong>AIOPS-06</strong> — agentic patterns: scheduled analyzer runs in workflows</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

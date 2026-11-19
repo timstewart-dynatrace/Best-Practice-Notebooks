@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MOBL-05: User Action Tracking</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MOBL — Mobile Monitoring</a><span class="sep">/</span><span aria-current="page">MOBL-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MOBL-05: User Action Tracking</h1>
+<blockquote>
+<p><strong>Series:</strong> MOBL — Mobile Monitoring | <strong>Notebook:</strong> 5 of 12 | <strong>Created:</strong> February 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>User actions are the foundation of mobile Real User Monitoring (RUM) in Dynatrace. Every tap, swipe, app launch, and custom interaction is captured as a <strong>user action</strong> — a discrete, measurable event that reveals how users interact with your mobile application. This notebook explores how Dynatrace captures these interactions, from auto-detected taps and navigation events to custom actions you instrument yourself. You will also learn about rage tap detection (a key frustration signal) and how to query action data with DQL for performance analysis and optimization.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#what-are-user-actions">What Are User Actions?</a></li>
+<li><a href="#auto-detected-actions">Auto-Detected Actions</a></li>
+<li><a href="#action-lifecycle">Action Lifecycle</a></li>
+<li><a href="#rage-tap-detection">Rage Tap Detection</a></li>
+<li><a href="#custom-user-actions">Custom User Actions</a></li>
+<li><a href="#querying-actions">Querying Actions with DQL</a></li>
+<li><a href="#optimizing-action-naming">Optimizing Action Naming</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Mobile App</strong></td>
+<td>At least one mobile app with the Dynatrace Mobile SDK configured</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:user.events:read</code>, <code>storage:user.sessions:read</code></td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>User action data actively flowing from mobile devices</td>
+</tr>
+<tr>
+<td><strong>Prior Notebooks</strong></td>
+<td>Completed MOBL-01 through MOBL-04 recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="what-are-user-actions"></a></p>
+<h2>1. What Are User Actions?</h2>
+<p>A <strong>user action</strong> represents a single, discrete user interaction with a mobile application. Dynatrace captures each action with rich context including the action name, type, duration, associated network requests, and any errors that occurred during the interaction.</p>
+<h3>Action Properties</h3>
+<p>Every user action includes the following key properties:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Name</strong></td>
+<td>Human-readable label describing the interaction</td>
+<td><code>&quot;Tap on Login&quot;</code>, <code>&quot;Add to Cart&quot;</code></td>
+</tr>
+<tr>
+<td><strong>Type</strong></td>
+<td>Category of interaction (<code>interaction.type</code> in Grail)</td>
+<td>a tap, a swipe, an app start, a custom action</td>
+</tr>
+<tr>
+<td><strong>Duration</strong></td>
+<td>Time from action start to completion (including child events)</td>
+<td><code>450ms</code></td>
+</tr>
+<tr>
+<td><strong>Network Requests</strong></td>
+<td>HTTP calls triggered during the action</td>
+<td>API calls, image loads</td>
+</tr>
+<tr>
+<td><strong>Errors</strong></td>
+<td>Any crashes or HTTP errors during the action</td>
+<td>500 responses, exceptions</td>
+</tr>
+</tbody>
+</table>
+<h3>How Actions Appear in Grail</h3>
+<p>In Grail, mobile interactions are <code>user.events</code> records typed by <code>characteristics.*</code> flags rather than by a single action-type field:</p>
+<table>
+<thead>
+<tr>
+<th>Interaction</th>
+<th>Grail representation</th>
+<th>Detection</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>User action</strong> (tap or other interaction plus the requests it triggers)</td>
+<td><code>characteristics.has_user_action</code>; control in <code>ui_element.detected_name</code>, kind in <code>interaction.type</code></td>
+<td>Auto-detected for supported UI components</td>
+</tr>
+<tr>
+<td><strong>User interaction</strong> (standalone tap, click, swipe)</td>
+<td><code>characteristics.has_user_interaction</code></td>
+<td>Auto-detected</td>
+</tr>
+<tr>
+<td><strong>App start</strong> (cold, warm, hot)</td>
+<td><code>characteristics.has_app_start</code></td>
+<td>Always auto-detected</td>
+</tr>
+<tr>
+<td><strong>Custom action</strong></td>
+<td><code>characteristics.has_user_action</code> with <code>characteristics.is_api_reported</code></td>
+<td>Manual instrumentation (<code>enterAction</code>)</td>
+</tr>
+<tr>
+<td><strong>Rage tap</strong></td>
+<td>no dedicated field in the semantic dictionary (read 09/28/2026)</td>
+<td>Detected by OneAgent (Section 4)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> The exact set of auto-detected action types varies by platform and UI framework. See the next section for a detailed compatibility matrix.</p>
+</blockquote>
+<p><a id="auto-detected-actions"></a></p>
+<h2>2. Auto-Detected Actions</h2>
+<blockquote>
+<p><strong>New (OneAgent for Mobile 8.347 — released 08/28/2026, rollout from 09/08/2026): every launch produces an app-start action.</strong> The agent now tracks <em>&quot;an app start user action on every app launch&quot;</em>, spanning initialization through the first fully settled screen, and it can be waterfall-visualized and filtered by launch type. That is a new member of the auto-detected population below — expect action counts to rise once instrumented builds ship, and check any dashboard that counts actions per session before reading the change as a regression.</p>
+<p>The same release <strong>caps inflated cold-start durations</strong> — verbatim, it <em>&quot;caps inflated cold app-start durations so you see realistic warm-start timings&quot;</em>. Startup-duration percentiles will shift downward as a result. That is a measurement correction, not an improvement in the app, so re-baseline startup SLOs and alerts rather than reporting a win.</p>
+<p>Mobile agent versions land with <strong>app releases, not tenant updates</strong> (MOBL-01), so this arrives across your user base at the pace of store adoption.</p>
+</blockquote>
+<p>Dynatrace auto-instrumentation covers both imperative (UIKit, Android Views) and declarative (SwiftUI, Jetpack Compose) UI frameworks, through different mechanisms: runtime or bytecode instrumentation for UIKit and Views, the Android Gradle plugin for Compose (on by default from plugin 8.271), and the build-time SwiftUI instrumentor (<code>DTSwiftInstrumentor</code>) for SwiftUI.</p>
+<h3>Platform Compatibility Matrix</h3>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>iOS (UIKit)</th>
+<th>iOS (SwiftUI)</th>
+<th>Android (Views)</th>
+<th>Android (Compose)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Button tap</td>
+<td>Auto</td>
+<td>Auto (DTSwiftInstrumentor)</td>
+<td>Auto</td>
+<td>Auto (plugin 8.271+)</td>
+</tr>
+<tr>
+<td>List item tap</td>
+<td>Auto</td>
+<td>Auto (DTSwiftInstrumentor, 8.265+)</td>
+<td>Auto</td>
+<td>Auto (plugin 8.271+, <code>clickable</code> modifiers)</td>
+</tr>
+<tr>
+<td>Navigation</td>
+<td>Auto</td>
+<td>Auto (DTSwiftInstrumentor, <code>NavigationLink</code> 8.265+)</td>
+<td>Auto</td>
+<td>Auto (plugin 8.271+)</td>
+</tr>
+<tr>
+<td>App start</td>
+<td>Auto</td>
+<td>Auto</td>
+<td>Auto</td>
+<td>Auto</td>
+</tr>
+<tr>
+<td>App background/foreground</td>
+<td>Auto</td>
+<td>Auto</td>
+<td>Auto</td>
+<td>Auto</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key takeaways:</strong></p>
+<ul>
+<li><strong>UIKit and Android Views</strong> provide the most complete auto-detection out of the box. Button taps, list selections, and navigation transitions are captured automatically.</li>
+<li><strong>SwiftUI and Jetpack Compose</strong> are auto-instrumented too, but by a build step: the SwiftUI instrumentor for SwiftUI (MOBL-02 §5) and the Android Gradle plugin for Compose (MOBL-03 §5). If that step is missing from the build, their interactions go uncaptured.</li>
+<li><strong>App start and lifecycle events</strong> (background/foreground) are always auto-detected regardless of UI framework.</li>
+</ul>
+<blockquote>
+<p><strong>Tip:</strong> If your app uses SwiftUI, add <code>DTSwiftInstrumentor</code> to the build (and CI) early; for Compose, confirm the plugin is 8.271 or later. Reserve custom actions (Section 5) for business-level flows.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-347">What's new in OneAgent for Mobile 8.347 (DT docs)</a> — the app-start user action and cold-start capping quoted above; <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app">Instrument Android apps (DT docs)</a> — <em>&quot;Jetpack Compose auto-instrumentation is enabled by default starting with Dynatrace Android Gradle plugin version 8.271.&quot;</em>; <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/instrumentation/instrument-swiftui-controls">Instrument SwiftUI controls (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="action-lifecycle"></a></p>
+<h2>3. Action Lifecycle</h2>
+<p>Understanding the lifecycle of a user action is critical for interpreting duration metrics and troubleshooting slow interactions.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzAwIj4KICA8ZGVmcz4KICAgIDxmaWx0ZXIgaWQ9InNoYWRvdyIgeD0iLTIlIiB5PSItMiUiIHdpZHRoPSIxMDQlIiBoZWlnaHQ9IjEwNCUiPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIxIiBkeT0iMiIgc3RkRGV2aWF0aW9uPSIzIiBmbG9vZC1vcGFjaXR5PSIwLjE1Ii8+CiAgICA8L2ZpbHRlcj4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icHVycGxlR3JhZCIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjNjM2NmYxIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzRmNDZlNSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmx1ZUdyYWQiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzE0OTZmZiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMwYTY0YmMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9Im9yYW5nZUdyYWQiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI2Y5NzMxNiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNlYTU4MGMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImdyZWVuR3JhZCIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMjJjNTVlIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzE2YTM0YSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImFycm93aGVhZCIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjNjQ3NDhiIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjMwMCIgcng9IjEyIiByeT0iMTIiIGZpbGw9IiNmOGY5ZmEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0MDAiIHk9IjM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMWUyOTNiIj5Vc2VyIEFjdGlvbiBMaWZlY3ljbGU8L3RleHQ+CgogIDwhLS0gU3RlcCAxOiBBY3Rpb24gU3RhcnQgLS0+CiAgPHJlY3QgeD0iMjAiIHk9IjYwIiB3aWR0aD0iMTI4IiBoZWlnaHQ9IjcwIiByeD0iOCIgcnk9IjgiIGZpbGw9InVybCgjcHVycGxlR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iODQiIHk9IjkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmZmZmIj5BY3Rpb24gU3RhcnQ8L3RleHQ+CiAgPHRleHQgeD0iODQiIHk9IjEwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZTBlN2ZmIj5Vc2VyIHRhcHMgYnV0dG9uPC90ZXh0PgoKICA8IS0tIEFycm93IDEtMiAtLT4KICA8bGluZSB4MT0iMTQ4IiB5MT0iOTUiIHgyPSIxNzAiIHkyPSI5NSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3doZWFkKSIvPgoKICA8IS0tIFN0ZXAgMjogQ2hpbGQgRXZlbnRzIC0tPgogIDxyZWN0IHg9IjE3MiIgeT0iNjAiIHdpZHRoPSIxMjgiIGhlaWdodD0iNzAiIHJ4PSI4IiByeT0iOCIgZmlsbD0idXJsKCNibHVlR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMjM2IiB5PSI5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZmZmZiI+Q2hpbGQgRXZlbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjIzNiIgeT0iMTA4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNkYmVhZmUiPk5ldHdvcmsgcmVxdWVzdHMsIGVycm9yczwvdGV4dD4KCiAgPCEtLSBBcnJvdyAyLTMgLS0+CiAgPGxpbmUgeDE9IjMwMCIgeTE9Ijk1IiB4Mj0iMzIyIiB5Mj0iOTUiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93aGVhZCkiLz4KCiAgPCEtLSBTdGVwIDM6IEFjdGlvbiBDb21wbGV0ZSAtLT4KICA8cmVjdCB4PSIzMjQiIHk9IjYwIiB3aWR0aD0iMTI4IiBoZWlnaHQ9IjcwIiByeD0iOCIgcnk9IjgiIGZpbGw9InVybCgjYmx1ZUdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjM4OCIgeT0iODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmZmZmYiPkFjdGlvbjwvdGV4dD4KICA8dGV4dCB4PSIzODgiIHk9IjEwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZmZmZiI+Q29tcGxldGU8L3RleHQ+CiAgPHRleHQgeD0iMzg4IiB5PSIxMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2RiZWFmZSI+VGltZW91dCBvciBleHBsaWNpdCBjbG9zZTwvdGV4dD4KCiAgPCEtLSBBcnJvdyAzLTQgLS0+CiAgPGxpbmUgeDE9IjQ1MiIgeTE9Ijk1IiB4Mj0iNDc0IiB5Mj0iOTUiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93aGVhZCkiLz4KCiAgPCEtLSBTdGVwIDQ6IEJlYWNvbiBDcmVhdGVkIC0tPgogIDxyZWN0IHg9IjQ3NiIgeT0iNjAiIHdpZHRoPSIxMjgiIGhlaWdodD0iNzAiIHJ4PSI4IiByeT0iOCIgZmlsbD0idXJsKCNvcmFuZ2VHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSI1NDAiIHk9Ijg1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmZmZmIj5CZWFjb248L3RleHQ+CiAgPHRleHQgeD0iNTQwIiB5PSIxMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmZmZmYiPkNyZWF0ZWQ8L3RleHQ+CiAgPHRleHQgeD0iNTQwIiB5PSIxMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2ZmZjdlZCI+QWN0aW9uIGRhdGEgcGFja2FnZWQ8L3RleHQ+CgogIDwhLS0gQXJyb3cgNC01IC0tPgogIDxsaW5lIHgxPSI2MDQiIHkxPSI5NSIgeDI9IjYyNiIgeTI9Ijk1IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd2hlYWQpIi8+CgogIDwhLS0gU3RlcCA1OiBTZW50IHRvIERUIC0tPgogIDxyZWN0IHg9IjYyOCIgeT0iNjAiIHdpZHRoPSIxNDgiIGhlaWdodD0iNzAiIHJ4PSI4IiByeT0iOCIgZmlsbD0idXJsKCNncmVlbkdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjcwMiIgeT0iOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmZmZmYiPlNlbnQgdG8gRFQ8L3RleHQ+CiAgPHRleHQgeD0iNzAyIiB5PSIxMDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2RjZmNlNyI+QmVhY29uIHRyYW5zbWl0dGVkPC90ZXh0PgoKICA8IS0tIER1cmF0aW9uIHRpbWluZyBiYXIgLS0+CiAgPHJlY3QgeD0iMjAiIHk9IjE2MCIgd2lkdGg9Ijc1NiIgaGVpZ2h0PSI2IiByeD0iMyIgcnk9IjMiIGZpbGw9IiNjYmQ1ZTEiLz4KICA8IS0tIEFjdGl2ZSBwb3J0aW9uIC0tPgogIDxyZWN0IHg9IjIwIiB5PSIxNjAiIHdpZHRoPSI0MzAiIGhlaWdodD0iNiIgcng9IjMiIHJ5PSIzIiBmaWxsPSIjNjM2NmYxIiBvcGFjaXR5PSIwLjciLz4KICA8IS0tIE1hcmtlcnMgLS0+CiAgPGxpbmUgeDE9IjIwIiB5MT0iMTU1IiB4Mj0iMjAiIHkyPSIxNzIiIHN0cm9rZT0iIzYzNjZmMSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8bGluZSB4MT0iNDUwIiB5MT0iMTU1IiB4Mj0iNDUwIiB5Mj0iMTcyIiBzdHJva2U9IiM2MzY2ZjEiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPGxpbmUgeDE9Ijc3NiIgeTE9IjE1NSIgeDI9Ijc3NiIgeTI9IjE3MiIgc3Ryb2tlPSIjMjJjNTVlIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjIzNSIgeT0iMTkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM2MzY2ZjEiPkFjdGlvbiBEdXJhdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI2MTMiIHk9IjE5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNjQ3NDhiIj5CZWFjb24gUGFja2FnaW5nICsgVHJhbnNtaXQ8L3RleHQ+CiAgPCEtLSBUb3RhbCBsYWJlbCAtLT4KICA8dGV4dCB4PSI0MDAiIHk9IjIxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjMzM0MTU1IiBmb250LXN0eWxlPSJpdGFsaWMiPlRvdGFsIGVuZC10by1lbmQgdGltZTwvdGV4dD4KCiAgPCEtLSBMZWdlbmQgYmFyIC0tPgogIDxyZWN0IHg9IjAiIHk9IjI0NSIgd2lkdGg9IjgwMCIgaGVpZ2h0PSI1NSIgcng9IjAiIHJ5PSIwIiBmaWxsPSIjZTJlOGYwIi8+CiAgPHJlY3QgeD0iMCIgeT0iMjg4IiB3aWR0aD0iODAwIiBoZWlnaHQ9IjEyIiByeD0iMCIgcnk9IjEyIiBmaWxsPSIjZTJlOGYwIi8+CiAgPHRleHQgeD0iNDAwIiB5PSIyNzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzQ3NTU2OSI+RWFjaCB1c2VyIGFjdGlvbiBjYXB0dXJlcyB0aW1pbmcsIGNoaWxkIGV2ZW50cywgYW5kIGNvbnRleHQgYmVmb3JlIGJlaW5nIHNlbnQgYXMgYSBiZWFjb24uPC90ZXh0Pgo8L3N2Zz4=" alt="User Action Lifecycle" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Phase | Description |
+|-------|-------------|
+| Action Start | User initiates the interaction (e.g., taps a button) |
+| Child Events | Network requests, web API calls, and errors are associated as children |
+| Action End | The action completes — either by timeout or explicit closure |
+| Beacon Sent | The captured action data is batched and transmitted to Dynatrace |
+For environments where SVG doesn't render
+-->
+<h3>Lifecycle Phases</h3>
+<ol>
+<li><strong>Action Start</strong> — The SDK detects a user interaction (tap, swipe) or the developer calls <code>enterAction()</code>. A timer begins.</li>
+<li><strong>Child Event Association</strong> — Any network requests, web API calls, or errors that occur while the action is open are automatically linked as child events. This gives you full visibility into what happened <em>during</em> the interaction.</li>
+<li><strong>Action End</strong> — The action closes in one of three ways:
+<ul>
+<li><strong>Auto-close:</strong> The SDK detects the interaction is complete (e.g., the UI finished loading).</li>
+<li><strong>Manual close:</strong> The developer calls <code>leaveAction()</code> on a custom action.</li>
+<li><strong>Timeout:</strong> If no new child events arrive within the agent's timeout window, the action closes automatically. The window differs by platform and framework (the React Native plugin documents a fixed 1000 ms for its auto actions on Android), so check your agent's documentation rather than assuming a value.</li>
+</ul>
+</li>
+<li><strong>Beacon Transmission</strong> — Completed actions are batched into a beacon and sent to Dynatrace during the next transmission cycle.</li>
+</ol>
+<h3>Duration Calculation</h3>
+<p>The action duration is measured from <strong>Action Start</strong> to <strong>Action End</strong>. It includes the time for all child events to complete. This means a tap action that triggers a slow API call will have a longer duration than a tap that only updates the local UI.</p>
+<blockquote>
+<p><strong>Important:</strong> The action timeout directly affects duration measurement. If the timeout is set too long, actions will appear artificially slow. If set too short, child events may not be properly associated.</p>
+</blockquote>
+<p><a id="rage-tap-detection"></a></p>
+<h2>4. Rage Tap Detection</h2>
+<p><strong>Rage taps</strong> occur when a user rapidly and repeatedly taps the same area of the screen. This behavior is a strong signal of <strong>user frustration</strong> — typically caused by unresponsive UI elements, slow loading, or confusing interaction patterns.</p>
+<h3>How Dynatrace Detects Rage Taps</h3>
+<p>OneAgent detects rage taps automatically (Android Gradle plugin 8.231+). On Android it can monitor only touch events handled by an <code>Activity</code>; components with their own touch processing, such as <code>Dialog</code> and <code>DreamService</code>, are not covered. Detection is on by default; switch it off per configuration with the <code>behavioralEvents</code> block:</p>
+<pre><code class="language-kotlin">configure&lt;com.dynatrace.tools.android.dsl.DynatraceExtension&gt; {
+    configurations {
+        create(&quot;sampleConfig&quot;) {
+            behavioralEvents {
+                detectRageTaps(false)
+            }
+        }
+    }
+}
+</code></pre>
+<blockquote>
+<p><strong>Correction (09/28/2026).</strong> Earlier revisions gave detection defaults (3 taps, 1 second, a proximity radius), a tunable sensitivity setting and a <code>RageTap</code> user-action type. None of those is documented, and the semantic dictionary (read 09/28/2026) has no rage-tap field on <code>user.events</code>. §6.3 therefore uses a clearly labelled query-side heuristic.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/monitoring-capabilities">Configure monitoring capabilities (DT docs)</a> — <em>&quot;OneAgent detects such behavior as a rage tap.&quot;</em></sub></p>
+</blockquote>
+<h3>Why Rage Taps Matter</h3>
+<p>Rage taps are a leading indicator of poor user experience. Common root causes include:</p>
+<ul>
+<li><strong>Unresponsive buttons</strong> — The UI does not provide feedback that the tap was registered.</li>
+<li><strong>Slow transitions</strong> — Navigation takes so long that users tap again thinking the first tap failed.</li>
+<li><strong>Broken interactions</strong> — The tap target is not wired to any action (dead zone).</li>
+<li><strong>Layout shifts</strong> — UI elements move after rendering, causing users to miss their intended target.</li>
+</ul>
+<blockquote>
+<p><strong>Tip:</strong> Combine rage tap analysis with crash and error data to prioritize UX fixes that have the biggest impact on user satisfaction.</p>
+</blockquote>
+<p><a id="custom-user-actions"></a></p>
+<h2>5. Custom User Actions</h2>
+<p>Custom user actions let you measure business-critical interactions that are not automatically captured by the SDK. Use them to wrap multi-step processes like checkout flows, search operations, or any logic where you want precise timing and child event association.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios">OneAgent SDK for iOS (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/oneagent-sdk-for-android">OneAgent SDK for Android (DT docs)</a>, <a href="https://pub.dev/packages/dynatrace_flutter_plugin">dynatrace_flutter_plugin (pub.dev)</a>.</sub></p>
+</blockquote>
+<h3>iOS (Swift)</h3>
+<pre><code class="language-swift">// iOS (Swift)
+let action = DTXAction.enter(withName: &quot;Add to Cart&quot;)
+// ... perform the action logic (API calls, UI updates) ...
+action?.leave()   // enter(withName:) returns an optional
+</code></pre>
+<h3>Android (Kotlin)</h3>
+<pre><code class="language-kotlin">// Android (Kotlin)
+val action = Dynatrace.enterAction(&quot;Add to Cart&quot;)
+// ... perform the action logic (API calls, UI updates) ...
+action.leaveAction()
+</code></pre>
+<h3>Flutter (Dart)</h3>
+<pre><code class="language-dart">// Flutter (Dart)
+DynatraceRootAction action = Dynatrace().enterAction('Add to Cart');
+// ... perform the action logic (API calls, UI updates) ...
+action.leaveAction();
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios">OneAgent SDK for iOS (DT docs)</a> — the Swift custom-action sample closes the action with <code>action?.leave()</code>; <a href="https://pub.dev/packages/dynatrace_flutter_plugin">dynatrace_flutter_plugin (pub.dev)</a> — <em>&quot;Only one sub-action level is allowed; you can't create a sub sub-action.&quot;</em></sub></p>
+</blockquote>
+<h3>Best Practices for Custom Actions</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Always call leave/leaveAction</strong></td>
+<td>Forgetting to close an action causes it to time out, inflating duration metrics</td>
+</tr>
+<tr>
+<td><strong>Use descriptive names</strong></td>
+<td><code>&quot;Add to Cart&quot;</code> is better than <code>&quot;button_click_42&quot;</code></td>
+</tr>
+<tr>
+<td><strong>Avoid nesting too deeply</strong></td>
+<td>Keep hierarchies shallow — the Flutter plugin allows only one sub-action level</td>
+</tr>
+<tr>
+<td><strong>Wrap error handling</strong></td>
+<td>Ensure <code>leaveAction()</code> is called in both success and error paths</td>
+</tr>
+<tr>
+<td><strong>Report values</strong></td>
+<td>Use <code>action.reportValue()</code> / <code>action.reportEvent()</code> on the open action to attach business context -- reported values must be part of a user action</td>
+</tr>
+</tbody>
+</table>
+<p><a id="querying-actions"></a></p>
+<h2>6. Querying Actions with DQL</h2>
+<p>Mobile user-action data is stored in the Grail <strong><code>user.events</code></strong> store, one record per event, with <code>characteristics.has_user_action</code> marking user actions and <code>in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;})</code> separating mobile from web events (MOBL-10 §1). Session-level data (one record per session) is in <strong><code>user.sessions</code></strong>. The useful action fields are <code>frontend.name</code> (the app), <code>ui_element.detected_name</code> (the control), <code>interaction.type</code>, and <code>duration</code> (a duration value, so compare it with <code>duration &gt; 2s</code>, not a number).</p>
+<blockquote>
+<p><strong>Correction (09/28/2026).</strong> Earlier revisions queried mobile actions from <code>bizevents</code> with <code>event.provider == &quot;www.dynatrace.com/mobile&quot;</code> and <code>useraction.*</code> fields. That data model does not exist: every such query ran without error and returned zero rows. All queries in this notebook now read <code>user.events</code>. <code>sendBizEvent()</code> payloads (MOBL-12 §2) are the one mobile data type that does land in <code>bizevents</code>.</p>
+</blockquote>
+<h3>6.1 Recent User Actions</h3>
+<p>Retrieve the most recent user actions across all monitored mobile applications to see what users are doing right now.</p>
+<pre><code class="language-dql">// Recent user actions across all mobile apps
+fetch user.events, from:-1h
+| filter in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;}) and characteristics.has_user_action
+| fields start_time, frontend.name, ui_element.detected_name, interaction.type, duration
+| sort start_time desc
+| limit 50
+</code></pre>
+<h3>6.2 Action Volume by Interaction Type</h3>
+<p>Understand the distribution of interaction types to see which interaction patterns dominate your mobile app usage.</p>
+<pre><code class="language-dql">// Action volume by interaction type across all apps
+fetch user.events, from:-1h
+| filter in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;}) and characteristics.has_user_action
+| summarize action_count = count(), by:{interaction.type}
+| sort action_count desc
+</code></pre>
+<h3>6.3 Repeated Taps on One Element</h3>
+<p>Find sessions in which a user tapped the same element five or more times in 24 hours. This is a query-side frustration heuristic built on <code>characteristics.has_user_interaction</code>, not the agent's own rage-tap detection. Tune the threshold to your app.</p>
+<pre><code class="language-dql">// Repeated taps on the same element within one session (frustration heuristic)
+// This is a query-side heuristic, NOT Dynatrace's rage-tap detection: the semantic
+// dictionary (read 09/28/2026) has no rage-tap field on user.events.
+fetch user.events, from:-24h
+| filter in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;}) and characteristics.has_user_interaction
+| summarize taps = count(), by:{dt.rum.session.id, frontend.name, ui_element.detected_name}
+| filter taps &gt;= 5
+| sort taps desc
+| limit 50
+</code></pre>
+<h3>6.4 Action Trends Over Time</h3>
+<p>Visualize user action trends on an hourly basis, split by interaction type. This query produces a time-series chart suitable for dashboards.</p>
+<pre><code class="language-dql">// User action trends over time (hourly)
+fetch user.events, from:-24h
+| filter in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;}) and characteristics.has_user_action
+| makeTimeseries action_count = count(), by:{interaction.type}, interval:1h
+</code></pre>
+<h3>6.5 Top Apps by Action Volume</h3>
+<p>Rank your mobile applications by the total number of user actions to identify the most actively used apps.</p>
+<pre><code class="language-dql">// Top apps by action volume
+fetch user.events, from:-1h
+| filter in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;}) and characteristics.has_user_action
+| summarize action_count = count(), by:{frontend.name}
+| sort action_count desc
+| limit 10
+</code></pre>
+<p><a id="optimizing-action-naming"></a></p>
+<h2>7. Optimizing Action Naming</h2>
+<p>Poorly named user actions make analysis difficult and can cause high-cardinality issues in aggregation queries. Follow these best practices to keep action names clean and useful.</p>
+<h3>Naming Rules</h3>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Good Example</th>
+<th>Bad Example</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Use descriptive, stable names</strong></td>
+<td><code>&quot;Add to Cart&quot;</code></td>
+<td><code>&quot;btn_click&quot;</code></td>
+<td>Descriptive names are self-documenting in queries and dashboards</td>
+</tr>
+<tr>
+<td><strong>Avoid dynamic values</strong></td>
+<td><code>&quot;View Product Details&quot;</code></td>
+<td><code>&quot;View Product #48291&quot;</code></td>
+<td>Dynamic values create thousands of unique action names, making aggregation impossible</td>
+</tr>
+<tr>
+<td><strong>No user IDs in names</strong></td>
+<td><code>&quot;User Profile&quot;</code></td>
+<td><code>&quot;Profile: user_abc123&quot;</code></td>
+<td>User-specific names are a cardinality explosion and a potential privacy issue</td>
+</tr>
+<tr>
+<td><strong>No timestamps in names</strong></td>
+<td><code>&quot;Refresh Dashboard&quot;</code></td>
+<td><code>&quot;Refresh 2026-02-24T10:30&quot;</code></td>
+<td>Timestamps guarantee every action name is unique, defeating grouping</td>
+</tr>
+<tr>
+<td><strong>Use consistent casing</strong></td>
+<td><code>&quot;Search Products&quot;</code></td>
+<td><code>&quot;search products&quot;</code> / <code>&quot;SEARCH_PRODUCTS&quot;</code></td>
+<td>Inconsistent casing creates duplicate entries in aggregations</td>
+</tr>
+<tr>
+<td><strong>Group related actions</strong></td>
+<td><code>&quot;Cart: Add Item&quot;</code>, <code>&quot;Cart: Remove Item&quot;</code></td>
+<td><code>&quot;addToCart&quot;</code>, <code>&quot;removeFromBasket&quot;</code></td>
+<td>Prefixes help group related actions in sorted lists</td>
+</tr>
+</tbody>
+</table>
+<h3>Action Naming Strategy</h3>
+<p>Adopt a naming convention across your team and enforce it through code review:</p>
+<ol>
+<li><strong>Use a prefix for the feature area</strong> — <code>&quot;Cart: &quot;</code>, <code>&quot;Search: &quot;</code>, <code>&quot;Profile: &quot;</code>, <code>&quot;Checkout: &quot;</code></li>
+<li><strong>Describe the user intent</strong> — <code>&quot;Add Item&quot;</code>, <code>&quot;Apply Filter&quot;</code>, <code>&quot;Submit Order&quot;</code></li>
+<li><strong>Combine into a consistent pattern</strong> — <code>&quot;Cart: Add Item&quot;</code>, <code>&quot;Search: Apply Filter&quot;</code>, <code>&quot;Checkout: Submit Order&quot;</code></li>
+</ol>
+<p>This approach produces clean, groupable action names that work well in both DQL queries and Dynatrace dashboards.</p>
+<h3>Renaming Actions in Dynatrace</h3>
+<p>If auto-detected action names are not descriptive enough, you can configure <strong>user action naming rules</strong> in Dynatrace:</p>
+<ol>
+<li>Open the mobile application's settings and go to <strong>Naming rules</strong> (RUM Classic: <strong>Frontend</strong> → your app → <strong>Edit</strong> → <strong>Naming rules</strong>)</li>
+<li>Define a <strong>naming rule</strong> (conditions on the generated name → a fixed name) or an <strong>extraction rule</strong></li>
+<li>Test rules against recent action data before deploying</li>
+</ol>
+<p>These are mobile rules over the generated action name — not the CSS-selector or page-group rules used for web applications. Check whether your frontend offers the same settings in the New RUM Experience before you rely on them. In code, you can also rename autogenerated actions with the SDK (<code>DTXAction</code> modify APIs on iOS).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/additional-configuration/naming-rules-mobile">User action naming rules for mobile (DT docs)</a> — <em>&quot;You can define user action naming rules to change the automatically generated names to a predefined name.&quot;</em>; <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios">OneAgent SDK for iOS (DT docs)</a> — <em>&quot;Set naming rules (mobile app settings &gt; Naming rules) to configure user action naming rules or extraction rules&quot;</em>.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Important:</strong> Naming rule changes apply only to newly captured actions. Historical data retains the original action names.</p>
+</blockquote>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li><strong>What user actions are</strong> — discrete interaction events with name, type, duration, and child events</li>
+<li><strong>Auto-detection capabilities</strong> — UIKit, Android Views, SwiftUI (<code>DTSwiftInstrumentor</code>) and Jetpack Compose (plugin 8.271+) are all auto-instrumented</li>
+<li><strong>Action lifecycle</strong> — from start through child event association to beacon transmission</li>
+<li><strong>Rage tap detection</strong> — an automatic frustration signal based on rapid repeated taps</li>
+<li><strong>Custom action instrumentation</strong> — platform-specific code for iOS, Android, and Flutter</li>
+<li><strong>DQL queries</strong> — how to retrieve and analyze user action data from Grail <code>user.events</code></li>
+<li><strong>Naming best practices</strong> — descriptive, stable names without dynamic values or user IDs</li>
+</ul>
+<hr />
+<h2>Next Steps</h2>
+<p>Continue to <strong>MOBL-06: Crash Reporting &amp; ANR Detection</strong> in the Mobile Monitoring series to explore:</p>
+<ul>
+<li>How crashes and ANRs are captured and reported</li>
+<li>Querying crash events from <code>user.events</code></li>
+<li>Symbolication and crash-rate trends</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>
