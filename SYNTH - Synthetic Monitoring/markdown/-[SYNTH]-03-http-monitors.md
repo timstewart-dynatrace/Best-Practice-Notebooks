@@ -177,7 +177,7 @@ Reference a stored value in any later request field with **single braces and no 
 
 `${userId}` is not substituted — the monitor sends the literal text.
 
-> <sub>**Sources:** [Pre- and post-execution scripting for HTTP monitors (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/http-monitors-classic/pre-and-post-scripting-for-http-monitors-classic) — *"You can also apply the value of a variable previously set using api.setValue() in subsequent HTTP monitor configuration fields using the {variable_name} convention."*; [Create and configure an HTTP monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor) — *"Pre and post execution scripts allows you to add custom logic between HTTP monitor requests to do things like parsing the response, modifying the request URL, or skipping requests under certain conditions."*</sub>
+> <sub>**Sources:** [Pre- and post-execution scripting for HTTP monitors (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/http-monitors-classic/pre-and-post-scripting-for-http-monitors-classic) — *"You can also apply the value of a variable previously set using api.setValue() in subsequent HTTP monitor configuration fields using the {variable_name} convention."*; [Create and configure an HTTP monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor) — *"Pre and post execution scripts allows you to add custom logic between HTTP monitor requests to do things like parsing the response, modifying the request URL, or skipping requests under certain conditions."*</sub>
 
 ```dql
 // Multi-step HTTP monitor — per-step performance
@@ -231,7 +231,7 @@ Request 2: API call
     Header: Authorization: Bearer {bearerToken}
 ```
 
-> <sub>**Sources:** [Create and configure an HTTP monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor), [Pre- and post-execution scripting for HTTP monitors (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/http-monitors-classic/pre-and-post-scripting-for-http-monitors-classic) — its OAuth example parses the token response with `JSON.parse` and stores the token with `api.setValue`.</sub>
+> <sub>**Sources:** [Create and configure an HTTP monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor), [Pre- and post-execution scripting for HTTP monitors (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/http-monitors-classic/pre-and-post-scripting-for-http-monitors-classic) — its OAuth example parses the token response with `JSON.parse` and stores the token with `api.setValue`.</sub>
 
 <a id="response-validation"></a>
 ## 5. Response Validation
@@ -270,7 +270,7 @@ if (!d.data || !d.data.users || d.data.users.length === 0) {
 }
 ```
 
-> <sub>**Sources:** [Create and configure an HTTP monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor), [Pre- and post-execution scripting for HTTP monitors (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/http-monitors-classic/pre-and-post-scripting-for-http-monitors-classic).</sub>
+> <sub>**Sources:** [Create and configure an HTTP monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor), [Pre- and post-execution scripting for HTTP monitors (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/http-monitors-classic/pre-and-post-scripting-for-http-monitors-classic).</sub>
 
 ```dql
 // HTTP status code distribution
@@ -417,7 +417,7 @@ Continue to **SYNTH-04: Private Locations** to learn about running monitors from
 - [Create and configure an HTTP monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor)
 - [HTTP monitor metrics in Synthetic on Grail (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-metrics/http-monitor-metrics)
 - [Credential vault (DT docs)](https://docs.dynatrace.com/docs/manage/credential-vault)
-- [Pre- and post-execution scripting for HTTP monitors (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/http-monitors-classic/pre-and-post-scripting-for-http-monitors-classic)
+- [Pre- and post-execution scripting for HTTP monitors (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/http-monitors-classic/pre-and-post-scripting-for-http-monitors-classic)
 - [Synthetic app (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app)
 
 ---

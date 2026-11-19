@@ -1,6 +1,6 @@
 # ADOPT-03: Success Metrics
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 3 of 6 | **Created:** March 2026 | **Last Updated:** 11/11/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 3 of 6 | **Created:** March 2026 | **Last Updated:** 11/18/2026
 
 ## Overview
 
@@ -275,8 +275,9 @@ Both steps need deployment events. Send them from your pipeline through the Even
 ```dql
 // Count deployment events in the last 7 days
 // CUSTOM_DEPLOYMENT is an event.type (the Events API v2 eventType), not an event.kind.
-// API-ingested events carry event.kind == "DAVIS_EVENT"; the kinds seen on the events
-// object are DAVIS_EVENT, DAVIS_PROBLEM, FLEET_EVENT and SYNTHETIC_EVENT, so a filter on
+// API-ingested events carry event.kind == "DAVIS_EVENT". Over 30 days on the validation tenant
+// (11/18/2026) the kinds on the events object were DAVIS_EVENT, SYNTHETIC_EVENT, DAVIS_PROBLEM,
+// FLEET_EVENT and MAINTENANCE_WINDOW — never CUSTOM_DEPLOYMENT — so a filter on
 // event.kind == "CUSTOM_DEPLOYMENT" matches nothing, whether or not you send deployments.
 fetch events, from:-7d
 | filter event.type == "CUSTOM_DEPLOYMENT"

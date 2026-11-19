@@ -1,6 +1,6 @@
 # DASH-01: Dashboard Fundamentals
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 10/26/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 11/18/2026
 
 ## Overview
 
@@ -120,7 +120,9 @@ Tiles are the individual visualization units. Each tile contains a single DQL qu
 
 ### Grouping Tiles
 
-A dashboard is a free-form grid of tiles; it has no collapsible "section" container (sections belong to Notebooks). Group related tiles by placing them together under a **Markdown tile** used as a header — for example, a "Service Health" header above the service tiles and an "Infrastructure" header above the host tiles.
+Group related tiles with a **row** — for example, a "Service Health" row for the service tiles and an "Infrastructure" row for the host tiles. Rows arrived with SaaS 1.350 (staged tenant rollout from 11/04/2026): *"A row is a full-width container for a group of tiles. You can give it a title and a color, and collapse it when you don't need those tiles."* and *"You no longer need a Markdown tile as a section heading."* Until 1.350 reaches your tenant, a dashboard has no collapsible container, so place related tiles together under a **Markdown tile** used as a header.
+
+> <sub>**Sources:** [Group dashboard tiles into rows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/dashboards-new/components/dashboard-component-row); [What's new in Dynatrace SaaS 1.350 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-350) — *"Bring structure to dashboards with collapsible rows"*.</sub>
 
 ### Variables
 
