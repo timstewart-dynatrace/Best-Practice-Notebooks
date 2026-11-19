@@ -19,7 +19,7 @@ Defining and operating Service Level Objectives in Dynatrace — SLIs, error bud
 7. [Upgrading Classic SLOs](markdown/-[SLO]-07-upgrading-classic-slos.md) — Moving SLO Classic definitions to the Service-Level Objectives app: inventory, translating the SLI to DQL, proving the new query measures the same services, segments vs access, rebuilding alerts and guardian objectives, Terraform, and the parallel run before retirement
 
 ## Usage
-1. Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.
+1. Open a notebook from the lineup below. Each one is also available as a Dynatrace notebook (JSON) to import into your tenant, so its queries run against your own data, and as a PDF for print.
 2. Start with the Fundamentals for orientation, then follow the numbered sequence — each notebook builds on the previous.
 
 ---

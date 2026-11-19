@@ -24,7 +24,7 @@ Step-by-step onboarding series for new Dynatrace users, from initial setup to da
 99. [Best Practice Summary](markdown/-[ONBRD]-99-best-practice-summary.md) — Consolidated best practices from the ONBRD series
 
 ## Usage
-1. Pick a format: import JSON from notebooks/ into Dynatrace, read pdfs/ for print, or open markdown/ for lightweight viewing.
+1. Open a notebook from the lineup below. Each one is also available as a Dynatrace notebook (JSON) to import into your tenant, so its queries run against your own data, and as a PDF for print.
 2. Follow the numbered order for the recommended learning path.
 
 ---

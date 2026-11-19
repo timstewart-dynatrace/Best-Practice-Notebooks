@@ -22,7 +22,7 @@ End-to-end application security observability with Dynatrace — covering Runtim
 10. [Dashboards, Reporting and Governance](markdown/-[APPSEC]-10-dashboards-reporting-governance.md) — Executive dashboard composition, governance cadence, and FinOps angle for AppSec DPS billing
 
 ## Usage
-1. Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.
+1. Open a notebook from the lineup below. Each one is also available as a Dynatrace notebook (JSON) to import into your tenant, so its queries run against your own data, and as a PDF for print.
 2. Start with notebook 01 (Fundamentals) for orientation, then follow the numbered sequence or jump to the topic most relevant to your role.
 
 ---

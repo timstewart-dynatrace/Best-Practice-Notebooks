@@ -23,7 +23,7 @@ Guide for migrating from Dynatrace Managed to Dynatrace SaaS.
 99. [Best Practice Summary](markdown/-[M2S]-99-best-practice-summary.md) — Definitive reference of all best practices from the M2S series
 
 ## Usage
-1. Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.
+1. Open a notebook from the lineup below. Each one is also available as a Dynatrace notebook (JSON) to import into your tenant, so its queries run against your own data, and as a PDF for print.
 2. Follow the numbered sequence for a complete migration journey.
 
 ---

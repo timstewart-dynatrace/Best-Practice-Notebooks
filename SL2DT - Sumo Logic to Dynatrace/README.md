@@ -23,7 +23,7 @@ Step-by-step migration path from Sumo Logic to Dynatrace, from strategy and inve
 99. [Summary & Runbook Index](markdown/-[SL2DT]-99-summary-and-runbook-index.md) — Single-page index and reference card for the entire SL2DT series
 
 ## Usage
-1. Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.
+1. Open a notebook from the lineup below. Each one is also available as a Dynatrace notebook (JSON) to import into your tenant, so its queries run against your own data, and as a PDF for print.
 2. Follow the numbered sequence for a complete migration journey.
 
 ---

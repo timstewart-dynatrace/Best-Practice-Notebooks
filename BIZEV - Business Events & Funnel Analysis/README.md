@@ -20,7 +20,7 @@ Turning business transactions into first-class observability data with Dynatrace
 99. [Best Practice Summary](markdown/-[BIZEV]-99-best-practice-summary.md) — Consolidated best practices from the BIZEV series
 
 ## Usage
-1. Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.
+1. Open a notebook from the lineup below. Each one is also available as a Dynatrace notebook (JSON) to import into your tenant, so its queries run against your own data, and as a PDF for print.
 2. Start with Business Events Fundamentals to understand the data model and ingestion approach.
 3. Instrument your applications to capture meaningful business transactions.
 4. Create funnels and dashboards to measure business outcomes and impact.

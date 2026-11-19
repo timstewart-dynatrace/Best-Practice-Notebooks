@@ -30,7 +30,7 @@ Best practices specific to a self-hosted Dynatrace Managed cluster: designing an
 99. [Best Practice Summary and Health-Check Checklist](markdown/-[DTM]-99-best-practice-summary.md) — The series on one page: a five-layer checklist, every signal that never emails you, a review cadence, the numbers worth knowing, anti-patterns, and the documentation's gaps and conflicts
 
 ## Usage
-1. Choose a format: read markdown/ for browsing or pdfs/ for print.
+1. Open a notebook from the lineup below. Each one is also available as a PDF for print.
 2. Start with DTM-00 for the series map, DTM-10 for the health model, then use the notebook for whichever layer is failing.
 
 ---

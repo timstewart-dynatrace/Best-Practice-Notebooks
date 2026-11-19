@@ -21,7 +21,7 @@ Monitoring cloud infrastructure and services across AWS, Azure, and GCP with Dyn
 99. [Best Practice Summary](markdown/-[CLOUD]-99-best-practice-summary.md) — Consolidated best practices from the CLOUD series
 
 ## Usage
-1. Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.
+1. Open a notebook from the lineup below. Each one is also available as a Dynatrace notebook (JSON) to import into your tenant, so its queries run against your own data, and as a PDF for print.
 2. Start with Cloud Integration Fundamentals to understand the architecture and integration models.
 3. Follow the cloud-specific notebooks to connect your AWS, Azure, or GCP environments.
 4. Explore multi-cloud patterns to coordinate observability across your cloud estate.

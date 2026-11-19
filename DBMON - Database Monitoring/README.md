@@ -19,7 +19,7 @@ End-to-end monitoring of SQL, NoSQL, cache, and messaging database platforms.
 99. [Best Practice Summary](markdown/-[DBMON]-99-best-practice-summary.md) — Consolidated best practices from the DBMON series
 
 ## Usage
-1. Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.
+1. Open a notebook from the lineup below. Each one is also available as a Dynatrace notebook (JSON) to import into your tenant, so its queries run against your own data, and as a PDF for print.
 2. Start with Database Monitoring Fundamentals to understand the monitoring architecture.
 3. Explore database-specific notebooks for your technology stack (SQL, NoSQL, cache, messaging).
 4. Master query analysis and create dashboards for proactive database performance management.

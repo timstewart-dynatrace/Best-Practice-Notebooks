@@ -21,7 +21,7 @@ Technical deep-dive companion to the NR2DT series — focused reference notebook
 9. [Toolchain Reference & End-to-End Runbook](markdown/-[NRLC]-09-toolchain-reference.md) — Tooling reference and end-to-end migration runbook
 
 ## Usage
-1. Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.
+1. Open a notebook from the lineup below. Each one is also available as a Dynatrace notebook (JSON) to import into your tenant, so its queries run against your own data, and as a PDF for print.
 2. Use alongside the NR2DT step-by-step series for full migration context.
 
 ---

@@ -21,7 +21,7 @@ Guidance for working with distributed traces and spans in Dynatrace.
 99. [Best Practice Summary](markdown/-[SPANS]-99-best-practice-summary.md) — Consolidated best practices from the SPANS series
 
 ## Usage
-1. Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.
+1. Open a notebook from the lineup below. Each one is also available as a Dynatrace notebook (JSON) to import into your tenant, so its queries run against your own data, and as a PDF for print.
 2. Start with Fundamentals, then follow the sequence as needed.
 
 ---
