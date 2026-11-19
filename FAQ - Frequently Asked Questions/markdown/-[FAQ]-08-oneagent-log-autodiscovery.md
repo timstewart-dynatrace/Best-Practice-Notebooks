@@ -1,6 +1,6 @@
 # FAQ-08: How Does OneAgent Decide Which Logs to Collect?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 08 — How OneAgent Decides Which Logs to Collect | **Created:** June 2026 | **Last Updated:** 11/11/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 08 — How OneAgent Decides Which Logs to Collect | **Created:** June 2026 | **Last Updated:** 11/18/2026
 
 ## Overview
 
@@ -232,9 +232,11 @@ The documented figures are a mix of supported levels and configurable defaults:
 | Paths per custom log source rule | **100** |
 | Custom log source rules per scope | **1,000** |
 
+> **Planned (OneAgent 1.351) — the 200-sources limit stops skipping logs.** The OneAgent 1.351 pre-release notes (published 11/17/2026, rollout planned from 12/01/2026) say: *"When a process group instance has more than 200 automatically detected log sources, the Log module now ingests logs from all of them without additional configuration."* They add: *"Ingesting previously skipped sources may increase your log volume, so review your log ingestion rules and adjust them if needed."* To see which sources were skipped, the notes point to the `pgi.lgi_explosion` self-monitoring events for OneAgent. Until 1.351 reaches your hosts, the 200-sources default and the advice below still apply. Pre-release notes can change before GA.
+
 These matter at design time. A directory with tens of thousands of rotated files, or a process group that legitimately emits more than 200 distinct log sources, goes beyond those figures — and the symptom (some files silently not collected) looks identical to a discovery rule miss. The 10,000-file and 200 MB/min figures are not hard ceilings: *"If you have more data, especially a higher level of magnitude, there's a high chance that the OneAgent log module supports it. Contact the Dynatrace support team to review your setup beforehand."* If you operate at that scale, have support review the setup, split logs across directories, raise the 200-sources default (*Maximum number of log sources per process group instance*), and verify coverage explicitly (§8) rather than assuming everything is captured.
 
-> <sub>**Sources:** [Log autodiscovery (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-autodiscovery) — *"In standard environments, OneAgent log module supports up to 10,000 files in one directory with logs and 200 MB of new log content per minute."*, the support-review quote above, the configurable default of 200 log sources per process-group instance, and the 500-byte binary-detection threshold; [Custom log source (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-custom-log-source) — 100 paths/rule and 1,000 rules/scope.</sub>
+> <sub>**Sources:** [Log autodiscovery (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-autodiscovery) — *"In standard environments, OneAgent log module supports up to 10,000 files in one directory with logs and 200 MB of new log content per minute."*, the support-review quote above, the configurable default of 200 log sources per process-group instance, and the 500-byte binary-detection threshold; [Custom log source (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-custom-log-source) — 100 paths/rule and 1,000 rules/scope; [OneAgent 1.351 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-351) — *"Rollout start on Dec 01, 2026 (planned)"*, the 200-sources quotes above.</sub>
 
 <a id="recommended-approach"></a>
 ## 8. Recommended Approach

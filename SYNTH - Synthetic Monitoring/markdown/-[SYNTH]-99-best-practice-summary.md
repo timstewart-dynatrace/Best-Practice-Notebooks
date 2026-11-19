@@ -81,7 +81,7 @@ Verify 1.344 has reached your tenant before relying on the combined form; until 
 | Add content-present assertion for positive match | Validation: contains `"status": "ok"` | Recommended |
 | Add content-absent assertion to catch error states | Validation: does not contain `"error"` | Recommended |
 
-> <sub>**Sources:** [Create and configure an HTTP monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor), [Pre- and post-execution scripting for HTTP monitors (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/http-monitors-classic/pre-and-post-scripting-for-http-monitors-classic) — *"You can also apply the value of a variable previously set using api.setValue() in subsequent HTTP monitor configuration fields using the {variable_name} convention."*</sub>
+> <sub>**Sources:** [Create and configure an HTTP monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor), [Pre- and post-execution scripting for HTTP monitors (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/http-monitors-classic/pre-and-post-scripting-for-http-monitors-classic) — *"You can also apply the value of a variable previously set using api.setValue() in subsequent HTTP monitor configuration fields using the {variable_name} convention."*</sub>
 
 <a id="browser-monitor-configuration"></a>
 ## 3. Browser Monitor Configuration

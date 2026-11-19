@@ -74,7 +74,7 @@ Network monitors complement application-level monitoring by testing at different
 - **Low Overhead**: Minimal resource consumption
 - **High Frequency**: every 1, 2, 5, 10, 15 or 30 minutes, every hour, or on demand
 
-> <sub>**Sources:** [Network availability monitoring (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/network-availability-monitors/network-availability-monitoring) — *"There are three types of network availability monitors."* and *"The maximum number of network activities executed per network availability monitor is 1,000."*, [Create a NAM monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/network-availability-monitors/create-a-nam-monitor) — *"All requests assigned to a particular step are executed in parallel."*</sub>
+> <sub>**Sources:** [Network availability monitoring (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/network-availability-monitors/network-availability-monitoring) — *"There are three types of network availability monitors."* and *"The maximum number of network activities executed per network availability monitor is 1,000."*, [Create a NAM monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/network-availability-monitors/create-a-nam-monitor) — *"All requests assigned to a particular step are executed in parallel."*</sub>
 
 ```dql
 // DISCOVERY -- list your network availability (multi-protocol) monitors,
@@ -417,7 +417,7 @@ Continue to **SYNTH-06: Analytics & Alerting** to learn about dashboards, SLOs, 
 
 ## References
 
-- [Network availability monitoring (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/network-availability-monitors/network-availability-monitoring)
+- [Network availability monitoring (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/network-availability-monitors/network-availability-monitoring)
 - [NAM monitor metrics in Synthetic on Grail (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-metrics/nam-monitor-metrics-latest)
 - [Synthetic on Grail (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic)
 - [Synthetic app (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app)

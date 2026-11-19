@@ -1,6 +1,6 @@
 # SYNTH-01: Synthetic Monitoring Fundamentals
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 1 of 6 | **Created:** December 2025 | **Last Updated:** 10/25/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 1 of 6 | **Created:** December 2025 | **Last Updated:** 11/18/2026
 
 ## Understanding Proactive Availability and Performance Testing
 This notebook introduces Dynatrace Synthetic Monitoring, which enables proactive testing of application availability, functionality, and performance from locations around the world.
@@ -102,9 +102,9 @@ ICMP, TCP and DNS checks of hosts and services that have no HTTP endpoint. *"Net
 
 ### Third-party results
 
-Results from external synthetic tools can be ingested through the third-party synthetic API; this series does not cover it.
+Results from external test runners can be ingested as **external synthetic tests**, through a dedicated platform ingest endpoint. The Classic third-party Synthetic API is being retired. This series does not cover either.
 
-> <sub>**Sources:** [Network availability monitoring (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/network-availability-monitors/network-availability-monitoring) — *"Network availability monitors are supported only on private Synthetic locations."*</sub>
+> <sub>**Sources:** [Network availability monitoring (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/network-availability-monitors/network-availability-monitoring) — *"Network availability monitors are supported only on private Synthetic locations."*; [External synthetic tests (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/external-synthetic-tests) — *"External synthetic tests let you ingest results from test runners outside Dynatrace"*; [Replace third-party Synthetic integrations (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/upgrade-digital-experience-monitoring/upgrade-synthetic-monitoring/upgrade-third-party-integrations) — *"The Classic third-party Synthetic API is being retired."*</sub>
 
 <a id="key-concepts"></a>
 ## 3. Key Concepts
@@ -430,7 +430,7 @@ Continue to **SYNTH-02: Browser Monitors** to learn how to create and optimize b
 - [Synthetic on Grail (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic)
 - [Synthetic app (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app)
 - [Synthetic on Grail metrics (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-metrics)
-- [Browser monitors (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/browser-monitors)
+- [Browser monitors (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/browser-monitors)
 - [Create and configure an HTTP monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor)
 
 ---

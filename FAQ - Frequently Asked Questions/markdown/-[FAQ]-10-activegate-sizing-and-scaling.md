@@ -1,6 +1,6 @@
 # FAQ-10: How Do I Size and Scale ActiveGates?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 10 — ActiveGate Sizing and Scaling | **Created:** July 2026 | **Last Updated:** 11/11/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 10 — ActiveGate Sizing and Scaling | **Created:** July 2026 | **Last Updated:** 11/18/2026
 
 ## Overview
 
@@ -292,6 +292,8 @@ A live-tenant enumeration (July 2026) shows ~53 keys in the namespace. By area:
 | **AWS module** | `aws.data_delay`, `aws.data_lost_monitoring_status`, `aws.elements.bad` / `.reported` / `.total`, `aws.empty_responses`, `aws.query_time`, `aws.requests` | health of the cloud-API-polling capability (§2) — delays/bad elements mean the polling AG is behind, not that AWS is down |
 | **Other modules** | `rum.beacon_forwarded_count`, `storage.directory.size` / `.limit` (quotas by `storage.volume.mountpoint`), `filecache.size_limit` | |
 
+> **Planned (ActiveGate 1.351) — the old `volume` and `module_name` dimensions are removed from the disk-space metrics.** The ActiveGate 1.351 pre-release notes (published 11/17/2026, rollout planned from 12/01/2026) say: *"Removed the volume and module_name dimensions from these ActiveGate disk space self-monitoring metrics."* The list covers `storage.volume.total`, `storage.volume.free`, `storage.directory.size` and `storage.directory.limit`, and the action is *"If your dashboards, alerts, or queries use these dimensions, switch to storage.volume.mountpoint and storage.volume.path instead."* Until 1.351 reaches your ActiveGates, grouping by whichever dimension your fleet emits (above) still works; move any rule that still groups by `volume` before it does. Pre-release notes can change before GA.
+
 > **ActiveGate 1.343 — `kubernetes.api.query_count` steps *down* at the upgrade, and that is the improvement.** ActiveGate 1.343 (published 07/15/2026, rollout from 07/28/2026) changed the Kubernetes module to call the Kubernetes API **once per minute**, down from multiple calls per collection cycle. So at the upgrade `kubernetes.api.query_count` drops sharply — this is the efficiency change landing, **not** the ActiveGate going quiet or the module failing.
 >
 > The trap is in the direction of the reading. Falling query counts otherwise look like a module that has stopped collecting, and a rule written to alert on a *drop* will fire on the upgrade. Conversely, a rule reading the post-upgrade level as headroom is comparing against a baseline that no longer exists. **Re-baseline `kubernetes.api.query_count` after the upgrade reaches the cluster before treating its trend as a saturation signal at all** — and correlate against `kubernetes.events.observed` / `.processed` and `kubernetes.pipeline_duration`, which reflect whether work is actually still being done. Verify the ActiveGate version in the cluster to know which side of the change a series is on.
@@ -413,6 +415,7 @@ If you do query `dsfm:` keys in DQL, mind the colon: `timeseries` parses an unqu
 > - <sub>[ActiveGate 1.335 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-335) — *"storage.volume.path and storage.volume.mountpoint now replace the previous volume dimension."* (re-read 10/22/2026; the 1.347 notes, updated 10/16/2026, no longer list a disk-space metric removal)</sub>
 > - <sub>[ActiveGate 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343) — the Kubernetes module now calls the Kubernetes API once per minute, down from multiple calls per collection cycle</sub>
 > - <sub>[ActiveGate 1.349 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-349) — *"Rollout start on Nov 09, 2026"*; *"ActiveGate now calls the Kubernetes API endpoint multiple times per cycle, up from only once per minute."*; *"A new metric, dt.sfm.active_gate.system.available_memory, shows correct available memory on Linux and Windows machines."*</sub>
+> - <sub>[ActiveGate 1.351 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-351) — *"Rollout start on Dec 01, 2026 (planned)"*; *"Removed the volume and module_name dimensions from these ActiveGate disk space self-monitoring metrics."*</sub>
 > - <sub>**Derived:** the Gen2/Gen3 split, the 50%/80% thresholds applied to JVM-level metrics, and the `dt.sfm.active_gate.*` catalog are all inferred rather than documented on the sfm page</sub>
 
 <a id="scale-up-or-out"></a>

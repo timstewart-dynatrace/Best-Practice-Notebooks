@@ -1,6 +1,6 @@
 # ADOPT-06: Maximizing Platform Value — Coverage Audit and Staged Enablement
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 6 of 6 | **Created:** July 2026 | **Last Updated:** 10/23/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 6 of 6 | **Created:** July 2026 | **Last Updated:** 11/18/2026
 
 ## Overview
 
@@ -167,7 +167,7 @@ Coverage gaps are a value decision usually made by default rather than on purpos
 
 - [OneAgent monitoring modes (DT docs)](https://docs.dynatrace.com/docs/platform/oneagent/monitoring-modes/monitoring-modes) — mode capability matrix and segment recommendations
 - [Enable OneAgent monitoring modes (DT docs)](https://docs.dynatrace.com/docs/platform/oneagent/monitoring-modes/enable-monitoring-modes)
-- [Host Monitoring modes overview — DPS (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability)
+- [Application & Infrastructure Observability overview — DPS (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability)
 - [Process deep monitoring (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/process-groups/configuration/pg-monitoring) — injection-at-start mechanics, per-PG rules, short-lived-process guidance
 
 ---

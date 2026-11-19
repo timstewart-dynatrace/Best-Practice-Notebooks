@@ -1,6 +1,6 @@
 # DASH-99: Best Practice Summary
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/26/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 11/18/2026
 
 ## Overview
 
@@ -43,7 +43,7 @@ This notebook consolidates every actionable best practice from the DASH series (
 | 2 | One purpose per dashboard | Each dashboard answers one audience's questions; never build an "everything" dashboard | Critical | DASH-01 |
 | 3 | Connect tiers with drill-down links | Add markdown tiles with dashboard links so users navigate Executive > Operations > Engineering | Recommended | DASH-02 |
 | 4 | Use dashboards for monitoring, notebooks for investigation | Dashboards = continuous monitoring, team visibility, stakeholder reporting. Notebooks = ad-hoc exploration, incident investigation, training | Critical | DASH-01 |
-| 5 | Group related tiles under header tiles | Dashboards have no collapsible section container — place related tiles together under a Markdown header tile (e.g., "Service Health", "Infrastructure") | Recommended | DASH-01 |
+| 5 | Group related tiles into rows | Put related tiles in a collapsible row (e.g., "Service Health", "Infrastructure") — rows arrive with SaaS 1.350 (staged rollout from 11/04/2026); until then, place them together under a Markdown header tile | Recommended | DASH-01 |
 
 <a id="design-and-layout"></a>
 
