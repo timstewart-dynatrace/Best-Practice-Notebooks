@@ -1,8 +1,14 @@
 # Best-Practice-Notebooks
 
-Dynatrace best-practice notebooks with matching PDF, HTML and Markdown exports. These assets are not officially supported by Dynatrace.
+Dynatrace best-practice notebooks. These assets are not officially supported by Dynatrace.
 
-> **Recommended:** Import the JSON files from notebooks/ into a Dynatrace tenant for the best experience. These notebooks contain interactive DQL queries that execute against your environment's data.
+<!-- site:omit — the site link only matters on GitHub; the site itself does not need it -->
+
+> **🌐 Prefer a browser?** Every notebook is also published as a web page: **[Best Practice Notebooks website](https://timstewart-dynatrace.github.io/Best-Practice-Notebooks/)**.
+
+<!-- /site:omit -->
+
+> **Recommended:** For the best experience, import the notebooks into your Dynatrace tenant. Each one is available as a Dynatrace notebook (JSON) file, and its DQL queries run against your own environment's data.
 
 
 
@@ -13,8 +19,10 @@ Dynatrace best-practice notebooks with matching PDF, HTML and Markdown exports. 
 > Already know what you need? Skip the playbook and **[browse all 33 topic series ↓](#all-series-az)**.
 
 > **🤖 Using this repo with an AI agent?** It's agent-ready: point your agent
-> (Claude Code, Codex, Cursor, Copilot…) at the repo root and it will find
-> [`AGENTS.md`](AGENTS.md), which routes it to the right series and notebook.
+> (Claude Code, Codex, Cursor, Copilot…) at the GitHub repository
+> [timstewart-dynatrace/Best-Practice-Notebooks](https://github.com/timstewart-dynatrace/Best-Practice-Notebooks)
+> and it will find [`AGENTS.md`](https://github.com/timstewart-dynatrace/Best-Practice-Notebooks/blob/main/AGENTS.md),
+> which routes it to the right series and notebook.
 > Most tools load it automatically.
 
 ## Layout

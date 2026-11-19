@@ -19,7 +19,7 @@ Framework for assessing and advancing Dynatrace observability adoption across th
 7. [Best Practice Summary](markdown/-[ADOPT]-99-best-practice-summary.md) — Consolidated checklist of every actionable best practice with priorities and source references
 
 ## Usage
-1. Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.
+1. Open a notebook from the lineup below. Each one is also available as a Dynatrace notebook (JSON) to import into your tenant, so its queries run against your own data, and as a PDF for print.
 2. Start with the Maturity Model to understand your current position and desired future state.
 3. Use the assessment framework to identify organizational and technical gaps.
 4. Define your success metrics and build your optimization roadmap accordingly.

@@ -20,7 +20,7 @@ Designing and building effective dashboards for different stakeholder audiences.
 99. [Best Practice Summary](markdown/-[DASH]-99-best-practice-summary.md) — Consolidated best practices from the DASH series
 
 ## Usage
-1. Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.
+1. Open a notebook from the lineup below. Each one is also available as a Dynatrace notebook (JSON) to import into your tenant, so its queries run against your own data, and as a PDF for print.
 2. Start with Dashboard Fundamentals to understand the core concepts and design philosophy.
 3. Learn role-specific approaches: executive, operations, or engineering focused dashboards.
 4. Master interactivity and sharing to maximize dashboard adoption across your organization.

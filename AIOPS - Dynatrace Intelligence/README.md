@@ -20,7 +20,7 @@ Comprehensive guide to AIOps and Dynatrace Intelligence — Causal AI, Predictiv
 99. [Series Summary](markdown/-[AIOPS]-99-series-summary.md) — DQL query index, cross-series pointers, and next steps for an AIOps initiative
 
 ## Usage
-1. Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.
+1. Open a notebook from the lineup below. Each one is also available as a Dynatrace notebook (JSON) to import into your tenant, so its queries run against your own data, and as a PDF for print.
 2. Start with the Overview for orientation, then follow the numbered sequence or jump to the topic most relevant to your role.
 
 ---

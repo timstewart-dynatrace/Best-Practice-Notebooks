@@ -48,7 +48,7 @@ You do not need every notebook — take the lane for the job your zones do. Note
 99. [Best Practice Summary](markdown/-[MZ2POL]-99-best-practice-summary.md) — Consolidated checklist across notebooks 00–13, the workshop and the LAB — every row names its source notebook
 
 ## Usage
-1. Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.
+1. Open a notebook from the lineup below. Each one is also available as a Dynatrace notebook (JSON) to import into your tenant, so its queries run against your own data, and as a PDF for print.
 2. Use the SDK analysis tool first, then follow the numbered migration path.
 
 ---

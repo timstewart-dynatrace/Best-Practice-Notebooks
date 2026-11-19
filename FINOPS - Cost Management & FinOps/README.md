@@ -15,7 +15,7 @@ Best practices for understanding, forecasting, and optimizing Dynatrace Platform
 3. [DPS Consumption Optimization — When to Cut, Tune, or Filter](markdown/-[FINOPS]-03-optimization-decision-framework.md) — Optimization decision tree and cut/tune/filter trade-offs
 
 ## Usage
-1. Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.
+1. Open a notebook from the lineup below. Each one is also available as a Dynatrace notebook (JSON) to import into your tenant, so its queries run against your own data, and as a PDF for print.
 2. Start with capability units for orientation, then forecast, then optimize.
 
 ---

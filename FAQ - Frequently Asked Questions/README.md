@@ -40,7 +40,7 @@ Frequently asked questions and answers across the Dynatrace Best-Practice Notebo
 28. [When and Where Should I Deploy ActiveGates?](markdown/-[FAQ]-28-when-and-where-to-deploy-activegates.md) — Decide per job, not per organization: which jobs still need an ActiveGate, what the container image can and can't run, pros and cons of VMs compared with Kubernetes, network-zone placement, the two-set Kubernetes recommendation, and a fleet audit query.
 
 ## Usage
-1. Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.
+1. Open a notebook from the lineup below. Each one is also available as a Dynatrace notebook (JSON) to import into your tenant, so its queries run against your own data, and as a PDF for print.
 2. FAQ entries are independent — read only the entries relevant to your current question.
 
 ---
