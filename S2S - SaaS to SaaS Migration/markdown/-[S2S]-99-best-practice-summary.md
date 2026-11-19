@@ -1,6 +1,6 @@
 # S2S-99: Best Practice Summary
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/24/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 11/18/2026
 
 ## Overview
 
@@ -265,9 +265,9 @@ This notebook contains **112 best practices** across 9 migration steps. The brea
 
 | Priority | Count | Guidance |
 |----------|-------|----------|
-| **Critical** | 81 | Must implement. Skipping any of these risks data loss, access failures, or migration rollback. |
+| **Critical** | 84 | Must implement. Skipping any of these risks data loss, access failures, or migration rollback. |
 | **Recommended** | 27 | Implement unless there is a documented reason not to. These reduce risk and cost. |
-| **Optional** | 4 | Implement if resources allow. These improve efficiency but are not blockers. |
+| **Optional** | 1 | Implement if resources allow. These improve efficiency but are not blockers. |
 
 Use the 9-step framework table and the 11-step Order of Operations table at the top of this notebook to track progress and govern execution sequence. Each step's best practices align to the corresponding S2S notebook (S2S-01 through S2S-10) for full context and worked examples.
 
